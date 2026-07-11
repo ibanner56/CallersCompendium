@@ -58,6 +58,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   final List<String> _tagIds = [];
   final List<String> _tunes = [];
   final List<_LinkDraft> _links = [];
+
+  /// Existing links this editor can't edit yet (relatedDance target picking is
+  /// deferred). Held verbatim so an edit-save round-trip never drops them.
+  final List<DanceLink> _preservedLinks = [];
   final Map<String, Object?> _customValues = {};
 
   List<Choreographer> _choreographers = [];
@@ -125,7 +129,13 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         _authorIds.addAll(dance.authorIds);
         _tagIds.addAll(dance.tagIds);
         _tunes.addAll(dance.tunes);
-        _links.addAll(dance.links.map(_LinkDraft.fromLink));
+        for (final link in dance.links) {
+          if (link.kind == LinkKind.relatedDance) {
+            _preservedLinks.add(link);
+          } else {
+            _links.add(_LinkDraft.fromLink(link));
+          }
+        }
         for (final value in dance.customFields) {
           _customValues[value.fieldId] = value.value;
         }
@@ -176,7 +186,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         _formationShape,
         detail: formationDetail.isEmpty ? null : formationDetail,
       );
-      final links = [for (final l in _links) ?l.toLink()];
+      final links = [..._preservedLinks, for (final l in _links) ?l.toLink()];
       final customFields = _collectCustomFields();
 
       final Dance dance;
@@ -241,7 +251,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           final text = _customTextControllers[def.id]?.text.trim() ?? '';
           if (text.isNotEmpty) value = num.tryParse(text);
         case CustomFieldType.boolean:
-          value = _customValues[def.id] as bool? ?? false;
+          // Only persist when the field actually has a value — either loaded
+          // from the dance or toggled by the user. Otherwise an untouched
+          // switch would write a spurious `false` for every boolean def.
+          if (_customValues.containsKey(def.id)) {
+            value = _customValues[def.id] as bool?;
+          }
         case CustomFieldType.choice:
           value = _customValues[def.id] as String?;
       }
@@ -740,7 +755,7 @@ class _AddAutocomplete extends StatelessWidget {
                 children: [
                   for (final choice in choices)
                     ListTile(
-                      key: ValueKey('$fieldKey-option-${choice.label}'),
+                      key: ValueKey('$fieldKey-option-${choice.optionKey}'),
                       dense: true,
                       leading: Icon(
                         choice.isCreate ? Icons.add : Icons.person_outline,
@@ -771,7 +786,13 @@ class _PickerChoice {
   final String name;
   final bool isCreate;
 
-  String get label => isCreate ? 'create:$name' : name;
+  /// Text shown in the field when this option is selected.
+  String get label => name;
+
+  /// Stable widget key for the option row. Existing items are keyed by id so
+  /// two same-named entities (dedup is deferred) don't collide; the sole
+  /// "create" row is keyed by its typed name.
+  String get optionKey => isCreate ? 'create:$name' : id!;
 }
 
 class _TuneEditor extends StatelessWidget {
@@ -862,6 +883,7 @@ class _LinksEditor extends StatelessWidget {
                     key: ValueKey('link-kind-${draft.id}'),
                     initialValue: draft.kind,
                     isDense: true,
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                     ),
@@ -954,8 +976,7 @@ class _LinkDraft {
 
   factory _LinkDraft.fromLink(DanceLink link) => _LinkDraft(
     id: link.id,
-    // relatedDance links have no URL editor here; show them as "other".
-    kind: link.kind == LinkKind.relatedDance ? LinkKind.other : link.kind,
+    kind: link.kind,
     urlController: TextEditingController(text: link.url ?? ''),
     labelController: TextEditingController(text: link.label ?? ''),
   );

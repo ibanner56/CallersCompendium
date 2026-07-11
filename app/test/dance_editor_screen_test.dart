@@ -15,11 +15,15 @@ Dance _dance({
   String title = 'Original',
   List<Figure> figures = const [],
   List<String> authorIds = const [],
+  List<DanceLink> links = const [],
+  List<CustomFieldValue> customFields = const [],
 }) => Dance(
   id: id,
   title: title,
   figures: figures,
   authorIds: authorIds,
+  links: links,
+  customFields: customFields,
   createdAt: _now,
   updatedAt: _now,
 );
@@ -198,6 +202,103 @@ void main() {
     expect(dance.customFields, hasLength(1));
     expect(dance.customFields.single.fieldId, 'f1');
     expect(dance.customFields.single.value, 'hello world');
+  });
+
+  testWidgets('untouched boolean custom field is not persisted', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'b1',
+        key: 'flag',
+        label: 'Flag',
+        type: CustomFieldType.boolean,
+      ),
+    );
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(find.byKey(const ValueKey('title-field')), 'B');
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    // The switch was never toggled: no spurious `false` value is written.
+    final dance = (await repos.dances.listAll()).single;
+    expect(dance.customFields, isEmpty);
+  });
+
+  testWidgets('toggled boolean custom field round-trips', (tester) async {
+    final repos = openTestRepositories();
+    await repos.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'b1',
+        key: 'flag',
+        label: 'Flag',
+        type: CustomFieldType.boolean,
+      ),
+    );
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(find.byKey(const ValueKey('title-field')), 'B');
+    await tester.tap(find.byKey(const ValueKey('custom-b1')));
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final dance = (await repos.dances.listAll()).single;
+    expect(dance.customFields, hasLength(1));
+    expect(dance.customFields.single.value, true);
+  });
+
+  testWidgets('editing preserves relatedDance links', (tester) async {
+    final repos = openTestRepositories();
+    // FK target for the relatedDance link.
+    await repos.dances.create(_dance(id: 'd2', title: 'Target'));
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Has related',
+        links: [
+          DanceLink(id: 'l1', kind: LinkKind.relatedDance, targetDanceId: 'd2'),
+          DanceLink(
+            id: 'l2',
+            kind: LinkKind.source,
+            url: 'https://example.com',
+          ),
+        ],
+      ),
+    );
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await tester.enterText(
+      find.byKey(const ValueKey('title-field')),
+      'Has related (edited)',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    final kinds = saved!.links.map((l) => l.kind).toList();
+    // The relatedDance link survives; the URL link is retained too.
+    expect(kinds, containsAll([LinkKind.relatedDance, LinkKind.source]));
+    final related = saved.links.firstWhere(
+      (l) => l.kind == LinkKind.relatedDance,
+    );
+    expect(related.targetDanceId, 'd2');
+  });
+
+  testWidgets('autocomplete options are keyed by id, not display name', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Chris'));
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(find.byKey(const ValueKey('author-input')), 'Chris');
+    await tester.pumpAndSettle();
+
+    // Existing options are keyed by id so two same-named entities (dedup is
+    // deferred) can't produce a duplicate-key crash in the options list.
+    expect(find.byKey(const ValueKey('author-option-c1')), findsOneWidget);
   });
 
   testWidgets('Collection New dance FAB opens the editor', (tester) async {
