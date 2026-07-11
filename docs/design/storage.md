@@ -24,7 +24,9 @@ dances(id PK, title, form, formation_base, formation_detail, progression,
        phrase_structure, figures_json, hook, calling_notes, status, tunes_json,
        created_at, updated_at, deleted_at)
 choreographers(id PK, name UNIQUE, website, notes)
-dance_authors(dance_id, choreographer_id, position, PK(dance_id, choreographer_id))
+dance_authors(dance_id, choreographer_id, position,
+             PK(dance_id, choreographer_id),
+             UNIQUE(dance_id, position))       -- no ambiguous ordering
 
 dance_figures(dance_id, idx, move, beats, progression, params_json,
               PK(dance_id, idx))              -- derived

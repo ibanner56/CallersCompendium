@@ -123,7 +123,9 @@ source URLs.
   `params` must validate against the move's parameter schema.
 - Beats ≥ 0; per-phrase overflow is a **warning**, not an error (real dances
   bend phrasing; choreography validation is a later milestone).
-- ProgramSlot has `danceId` XOR requires `text`.
+- ProgramSlot requires at least one of `danceId` or `text` to be non-null;
+  both may be set simultaneously (`text` is a per-slot caller note when a
+  dance is attached, or the full slot content for free-text slots like breaks).
 - Deleting a dance (soft) keeps program slots valid; UI shows tombstone.
 
 ## Explicitly out of v1
