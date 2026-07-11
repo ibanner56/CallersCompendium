@@ -525,6 +525,22 @@ void main() {
       expect(await dances.search(const AndFilter([])), ['a', 'b', 'c']);
     });
 
+    test('recentlyAdded by created_at DESC', () async {
+      await dances.create(
+        _dance(id: 'old', title: 'Old', createdAt: DateTime.utc(2020)),
+      );
+      await dances.create(
+        _dance(id: 'new', title: 'New', createdAt: DateTime.utc(2026)),
+      );
+      expect(
+        await dances.search(
+          const AndFilter([]),
+          sort: SearchSort.recentlyAdded,
+        ),
+        ['new', 'old'],
+      );
+    });
+
     test('recentlyEdited by updated_at DESC', () async {
       await dances.create(
         _dance(id: 'old', title: 'Old', updatedAt: DateTime.utc(2020)),

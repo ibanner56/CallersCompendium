@@ -1,16 +1,22 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
+import '../search/collection_query.dart';
+import '../widgets/advanced_query_builder.dart';
+import '../widgets/dance_list_tile.dart';
+import '../widgets/facet_panel.dart';
 import 'dance_detail_screen.dart';
 
-/// Collection screen: browse, sort, and lightly filter the dance library
-/// (docs/design/ux.md §1). The unified full-text search bar and structured
-/// query-builder filter panel described alongside this screen in ux.md are
-/// out of scope here — they land in roadmap item 3.2. This screen offers a
-/// simple client-side quick-filter (title/author text match) plus
-/// tag/formation toggle chips over the already-loaded list.
+/// Collection screen: browse and search the dance library
+/// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
+/// filter panel, and an "Advanced" boolean-tree query builder all compose a
+/// single [DanceFilter] that is run against the search core
+/// ([DanceRepository.search], `docs/design/search.md`). Results reuse the
+/// Phase 3.1 list rendering and open [DanceDetailScreen] on tap.
 class DanceListScreen extends StatefulWidget {
   const DanceListScreen({super.key});
 
@@ -19,119 +25,167 @@ class DanceListScreen extends StatefulWidget {
 }
 
 class _DanceListScreenState extends State<DanceListScreen> {
-  Future<List<DanceListEntry>>? _future;
+  /// The active dialect the compiler canonicalizes input against. No user
+  /// dialect setting is persisted yet (later roadmap work), so the canonical
+  /// dialect is the default; the compiler still canonicalizes against it.
+  static final Dialect _dialect = Dialect.canonical;
 
-  DanceSort _sort = DanceSort.title;
-  final _filterController = TextEditingController();
-  String _filterText = '';
-  final Set<String> _selectedTags = {};
-  final Set<FormationShape> _selectedFormations = {};
+  static const Duration _debounce = Duration(milliseconds: 250);
 
-  @override
-  void initState() {
-    super.initState();
-    _filterController.addListener(() {
-      setState(() => _filterText = _filterController.text.trim().toLowerCase());
-    });
-  }
+  final _ftsController = TextEditingController();
+  final _facets = FacetSelections();
+  final _advancedRoot = BuilderGroup();
+  bool _advancedEnabled = false;
+
+  CollectionSort _sort = CollectionSort.title;
+
+  late CompendiumRepositories _repos;
+  bool _started = false;
+
+  _CollectionData? _data;
+  Object? _loadError;
+
+  List<DanceListEntry> _results = const [];
+  bool _searching = false;
+  Object? _searchError;
+  int _searchSeq = 0;
+
+  Timer? _debounceTimer;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Only load once: didChangeDependencies also fires for unrelated
-    // ancestor changes (Theme/MediaQuery/Localizations), which shouldn't
-    // trigger a fresh DB read.
-    _future ??= _load(RepositoriesScope.of(context));
+    if (_started) return;
+    _started = true;
+    _repos = RepositoriesScope.of(context);
+    _boot();
   }
 
   @override
   void dispose() {
-    _filterController.dispose();
+    _debounceTimer?.cancel();
+    _ftsController.dispose();
     super.dispose();
   }
 
-  Future<List<DanceListEntry>> _load(CompendiumRepositories repos) async {
-    final dances = await repos.dances.listAll();
-    final choreographers = await repos.choreographers.listAll();
-    final tags = await repos.tags.listAll();
-    final listFieldDefs = (await repos.customFieldDefs.listAll())
-        .where((def) => def.showInList)
-        .toList();
-    final lastCalled = await repos.programs.lastCalledByDance();
-
-    final choreographerNames = {for (final c in choreographers) c.id: c.name};
-    final tagNames = {for (final t in tags) t.id: t.name};
-
-    return [
-      for (final dance in dances)
-        DanceListEntry(
-          dance: dance,
-          authorNames: [
-            for (final id in dance.authorIds)
-              if (choreographerNames[id] != null) choreographerNames[id]!,
-          ],
-          tagNames: [
-            for (final id in dance.tagIds)
-              if (tagNames[id] != null) tagNames[id]!,
-          ],
-          listCustomFields: [
-            for (final def in listFieldDefs)
-              for (final value in dance.customFields)
-                if (value.fieldId == def.id) '${def.label}: ${value.value}',
-          ],
-          lastCalled: lastCalled[dance.id],
-        ),
-    ];
+  Future<void> _boot() async {
+    try {
+      final data = await _CollectionData.load(_repos);
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _loadError = null;
+      });
+      await _runSearch();
+    } catch (error) {
+      if (mounted) setState(() => _loadError = error);
+    }
   }
 
-  void _retry() {
-    setState(() => _future = _load(RepositoriesScope.of(context)));
-  }
-
-  List<DanceListEntry> _applyFilters(List<DanceListEntry> entries) {
-    var result = entries.where((e) {
-      if (_filterText.isNotEmpty && !e.filterText.contains(_filterText)) {
-        return false;
-      }
-      if (_selectedTags.isNotEmpty && !e.tagNames.any(_selectedTags.contains)) {
-        return false;
-      }
-      if (_selectedFormations.isNotEmpty &&
-          !_selectedFormations.contains(e.dance.formation.shape)) {
-        return false;
-      }
-      return true;
-    }).toList();
-
-    result.sort((a, b) {
-      switch (_sort) {
-        case DanceSort.title:
-          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
-        case DanceSort.author:
-          final aName = a.authorNames.isEmpty
-              ? ''
-              : a.authorNames.first.toLowerCase();
-          final bName = b.authorNames.isEmpty
-              ? ''
-              : b.authorNames.first.toLowerCase();
-          final cmp = aName.compareTo(bName);
-          return cmp != 0
-              ? cmp
-              : a.title.toLowerCase().compareTo(b.title.toLowerCase());
-        case DanceSort.recentlyAdded:
-          return b.dance.createdAt.compareTo(a.dance.createdAt);
-        case DanceSort.lastCalled:
-          // Never-called dances sort after called ones, most-recent first.
-          if (a.lastCalled == null && b.lastCalled == null) {
-            return a.title.toLowerCase().compareTo(b.title.toLowerCase());
-          }
-          if (a.lastCalled == null) return 1;
-          if (b.lastCalled == null) return -1;
-          return b.lastCalled!.compareTo(a.lastCalled!);
-      }
+  void _retryLoad() {
+    setState(() {
+      _data = null;
+      _loadError = null;
     });
-    return result;
+    _boot();
   }
+
+  /// Whether the current query is a bare full-text search (relevance sort is
+  /// only meaningful then, per `docs/design/search.md` decision 6).
+  bool get _isBareFullText => isBareFullText(
+    ftsText: _ftsController.text,
+    facets: _facets,
+    advancedRoot: _advancedEnabled ? _advancedRoot : null,
+  );
+
+  List<CollectionSort> get _availableSorts => [
+    if (_isBareFullText) CollectionSort.relevance,
+    CollectionSort.title,
+    CollectionSort.author,
+    CollectionSort.recentlyAdded,
+    CollectionSort.lastCalled,
+  ];
+
+  Future<void> _runSearch() async {
+    final data = _data;
+    if (data == null) return;
+
+    // Relevance is only valid for a bare full-text search; fall back if the
+    // query stopped being one.
+    if (_sort == CollectionSort.relevance && !_isBareFullText) {
+      _sort = CollectionSort.title;
+    }
+
+    final seq = ++_searchSeq;
+    setState(() {
+      _searching = true;
+      _searchError = null;
+    });
+
+    try {
+      final filter = buildCollectionFilter(
+        ftsText: _ftsController.text,
+        facets: _facets,
+        defs: data.customFieldDefs,
+        advancedRoot: _advancedEnabled ? _advancedRoot : null,
+      );
+      final ids = await _repos.dances.search(
+        filter,
+        sort: _sort.searchSort,
+        dialect: _dialect,
+      );
+      if (!mounted || seq != _searchSeq) return;
+      setState(() {
+        _results = [
+          for (final id in ids)
+            if (data.dancesById[id] case final dance?) data.entryFor(dance),
+        ];
+        _searching = false;
+      });
+    } catch (error) {
+      if (!mounted || seq != _searchSeq) return;
+      setState(() {
+        _searchError = error;
+        // Clear stale results so the live count matches the error state rather
+        // than announcing the previous (now incorrect) count.
+        _results = const [];
+        _searching = false;
+      });
+    }
+  }
+
+  void _onFtsChanged(String _) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(_debounce, _runSearch);
+    // Reflect relevance availability immediately (before the debounce fires).
+    setState(() {});
+  }
+
+  void _onFacetsChanged() {
+    setState(() {});
+    _runSearch();
+  }
+
+  void _onAdvancedChanged() {
+    setState(() {});
+    _runSearch();
+  }
+
+  void _clearAll() {
+    setState(() {
+      _ftsController.clear();
+      _facets.clear();
+      _advancedRoot.children.clear();
+      _advancedRoot.kind = GroupKind.all;
+      _advancedEnabled = false;
+    });
+    _runSearch();
+  }
+
+  bool get _hasActiveQuery =>
+      _ftsController.text.trim().isNotEmpty ||
+      !_facets.isEmpty ||
+      (_advancedEnabled && _advancedRoot.toFilter() != null);
 
   @override
   Widget build(BuildContext context) {
@@ -139,228 +193,352 @@ class _DanceListScreenState extends State<DanceListScreen> {
       appBar: AppBar(
         title: const Text('Collection'),
         actions: [
-          PopupMenuButton<DanceSort>(
-            tooltip: 'Sort by',
-            initialValue: _sort,
-            onSelected: (value) => setState(() => _sort = value),
-            itemBuilder: (context) => [
-              for (final option in DanceSort.values)
-                PopupMenuItem(value: option, child: Text(option.label)),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.sort),
-                  const SizedBox(width: 4),
-                  Text('Sort: ${_sort.label}'),
-                ],
+          if (_data != null)
+            PopupMenuButton<CollectionSort>(
+              tooltip: 'Sort by',
+              initialValue: _sort,
+              onSelected: (value) {
+                setState(() => _sort = value);
+                _runSearch();
+              },
+              itemBuilder: (context) => [
+                for (final option in _availableSorts)
+                  PopupMenuItem(value: option, child: Text(option.label)),
+              ],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.sort),
+                    const SizedBox(width: 4),
+                    Text('Sort: ${_sort.label}'),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
-      body: FutureBuilder<List<DanceListEntry>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(
-              child: CircularProgressIndicator(
-                semanticsLabel: 'Loading dances',
-              ),
-            );
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 48),
-                  const SizedBox(height: 8),
-                  const Text('Could not load the collection.'),
-                  const SizedBox(height: 8),
-                  FilledButton(onPressed: _retry, child: const Text('Retry')),
-                ],
-              ),
-            );
-          }
-
-          final allEntries = snapshot.data ?? const [];
-          if (allEntries.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Your collection is empty. Add or import a dance to '
-                  'get started.',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
-          }
-
-          final availableTags =
-              (allEntries.expand((e) => e.tagNames).toSet().toList())..sort();
-          final availableFormations =
-              allEntries.map((e) => e.dance.formation.shape).toSet().toList()
-                ..sort(
-                  (a, b) =>
-                      formationShapeLabel(a).compareTo(formationShapeLabel(b)),
-                );
-
-          final visible = _applyFilters(allEntries);
-
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: TextField(
-                  controller: _filterController,
-                  decoration: const InputDecoration(
-                    labelText: 'Filter dances',
-                    hintText: 'Filter by title or author',
-                    prefixIcon: Icon(Icons.filter_alt_outlined),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ),
-              if (availableTags.isNotEmpty || availableFormations.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        for (final formation in availableFormations)
-                          FilterChip(
-                            label: Text(formationShapeLabel(formation)),
-                            avatar: const Icon(Icons.grid_view, size: 18),
-                            selected: _selectedFormations.contains(formation),
-                            onSelected: (selected) => setState(() {
-                              selected
-                                  ? _selectedFormations.add(formation)
-                                  : _selectedFormations.remove(formation);
-                            }),
-                          ),
-                        for (final tag in availableTags)
-                          FilterChip(
-                            label: Text(tag),
-                            avatar: const Icon(Icons.label_outline, size: 18),
-                            selected: _selectedTags.contains(tag),
-                            onSelected: (selected) => setState(() {
-                              selected
-                                  ? _selectedTags.add(tag)
-                                  : _selectedTags.remove(tag);
-                            }),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      '${visible.length} '
-                      '${visible.length == 1 ? 'dance' : 'dances'}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: visible.isEmpty
-                    ? const Center(
-                        child: Text('No dances match the current filters.'),
-                      )
-                    : ListView.builder(
-                        itemCount: visible.length,
-                        itemBuilder: (context, index) =>
-                            _DanceListTile(entry: visible[index]),
-                      ),
-              ),
-            ],
-          );
-        },
-      ),
+      body: _buildBody(),
     );
   }
-}
 
-class _DanceListTile extends StatelessWidget {
-  const _DanceListTile({required this.entry});
-
-  final DanceListEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    final dance = entry.dance;
-    final theme = Theme.of(context);
-
-    return ListTile(
-      title: Text(dance.title),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          crossAxisAlignment: WrapCrossAlignment.center,
+  Widget _buildBody() {
+    if (_loadError != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            if (entry.authorNames.isNotEmpty)
-              Text(
-                entry.authorNames.join(', '),
-                style: theme.textTheme.bodyMedium,
-              ),
-            Chip(
-              avatar: const Icon(Icons.grid_view, size: 16),
-              label: Text(formationLabel(dance.formation)),
-              visualDensity: VisualDensity.compact,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            const Icon(Icons.error_outline, size: 48),
+            const SizedBox(height: 8),
+            const Text('Could not load the collection.'),
+            const SizedBox(height: 8),
+            FilledButton(onPressed: _retryLoad, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    final data = _data;
+    if (data == null) {
+      return const Center(
+        child: CircularProgressIndicator(semanticsLabel: 'Loading dances'),
+      );
+    }
+
+    if (data.dancesById.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Your collection is empty. Add or import a dance to get started.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: TextField(
+            controller: _ftsController,
+            onChanged: _onFtsChanged,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              labelText: 'Search dances',
+              hintText: 'Search titles, authors, figures, notes…',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _hasActiveQuery
+                  ? IconButton(
+                      tooltip: 'Clear search and filters',
+                      icon: const Icon(Icons.clear),
+                      onPressed: _clearAll,
+                    )
+                  : null,
+              border: const OutlineInputBorder(),
             ),
-            if (dance.status != DanceStatus.active)
-              Chip(
-                avatar: Icon(
-                  dance.status == DanceStatus.deprecated
-                      ? Icons.history_toggle_off
-                      : Icons.report_problem_outlined,
-                  size: 16,
-                ),
-                label: Text(
-                  dance.status == DanceStatus.deprecated
-                      ? 'Deprecated'
-                      : 'Broken',
-                ),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        Expanded(
+          child: CustomScrollView(
+            slivers: [
+              SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildFiltersPanel(data),
+                  _buildAdvancedPanel(data),
+                  _buildResultCount(),
+                  const Divider(height: 1),
+                ]),
               ),
-            for (final tag in entry.tagNames)
-              Chip(
-                avatar: const Icon(Icons.label_outline, size: 16),
-                label: Text(tag),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              _buildResultsSliver(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFiltersPanel(_CollectionData data) {
+    final activeCount = _activeFacetCount();
+    return ExpansionTile(
+      key: const ValueKey('filters-panel'),
+      leading: const Icon(Icons.filter_alt_outlined),
+      title: Text(
+        activeCount == 0 ? 'Filters' : 'Filters ($activeCount active)',
+      ),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      children: [
+        FacetPanel(
+          facets: _facets,
+          forms: data.forms,
+          formations: data.formations,
+          progressions: data.progressions,
+          statuses: data.statuses,
+          authors: data.authors,
+          tags: data.tags,
+          choiceFields: data.choiceFields,
+          booleanFields: data.booleanFields,
+          onChanged: _onFacetsChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdvancedPanel(_CollectionData data) {
+    return ExpansionTile(
+      key: const ValueKey('advanced-panel'),
+      leading: const Icon(Icons.account_tree_outlined),
+      title: const Text('Advanced'),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      children: [
+        SwitchListTile(
+          key: const ValueKey('advanced-enable'),
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Use advanced query'),
+          subtitle: const Text(
+            'Combine figures and sequences with all / any / none groups.',
+          ),
+          value: _advancedEnabled,
+          onChanged: (value) {
+            setState(() => _advancedEnabled = value);
+            _runSearch();
+          },
+        ),
+        if (_advancedEnabled)
+          AdvancedQueryBuilder(
+            root: _advancedRoot,
+            taxonomy: data.taxonomy,
+            sectionLabels: data.sectionLabels,
+            onChanged: _onAdvancedChanged,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildResultCount() {
+    final count = _results.length;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                '$count ${count == 1 ? 'dance' : 'dances'}',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-            for (final field in entry.listCustomFields)
-              Chip(
-                label: Text(field),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            if (_searching) ...[
+              const SizedBox(width: 8),
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
+            ],
           ],
         ),
       ),
-      isThreeLine: false,
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => DanceDetailScreen(danceId: dance.id)),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
   }
+
+  Widget _buildResultsSliver() {
+    if (_searchError != null) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(
+            child: Text('Something went wrong running the search.'),
+          ),
+        ),
+      );
+    }
+    if (_results.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: Text('No dances match your search.')),
+        ),
+      );
+    }
+    // Lazily built so large collections stay virtualized (only visible rows
+    // are constructed).
+    return SliverList.builder(
+      itemCount: _results.length,
+      itemBuilder: (context, index) => DanceListTile(entry: _results[index]),
+    );
+  }
+
+  int _activeFacetCount() {
+    return _facets.forms.length +
+        _facets.formations.length +
+        _facets.progressions.length +
+        _facets.statuses.length +
+        _facets.authorIds.length +
+        _facets.tagIds.length +
+        _facets.choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
+        _facets.booleanValues.length;
+  }
+}
+
+/// Reference/vocabulary data loaded once for the Collection, used both to build
+/// facet controls and to hydrate search-result ids into [DanceListEntry]s
+/// without re-querying per row.
+class _CollectionData {
+  _CollectionData({
+    required this.dancesById,
+    required this.choreographerNames,
+    required this.tagNames,
+    required this.customFieldDefs,
+    required this.listFieldDefs,
+    required this.choiceFields,
+    required this.booleanFields,
+    required this.lastCalled,
+    required this.authors,
+    required this.tags,
+    required this.forms,
+    required this.formations,
+    required this.progressions,
+    required this.statuses,
+    required this.taxonomy,
+    required this.sectionLabels,
+  });
+
+  final Map<String, Dance> dancesById;
+  final Map<String, String> choreographerNames;
+  final Map<String, String> tagNames;
+  final List<CustomFieldDef> customFieldDefs;
+  final List<CustomFieldDef> listFieldDefs;
+  final List<CustomFieldDef> choiceFields;
+  final List<CustomFieldDef> booleanFields;
+  final Map<String, DateTime> lastCalled;
+  final List<Choreographer> authors;
+  final List<Tag> tags;
+  final List<DanceForm> forms;
+  final List<FormationShape> formations;
+  final List<Progression> progressions;
+  final List<DanceStatus> statuses;
+  final Taxonomy taxonomy;
+  final List<String> sectionLabels;
+
+  static Future<_CollectionData> load(CompendiumRepositories repos) async {
+    final dances = await repos.dances.listAll();
+    final choreographers = await repos.choreographers.listAll();
+    final tags = await repos.tags.listAll();
+    final defs = await repos.customFieldDefs.listAll();
+    final lastCalled = await repos.programs.lastCalledByDance();
+
+    final dancesById = {for (final d in dances) d.id: d};
+    final choreographerNames = {for (final c in choreographers) c.id: c.name};
+    final tagNames = {for (final t in tags) t.id: t.name};
+
+    // Facet vocabularies: only values actually present in the collection, so
+    // empty facets don't clutter the panel (matching the Phase 3.1 approach).
+    final forms = dances.map((d) => d.form).toSet().toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
+    final formations = dances.map((d) => d.formation.shape).toSet().toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
+    final progressions = dances.map((d) => d.progression).toSet().toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
+    final statuses = dances.map((d) => d.status).toSet().toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
+
+    final usedAuthorIds = {for (final d in dances) ...d.authorIds};
+    final usedTagIds = {for (final d in dances) ...d.tagIds};
+    final authors =
+        choreographers.where((c) => usedAuthorIds.contains(c.id)).toList()
+          ..sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
+    final tagList = tags.where((t) => usedTagIds.contains(t.id)).toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+    final searchable = defs.where((d) => d.searchable).toList();
+
+    return _CollectionData(
+      dancesById: dancesById,
+      choreographerNames: choreographerNames,
+      tagNames: tagNames,
+      customFieldDefs: defs,
+      listFieldDefs: defs.where((d) => d.showInList).toList(),
+      choiceFields: searchable
+          .where((d) => d.type == CustomFieldType.choice)
+          .toList(),
+      booleanFields: searchable
+          .where((d) => d.type == CustomFieldType.boolean)
+          .toList(),
+      lastCalled: lastCalled,
+      authors: authors,
+      tags: tagList,
+      forms: forms,
+      formations: formations,
+      progressions: progressions,
+      statuses: statuses,
+      taxonomy: contraTaxonomy,
+      sectionLabels: PhraseStructure.standard.labels,
+    );
+  }
+
+  DanceListEntry entryFor(Dance dance) => DanceListEntry(
+    dance: dance,
+    authorNames: [
+      for (final id in dance.authorIds)
+        if (choreographerNames[id] != null) choreographerNames[id]!,
+    ],
+    tagNames: [
+      for (final id in dance.tagIds)
+        if (tagNames[id] != null) tagNames[id]!,
+    ],
+    listCustomFields: [
+      for (final def in listFieldDefs)
+        for (final value in dance.customFields)
+          if (value.fieldId == def.id) '${def.label}: ${value.value}',
+    ],
+    lastCalled: lastCalled[dance.id],
+  );
 }

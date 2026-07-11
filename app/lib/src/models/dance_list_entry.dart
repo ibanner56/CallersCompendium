@@ -22,26 +22,6 @@ class DanceListEntry {
   final DateTime? lastCalled;
 
   String get title => dance.title;
-
-  /// Lowercase text blob (title + authors + tags) the quick-filter matches
-  /// against.
-  String get filterText =>
-      '${dance.title} ${authorNames.join(' ')} ${tagNames.join(' ')}'
-          .toLowerCase();
-}
-
-/// Sort options for the Collection list (docs/design/ux.md §1). `lastCalled`
-/// is meaningful once Programs (Phase 4) exist; dances never called sort to
-/// the end.
-enum DanceSort { title, author, recentlyAdded, lastCalled }
-
-extension DanceSortLabel on DanceSort {
-  String get label => switch (this) {
-    DanceSort.title => 'Title',
-    DanceSort.author => 'Author',
-    DanceSort.recentlyAdded => 'Recently added',
-    DanceSort.lastCalled => 'Last called',
-  };
 }
 
 /// Human-readable label for a [FormationShape], for chips and filters.
