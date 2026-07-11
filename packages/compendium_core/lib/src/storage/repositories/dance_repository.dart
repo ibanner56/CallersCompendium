@@ -2,11 +2,15 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../../dialect/dialect.dart';
 import '../../dialect/renderer.dart';
 import '../../model/dance.dart';
 import '../../model/dance_link.dart';
 import '../../model/formation.dart';
 import '../../model/provenance.dart' as model;
+import '../../search/search_sort.dart';
+import '../../search/filter.dart';
+import '../../search/filter_compiler.dart';
 import '../../serialization/figure_codec.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
@@ -162,6 +166,7 @@ class DanceRepository {
       _db.danceFigures,
     )..where((t) => t.danceId.equals(dance.id))).go();
     final canonicalTexts = <String>[];
+    final sectioned = dance.sectionedFigures;
     for (var i = 0; i < dance.figures.length; i++) {
       final figure = dance.figures[i];
       final canonicalText = _renderer.renderCanonical(figure);
@@ -177,6 +182,7 @@ class DanceRepository {
               progression: Value(figure.progression),
               paramsJson: Value(jsonEncode(figure.params)),
               canonicalText: Value(canonicalText),
+              section: Value(sectioned[i].label),
             ),
           );
     }
@@ -313,6 +319,129 @@ class DanceRepository {
         )
         .get();
     return [for (final r in rows) r.read<String>('dance_id')];
+  }
+
+  /// Composable structural + metadata search (`docs/design/search.md`).
+  ///
+  /// Compiles [filter] to a single parameterized query over the derived
+  /// indexes ([FilterCompiler]) and returns the matching non-deleted dance
+  /// ids in [sort] order. [dialect] (default [Dialect.canonical]) canonicalizes
+  /// move names, full-text terms and role-valued params at the compiler
+  /// boundary so a dialect user's query matches the canonical stored tokens.
+  ///
+  /// [SearchSort.title], [SearchSort.recentlyEdited] and (bare-full-text)
+  /// [SearchSort.relevance] are ordered in SQL; [SearchSort.author] and
+  /// [SearchSort.lastCalled] reuse the Phase 3.1 orderings and are applied in
+  /// Dart over the fetched id set. Those two keys are **not** columns on
+  /// `dances`: the first author's name comes from `dance_authors` joined to
+  /// `choreographers`, and the last-called timestamp is a `MAX(performed_at)`
+  /// aggregate over `program_slots`/`programs` — so they can't be an SQL
+  /// `ORDER BY` here and are computed as a post-fetch step. The post-sort is
+  /// stable, preserving the SQL title base order for ties.
+  Future<List<String>> search(
+    DanceFilter filter, {
+    SearchSort sort = SearchSort.title,
+    Dialect? dialect,
+  }) async {
+    final compiled = FilterCompiler(dialect).compile(filter, sort: sort);
+    final rows = await _db
+        .customSelect(
+          compiled.sql,
+          variables: [for (final b in compiled.binds) Variable(b)],
+        )
+        .get();
+    final ids = [for (final r in rows) r.read<String>(r.data.keys.first)];
+    switch (sort) {
+      case SearchSort.author:
+        return _sortByAuthor(ids);
+      case SearchSort.lastCalled:
+        return _sortByLastCalled(ids);
+      case SearchSort.title:
+      case SearchSort.recentlyEdited:
+      case SearchSort.relevance:
+        return ids;
+    }
+  }
+
+  /// Like [search] but returns hydrated [Dance]s in the same order. Convenience
+  /// for callers that immediately need the full objects; the id-returning
+  /// [search] is the primary contract.
+  Future<List<Dance>> searchDances(
+    DanceFilter filter, {
+    SearchSort sort = SearchSort.title,
+    Dialect? dialect,
+  }) async {
+    final ids = await search(filter, sort: sort, dialect: dialect);
+    final result = <Dance>[];
+    for (final id in ids) {
+      final dance = await getById(id);
+      if (dance != null) result.add(dance);
+    }
+    return result;
+  }
+
+  Future<List<String>> _sortByAuthor(List<String> ids) async {
+    if (ids.isEmpty) return ids;
+    // First author (position 0) name per dance; dances with no author sort
+    // first (empty name), matching Phase 3.1's Collection author sort.
+    final rows = await _db
+        .customSelect(
+          'SELECT dance_authors.dance_id AS dance_id, '
+          'choreographers.name AS name FROM dance_authors '
+          'JOIN choreographers '
+          'ON choreographers.id = dance_authors.choreographer_id '
+          'WHERE dance_authors.position = 0',
+        )
+        .get();
+    final names = {
+      for (final r in rows)
+        r.read<String>('dance_id'): r.read<String>('name').toLowerCase(),
+    };
+    // `ids` arrives in title (base) order; keep it as a stable tiebreak since
+    // Dart's List.sort is not guaranteed stable.
+    final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
+    final sorted = [...ids]
+      ..sort((a, b) {
+        final cmp = (names[a] ?? '').compareTo(names[b] ?? '');
+        return cmp != 0 ? cmp : baseOrder[a]!.compareTo(baseOrder[b]!);
+      });
+    return sorted;
+  }
+
+  Future<List<String>> _sortByLastCalled(List<String> ids) async {
+    if (ids.isEmpty) return ids;
+    // Mirrors ProgramRepository.lastCalledByDance(): most-recent performed_at
+    // per dance across non-deleted programs. Never-called dances sort last.
+    final rows = await _db
+        .customSelect(
+          'SELECT program_slots.dance_id AS dance_id, '
+          'MAX(program_slots.performed_at) AS last_called '
+          'FROM program_slots '
+          'JOIN programs ON programs.id = program_slots.program_id '
+          'WHERE program_slots.dance_id IS NOT NULL '
+          'AND program_slots.performed_at IS NOT NULL '
+          'AND programs.deleted_at IS NULL '
+          'GROUP BY program_slots.dance_id',
+        )
+        .get();
+    final lastCalled = {
+      for (final r in rows)
+        r.read<String>('dance_id'): r.read<DateTime>('last_called'),
+    };
+    // `ids` arrives in title (base) order; keep it as a stable tiebreak.
+    final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
+    final sorted = [...ids]
+      ..sort((a, b) {
+        final ca = lastCalled[a];
+        final cb = lastCalled[b];
+        final tie = baseOrder[a]!.compareTo(baseOrder[b]!);
+        if (ca == null && cb == null) return tie;
+        if (ca == null) return 1;
+        if (cb == null) return -1;
+        final cmp = cb.compareTo(ca);
+        return cmp != 0 ? cmp : tie;
+      });
+    return sorted;
   }
 
   /// Structural search: ids of non-deleted dances containing a figure with

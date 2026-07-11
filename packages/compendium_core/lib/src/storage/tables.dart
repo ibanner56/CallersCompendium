@@ -93,6 +93,11 @@ class DanceFigures extends Table {
   /// Rendered canonical text (dialect-free); feeds `dance_fts.figures_text`.
   TextColumn get canonicalText => text().withDefault(const Constant(''))();
 
+  /// Derived phrase label (`A1`, `B2`, …) of the phrase in which this figure
+  /// *starts* ([SectionedFigure.label]); nullable to stay forward-compatible
+  /// with structureless forms. Added in schema v2 for section-aware search.
+  TextColumn get section => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {danceId, idx};
 }

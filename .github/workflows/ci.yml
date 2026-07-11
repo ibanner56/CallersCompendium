@@ -39,6 +39,9 @@ jobs:
           else
             echo "No tests yet; skipping."
           fi
+      - name: Benchmark compendium_core search (20k dances)
+        working-directory: packages/compendium_core
+        run: dart run benchmark/search_benchmark.dart
       - name: Test app
         working-directory: app
         run: flutter test
