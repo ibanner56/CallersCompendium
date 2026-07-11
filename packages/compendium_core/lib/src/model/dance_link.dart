@@ -23,8 +23,19 @@ class DanceLink {
           'targetDanceId',
         );
       }
-    } else if (url == null || url!.trim().isEmpty) {
-      throw ArgumentError('${kind.name} links require a url', 'url');
+      if (url != null) {
+        throw ArgumentError('relatedDance links must not carry a url', 'url');
+      }
+    } else {
+      if (url == null || url!.trim().isEmpty) {
+        throw ArgumentError('${kind.name} links require a url', 'url');
+      }
+      if (targetDanceId != null) {
+        throw ArgumentError(
+          '${kind.name} links must not carry a targetDanceId',
+          'targetDanceId',
+        );
+      }
     }
   }
 

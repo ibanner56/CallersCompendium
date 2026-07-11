@@ -30,7 +30,10 @@ class Formation {
   final FormationShape shape;
 
   /// Free-text qualifier (e.g. "double progression variant"). Canonicalized
-  /// on input like all free text; empty string is normalized to null.
+  /// on input like all free text. Not normalized by this constructor (kept
+  /// `const`-constructible for the common canonical-shape case) — callers
+  /// building a [Formation] from user-entered or imported text should treat
+  /// an empty/whitespace-only string as equivalent to `null` themselves.
   final String? detail;
 
   Formation copyWith({FormationShape? shape, String? detail}) =>

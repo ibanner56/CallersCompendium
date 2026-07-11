@@ -28,9 +28,12 @@ void main() {
       expect(s.labels, ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']);
     });
 
-    test('odd phrase counts label the trailing phrase X1', () {
-      expect(PhraseStructure.parse('3*8*2').labels, ['A1', 'A2', 'B1']);
-    });
+    test(
+      'odd phrase counts label the trailing phrase with the next letter',
+      () {
+        expect(PhraseStructure.parse('3*8*2').labels, ['A1', 'A2', 'B1']);
+      },
+    );
 
     test('rejects malformed input', () {
       for (final bad in ['4*8', '4*8*2*1', 'abc', '4*x*2', '0*8*2', '-4*8*2']) {

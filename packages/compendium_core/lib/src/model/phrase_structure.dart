@@ -50,7 +50,9 @@ class PhraseStructure {
   int get totalBeats => phraseCount * beatsPerPhrase;
 
   /// Phrase labels: paired letters (A1 A2 B1 B2 C1 C2 …), the convention for
-  /// contra/ECD music. An odd phrase count labels the trailing phrase `X1`.
+  /// contra/ECD music. An odd phrase count leaves the last pair incomplete,
+  /// e.g. 3 phrases label as `A1 A2 B1` (the trailing phrase gets the next
+  /// letter's `1`, not a full pair).
   List<String> get labels => List.generate(phraseCount, (i) {
     final letter = String.fromCharCode('A'.codeUnitAt(0) + i ~/ 2);
     return '$letter${i % 2 + 1}';
