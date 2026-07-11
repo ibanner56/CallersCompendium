@@ -79,6 +79,7 @@ class FilterCompiler {
   /// use the stable [title] base ordering here; [relevance] on a non-bare
   /// tree likewise degrades to [title].
   static String _orderBy(SearchSort sort) => switch (sort) {
+    SearchSort.recentlyAdded => 'created_at DESC',
     SearchSort.recentlyEdited => 'updated_at DESC',
     SearchSort.title ||
     SearchSort.author ||

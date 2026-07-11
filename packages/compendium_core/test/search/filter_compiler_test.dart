@@ -31,6 +31,14 @@ void main() {
       expect(c.sql, endsWith('ORDER BY updated_at DESC'));
     });
 
+    test('recentlyAdded sorts by created_at DESC', () {
+      final c = compiler.compile(
+        const FormFilter(DanceForm.contra),
+        sort: SearchSort.recentlyAdded,
+      );
+      expect(c.sql, endsWith('ORDER BY created_at DESC'));
+    });
+
     test('author and lastCalled use the stable title base order', () {
       for (final s in [SearchSort.author, SearchSort.lastCalled]) {
         final c = compiler.compile(const FormFilter(DanceForm.contra), sort: s);
