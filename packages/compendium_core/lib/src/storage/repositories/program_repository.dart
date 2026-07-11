@@ -105,6 +105,30 @@ class ProgramRepository {
         .toList();
   }
 
+  /// Maps dance id → the most recent `performedAt` timestamp across every
+  /// slot of every non-deleted program, for dances that have actually been
+  /// called at least once. Feeds Collection's "last-called" sort (see
+  /// `docs/design/ux.md` §1); dances absent from the map have never been
+  /// called.
+  Future<Map<String, DateTime>> lastCalledByDance() async {
+    final rows = await _db
+        .customSelect(
+          'SELECT program_slots.dance_id AS dance_id, '
+          'MAX(program_slots.performed_at) AS last_called '
+          'FROM program_slots '
+          'JOIN programs ON programs.id = program_slots.program_id '
+          'WHERE program_slots.dance_id IS NOT NULL '
+          'AND program_slots.performed_at IS NOT NULL '
+          'AND programs.deleted_at IS NULL '
+          'GROUP BY program_slots.dance_id',
+        )
+        .get();
+    return {
+      for (final row in rows)
+        row.read<String>('dance_id'): asUtc(row.read<DateTime>('last_called')),
+    };
+  }
+
   Future<void> softDelete(String id, {required DateTime at}) {
     assertUtc(at, 'at');
     return (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(

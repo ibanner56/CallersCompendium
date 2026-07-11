@@ -166,4 +166,90 @@ void main() {
       expect(await repo.getById('recent', includeDeleted: true), isNotNull);
     });
   });
+
+  group('lastCalledByDance', () {
+    Future<void> makeDance(String id) => dances.create(
+      Dance(
+        id: id,
+        title: 'Dance $id',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+
+    test('is empty when no slot has been performed', () async {
+      await makeDance('d1');
+      await repo.create(
+        sampleProgram(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      expect(await repo.lastCalledByDance(), isEmpty);
+    });
+
+    test('returns the most recent performedAt across programs', () async {
+      await makeDance('d1');
+      await repo.create(
+        sampleProgram(
+          id: 'p1',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          id: 'p2',
+          slots: [
+            ProgramSlot(
+              id: 's2',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 3, 1),
+            ),
+          ],
+        ),
+      );
+      expect(await repo.lastCalledByDance(), {'d1': DateTime.utc(2026, 3, 1)});
+    });
+
+    test('ignores slots on soft-deleted programs', () async {
+      await makeDance('d1');
+      await repo.create(
+        sampleProgram(
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        ),
+      );
+      await repo.softDelete('p1', at: DateTime.utc(2026, 2, 1));
+      expect(await repo.lastCalledByDance(), isEmpty);
+    });
+
+    test('ignores text-only (dance-less) slots', () async {
+      await repo.create(
+        sampleProgram(
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              text: 'Waltz break',
+              performedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        ),
+      );
+      expect(await repo.lastCalledByDance(), isEmpty);
+    });
+  });
 }
