@@ -174,10 +174,22 @@ EXISTS (SELECT 1 FROM dance_figures f
 - `section`, when present, binds the derived phrase label (`'B1'`, …).
 
 `FigureAnd` / `FigureOr` combine the *inner* clauses of a **single** `EXISTS`
-(all constraints on the same `f` row), joined by `AND` / `OR`. `FigureNot(x)`
-inside a `FigureAnd` negates that row's clause; a standalone `FigureNot(leaf)`
-at dance level compiles to `NOT EXISTS (… leaf clauses …)` — "the dance has no
-figure matching this".
+(all constraints on the same `f` row), joined by `AND` / `OR`. Negation has two
+distinct paths, because `FigureNot` lives in `FigureQuery`, not `DanceFilter`:
+
+- **`FigureNot` nested inside a `FigureAnd`/`FigureOr`** negates that one
+  figure-row clause, compiled as `NOT COALESCE((<clause>), 0)` — the
+  `COALESCE` keeps SQL's three-valued logic (a NULL `json_extract` on a missing
+  param) from swallowing the row.
+- **A dance-level structural predicate wrapping a `FigureNot`** —
+  `Figure(FigureNot(FigureLeaf(...)))`, read as "the dance has no figure
+  matching X" — compiles to
+  `id NOT IN (SELECT dance_id FROM dance_figures f WHERE <clause>)`. This is
+  NULL-safe because `dance_figures.dance_id` is `NOT NULL`, so the subquery can
+  never yield a NULL that would break `NOT IN`.
+
+Dance-level boolean negation of any *other* predicate stays `Not(<child>)` →
+`NOT (<child>)` (see Combinators below).
 
 ### Sequence: `Then(before, after)`
 
@@ -205,13 +217,24 @@ join to a single pair of aliases.
 ### Combinators & sort
 
 `And`/`Or` wrap children in `( … AND … )` / `( … OR … )`; `Not(child)` emits
-`NOT (<child>)`. Sort is a fixed allow-list mapped to columns (never user
-text): `title` (default, `COLLATE NOCASE`), `updated_at DESC` (recently added/
-edited), and author/last-called reuse the 3.1 orderings
-(`ProgramRepository.lastCalledByDance()` for last-called, applied after the id
-set is fetched, as in 3.1). FTS relevance ordering (`bm25`) is available only
-when the tree is a bare `FullText` leaf; mixed trees fall back to the metadata
-sort, because `bm25` isn't defined outside a `MATCH` query.
+`NOT (<child>)`.
+
+**Execution model — one SELECT, plus a post-fetch sort for two cases.** The
+single compiled `SELECT` performs *all filtering* and every **SQL-expressible**
+sort: `title COLLATE NOCASE` (the default), `updated_at DESC` (recently added/
+edited), and — only when the tree is a bare `FullText` leaf — `bm25(dance_fts)`
+relevance. Two sorts are **not** expressible in that one statement and are
+applied as a **post-fetch pass in Dart** over the returned id set:
+
+- `author` — needs the author-name join/ordering; and
+- `last-called` — needs the separate `ProgramRepository.lastCalledByDance()`
+  query (as in 3.1).
+
+So the compiler always emits exactly one `SELECT` (filter + SQL sort); when the
+requested sort is `author` or `last-called`, the id set it returns is reordered
+by an explicit Dart post-processing step — not by the SQL. `bm25` relevance is
+available only for a bare `FullText` tree; any other tree falls back to the
+`title` default, because `bm25` isn't defined outside a `MATCH` query.
 
 ### Worked example
 
@@ -392,7 +415,7 @@ in-memory scans.
   `dance_figures` served by the `(move, section)` and `(dance_id, idx)`
   indexes. `figures_json` is never parsed at query time.
 - `json_extract` on `params_json` is evaluated only for figure rows already
-  narrowed by the indexed `move`(`, section`) predicate, keeping it off the hot
+  narrowed by the indexed `(move, section)` predicate, keeping it off the hot
   path.
 
 **CI benchmark harness** (`packages/compendium_core/test/` or a dedicated
