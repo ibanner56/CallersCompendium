@@ -24,10 +24,35 @@ CREATE VIRTUAL TABLE dance_fts USING fts5(
 )
 ''';
 
+/// The two derived-index helper indexes added in schema v2 for section-aware
+/// figure search and the `Then` sequence self-join (`docs/design/search.md`).
+const List<String> searchIndexSql = [
+  'CREATE INDEX IF NOT EXISTS dance_figures_move_section '
+      'ON dance_figures(move, section)',
+  'CREATE INDEX IF NOT EXISTS dance_figures_dance_idx '
+      'ON dance_figures(dance_id, idx)',
+];
+
+/// Settings key marking that a schema migration touched the derived figure
+/// index and the `dance_figures` rows must be rebuilt from `figures_json`.
+///
+/// Written inside `onUpgrade` (so it is durable — it survives a crash between
+/// the schema bump and the rebuild) and cleared by
+/// [CompendiumRepositories.ensureMigrated] only after the rebuild succeeds.
+const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
+
 /// The Caller's Compendium local database.
 ///
 /// Schema version history:
 /// - v1 (2026-07-10): initial schema — see `docs/design/storage.md`.
+/// - v2 (2026-07-11): section-aware search (`docs/design/search.md`). Adds the
+///   nullable `dance_figures.section` column plus the `dance_figures_move_
+///   section` and `dance_figures_dance_idx` indexes. `onUpgrade` performs the
+///   DDL and durably records [derivedRebuildRequiredKey]; the derived `section`
+///   values are back-filled by a post-open integrity pass
+///   ([DanceRepository.rebuildAllDerived]) that [CompendiumRepositories.ensureMigrated]
+///   runs when the marker is set — the rebuild needs the taxonomy/renderer,
+///   which `MigrationStrategy` can't reach.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -55,13 +80,31 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   CompendiumDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
       await customStatement(createDanceFtsSql);
+      for (final sql in searchIndexSql) {
+        await customStatement(sql);
+      }
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(danceFigures, danceFigures.section);
+        for (final sql in searchIndexSql) {
+          await customStatement(sql);
+        }
+        // The `section` back-fill needs the domain renderer/taxonomy, which is
+        // unreachable here. Durably mark that a rebuild is owed so it survives
+        // a crash before CompendiumRepositories.ensureMigrated() completes it.
+        await customStatement(
+          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+          [derivedRebuildRequiredKey, 'true'],
+        );
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');

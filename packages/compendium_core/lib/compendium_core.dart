@@ -20,8 +20,12 @@ export 'src/model/phrase_structure.dart';
 export 'src/model/program.dart';
 export 'src/model/provenance.dart';
 export 'src/model/tag.dart';
+export 'src/search/search_sort.dart';
+export 'src/search/filter.dart';
+export 'src/search/filter_compiler.dart';
 export 'src/serialization/figure_codec.dart';
-export 'src/storage/database.dart' show CompendiumDatabase;
+export 'src/storage/database.dart'
+    show CompendiumDatabase, derivedRebuildRequiredKey;
 export 'src/storage/repositories/choreographer_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
     show

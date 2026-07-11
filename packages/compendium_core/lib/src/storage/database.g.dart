@@ -1566,6 +1566,17 @@ class $DanceFiguresTable extends DanceFigures
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _sectionMeta = const VerificationMeta(
+    'section',
+  );
+  @override
+  late final GeneratedColumn<String> section = GeneratedColumn<String>(
+    'section',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     danceId,
@@ -1575,6 +1586,7 @@ class $DanceFiguresTable extends DanceFigures
     progression,
     paramsJson,
     canonicalText,
+    section,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1642,6 +1654,12 @@ class $DanceFiguresTable extends DanceFigures
         ),
       );
     }
+    if (data.containsKey('section')) {
+      context.handle(
+        _sectionMeta,
+        section.isAcceptableOrUnknown(data['section']!, _sectionMeta),
+      );
+    }
     return context;
   }
 
@@ -1679,6 +1697,10 @@ class $DanceFiguresTable extends DanceFigures
         DriftSqlType.string,
         data['${effectivePrefix}canonical_text'],
       )!,
+      section: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}section'],
+      ),
     );
   }
 
@@ -1700,6 +1722,11 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
 
   /// Rendered canonical text (dialect-free); feeds `dance_fts.figures_text`.
   final String canonicalText;
+
+  /// Derived phrase label (`A1`, `B2`, …) of the phrase in which this figure
+  /// *starts* ([SectionedFigure.label]); nullable to stay forward-compatible
+  /// with structureless forms. Added in schema v2 for section-aware search.
+  final String? section;
   const DanceFigureRow({
     required this.danceId,
     required this.idx,
@@ -1708,6 +1735,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     required this.progression,
     required this.paramsJson,
     required this.canonicalText,
+    this.section,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1719,6 +1747,9 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     map['progression'] = Variable<bool>(progression);
     map['params_json'] = Variable<String>(paramsJson);
     map['canonical_text'] = Variable<String>(canonicalText);
+    if (!nullToAbsent || section != null) {
+      map['section'] = Variable<String>(section);
+    }
     return map;
   }
 
@@ -1731,6 +1762,9 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
       progression: Value(progression),
       paramsJson: Value(paramsJson),
       canonicalText: Value(canonicalText),
+      section: section == null && nullToAbsent
+          ? const Value.absent()
+          : Value(section),
     );
   }
 
@@ -1747,6 +1781,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
       progression: serializer.fromJson<bool>(json['progression']),
       paramsJson: serializer.fromJson<String>(json['paramsJson']),
       canonicalText: serializer.fromJson<String>(json['canonicalText']),
+      section: serializer.fromJson<String?>(json['section']),
     );
   }
   @override
@@ -1760,6 +1795,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
       'progression': serializer.toJson<bool>(progression),
       'paramsJson': serializer.toJson<String>(paramsJson),
       'canonicalText': serializer.toJson<String>(canonicalText),
+      'section': serializer.toJson<String?>(section),
     };
   }
 
@@ -1771,6 +1807,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     bool? progression,
     String? paramsJson,
     String? canonicalText,
+    Value<String?> section = const Value.absent(),
   }) => DanceFigureRow(
     danceId: danceId ?? this.danceId,
     idx: idx ?? this.idx,
@@ -1779,6 +1816,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     progression: progression ?? this.progression,
     paramsJson: paramsJson ?? this.paramsJson,
     canonicalText: canonicalText ?? this.canonicalText,
+    section: section.present ? section.value : this.section,
   );
   DanceFigureRow copyWithCompanion(DanceFiguresCompanion data) {
     return DanceFigureRow(
@@ -1795,6 +1833,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
       canonicalText: data.canonicalText.present
           ? data.canonicalText.value
           : this.canonicalText,
+      section: data.section.present ? data.section.value : this.section,
     );
   }
 
@@ -1807,7 +1846,8 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
           ..write('beats: $beats, ')
           ..write('progression: $progression, ')
           ..write('paramsJson: $paramsJson, ')
-          ..write('canonicalText: $canonicalText')
+          ..write('canonicalText: $canonicalText, ')
+          ..write('section: $section')
           ..write(')'))
         .toString();
   }
@@ -1821,6 +1861,7 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
     progression,
     paramsJson,
     canonicalText,
+    section,
   );
   @override
   bool operator ==(Object other) =>
@@ -1832,7 +1873,8 @@ class DanceFigureRow extends DataClass implements Insertable<DanceFigureRow> {
           other.beats == this.beats &&
           other.progression == this.progression &&
           other.paramsJson == this.paramsJson &&
-          other.canonicalText == this.canonicalText);
+          other.canonicalText == this.canonicalText &&
+          other.section == this.section);
 }
 
 class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
@@ -1843,6 +1885,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
   final Value<bool> progression;
   final Value<String> paramsJson;
   final Value<String> canonicalText;
+  final Value<String?> section;
   final Value<int> rowid;
   const DanceFiguresCompanion({
     this.danceId = const Value.absent(),
@@ -1852,6 +1895,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
     this.progression = const Value.absent(),
     this.paramsJson = const Value.absent(),
     this.canonicalText = const Value.absent(),
+    this.section = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DanceFiguresCompanion.insert({
@@ -1862,6 +1906,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
     this.progression = const Value.absent(),
     this.paramsJson = const Value.absent(),
     this.canonicalText = const Value.absent(),
+    this.section = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : danceId = Value(danceId),
        idx = Value(idx),
@@ -1874,6 +1919,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
     Expression<bool>? progression,
     Expression<String>? paramsJson,
     Expression<String>? canonicalText,
+    Expression<String>? section,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1884,6 +1930,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
       if (progression != null) 'progression': progression,
       if (paramsJson != null) 'params_json': paramsJson,
       if (canonicalText != null) 'canonical_text': canonicalText,
+      if (section != null) 'section': section,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1896,6 +1943,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
     Value<bool>? progression,
     Value<String>? paramsJson,
     Value<String>? canonicalText,
+    Value<String?>? section,
     Value<int>? rowid,
   }) {
     return DanceFiguresCompanion(
@@ -1906,6 +1954,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
       progression: progression ?? this.progression,
       paramsJson: paramsJson ?? this.paramsJson,
       canonicalText: canonicalText ?? this.canonicalText,
+      section: section ?? this.section,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1934,6 +1983,9 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
     if (canonicalText.present) {
       map['canonical_text'] = Variable<String>(canonicalText.value);
     }
+    if (section.present) {
+      map['section'] = Variable<String>(section.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1950,6 +2002,7 @@ class DanceFiguresCompanion extends UpdateCompanion<DanceFigureRow> {
           ..write('progression: $progression, ')
           ..write('paramsJson: $paramsJson, ')
           ..write('canonicalText: $canonicalText, ')
+          ..write('section: $section, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7755,6 +7808,7 @@ typedef $$DanceFiguresTableCreateCompanionBuilder =
       Value<bool> progression,
       Value<String> paramsJson,
       Value<String> canonicalText,
+      Value<String?> section,
       Value<int> rowid,
     });
 typedef $$DanceFiguresTableUpdateCompanionBuilder =
@@ -7766,6 +7820,7 @@ typedef $$DanceFiguresTableUpdateCompanionBuilder =
       Value<bool> progression,
       Value<String> paramsJson,
       Value<String> canonicalText,
+      Value<String?> section,
       Value<int> rowid,
     });
 
@@ -7835,6 +7890,11 @@ class $$DanceFiguresTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get section => $composableBuilder(
+    column: $table.section,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$DancesTableFilterComposer get danceId {
     final $$DancesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -7898,6 +7958,11 @@ class $$DanceFiguresTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get section => $composableBuilder(
+    column: $table.section,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$DancesTableOrderingComposer get danceId {
     final $$DancesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -7954,6 +8019,9 @@ class $$DanceFiguresTableAnnotationComposer
     column: $table.canonicalText,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get section =>
+      $composableBuilder(column: $table.section, builder: (column) => column);
 
   $$DancesTableAnnotationComposer get danceId {
     final $$DancesTableAnnotationComposer composer = $composerBuilder(
@@ -8016,6 +8084,7 @@ class $$DanceFiguresTableTableManager
                 Value<bool> progression = const Value.absent(),
                 Value<String> paramsJson = const Value.absent(),
                 Value<String> canonicalText = const Value.absent(),
+                Value<String?> section = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DanceFiguresCompanion(
                 danceId: danceId,
@@ -8025,6 +8094,7 @@ class $$DanceFiguresTableTableManager
                 progression: progression,
                 paramsJson: paramsJson,
                 canonicalText: canonicalText,
+                section: section,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8036,6 +8106,7 @@ class $$DanceFiguresTableTableManager
                 Value<bool> progression = const Value.absent(),
                 Value<String> paramsJson = const Value.absent(),
                 Value<String> canonicalText = const Value.absent(),
+                Value<String?> section = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DanceFiguresCompanion.insert(
                 danceId: danceId,
@@ -8045,6 +8116,7 @@ class $$DanceFiguresTableTableManager
                 progression: progression,
                 paramsJson: paramsJson,
                 canonicalText: canonicalText,
+                section: section,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
