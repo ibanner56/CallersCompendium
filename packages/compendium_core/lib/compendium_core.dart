@@ -21,6 +21,19 @@ export 'src/model/program.dart';
 export 'src/model/provenance.dart';
 export 'src/model/tag.dart';
 export 'src/serialization/figure_codec.dart';
+export 'src/storage/database.dart' show CompendiumDatabase;
+export 'src/storage/repositories/choreographer_repository.dart';
+export 'src/storage/repositories/custom_field_repository.dart'
+    show
+        CustomFieldDefRepository,
+        decodeCustomFieldValue,
+        encodeCustomFieldValue;
+export 'src/storage/repositories/dance_repository.dart';
+export 'src/storage/repositories/program_repository.dart';
+export 'src/storage/repositories/repositories.dart';
+export 'src/storage/repositories/settings_repository.dart';
+export 'src/storage/repositories/snapshot_repository.dart';
+export 'src/storage/repositories/tag_repository.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
 export 'src/taxonomy/move_def.dart';
 export 'src/taxonomy/param_types.dart';
