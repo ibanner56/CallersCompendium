@@ -17,32 +17,38 @@ class DanceDetailScreen extends StatefulWidget {
 }
 
 class _DanceDetailScreenState extends State<DanceDetailScreen> {
-  late Future<_DanceDetail?> _future;
+  Future<_DanceDetail?>? _future;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _future = _load(RepositoriesScope.of(context));
+    // Only load once: didChangeDependencies also fires for unrelated
+    // ancestor changes (Theme/MediaQuery/Localizations), which shouldn't
+    // trigger a fresh DB read.
+    _future ??= _load(RepositoriesScope.of(context));
   }
 
   Future<_DanceDetail?> _load(CompendiumRepositories repos) async {
     final dance = await repos.dances.getById(widget.danceId);
     if (dance == null) return null;
 
-    final authorNames = <String>[];
-    for (final id in dance.authorIds) {
-      final c = await repos.choreographers.getById(id);
-      if (c != null) authorNames.add(c.name);
-    }
-    final tagNames = <String>[];
-    for (final id in dance.tagIds) {
-      final t = await repos.tags.getById(id);
-      if (t != null) tagNames.add(t.name);
-    }
+    // Resolve authors/tags by fetching each collection once rather than
+    // one getById() query per author/tag id (N+1), matching DanceListScreen.
+    final choreographers = await repos.choreographers.listAll();
+    final tags = await repos.tags.listAll();
+    final choreographerNames = {for (final c in choreographers) c.id: c.name};
+    final tagNames = {for (final t in tags) t.id: t.name};
+
     return _DanceDetail(
       dance: dance,
-      authorNames: authorNames,
-      tagNames: tagNames,
+      authorNames: [
+        for (final id in dance.authorIds)
+          if (choreographerNames[id] != null) choreographerNames[id]!,
+      ],
+      tagNames: [
+        for (final id in dance.tagIds)
+          if (tagNames[id] != null) tagNames[id]!,
+      ],
     );
   }
 

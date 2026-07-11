@@ -16,8 +16,17 @@ class RepositoriesScope extends InheritedWidget {
   static CompendiumRepositories of(BuildContext context) {
     final scope = context
         .dependOnInheritedWidgetOfExactType<RepositoriesScope>();
-    assert(scope != null, 'No RepositoriesScope found in context');
-    return scope!.repositories;
+    if (scope == null) {
+      throw FlutterError(
+        'RepositoriesScope.of() was called with a context that does not '
+        'contain a RepositoriesScope.\n'
+        'No RepositoriesScope ancestor could be found starting from the '
+        'context that was passed to RepositoriesScope.of(). This can '
+        'happen if the context you use comes from a widget above the '
+        'RepositoriesScope.',
+      );
+    }
+    return scope.repositories;
   }
 
   @override

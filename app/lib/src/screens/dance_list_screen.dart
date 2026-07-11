@@ -19,7 +19,7 @@ class DanceListScreen extends StatefulWidget {
 }
 
 class _DanceListScreenState extends State<DanceListScreen> {
-  late Future<List<DanceListEntry>> _future;
+  Future<List<DanceListEntry>>? _future;
 
   DanceSort _sort = DanceSort.title;
   final _filterController = TextEditingController();
@@ -38,7 +38,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _future = _load(RepositoriesScope.of(context));
+    // Only load once: didChangeDependencies also fires for unrelated
+    // ancestor changes (Theme/MediaQuery/Localizations), which shouldn't
+    // trigger a fresh DB read.
+    _future ??= _load(RepositoriesScope.of(context));
   }
 
   @override

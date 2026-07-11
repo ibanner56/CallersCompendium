@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'src/data/app_database.dart';
@@ -29,7 +31,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   @override
   void dispose() {
-    _appData.close();
+    // dispose() can't be async; explicitly mark the close as fire-and-forget
+    // rather than silently dropping an unawaited Future (unawaited_futures).
+    unawaited(_appData.close());
     super.dispose();
   }
 
