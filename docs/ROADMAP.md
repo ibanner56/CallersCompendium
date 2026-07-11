@@ -43,13 +43,13 @@ Research items (each produces a short written finding in `docs/research/`):
 
 Design items (each produces a design doc + review):
 
-- [ ] 1.7 Domain model: Dance, Figure (structured + Custom), Formation, Program, ProgramSlot, Tag/custom fields, Source/provenance — extensible to ECD/Squares
-- [ ] 1.8 Figure taxonomy v1: canonical figure list, parameters (who/direction/beats), serialization format
-- [ ] 1.9 Dialect system design: role terms (e.g. Larks/Robins/Gents/Ladies), figure-term substitution, per-user local config, round-trip safety
-- [ ] 1.10 Import pipeline design: source adapters (CallersBox snapshot, ContraDB, Caller's Companion migration), dedupe/provenance, conflict handling
-- [ ] 1.11 UX design: information architecture, core screens (Collection, Dance editor, Program builder, Performance mode, Settings/Dialect), wireframes, a11y annotations
-- [ ] 1.12 Local storage design: SQLite schema, migrations strategy, full-text search
-- [ ] 1.13 CallersBox rehosting plan: sanitization pipeline, snapshot format/versioning, hosting location, update cadence, licensing/attribution
+- [x] 1.7 Domain model — [design/domain-model.md](design/domain-model.md)
+- [x] 1.8 Figure taxonomy v1 — [design/figure-taxonomy.md](design/figure-taxonomy.md)
+- [x] 1.9 Dialect system design — [design/dialect.md](design/dialect.md)
+- [x] 1.10 Import pipeline design — [design/imports.md](design/imports.md)
+- [x] 1.11 UX design — [design/ux.md](design/ux.md) (wireframes to follow per screen before Phase 3)
+- [x] 1.12 Local storage design — [design/storage.md](design/storage.md)
+- [x] 1.13 CallersBox rehosting plan — [design/callersbox-snapshot.md](design/callersbox-snapshot.md) (maintainer contact pending)
 
 ## Phase 2 — Core skeleton
 
