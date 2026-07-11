@@ -1,0 +1,71 @@
+import 'package:compendium_core/compendium_core.dart';
+
+/// A [Dance] plus everything the Collection list needs to render/sort/filter
+/// it without re-querying repositories per row (authors and tags resolved
+/// to names, last-called date looked up once for the whole list).
+class DanceListEntry {
+  DanceListEntry({
+    required this.dance,
+    required this.authorNames,
+    required this.tagNames,
+    required this.listCustomFields,
+    this.lastCalled,
+  });
+
+  final Dance dance;
+  final List<String> authorNames;
+  final List<String> tagNames;
+
+  /// `showInList` custom field values as `label: display value` pairs, in
+  /// [CustomFieldDef] declaration order.
+  final List<String> listCustomFields;
+  final DateTime? lastCalled;
+
+  String get title => dance.title;
+
+  /// Lowercase text blob (title + authors + tags) the quick-filter matches
+  /// against.
+  String get filterText =>
+      '${dance.title} ${authorNames.join(' ')} ${tagNames.join(' ')}'
+          .toLowerCase();
+}
+
+/// Sort options for the Collection list (docs/design/ux.md §1). `lastCalled`
+/// is meaningful once Programs (Phase 4) exist; dances never called sort to
+/// the end.
+enum DanceSort { title, author, recentlyAdded, lastCalled }
+
+extension DanceSortLabel on DanceSort {
+  String get label => switch (this) {
+    DanceSort.title => 'Title',
+    DanceSort.author => 'Author',
+    DanceSort.recentlyAdded => 'Recently added',
+    DanceSort.lastCalled => 'Last called',
+  };
+}
+
+/// Human-readable label for a [FormationShape], for chips and filters.
+String formationShapeLabel(FormationShape shape) => switch (shape) {
+  FormationShape.dupleImproper => 'Duple improper',
+  FormationShape.becketCw => 'Becket (CW)',
+  FormationShape.becketCcw => 'Becket (CCW)',
+  FormationShape.dupleProper => 'Duple proper',
+  FormationShape.dupleIndecent => 'Duple indecent',
+  FormationShape.tripleMinor => 'Triple minor',
+  FormationShape.threeFaceThree => 'Three-face-three',
+  FormationShape.fourFaceFour => 'Four-face-four',
+  FormationShape.circleMixer => 'Circle mixer',
+  FormationShape.sicilianCircle => 'Sicilian circle',
+  FormationShape.scatterMixer => 'Scatter mixer',
+  FormationShape.longways => 'Longways',
+  FormationShape.triplet => 'Triplet',
+  FormationShape.grid => 'Grid',
+  FormationShape.other => 'Other',
+};
+
+/// Full formation label, including free-text [Formation.detail] if present.
+String formationLabel(Formation formation) {
+  final base = formationShapeLabel(formation.shape);
+  final detail = formation.detail?.trim();
+  return (detail == null || detail.isEmpty) ? base : '$base — $detail';
+}

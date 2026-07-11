@@ -1,13 +1,41 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
+import 'src/data/app_database.dart';
+import 'src/data/repositories_scope.dart';
+import 'src/screens/dance_list_screen.dart';
 
 void main() {
   runApp(const CompendiumApp());
 }
 
-/// Root widget. Real navigation shell arrives with Phase 3; this placeholder
-/// exists so the scaffold builds and boots on every platform.
-class CompendiumApp extends StatelessWidget {
+/// Root widget. Opens the on-device database once, then hands the
+/// [CompendiumRepositories] facade down to the Collection screen via
+/// [RepositoriesScope].
+class CompendiumApp extends StatefulWidget {
   const CompendiumApp({super.key});
+
+  @override
+  State<CompendiumApp> createState() => _CompendiumAppState();
+}
+
+class _CompendiumAppState extends State<CompendiumApp> {
+  late final AppData _appData;
+
+  @override
+  void initState() {
+    super.initState();
+    _appData = AppData(openAppDatabase());
+  }
+
+  @override
+  void dispose() {
+    // dispose() can't be async; explicitly mark the close as fire-and-forget
+    // rather than silently dropping an unawaited Future (unawaited_futures).
+    unawaited(_appData.close());
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +47,9 @@ class CompendiumApp extends StatelessWidget {
         colorSchemeSeed: Colors.indigo,
         brightness: Brightness.dark,
       ),
-      home: const Scaffold(body: Center(child: Text("Caller's Compendium"))),
+      builder: (context, child) =>
+          RepositoriesScope(repositories: _appData.repositories, child: child!),
+      home: const DanceListScreen(),
     );
   }
 }

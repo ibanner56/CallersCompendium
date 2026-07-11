@@ -61,7 +61,7 @@ Design items (each produces a design doc + review):
 
 ## Phase 3 — Collection management
 
-- [ ] 3.1 Dance list: browse, sort, filter
+- [x] 3.1 Dance list: browse, sort, filter — `app/lib/src/screens/dance_list_screen.dart`: virtualized `ListView` of dances (title, authors, formation chip, status/tag chips, `showInList` custom fields) sourced from `CompendiumRepositories`; sort by title/author/recently-added/last-called (`ProgramRepository.lastCalledByDance()`, new); a lightweight client-side quick-filter (text + tag/formation `FilterChip`s) over the loaded list — the unified FTS search bar and structured query-builder panel from `docs/design/ux.md` §1 are deferred to 3.2 per that item's explicit scope. Minimal `DanceDetailScreen` placeholder (title/authors/formation/hook/tags) navigated to from the list; full detail/edit UI is later roadmap work. DB now opened on-device via `drift_flutter`.
 - [ ] 3.2 Search: Title, Author, Type, Formation, Figures, custom fields; full-text
 - [ ] 3.3 Dance editor: structured figure entry + Custom figure, validation of required fields
 - [ ] 3.4 Custom user fields (define, edit, search)
