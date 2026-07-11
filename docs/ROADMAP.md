@@ -69,6 +69,17 @@ Design items (each produces a design doc + review):
 - [ ] 3.4 Custom user fields (define, edit, search)
 - [ ] 3.5 Dance duplication, soft-delete/restore
 
+### Deferred from 3.3a (dance editor metadata form) — tracked follow-ups
+
+- Custom-figure lingo line: underline recognized **taxonomy move** keywords (3.3a/c
+  ships only `canonicalize()`'s discouraged-strike + role-underline; ux.md §3 partial).
+- `relatedDance` link target picker (3.3a links editor is URL-based only).
+- Desktop list/detail **split-pane** editor layout (v1 ships a full-screen editor route).
+- Cross-session / persistent **undo** (3.3d ships in-memory undo/redo only).
+- (Already tracked elsewhere, pointers only: 2.4a full taxonomy data; the 3.2
+  follow-ups — text/number custom-field search UI, nested figure groups inside
+  `then`, per-Type taxonomy selection.)
+
 ## Phase 4 — Programs
 
 - [ ] 4.1 Program CRUD: create, edit, save, duplicate

@@ -10,6 +10,7 @@ import '../widgets/advanced_query_builder.dart';
 import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
 import 'dance_detail_screen.dart';
+import 'dance_editor_screen.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
@@ -220,7 +221,23 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ],
       ),
       body: _buildBody(),
+      floatingActionButton: _data == null
+          ? null
+          : FloatingActionButton.extended(
+              key: const ValueKey('new-dance'),
+              onPressed: _openNewDance,
+              icon: const Icon(Icons.add),
+              label: const Text('New dance'),
+            ),
     );
+  }
+
+  Future<void> _openNewDance() async {
+    final created = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const DanceEditorScreen()),
+    );
+    // Reload the collection so a newly saved dance shows up in results.
+    if (mounted && created != null) await _boot();
   }
 
   Widget _buildBody() {
