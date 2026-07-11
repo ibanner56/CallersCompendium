@@ -1,0 +1,34 @@
+name: Bug report
+description: Something isn't working correctly
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform & version
+      placeholder: e.g. iPadOS 19, app v0.3.1
+    validations:
+      required: true
+  - type: textarea
+    id: dance-data
+    attributes:
+      label: Dance data involved (if notation-related)
+      description: >-
+        If the bug involves a specific dance, include its source (book, site,
+        CallersBox ID) or paste the figures so we can reproduce it.

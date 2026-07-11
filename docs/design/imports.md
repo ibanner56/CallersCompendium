@@ -1,0 +1,77 @@
+# Design: Import pipeline
+
+*Roadmap item 1.10 · v0.1 (2026-07-10). Covers the source-adapter framework
+(6.1) and per-source plans (6.2–6.6).*
+
+## Pipeline
+
+Every import, regardless of source, flows through the same stages:
+
+```
+fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe → review → commit
+```
+
+| Stage | Contract |
+|---|---|
+| **fetch** | Adapter obtains bytes (file pick, URL, snapshot archive). Never blocks on network for local work. |
+| **RawRecord** | Source-native payload preserved verbatim + source id/version → stored in `provenance.raw_payload`. Re-import/diff is always possible. |
+| **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
+| **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; formation strings mapped to the enum (+detail). |
+| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (normalized title + author) → user chooses link/duplicate/skip. |
+| **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Accept-all is one tap; nothing silently mutates existing user data. |
+| **commit** | Transactional; provenance row written; import session log kept for undo. |
+
+Adapters implement a small interface (`discover() / fetch() / parse()`) in the
+pure-Dart core → each adapter unit-tested against fixture files.
+
+## Sources
+
+### 1. CallersBox snapshot (6.2, 6.3) — primary
+- Input: hosted NDJSON snapshot (see design/callersbox-snapshot.md) or a
+  single dance JSON pasted/downloaded from `dance.php?id=N&format=JSON`.
+- Field mapping is direct (research/callersbox.md documents the schema);
+  figures parsed by a **TCB grammar parser**: `(beats) text` per line, keyword
+  matching against taxonomy `searchKeywords`, parameter extraction for the
+  high-frequency moves (swing, balance, allemande, circle, star, chain,
+  long lines, right left through, promenade, petronella, do si do, hey…).
+  Long-tail/complex notation (per-pass hey lists, `||` simultaneity) falls to
+  custom figures — refined iteratively; parser coverage is measured against
+  the full corpus and reported (target: ≥80% of figure lines structured in
+  first release, improving over time).
+- `Permission: search` stubs import as metadata-only with a link to TCB.
+- Attribution: TCB id + appearances retained; UI shows "via The Caller's Box".
+
+### 2. Caller's Companion migration (6.5)
+- Input: user's `CallersCompanion2.USR` (FileMaker 12 container).
+- Approach: FM12 parser (fmptools-style) extracting the dances/sets tables;
+  figures are the user's personal free text → import as custom figures
+  (optionally run through the TCB grammar parser for opportunistic
+  structuring, clearly marked for review). Sets → Programs; user fields →
+  custom fields.
+- Fixture: the publicly downloadable demo `.USR` (kept out of the repo until
+  redistribution permission is clarified; local test asset otherwise).
+- Fallback: parse CC's "copy formatted dance" clipboard/text format for
+  one-at-a-time migration.
+
+### 3. ContraDB (6.4)
+- Input: ContraDB JSON (its `figures_json` move/parameter model). Being
+  structurally closest to ours, this maps move-for-move with a
+  positional→named parameter conversion table per move, and gyre →
+  shoulder_round etc. term migration.
+- Site is grey-code; primary path is user-supplied exports/dumps rather than
+  live API.
+
+### 4. Generic JSON (6.6)
+- Our own canonical export format (full fidelity: figures, programs, custom
+  fields, provenance, dialect definitions). Serves backup/restore and
+  user-to-user sharing. Versioned schema; forward-compatible reader.
+
+## Error handling & testing
+
+- Every stage yields structured errors with source context (never stack-trace
+  UX); partial batch failure imports the rest and reports.
+- Adapter test fixtures: real TCB JSON samples (id 1, 100, 3418, 10284 cover
+  chestnut/Becket/proper/notes cases), CC demo USR, synthetic edge cases
+  (empty phrases, `(0)` beats, non-standard phraseStructure, windows-1252
+  artifacts, duplicate titles).
+- Round-trip property: export→import of our generic JSON is identity.
