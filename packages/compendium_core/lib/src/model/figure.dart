@@ -8,6 +8,9 @@ const int figureSchemaVersion = 1;
 /// Canonical move id for the free-text fallback figure.
 const String customMove = 'custom';
 
+/// Canonical taxonomy id for the custom move (same value as [customMove]).
+const String customMoveId = customMove;
+
 const DeepCollectionEquality _paramsEquality = DeepCollectionEquality();
 
 /// One figure (move instance) in a dance transcription.

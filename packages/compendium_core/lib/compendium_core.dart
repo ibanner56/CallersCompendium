@@ -5,6 +5,10 @@
 /// domain layer stays portable and independently testable (ADR-001).
 library;
 
+export 'src/dialect/canonicalize.dart';
+export 'src/dialect/dialect.dart';
+export 'src/dialect/renderer.dart';
+export 'src/dialect/substitution.dart' show Substitutor;
 export 'src/model/choreographer.dart';
 export 'src/model/custom_field.dart';
 export 'src/model/dance.dart';
@@ -16,5 +20,10 @@ export 'src/model/phrase_structure.dart';
 export 'src/model/program.dart';
 export 'src/model/provenance.dart';
 export 'src/model/tag.dart';
+export 'src/serialization/figure_codec.dart';
+export 'src/taxonomy/contra_taxonomy.dart';
+export 'src/taxonomy/move_def.dart';
+export 'src/taxonomy/param_types.dart';
+export 'src/taxonomy/taxonomy.dart';
 export 'src/util/uuid.dart';
 export 'src/validation/validation.dart';

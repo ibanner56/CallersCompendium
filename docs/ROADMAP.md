@@ -56,7 +56,8 @@ Design items (each produces a design doc + review):
 - [x] 2.1 Scaffold the chosen stack; CI (build + test + lint on all platforms) — pub workspace (`app/` + `packages/compendium_core/`), FVM-pinned Flutter 3.44.6, `.github/workflows/ci.yml`
 - [ ] 2.2 Local database layer + migrations + test harness
 - [x] 2.3 Domain model implementation with comprehensive unit tests — `packages/compendium_core` model types, invariants, phrase-section derivation
-- [ ] 2.4 Figure serialization + dialect rendering engine with golden tests
+- [x] 2.4 Figure serialization + dialect rendering engine with golden tests — `figures_json` codec, `Taxonomy`/`MoveDef` validation, two-flavor renderer (`%S`, quarter-turn words), `canonicalize()` chokepoint with round-trip property tests; 144 core tests
+- [ ] 2.4a Complete taxonomy data entry (remaining ContraDB moves) — needs param-vocab decisions (`places`, hey model, ocean/long-wave); see docs/design/figure-taxonomy.md "Implementation status"
 
 ## Phase 3 — Collection management
 
