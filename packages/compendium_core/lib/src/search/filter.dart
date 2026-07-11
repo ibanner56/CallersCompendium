@@ -248,8 +248,11 @@ class CustomFieldFilter extends DanceFilter {
 /// ("some `dance_figures` row of the dance satisfies this figure query").
 ///
 /// Sugar for the common case is [FigureFilter.leaf]. When [query] is a
-/// top-level [FigureNot], the predicate compiles to `NOT EXISTS` — "the dance
-/// has **no** figure matching" — per the confirmed `Not` semantics.
+/// top-level [FigureNot], the predicate compiles to
+/// `id NOT IN (SELECT dance_id FROM dance_figures …)` — "the dance has **no**
+/// figure matching" — per the confirmed `Not` semantics. (`NOT IN` is safe
+/// here because `dance_figures.dance_id` is `NOT NULL`, part of the primary
+/// key, so the subquery never yields a NULL to trip up `NOT IN`.)
 @immutable
 class FigureFilter extends DanceFilter {
   const FigureFilter(this.query);

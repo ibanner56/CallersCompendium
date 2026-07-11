@@ -56,10 +56,10 @@ void main() {
           )
           .get();
       final names = indexes.map((r) => r.read<String>('name')).toSet();
-      expect(
-        names,
-        containsAll(['dance_figures_move_section', 'dance_figures_dance_idx']),
-      );
+      expect(names, contains('dance_figures_move_section'));
+      // No explicit (dance_id, idx) index: the composite PK's implicit index
+      // already serves the `Then` self-join.
+      expect(names, isNot(contains('dance_figures_dance_idx')));
 
       await db.close();
     });
@@ -177,6 +177,45 @@ void main() {
 
       await db.close();
     });
+
+    test('ensureMigrated retries after a failed rebuild', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = _FailingOnceRepositories(db, contraTaxonomy);
+
+      // First attempt: onUpgrade sets the durable marker, then the rebuild
+      // throws. The failure must propagate and NOT be cached.
+      await expectLater(repos.ensureMigrated(), throwsA(isA<StateError>()));
+      expect(repos.rebuildAttempts, 1);
+
+      // Marker still set, section still null (rebuild didn't complete).
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(marker, isNotEmpty);
+
+      // Second attempt: the memo was cleared, so it retries and now succeeds.
+      await repos.ensureMigrated();
+      expect(repos.rebuildAttempts, 2);
+      final after = await db
+          .customSelect(
+            "SELECT section FROM dance_figures WHERE dance_id = 'dance-1' "
+            'AND idx = 2',
+          )
+          .get();
+      expect(after.single.read<String?>('section'), 'B1');
+      final cleared = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(cleared, isEmpty);
+
+      await db.close();
+    });
   });
 
   test(
@@ -215,4 +254,22 @@ void main() {
       await second.close();
     },
   );
+}
+
+/// A [CompendiumRepositories] whose derived-index rebuild throws on its first
+/// invocation and succeeds thereafter — used to prove [ensureMigrated] retries
+/// after a transient failure rather than caching it.
+class _FailingOnceRepositories extends CompendiumRepositories {
+  _FailingOnceRepositories(super.db, super.taxonomy);
+
+  int rebuildAttempts = 0;
+
+  @override
+  Future<void> runDerivedRebuild() async {
+    rebuildAttempts++;
+    if (rebuildAttempts == 1) {
+      throw StateError('injected rebuild failure');
+    }
+    await super.runDerivedRebuild();
+  }
 }

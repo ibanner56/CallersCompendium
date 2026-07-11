@@ -24,13 +24,15 @@ CREATE VIRTUAL TABLE dance_fts USING fts5(
 )
 ''';
 
-/// The two derived-index helper indexes added in schema v2 for section-aware
-/// figure search and the `Then` sequence self-join (`docs/design/search.md`).
+/// The schema-v2 helper index for section-aware figure search
+/// (`docs/design/search.md`). Only the `(move, section)` index is created:
+/// the `Then` sequence self-join keys on `(dance_id, idx)`, which is already
+/// served by the implicit index SQLite creates for the `dance_figures`
+/// composite primary key `{danceId, idx}` (same leading-column order), so no
+/// separate `(dance_id, idx)` index is needed.
 const List<String> searchIndexSql = [
   'CREATE INDEX IF NOT EXISTS dance_figures_move_section '
       'ON dance_figures(move, section)',
-  'CREATE INDEX IF NOT EXISTS dance_figures_dance_idx '
-      'ON dance_figures(dance_id, idx)',
 ];
 
 /// Settings key marking that a schema migration touched the derived figure
@@ -47,12 +49,14 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 /// - v1 (2026-07-10): initial schema — see `docs/design/storage.md`.
 /// - v2 (2026-07-11): section-aware search (`docs/design/search.md`). Adds the
 ///   nullable `dance_figures.section` column plus the `dance_figures_move_
-///   section` and `dance_figures_dance_idx` indexes. `onUpgrade` performs the
-///   DDL and durably records [derivedRebuildRequiredKey]; the derived `section`
-///   values are back-filled by a post-open integrity pass
-///   ([DanceRepository.rebuildAllDerived]) that [CompendiumRepositories.ensureMigrated]
-///   runs when the marker is set — the rebuild needs the taxonomy/renderer,
-///   which `MigrationStrategy` can't reach.
+///   section` index (the `Then` self-join's `(dance_id, idx)` access is
+///   already served by the composite primary key's implicit index).
+///   `onUpgrade` performs the DDL and durably records
+///   [derivedRebuildRequiredKey]; the derived `section` values are back-filled
+///   by a post-open integrity pass ([DanceRepository.rebuildAllDerived]) that
+///   [CompendiumRepositories.ensureMigrated] runs when the marker is set — the
+///   rebuild needs the taxonomy/renderer, which `MigrationStrategy` can't
+///   reach.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that

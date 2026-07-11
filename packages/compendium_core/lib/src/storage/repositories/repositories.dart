@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
@@ -44,25 +45,41 @@ class CompendiumRepositories {
   ///
   /// Crash-safe and idempotent: the marker persists until the rebuild
   /// succeeds, so an interrupted upgrade is retried on the next open;
-  /// concurrent calls share one in-flight future.
+  /// concurrent calls share one in-flight future. A failed attempt clears the
+  /// memo so a later call retries rather than replaying the cached failure.
   Future<void> ensureMigrated() => _migration ??= _runMigration();
   Future<void>? _migration;
 
   Future<void> _runMigration() async {
-    // Force the lazily-opened database to run its migration strategy now, so
-    // the marker (if any) reflects this open before we check it.
-    await db.customSelect('SELECT 1').get();
-    final marker = await db
-        .customSelect(
-          'SELECT value_json FROM settings WHERE key = ?',
-          variables: [Variable.withString(derivedRebuildRequiredKey)],
-        )
-        .get();
-    if (marker.isNotEmpty) {
-      await dances.rebuildAllDerived();
-      await db.customStatement('DELETE FROM settings WHERE key = ?', [
-        derivedRebuildRequiredKey,
-      ]);
+    try {
+      // Force the lazily-opened database to run its migration strategy now, so
+      // the marker (if any) reflects this open before we check it.
+      await db.customSelect('SELECT 1').get();
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      if (marker.isNotEmpty) {
+        await runDerivedRebuild();
+        await db.customStatement('DELETE FROM settings WHERE key = ?', [
+          derivedRebuildRequiredKey,
+        ]);
+      }
+    } catch (_) {
+      // Don't cache a failed migration: clear the memo so a subsequent call
+      // retries. The durable marker is still set (only deleted after a
+      // successful rebuild), so the retry re-does the back-fill.
+      _migration = null;
+      rethrow;
     }
   }
+
+  /// The derived-index rebuild step of [ensureMigrated]. Extracted so tests can
+  /// inject a transient failure and assert the marker survives and the retry
+  /// succeeds.
+  @protected
+  @visibleForTesting
+  Future<void> runDerivedRebuild() => dances.rebuildAllDerived();
 }

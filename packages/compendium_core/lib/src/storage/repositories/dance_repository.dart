@@ -332,9 +332,12 @@ class DanceRepository {
   /// [SearchSort.title], [SearchSort.recentlyEdited] and (bare-full-text)
   /// [SearchSort.relevance] are ordered in SQL; [SearchSort.author] and
   /// [SearchSort.lastCalled] reuse the Phase 3.1 orderings and are applied in
-  /// Dart over the fetched id set (author name / last-called timestamp live
-  /// off the `dances` row). Ordering is stable, so the SQL title base order is
-  /// preserved for ties.
+  /// Dart over the fetched id set. Those two keys are **not** columns on
+  /// `dances`: the first author's name comes from `dance_authors` joined to
+  /// `choreographers`, and the last-called timestamp is a `MAX(performed_at)`
+  /// aggregate over `program_slots`/`programs` — so they can't be an SQL
+  /// `ORDER BY` here and are computed as a post-fetch step. The post-sort is
+  /// stable, preserving the SQL title base order for ties.
   Future<List<String>> search(
     DanceFilter filter, {
     SearchSort sort = SearchSort.title,

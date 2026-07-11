@@ -83,7 +83,6 @@ Future<void> main() async {
   // Strip the v2 additions so the fixture is a genuine schema-v1 database.
   final raw = sqlite3.sqlite3.open(fixturePath);
   raw.execute('DROP INDEX IF EXISTS dance_figures_move_section');
-  raw.execute('DROP INDEX IF EXISTS dance_figures_dance_idx');
   raw.execute('ALTER TABLE dance_figures DROP COLUMN section');
   raw.execute('PRAGMA user_version = 1');
   raw.close();
