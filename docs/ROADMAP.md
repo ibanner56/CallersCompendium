@@ -26,9 +26,9 @@ separately; planned for a later milestone), authoring/publishing back to online 
 
 ## Phase 0 — Project foundations
 
-- [ ] 0.1 Contributor docs: CONTRIBUTING.md, CODE_OF_CONDUCT.md, expanded README
-- [ ] 0.2 Decide repo conventions: branching, commit style, ADR (architecture decision record) template in `docs/adr/`
-- [ ] 0.3 Issue/PR templates and labels for community contributions
+- [x] 0.1 Contributor docs: CONTRIBUTING.md, CODE_OF_CONDUCT.md, expanded README
+- [x] 0.2 Repo conventions: branching, commit style (in CONTRIBUTING.md), ADR template in `docs/adr/`
+- [x] 0.3 Issue/PR templates and labels for community contributions
 
 ## Phase 1 — Investigation & design
 
