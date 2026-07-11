@@ -1,0 +1,12 @@
+# FVM (SDK cache symlink; .fvmrc is committed)
+.fvm/
+
+# Dart/Flutter tooling
+.dart_tool/
+build/
+*.iml
+.idea/
+.vscode/
+
+# pub workspace: only the root lockfile is real
+pubspec_overrides.yaml

@@ -1,0 +1,89 @@
+# CI: lint + test on every push/PR, plus a build matrix covering all five
+# target platforms. Flutter version must match .fvmrc.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  FLUTTER_VERSION: "3.44.6"
+
+jobs:
+  checks:
+    name: Format, analyze, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze
+      # ADR-001: the domain core must stay free of Flutter imports.
+      - name: Guard compendium_core against Flutter imports
+        run: |
+          if grep -rn "package:flutter" packages/compendium_core/lib packages/compendium_core/test 2>/dev/null; then
+            echo "::error::compendium_core must not depend on Flutter (ADR-001)"
+            exit 1
+          fi
+      - name: Test compendium_core
+        working-directory: packages/compendium_core
+        run: |
+          if [ -n "$(find test -name '*_test.dart' 2>/dev/null)" ]; then
+            dart test
+          else
+            echo "No tests yet; skipping."
+          fi
+      - name: Test app
+        working-directory: app
+        run: flutter test
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux
+            os: ubuntu-latest
+            build_args: linux --release
+          - target: android
+            os: ubuntu-latest
+            build_args: apk --debug
+          - target: macos
+            os: macos-latest
+            build_args: macos --release
+          - target: ios
+            os: macos-latest
+            build_args: ios --release --no-codesign
+          - target: windows
+            os: windows-latest
+            build_args: windows --release
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux desktop dependencies
+        if: matrix.target == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgtk-3-dev
+      - uses: actions/setup-java@v4
+        if: matrix.target == 'android'
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Build
+        working-directory: app
+        run: flutter build ${{ matrix.build_args }}
