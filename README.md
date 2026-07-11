@@ -41,13 +41,11 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
 
 ## Acknowledgements
 
-This project stands on the shoulders of
+This project draws on prior work from
 [Caller's Companion](http://callerscompanion.com/) (Will Loving),
 [ContraDB](https://github.com/contradb/contra) (David Morse, AGPL-3.0), and
 [The Caller's Box](https://www.ibiblio.org/contradance/thecallersbox/)
-(Chris Page & Michael Dyck) — thank you for decades of tools and curation for
-this community. We are a new, independent project — not a fork of any of them,
-and we do not seek to replace or diminish them.
+(Chris Page & Michael Dyck).
 
 ## License
 
