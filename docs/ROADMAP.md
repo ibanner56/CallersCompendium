@@ -12,7 +12,7 @@ ordered; each phase gates the next. Status: `[ ]` todo · `[~]` in progress · `
 | Decision | Choice |
 |---|---|
 | Platforms | Desktop (Win/mac/Linux) + tablet + phone |
-| Stack | TBD — Phase 1 produces a recommendation |
+| Stack | **Flutter** — see [ADR-001](adr/001-application-stack.md) |
 | Persistence | Fully offline / local-first; online sources are **import-only** |
 | Dance forms | Contra first; schema designed to extend to ECD & Squares |
 | Performance mode | Core to v1 (large-print calling view, program navigation) |
@@ -34,12 +34,12 @@ separately; planned for a later milestone), authoring/publishing back to online 
 
 Research items (each produces a short written finding in `docs/research/`):
 
-- [ ] 1.1 Survey Caller's Companion features & UX (from the shipped binaries/manual) — inventory of fields, program workflow, performance mode, print/export formats
-- [ ] 1.2 Survey ContraDB dialect & figure model (schema, figure taxonomy, dialect substitution mechanics, license compatibility with AGPL)
-- [ ] 1.3 Survey CallersBox data: scrape format, field conventions, notation variance; estimate sanitization effort
-- [ ] 1.4 Caller's Companion export formats: what can users export (FileMaker runtime `.USR`); determine the most practical migration path
-- [ ] 1.5 Tech stack evaluation: Flutter vs Tauri v2 vs React Native vs .NET MAUI against: 5-platform support, offline DB (SQLite), accessibility APIs, text rendering for performance mode, community contributability — produce ADR-001
-- [ ] 1.6 Accessibility requirements baseline (WCAG 2.2 AA targets, platform screen readers, large-text/high-contrast for stage use)
+- [x] 1.1 Survey Caller's Companion features & UX — [research/callers-companion.md](research/callers-companion.md)
+- [x] 1.2 Survey ContraDB dialect & figure model — [research/contradb.md](research/contradb.md)
+- [x] 1.3 Survey CallersBox data — [research/callersbox.md](research/callersbox.md)
+- [x] 1.4 Caller's Companion export formats / migration path — covered in [research/callers-companion.md](research/callers-companion.md)
+- [x] 1.5 Tech stack evaluation → Flutter — [ADR-001](adr/001-application-stack.md)
+- [x] 1.6 Accessibility requirements baseline — [research/accessibility-baseline.md](research/accessibility-baseline.md)
 
 Design items (each produces a design doc + review):
 
