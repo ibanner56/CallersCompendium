@@ -1,0 +1,83 @@
+import 'package:compendium_core/compendium_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('Figure', () {
+    test('defaults: current schema version, empty params, no progression', () {
+      final f = Figure(move: 'swing');
+      expect(f.schemaVersion, figureSchemaVersion);
+      expect(f.params, isEmpty);
+      expect(f.progression, isFalse);
+      expect(f.note, isNull);
+      expect(f.beats, 0);
+    });
+
+    test('rejects empty and whitespace-only move ids', () {
+      expect(() => Figure(move: ''), throwsArgumentError);
+      expect(() => Figure(move: '   '), throwsArgumentError);
+    });
+
+    test('rejects negative and non-integer beats', () {
+      expect(
+        () => Figure(move: 'swing', params: {'beats': -1}),
+        throwsArgumentError,
+      );
+      expect(
+        () => Figure(move: 'swing', params: {'beats': 8.5}),
+        throwsArgumentError,
+      );
+      expect(
+        () => Figure(move: 'swing', params: {'beats': '8'}),
+        throwsArgumentError,
+      );
+    });
+
+    test('accepts zero beats (formation labels)', () {
+      expect(Figure(move: 'form_long_waves', params: {'beats': 0}).beats, 0);
+    });
+
+    test('params are unmodifiable and defensively copied', () {
+      final source = <String, Object?>{'who': 'partners', 'beats': 16};
+      final f = Figure(move: 'swing', params: source);
+      source['who'] = 'neighbors';
+      expect(f.params['who'], 'partners');
+      expect(() => f.params['x'] = 1, throwsUnsupportedError);
+    });
+
+    test('isCustom only for the custom move', () {
+      expect(
+        Figure(move: customMove, params: {'text': 'weave'}).isCustom,
+        isTrue,
+      );
+      expect(Figure(move: 'swing').isCustom, isFalse);
+    });
+
+    test('value equality is deep over params', () {
+      Figure make() => Figure(
+        move: 'allemande',
+        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.5},
+      );
+      expect(make(), equals(make()));
+      expect(make().hashCode, make().hashCode);
+      expect(make(), isNot(equals(make().copyWith(params: {'hand': 'left'}))));
+      expect(
+        Figure(move: 'swing'),
+        isNot(equals(Figure(move: 'swing', progression: true))),
+      );
+    });
+
+    test('copyWith preserves untouched fields and applies changes', () {
+      final f = Figure(
+        move: 'swing',
+        params: {'who': 'partners', 'beats': 16},
+        note: 'scoop',
+        progression: true,
+      );
+      final g = f.copyWith(note: 'gently');
+      expect(g.move, 'swing');
+      expect(g.params, f.params);
+      expect(g.progression, isTrue);
+      expect(g.note, 'gently');
+    });
+  });
+}

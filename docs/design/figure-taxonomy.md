@@ -78,13 +78,53 @@ Parameter-level details (per-move param sets, defaults, valid beats) follow
 ContraDB's definitions as surveyed in research/contradb.md and are finalized
 in the implementation with exhaustive tests; deviations get logged in this doc.
 
+## Implementation status (v0.1 engine, roadmap 2.4)
+
+The figure engine (`packages/compendium_core/lib/src/{taxonomy,dialect,serialization}`)
+is implemented and fully tested: `figures_json` codec, `MoveDef`/`Taxonomy`
+with alias resolution + per-figure validation, the two-flavor renderer
+(canonical + dialect, `%S` side injection, quarter-turn rotation words), and
+the single `canonicalize()` chokepoint with round-trip property tests over all
+shipped presets.
+
+The **seed taxonomy** (`contra_taxonomy.dart`) currently defines a conservative
+slice (~15 moves + the swing/do-si-do/box-the-gnat aliases + custom) chosen to
+exercise every `ParamKind`. Full data entry for the remaining ContraDB moves is
+tracked as roadmap 2.4a and is purely additive. The complete extracted ContraDB
+reference (49 `defineFigure`s, all choosers, defaults, `goodBeats`, aliases) is
+archived in the session files as `contradb-taxonomy-extract.md`.
+
+**Confirmed divergences from ContraDB (already applied in the seed):**
+- Canonical roles are `role1`/`role2`; ContraDB `gentlespoons`→`role1(s)`,
+  `ladles`→`role2(s)`. All role display names (incl. Larks/Robins) are dialect.
+- `shoulder_round` replaces gyre/gypsy; legacy names retained as `searchKeywords`.
+- Rotation is stored in **full turns** (0.25–2.5, quarter steps), not degrees
+  (90–900). 90°→0.25 … 540°→1.5 … 900°→2.5.
+
+**Param-vocabulary extensions still needed for full coverage (need a decision):**
+Several moves don't fit the current `ParamKind` set and are deferred until we
+agree how to model them:
+- **`places`** (distance travelled around a ring/star, ContraDB 1–10 "places"):
+  used by circle, star, facing star, square through, box circulate. Distinct
+  from in-place `rotation` — needs its own kind or an int param.
+- **move-specific enums** already fit `ParamKind.choice`, but we should confirm
+  the canonical value spellings: march facing, star grip, slice return/increment,
+  gate direction, down-the-hall enders, zig-zag enders, hey length.
+- **`half_or_full`** → maps onto our `fraction` type (0.5/1.0) — confirm.
+- **`hey`** (10 params incl. four ricochet flags + hey-length/meeting encodings):
+  the single biggest modeling decision; see open question 2 below.
+- **ocean/long-wave family** (`form an ocean wave` has 7 params) and the
+  auto-beat "change" behaviors ContraDB attaches to param edits (editor UX,
+  likely out of scope for the pure model).
+
 ## Validation & rendering
 
 - Each move may define `validBeats(params)` → ok / warning (never hard error).
+  Implemented as `MoveDef.goodBeats` → `atypical_beats` warning.
 - `renderTemplate` produces **canonical text**; dialect substitution then
   produces display text; both are pure functions in the core package →
   golden-tested. Screen readers get an expanded verbose rendering (a11y
-  baseline requirement).
+  baseline requirement) — verbose rendering still TODO.
 - FTS indexing uses canonical rendered text + searchKeywords (incl. legacy
   terms like "gypsy" so searches by older users still find shoulder round).
 

@@ -53,10 +53,11 @@ Design items (each produces a design doc + review):
 
 ## Phase 2 — Core skeleton
 
-- [ ] 2.1 Scaffold the chosen stack; CI (build + test + lint on all platforms)
-- [ ] 2.2 Local database layer + migrations + test harness
-- [ ] 2.3 Domain model implementation with comprehensive unit tests
-- [ ] 2.4 Figure serialization + dialect rendering engine with golden tests
+- [x] 2.1 Scaffold the chosen stack; CI (build + test + lint on all platforms) — pub workspace (`app/` + `packages/compendium_core/`), FVM-pinned Flutter 3.44.6, `.github/workflows/ci.yml`
+- [x] 2.2 Local database layer + migrations + test harness — `packages/compendium_core/lib/src/storage`: drift/SQLite schema (14 tables), `CompendiumRepositories` facade (choreographer/tag/custom-field/settings/snapshot/program/dance repos), FTS5 full-text search + structural figure search, soft-delete/restore/purge, `figures_json`-derived rebuild, UTC-normalized DateTime round-tripping, migration-test scaffold; 66 storage tests (210 total core tests). One documented deviation from the literal `storage.md` SQL sketch: `dance_fts` uses a normal FTS5 table with an `UNINDEXED dance_id` column rather than `content=''` tied to SQLite's implicit rowid — same derived/rebuildable behavior, avoids coupling to rowid conventions inside drift's typed API (see comment in `database.dart`).
+- [x] 2.3 Domain model implementation with comprehensive unit tests — `packages/compendium_core` model types, invariants, phrase-section derivation
+- [x] 2.4 Figure serialization + dialect rendering engine with golden tests — `figures_json` codec, `Taxonomy`/`MoveDef` validation, two-flavor renderer (`%S`, quarter-turn words), `canonicalize()` chokepoint with round-trip property tests; 144 core tests
+- [ ] 2.4a Complete taxonomy data entry (remaining ContraDB moves) — needs param-vocab decisions (`places`, hey model, ocean/long-wave); see docs/design/figure-taxonomy.md "Implementation status"
 
 ## Phase 3 — Collection management
 

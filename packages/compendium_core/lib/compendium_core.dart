@@ -1,0 +1,42 @@
+/// Pure-Dart domain core for Caller's Compendium.
+///
+/// Contains the domain model, figure taxonomy, dialect engine, and import
+/// parsers. This package must remain free of Flutter dependencies so the
+/// domain layer stays portable and independently testable (ADR-001).
+library;
+
+export 'src/dialect/canonicalize.dart';
+export 'src/dialect/dialect.dart';
+export 'src/dialect/renderer.dart';
+export 'src/dialect/substitution.dart' show Substitutor;
+export 'src/model/choreographer.dart';
+export 'src/model/custom_field.dart';
+export 'src/model/dance.dart';
+export 'src/model/dance_link.dart';
+export 'src/model/enums.dart';
+export 'src/model/figure.dart';
+export 'src/model/formation.dart';
+export 'src/model/phrase_structure.dart';
+export 'src/model/program.dart';
+export 'src/model/provenance.dart';
+export 'src/model/tag.dart';
+export 'src/serialization/figure_codec.dart';
+export 'src/storage/database.dart' show CompendiumDatabase;
+export 'src/storage/repositories/choreographer_repository.dart';
+export 'src/storage/repositories/custom_field_repository.dart'
+    show
+        CustomFieldDefRepository,
+        decodeCustomFieldValue,
+        encodeCustomFieldValue;
+export 'src/storage/repositories/dance_repository.dart';
+export 'src/storage/repositories/program_repository.dart';
+export 'src/storage/repositories/repositories.dart';
+export 'src/storage/repositories/settings_repository.dart';
+export 'src/storage/repositories/snapshot_repository.dart';
+export 'src/storage/repositories/tag_repository.dart';
+export 'src/taxonomy/contra_taxonomy.dart';
+export 'src/taxonomy/move_def.dart';
+export 'src/taxonomy/param_types.dart';
+export 'src/taxonomy/taxonomy.dart';
+export 'src/util/uuid.dart';
+export 'src/validation/validation.dart';
