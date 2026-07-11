@@ -154,7 +154,9 @@ class FacetPanel extends StatelessWidget {
     }
 
     for (final def in choiceFields) {
-      final selected = facets.choiceValues.putIfAbsent(def.id, () => {});
+      // Read-only during build: don't create a map entry here (builds must be
+      // side-effect free). The entry is created lazily in onSelected.
+      final selected = facets.choiceValues[def.id] ?? const <String>{};
       sections.add(
         _FacetSection(
           label: def.label,
@@ -165,7 +167,12 @@ class FacetPanel extends StatelessWidget {
                 label: choice,
                 icon: Icons.tune,
                 selected: selected.contains(choice),
-                onSelected: (s) => toggle(selected, choice, s),
+                onSelected: (s) {
+                  final set = facets.choiceValues.putIfAbsent(def.id, () => {});
+                  s ? set.add(choice) : set.remove(choice);
+                  if (set.isEmpty) facets.choiceValues.remove(def.id);
+                  onChanged();
+                },
               ),
           ],
         ),

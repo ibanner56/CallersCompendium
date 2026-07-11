@@ -146,6 +146,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       if (!mounted || seq != _searchSeq) return;
       setState(() {
         _searchError = error;
+        // Clear stale results so the live count matches the error state rather
+        // than announcing the previous (now incorrect) count.
+        _results = const [];
         _searching = false;
       });
     }
@@ -279,13 +282,17 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ),
         ),
         Expanded(
-          child: ListView(
-            children: [
-              _buildFiltersPanel(data),
-              _buildAdvancedPanel(data),
-              _buildResultCount(),
-              const Divider(height: 1),
-              ..._buildResults(),
+          child: CustomScrollView(
+            slivers: [
+              SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildFiltersPanel(data),
+                  _buildAdvancedPanel(data),
+                  _buildResultCount(),
+                  const Divider(height: 1),
+                ]),
+              ),
+              _buildResultsSliver(),
             ],
           ),
         ),
@@ -380,26 +387,31 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
-  List<Widget> _buildResults() {
+  Widget _buildResultsSliver() {
     if (_searchError != null) {
-      return [
-        const Padding(
+      return const SliverToBoxAdapter(
+        child: Padding(
           padding: EdgeInsets.all(24),
           child: Center(
             child: Text('Something went wrong running the search.'),
           ),
         ),
-      ];
+      );
     }
     if (_results.isEmpty) {
-      return [
-        const Padding(
+      return const SliverToBoxAdapter(
+        child: Padding(
           padding: EdgeInsets.all(24),
           child: Center(child: Text('No dances match your search.')),
         ),
-      ];
+      );
     }
-    return [for (final entry in _results) DanceListTile(entry: entry)];
+    // Lazily built so large collections stay virtualized (only visible rows
+    // are constructed).
+    return SliverList.builder(
+      itemCount: _results.length,
+      itemBuilder: (context, index) => DanceListTile(entry: _results[index]),
+    );
   }
 
   int _activeFacetCount() {

@@ -467,6 +467,9 @@ void main() {
       find.text('Something went wrong running the search.'),
       findsOneWidget,
     );
+    // The stale count is cleared so the live region matches the error state.
+    expect(find.text('0 dances'), findsOneWidget);
+    expect(find.byType(DanceListTile), findsNothing);
   });
 
   testWidgets('tapping a dance navigates to its detail screen', (tester) async {
