@@ -9,6 +9,7 @@ import '../search/collection_query.dart';
 import '../widgets/advanced_query_builder.dart';
 import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
+import '../screens/custom_fields_screen.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 
@@ -194,7 +195,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
       appBar: AppBar(
         title: const Text('Collection'),
         actions: [
-          if (_data != null)
+          if (_data != null) ...[
+            IconButton(
+              key: const ValueKey('manage-custom-fields'),
+              tooltip: 'Manage custom fields',
+              icon: const Icon(Icons.list_alt_outlined),
+              onPressed: _openCustomFields,
+            ),
             PopupMenuButton<CollectionSort>(
               tooltip: 'Sort by',
               initialValue: _sort,
@@ -218,6 +225,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 ),
               ),
             ),
+          ],
         ],
       ),
       body: _buildBody(),
@@ -238,6 +246,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
     // Reload the collection so a newly saved dance shows up in results.
     if (mounted && created != null) await _boot();
+  }
+
+  Future<void> _openCustomFields() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const CustomFieldsScreen()));
+    // Reload so newly-created/edited fields show up as facets.
+    if (mounted) await _boot();
   }
 
   Widget _buildBody() {
@@ -337,6 +353,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
           tags: data.tags,
           choiceFields: data.choiceFields,
           booleanFields: data.booleanFields,
+          textFields: data.textFields,
+          numberFields: data.numberFields,
           onChanged: _onFacetsChanged,
         ),
       ],
@@ -439,7 +457,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _facets.authorIds.length +
         _facets.tagIds.length +
         _facets.choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
-        _facets.booleanValues.length;
+        _facets.booleanValues.length +
+        _facets.textValues.length +
+        _facets.numberValues.length;
   }
 }
 
@@ -455,6 +475,8 @@ class _CollectionData {
     required this.listFieldDefs,
     required this.choiceFields,
     required this.booleanFields,
+    required this.textFields,
+    required this.numberFields,
     required this.lastCalled,
     required this.authors,
     required this.tags,
@@ -473,6 +495,8 @@ class _CollectionData {
   final List<CustomFieldDef> listFieldDefs;
   final List<CustomFieldDef> choiceFields;
   final List<CustomFieldDef> booleanFields;
+  final List<CustomFieldDef> textFields;
+  final List<CustomFieldDef> numberFields;
   final Map<String, DateTime> lastCalled;
   final List<Choreographer> authors;
   final List<Tag> tags;
@@ -528,6 +552,12 @@ class _CollectionData {
           .toList(),
       booleanFields: searchable
           .where((d) => d.type == CustomFieldType.boolean)
+          .toList(),
+      textFields: searchable
+          .where((d) => d.type == CustomFieldType.text)
+          .toList(),
+      numberFields: searchable
+          .where((d) => d.type == CustomFieldType.number)
           .toList(),
       lastCalled: lastCalled,
       authors: authors,

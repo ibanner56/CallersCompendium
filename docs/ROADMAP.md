@@ -84,7 +84,12 @@ Design items (each produces a design doc + review):
     buttons in app bar; Ctrl/Cmd-Z / Ctrl/Cmd-Shift-Z / Ctrl-Y keyboard shortcuts; `_applySnapshot`
     resyncs all `TextEditingController`s and rebuilds figure drafts. Dropdowns use value-based keys for
     correct undo/redo resync.
-- [ ] 3.4 Custom user fields (define, edit, search)
+- [x] 3.4 Custom user fields (define, edit, search) — `CustomFieldsScreen` (list/create/edit/delete,
+    reachable via app-bar "Manage custom fields" icon on Collection screen); mutability guards: type
+    locked once field has values on dances; key locked when in use; choice removal blocked when that
+    choice value is stored on any dance; label/showInList/searchable always editable. Text and number
+    custom-field facets added to `FacetPanel` + `FacetSelections` + `buildCollectionFilter` (text:
+    contains/equals; number: eq/lt/gt/between).
 - [ ] 3.5 Dance duplication, soft-delete/restore
 
 ### Deferred from 3.3a (dance editor metadata form) — tracked follow-ups
@@ -95,8 +100,7 @@ Design items (each produces a design doc + review):
 - Desktop list/detail **split-pane** editor layout (v1 ships a full-screen editor route).
 - Cross-session / persistent **undo** (3.3d ships in-memory undo/redo only).
 - (Already tracked elsewhere, pointers only: 2.4a full taxonomy data; the 3.2
-  follow-ups — text/number custom-field search UI, nested figure groups inside
-  `then`, per-Type taxonomy selection.)
+  follow-ups — nested figure groups inside `then`, per-Type taxonomy selection.)
 
 ## Phase 4 — Programs
 
