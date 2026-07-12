@@ -60,6 +60,23 @@ Future<void> _pumpEditor(
   await tester.pumpAndSettle();
 }
 
+/// Types [typed] into figure [index]'s move field and taps the [optionId]
+/// suggestion, mirroring the keyboard-first move picker.
+Future<void> _selectMoveInEditor(
+  WidgetTester tester,
+  int index,
+  String typed,
+  String optionId,
+) async {
+  await tester.enterText(
+    find.byKey(ValueKey('figure-$index-move-input')),
+    typed,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey('figure-$index-move-option-$optionId')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -320,5 +337,108 @@ void main() {
 
     expect(find.text('New dance'), findsWidgets);
     expect(find.byKey(const ValueKey('title-field')), findsOneWidget);
+  });
+
+  testWidgets('adding a figure via type-ahead persists on save', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(find.byKey(const ValueKey('title-field')), 'Swung');
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    await _selectMoveInEditor(tester, 0, 'sw', 'swing');
+
+    // Progression + note round-trip alongside the params.
+    await tester.tap(find.byKey(const ValueKey('figure-0-progression')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-note')),
+      'big swing',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final dance = (await repos.dances.listAll()).single;
+    expect(dance.figures, hasLength(1));
+    final figure = dance.figures.single;
+    expect(figure.move, 'swing');
+    expect(figure.params['who'], 'partners');
+    expect(figure.params['beats'], 8);
+    expect(figure.progression, isTrue);
+    expect(figure.note, 'big swing');
+  });
+
+  testWidgets('a custom figure persists on save', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(find.byKey(const ValueKey('title-field')), 'Custom');
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'scoop them up',
+    );
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final dance = (await repos.dances.listAll()).single;
+    expect(dance.figures.single.isCustom, isTrue);
+    expect(dance.figures.single.params['text'], 'scoop them up');
+  });
+
+  testWidgets('editing an existing figure round-trips', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+        ],
+      ),
+    );
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // The existing figure loads into an editable row.
+    expect(find.byKey(const ValueKey('figure-0-beats')), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '16');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.figures.single.params['beats'], 16);
+  });
+
+  testWidgets('deleting a figure removes it on save', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+          Figure(move: 'balance', params: {'who': 'neighbors', 'beats': 4}),
+        ],
+      ),
+    );
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.figures, hasLength(1));
+    expect(saved.figures.single.move, 'balance');
   });
 }

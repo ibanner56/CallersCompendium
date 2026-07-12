@@ -1,0 +1,140 @@
+import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/material.dart';
+
+/// One selectable entry in a [MoveAutocomplete]: either a canonical move or an
+/// alias. [id] is what gets stored on the figure/query (a move id or an alias
+/// id), so aliases keep their own identity (a "see saw" stays a see saw).
+class MoveOption {
+  const MoveOption({required this.id, required this.displayName});
+
+  final String id;
+  final String displayName;
+}
+
+/// A keyboard-first type-ahead move picker over a [Taxonomy]'s moves (and,
+/// optionally, aliases). Typing `sw` offers swing; selecting an option reports
+/// it via [onSelected]. Factored out of the search query builder so the dance
+/// editor and the "has figure" search row share one move picker
+/// (`docs/design/ux.md` §3).
+class MoveAutocomplete extends StatelessWidget {
+  const MoveAutocomplete({
+    super.key,
+    required this.taxonomy,
+    required this.initialText,
+    required this.onSelected,
+    this.fieldKey,
+    this.onCleared,
+    this.onCustomSubmitted,
+    this.includeAliases = true,
+    this.hintText = 'e.g. swing',
+    this.labelText = 'Move',
+    this.autofocus = false,
+  });
+
+  final Taxonomy taxonomy;
+
+  /// Text shown initially in the field (e.g. the current move's display name).
+  final String initialText;
+
+  /// Called when the user picks a move/alias from the options.
+  final ValueChanged<MoveOption> onSelected;
+
+  /// Optional key stem for the inner [TextField] (`<fieldKey>-input`).
+  final String? fieldKey;
+
+  /// Called when the field is emptied (clears the current move).
+  final VoidCallback? onCleared;
+
+  /// Called when the user submits free text that matches no move — the hook the
+  /// editor uses to spin up a custom figure. Null disables custom entry.
+  final ValueChanged<String>? onCustomSubmitted;
+
+  final bool includeAliases;
+  final String hintText;
+  final String labelText;
+  final bool autofocus;
+
+  List<MoveOption> _optionsFor(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    bool matches(String id, String displayName, List<String> keywords) {
+      return displayName.toLowerCase().contains(q) ||
+          id.toLowerCase().contains(q) ||
+          keywords.any((k) => k.toLowerCase().contains(q));
+    }
+
+    final options = <MoveOption>[
+      for (final m in taxonomy.moves.values)
+        if (matches(m.id, m.displayName, m.searchKeywords))
+          MoveOption(id: m.id, displayName: m.displayName),
+      if (includeAliases)
+        for (final a in taxonomy.aliases.values)
+          if (matches(a.id, a.displayName, a.searchKeywords))
+            MoveOption(id: a.id, displayName: a.displayName),
+    ];
+    return options.take(8).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<MoveOption>(
+      initialValue: TextEditingValue(text: initialText),
+      displayStringForOption: (o) => o.displayName,
+      optionsBuilder: (value) => _optionsFor(value.text),
+      onSelected: onSelected,
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 280),
+              child: ListView(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                children: [
+                  for (final option in options)
+                    ListTile(
+                      key: ValueKey(
+                        '${fieldKey ?? 'move'}-option-${option.id}',
+                      ),
+                      dense: true,
+                      title: Text(option.displayName),
+                      onTap: () => onSelected(option),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+        return TextField(
+          key: fieldKey == null ? null : ValueKey('$fieldKey-input'),
+          controller: controller,
+          focusNode: focusNode,
+          autofocus: autofocus,
+          decoration: InputDecoration(
+            labelText: labelText,
+            hintText: hintText,
+            isDense: true,
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: (text) {
+            if (text.trim().isEmpty) onCleared?.call();
+          },
+          onSubmitted: (text) {
+            final q = text.trim();
+            final options = _optionsFor(q);
+            if (options.isNotEmpty) {
+              onSelected(options.first);
+            } else if (q.isNotEmpty) {
+              onCustomSubmitted?.call(q);
+            }
+            onSubmit();
+          },
+        );
+      },
+    );
+  }
+}
