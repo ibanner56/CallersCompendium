@@ -60,3 +60,26 @@ String canonicalizeText(String text, Dialect dialect) =>
 
 /// Whether [token] is one of the canonical role tokens.
 bool isRoleToken(String token) => roleTokens.contains(token);
+
+/// Returns spans in [text] that are recognised as role terms, for the editor
+/// "lingo line" underline. Covers:
+///  - the active [dialect]'s configured role display-terms,
+///  - built-in legacy/synonym role terms (gent, lark, robin, lady, etc.),
+///  - canonical role tokens typed directly (e.g. `role1`, `role2s`).
+///
+/// All returned spans hold positions in the original [text].
+List<({String text, int start})> roleSpans(String text, Dialect dialect) {
+  if (text.isEmpty) return const [];
+  // Build the same reverse map as [canonicalize]: legacy synonyms first, then
+  // the dialect's own role terms (override legacy where they overlap).
+  final map = <String, String>{..._legacyRoleSynonyms};
+  for (final entry in dialect.roles.entries) {
+    map[entry.value.singular.toLowerCase()] = entry.key;
+    map[entry.value.plural.toLowerCase()] = '${entry.key}s';
+  }
+  // Include canonical tokens typed directly (e.g. data loaded from storage).
+  for (final token in roleTokens) {
+    map.putIfAbsent(token, () => token);
+  }
+  return Substitutor(map, caseInsensitive: true).matches(text);
+}

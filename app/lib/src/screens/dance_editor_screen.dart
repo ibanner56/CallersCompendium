@@ -495,6 +495,13 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               _figureDrafts.remove(draft);
               _recomputeWarnings();
             }),
+            onReorder: (oldIndex, newIndex) => setState(() {
+              // onReorder uses pre-adjusted (onReorderItem) semantics —
+              // newIndex is the final insertion position after removal.
+              final draft = _figureDrafts.removeAt(oldIndex);
+              _figureDrafts.insert(newIndex, draft);
+              _recomputeWarnings();
+            }),
           ),
           if (_warnings.isNotEmpty) ...[
             const SizedBox(height: 16),
