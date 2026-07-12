@@ -64,8 +64,8 @@ class FacetSelections {
       tagIds.isEmpty &&
       choiceValues.values.every((s) => s.isEmpty) &&
       booleanValues.isEmpty &&
-      textValues.isEmpty &&
-      numberValues.isEmpty;
+      textValues.values.every((s) => !s.isEffective) &&
+      numberValues.values.every((s) => !s.isEffective);
 
   void clear() {
     forms.clear();
@@ -90,6 +90,10 @@ class TextFacetState {
 
   /// The text to match against.
   final String value;
+
+  /// True when this state would actually produce a [CustomFieldFilter] branch
+  /// in [buildCollectionFilter] (i.e. the value is non-empty after trimming).
+  bool get isEffective => value.trim().isNotEmpty;
 }
 
 /// Immutable state for a number custom-field facet filter.
@@ -105,6 +109,11 @@ class NumberFacetState {
 
   /// The upper bound for [CustomFieldOp.between] (required only for that op).
   final num? hi;
+
+  /// True when this state would actually produce a [CustomFieldFilter] branch
+  /// in [buildCollectionFilter] (i.e. non-between ops are always effective;
+  /// between is only effective once [hi] is also set).
+  bool get isEffective => op != CustomFieldOp.between || hi != null;
 }
 
 /// OR-combines [leaves] into a single [DanceFilter]: `null` for none, the leaf
@@ -160,18 +169,15 @@ DanceFilter buildCollectionFilter({
   });
   facets.textValues.forEach((fieldId, state) {
     final def = defsById[fieldId];
-    final trimmed = state.value.trim();
-    if (def == null || trimmed.isEmpty) return;
-    branches.add(CustomFieldFilter(def, state.op, trimmed));
+    if (def == null || !state.isEffective) return;
+    branches.add(CustomFieldFilter(def, state.op, state.value.trim()));
   });
   facets.numberValues.forEach((fieldId, state) {
     final def = defsById[fieldId];
-    if (def == null) return;
+    if (def == null || !state.isEffective) return;
     if (state.op == CustomFieldOp.between) {
-      final hi = state.hi;
-      if (hi == null) return; // incomplete; skip until both bounds are set
       branches.add(
-        CustomFieldFilter(def, CustomFieldOp.between, [state.lo, hi]),
+        CustomFieldFilter(def, CustomFieldOp.between, [state.lo, state.hi!]),
       );
     } else {
       branches.add(CustomFieldFilter(def, state.op, state.lo));

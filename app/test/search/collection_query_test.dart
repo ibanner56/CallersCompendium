@@ -300,6 +300,66 @@ void main() {
       );
       expect(isBareFullText(ftsText: 'swing', facets: facets), isFalse);
     });
+
+    // --- effective-facet correctness (fix for isEmpty / isBareFullText) -----
+
+    test(
+      'whitespace-only text facet is NOT counted as active (isEmpty = true)',
+      () {
+        final facets = FacetSelections();
+        facets.textValues['note'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: '   ',
+        );
+        expect(facets.isEmpty, isTrue);
+      },
+    );
+
+    test('non-empty text facet IS counted as active (isEmpty = false)', () {
+      final facets = FacetSelections();
+      facets.textValues['note'] = const TextFacetState(
+        op: CustomFieldOp.contains,
+        value: 'swing',
+      );
+      expect(facets.isEmpty, isFalse);
+    });
+
+    test('between with no hi is NOT counted as active (isEmpty = true for '
+        'number facet)', () {
+      final facets = FacetSelections();
+      facets.numberValues['level'] = const NumberFacetState(
+        op: CustomFieldOp.between,
+        lo: 2,
+      );
+      expect(facets.isEmpty, isTrue);
+    });
+
+    test('complete between IS counted as active (isEmpty = false)', () {
+      final facets = FacetSelections();
+      facets.numberValues['level'] = const NumberFacetState(
+        op: CustomFieldOp.between,
+        lo: 2,
+        hi: 7,
+      );
+      expect(facets.isEmpty, isFalse);
+    });
+
+    test(
+      'isBareFullText is true when the only facets present are '
+      'whitespace-only text and incomplete between (neither is effective)',
+      () {
+        final facets = FacetSelections();
+        facets.textValues['note'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: '  ',
+        );
+        facets.numberValues['level'] = const NumberFacetState(
+          op: CustomFieldOp.between,
+          lo: 2,
+        );
+        expect(isBareFullText(ftsText: 'swing', facets: facets), isTrue);
+      },
+    );
   });
 
   group('BuilderGroup folding', () {

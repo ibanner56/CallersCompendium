@@ -458,8 +458,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _facets.tagIds.length +
         _facets.choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
         _facets.booleanValues.length +
-        _facets.textValues.length +
-        _facets.numberValues.length;
+        _facets.textValues.values.where((s) => s.isEffective).length +
+        _facets.numberValues.values.where((s) => s.isEffective).length;
   }
 }
 

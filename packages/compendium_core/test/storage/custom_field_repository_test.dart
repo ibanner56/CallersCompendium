@@ -101,4 +101,93 @@ void main() {
     await repo.delete('f1');
     expect(await repo.getById('f1'), isNull);
   });
+
+  group('isInUse', () {
+    test('returns false when no dance has a value for the field', () async {
+      await repo.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      expect(await repo.isInUse('f1'), isFalse);
+    });
+
+    test('returns true when at least one dance has a value', () async {
+      await repo.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Dance',
+          customFields: [CustomFieldValue(fieldId: 'f1', value: 'some note')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      expect(await repo.isInUse('f1'), isTrue);
+    });
+
+    test('returns false for an unknown field id', () async {
+      expect(await repo.isInUse('nonexistent'), isFalse);
+    });
+  });
+
+  group('listUsedChoiceValues', () {
+    test('returns empty set when field has no values on any dance', () async {
+      await repo.upsert(
+        CustomFieldDef(
+          id: 'f1',
+          key: 'level',
+          label: 'Level',
+          type: CustomFieldType.choice,
+          choices: const ['easy', 'hard'],
+        ),
+      );
+      expect(await repo.listUsedChoiceValues('f1'), isEmpty);
+    });
+
+    test(
+      'returns the set of distinct choice strings stored on dances',
+      () async {
+        await repo.upsert(
+          CustomFieldDef(
+            id: 'f1',
+            key: 'level',
+            label: 'Level',
+            type: CustomFieldType.choice,
+            choices: const ['easy', 'medium', 'hard'],
+          ),
+        );
+        await dances.create(
+          Dance(
+            id: 'd1',
+            title: 'Dance A',
+            customFields: [CustomFieldValue(fieldId: 'f1', value: 'easy')],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await dances.create(
+          Dance(
+            id: 'd2',
+            title: 'Dance B',
+            customFields: [CustomFieldValue(fieldId: 'f1', value: 'hard')],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        // 'medium' is defined but not used.
+        expect(await repo.listUsedChoiceValues('f1'), {'easy', 'hard'});
+      },
+    );
+  });
 }

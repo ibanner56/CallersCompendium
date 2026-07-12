@@ -456,5 +456,82 @@ void main() {
         expect(dropdown.onChanged, isNotNull);
       },
     );
+
+    // ---- key validation pattern enforcement ----
+
+    testWidgets('form rejects a key with invalid characters (spaces)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('cf-label')),
+        'My Field',
+      );
+      await tester.enterText(find.byKey(const ValueKey('cf-key')), 'my field');
+      await tester.tap(find.byKey(const ValueKey('cf-form-save')));
+      await tester.pumpAndSettle();
+      // Should show a validation error about the key format.
+      expect(find.textContaining('letters'), findsOneWidget);
+      expect(find.byKey(const ValueKey('cf-form-save')), findsOneWidget);
+    });
+
+    testWidgets('form rejects a key starting with a digit', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('cf-label')),
+        'My Field',
+      );
+      await tester.enterText(find.byKey(const ValueKey('cf-key')), '1invalid');
+      await tester.tap(find.byKey(const ValueKey('cf-form-save')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('letter or underscore'), findsOneWidget);
+    });
+
+    testWidgets('form accepts a valid key with letters, digits, underscores', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpScreen(tester, repos);
+      await _openNewForm(tester);
+      await _fillAndSave(tester, label: 'Score', key: 'score_2024');
+      expect(find.text('Score'), findsOneWidget);
+    });
+
+    // ---- delete-snackbar pluralization ----
+
+    testWidgets(
+      'delete snackbar says "1 dance" (singular) when only one dance uses it',
+      (tester) async {
+        final repos = openTestRepositories();
+        final def = CustomFieldDef(
+          id: 'f1',
+          key: 'notes',
+          label: 'Notes',
+          type: CustomFieldType.text,
+        );
+        await repos.customFieldDefs.upsert(def);
+        await repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'Dance',
+            customFields: [CustomFieldValue(fieldId: 'f1', value: 'some note')],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+        await _pumpScreen(tester, repos);
+        await tester.tap(find.byKey(const ValueKey('delete-field-f1')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('delete-confirm')));
+        await tester.pumpAndSettle();
+        // Snackbar must say "1 dance" not "1 dances".
+        expect(find.textContaining('1 dance'), findsOneWidget);
+        expect(find.textContaining('1 dances'), findsNothing);
+      },
+    );
   });
 }

@@ -46,6 +46,33 @@ class CustomFieldDefRepository {
     return rows.map(toModel).toList();
   }
 
+  /// Returns `true` if any dance currently has a value for field [id].
+  ///
+  /// Uses a `LIMIT 1` query so it short-circuits on the first match and avoids
+  /// loading the full dance collection.
+  Future<bool> isInUse(String id) async {
+    final row =
+        await (_db.select(_db.customFieldValues)
+              ..where((t) => t.fieldId.equals(id))
+              ..limit(1))
+            .getSingleOrNull();
+    return row != null;
+  }
+
+  /// Returns all distinct text values currently stored for field [id].
+  ///
+  /// For `choice` fields this tells you which choices are in use so the editor
+  /// can block their removal.
+  Future<Set<String>> listUsedChoiceValues(String id) async {
+    final rows = await (_db.select(
+      _db.customFieldValues,
+    )..where((t) => t.fieldId.equals(id))).get();
+    return {
+      for (final r in rows)
+        if (r.valueText != null) r.valueText!,
+    };
+  }
+
   /// Throws if any dance still has a value for [id] — deleting a field
   /// definition out from under populated data would silently strand values
   /// that can no longer be decoded (their type is only known via the def).

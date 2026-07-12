@@ -59,23 +59,16 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
   }
 
   Future<void> _openForm({CustomFieldDef? existing}) async {
-    // For edit mode, check which values are in use so the form can enforce the
-    // mutability guards without needing a new core helper.
-    Set<String>? usedChoiceValues;
+    // For edit mode, check usage directly on the customFieldValues table
+    // (avoids loading the entire dance collection just for an in-use flag).
+    Set<String> usedChoiceValues = {};
     bool inUse = false;
     if (existing != null) {
-      final dances = await _repos.dances.listAll();
-      final valuesForField = [
-        for (final d in dances)
-          for (final v in d.customFields)
-            if (v.fieldId == existing.id) v.value,
-      ];
-      inUse = valuesForField.isNotEmpty;
-      if (existing.type == CustomFieldType.choice) {
-        usedChoiceValues = {
-          for (final v in valuesForField)
-            if (v is String) v,
-        };
+      inUse = await _repos.customFieldDefs.isInUse(existing.id);
+      if (existing.type == CustomFieldType.choice && inUse) {
+        usedChoiceValues = await _repos.customFieldDefs.listUsedChoiceValues(
+          existing.id,
+        );
       }
     }
 
@@ -86,7 +79,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       builder: (_) => _CustomFieldForm(
         existing: existing,
         inUse: inUse,
-        usedChoiceValues: usedChoiceValues ?? {},
+        usedChoiceValues: usedChoiceValues,
       ),
     );
     if (result != null) {
@@ -126,12 +119,16 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
     } on StateError catch (e) {
       if (!mounted) return;
       // The repo throws StateError when values still exist on dances.
-      // Extract the dance count from the error message if possible.
+      // Extract the dance count from the error message and pluralize correctly.
       final msg = e.message;
       final countMatch = RegExp(r'(\d+) dance').firstMatch(msg);
-      final countLabel = countMatch != null
-          ? '${countMatch.group(1)} dances'
-          : 'some dances';
+      final String countLabel;
+      if (countMatch != null) {
+        final n = int.tryParse(countMatch.group(1)!) ?? 0;
+        countLabel = n == 1 ? '1 dance' : '$n dances';
+      } else {
+        countLabel = 'some dances';
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('delete-in-use-snackbar'),
@@ -410,12 +407,20 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
                 decoration: InputDecoration(
                   labelText: 'Key *',
                   helperText: _keyEditable
-                      ? 'Stable machine key (letters, digits, underscores)'
+                      ? 'Stable machine key (letters, digits, underscores; '
+                            'must start with a letter or underscore)'
                       : 'Key is locked — field is in use on dances',
                   border: const OutlineInputBorder(),
                 ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Key is required' : null,
+                validator: (v) {
+                  final trimmed = v?.trim() ?? '';
+                  if (trimmed.isEmpty) return 'Key is required';
+                  if (!RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$').hasMatch(trimmed)) {
+                    return 'Key must start with a letter or underscore and '
+                        'contain only letters, digits, and underscores';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<CustomFieldType>(
