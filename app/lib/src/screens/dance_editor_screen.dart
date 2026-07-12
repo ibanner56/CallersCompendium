@@ -1,7 +1,13 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../data/repositories_scope.dart';
+import '../editor/editor_draft_codec.dart';
+import '../editor/editor_snapshot.dart';
+import '../editor/editor_undo_stack.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../widgets/figure_list_editor.dart';
@@ -46,6 +52,23 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   bool _loadStarted = false;
   Object? _loadError;
   bool _saving = false;
+
+  // ---- Undo / redo ----
+  final _undoStack = EditorUndoStack();
+
+  /// `true` while we are restoring a snapshot via [_applySnapshot] so that
+  /// [_pushUndoNow] does not push a spurious extra entry.
+  bool _applyingSnapshot = false;
+
+  // ---- Autosave timers ----
+  Timer? _undoTimer;
+  Timer? _autosaveTimer;
+
+  String get _draftKey => 'editor_draft:${widget.danceId ?? 'new'}';
+
+  /// A decoded draft snapshot waiting to be restored or discarded.
+  /// Set by [_load] when a draft exists; cleared by [_maybeShowRestoreDialog].
+  EditorSnapshot? _pendingDraft;
 
   /// The dance being edited (null for a new dance); kept to preserve figures,
   /// createdAt, provenance, and schema version on save.
@@ -95,6 +118,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   @override
   void dispose() {
+    _undoTimer?.cancel();
+    _autosaveTimer?.cancel();
     _titleController.dispose();
     _hookController.dispose();
     _notesController.dispose();
@@ -163,7 +188,37 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       }
 
       _recomputeWarnings();
-      if (mounted) setState(() => _loaded = true);
+
+      // Check for an autosaved draft and schedule a restore/discard prompt.
+      if (mounted && await _repos.settings.contains(_draftKey)) {
+        final raw = await _repos.settings.get(_draftKey);
+        EditorSnapshot? draftSnapshot;
+        try {
+          draftSnapshot = decodeDraft(raw);
+        } catch (_) {
+          // Corrupt / unrecognised draft version — silently discard.
+          await _repos.settings.remove(_draftKey);
+        }
+        if (draftSnapshot != null && mounted) {
+          _pendingDraft = draftSnapshot;
+        }
+      }
+
+      // Seed the initial undo entry so the user can always undo back to the
+      // loaded (or restored-draft) state.
+      _undoStack.push(_captureSnapshot());
+
+      if (mounted) {
+        setState(() => _loaded = true);
+        // Show the restore/discard dialog AFTER the first build frame so
+        // WidgetTester.pumpAndSettle() can settle on the loaded editor before
+        // the dialog animation starts.
+        if (_pendingDraft != null) {
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _maybeShowRestoreDialog(),
+          );
+        }
+      }
     } catch (error) {
       if (mounted) setState(() => _loadError = error);
     }
@@ -242,6 +297,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         );
         await _repos.dances.create(dance);
       }
+      // Clear the autosave draft — work is now committed.
+      await _clearDraft();
       if (mounted) Navigator.of(context).pop(dance.id);
     } catch (error) {
       if (!mounted) return;
@@ -250,6 +307,256 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Could not save: $error')));
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Undo / redo helpers
+  // -------------------------------------------------------------------------
+
+  /// Captures an immutable snapshot of the current editor working state.
+  EditorSnapshot _captureSnapshot() => EditorSnapshot(
+    title: _titleController.text,
+    hook: _hookController.text,
+    notes: _notesController.text,
+    phrase: _phraseController.text,
+    formationDetail: _formationDetailController.text,
+    form: _form,
+    formationShape: _formationShape,
+    progression: _progression,
+    status: _status,
+    authorIds: List.unmodifiable(_authorIds),
+    tagIds: List.unmodifiable(_tagIds),
+    tunes: List.unmodifiable(_tunes),
+    links: List.unmodifiable(
+      _links.map(
+        (l) => LinkSnapshot(
+          id: l.id,
+          kind: l.kind,
+          url: l.urlController.text,
+          label: l.labelController.text,
+        ),
+      ),
+    ),
+    preservedLinks: List.unmodifiable(_preservedLinks),
+    // Custom text/number fields are edited via _customTextControllers and do
+    // not keep _customValues in sync — read from the controllers directly so
+    // the snapshot captures whatever the user has typed.
+    customValues: Map.unmodifiable({
+      ..._customValues, // boolean / choice values
+      for (final def in _fieldDefs)
+        if ((def.type == CustomFieldType.text ||
+                def.type == CustomFieldType.number) &&
+            _customTextControllers.containsKey(def.id))
+          def.id: _customTextControllers[def.id]!.text,
+    }),
+    figureDrafts: List.unmodifiable(
+      _figureDrafts.map(FigureDraftSnapshot.fromDraft),
+    ),
+  );
+
+  /// Restores working state from [snapshot], resyncing all text controllers.
+  ///
+  /// Must be called inside an [_applyingSnapshot] guard so [_pushUndoNow]
+  /// is suppressed during the apply.
+  void _applySnapshot(EditorSnapshot s) {
+    // Resync text controllers (guarded: don't clobber identical text).
+    if (_titleController.text != s.title) _titleController.text = s.title;
+    if (_hookController.text != s.hook) _hookController.text = s.hook;
+    if (_notesController.text != s.notes) _notesController.text = s.notes;
+    if (_phraseController.text != s.phrase) _phraseController.text = s.phrase;
+    if (_formationDetailController.text != s.formationDetail) {
+      _formationDetailController.text = s.formationDetail;
+    }
+
+    // Enum fields.
+    _form = s.form;
+    _formationShape = s.formationShape;
+    _progression = s.progression;
+    _status = s.status;
+
+    // Multi-value lists.
+    _authorIds
+      ..clear()
+      ..addAll(s.authorIds);
+    _tagIds
+      ..clear()
+      ..addAll(s.tagIds);
+    _tunes
+      ..clear()
+      ..addAll(s.tunes);
+
+    // URL-kind links: dispose old drafts, reconstruct from snapshot.
+    for (final l in _links) {
+      l.dispose();
+    }
+    _links
+      ..clear()
+      ..addAll(s.links.map(_LinkDraft.fromSnapshot));
+
+    // Preserved links (relatedDance etc.).
+    _preservedLinks
+      ..clear()
+      ..addAll(s.preservedLinks);
+
+    // Custom values.
+    _customValues
+      ..clear()
+      ..addAll(s.customValues);
+
+    // Resync custom text/number controllers.
+    for (final def in _fieldDefs) {
+      if (def.type == CustomFieldType.text ||
+          def.type == CustomFieldType.number) {
+        final controller = _customTextControllers[def.id];
+        final newText = _customValues[def.id]?.toString() ?? '';
+        if (controller != null && controller.text != newText) {
+          controller.text = newText;
+        }
+      }
+    }
+
+    // Figure drafts: recreate from snapshots so FigureDraft identities change
+    // and the FigureListEditor rebuilds cleanly.
+    _figureDrafts
+      ..clear()
+      ..addAll(s.figureDrafts.map((d) => d.toDraft()));
+
+    _recomputeWarnings();
+  }
+
+  /// Pushes the current editor state onto the undo stack immediately.
+  /// No-op while [_applyingSnapshot] is true (prevents undo-of-undo loops)
+  /// and before the initial load completes.
+  void _pushUndoNow() {
+    _undoTimer?.cancel();
+    if (!_applyingSnapshot && _loaded) {
+      _undoStack.push(_captureSnapshot());
+    }
+  }
+
+  /// Debounces undo pushes for rapid text-field edits (500 ms).
+  void _scheduleUndoPush() {
+    if (_applyingSnapshot || !_loaded) return;
+    _undoTimer?.cancel();
+    _undoTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted && !_applyingSnapshot && _loaded) {
+        _undoStack.push(_captureSnapshot());
+        setState(() {}); // Refresh canUndo/canRedo button states.
+      }
+    });
+  }
+
+  /// Debounces autosave writes (500 ms after last change).
+  void _scheduleAutosave() {
+    _autosaveTimer?.cancel();
+    _autosaveTimer = Timer(const Duration(milliseconds: 500), _saveDraft);
+  }
+
+  void _undo() {
+    if (!_undoStack.canUndo) return;
+    _autosaveTimer?.cancel();
+    _undoTimer?.cancel();
+    _applyingSnapshot = true;
+    try {
+      _applySnapshot(_undoStack.undo());
+    } finally {
+      _applyingSnapshot = false;
+    }
+    setState(() {});
+    _scheduleAutosave();
+  }
+
+  void _redo() {
+    if (!_undoStack.canRedo) return;
+    _autosaveTimer?.cancel();
+    _undoTimer?.cancel();
+    _applyingSnapshot = true;
+    try {
+      _applySnapshot(_undoStack.redo());
+    } finally {
+      _applyingSnapshot = false;
+    }
+    setState(() {});
+    _scheduleAutosave();
+  }
+
+  // -------------------------------------------------------------------------
+  // Autosave draft helpers
+  // -------------------------------------------------------------------------
+
+  // -------------------------------------------------------------------------
+  // Draft restore dialog
+  // -------------------------------------------------------------------------
+
+  /// Shows the restore/discard dialog for a pending autosave draft.
+  /// Called from a [WidgetsBinding.addPostFrameCallback] so it fires AFTER
+  /// the first build, ensuring [WidgetTester.pumpAndSettle] can settle on the
+  /// loaded editor state before the dialog animation begins.
+  Future<void> _maybeShowRestoreDialog() async {
+    final draft = _pendingDraft;
+    if (draft == null || !mounted) return;
+    _pendingDraft = null;
+
+    final restore = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Unsaved draft'),
+        content: const Text(
+          'You have an unsaved draft for this dance. '
+          'Would you like to restore it?',
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('draft-discard'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Discard'),
+          ),
+          FilledButton(
+            key: const ValueKey('draft-restore'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (restore == true) {
+      _applyingSnapshot = true;
+      try {
+        _applySnapshot(draft);
+      } finally {
+        _applyingSnapshot = false;
+      }
+      // Reset the stack so the restored state IS the initial undo floor —
+      // the user cannot "undo the restore" back to the pre-restore state.
+      _undoStack.clear();
+      _undoStack.push(_captureSnapshot());
+      setState(() {});
+    } else {
+      await _repos.settings.remove(_draftKey);
+    }
+  }
+
+  Future<void> _saveDraft() async {
+    if (!_loaded || !mounted) return;
+    final encoded = encodeDraft(_captureSnapshot());
+    await _repos.settings.set(_draftKey, encoded);
+  }
+
+  Future<void> _clearDraft() async {
+    _autosaveTimer?.cancel();
+    _undoTimer?.cancel();
+    await _repos.settings.remove(_draftKey);
+  }
+
+  /// Called when the user navigates back without saving (Back button /
+  /// system gesture). Clears the draft and then pops programmatically.
+  Future<void> _clearAndPop() async {
+    await _clearDraft();
+    if (mounted) Navigator.of(context).pop();
   }
 
   List<CustomFieldValue> _collectCustomFields() {
@@ -282,25 +589,82 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isNew ? 'New dance' : 'Edit dance'),
-        actions: [
-          if (_loaded)
-            TextButton(
-              key: const ValueKey('save-dance'),
-              onPressed: _saving ? null : _save,
-              child: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Save'),
+    return PopScope(
+      // canPop: false — Back button / system gesture is intercepted so we can
+      // clear the autosave draft before leaving.  Programmatic Navigator.pop()
+      // (called by _save) bypasses canPop and is not affected.
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_clearAndPop());
+      },
+      child: Shortcuts(
+        shortcuts: {
+          const SingleActivator(LogicalKeyboardKey.keyZ, control: true):
+              const _UndoIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyZ, meta: true):
+              const _UndoIntent(),
+          const SingleActivator(
+            LogicalKeyboardKey.keyZ,
+            control: true,
+            shift: true,
+          ): const _RedoIntent(),
+          const SingleActivator(
+            LogicalKeyboardKey.keyZ,
+            meta: true,
+            shift: true,
+          ): const _RedoIntent(),
+          const SingleActivator(LogicalKeyboardKey.keyY, control: true):
+              const _RedoIntent(),
+        },
+        child: Actions(
+          actions: {
+            _UndoIntent: CallbackAction<_UndoIntent>(onInvoke: (_) => _undo()),
+            _RedoIntent: CallbackAction<_RedoIntent>(onInvoke: (_) => _redo()),
+          },
+          child: Focus(
+            autofocus: true,
+            child: Scaffold(
+              appBar: AppBar(
+                title: Text(widget.isNew ? 'New dance' : 'Edit dance'),
+                actions: [
+                  if (_loaded) ...[
+                    Semantics(
+                      label: 'Undo',
+                      child: IconButton(
+                        key: const ValueKey('undo-button'),
+                        tooltip: 'Undo (Ctrl+Z)',
+                        icon: const Icon(Icons.undo),
+                        onPressed: _undoStack.canUndo ? _undo : null,
+                      ),
+                    ),
+                    Semantics(
+                      label: 'Redo',
+                      child: IconButton(
+                        key: const ValueKey('redo-button'),
+                        tooltip: 'Redo (Ctrl+Shift+Z)',
+                        icon: const Icon(Icons.redo),
+                        onPressed: _undoStack.canRedo ? _redo : null,
+                      ),
+                    ),
+                    TextButton(
+                      key: const ValueKey('save-dance'),
+                      onPressed: _saving ? null : _save,
+                      child: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Save'),
+                    ),
+                  ],
+                ],
+              ),
+              body: _buildBody(),
             ),
-        ],
+          ),
+        ),
       ),
-      body: _buildBody(),
     );
   }
 
@@ -325,6 +689,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               labelText: 'Title *',
               border: OutlineInputBorder(),
             ),
+            onChanged: (_) {
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
             validator: (value) => (value == null || value.trim().isEmpty)
                 ? 'Title is required'
                 : null,
@@ -338,14 +706,24 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             options: [
               for (final c in _choreographers) (id: c.id, name: c.name),
             ],
-            onAdd: (id) => setState(() => _authorIds.add(id)),
-            onRemove: (id) => setState(() => _authorIds.remove(id)),
+            onAdd: (id) {
+              setState(() => _authorIds.add(id));
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+            onRemove: (id) {
+              setState(() => _authorIds.remove(id));
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
             onCreate: _createChoreographer,
           ),
           const SizedBox(height: 16),
           _Label('Formation'),
+          // Key includes the value so a undo/redo that changes _formationShape
+          // forces the DropdownButtonFormField to rebuild with the new state.
           DropdownButtonFormField<FormationShape>(
-            key: const ValueKey('formation-field'),
+            key: ValueKey('formation-field-${_formationShape.name}'),
             initialValue: _formationShape,
             decoration: const InputDecoration(border: OutlineInputBorder()),
             items: [
@@ -356,7 +734,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                 ),
             ],
             onChanged: (value) {
-              if (value != null) setState(() => _formationShape = value);
+              if (value != null) {
+                setState(() => _formationShape = value);
+                _pushUndoNow();
+                _scheduleAutosave();
+              }
             },
           ),
           const SizedBox(height: 8),
@@ -366,6 +748,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               labelText: 'Formation detail (optional)',
               border: OutlineInputBorder(),
             ),
+            onChanged: (_) {
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
           ),
           const SizedBox(height: 16),
           Row(
@@ -377,7 +763,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                   value: _form,
                   values: DanceForm.values,
                   labelOf: danceFormLabel,
-                  onChanged: (v) => setState(() => _form = v),
+                  onChanged: (v) {
+                    setState(() => _form = v);
+                    _pushUndoNow();
+                    _scheduleAutosave();
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -388,7 +778,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                   value: _progression,
                   values: Progression.values,
                   labelOf: progressionLabel,
-                  onChanged: (v) => setState(() => _progression = v),
+                  onChanged: (v) {
+                    setState(() => _progression = v);
+                    _pushUndoNow();
+                    _scheduleAutosave();
+                  },
                 ),
               ),
             ],
@@ -400,7 +794,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             value: _status,
             values: DanceStatus.values,
             labelOf: danceStatusLabel,
-            onChanged: (v) => setState(() => _status = v),
+            onChanged: (v) {
+              setState(() => _status = v);
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -411,7 +809,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               hintText: 'Blank = standard A1 A2 B1 B2; else e.g. 6*8*2',
               border: OutlineInputBorder(),
             ),
-            onChanged: (_) => setState(_recomputeWarnings),
+            onChanged: (_) {
+              setState(_recomputeWarnings);
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
             validator: (value) {
               try {
                 PhraseStructure.parse(value ?? '');
@@ -429,6 +831,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               hintText: 'One-line "why call this"',
               border: OutlineInputBorder(),
             ),
+            onChanged: (_) {
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -440,6 +846,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               border: OutlineInputBorder(),
               alignLabelWithHint: true,
             ),
+            onChanged: (_) {
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
           ),
           const SizedBox(height: 16),
           _Label('Tags'),
@@ -448,8 +858,16 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             selectedIds: _tagIds,
             namesById: _tagNames,
             options: [for (final t in _tags) (id: t.id, name: t.name)],
-            onAdd: (id) => setState(() => _tagIds.add(id)),
-            onRemove: (id) => setState(() => _tagIds.remove(id)),
+            onAdd: (id) {
+              setState(() => _tagIds.add(id));
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+            onRemove: (id) {
+              setState(() => _tagIds.remove(id));
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
             onCreate: _createTag,
           ),
           const SizedBox(height: 16),
@@ -458,18 +876,34 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             tunes: _tunes,
             controller: _tuneController,
             onAdd: _addTune,
-            onRemove: (tune) => setState(() => _tunes.remove(tune)),
+            onRemove: (tune) {
+              setState(() => _tunes.remove(tune));
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
           ),
           const SizedBox(height: 16),
           _Label('Links'),
           _LinksEditor(
             links: _links,
-            onAdd: () => setState(() => _links.add(_LinkDraft.empty())),
-            onRemove: (draft) => setState(() {
-              _links.remove(draft);
-              draft.dispose();
-            }),
-            onChanged: () => setState(() {}),
+            onAdd: () {
+              setState(() => _links.add(_LinkDraft.empty()));
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+            onRemove: (draft) {
+              setState(() {
+                _links.remove(draft);
+                draft.dispose();
+              });
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+            onChanged: () {
+              setState(() {});
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
           ),
           if (_fieldDefs.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -489,19 +923,35 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             drafts: _figureDrafts,
             taxonomy: _taxonomy,
             phraseStructure: _phraseStructure,
-            onChanged: () => setState(_recomputeWarnings),
-            onAdd: () => setState(() => _figureDrafts.add(FigureDraft())),
-            onDelete: (draft) => setState(() {
-              _figureDrafts.remove(draft);
-              _recomputeWarnings();
-            }),
-            onReorder: (oldIndex, newIndex) => setState(() {
-              // onReorder uses pre-adjusted (onReorderItem) semantics —
-              // newIndex is the final insertion position after removal.
-              final draft = _figureDrafts.removeAt(oldIndex);
-              _figureDrafts.insert(newIndex, draft);
-              _recomputeWarnings();
-            }),
+            onChanged: () {
+              setState(_recomputeWarnings);
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
+            onAdd: () {
+              setState(() => _figureDrafts.add(FigureDraft()));
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+            onDelete: (draft) {
+              setState(() {
+                _figureDrafts.remove(draft);
+                _recomputeWarnings();
+              });
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+            onReorder: (oldIndex, newIndex) {
+              setState(() {
+                // onReorder uses pre-adjusted (onReorderItem) semantics —
+                // newIndex is the final insertion position after removal.
+                final draft = _figureDrafts.removeAt(oldIndex);
+                _figureDrafts.insert(newIndex, draft);
+                _recomputeWarnings();
+              });
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
           ),
           if (_warnings.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -525,6 +975,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               labelText: def.label,
               border: const OutlineInputBorder(),
             ),
+            onChanged: (_) {
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
           ),
         );
       case CustomFieldType.number:
@@ -538,6 +992,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               labelText: def.label,
               border: const OutlineInputBorder(),
             ),
+            onChanged: (_) {
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
             validator: (value) {
               final text = value?.trim() ?? '';
               if (text.isEmpty) return null;
@@ -551,13 +1009,18 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           contentPadding: EdgeInsets.zero,
           title: Text(def.label),
           value: _customValues[def.id] as bool? ?? false,
-          onChanged: (v) => setState(() => _customValues[def.id] = v),
+          onChanged: (v) {
+            setState(() => _customValues[def.id] = v);
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
         );
       case CustomFieldType.choice:
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: DropdownButtonFormField<String?>(
-            key: ValueKey('custom-${def.id}'),
+            // Value-based key so undo/redo forces a rebuild with new state.
+            key: ValueKey('custom-${def.id}-${_customValues[def.id]}'),
             initialValue: _customValues[def.id] as String?,
             decoration: InputDecoration(
               labelText: def.label,
@@ -568,7 +1031,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               for (final choice in def.choices ?? const <String>[])
                 DropdownMenuItem(value: choice, child: Text(choice)),
             ],
-            onChanged: (v) => setState(() => _customValues[def.id] = v),
+            onChanged: (v) {
+              setState(() => _customValues[def.id] = v);
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
           ),
         );
     }
@@ -600,6 +1067,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       _tunes.add(tune);
       _tuneController.clear();
     });
+    _pushUndoNow();
+    _scheduleAutosave();
   }
 }
 
@@ -637,7 +1106,11 @@ class _EnumDropdown<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<T>(
-      key: ValueKey('$fieldKey-field'),
+      // Value-based key: forces the FormField to rebuild with fresh state when
+      // the parent changes `value` externally (e.g. via undo/redo), since
+      // DropdownButtonFormField does not re-initialize its state from
+      // `initialValue` after construction.
+      key: ValueKey('$fieldKey-field-$value'),
       initialValue: value,
       decoration: InputDecoration(
         labelText: label,
@@ -1002,6 +1475,15 @@ class _LinkDraft {
     labelController: TextEditingController(text: link.label ?? ''),
   );
 
+  /// Reconstructs a draft from an [EditorSnapshot]'s [LinkSnapshot], used
+  /// when applying an undo/redo snapshot or restoring an autosave draft.
+  factory _LinkDraft.fromSnapshot(LinkSnapshot s) => _LinkDraft(
+    id: s.id,
+    kind: s.kind,
+    urlController: TextEditingController(text: s.url),
+    labelController: TextEditingController(text: s.label),
+  );
+
   final String id;
   LinkKind kind;
   final TextEditingController urlController;
@@ -1024,6 +1506,18 @@ class _LinkDraft {
     urlController.dispose();
     labelController.dispose();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Keyboard-shortcut intent classes for undo / redo.
+// ---------------------------------------------------------------------------
+
+class _UndoIntent extends Intent {
+  const _UndoIntent();
+}
+
+class _RedoIntent extends Intent {
+  const _RedoIntent();
 }
 
 class _WarningsCard extends StatelessWidget {
