@@ -28,6 +28,10 @@ class _HostState extends State<_Host> {
             onChanged: () => setState(() {}),
             onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
             onDelete: (d) => setState(() => widget.drafts.remove(d)),
+            onReorder: (oldIndex, newIndex) => setState(() {
+              final draft = widget.drafts.removeAt(oldIndex);
+              widget.drafts.insert(newIndex, draft);
+            }),
           ),
         ),
       ),
@@ -254,5 +258,596 @@ void main() {
     final figure = drafts.single.toFigure()!;
     expect(figure.move, 'allemande');
     expect(figure.params['hand'], 'right');
+  });
+
+  // -------------------------------------------------------------------------
+  // Lingo-line controller unit tests (run inside a minimal widget context)
+  // -------------------------------------------------------------------------
+
+  /// Builds a [LingoTextEditingController], calls [buildTextSpan], and returns
+  /// the result synchronously via a callback executed during the widget's build.
+  Future<TextSpan> buildLingoSpan(
+    WidgetTester tester, {
+    required String text,
+    required Dialect dialect,
+  }) async {
+    TextSpan? captured;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            final ctrl = LingoTextEditingController(
+              text: text,
+              dialect: dialect,
+            );
+            captured = ctrl.buildTextSpan(
+              context: context,
+              style: null,
+              withComposing: false,
+            );
+            return Container();
+          },
+        ),
+      ),
+    );
+    return captured!;
+  }
+
+  /// Flattens a [TextSpan] tree into a list of (text, decoration?) pairs.
+  List<(String, TextDecoration?)> flattenSpan(TextSpan span) {
+    final result = <(String, TextDecoration?)>[];
+    void visit(InlineSpan s) {
+      if (s is TextSpan) {
+        if (s.children != null) {
+          for (final child in s.children!) {
+            visit(child);
+          }
+        } else if (s.text != null && s.text!.isNotEmpty) {
+          result.add((s.text!, s.style?.decoration));
+        }
+      }
+    }
+
+    if (span.children != null) {
+      for (final child in span.children!) {
+        visit(child);
+      }
+    } else {
+      result.add((span.text ?? '', span.style?.decoration));
+    }
+    return result;
+  }
+
+  testWidgets('lingo: discouraged term gets lineThrough decoration', (
+    tester,
+  ) async {
+    final span = await buildLingoSpan(
+      tester,
+      text: 'gents cross',
+      dialect: Dialect.larksRobins,
+    );
+    final parts = flattenSpan(span);
+    final discPart = parts.firstWhere(
+      (p) => p.$1.toLowerCase() == 'gents',
+      orElse: () => ('', null),
+    );
+    expect(discPart.$2, TextDecoration.lineThrough);
+  });
+
+  testWidgets('lingo: role synonym (larks) gets underline decoration', (
+    tester,
+  ) async {
+    final span = await buildLingoSpan(
+      tester,
+      text: 'larks lead',
+      dialect: Dialect.canonical,
+    );
+    final parts = flattenSpan(span);
+    final rolePart = parts.firstWhere(
+      (p) => p.$1.toLowerCase() == 'larks',
+      orElse: () => ('', null),
+    );
+    expect(rolePart.$2, TextDecoration.underline);
+  });
+
+  testWidgets('lingo: canonical role token (role1) gets underline', (
+    tester,
+  ) async {
+    final span = await buildLingoSpan(
+      tester,
+      text: 'role1 and role2s',
+      dialect: Dialect.canonical,
+    );
+    final parts = flattenSpan(span);
+    final r1 = parts.firstWhere(
+      (p) => p.$1 == 'role1',
+      orElse: () => ('', null),
+    );
+    final r2s = parts.firstWhere(
+      (p) => p.$1 == 'role2s',
+      orElse: () => ('', null),
+    );
+    expect(r1.$2, TextDecoration.underline);
+    expect(r2s.$2, TextDecoration.underline);
+  });
+
+  testWidgets('lingo: plain text has no decoration', (tester) async {
+    final span = await buildLingoSpan(
+      tester,
+      text: 'swing your neighbor',
+      dialect: Dialect.canonical,
+    );
+    final parts = flattenSpan(span);
+    for (final (_, dec) in parts) {
+      expect(dec, isNot(TextDecoration.lineThrough));
+      expect(dec, isNot(TextDecoration.underline));
+    }
+  });
+
+  testWidgets('lingo: offsets stay correct after mid-string edit', (
+    tester,
+  ) async {
+    // "hello gents world" — gents at offset 6.
+    final spanBefore = await buildLingoSpan(
+      tester,
+      text: 'hello gents world',
+      dialect: Dialect.larksRobins,
+    );
+    final partsBefore = flattenSpan(spanBefore);
+    // Verify gents is in the output with strikethrough.
+    expect(
+      partsBefore.any(
+        (p) =>
+            p.$1.toLowerCase() == 'gents' && p.$2 == TextDecoration.lineThrough,
+      ),
+      isTrue,
+    );
+
+    // After inserting 2 chars before "gents": "hello xygents world"
+    final spanAfter = await buildLingoSpan(
+      tester,
+      text: 'hello xygents world',
+      dialect: Dialect.larksRobins,
+    );
+    final partsAfter = flattenSpan(spanAfter);
+    // "xygents" is not a word-boundary match for "gents" — no strikethrough.
+    expect(
+      partsAfter.any(
+        (p) =>
+            p.$1.toLowerCase().contains('gents') &&
+            p.$2 == TextDecoration.lineThrough,
+      ),
+      isFalse,
+    );
+  });
+
+  testWidgets('lingo: updateDialect triggers redraw', (tester) async {
+    // Start with canonical (no discouraged terms).
+    final ctrl = LingoTextEditingController(
+      text: 'gents cross',
+      dialect: Dialect.canonical,
+    );
+    TextSpan? firstSpan;
+    TextSpan? secondSpan;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            firstSpan ??= ctrl.buildTextSpan(
+              context: context,
+              style: null,
+              withComposing: false,
+            );
+            return Container();
+          },
+        ),
+      ),
+    );
+
+    // Switch to larksRobins (which has "gents" as discouraged).
+    ctrl.updateDialect(Dialect.larksRobins);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            secondSpan = ctrl.buildTextSpan(
+              context: context,
+              style: null,
+              withComposing: false,
+            );
+            return Container();
+          },
+        ),
+      ),
+    );
+
+    // After dialect change, "gents" should now be struck through.
+    final parts = flattenSpan(secondSpan!);
+    expect(
+      parts.any(
+        (p) =>
+            p.$1.toLowerCase() == 'gents' && p.$2 == TextDecoration.lineThrough,
+      ),
+      isTrue,
+    );
+  });
+
+  testWidgets(
+    'lingo: term that is both discouraged and role synonym always gets '
+    'strikethrough (not underline)',
+    (tester) async {
+      // "gents" is both a legacy role synonym AND in defaultDiscouragedTerms.
+      // Strikethrough must win because discouraged has higher priority.
+      final span = await buildLingoSpan(
+        tester,
+        text: 'gents swing',
+        dialect: Dialect.larksRobins,
+      );
+      final parts = flattenSpan(span);
+      final gentsPart = parts.firstWhere(
+        (p) => p.$1.toLowerCase() == 'gents',
+        orElse: () => ('', null),
+      );
+      expect(
+        gentsPart.$2,
+        TextDecoration.lineThrough,
+        reason: 'discouraged takes priority over role at the same position',
+      );
+    },
+  );
+
+  testWidgets(
+    'lingo: cut banner shows single-quoted name for custom figure (no doubled '
+    'quotes)',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          move: customMove,
+          params: {'text': 'my custom step', 'beats': 8},
+        ),
+        FigureDraft(move: 'balance', params: {'beats': 4}),
+      ];
+      await _pump(tester, drafts);
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
+      await tester.pumpAndSettle();
+
+      // Banner text should be '"my custom step" is cut …' — one pair of quotes.
+      final bannerFinder = find.byKey(const ValueKey('cut-banner'));
+      expect(bannerFinder, findsOneWidget);
+      final bannerText = tester.widget<Text>(bannerFinder).data ?? '';
+      // Must contain the name in quotes exactly once — not doubled.
+      expect(bannerText, contains('"my custom step"'));
+      expect(bannerText, isNot(contains('""')));
+    },
+  );
+
+  testWidgets('lingo: drag handles are absent while cut mode is active', (
+    tester,
+  ) async {
+    // When cut is active the list switches to a plain Column without a
+    // ReorderableListView, so no ReorderableDragStartListener is present.
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    // Confirm drag-start listeners exist in normal mode.
+    expect(find.byType(ReorderableDragStartListener), findsWidgets);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
+    await tester.pumpAndSettle();
+
+    // In cut mode — no drag handles (plain Column is used instead).
+    expect(find.byType(ReorderableDragStartListener), findsNothing);
+  });
+
+  // -------------------------------------------------------------------------
+  // Widget tests: lingo hint in the custom figure text field
+  // -------------------------------------------------------------------------
+
+  testWidgets(
+    'custom figure text field shows lingo hint for discouraged term',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          move: customMove,
+          params: {'text': 'gents cross', 'beats': 8},
+        ),
+      ];
+      await _pump(tester, drafts);
+
+      // The accessible lingo hint should be visible.
+      expect(
+        find.byKey(const ValueKey('figure-0-text-lingo-hint')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('gents'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'custom figure text field shows no hint without discouraged terms',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          move: customMove,
+          params: {'text': 'shadow step', 'beats': 8},
+        ),
+      ];
+      await _pump(tester, drafts);
+
+      expect(
+        find.byKey(const ValueKey('figure-0-text-lingo-hint')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets('custom figure text field lingo hint updates live on edit', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+
+    // Create a custom figure by typing text with a discouraged term.
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'swing with ladies',
+    );
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    // Now it's a custom figure; the text field exists.
+    expect(find.byKey(const ValueKey('figure-0-text')), findsOneWidget);
+
+    // "ladies" is in defaultDiscouragedTerms — hint should appear.
+    expect(
+      find.byKey(const ValueKey('figure-0-text-lingo-hint')),
+      findsOneWidget,
+    );
+
+    // Edit to remove the discouraged term.
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-text')),
+      'swing with larks',
+    );
+    await tester.pumpAndSettle();
+    // "larks" is a role term but not discouraged — hint should be gone.
+    expect(
+      find.byKey(const ValueKey('figure-0-text-lingo-hint')),
+      findsNothing,
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // Reordering tests
+  // -------------------------------------------------------------------------
+
+  testWidgets('move-up button is disabled for the first figure', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    final upBtn = tester.widget<IconButton>(
+      find.byKey(const ValueKey('figure-0-move-up')),
+    );
+    expect(upBtn.onPressed, isNull);
+
+    final upBtn1 = tester.widget<IconButton>(
+      find.byKey(const ValueKey('figure-1-move-up')),
+    );
+    expect(upBtn1.onPressed, isNotNull);
+  });
+
+  testWidgets('move-down button is disabled for the last figure', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    final downBtn = tester.widget<IconButton>(
+      find.byKey(const ValueKey('figure-1-move-down')),
+    );
+    expect(downBtn.onPressed, isNull);
+
+    final downBtn0 = tester.widget<IconButton>(
+      find.byKey(const ValueKey('figure-0-move-down')),
+    );
+    expect(downBtn0.onPressed, isNotNull);
+  });
+
+  testWidgets('move-up button reorders the draft list', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    await tester.tap(find.byKey(const ValueKey('figure-1-move-up')));
+    await tester.pumpAndSettle();
+
+    expect(drafts[0].move, 'balance');
+    expect(drafts[1].move, 'swing');
+  });
+
+  testWidgets('move-down button reorders the draft list', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-move-down')));
+    await tester.pumpAndSettle();
+
+    expect(drafts[0].move, 'balance');
+    expect(drafts[1].move, 'swing');
+  });
+
+  testWidgets('section labels recompute after move-down', (tester) async {
+    // Two 16-beat figures: initially A1 then A2.
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 16}),
+      FigureDraft(move: 'balance', params: {'beats': 16}),
+    ];
+    await _pump(tester, drafts);
+
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('figure-0-label'))).data,
+      'A1',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('figure-1-label'))).data,
+      'A2',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-move-down')));
+    await tester.pumpAndSettle();
+
+    // After swap the order is the same (16+16 beats), labels stay A1/A2, but
+    // the figures should be in the new order.
+    expect(drafts[0].move, 'balance');
+    expect(drafts[1].move, 'swing');
+  });
+
+  testWidgets('cut shows banner; cancel clears it', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    expect(find.byKey(const ValueKey('cut-banner')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cut-banner')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('cut-cancel')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cut-banner')), findsNothing);
+  });
+
+  testWidgets('cut button is disabled on the cut figure itself', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
+    await tester.pumpAndSettle();
+
+    final cutBtn = tester.widget<IconButton>(
+      find.byKey(const ValueKey('figure-0-cut')),
+    );
+    expect(cutBtn.onPressed, isNull);
+  });
+
+  testWidgets('paste-end moves cut figure to end of list', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+      FigureDraft(move: 'petronella', params: {'beats': 8}),
+    ];
+    await _pump(tester, drafts);
+
+    // Cut the first figure (swing).
+    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
+    await tester.pumpAndSettle();
+
+    // Paste at end.
+    await tester.tap(find.byKey(const ValueKey('paste-end')));
+    await tester.pumpAndSettle();
+
+    expect(drafts[0].move, 'balance');
+    expect(drafts[1].move, 'petronella');
+    expect(drafts[2].move, 'swing');
+  });
+
+  testWidgets('cut/paste: cut last figure, paste before first', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+      FigureDraft(move: 'petronella', params: {'beats': 8}),
+    ];
+    await _pump(tester, drafts);
+
+    // Cut the last figure (petronella).
+    await tester.tap(find.byKey(const ValueKey('figure-2-cut')));
+    await tester.pumpAndSettle();
+
+    // Paste before first figure.
+    await tester.tap(find.byKey(const ValueKey('paste-top')));
+    await tester.pumpAndSettle();
+
+    expect(drafts[0].move, 'petronella');
+    expect(drafts[1].move, 'swing');
+    expect(drafts[2].move, 'balance');
+  });
+
+  testWidgets('cut/paste beat count and warnings recompute correctly', (
+    tester,
+  ) async {
+    // swing=16, balance=4 → total 20.  After swap: balance=4, swing=16 → same total.
+    // Use 3 figures where reorder changes the section layout.
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 16}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('paste-end')));
+    await tester.pumpAndSettle();
+
+    // Total beats unchanged — still 20.
+    expect(find.text('Total: 20 / 64 beats'), findsOneWidget);
+    // Order is now balance, swing.
+    expect(drafts[0].move, 'balance');
+    expect(drafts[1].move, 'swing');
+  });
+
+  testWidgets('toFigure order matches draft order after reorder', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8, 'who': 'partners'}),
+      FigureDraft(move: 'balance', params: {'beats': 4, 'who': 'partners'}),
+      FigureDraft(move: 'petronella', params: {'beats': 8}),
+    ];
+    await _pump(tester, drafts);
+
+    await tester.tap(find.byKey(const ValueKey('figure-2-move-up')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-1-move-up')));
+    await tester.pumpAndSettle();
+
+    // petronella should now be first.
+    expect(drafts[0].move, 'petronella');
+    expect(drafts[1].move, 'swing');
+    expect(drafts[2].move, 'balance');
+
+    final figures = [for (final d in drafts) ?d.toFigure()];
+    expect(figures[0].move, 'petronella');
+    expect(figures[1].move, 'swing');
+    expect(figures[2].move, 'balance');
   });
 }

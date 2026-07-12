@@ -70,4 +70,52 @@ void main() {
       }
     }
   });
+
+  group('roleSpans', () {
+    test('finds legacy role synonyms in original text', () {
+      final spans = roleSpans('the larks lead off', Dialect.canonical);
+      expect(spans, hasLength(1));
+      expect(spans.first.text.toLowerCase(), 'larks');
+      expect(spans.first.start, 4);
+    });
+
+    test('finds dialect role terms when dialect provided', () {
+      final spans = roleSpans('Gents cross', Dialect.gentsLadies);
+      expect(spans, hasLength(1));
+      expect(spans.first.text, 'Gents');
+      expect(spans.first.start, 0);
+    });
+
+    test('finds canonical role tokens typed directly', () {
+      final spans = roleSpans('role1 and role2s', Dialect.canonical);
+      expect(spans.map((s) => s.text), containsAll(['role1', 'role2s']));
+    });
+
+    test('returns empty for text with no role terms', () {
+      final spans = roleSpans('swing your neighbor', Dialect.canonical);
+      expect(spans, isEmpty);
+    });
+
+    test('returns empty for empty string', () {
+      expect(roleSpans('', Dialect.canonical), isEmpty);
+    });
+
+    test('offsets are correct in mid-string match', () {
+      // "hello larks world" — larks starts at offset 6.
+      final spans = roleSpans('hello larks world', Dialect.canonical);
+      final larkSpan = spans.firstWhere((s) => s.text.toLowerCase() == 'larks');
+      expect(larkSpan.start, 6);
+    });
+
+    test('is case-insensitive', () {
+      final spans = roleSpans('the LARKS lead', Dialect.canonical);
+      expect(spans, isNotEmpty);
+      expect(spans.first.text, 'LARKS');
+    });
+
+    test('respects word boundaries (no false positives in substrings)', () {
+      final spans = roleSpans('Larkspur field', Dialect.canonical);
+      expect(spans.where((s) => s.text.toLowerCase() == 'larks'), isEmpty);
+    });
+  });
 }
