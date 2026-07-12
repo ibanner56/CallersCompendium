@@ -22,6 +22,8 @@ class FacetPanel extends StatelessWidget {
     required this.tags,
     required this.choiceFields,
     required this.booleanFields,
+    required this.textFields,
+    required this.numberFields,
     required this.onChanged,
   });
 
@@ -34,6 +36,8 @@ class FacetPanel extends StatelessWidget {
   final List<Tag> tags;
   final List<CustomFieldDef> choiceFields;
   final List<CustomFieldDef> booleanFields;
+  final List<CustomFieldDef> textFields;
+  final List<CustomFieldDef> numberFields;
   final VoidCallback onChanged;
 
   @override
@@ -214,6 +218,28 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
+    for (final def in textFields) {
+      sections.add(
+        _TextFieldFacet(
+          key: ValueKey('cf-text-${def.id}'),
+          def: def,
+          facets: facets,
+          onChanged: onChanged,
+        ),
+      );
+    }
+
+    for (final def in numberFields) {
+      sections.add(
+        _NumberFieldFacet(
+          key: ValueKey('cf-num-${def.id}'),
+          def: def,
+          facets: facets,
+          onChanged: onChanged,
+        ),
+      );
+    }
+
     if (sections.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(16),
@@ -259,6 +285,285 @@ class _FacetSection extends StatelessWidget {
         Text(label, style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 4),
         Wrap(spacing: 8, runSpacing: 4, children: chips),
+      ],
+    );
+  }
+}
+
+/// Text custom-field facet: operator chip (contains / equals) + text input.
+class _TextFieldFacet extends StatefulWidget {
+  const _TextFieldFacet({
+    super.key,
+    required this.def,
+    required this.facets,
+    required this.onChanged,
+  });
+
+  final CustomFieldDef def;
+  final FacetSelections facets;
+  final VoidCallback onChanged;
+
+  @override
+  State<_TextFieldFacet> createState() => _TextFieldFacetState();
+}
+
+class _TextFieldFacetState extends State<_TextFieldFacet> {
+  late final TextEditingController _controller;
+  CustomFieldOp _op = CustomFieldOp.contains;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.facets.textValues[widget.def.id];
+    _controller = TextEditingController(text: existing?.value ?? '');
+    if (existing != null) _op = existing.op;
+  }
+
+  @override
+  void didUpdateWidget(_TextFieldFacet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Sync controller when the parent clears the facets (e.g. "Clear all").
+    final current = widget.facets.textValues[widget.def.id];
+    if (current == null && _controller.text.isNotEmpty) {
+      _controller.clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _commit() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      widget.facets.textValues.remove(widget.def.id);
+    } else {
+      widget.facets.textValues[widget.def.id] = TextFacetState(
+        op: _op,
+        value: text,
+      );
+    }
+    widget.onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(widget.def.label, style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 8,
+          children: [
+            FilterChip(
+              key: ValueKey('cf-text-${widget.def.id}-contains'),
+              label: const Text('contains'),
+              selected: _op == CustomFieldOp.contains,
+              onSelected: (_) {
+                setState(() => _op = CustomFieldOp.contains);
+                _commit();
+              },
+            ),
+            FilterChip(
+              key: ValueKey('cf-text-${widget.def.id}-equals'),
+              label: const Text('equals'),
+              selected: _op == CustomFieldOp.equals,
+              onSelected: (_) {
+                setState(() => _op = CustomFieldOp.equals);
+                _commit();
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        TextField(
+          key: ValueKey('cf-text-${widget.def.id}-input'),
+          controller: _controller,
+          decoration: InputDecoration(
+            hintText: 'Filter by ${widget.def.label}…',
+            isDense: true,
+            border: const OutlineInputBorder(),
+            suffixIcon: _controller.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () {
+                      _controller.clear();
+                      _commit();
+                      setState(() {});
+                    },
+                  )
+                : null,
+          ),
+          onChanged: (_) {
+            _commit();
+            setState(() {});
+          },
+        ),
+      ],
+    );
+  }
+}
+
+/// Number custom-field facet: operator chips (=, <, >, between) + input(s).
+class _NumberFieldFacet extends StatefulWidget {
+  const _NumberFieldFacet({
+    super.key,
+    required this.def,
+    required this.facets,
+    required this.onChanged,
+  });
+
+  final CustomFieldDef def;
+  final FacetSelections facets;
+  final VoidCallback onChanged;
+
+  @override
+  State<_NumberFieldFacet> createState() => _NumberFieldFacetState();
+}
+
+class _NumberFieldFacetState extends State<_NumberFieldFacet> {
+  late final TextEditingController _lo;
+  late final TextEditingController _hi;
+  CustomFieldOp _op = CustomFieldOp.eq;
+
+  static const _ops = [
+    (op: CustomFieldOp.eq, label: '='),
+    (op: CustomFieldOp.lt, label: '<'),
+    (op: CustomFieldOp.gt, label: '>'),
+    (op: CustomFieldOp.between, label: 'between'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.facets.numberValues[widget.def.id];
+    _lo = TextEditingController(
+      text: existing != null ? existing.lo.toString() : '',
+    );
+    _hi = TextEditingController(text: existing?.hi?.toString() ?? '');
+    if (existing != null) _op = existing.op;
+  }
+
+  @override
+  void didUpdateWidget(_NumberFieldFacet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final current = widget.facets.numberValues[widget.def.id];
+    if (current == null) {
+      if (_lo.text.isNotEmpty) _lo.clear();
+      if (_hi.text.isNotEmpty) _hi.clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    _lo.dispose();
+    _hi.dispose();
+    super.dispose();
+  }
+
+  void _commit() {
+    final lo = num.tryParse(_lo.text.trim());
+    if (lo == null) {
+      widget.facets.numberValues.remove(widget.def.id);
+      widget.onChanged();
+      return;
+    }
+    if (_op == CustomFieldOp.between) {
+      final hi = num.tryParse(_hi.text.trim());
+      // Don't fire until the second bound is also valid.
+      if (hi == null) {
+        widget.facets.numberValues.remove(widget.def.id);
+        widget.onChanged();
+        return;
+      }
+      widget.facets.numberValues[widget.def.id] = NumberFacetState(
+        op: CustomFieldOp.between,
+        lo: lo,
+        hi: hi,
+      );
+    } else {
+      widget.facets.numberValues[widget.def.id] = NumberFacetState(
+        op: _op,
+        lo: lo,
+      );
+    }
+    widget.onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(widget.def.label, style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final entry in _ops)
+              FilterChip(
+                key: ValueKey('cf-num-${widget.def.id}-${entry.op.name}'),
+                label: Text(entry.label),
+                selected: _op == entry.op,
+                onSelected: (_) {
+                  setState(() => _op = entry.op);
+                  _commit();
+                },
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                key: ValueKey('cf-num-${widget.def.id}-lo'),
+                controller: _lo,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                  signed: true,
+                ),
+                decoration: InputDecoration(
+                  hintText: _op == CustomFieldOp.between ? 'From' : 'Value',
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (_) {
+                  _commit();
+                  setState(() {});
+                },
+              ),
+            ),
+            if (_op == CustomFieldOp.between) ...[
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text('–'),
+              ),
+              Expanded(
+                child: TextField(
+                  key: ValueKey('cf-num-${widget.def.id}-hi'),
+                  controller: _hi,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  decoration: const InputDecoration(
+                    hintText: 'To',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) {
+                    _commit();
+                    setState(() {});
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
       ],
     );
   }

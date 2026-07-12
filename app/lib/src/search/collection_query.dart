@@ -44,6 +44,17 @@ class FacetSelections {
   /// Selected `boolean` custom-field values, keyed by field id → true/false.
   final Map<String, bool> booleanValues = {};
 
+  /// Selected `text` custom-field filters, keyed by field id.
+  /// [TextFacetState.op] is either [CustomFieldOp.contains] or
+  /// [CustomFieldOp.equals]; [TextFacetState.value] is the query string.
+  final Map<String, TextFacetState> textValues = {};
+
+  /// Selected `number` custom-field filters, keyed by field id.
+  /// [NumberFacetState.op] selects the operator; [NumberFacetState.lo] is
+  /// always the primary value; [NumberFacetState.hi] is only used for
+  /// [CustomFieldOp.between].
+  final Map<String, NumberFacetState> numberValues = {};
+
   bool get isEmpty =>
       forms.isEmpty &&
       formations.isEmpty &&
@@ -52,7 +63,9 @@ class FacetSelections {
       authorIds.isEmpty &&
       tagIds.isEmpty &&
       choiceValues.values.every((s) => s.isEmpty) &&
-      booleanValues.isEmpty;
+      booleanValues.isEmpty &&
+      textValues.values.every((s) => !s.isEffective) &&
+      numberValues.values.every((s) => !s.isEffective);
 
   void clear() {
     forms.clear();
@@ -63,7 +76,44 @@ class FacetSelections {
     tagIds.clear();
     choiceValues.clear();
     booleanValues.clear();
+    textValues.clear();
+    numberValues.clear();
   }
+}
+
+/// Immutable state for a text custom-field facet filter.
+class TextFacetState {
+  const TextFacetState({required this.op, required this.value});
+
+  /// Either [CustomFieldOp.contains] or [CustomFieldOp.equals].
+  final CustomFieldOp op;
+
+  /// The text to match against.
+  final String value;
+
+  /// True when this state would actually produce a [CustomFieldFilter] branch
+  /// in [buildCollectionFilter] (i.e. the value is non-empty after trimming).
+  bool get isEffective => value.trim().isNotEmpty;
+}
+
+/// Immutable state for a number custom-field facet filter.
+class NumberFacetState {
+  const NumberFacetState({required this.op, required this.lo, this.hi});
+
+  /// One of [CustomFieldOp.eq], [CustomFieldOp.lt], [CustomFieldOp.gt], or
+  /// [CustomFieldOp.between].
+  final CustomFieldOp op;
+
+  /// The primary operand (always required).
+  final num lo;
+
+  /// The upper bound for [CustomFieldOp.between] (required only for that op).
+  final num? hi;
+
+  /// True when this state would actually produce a [CustomFieldFilter] branch
+  /// in [buildCollectionFilter] (i.e. non-between ops are always effective;
+  /// between is only effective once [hi] is also set).
+  bool get isEffective => op != CustomFieldOp.between || hi != null;
 }
 
 /// OR-combines [leaves] into a single [DanceFilter]: `null` for none, the leaf
@@ -116,6 +166,22 @@ DanceFilter buildCollectionFilter({
     final def = defsById[fieldId];
     if (def == null) return;
     branches.add(CustomFieldFilter(def, CustomFieldOp.is_, value));
+  });
+  facets.textValues.forEach((fieldId, state) {
+    final def = defsById[fieldId];
+    if (def == null || !state.isEffective) return;
+    branches.add(CustomFieldFilter(def, state.op, state.value.trim()));
+  });
+  facets.numberValues.forEach((fieldId, state) {
+    final def = defsById[fieldId];
+    if (def == null || !state.isEffective) return;
+    if (state.op == CustomFieldOp.between) {
+      branches.add(
+        CustomFieldFilter(def, CustomFieldOp.between, [state.lo, state.hi!]),
+      );
+    } else {
+      branches.add(CustomFieldFilter(def, state.op, state.lo));
+    }
   });
 
   final advanced = advancedRoot?.toFilter();

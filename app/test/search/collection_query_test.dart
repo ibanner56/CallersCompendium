@@ -16,7 +16,21 @@ void main() {
     label: 'Needs teaching',
     type: CustomFieldType.boolean,
   );
-  final defs = [tagField, flagField];
+  final noteField = CustomFieldDef(
+    id: 'note',
+    key: 'notes',
+    label: 'Notes',
+    type: CustomFieldType.text,
+    searchable: true,
+  );
+  final levelField = CustomFieldDef(
+    id: 'level',
+    key: 'diffLevel',
+    label: 'Difficulty level',
+    type: CustomFieldType.number,
+    searchable: true,
+  );
+  final defs = [tagField, flagField, noteField, levelField];
 
   group('buildCollectionFilter', () {
     test('empty query matches everything (AndFilter([]))', () {
@@ -114,6 +128,127 @@ void main() {
       expect(children.whereType<FormFilter>(), hasLength(1));
       expect(children.whereType<FigureFilter>(), hasLength(1));
     });
+
+    test(
+      'text contains facet composes a CustomFieldFilter with contains op',
+      () {
+        final facets = FacetSelections();
+        facets.textValues['note'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: 'petronella',
+        );
+        final f = buildCollectionFilter(
+          ftsText: '',
+          facets: facets,
+          defs: defs,
+        );
+        expect(f, isA<CustomFieldFilter>());
+        final cf = f as CustomFieldFilter;
+        expect(cf.op, CustomFieldOp.contains);
+        expect(cf.value, 'petronella');
+      },
+    );
+
+    test('text equals facet composes a CustomFieldFilter with equals op', () {
+      final facets = FacetSelections();
+      facets.textValues['note'] = const TextFacetState(
+        op: CustomFieldOp.equals,
+        value: 'exact',
+      );
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<CustomFieldFilter>());
+      final cf = f as CustomFieldFilter;
+      expect(cf.op, CustomFieldOp.equals);
+      expect(cf.value, 'exact');
+    });
+
+    test('empty text facet value is skipped', () {
+      final facets = FacetSelections();
+      facets.textValues['note'] = const TextFacetState(
+        op: CustomFieldOp.contains,
+        value: '  ',
+      );
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      // Empty value → skipped → match-all
+      expect(f, isA<AndFilter>());
+      expect((f as AndFilter).children, isEmpty);
+    });
+
+    test('number eq facet composes a CustomFieldFilter with eq op', () {
+      final facets = FacetSelections();
+      facets.numberValues['level'] = const NumberFacetState(
+        op: CustomFieldOp.eq,
+        lo: 3,
+      );
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<CustomFieldFilter>());
+      final cf = f as CustomFieldFilter;
+      expect(cf.op, CustomFieldOp.eq);
+      expect(cf.value, 3);
+    });
+
+    test('number lt facet composes a CustomFieldFilter with lt op', () {
+      final facets = FacetSelections();
+      facets.numberValues['level'] = const NumberFacetState(
+        op: CustomFieldOp.lt,
+        lo: 5,
+      );
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      final cf = f as CustomFieldFilter;
+      expect(cf.op, CustomFieldOp.lt);
+      expect(cf.value, 5);
+    });
+
+    test('number gt facet composes a CustomFieldFilter with gt op', () {
+      final facets = FacetSelections();
+      facets.numberValues['level'] = const NumberFacetState(
+        op: CustomFieldOp.gt,
+        lo: 2,
+      );
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      final cf = f as CustomFieldFilter;
+      expect(cf.op, CustomFieldOp.gt);
+      expect(cf.value, 2);
+    });
+
+    test('number between facet composes a [lo, hi] CustomFieldFilter', () {
+      final facets = FacetSelections();
+      facets.numberValues['level'] = const NumberFacetState(
+        op: CustomFieldOp.between,
+        lo: 2,
+        hi: 7,
+      );
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<CustomFieldFilter>());
+      final cf = f as CustomFieldFilter;
+      expect(cf.op, CustomFieldOp.between);
+      expect(cf.value, [2, 7]);
+    });
+
+    test('incomplete between (hi is null) is skipped', () {
+      final facets = FacetSelections();
+      facets.numberValues['level'] = const NumberFacetState(
+        op: CustomFieldOp.between,
+        lo: 2,
+      );
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      // Incomplete between → skipped → match-all
+      expect(f, isA<AndFilter>());
+      expect((f as AndFilter).children, isEmpty);
+    });
+
+    test('text facet ANDs with a form facet', () {
+      final facets = FacetSelections()..forms.add(DanceForm.contra);
+      facets.textValues['note'] = const TextFacetState(
+        op: CustomFieldOp.contains,
+        value: 'swing',
+      );
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<AndFilter>());
+      final children = (f as AndFilter).children;
+      expect(children.whereType<FormFilter>(), hasLength(1));
+      expect(children.whereType<CustomFieldFilter>(), hasLength(1));
+    });
   });
 
   group('isBareFullText', () {
@@ -147,6 +282,84 @@ void main() {
         isFalse,
       );
     });
+
+    test('false when a text custom-field facet is active', () {
+      final facets = FacetSelections();
+      facets.textValues['note'] = const TextFacetState(
+        op: CustomFieldOp.contains,
+        value: 'swing',
+      );
+      expect(isBareFullText(ftsText: 'swing', facets: facets), isFalse);
+    });
+
+    test('false when a number custom-field facet is active', () {
+      final facets = FacetSelections();
+      facets.numberValues['level'] = const NumberFacetState(
+        op: CustomFieldOp.eq,
+        lo: 3,
+      );
+      expect(isBareFullText(ftsText: 'swing', facets: facets), isFalse);
+    });
+
+    // --- effective-facet correctness (fix for isEmpty / isBareFullText) -----
+
+    test(
+      'whitespace-only text facet is NOT counted as active (isEmpty = true)',
+      () {
+        final facets = FacetSelections();
+        facets.textValues['note'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: '   ',
+        );
+        expect(facets.isEmpty, isTrue);
+      },
+    );
+
+    test('non-empty text facet IS counted as active (isEmpty = false)', () {
+      final facets = FacetSelections();
+      facets.textValues['note'] = const TextFacetState(
+        op: CustomFieldOp.contains,
+        value: 'swing',
+      );
+      expect(facets.isEmpty, isFalse);
+    });
+
+    test('between with no hi is NOT counted as active (isEmpty = true for '
+        'number facet)', () {
+      final facets = FacetSelections();
+      facets.numberValues['level'] = const NumberFacetState(
+        op: CustomFieldOp.between,
+        lo: 2,
+      );
+      expect(facets.isEmpty, isTrue);
+    });
+
+    test('complete between IS counted as active (isEmpty = false)', () {
+      final facets = FacetSelections();
+      facets.numberValues['level'] = const NumberFacetState(
+        op: CustomFieldOp.between,
+        lo: 2,
+        hi: 7,
+      );
+      expect(facets.isEmpty, isFalse);
+    });
+
+    test(
+      'isBareFullText is true when the only facets present are '
+      'whitespace-only text and incomplete between (neither is effective)',
+      () {
+        final facets = FacetSelections();
+        facets.textValues['note'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: '  ',
+        );
+        facets.numberValues['level'] = const NumberFacetState(
+          op: CustomFieldOp.between,
+          lo: 2,
+        );
+        expect(isBareFullText(ftsText: 'swing', facets: facets), isTrue);
+      },
+    );
   });
 
   group('BuilderGroup folding', () {
