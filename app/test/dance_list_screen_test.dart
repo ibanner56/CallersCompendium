@@ -485,4 +485,87 @@ void main() {
     expect(find.byType(DanceDetailScreen), findsOneWidget);
     expect(find.text('Chase the Squirrel'), findsOneWidget);
   });
+
+  // ── Swipe-to-delete ────────────────────────────────────────────────────────
+
+  testWidgets(
+    'swiping a dance removes it from the list and shows undo snackbar',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Swipe Me'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Stay Here'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Swipe Me'), findsOneWidget);
+
+      // Fling the Dismissible widget (by key) end-to-start to trigger dismiss.
+      await tester.fling(
+        find.byKey(const ValueKey('dismissible-d1')),
+        const Offset(-300, 0),
+        1000,
+      );
+      await tester.pumpAndSettle();
+
+      // Dance is gone from the list view.
+      expect(find.text('Swipe Me'), findsNothing);
+      expect(find.text('Stay Here'), findsOneWidget);
+
+      // Undo snackbar appears.
+      expect(find.text('"Swipe Me" deleted.'), findsOneWidget);
+      expect(find.text('Undo'), findsOneWidget);
+
+      // Dance is soft-deleted in storage, not hard-deleted.
+      final deleted = await repos.dances.getById('d1', includeDeleted: true);
+      expect(deleted, isNotNull);
+      expect(deleted!.deletedAt, isNotNull);
+
+      final visible = await repos.dances.listAll();
+      expect(visible.where((d) => d.id == 'd1'), isEmpty);
+    },
+  );
+
+  testWidgets('undo on the list swipe snackbar restores the dance', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Restore Me'));
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await tester.fling(
+      find.byKey(const ValueKey('dismissible-d1')),
+      const Offset(-300, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Undo'), findsOneWidget);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    final dance = await repos.dances.getById('d1');
+    expect(dance, isNotNull);
+    expect(dance!.deletedAt, isNull);
+  });
+
+  // ── Recently Deleted navigation ────────────────────────────────────────────
+
+  testWidgets(
+    'recently-deleted button navigates to the RecentlyDeletedScreen',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Any Dance'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('recently-deleted')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Recently Deleted'), findsOneWidget);
+    },
+  );
 }

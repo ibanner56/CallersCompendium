@@ -10,6 +10,7 @@ import '../widgets/advanced_query_builder.dart';
 import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
 import '../screens/custom_fields_screen.dart';
+import '../screens/recently_deleted_screen.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 
@@ -202,6 +203,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
               icon: const Icon(Icons.list_alt_outlined),
               onPressed: _openCustomFields,
             ),
+            IconButton(
+              key: const ValueKey('recently-deleted'),
+              tooltip: 'Recently deleted',
+              icon: const Icon(Icons.restore_from_trash_outlined),
+              onPressed: _openRecentlyDeleted,
+            ),
             PopupMenuButton<CollectionSort>(
               tooltip: 'Sort by',
               initialValue: _sort,
@@ -254,6 +261,36 @@ class _DanceListScreenState extends State<DanceListScreen> {
     ).push(MaterialPageRoute(builder: (_) => const CustomFieldsScreen()));
     // Reload so newly-created/edited fields show up as facets.
     if (mounted) await _boot();
+  }
+
+  Future<void> _openRecentlyDeleted() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const RecentlyDeletedScreen()),
+    );
+    // Reload so any restored dances re-appear in the collection.
+    if (mounted) await _boot();
+  }
+
+  /// Soft-deletes a dance from the collection list and shows an "Undo" snackbar.
+  Future<void> _softDeleteFromList(String danceId, String title) async {
+    await _repos.dances.softDelete(danceId, at: DateTime.now().toUtc());
+    // Remove from local results immediately so the list updates without a full
+    // reload (the full _boot() is expensive). On undo, trigger a full reload.
+    if (!mounted) return;
+    setState(() => _results.removeWhere((e) => e.dance.id == danceId));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('list-deleted-snackbar'),
+        content: Text('"$title" deleted.'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            await _repos.dances.restore(danceId, at: DateTime.now().toUtc());
+            if (mounted) await _boot();
+          },
+        ),
+      ),
+    );
   }
 
   Widget _buildBody() {
@@ -445,7 +482,25 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // are constructed).
     return SliverList.builder(
       itemCount: _results.length,
-      itemBuilder: (context, index) => DanceListTile(entry: _results[index]),
+      itemBuilder: (context, index) {
+        final entry = _results[index];
+        return Dismissible(
+          key: ValueKey('dismissible-${entry.dance.id}'),
+          direction: DismissDirection.endToStart,
+          onDismissed: (_) =>
+              _softDeleteFromList(entry.dance.id, entry.dance.title),
+          background: Container(
+            alignment: Alignment.centerRight,
+            color: Theme.of(context).colorScheme.errorContainer,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Icon(
+              Icons.delete_outline,
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+          ),
+          child: DanceListTile(entry: entry),
+        );
+      },
     );
   }
 
