@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
-import '../widgets/figure_table.dart';
+import '../widgets/figure_list_editor.dart';
 
-/// Dance editor (`docs/design/ux.md` §3). This slice (roadmap 3.3a) covers the
-/// metadata form — title, authors (with inline choreographer/tag creation),
-/// formation, form/type, progression, phrase structure, hook, calling notes,
-/// tunes, tags, status, URL links, and values for existing custom fields —
-/// plus title-required hard validation and non-blocking `validate()` warnings.
+/// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
+/// authors (with inline choreographer/tag creation), formation, form/type,
+/// progression, phrase structure, hook, calling notes, tunes, tags, status,
+/// URL links, and values for existing custom fields — plus title-required hard
+/// validation and non-blocking `validate()` warnings.
 ///
-/// Figures are shown read-only here; structured figure entry lands with 3.3b.
+/// Structured figure entry (roadmap 3.3b) lives in the editable figure list
+/// below the metadata; figure reordering affordances land with 3.3c.
 class DanceEditorScreen extends StatefulWidget {
   const DanceEditorScreen({super.key, this.danceId});
 
@@ -29,7 +30,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   late CompendiumRepositories _repos;
   final _formKey = GlobalKey<FormState>();
 
-  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+  static final Taxonomy _taxonomy = contraTaxonomy;
 
   final _titleController = TextEditingController();
   final _hookController = TextEditingController();
@@ -70,7 +71,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   Map<String, String> _choreographerNames = {};
   Map<String, String> _tagNames = {};
 
-  List<Figure> get _figures => _original?.figures ?? const [];
+  List<Figure> get _figures => [
+    for (final draft in _figureDrafts) ?draft.toFigure(),
+  ];
+  final List<FigureDraft> _figureDrafts = [];
   PhraseStructure _phraseStructure = PhraseStructure.standard;
   List<ValidationIssue> _warnings = const [];
 
@@ -139,6 +143,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         for (final value in dance.customFields) {
           _customValues[value.fieldId] = value.value;
         }
+        _figureDrafts.addAll(dance.figures.map(FigureDraft.fromFigure));
       }
 
       // Seed text controllers for custom text/number fields.
@@ -205,6 +210,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           customFields: customFields,
           tagIds: List.of(_tagIds),
           links: links,
+          figures: _figures,
           updatedAt: now,
         );
         await _repos.dances.update(dance);
@@ -224,6 +230,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           customFields: customFields,
           tagIds: List.of(_tagIds),
           links: links,
+          figures: _figures,
           createdAt: now,
           updatedAt: now,
         );
@@ -464,23 +471,24 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             for (final def in _fieldDefs) _buildCustomField(def),
           ],
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Text('Figures', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '(read-only — structured entry arrives in 3.3b)',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-            ],
+          Text('Figures', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Type a move (e.g. "sw" → swing) and press Enter to add it with '
+            'default params; unmatched text becomes a custom figure.',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-          FigureTable(
-            figures: _figures,
+          const SizedBox(height: 8),
+          FigureListEditor(
+            drafts: _figureDrafts,
+            taxonomy: _taxonomy,
             phraseStructure: _phraseStructure,
-            renderer: _renderer,
-            dialect: Dialect.canonical,
+            onChanged: () => setState(_recomputeWarnings),
+            onAdd: () => setState(() => _figureDrafts.add(FigureDraft())),
+            onDelete: (draft) => setState(() {
+              _figureDrafts.remove(draft);
+              _recomputeWarnings();
+            }),
           ),
           if (_warnings.isNotEmpty) ...[
             const SizedBox(height: 16),
