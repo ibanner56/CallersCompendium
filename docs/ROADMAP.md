@@ -65,7 +65,25 @@ Design items (each produces a design doc + review):
 - [x] 3.2 Search: Title, Author, Type, Formation, Figures, custom fields; full-text
   - 3.2b (core, done): `DanceFilter`/`FigureQuery` AST + `FilterCompiler` (one parameterized SQL query over the derived indexes), schema **v2** migration (`dance_figures.section` column + `(move, section)`/`(dance_id, idx)` indexes, back-filled via the post-open integrity pass), `DanceRepository.search(DanceFilter) → ids`, migration test with a checked-in v1 fixture, and a 20k-dance CI perf benchmark (median < 50 ms). See `docs/design/search.md`.
   - 3.2c (app, done): the Collection screen (`app/lib/src/screens/dance_list_screen.dart`) now hosts the real search UI, replacing 3.1's interim client-side quick-filter. A unified full-text search bar (debounced `FullTextFilter`), a one-tap **Filters** facet panel (`app/lib/src/widgets/facet_panel.dart`: Type/Formation/Progression/Author/Tags/Status + choice/boolean custom fields, OR-within a facet, AND across facets), and an **Advanced** boolean-tree builder (`app/lib/src/widgets/advanced_query_builder.dart`: All/Any/None groups, "has figure" rows with a move type-ahead + section/param pickers, and "then" sequence rows) all compose one `DanceFilter` run through `DanceRepository.search` (dialect-canonicalized via `Dialect.canonical`). Composition logic lives in `app/lib/src/search/collection_query.dart`. Sort exposes Title/Author/Recently added/Last called plus Relevance (only for a bare full-text search); core `SearchSort` gained `recentlyAdded` (`created_at DESC`). Result counts are announced to AT via a live region; results reuse the 3.1 `DanceListTile` and open `DanceDetailScreen`. App startup now runs `CompendiumRepositories.ensureMigrated()` behind a loading gate (`app/lib/src/widgets/app_bootstrap.dart`) so the schema-v2 back-fill completes before the first read.
-- [ ] 3.3 Dance editor: structured figure entry + Custom figure, validation of required fields
+- [x] 3.3 Dance editor: structured figure entry + Custom figure, validation of required fields
+  - 3.3a (done): Metadata form — title, authors (with inline creation), formation, form/type,
+    progression, phrase structure, hook, calling notes, tunes, tags, status, URL links, custom fields.
+    Title-required hard validation, non-blocking `validate()` phrase warnings.
+  - 3.3b (done): Keyboard-first structured figure entry — `MoveAutocomplete` type-ahead, per-parameter
+    editors (`FigureParamEditor`: int/note/text/choice), progression toggle, custom-figure free-text with
+    live lingo-line decoration (discouraged struck, role underlined). `FigureDraft` model, `toFigure()`/
+    `fromFigure()`. Running beat count + section labels from `phraseStructure`.
+  - 3.3c (done): Figure reordering — drag handle, move-up/down buttons, cut/paste (WCAG 2.5.7).
+    `ReorderableListView` for drag; plain `Column` with interleaved paste buttons during cut; `didUpdateWidget`
+    reseed pattern in `_LingoCustomTextField` + `_NoteField` so controller text stays in sync after
+    any external draft change. `_WarningsCard` for non-blocking section / beat-count issues.
+  - 3.3d (done): Autosave drafts + undo/redo. Debounced autosave (500 ms) to `SettingsRepository`
+    keyed `editor_draft:<danceId|new>`. Restore/discard dialog on reopen. Clears on explicit save or
+    back navigation. Draft schema v1 (versioned JSON) handles partial/incomplete drafts including
+    null-move `FigureDraft`. In-memory bounded (50-entry) undo/redo stack of `EditorSnapshot`; undo/redo
+    buttons in app bar; Ctrl/Cmd-Z / Ctrl/Cmd-Shift-Z / Ctrl-Y keyboard shortcuts; `_applySnapshot`
+    resyncs all `TextEditingController`s and rebuilds figure drafts. Dropdowns use value-based keys for
+    correct undo/redo resync.
 - [ ] 3.4 Custom user fields (define, edit, search)
 - [ ] 3.5 Dance duplication, soft-delete/restore
 
