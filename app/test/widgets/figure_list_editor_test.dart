@@ -474,6 +474,77 @@ void main() {
     );
   });
 
+  testWidgets(
+    'lingo: term that is both discouraged and role synonym always gets '
+    'strikethrough (not underline)',
+    (tester) async {
+      // "gents" is both a legacy role synonym AND in defaultDiscouragedTerms.
+      // Strikethrough must win because discouraged has higher priority.
+      final span = await buildLingoSpan(
+        tester,
+        text: 'gents swing',
+        dialect: Dialect.larksRobins,
+      );
+      final parts = flattenSpan(span);
+      final gentsPart = parts.firstWhere(
+        (p) => p.$1.toLowerCase() == 'gents',
+        orElse: () => ('', null),
+      );
+      expect(
+        gentsPart.$2,
+        TextDecoration.lineThrough,
+        reason: 'discouraged takes priority over role at the same position',
+      );
+    },
+  );
+
+  testWidgets(
+    'lingo: cut banner shows single-quoted name for custom figure (no doubled '
+    'quotes)',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          move: customMove,
+          params: {'text': 'my custom step', 'beats': 8},
+        ),
+        FigureDraft(move: 'balance', params: {'beats': 4}),
+      ];
+      await _pump(tester, drafts);
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
+      await tester.pumpAndSettle();
+
+      // Banner text should be '"my custom step" is cut …' — one pair of quotes.
+      final bannerFinder = find.byKey(const ValueKey('cut-banner'));
+      expect(bannerFinder, findsOneWidget);
+      final bannerText = tester.widget<Text>(bannerFinder).data ?? '';
+      // Must contain the name in quotes exactly once — not doubled.
+      expect(bannerText, contains('"my custom step"'));
+      expect(bannerText, isNot(contains('""')));
+    },
+  );
+
+  testWidgets('lingo: drag handles are absent while cut mode is active', (
+    tester,
+  ) async {
+    // When cut is active the list switches to a plain Column without a
+    // ReorderableListView, so no ReorderableDragStartListener is present.
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    // Confirm drag-start listeners exist in normal mode.
+    expect(find.byType(ReorderableDragStartListener), findsWidgets);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
+    await tester.pumpAndSettle();
+
+    // In cut mode — no drag handles (plain Column is used instead).
+    expect(find.byType(ReorderableDragStartListener), findsNothing);
+  });
+
   // -------------------------------------------------------------------------
   // Widget tests: lingo hint in the custom figure text field
   // -------------------------------------------------------------------------

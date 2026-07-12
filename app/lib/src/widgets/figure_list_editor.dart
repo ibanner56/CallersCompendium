@@ -36,13 +36,28 @@ class LingoTextEditingController extends TextEditingController {
     final discSpans = canonicalize(raw, dialect).discouraged;
     final roleSpanList = roleSpans(raw, dialect);
 
-    if (discSpans.isEmpty && roleSpanList.isEmpty) {
-      return TextSpan(text: raw, style: style);
+    // Each event carries a numeric priority so tie-breaking is deterministic:
+    // 0 = composing region (highest — must always render for IME correctness),
+    // 1 = discouraged (strikethrough), 2 = role term (underline).
+    final events =
+        <({int start, int end, TextDecoration decoration, int priority})>[];
+
+    // IME composing region: add first so it always wins at the same position.
+    if (withComposing &&
+        value.composing.isValid &&
+        !value.composing.isCollapsed) {
+      final cs = value.composing.start.clamp(0, raw.length);
+      final ce = value.composing.end.clamp(0, raw.length);
+      if (cs < ce) {
+        events.add((
+          start: cs,
+          end: ce,
+          decoration: TextDecoration.underline,
+          priority: 0,
+        ));
+      }
     }
 
-    // Build a flat event list: discouraged first (higher priority), then role.
-    // Events are sorted by start position; the first event to claim a range wins.
-    final events = <({int start, int end, TextDecoration decoration})>[];
     for (final s in discSpans) {
       final end = (s.start + s.text.length).clamp(0, raw.length);
       if (s.start < end) {
@@ -50,6 +65,7 @@ class LingoTextEditingController extends TextEditingController {
           start: s.start,
           end: end,
           decoration: TextDecoration.lineThrough,
+          priority: 1,
         ));
       }
     }
@@ -60,10 +76,23 @@ class LingoTextEditingController extends TextEditingController {
           start: s.start,
           end: end,
           decoration: TextDecoration.underline,
+          priority: 2,
         ));
       }
     }
-    events.sort((a, b) => a.start.compareTo(b.start));
+
+    if (events.isEmpty) return TextSpan(text: raw, style: style);
+
+    // Stable sort: by start position, then by priority (lower = higher
+    // precedence), then by length (longer span wins) to ensure determinism
+    // when a term is both discouraged and a role term (e.g. "gents").
+    events.sort((a, b) {
+      final byCmp = a.start.compareTo(b.start);
+      if (byCmp != 0) return byCmp;
+      final byPri = a.priority.compareTo(b.priority);
+      if (byPri != 0) return byPri;
+      return b.end.compareTo(a.end); // longer first
+    });
 
     final spans = <InlineSpan>[];
     var cursor = 0;
@@ -296,51 +325,92 @@ class _FigureListEditorState extends State<FigureListEditor> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text('No figures yet.', style: theme.textTheme.bodyMedium),
           ),
-        // Paste-at-top affordance: shown when cut is active and there are figures.
-        if (_cutDraftId != null && drafts.isNotEmpty)
-          _PasteButton(
-            key: const ValueKey('paste-top'),
-            semanticsLabel: 'Paste before first figure',
-            onPaste: () => _paste(0),
-          ),
-        ReorderableListView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          buildDefaultDragHandles: false,
-          onReorderItem: widget.onReorder,
-          children: [
-            for (var i = 0; i < drafts.length; i++) ...[
-              _FigureDraftCard(
-                key: ValueKey('figure-card-${drafts[i].id}'),
-                index: i,
-                totalCount: drafts.length,
-                draft: drafts[i],
-                label: labels[drafts[i].id],
-                taxonomy: widget.taxonomy,
-                dialect: dialect,
-                isCut: drafts[i].id == _cutDraftId,
-                onChanged: widget.onChanged,
-                onDelete: () => widget.onDelete(drafts[i]),
-                onMoveUp: i == 0 ? null : () => widget.onReorder(i, i - 1),
-                onMoveDown: i == drafts.length - 1
-                    ? null
-                    : () => widget.onReorder(i, i + 1),
-                onCut: drafts[i].id == _cutDraftId
-                    ? null
-                    : () => _startCut(drafts[i].id),
-              ),
-              // Paste-before-next-figure affordance (between cards).
-              if (_cutDraftId != null && drafts[i].id != _cutDraftId)
-                _PasteButton(
-                  key: ValueKey('paste-after-${drafts[i].id}'),
-                  semanticsLabel:
-                      'Paste after '
-                      '${_figureDisplayName(drafts[i], widget.taxonomy)}',
-                  onPaste: () => _paste(i + 1),
+        // -------------------------------------------------------------------
+        // Figure list.  Two modes:
+        //
+        //  • Normal (no cut active): ReorderableListView so drag-to-reorder
+        //    works.  Exactly one child per draft, so ReorderableDragStartListener
+        //    indices stay 1:1 with drafts[].
+        //
+        //  • Cut active: plain Column with paste buttons interleaved between
+        //    cards.  Drag is disabled during cut/paste to avoid index skew
+        //    (a paste button inserted into a ReorderableListView would shift
+        //    every drag-handle index beyond it — reviewer comment #4).
+        // -------------------------------------------------------------------
+        if (_cutDraftId == null)
+          ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            onReorderItem: widget.onReorder,
+            children: [
+              for (var i = 0; i < drafts.length; i++)
+                _FigureDraftCard(
+                  key: ValueKey('figure-card-${drafts[i].id}'),
+                  index: i,
+                  totalCount: drafts.length,
+                  draft: drafts[i],
+                  label: labels[drafts[i].id],
+                  taxonomy: widget.taxonomy,
+                  dialect: dialect,
+                  isCut: false,
+                  draggable: true,
+                  onChanged: widget.onChanged,
+                  onDelete: () => widget.onDelete(drafts[i]),
+                  onMoveUp: i == 0 ? null : () => widget.onReorder(i, i - 1),
+                  onMoveDown: i == drafts.length - 1
+                      ? null
+                      : () => widget.onReorder(i, i + 1),
+                  onCut: () => _startCut(drafts[i].id),
                 ),
             ],
-          ],
-        ),
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Paste-at-top affordance.
+              if (drafts.isNotEmpty)
+                _PasteButton(
+                  key: const ValueKey('paste-top'),
+                  semanticsLabel: 'Paste before first figure',
+                  onPaste: () => _paste(0),
+                ),
+              for (var i = 0; i < drafts.length; i++) ...[
+                _FigureDraftCard(
+                  key: ValueKey('figure-card-${drafts[i].id}'),
+                  index: i,
+                  totalCount: drafts.length,
+                  draft: drafts[i],
+                  label: labels[drafts[i].id],
+                  taxonomy: widget.taxonomy,
+                  dialect: dialect,
+                  isCut: drafts[i].id == _cutDraftId,
+                  draggable: false,
+                  onChanged: widget.onChanged,
+                  onDelete: () => widget.onDelete(drafts[i]),
+                  // Move-up/down still available during cut mode.
+                  onMoveUp: i == 0 ? null : () => widget.onReorder(i, i - 1),
+                  onMoveDown: i == drafts.length - 1
+                      ? null
+                      : () => widget.onReorder(i, i + 1),
+                  onCut: drafts[i].id == _cutDraftId
+                      ? null
+                      : () => _startCut(drafts[i].id),
+                ),
+                // Paste-after-this-card affordance (skip for the cut figure
+                // itself — pasting adjacent to the source is a no-op).
+                if (drafts[i].id != _cutDraftId)
+                  _PasteButton(
+                    key: ValueKey('paste-after-${drafts[i].id}'),
+                    semanticsLabel:
+                        'Paste after '
+                        '${_figureDisplayName(drafts[i], widget.taxonomy)}',
+                    onPaste: () => _paste(i + 1),
+                  ),
+              ],
+            ],
+          ),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -372,12 +442,13 @@ class _FigureListEditorState extends State<FigureListEditor> {
 }
 
 /// Short display name for a draft (for accessibility labels and cut banner).
+/// Returns raw text — callers are responsible for any quoting they need.
 String _figureDisplayName(FigureDraft draft, Taxonomy taxonomy) {
   final move = draft.move;
   if (move == null) return 'Empty figure';
   if (move == customMove) {
     final text = draft.params['text'] as String?;
-    return text != null && text.isNotEmpty ? '"$text"' : 'Custom figure';
+    return text != null && text.isNotEmpty ? text : 'Custom figure';
   }
   final alias = taxonomy.aliases[move];
   final def = taxonomy.resolve(move);
@@ -427,6 +498,7 @@ class _FigureDraftCard extends StatelessWidget {
     required this.taxonomy,
     required this.dialect,
     required this.isCut,
+    required this.draggable,
     required this.onChanged,
     required this.onDelete,
     this.onMoveUp,
@@ -441,6 +513,11 @@ class _FigureDraftCard extends StatelessWidget {
   final Taxonomy taxonomy;
   final Dialect dialect;
   final bool isCut;
+
+  /// Whether to show the drag-handle widget. False during cut/paste mode
+  /// because drag indices would be misaligned with the plain-Column layout.
+  final bool draggable;
+
   final VoidCallback onChanged;
   final VoidCallback onDelete;
 
@@ -506,14 +583,17 @@ class _FigureDraftCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Drag handle (activates the ReorderableListView drag).
-                  ReorderableDragStartListener(
-                    index: index,
-                    child: Semantics(
-                      label: 'Drag to reorder $figureName',
-                      child: const Icon(Icons.drag_handle),
-                    ),
-                  ),
+                  // Drag handle — only shown when inside a ReorderableListView.
+                  if (draggable)
+                    ReorderableDragStartListener(
+                      index: index,
+                      child: Semantics(
+                        label: 'Drag to reorder $figureName',
+                        child: const Icon(Icons.drag_handle),
+                      ),
+                    )
+                  else
+                    const Icon(Icons.drag_handle, color: Colors.transparent),
                   const SizedBox(width: 4),
                   SizedBox(
                     width: 34,
