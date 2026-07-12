@@ -498,7 +498,19 @@ class _DanceListScreenState extends State<DanceListScreen> {
               color: Theme.of(context).colorScheme.onErrorContainer,
             ),
           ),
-          child: DanceListTile(entry: entry),
+          child: DanceListTile(
+            entry: entry,
+            onTap: () async {
+              // DanceDetailScreen pops with true when a dance is deleted so
+              // the Collection can reload and remove the stale row immediately.
+              final deleted = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => DanceDetailScreen(danceId: entry.dance.id),
+                ),
+              );
+              if (mounted && deleted == true) await _boot();
+            },
+          ),
         );
       },
     );

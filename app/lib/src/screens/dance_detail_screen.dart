@@ -108,14 +108,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// Soft-deletes the dance immediately and shows an "Undo" snackbar that
   /// calls [DanceRepository.restore] if tapped. Pops back to the list after
   /// deleting (before the snackbar appears, so the deleted dance is no longer
-  /// visible in the collection).
+  /// visible in the collection). Pops with `true` so the caller can reload.
   Future<void> _delete() async {
     final title = (await _future)?.dance.title ?? 'Dance';
     final now = DateTime.now().toUtc();
     await _repos.dances.softDelete(widget.danceId, at: now);
     if (!mounted) return;
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
+    // Capture ScaffoldMessengerState before pop() so we don't read a
+    // deactivating context after the route is removed from the tree.
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop(true);
+    messenger.showSnackBar(
       SnackBar(
         key: const ValueKey('deleted-snackbar'),
         content: Text('"$title" deleted.'),

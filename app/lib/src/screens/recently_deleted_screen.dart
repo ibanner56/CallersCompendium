@@ -7,8 +7,9 @@ import '../data/repositories_scope.dart';
 /// Permanently delete actions (`docs/design/ux.md` cross-cutting rule:
 /// "undo/soft-delete everywhere, restore within 30 days").
 ///
-/// Reachable from the Collection screen app-bar overflow menu. An empty state
-/// is shown when no dances are pending deletion.
+/// Reachable from the Collection screen app bar via the
+/// `restore_from_trash_outlined` icon button (`recently-deleted` key).
+/// An empty state is shown when no dances are pending deletion.
 class RecentlyDeletedScreen extends StatefulWidget {
   const RecentlyDeletedScreen({super.key});
 

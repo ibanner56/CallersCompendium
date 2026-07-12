@@ -67,8 +67,8 @@ void main() {
   testWidgets('shows purge ETA for each deleted dance', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Expiring Soon'));
-    // Deleted 20 days ago → 10 days left; ample margin for the
-    // two DateTime.now() calls in the widget not to straddle an inDays boundary.
+    // Deleted 20 days ago → 10 days left; ample margin so the
+    // DateTime.now() call in the widget stays well away from an inDays boundary.
     final deletedAt = DateTime.now().toUtc().subtract(const Duration(days: 20));
     await repos.dances.softDelete('d1', at: deletedAt);
 
