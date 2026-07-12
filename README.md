@@ -41,7 +41,7 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
 
 ## Supporting
 
-This project is made available free-of-charge (free of a kind, the birds and the frees, Staying Alive by the Free-Gees, etc.) under the GNU Affero General Public License, because I don't believe in putting financial barriers between aspiring callers and accesible calling resources[^1] and because Open Source Software has always been the path forward in the digital age. 
+This project is made available free-of-charge (free of a kind, the birds and the frees, Staying Alive by the Free-Gees, etc.) under the GNU Affero General Public License, because I don't believe in putting financial barriers between aspiring callers and accessible calling resources[^1] and because Open Source Software has always been the path forward in the digital age. 
 
 Maybe that means something to you, maybe you're just reading this because you like Isaac Banner rants (I don't understand why, but I'm glad you're here). Either way, if you like what this project is doing and you'd like to support it, you can donate via the link below. 
 
@@ -58,7 +58,7 @@ Maybe that means something to you, maybe you're just reading this because you li
 >  - Break dances.
 > 
 >"Choreographic works are compositions that are intended to be performed by skilled dancers, typically for the enjoyment of an audience. By contrast, social dances are intended to be performed by members of the general public …
-Given the express language in the House and Senate Reports concerning the meaning of the term ‘choreographic works’ and given the absence of any limitation on the public performance right with respect to dance, the Office has concluded that social dances do not constitute copyrightable subject matter under Section 102(a)(4) of the Copyright Act.”  
+>Given the express language in the House and Senate Reports concerning the meaning of the term ‘choreographic works’ and given the absence of any limitation on the public performance right with respect to dance, the Office has concluded that social dances do not constitute copyrightable subject matter under Section 102(a)(4) of the Copyright Act.”  
 –	*Chapter 800, section 805.5, Compendium of U.S. Copyright Office Practices, Third Edition*
 
 All dances made available for download and import into Callers Compendium are offered rights-free and without license. If this ruffles your feathers and you'd prefer that a particular dance or subset of dances were not available for access to users of this application, feel free to reach out to the developers and we promise to at least have a respectful, nuanced conversation about the issue.[^2]
