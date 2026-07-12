@@ -167,11 +167,15 @@ class _FigureDraftCard extends StatelessWidget {
   }
 
   void _createCustom(String text) {
+    final trimmed = text.trim();
+    // Ignore an all-whitespace submission rather than creating an empty
+    // custom figure.
+    if (trimmed.isEmpty) return;
     draft.move = customMove;
     draft.params
       ..clear()
       ..addAll(taxonomy.effectiveParams(Figure(move: customMove)))
-      ..['text'] = text;
+      ..['text'] = trimmed;
     onChanged();
   }
 
@@ -331,6 +335,16 @@ class _NoteFieldState extends State<_NoteField> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(_NoteField old) {
+    super.didUpdateWidget(old);
+    // Keep the note in sync when the parent supplies a new value (e.g. a
+    // different draft loaded into this row) without disrupting live typing.
+    if (widget.value != old.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
   }
 
   @override

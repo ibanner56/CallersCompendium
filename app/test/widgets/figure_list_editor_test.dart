@@ -123,6 +123,39 @@ void main() {
     expect(find.byKey(const ValueKey('figure-0-text')), findsOneWidget);
   });
 
+  testWidgets('whitespace-only submission does not create a custom figure', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      '   ',
+    );
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(drafts.single.move, isNull);
+  });
+
+  testWidgets('custom figure text is trimmed', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      '  scoop them up  ',
+    );
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(drafts.single.move, customMove);
+    expect(drafts.single.params['text'], 'scoop them up');
+  });
+
   testWidgets('running beat total warns on underflow', (tester) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);

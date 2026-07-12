@@ -79,9 +79,19 @@ class FigureParamEditor extends StatelessWidget {
   }
 
   Widget _dropdown(List<String> choices) {
+    // Reconcile the displayed selection with the model: prefer the current
+    // value when valid, else the spec default (if a valid choice), else the
+    // first choice. When we fall back, push that value back to the draft after
+    // the frame so a saved-but-invalid value can't linger behind the UI.
+    final specDefault = spec.defaultValue;
     final current = value is String && choices.contains(value)
         ? value! as String
+        : (specDefault is String && choices.contains(specDefault))
+        ? specDefault
         : (choices.isNotEmpty ? choices.first : null);
+    if (current != null && current != value) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => onChanged(current));
+    }
     return SizedBox(
       width: 180,
       child: DropdownButtonFormField<String>(
@@ -205,6 +215,18 @@ class _IntFieldState extends State<_IntField> {
   }
 
   @override
+  void didUpdateWidget(_IntField old) {
+    super.didUpdateWidget(old);
+    // Keep the field in sync when the value is reseeded programmatically (e.g.
+    // a move change reseeds default params). Only overwrite when it actually
+    // differs from what the user is looking at, to avoid fighting the cursor.
+    if (widget.value != old.value &&
+        int.tryParse(_controller.text.trim()) != widget.value) {
+      _controller.text = widget.value.toString();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -258,6 +280,16 @@ class _TextParamFieldState extends State<_TextParamField> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(_TextParamField old) {
+    super.didUpdateWidget(old);
+    // Sync when the parent reseeds the value (e.g. a move change) without
+    // clobbering in-progress typing.
+    if (widget.value != old.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
   }
 
   @override

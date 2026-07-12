@@ -42,6 +42,88 @@ Future<void> _selectFromDropdown(
 }
 
 void main() {
+  testWidgets('dropdown reconciles an invalid value to the spec default', (
+    tester,
+  ) async {
+    final read = await _pumpEditor(
+      tester,
+      paramKey: 'who',
+      spec: const ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+      value: 'not_a_dancer_set',
+    );
+    await tester.pumpAndSettle();
+    // The invalid value is pushed back to the model as the spec default.
+    expect(read(), 'partners');
+    expect(find.text('partners'), findsOneWidget);
+  });
+
+  testWidgets('text field syncs when the parent reseeds the value', (
+    tester,
+  ) async {
+    Object? captured;
+    Widget host(String value) => MaterialApp(
+      home: Scaffold(
+        body: FigureParamEditor(
+          keyPrefix: 'p',
+          paramKey: 'text',
+          spec: const ParamSpec(ParamKind.text, defaultValue: ''),
+          value: value,
+          onChanged: (v) => captured = v,
+        ),
+      ),
+    );
+    await tester.pumpWidget(host('first'));
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('p-text')))
+          .controller
+          ?.text,
+      'first',
+    );
+    // A programmatic reseed (e.g. move change) updates the displayed text.
+    await tester.pumpWidget(host('reseeded'));
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('p-text')))
+          .controller
+          ?.text,
+      'reseeded',
+    );
+    expect(captured, isNull);
+  });
+
+  testWidgets('beats field syncs when the parent reseeds the value', (
+    tester,
+  ) async {
+    Widget host(int value) => MaterialApp(
+      home: Scaffold(
+        body: FigureParamEditor(
+          keyPrefix: 'p',
+          paramKey: 'beats',
+          spec: const ParamSpec(ParamKind.beats, defaultValue: 8),
+          value: value,
+          onChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpWidget(host(8));
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('p-beats')))
+          .controller
+          ?.text,
+      '8',
+    );
+    await tester.pumpWidget(host(4));
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('p-beats')))
+          .controller
+          ?.text,
+      '4',
+    );
+  });
+
   testWidgets('dancerSet dropdown round-trips a value', (tester) async {
     final read = await _pumpEditor(
       tester,

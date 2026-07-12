@@ -43,6 +43,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   final Map<String, TextEditingController> _customTextControllers = {};
 
   bool _loaded = false;
+  bool _loadStarted = false;
   Object? _loadError;
   bool _saving = false;
 
@@ -81,7 +82,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_loaded && _loadError == null) {
+    // Guard against `didChangeDependencies` firing again before the first
+    // `_load()` future completes: `_load()` appends into mutable collections
+    // (drafts, link controllers), so a second run would duplicate state and
+    // leak controllers. Kick it off exactly once per widget instance.
+    if (!_loadStarted) {
+      _loadStarted = true;
       _repos = RepositoriesScope.of(context);
       _load();
     }
