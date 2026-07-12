@@ -338,7 +338,17 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       ),
     ),
     preservedLinks: List.unmodifiable(_preservedLinks),
-    customValues: Map.unmodifiable(_customValues),
+    // Custom text/number fields are edited via _customTextControllers and do
+    // not keep _customValues in sync — read from the controllers directly so
+    // the snapshot captures whatever the user has typed.
+    customValues: Map.unmodifiable({
+      ..._customValues, // boolean / choice values
+      for (final def in _fieldDefs)
+        if ((def.type == CustomFieldType.text ||
+                def.type == CustomFieldType.number) &&
+            _customTextControllers.containsKey(def.id))
+          def.id: _customTextControllers[def.id]!.text,
+    }),
     figureDrafts: List.unmodifiable(
       _figureDrafts.map(FigureDraftSnapshot.fromDraft),
     ),
@@ -520,7 +530,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       } finally {
         _applyingSnapshot = false;
       }
-      // Seed a new undo entry reflecting the restored state.
+      // Reset the stack so the restored state IS the initial undo floor —
+      // the user cannot "undo the restore" back to the pre-restore state.
+      _undoStack.clear();
       _undoStack.push(_captureSnapshot());
       setState(() {});
     } else {
@@ -583,7 +595,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       // (called by _save) bypasses canPop and is not affected.
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _clearAndPop();
+        if (!didPop) unawaited(_clearAndPop());
       },
       child: Shortcuts(
         shortcuts: {

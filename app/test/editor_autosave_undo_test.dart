@@ -734,5 +734,135 @@ void main() {
       // Key is cleaned up.
       expect(await repos.settings.contains('editor_draft:new'), isFalse);
     });
+
+    // Regression: fix #3 — type-check casts in _parsePreservedLinks
+    test(
+      'decodeDraft: non-string preservedLink fields are gracefully skipped',
+      () {
+        // A preserved link with non-string values for url/targetDanceId/label
+        // should not throw a TypeError — it should be skipped by the catch block.
+        final withBadPreservedLink = {
+          'v': 1,
+          'title': 'T',
+          'hook': '',
+          'notes': '',
+          'phrase': '',
+          'formationDetail': '',
+          'form': 'contra',
+          'formationShape': 'dupleImproper',
+          'progression': 'single',
+          'status': 'active',
+          'preservedLinks': [
+            {
+              'id': 'pl1',
+              'kind': 'relatedDance',
+              'targetDanceId': 42,
+            }, // int, not String
+          ],
+        };
+        // Should not throw — malformed entry is silently skipped.
+        final decoded = decodeDraft(withBadPreservedLink);
+        expect(decoded.preservedLinks, isEmpty);
+      },
+    );
+
+    // Regression: fix #4 — custom text/number captured from controllers
+    testWidgets('autosave captures custom text field typed by user', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'cf1',
+          key: 'notes2',
+          label: 'Extra Notes',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpEditor(tester, repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Custom Test',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('custom-cf1')),
+        'my typed value',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      final raw = await repos.settings.get('editor_draft:new');
+      final decoded = decodeDraft(raw);
+      expect(decoded.customValues['cf1'], 'my typed value');
+    });
+
+    // Regression: fix #4 — undo restores custom text field value
+    testWidgets('undo restores custom text field to previous value', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'cf2',
+          key: 'extra',
+          label: 'Extra',
+          type: CustomFieldType.text,
+        ),
+      );
+      await _pumpEditor(tester, repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('custom-cf2')),
+        'first value',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      await tester.enterText(
+        find.byKey(const ValueKey('custom-cf2')),
+        'second value',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+
+      // Undo → custom field should show 'first value'.
+      await tester.tap(find.byKey(const ValueKey('undo-button')));
+      await tester.pumpAndSettle();
+
+      final et = tester.firstWidget<EditableText>(
+        find.descendant(
+          of: find.byKey(const ValueKey('custom-cf2')),
+          matching: find.byType(EditableText),
+        ),
+      );
+      expect(et.controller.text, 'first value');
+    });
+  });
+
+  // =========================================================================
+  // Regression: fix #1 — undo stack reset after draft restore
+  // =========================================================================
+  group('Undo stack after draft restore', () {
+    testWidgets('undo disabled immediately after restoring a draft', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        'editor_draft:new',
+        encodeDraft(_snap(title: 'Restored')),
+      );
+
+      await _pumpEditor(tester, repos);
+
+      // Restore the draft.
+      await tester.tap(find.byKey(const ValueKey('draft-restore')));
+      await tester.pumpAndSettle();
+
+      // After restore, undo should be disabled (restored state IS the floor).
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey('undo-button')))
+            .onPressed,
+        isNull,
+      );
+    });
   });
 }

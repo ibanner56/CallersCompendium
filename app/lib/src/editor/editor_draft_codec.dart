@@ -203,9 +203,11 @@ List<DanceLink> _parsePreservedLinks(Object? raw) {
     final m = e.cast<String, Object?>();
     final id = _str(m, 'id');
     final kind = _parseEnum(LinkKind.values, _str(m, 'kind'));
-    final url = m['url'] as String?;
-    final targetDanceId = m['targetDanceId'] as String?;
-    final label = m['label'] as String?;
+    final url = m['url'] is String ? m['url'] as String : null;
+    final targetDanceId = m['targetDanceId'] is String
+        ? m['targetDanceId'] as String
+        : null;
+    final label = m['label'] is String ? m['label'] as String : null;
     try {
       result.add(
         DanceLink(
