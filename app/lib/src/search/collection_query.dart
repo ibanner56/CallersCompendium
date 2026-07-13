@@ -341,12 +341,16 @@ class BuilderThen extends BuilderNode {
 ///
 /// - [GroupKind.all]  → [FigureAnd] (all these figure constraints match the same row)
 /// - [GroupKind.any]  → [FigureOr]  (any of these figure constraints match the same row)
-/// - [GroupKind.none] → [FigureNot] wrapping [FigureOr] ("no figure matching any of these")
+/// - [GroupKind.none] → [FigureNot] wrapping the effective children
+///   ("no figure matching any of these"): [FigureNot] of a [FigureOr] when
+///   there are multiple children, or [FigureNot] of the single child directly
+///   when only one remains (the single-child optimisation below).
 ///
 /// Incomplete children fold to `null` and are skipped, mirroring how
 /// [BuilderGroup] handles [DanceFilter] nodes. A group whose effective
-/// children reduce to a single node unwraps the redundant combinator (matches
-/// [BuilderGroup]'s "single-child" optimisation).
+/// children reduce to a single node unwraps the redundant `all`/`any`
+/// combinator (and `none` negates that single child directly) — matching
+/// [BuilderGroup]'s "single-child" optimisation.
 ///
 /// Children can themselves be [BuilderFigureGroup]s, so the model supports
 /// arbitrary nesting; the UI currently exposes one level of nesting.

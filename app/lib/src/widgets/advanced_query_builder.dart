@@ -317,8 +317,9 @@ class _ThenRow extends StatelessWidget {
 /// leaf with a "Group figures" affordance, or a [BuilderFigureGroup] editor
 /// with a "Single figure" affordance to collapse back.
 ///
-/// [onReplace] is called (and [onChanged] need not be called separately)
-/// when the operand type switches between leaf and group.
+/// [onReplace] is invoked when the operand type switches between a single
+/// figure (leaf) and a group; the caller swaps in the new node and is
+/// responsible for triggering a rebuild (it calls [onChanged]).
 class _FigureOperandEditor extends StatelessWidget {
   const _FigureOperandEditor({
     required this.node,
@@ -332,8 +333,8 @@ class _FigureOperandEditor extends StatelessWidget {
 
   /// Called when the user wants to replace this operand with a different
   /// [BuilderFigureNode] (e.g. wrapping a leaf in a group, or flattening a
-  /// single-child group back to a leaf). Already triggers a search update —
-  /// the caller must NOT call [onChanged] separately.
+  /// single-child group back to a leaf). The caller swaps in the replacement
+  /// and then calls [onChanged] to rebuild/re-run the search.
   final ValueChanged<BuilderFigureNode> onReplace;
 
   final Taxonomy taxonomy;
