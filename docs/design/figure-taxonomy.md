@@ -105,8 +105,15 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   `stand_still` omits `goodBeats`, so any in-range beat count (0–64) is accepted
   without a warning; ContraDB's "beats ≥ 1" min-rule isn't expressible in the
   list-based `goodBeats` model and is not enforced.
-- PR2 dancer-interaction, PR3 choice-enum (+`centers`), PR4 places-family
-  (+`ParamKind.places`), PR5 hey/wave family — remaining.
+- **PR2 (dancer-interaction, no new vocab):** added `gate`, `give_and_take`,
+  `pull_by_dancers`, `pull_by_direction`, `cross_trails`, and extended
+  `roll_away` with ContraDB's `whom` param. `who`/`whom` pairings are modeled as
+  `dancerSet` (defaults required by `ParamSpec`); `give_and_take.who` is narrowed
+  to `role1s`/`role2s`. `gate.face` (up/down/in/out) is a dedicated `choice`
+  rather than spatial `direction`. Beat-shaping flags that ContraDB uses only to
+  recompute beats (`give`, `balance`) are not render tokens.
+- PR3 choice-enum (+`centers`), PR4 places-family (+`ParamKind.places`),
+  PR5 hey/wave family — remaining.
 
 **Confirmed divergences from ContraDB (already applied in the seed):**
 - Canonical roles are `role1`/`role2`; ContraDB `gentlespoons`→`role1(s)`,
