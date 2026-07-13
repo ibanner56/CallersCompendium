@@ -119,9 +119,12 @@ Design items (each produces a design doc + review):
   empty-state placeholder); `DanceDetailScreen` gains `onDeleted`/`onNavigateTo` so delete
   and duplicate work correctly without a route pop; narrow mode behavior fully unchanged.
   `main.dart` home updated to `CollectionShell`. Selected-row highlight via `ListTile.selected`.
-  All deferred follow-ups from Phase 3/3.2 are now addressed **except** the two still blocked
-  by missing data: per-Type taxonomy selection (needs ECD/Square taxonomy) and the
-  `listIdsAndTitles` perf tweak.
+  All deferred follow-ups from Phase 3/3.2 are now addressed **except**: (a) per-Type
+  taxonomy selection in the figure builder — blocked until ECD/Square taxonomy data
+  exists (see "ECD and Squares support" under Later milestones); and (b) a low-priority
+  performance tweak, `DanceRepository.listIdsAndTitles()`, to avoid the N+1 `getById`
+  lookups currently used to resolve related-dance titles in the detail/editor (fine at
+  present collection sizes; optimize when needed).
 - Cross-session / persistent **undo** (3.3d ships in-memory undo/redo only).
 - ~~`revisit-lingo-dialect` — active dialect settings (persisted user-selectable dialect,
   settings screen, threading through detail toggle / lingo line / search).~~
@@ -129,8 +132,8 @@ Design items (each produces a design doc + review):
   `Dialect.forName` in core; `ActiveDialectScope` (`InheritedNotifier<ValueNotifier<Dialect>>`);
   `SettingsScreen` with radio preset list; Collection app bar Settings entry;
   default = `Dialect.larksRobins`.
-- (Already tracked elsewhere, pointers only: 2.4a full taxonomy data; the 3.2
-  follow-ups — ~~nested figure groups inside `then`~~, per-Type taxonomy selection.)
+- (2.4a full taxonomy data is now **complete** — full ContraDB contra move set shipped.
+  The only still-open 3.2 follow-up is per-Type taxonomy selection, blocked on multi-form data.)
   - ~~Nested figure groups inside `then`~~: **Resolved in Consolidation PR4**
     (consolidation-pr4-nested-figure-groups): `BuilderFigureNode` sealed
     hierarchy (`BuilderFigure` + `BuilderFigureGroup`) in `collection_query.dart`;
@@ -191,6 +194,11 @@ design/domain-model.md "CC parity backfill".*
   optional per-slot / running **program timing** (CC `Set.TimeStart`/`TimeElapsed`,
   `SetItem.Time`) surfaced during an event
 - [ ] 5.3 On-the-fly program adjustments during an event
+- [ ] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
+  rendering of figures for assistive tech (distinct from the terse canonical/dialect
+  display text), per the accessibility baseline ([research/accessibility-baseline.md](research/accessibility-baseline.md)) and
+  the [figure-taxonomy.md](design/figure-taxonomy.md) "verbose rendering still TODO" note. Applies to the dance
+  detail card and the Phase 5 large-print performance view.
 
 ## Phase 6 — Imports & migration
 
