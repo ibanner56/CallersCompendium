@@ -116,15 +116,17 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   `up_the_hall`, `zig_zag`, `slice`, `contra_corners`, `turn_alone`, `figure_8`,
   `poussette`, `rory_o_more`. Move-specific enums are `ParamKind.choice` with
   lowerCamelCase values (hall enders, zig-zag enders, march facing, slice
-  return/increment, figure-8 dir, all/center/outsides); `half_or_full` maps onto
-  `fraction` (`half`/`full`); left/right spins are `choice['left','right']`.
-  Added `centers` and the single-dancer tokens `onesRole1`/`onesRole2`/
-  `twosRole1`/`twosRole2` to `ParamVocab.dancerSets` (1s/2s × role — ContraDB's
-  chooser_dancer; used by `figure_8.lead`). Optional/secondary modifiers that
-  default to "none" (enders, figure-8 dir), embedded custom text
+  `slice`/`by`/`return`, figure-8 dir, all/center/outsides); `half_or_full` maps
+  onto `fraction` (`half`/`full`); left/right spins are `choice['left','right']`.
+  (`slice`'s params are `slice` = left/right, `by` = couple/dancer, and `return`
+  = straight/diagonal/none.) Added `centers` and the single-dancer tokens
+  `onesRole1`/`onesRole2`/`twosRole1`/`twosRole2` to `ParamVocab.dancerSets`
+  (1s/2s × role — ContraDB's chooser_dancer; used by `figure_8.lead`). Secondary
+  modifiers — enders (incl. the halls'), figure-8 `dir`, embedded custom text
   (`contra_corners`/`turn_alone`), the who-coupled `moving`, and the single
-  `lead` are structured params but not render-template tokens (cf. swing.prefix)
-  so canonical text stays free of literal "none".
+  `lead` — are structured params but not render-template tokens (cf.
+  swing.prefix), so canonical text carries only the identifying phrase and stays
+  free of literal sentinel words like "none".
 - PR4 places-family (+`ParamKind.places`), PR5 hey/wave family — remaining.
 
 **Confirmed divergences from ContraDB (already applied in the seed):**

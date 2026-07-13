@@ -37,10 +37,8 @@ void main() {
 
   group('canonical rendering (golden)', () {
     final cases = <String, Figure>{
-      'everyone down the hall forward turn couple': Figure(
-        move: 'down_the_hall',
-      ),
-      'everyone up the hall forward circle': Figure(move: 'up_the_hall'),
+      'everyone down the hall forward': Figure(move: 'down_the_hall'),
+      'everyone up the hall forward': Figure(move: 'up_the_hall'),
       'partners zig zag left': Figure(move: 'zig_zag'),
       'slice left couple straight': Figure(move: 'slice'),
       'ones contra corners': Figure(move: 'contra_corners'),
@@ -55,7 +53,7 @@ void main() {
       });
     });
 
-    test('down_the_hall renders a multi-word facing and ender', () {
+    test('down_the_hall renders a multi-word facing (ender is structured)', () {
       expect(
         renderer.renderCanonical(
           Figure(
@@ -63,7 +61,8 @@ void main() {
             params: {'facing': 'forwardThenBackward', 'ender': 'threadNeedle'},
           ),
         ),
-        'everyone down the hall forward then backward thread needle',
+        // `ender` is not a render token, so it does not appear here.
+        'everyone down the hall forward then backward',
       );
     });
 
@@ -138,12 +137,15 @@ void main() {
       }
     });
 
-    test('turn_alone accepts any in-domain beat count (0..4 range rule)', () {
-      expect(
-        tax.validateFigure(Figure(move: 'turn_alone', params: {'beats': 2})),
-        isEmpty,
-      );
-    });
+    test(
+      'turn_alone accepts any in-domain beat count (range not enforced)',
+      () {
+        expect(
+          tax.validateFigure(Figure(move: 'turn_alone', params: {'beats': 2})),
+          isEmpty,
+        );
+      },
+    );
   });
 
   group('param domains', () {

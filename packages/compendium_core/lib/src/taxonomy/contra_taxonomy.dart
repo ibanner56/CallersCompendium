@@ -403,13 +403,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
     ),
     // --- Roadmap 2.4a: choice-enum moves (PR3) ---
     // Additive ContraDB moves whose variants are move-specific enums
-    // (ParamKind.choice). Optional/secondary modifiers (enders that default to
-    // "none", embedded custom text, single-dancer `lead`, the who-coupled
-    // `moving`) are structured params but NOT render-template tokens: the terse
-    // canonical line carries the identifying phrase, while these are surfaced by
-    // the verbose/dialect renderer (design-doc TODO) and structural search.
-    // This mirrors swing.prefix (a "none"-valued choice that is not templated)
-    // and keeps default renders free of literal "none" tokens.
+    // (ParamKind.choice). Secondary modifiers — enders, figure-8 `dir`, embedded
+    // custom text (contra_corners/turn_alone), the who-coupled `moving`, and the
+    // single-dancer `lead` — are structured params but NOT render-template
+    // tokens: the terse canonical line carries the identifying phrase, while
+    // these are surfaced by the verbose/dialect renderer (design-doc TODO) and
+    // structural search. This mirrors swing.prefix (a choice that is not
+    // templated) and keeps canonical text free of literal sentinel words like
+    // "none" (several of these choices include a "none"/unspecified value).
     const MoveDef(
       id: 'down_the_hall',
       displayName: 'down the hall',
@@ -433,7 +434,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {facing} {ender}',
+      renderTemplate: '{who} {move} {facing}',
       goodBeats: [8],
     ),
     const MoveDef(
@@ -458,7 +459,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {facing} {ender}',
+      renderTemplate: '{who} {move} {facing}',
       goodBeats: [8],
     ),
     const MoveDef(
@@ -567,8 +568,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 6),
       },
       renderTemplate: '{who} {move} {whom} {half} {turn}',
-      // half -> 6-8 beats, full -> 12-16.
-      goodBeats: [6, 8],
+      // No goodBeats: the typical count is param-dependent (half -> 6-8, full ->
+      // 12-16) — two disjoint ranges the list-based goodBeats can't express, so
+      // no atypical-beats warning is emitted for either variant.
     ),
     const MoveDef(
       id: 'rory_o_more',
