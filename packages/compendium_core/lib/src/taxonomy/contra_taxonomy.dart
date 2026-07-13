@@ -8,7 +8,8 @@ import 'taxonomy.dart';
 /// v2: roadmap 2.4a PR2 (dancer-interaction moves).
 /// v3: roadmap 2.4a PR3 (choice-enum moves + `centers`/single-dancer vocab).
 /// v4: roadmap 2.4a PR4 (places family + `ParamKind.places`).
-const int contraTaxonomyVersion = 4;
+/// v5: roadmap 2.4a PR5 (hey/wave family) — completes the 2.4a move set.
+const int contraTaxonomyVersion = 5;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -25,6 +26,15 @@ const _downTheHallEnders = [
   'rightHandHigh',
   'slidingDoors',
 ];
+
+// hey's second pass may be any pair OR left unspecified (ContraDB
+// chooser_pairz_or_unspecified). Kept hey-scoped rather than polluting the
+// shared dancer vocabulary with the sentinel.
+const _heyPass2Choices = [...ParamVocab.dancerSets, 'unspecified'];
+
+// The four single-dancer identities (ContraDB chooser_dancer: 1st/2nd couple x
+// role), for moves that name an individual dancer.
+const _singleDancers = ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2'];
 
 /// The seed contra move taxonomy.
 ///
@@ -668,6 +678,124 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{who} {move} {places}',
       goodBeats: [16],
+    ),
+    // --- Roadmap 2.4a: hey / wave family (PR5) — completes the 2.4a set ---
+    // The heys and wave-formations. All fit the existing ParamKind set (no new
+    // vocabulary). ContraDB attaches rich "words" functions and editor-only
+    // auto-beat recomputation to these; we keep the identifying phrase in the
+    // canonical template and hold the descriptive modifiers (ricochet flags,
+    // hey length, direction, wave in/out/balance flags, ocean-wave hands) as
+    // structured params for the verbose renderer + structural search. ContraDB
+    // conditional beat rules aren't encoded (goodBeats carries a simple typical
+    // list or is omitted, cf. poussette).
+    const MoveDef(
+      id: 'pass_by',
+      displayName: 'pass by',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        // Available for %S dialect injection (cf. pass_through); structured.
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
+      },
+      renderTemplate: '{who} {move}',
+      goodBeats: [2],
+    ),
+    const MoveDef(
+      id: 'hey',
+      displayName: 'hey',
+      params: {
+        // Which pair starts in the center (ContraDB ladles -> role2s).
+        'pass1': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
+        // The ends pair, or 'unspecified' (ContraDB chooser_pairz_or_unspecified).
+        'pass2': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'unspecified',
+          choices: _heyPass2Choices,
+        ),
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        // Reduced hey length: full/half only (ContraDB's lessThanHalf /
+        // betweenHalfAndFull and dancer%%N meeting encodings are out of scope).
+        'length': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'half',
+          choices: ['full', 'half'],
+        ),
+        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        // Four ricochet flags: (1st/2nd meeting) x (center/ends dancers).
+        // Structured; kept for fidelity per the approved reduced model.
+        'rico1': ParamSpec(ParamKind.flag, defaultValue: false),
+        'rico2': ParamSpec(ParamKind.flag, defaultValue: false),
+        'rico3': ParamSpec(ParamKind.flag, defaultValue: false),
+        'rico4': ParamSpec(ParamKind.flag, defaultValue: false),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{pass1} {move} {shoulder}',
+      // Typical: half hey 8, full hey 16. The exact meetTimes*8 rule isn't
+      // list-expressible, so we don't encode it (cf. poussette).
+      goodBeats: [8, 16],
+    ),
+    const MoveDef(
+      id: 'dolphin_hey',
+      displayName: 'dolphin hey',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        // The lead (dolphin) dancer — a single-dancer identity.
+        'whom': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'onesRole1',
+          choices: _singleDancers,
+        ),
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 16),
+      },
+      renderTemplate: '{who} {move} {shoulder}',
+      goodBeats: [16],
+    ),
+    const MoveDef(
+      id: 'form_long_waves',
+      displayName: 'form long waves',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
+        // A formation label: 0 beats is valid and typical.
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 0),
+      },
+      renderTemplate: '{who} {move}',
+      searchKeywords: ['long waves'],
+      goodBeats: [0],
+    ),
+    const MoveDef(
+      id: 'form_a_long_wave',
+      displayName: 'form a long wave',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
+        'in': ParamSpec(ParamKind.flag, defaultValue: true),
+        'out': ParamSpec(ParamKind.flag, defaultValue: false),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: true),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move}',
+      searchKeywords: ['long wave'],
+      // ContraDB recomputes beats from in/out/balance (editor UX, out of
+      // scope); the typical full case is 8. Not encoding the conditional rule.
+      goodBeats: [8],
+    ),
+    const MoveDef(
+      id: 'form_an_ocean_wave',
+      displayName: 'form an ocean wave',
+      params: {
+        'passThru': ParamSpec(ParamKind.flag, defaultValue: true),
+        // ContraDB set_direction_acrossish (across/rightDiagonal/leftDiagonal);
+        // all in our direction vocabulary.
+        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
+        'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+      },
+      renderTemplate: '{move}',
+      searchKeywords: ['ocean wave'],
+      // Beats are param-dependent (passThru/balance); not encoded (cf. poussette).
     ),
     const MoveDef(
       id: customMoveId,
