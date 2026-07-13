@@ -94,6 +94,15 @@ tracked as roadmap 2.4a and is purely additive. The complete extracted ContraDB
 reference (49 `defineFigure`s, all choosers, defaults, `goodBeats`, aliases) is
 archived in the session files as `contradb-taxonomy-extract.md`.
 
+**2.4a data-entry progress:**
+- _PR1 (simple moves, no new vocab):_ added `butterfly_whirl`, `arch_and_dive`,
+  `california_twirl`, `stand_still`, `slide_along_set`, `mad_robin`,
+  `revolving_door`, `star_promenade`, `allemande_orbit`. ContraDB params with
+  "no default" (which force a chooser selection there) take sensible community
+  defaults here, since `ParamSpec.defaultValue` is required. `stand_still` omits
+  `goodBeats` because ContraDB's "beats ≥ 1" min-rule isn't expressible in the
+  list-based `goodBeats` model.
+
 **Confirmed divergences from ContraDB (already applied in the seed):**
 - Canonical roles are `role1`/`role2`; ContraDB `gentlespoons`→`role1(s)`,
   `ladles`→`role2(s)`. All role display names (incl. Larks/Robins) are dialect.
