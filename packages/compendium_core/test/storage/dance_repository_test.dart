@@ -227,6 +227,45 @@ void main() {
         expect(await dances.getById('recent', includeDeleted: true), isNotNull);
       },
     );
+
+    test(
+      'purging a dance nulls a referencing program slot (no dangling FK)',
+      () async {
+        final programs = ProgramRepository(db);
+        await dances.create(
+          sampleDance(id: 'old', deletedAt: DateTime.utc(2026, 1, 1)),
+        );
+        await programs.create(
+          Program(
+            id: 'p1',
+            title: 'Evening set',
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                danceId: 'old',
+                text: 'The Old Dance',
+              ),
+            ],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+
+        final purged = await dances.purgeDeleted(
+          now: DateTime.utc(2026, 4, 1),
+          retention: const Duration(days: 30),
+        );
+
+        expect(purged, 1);
+        final program = await programs.getById('p1');
+        expect(program, isNotNull);
+        // The slot survives, its dance link is nulled, and the text tombstone
+        // is preserved.
+        expect(program!.slots.single.danceId, isNull);
+        expect(program.slots.single.text, 'The Old Dance');
+      },
+    );
   });
 
   group('duplicate', () {
@@ -246,6 +285,36 @@ void main() {
       final loadedCopy = await dances.getById('dance-1-copy');
       expect(original, dance);
       expect(loadedCopy, copy);
+    });
+
+    test('duplicates a dance that has links without a PK collision', () async {
+      final dance = sampleDance(
+        id: 'with-links',
+        links: [
+          DanceLink(id: 'link-1', kind: LinkKind.video, url: 'https://v'),
+          DanceLink(id: 'link-2', kind: LinkKind.source, url: 'https://s'),
+        ],
+      );
+      await dances.create(dance);
+
+      // Regression: Dance.duplicate used to reuse the source link ids, which
+      // violated the DanceLinks primary key when the copy was persisted.
+      final copy = await dances.duplicate(
+        id: 'with-links',
+        newId: 'with-links-copy',
+        now: DateTime.utc(2026, 5, 1),
+      );
+
+      final loadedCopy = await dances.getById('with-links-copy');
+      expect(loadedCopy, isNotNull);
+      expect(loadedCopy!.links.length, 2);
+      // Fresh link ids on the copy …
+      final copyIds = copy.links.map((l) => l.id).toSet();
+      expect(copyIds, isNot(contains('link-1')));
+      expect(copyIds, isNot(contains('link-2')));
+      // … and the original's links are untouched.
+      final original = await dances.getById('with-links');
+      expect(original!.links.map((l) => l.id).toSet(), {'link-1', 'link-2'});
     });
   });
 

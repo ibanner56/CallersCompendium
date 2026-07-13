@@ -707,6 +707,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               for (final c in _choreographers) (id: c.id, name: c.name),
             ],
             onAdd: (id) {
+              // Reached after an await in the picker's onSelected (create
+              // flow), so the editor may have been disposed meanwhile.
+              if (!mounted) return;
               setState(() => _authorIds.add(id));
               _pushUndoNow();
               _scheduleAutosave();
@@ -859,6 +862,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             namesById: _tagNames,
             options: [for (final t in _tags) (id: t.id, name: t.name)],
             onAdd: (id) {
+              // Reached after an await in the picker's onSelected (create
+              // flow), so the editor may have been disposed meanwhile.
+              if (!mounted) return;
               setState(() => _tagIds.add(id));
               _pushUndoNow();
               _scheduleAutosave();
@@ -1044,19 +1050,25 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   Future<String> _createChoreographer(String name) async {
     final choreographer = Choreographer(id: uuidV4(), name: name.trim());
     await _repos.choreographers.upsert(choreographer);
-    _choreographers = [..._choreographers, choreographer];
-    _choreographerNames = {
-      ..._choreographerNames,
-      choreographer.id: name.trim(),
-    };
+    // The upsert is the durable effect; only touch in-memory caches if we're
+    // still mounted (the create flow awaits this from the picker).
+    if (mounted) {
+      _choreographers = [..._choreographers, choreographer];
+      _choreographerNames = {
+        ..._choreographerNames,
+        choreographer.id: name.trim(),
+      };
+    }
     return choreographer.id;
   }
 
   Future<String> _createTag(String name) async {
     final tag = Tag(id: uuidV4(), name: name.trim());
     await _repos.tags.upsert(tag);
-    _tags = [..._tags, tag];
-    _tagNames = {..._tagNames, tag.id: name.trim()};
+    if (mounted) {
+      _tags = [..._tags, tag];
+      _tagNames = {..._tagNames, tag.id: name.trim()};
+    }
     return tag.id;
   }
 

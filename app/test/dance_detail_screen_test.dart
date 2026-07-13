@@ -15,6 +15,7 @@ Dance _dance({
   List<String> authorIds = const [],
   List<String> tagIds = const [],
   List<Figure> figures = const [],
+  List<DanceLink> links = const [],
   DanceStatus status = DanceStatus.active,
   String hook = '',
   Provenance? provenance,
@@ -24,6 +25,7 @@ Dance _dance({
   authorIds: authorIds,
   tagIds: tagIds,
   figures: figures,
+  links: links,
   status: status,
   hook: hook,
   provenance: provenance,
@@ -212,6 +214,33 @@ void main() {
     expect(copy.figures.length, 1);
     expect(copy.figures.first.move, 'petronella');
     expect(copy.hook, 'A great hook');
+  });
+
+  testWidgets('Duplicate succeeds for a dance that has links', (tester) async {
+    // Regression: duplicating a dance with links used to reuse the link ids
+    // and crash on the DanceLinks primary-key constraint.
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Linked Dance',
+        links: [
+          DanceLink(id: 'l1', kind: LinkKind.video, url: 'https://v'),
+          DanceLink(id: 'l2', kind: LinkKind.source, url: 'https://s'),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+    await tester.tap(find.byKey(const ValueKey('duplicate-dance')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Linked Dance (copy)'), findsOneWidget);
+    final copy = (await repos.dances.listAll()).firstWhere(
+      (d) => d.title == 'Linked Dance (copy)',
+    );
+    expect(copy.links.length, 2);
+    expect(copy.links.map((l) => l.id).toSet(), isNot(contains('l1')));
   });
 
   // ── Soft-delete ────────────────────────────────────────────────────────────
