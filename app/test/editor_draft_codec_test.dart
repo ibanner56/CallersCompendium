@@ -119,16 +119,40 @@ void main() {
       expect(decoded.links, isEmpty);
     });
 
-    test('rejects a v1 draft (version mismatch)', () {
-      // Simulate a v1 JSON blob (no targetDanceId, separate preservedLinks).
-      const v1Json =
-          '{"v":1,"title":"Old","hook":"","notes":"","phrase":"",'
+    test('rejects a future version (v > _kDraftVersion)', () {
+      // A draft written by a newer version of the app must be rejected so we
+      // never silently mangle data from a schema we don't understand.
+      const futureJson =
+          '{"v":99,"title":"Future","hook":"","notes":"","phrase":"",'
           '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
           '"progression":"single","status":"active","authorIds":[],"tagIds":[],'
-          '"tunes":[],"links":[],"preservedLinks":[],"customValues":{},'
-          '"figureDrafts":[]}';
+          '"tunes":[],"links":[],"customValues":{},"figureDrafts":[]}';
 
-      expect(() => decodeDraft(v1Json), throwsA(isA<FormatException>()));
+      expect(() => decodeDraft(futureJson), throwsA(isA<FormatException>()));
+    });
+
+    test('v1 draft is forward-compatible: URL-kind links are preserved', () {
+      // v1→v2 only added an optional targetDanceId to links.  A v1 autosave
+      // draft (URL-only links, no relatedDance) must survive an app upgrade
+      // so the user does not lose in-progress work.
+      const v1Json =
+          '{"v":1,"title":"Old Draft","hook":"A hook","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
+          '"progression":"single","status":"active","authorIds":["a1"],'
+          '"tagIds":[],"tunes":[],'
+          '"links":[{"id":"l1","kind":"source","url":"https://example.com","label":"src"}],'
+          '"preservedLinks":[],"customValues":{},"figureDrafts":[]}';
+
+      final decoded = decodeDraft(v1Json);
+
+      expect(decoded.title, 'Old Draft');
+      expect(decoded.hook, 'A hook');
+      expect(decoded.authorIds, ['a1']);
+      expect(decoded.links, hasLength(1));
+      expect(decoded.links.single.kind, LinkKind.source);
+      expect(decoded.links.single.url, 'https://example.com');
+      expect(decoded.links.single.label, 'src');
+      expect(decoded.links.single.targetDanceId, isNull);
     });
 
     test('unknown top-level keys are silently ignored', () {

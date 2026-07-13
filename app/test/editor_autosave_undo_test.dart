@@ -744,10 +744,11 @@ void main() {
       expect(await repos.settings.contains('editor_draft:new'), isFalse);
     });
 
-    // Regression: fix #3 — v1 drafts are now rejected (codec bumped to v2)
-    test('decodeDraft: v1 draft is rejected with FormatException', () {
-      // A v1 JSON blob (separate preservedLinks bucket) must be rejected so
-      // relatedDance links are not silently lost when upgrading.
+    // Regression: fix #3 (updated) — v1 drafts are now forward-compatible
+    test('decodeDraft: v1 draft with URL-only links decodes successfully', () {
+      // v1→v2 only added optional targetDanceId to links. A v1 autosave draft
+      // must survive an app upgrade so the user does not lose in-progress work.
+      // The preservedLinks bucket (v1 only) is ignored by the v2 parser.
       final v1Map = {
         'v': 1,
         'title': 'T',
@@ -759,16 +760,22 @@ void main() {
         'formationShape': 'dupleImproper',
         'progression': 'single',
         'status': 'active',
+        'links': [
+          {'id': 'l1', 'kind': 'source', 'url': 'https://example.com'},
+        ],
         'preservedLinks': [
           {
             'id': 'pl1',
             'kind': 'relatedDance',
-            'targetDanceId': 42, // int, not String
+            'targetDanceId': 42, // malformed — will be ignored (unknown key)
           },
         ],
       };
-      // v1 version mismatch → FormatException; the editor discards it.
-      expect(() => decodeDraft(v1Map), throwsA(isA<FormatException>()));
+      // v1 is accepted; URL links are preserved; preservedLinks key is ignored.
+      final decoded = decodeDraft(v1Map);
+      expect(decoded.title, 'T');
+      expect(decoded.links, hasLength(1));
+      expect(decoded.links.single.url, 'https://example.com');
     });
 
     // Regression: fix #4 — custom text/number captured from controllers

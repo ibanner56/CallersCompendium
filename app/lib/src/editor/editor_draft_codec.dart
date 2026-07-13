@@ -90,8 +90,15 @@ String encodeDraft(EditorSnapshot snapshot) {
 /// Deserialises a draft JSON value (as returned by [SettingsRepository.get])
 /// back into an [EditorSnapshot].
 ///
-/// Throws [FormatException] when the value is not a valid v2 draft.
-/// Unknown top-level keys are silently ignored (forward-compat).
+/// Accepts **v1 and v2** drafts (forward-compatible read):
+/// - v1 has URL-kind links only (no `targetDanceId`). Since v1 couldn't create
+///   relatedDance links, missing `targetDanceId` fields decode as `null` —
+///   a v1 draft loads intact as a valid draft with only URL-kind links.
+/// - v2 added `targetDanceId` to links and removed the `preservedLinks` bucket.
+///
+/// Throws [FormatException] for unknown future versions (`v > _kDraftVersion`)
+/// or for structurally invalid content. Unknown top-level keys are silently
+/// ignored (forward-compat).
 EditorSnapshot decodeDraft(Object? value) {
   final Map<String, Object?> json;
   if (value is String) {
@@ -109,7 +116,10 @@ EditorSnapshot decodeDraft(Object? value) {
   }
 
   final v = json['v'];
-  if (v is! int || v != _kDraftVersion) {
+  // Accept any version in the range [1, _kDraftVersion]. Versions below 1
+  // or above the current version are unknown and must be rejected so we never
+  // silently mangle data from a future schema we don't understand.
+  if (v is! int || v < 1 || v > _kDraftVersion) {
     throw FormatException('unsupported draft schema version: $v');
   }
 
