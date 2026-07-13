@@ -5,7 +5,8 @@ import 'param_types.dart';
 import 'taxonomy.dart';
 
 /// Version of the seeded contra taxonomy. Bumped when moves/params change.
-const int contraTaxonomyVersion = 1;
+/// v2: roadmap 2.4a data entry (additive ContraDB move build-out).
+const int contraTaxonomyVersion = 2;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -184,10 +185,13 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'roll away',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        // ContraDB roll_away's `whom` (chooser_pairs_or_ones_or_twos): the
+        // relationship being rolled away.
+        'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
         'halfSashay': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },
-      renderTemplate: '{who} {move}',
+      renderTemplate: '{who} {move} {whom}',
       goodBeats: [4],
     ),
     // --- Roadmap 2.4a: simple moves (PR1) ---
@@ -294,6 +298,94 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move} {hand} {inner} {outer}',
       searchKeywords: ['orbit'],
       goodBeats: [8],
+    ),
+    // --- Roadmap 2.4a: dancer-interaction moves (PR2) ---
+    // Additive ContraDB moves that fit the existing ParamKind set (no new
+    // vocabulary). ContraDB "no default" choosers get sensible community
+    // defaults, since ParamSpec.defaultValue is required.
+    const MoveDef(
+      id: 'gate',
+      displayName: 'gate',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        // ContraDB chooser_gate_direction: which way `who` orbits `whom`.
+        // Its up/down/in/out are relative to the set — distinct enough from
+        // spatial `direction` that it is modeled as a dedicated choice.
+        'face': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'up',
+          choices: ['up', 'down', 'in', 'out'],
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {whom} {face}',
+      goodBeats: [8],
+    ),
+    const MoveDef(
+      id: 'give_and_take',
+      displayName: 'give & take',
+      params: {
+        // chooser_role: the giving role.
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'role1s',
+          choices: ['role1s', 'role2s'],
+        ),
+        'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        // `give` == false is ContraDB's "take only". Like other beat-shaping
+        // flags (roll_away.halfSashay, long_lines.goBack) it is not a render
+        // token; the give/take wording is a display nuance, not canonical text.
+        'give': ParamSpec(ParamKind.flag, defaultValue: true),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {whom}',
+      searchKeywords: ['give and take', 'take'],
+      // ContraDB range is give -> 4-8, take-only -> 2-4; the two canonical
+      // counts are 4 (take only) and 8 (give & take).
+      goodBeats: [4, 8],
+    ),
+    const MoveDef(
+      id: 'pull_by_dancers',
+      displayName: 'pull by',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
+      },
+      renderTemplate: '{who} {move} {hand}',
+      searchKeywords: ['pull by dancers'],
+      goodBeats: [2, 4],
+    ),
+    const MoveDef(
+      id: 'pull_by_direction',
+      displayName: 'pull by',
+      params: {
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        'dir': ParamSpec(ParamKind.direction, defaultValue: 'along'),
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
+      },
+      renderTemplate: '{move} {dir} {hand}',
+      searchKeywords: ['pull by direction'],
+      goodBeats: [2, 4],
+    ),
+    const MoveDef(
+      id: 'cross_trails',
+      displayName: 'cross trails',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        // Available for %S dialect injection (cf. pass_through/shoulder_round);
+        // intentionally not a render token.
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+        'who2': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+      },
+      renderTemplate: '{who} {move} {dir} {who2}',
+      searchKeywords: ['cross trail'],
+      goodBeats: [4],
     ),
     const MoveDef(
       id: customMoveId,
