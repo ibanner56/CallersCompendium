@@ -64,13 +64,21 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final tagNames = {for (final t in tags) t.id: t.name};
     final defsById = {for (final d in fieldDefs) d.id: d};
 
-    // Resolve titles for relatedDance links.
+    // Resolve titles for relatedDance links in parallel (deduplicated).
     final relatedDanceTitles = <String, String>{};
-    for (final link in dance.links) {
-      if (link.kind == LinkKind.relatedDance && link.targetDanceId != null) {
-        final target = await _repos.dances.getById(link.targetDanceId!);
-        if (target != null) {
-          relatedDanceTitles[link.targetDanceId!] = target.title;
+    final targetIds = dance.links
+        .where(
+          (l) => l.kind == LinkKind.relatedDance && l.targetDanceId != null,
+        )
+        .map((l) => l.targetDanceId!)
+        .toSet();
+    if (targetIds.isNotEmpty) {
+      final fetched = await Future.wait(
+        targetIds.map((id) => _repos.dances.getById(id)),
+      );
+      for (final (i, dance) in fetched.indexed) {
+        if (dance != null) {
+          relatedDanceTitles[targetIds.elementAt(i)] = dance.title;
         }
       }
     }

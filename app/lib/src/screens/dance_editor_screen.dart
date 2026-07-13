@@ -176,12 +176,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         _tagIds.addAll(dance.tagIds);
         _tunes.addAll(dance.tunes);
         for (final link in dance.links) {
-          _links.add(
-            _LinkDraft.fromLink(
-              link,
-              danceTitle: _danceNamesById[link.targetDanceId],
-            ),
-          );
+          _links.add(_LinkDraft.fromLink(link));
         }
         for (final value in dance.customFields) {
           _customValues[value.fieldId] = value.value;
@@ -403,14 +398,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     }
     _links
       ..clear()
-      ..addAll(
-        s.links.map(
-          (ls) => _LinkDraft.fromSnapshot(
-            ls,
-            danceTitle: _danceNamesById[ls.targetDanceId],
-          ),
-        ),
-      );
+      ..addAll(s.links.map(_LinkDraft.fromSnapshot));
 
     // Custom values.
     _customValues
@@ -1602,27 +1590,23 @@ class _LinkDraft {
     labelController: TextEditingController(),
   );
 
-  factory _LinkDraft.fromLink(DanceLink link, {String? danceTitle}) =>
-      _LinkDraft(
-        id: link.id,
-        kind: link.kind,
-        urlController: TextEditingController(text: link.url ?? ''),
-        labelController: TextEditingController(text: link.label ?? ''),
-        targetDanceId: link.targetDanceId,
-      );
+  factory _LinkDraft.fromLink(DanceLink link) => _LinkDraft(
+    id: link.id,
+    kind: link.kind,
+    urlController: TextEditingController(text: link.url ?? ''),
+    labelController: TextEditingController(text: link.label ?? ''),
+    targetDanceId: link.targetDanceId,
+  );
 
   /// Reconstructs a draft from an [EditorSnapshot]'s [LinkSnapshot], used
   /// when applying an undo/redo snapshot or restoring an autosave draft.
-  /// [danceTitle] is the resolved title for a relatedDance link, used only
-  /// as an initial value for the picker field (looked up by the caller).
-  factory _LinkDraft.fromSnapshot(LinkSnapshot s, {String? danceTitle}) =>
-      _LinkDraft(
-        id: s.id,
-        kind: s.kind,
-        urlController: TextEditingController(text: s.url),
-        labelController: TextEditingController(text: s.label),
-        targetDanceId: s.targetDanceId,
-      );
+  factory _LinkDraft.fromSnapshot(LinkSnapshot s) => _LinkDraft(
+    id: s.id,
+    kind: s.kind,
+    urlController: TextEditingController(text: s.url),
+    labelController: TextEditingController(text: s.label),
+    targetDanceId: s.targetDanceId,
+  );
 
   final String id;
   LinkKind _kind;
