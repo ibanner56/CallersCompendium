@@ -42,6 +42,7 @@ searchKeywords: [allemande, almond]
 | handedness / shoulder | right, left | |
 | spinDirection | clockwise, counterclockwise | |
 | rotation | 0.25 … 2.5 in quarter steps | replaces ContraDB degrees (90–900) |
+| places | 1 … 10 int | ring/star travel; replaces ContraDB degrees; renders "N places" |
 | fraction | 1/4, 1/2, 3/4, full, other | heys, poussettes |
 | beats | 0–64 int | 0 allowed for formation labels |
 | direction | along, across, rightDiagonal, leftDiagonal, in, out, up, down | |
@@ -127,7 +128,16 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   `lead` — are structured params but not render-template tokens (cf.
   swing.prefix), so canonical text carries only the identifying phrase and stays
   free of literal sentinel words like "none".
-- PR4 places-family (+`ParamKind.places`), PR5 hey/wave family — remaining.
+- **PR4 (places family + `ParamKind.places`):** added `circle`, `star`,
+  `facing_star`, `square_through`, plus the one new engine type
+  `ParamKind.places` (int 1–10, stored as places directly — not ContraDB's
+  degrees — and rendered "N places"/"1 place"). Per-move place restrictions
+  (square through's 2–4) and ContraDB's param-dependent places/beats ratios are
+  typical-only, not enforced (`goodBeats` omitted where a rule isn't
+  list-expressible, cf. poussette). `box_circulate` is intentionally excluded:
+  it carries no places param. `star.grip` (`none`/`wristGrip`/`handsAcross`) is
+  structured, not a render token (cf. PR3 enders).
+- PR5 hey/wave family — remaining.
 
 **Confirmed divergences from ContraDB (already applied in the seed):**
 - Canonical roles are `role1`/`role2`; ContraDB `gentlespoons`→`role1(s)`,
@@ -135,22 +145,26 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
 - `shoulder_round` replaces gyre/gypsy; legacy names retained as `searchKeywords`.
 - Rotation is stored in **full turns** (0.25–2.5, quarter steps), not degrees
   (90–900). 90°→0.25 … 540°→1.5 … 900°→2.5.
+- Places (circle/star/facing star/square through) are stored as **1–10 places**
+  (`ParamKind.places`), not ContraDB's degrees — the same store-the-caller-unit
+  choice as rotation. `box_circulate` carries no places param.
 
-**Param-vocabulary extensions still needed for full coverage (need a decision):**
-Several moves don't fit the current `ParamKind` set and are deferred until we
-agree how to model them:
-- **`places`** (distance travelled around a ring/star, ContraDB 1–10 "places"):
-  used by circle, star, facing star, square through, box circulate. Distinct
-  from in-place `rotation` — needs its own kind or an int param.
-- **move-specific enums** already fit `ParamKind.choice`, but we should confirm
-  the canonical value spellings: march facing, star grip, slice return/increment,
-  gate direction, down-the-hall enders, zig-zag enders, hey length.
-- **`half_or_full`** → maps onto our `fraction` type (0.5/1.0) — confirm.
-- **`hey`** (10 params incl. four ricochet flags + hey-length/meeting encodings):
-  the single biggest modeling decision; see open question 2 below.
-- **ocean/long-wave family** (`form an ocean wave` has 7 params) and the
-  auto-beat "change" behaviors ContraDB attaches to param edits (editor UX,
-  likely out of scope for the pure model).
+**Param-vocabulary status:**
+Full coverage needed exactly **one** new engine type beyond the original set —
+`ParamKind.places` (added in PR4). Everything else is modeled with the existing
+kinds:
+- **`places`** — DONE (PR4): `ParamKind.places`, int 1–10, used by circle, star,
+  facing star, square through.
+- **move-specific enums** — DONE (PR2/PR3): `ParamKind.choice` with confirmed
+  lowerCamelCase spellings (march facing, star grip, slice `slice`/`by`/`return`,
+  gate `face`, down-the-hall/zig-zag enders, hey length, all/center/outsides,
+  figure-8 dir, left/right spins).
+- **`half_or_full`** — DONE (PR3): maps onto `fraction` (`half`/`full`).
+- **`hey`** (pass pairs, shoulder, length, dir, four ricochet flags, beats) and
+  the **ocean/long-wave family** — modeled with existing kinds in PR5 (no new
+  `ParamKind`). ContraDB's editor-only auto-beat "change" behaviors and the
+  `dancer%%N`/`lessThanHalf`/`betweenHalfAndFull` hey encodings are out of scope
+  for the pure model.
 
 ## Validation & rendering
 

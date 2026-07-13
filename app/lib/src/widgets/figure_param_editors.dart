@@ -61,6 +61,17 @@ class FigureParamEditor extends StatelessWidget {
           max: 64,
           onChanged: onChanged,
         );
+      case ParamKind.places:
+        return _IntField(
+          fieldKey: _key,
+          label: humanizeToken(paramKey),
+          value: value is int
+              ? value! as int
+              : (spec.defaultValue is int ? spec.defaultValue! as int : 1),
+          min: 1,
+          max: 10,
+          onChanged: onChanged,
+        );
       case ParamKind.text:
         return _TextParamField(
           fieldKey: _key,

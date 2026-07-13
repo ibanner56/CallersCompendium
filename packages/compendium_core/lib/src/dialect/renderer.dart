@@ -78,6 +78,9 @@ class FigureRenderer {
     if (spec?.kind == ParamKind.rotation && value is num) {
       return _formatRotation(value);
     }
+    if (spec?.kind == ParamKind.places && value is int) {
+      return _formatPlaces(value);
+    }
     if (value is num) return _formatNumber(value);
     if (value is bool) return value ? name : '';
     return _humanize(value.toString());
@@ -114,6 +117,10 @@ class FigureRenderer {
 
   static String _formatNumber(num n) =>
       n == n.roundToDouble() ? n.toInt().toString() : n.toString();
+
+  /// Formats a places count using caller vocabulary ("1 place", "4 places").
+  static String _formatPlaces(int places) =>
+      places == 1 ? '1 place' : '$places places';
 
   /// Formats a rotation in full turns using caller vocabulary.
   static String _formatRotation(num turns) {

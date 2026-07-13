@@ -7,7 +7,8 @@ import 'taxonomy.dart';
 /// Version of the seeded contra taxonomy. Bumped when moves/params change.
 /// v2: roadmap 2.4a PR2 (dancer-interaction moves).
 /// v3: roadmap 2.4a PR3 (choice-enum moves + `centers`/single-dancer vocab).
-const int contraTaxonomyVersion = 3;
+/// v4: roadmap 2.4a PR4 (places family + `ParamKind.places`).
+const int contraTaxonomyVersion = 4;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -593,6 +594,80 @@ final Taxonomy contraTaxonomy = Taxonomy(
       searchKeywords: ['rory o more', 'rory'],
       // ContraDB: balance -> 8 beats, no balance -> 4.
       goodBeats: [4, 8],
+    ),
+    // --- Roadmap 2.4a: places family (PR4) ---
+    // Moves whose travel is measured in "places" around a ring/star
+    // (ParamKind.places, int 1..10). Each move keeps a simple typical-beats
+    // list in goodBeats, but ContraDB's *conditional* rules — square through's
+    // 2-4 place restriction and the moves' param-dependent places/beats ratios
+    // — are intentionally not encoded/enforced (they can't be captured by the
+    // list model without false warnings; cf. poussette). box_circulate is
+    // intentionally NOT here: it carries no places param (ContraDB lists it
+    // under moveCaresAboutPlaces only for angle display).
+    const MoveDef(
+      id: 'circle',
+      displayName: 'circle',
+      params: {
+        'turn': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'left',
+          choices: ['left', 'right'],
+        ),
+        'places': ParamSpec(ParamKind.places, defaultValue: 4),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{move} {turn} {places}',
+      goodBeats: [8],
+    ),
+    const MoveDef(
+      id: 'star',
+      displayName: 'star',
+      params: {
+        // ContraDB forces a hand selection (no default); 'right' is the
+        // community default.
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'places': ParamSpec(ParamKind.places, defaultValue: 4),
+        // grip is a structured param, not a render token (cf. PR3 enders): it
+        // is never emitted in canonical text, and is surfaced by the
+        // verbose/dialect renderer + structural search. 'none' is the
+        // unspecified value.
+        'grip': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'none',
+          choices: ['none', 'wristGrip', 'handsAcross'],
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{move} {hand} {places}',
+      goodBeats: [8],
+    ),
+    const MoveDef(
+      id: 'facing_star',
+      displayName: 'facing star',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'turn': ParamSpec(ParamKind.spinDirection, defaultValue: 'clockwise'),
+        'places': ParamSpec(ParamKind.places, defaultValue: 3),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {turn} {places}',
+      goodBeats: [8],
+    ),
+    const MoveDef(
+      id: 'square_through',
+      displayName: 'square through',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'who2': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: true),
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        // ContraDB restricts to 2-4 places; that restriction is typical-only
+        // (the domain stays the full 1..10), not enforced.
+        'places': ParamSpec(ParamKind.places, defaultValue: 4),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 16),
+      },
+      renderTemplate: '{who} {move} {places}',
+      goodBeats: [16],
     ),
     const MoveDef(
       id: customMoveId,

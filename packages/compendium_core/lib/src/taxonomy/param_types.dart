@@ -22,6 +22,11 @@ enum ParamKind {
   /// Amount of turn in full turns, quarter-turn steps: 0.25 … 2.5.
   rotation,
 
+  /// Distance travelled around a ring/star, 1–10 "places" (circle, star,
+  /// facing star, square through). Stored as places directly (not ContraDB's
+  /// degrees), analogous to [rotation] being stored in turns.
+  places,
+
   /// `quarter` / `half` / `threeQuarter` / `full` / `other` (heys, poussettes).
   fraction,
 
@@ -125,6 +130,8 @@ class ParamSpec {
             value >= 0.25 &&
             value <= 2.5 &&
             (value * 4) % 1 == 0;
+      case ParamKind.places:
+        return value is int && value >= 1 && value <= 10;
       case ParamKind.fraction:
         return value is String && ParamVocab.fractions.contains(value);
       case ParamKind.beats:
