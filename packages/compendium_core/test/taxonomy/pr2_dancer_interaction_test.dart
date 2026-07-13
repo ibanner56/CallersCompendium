@@ -19,12 +19,15 @@ void main() {
 
   group('registration & defaults', () {
     for (final id in [...newMoves, 'roll_away']) {
-      test('$id resolves and validates at its defaults', () {
+      test('$id resolves and validates with all defaults populated', () {
         expect(tax.resolve(id)?.id, id, reason: '$id should be registered');
+        // validateFigure only checks explicitly-provided params, so populate
+        // the figure with effectiveParams to actually validate the defaults.
+        final defaults = tax.effectiveParams(Figure(move: id));
         expect(
-          tax.validateFigure(Figure(move: id)),
+          tax.validateFigure(Figure(move: id, params: defaults)),
           isEmpty,
-          reason: '$id at its default params must produce no issues',
+          reason: '$id default param values must all be in-domain',
         );
       });
     }

@@ -5,7 +5,8 @@ import 'param_types.dart';
 import 'taxonomy.dart';
 
 /// Version of the seeded contra taxonomy. Bumped when moves/params change.
-const int contraTaxonomyVersion = 1;
+/// v2: roadmap 2.4a data entry (additive ContraDB move build-out).
+const int contraTaxonomyVersion = 2;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
