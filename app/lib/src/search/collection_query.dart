@@ -243,6 +243,19 @@ sealed class BuilderNode {
   DanceFilter? toFilter();
 }
 
+/// A node that folds to a [FigureQuery], used as a [BuilderThen] operand and
+/// as a child of a [BuilderFigureGroup]. Either a single [BuilderFigure] leaf
+/// or a boolean group of figure leaves ([BuilderFigureGroup]).
+///
+/// Sealed so the UI can exhaustively switch over it.
+sealed class BuilderFigureNode {
+  /// Stable identity for widget keys.
+  String get id;
+
+  /// Folds this node to a [FigureQuery], or `null` if incomplete/empty.
+  FigureQuery? toFigureQuery();
+}
+
 /// A boolean group: all-of (`AND`), any-of (`OR`), or none-of (`NOT` over the
 /// OR of its children).
 class BuilderGroup extends BuilderNode {
@@ -270,8 +283,8 @@ class BuilderGroup extends BuilderNode {
 
 /// A "has figure" row: a move (required), an optional section, and optional
 /// named params. Folds to a [FigureFilter] leaf, or a [FigureLeaf] when used as
-/// a [ThenFilter] operand.
-class BuilderFigure extends BuilderNode {
+/// a [ThenFilter] operand (via [BuilderFigureNode]).
+class BuilderFigure extends BuilderNode implements BuilderFigureNode {
   BuilderFigure({
     this.move,
     this.section,
@@ -290,6 +303,7 @@ class BuilderFigure extends BuilderNode {
       if (e.value != null) e.key: e.value,
   };
 
+  @override
   FigureLeaf? toFigureQuery() => isComplete
       ? FigureLeaf(move!.trim(), params: _cleanParams, section: section)
       : null;
@@ -303,18 +317,65 @@ class BuilderFigure extends BuilderNode {
 
 /// A "then" sequence row: figure [before] occurs earlier than figure [after].
 /// Folds to a [ThenFilter]; needs both sides complete.
+///
+/// Each side is a [BuilderFigureNode] — either a single [BuilderFigure] (the
+/// default) or a [BuilderFigureGroup] for richer "any of / all of / none of
+/// these figures" operands.
 class BuilderThen extends BuilderNode {
-  BuilderThen({BuilderFigure? before, BuilderFigure? after, super.id})
+  BuilderThen({BuilderFigureNode? before, BuilderFigureNode? after, super.id})
     : before = before ?? BuilderFigure(),
       after = after ?? BuilderFigure();
 
-  final BuilderFigure before;
-  final BuilderFigure after;
+  BuilderFigureNode before;
+  BuilderFigureNode after;
 
   @override
   DanceFilter? toFilter() {
     final b = before.toFigureQuery();
     final a = after.toFigureQuery();
     return (b == null || a == null) ? null : ThenFilter(b, a);
+  }
+}
+
+/// A boolean group of [BuilderFigureNode]s that folds to a [FigureQuery]:
+///
+/// - [GroupKind.all]  → [FigureAnd] (all these figure constraints match the same row)
+/// - [GroupKind.any]  → [FigureOr]  (any of these figure constraints match the same row)
+/// - [GroupKind.none] → [FigureNot] wrapping [FigureOr] ("no figure matching any of these")
+///
+/// Incomplete children fold to `null` and are skipped, mirroring how
+/// [BuilderGroup] handles [DanceFilter] nodes. A group whose effective
+/// children reduce to a single node unwraps the redundant combinator (matches
+/// [BuilderGroup]'s "single-child" optimisation).
+///
+/// Children can themselves be [BuilderFigureGroup]s, so the model supports
+/// arbitrary nesting; the UI currently exposes one level of nesting.
+class BuilderFigureGroup implements BuilderFigureNode {
+  BuilderFigureGroup({
+    this.kind = GroupKind.any,
+    List<BuilderFigureNode>? children,
+    String? id,
+  }) : id = id ?? _nextId(),
+       children = children ?? [];
+
+  static int _counter = 0;
+  static String _nextId() => 'fg${_counter++}';
+
+  @override
+  final String id;
+
+  GroupKind kind;
+  final List<BuilderFigureNode> children;
+
+  @override
+  FigureQuery? toFigureQuery() {
+    final parts = [for (final c in children) ?c.toFigureQuery()];
+    if (parts.isEmpty) return null;
+    final one = parts.length == 1;
+    return switch (kind) {
+      GroupKind.all => one ? parts.single : FigureAnd(parts),
+      GroupKind.any => one ? parts.single : FigureOr(parts),
+      GroupKind.none => FigureNot(one ? parts.single : FigureOr(parts)),
+    };
   }
 }

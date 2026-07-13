@@ -273,8 +273,12 @@ class _ThenRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('First', style: theme.textTheme.labelSmall),
-                _FigureEditor(
-                  figure: node.before,
+                _FigureOperandEditor(
+                  node: node.before,
+                  onReplace: (r) {
+                    node.before = r;
+                    onChanged();
+                  },
                   taxonomy: taxonomy,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
@@ -284,8 +288,12 @@ class _ThenRow extends StatelessWidget {
                   child: Text('then', style: theme.textTheme.labelMedium),
                 ),
                 Text('Later', style: theme.textTheme.labelSmall),
-                _FigureEditor(
-                  figure: node.after,
+                _FigureOperandEditor(
+                  node: node.after,
+                  onReplace: (r) {
+                    node.after = r;
+                    onChanged();
+                  },
                   taxonomy: taxonomy,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
@@ -302,6 +310,208 @@ class _ThenRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Renders one operand of a [BuilderThen]: either a single [BuilderFigure]
+/// leaf with a "Group figures" affordance, or a [BuilderFigureGroup] editor
+/// with a "Single figure" affordance to collapse back.
+///
+/// [onReplace] is called (and [onChanged] need not be called separately)
+/// when the operand type switches between leaf and group.
+class _FigureOperandEditor extends StatelessWidget {
+  const _FigureOperandEditor({
+    required this.node,
+    required this.onReplace,
+    required this.taxonomy,
+    required this.sectionLabels,
+    required this.onChanged,
+  });
+
+  final BuilderFigureNode node;
+
+  /// Called when the user wants to replace this operand with a different
+  /// [BuilderFigureNode] (e.g. wrapping a leaf in a group, or flattening a
+  /// single-child group back to a leaf). Already triggers a search update —
+  /// the caller must NOT call [onChanged] separately.
+  final ValueChanged<BuilderFigureNode> onReplace;
+
+  final Taxonomy taxonomy;
+  final List<String> sectionLabels;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) => switch (node) {
+    final BuilderFigure figure => _buildLeaf(context, figure),
+    final BuilderFigureGroup group => _buildGroup(context, group),
+  };
+
+  Widget _buildLeaf(BuildContext context, BuilderFigure figure) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FigureEditor(
+          figure: figure,
+          taxonomy: taxonomy,
+          sectionLabels: sectionLabels,
+          onChanged: onChanged,
+        ),
+        TextButton.icon(
+          key: ValueKey('group-${figure.id}'),
+          onPressed: () => onReplace(BuilderFigureGroup(children: [figure])),
+          icon: const Icon(Icons.account_tree_outlined, size: 16),
+          label: const Text('Group figures'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGroup(BuildContext context, BuilderFigureGroup group) {
+    // Offer a "Single figure" flatten only when the group has exactly one
+    // leaf child — collapsing a multi-child or nested group is lossy.
+    final canFlatten =
+        group.children.length == 1 && group.children.single is BuilderFigure;
+    return _FigureGroupEditor(
+      group: group,
+      taxonomy: taxonomy,
+      sectionLabels: sectionLabels,
+      onChanged: onChanged,
+      onFlatten: canFlatten
+          ? () => onReplace(group.children.single as BuilderFigure)
+          : null,
+    );
+  }
+}
+
+/// Edits a [BuilderFigureGroup]: kind picker, per-child figure rows, and an
+/// "Add figure" button. Recursive: nested [BuilderFigureGroup] children are
+/// rendered via the same widget (model supports arbitrary depth; UI exposes
+/// at least one level of nesting).
+class _FigureGroupEditor extends StatelessWidget {
+  const _FigureGroupEditor({
+    required this.group,
+    required this.taxonomy,
+    required this.sectionLabels,
+    required this.onChanged,
+    this.onFlatten,
+  });
+
+  final BuilderFigureGroup group;
+  final Taxonomy taxonomy;
+  final List<String> sectionLabels;
+  final VoidCallback onChanged;
+
+  /// When non-null, a "Single figure" button is shown to collapse a
+  /// single-leaf group back to a plain [BuilderFigure].
+  final VoidCallback? onFlatten;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Semantics(
+              label: 'Figure group match',
+              child: DropdownButton<GroupKind>(
+                key: ValueKey('fig-group-kind-${group.id}'),
+                value: group.kind,
+                onChanged: (kind) {
+                  if (kind != null) {
+                    group.kind = kind;
+                    onChanged();
+                  }
+                },
+                items: [
+                  for (final kind in GroupKind.values)
+                    DropdownMenuItem(value: kind, child: Text(kind.label)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text('of these figures', style: theme.textTheme.bodySmall),
+            const Spacer(),
+            if (onFlatten != null)
+              TextButton(
+                key: ValueKey('flatten-${group.id}'),
+                onPressed: onFlatten,
+                child: const Text('Single figure'),
+              ),
+          ],
+        ),
+        for (final child in group.children) _buildChildRow(child),
+        TextButton.icon(
+          key: ValueKey('add-fig-${group.id}'),
+          onPressed: () {
+            group.children.add(BuilderFigure());
+            onChanged();
+          },
+          icon: const Icon(Icons.add, size: 16),
+          label: const Text('Add figure'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChildRow(BuilderFigureNode child) {
+    switch (child) {
+      case BuilderFigure():
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _FigureEditor(
+                  figure: child,
+                  taxonomy: taxonomy,
+                  sectionLabels: sectionLabels,
+                  onChanged: onChanged,
+                ),
+              ),
+              IconButton(
+                key: ValueKey('remove-fig-${child.id}'),
+                tooltip: 'Remove figure',
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  group.children.remove(child);
+                  onChanged();
+                },
+              ),
+            ],
+          ),
+        );
+      case BuilderFigureGroup():
+        // Nested group — rendered recursively. No flatten affordance for
+        // nested groups (they're added programmatically, not via the UI).
+        return Padding(
+          padding: const EdgeInsets.only(left: 8, top: 4, bottom: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _FigureGroupEditor(
+                  group: child,
+                  taxonomy: taxonomy,
+                  sectionLabels: sectionLabels,
+                  onChanged: onChanged,
+                ),
+              ),
+              IconButton(
+                key: ValueKey('remove-fig-group-${child.id}'),
+                tooltip: 'Remove figure group',
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  group.children.remove(child);
+                  onChanged();
+                },
+              ),
+            ],
+          ),
+        );
+    }
   }
 }
 
