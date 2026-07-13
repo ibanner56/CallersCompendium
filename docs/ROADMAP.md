@@ -107,13 +107,51 @@ Design items (each produces a design doc + review):
 ## Phase 4 — Programs
 
 - [ ] 4.1 Program CRUD: create, edit, save, duplicate
-- [ ] 4.2 Program builder UX: add/reorder dances, notes/breaks, event metadata
-- [ ] 4.3 Program printing/export (PDF, plain text)
+- [ ] 4.2 Program builder UX: add/reorder dances, notes/breaks, event metadata.
+  **Event metadata must reach CC parity** (schema audit 2026-07-12,
+  research/callers-companion.md): program-level `band`, `caller`, `dancerLevel`
+  in addition to date/venue/notes; per-slot **guest caller** and **planned
+  time/length** (CC `SetItem.Caller`/`Time`) as structured fields, not just the
+  free-text slot note; ALT dances (done in model via `isAlt`).
+- [ ] 4.3 Program printing/export (PDF, plain text, **emailable text set list** —
+  CC parity: "email set list")
+- [ ] 4.4 Programming matrix view (figures × dances, computed from structured
+  figures; first-figure highlight) — CC's Elements matrix without the manual
+  checklist. See design/ux.md §4.
+
+## Phase 4b — Caller's Companion parity backfill (dance & metadata model)
+
+*Added 2026-07-12 from a schema-level audit of the shipped CC `.USR` (22 tables
+parsed with an fmptools build), comparing against the Phase 2–3 domain model.
+These are fields/entities CC exposes natively that our model does not yet carry.
+Phases 0–3 are considered complete; this is additive follow-on work and is
+sequenced here so it lands before/with Programs, which depend on some of it.
+See research/callers-companion.md "Schema-level addendum" and
+design/domain-model.md "CC parity backfill".*
+
+- [ ] 4b.1 **Dance difficulty / level** — a first-class `level` field (CC
+  `Level`/`LevelNum`, plus a "mixed level" marker). High priority: callers
+  filter and program by level constantly. Add to the domain model, the schema
+  (+ back-fillable index), the editor metadata form, the Collection list/facet,
+  and search (`Level` filter leaf in design/search.md).
+- [ ] 4b.2 **Composed / revised dates** — optional `composedOn` / `revisedOn`
+  (CC keeps partial y/m/d); distinct from record `createdAt`/`updatedAt`. Editor
+  field + optional sort.
+- [ ] 4b.3 **Rating** — optional numeric/star `rating` on a dance (CC `Rating`,
+  sortable). Decide whether this is core or a shipped-default custom field.
+- [ ] 4b.4 **Choreographer contact card** — extend `Choreographer` beyond
+  name/website/notes toward CC `Author` (email, location, deceased flag) for
+  users who maintain composer contacts. Keep optional; privacy-aware.
+- [ ] 4b.5 **Published-source citation** — structured `reference` + page/number
+  on a dance (CC `Reference`/`PageNumber`, `MD_*` collection) beyond a bare URL
+  `DanceLink`, so book/collection provenance is first-class and searchable.
 
 ## Phase 5 — Performance mode
 
 - [ ] 5.1 Large-print dance card view with dialect applied
-- [ ] 5.2 Program navigation (next/prev, jump), screen-wake lock, high-contrast theme
+- [ ] 5.2 Program navigation (next/prev, jump), screen-wake lock, high-contrast theme;
+  optional per-slot / running **program timing** (CC `Set.TimeStart`/`TimeElapsed`,
+  `SetItem.Time`) surfaced during an event
 - [ ] 5.3 On-the-fly program adjustments during an event
 
 ## Phase 6 — Imports & migration
@@ -122,7 +160,12 @@ Design items (each produces a design doc + review):
 - [ ] 6.2 CallersBox sanitization pipeline (separate tool) + hosted snapshot
 - [ ] 6.3 CallersBox snapshot import in-app
 - [ ] 6.4 ContraDB import
-- [ ] 6.5 Caller's Companion migration import
+- [ ] 6.5 Caller's Companion migration import — map CC tables discovered in the
+  schema audit: `Dance` (incl. `Level`, composed/revised dates, `Rating`,
+  `UserDefined_*` → custom fields), `Set`+`SetItem` → Programs (with band/caller/
+  dancerLevel, ALT flags, guest caller, timing), `Author` → Choreographers,
+  `Venue` → venue entity, `Term` → glossary, `Dance_Related` → related links.
+  Free-text figures import as `custom` (see design/imports.md §2).
 - [ ] 6.6 Generic import/export (JSON) for backup and inter-user sharing
 
 ## Phase 7 — Release
@@ -136,3 +179,15 @@ Design items (each produces a design doc + review):
 - Choreography validation integration (external project)
 - ECD and Squares support
 - Optional device-to-device sync
+- **Venue as a reusable entity** (CC `Venue`: address, contacts, sponsor, price,
+  website, generic schedule) rather than a per-program free-text `venue` string,
+  so venues are picked once and reused across programs.
+- **Glossary / terms** (CC `Term`: term + definition + source) — a browsable
+  reference of caller terminology, dialect-aware.
+- **User-defined quick-entry snippets** — CC's beloved "Insert Call" buttons
+  (per-user label → expansion text + beats + a gender-free alternate). Our
+  taxonomy type-ahead covers entry *speed*, but not personal shortcut phrasing;
+  evaluate whether power users still want savable snippets on top of structured
+  entry. (Decision needed — may be declined in favor of dialect + taxonomy.)
+- **UI localization / multi-language** — CC ships ~12 runtime UI languages; we
+  have no i18n plan yet. Scope an intl framework if community demand appears.
