@@ -190,6 +190,111 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move}',
       goodBeats: [4],
     ),
+    // --- Roadmap 2.4a: simple moves (PR1) ---
+    // Additive ContraDB moves that fit the existing ParamKind set (no new
+    // vocabulary). ContraDB params with "no default" (which force a chooser
+    // selection in that editor) get sensible community defaults here, since
+    // our ParamSpec requires one.
+    const MoveDef(
+      id: 'butterfly_whirl',
+      displayName: 'butterfly whirl',
+      params: {'beats': _beats4},
+      renderTemplate: '{move}',
+      goodBeats: [4],
+    ),
+    const MoveDef(
+      id: 'arch_and_dive',
+      displayName: 'arch and dive',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'beats': _beats4,
+      },
+      renderTemplate: '{who} {move}',
+      searchKeywords: ['arch & dive'],
+      goodBeats: [4],
+    ),
+    const MoveDef(
+      id: 'california_twirl',
+      displayName: 'California twirl',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'beats': _beats4,
+      },
+      renderTemplate: '{who} {move}',
+      goodBeats: [4],
+    ),
+    const MoveDef(
+      id: 'stand_still',
+      displayName: 'stand still',
+      params: {'beats': ParamSpec(ParamKind.beats, defaultValue: 8)},
+      renderTemplate: '{move}',
+      // No goodBeats: any in-domain beat count (0..64) is accepted without a
+      // warning. ContraDB's "beats >= 1" min-rule isn't expressible in the
+      // list-based goodBeats model and is not enforced here.
+    ),
+    const MoveDef(
+      id: 'slide_along_set',
+      displayName: 'slide along set',
+      params: {
+        'slide': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'left',
+          choices: ['left', 'right'],
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
+      },
+      renderTemplate: '{move} {slide}',
+      goodBeats: [2],
+    ),
+    const MoveDef(
+      id: 'mad_robin',
+      displayName: 'mad robin',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 6),
+      },
+      renderTemplate: '{who} {move} {turn}',
+      goodBeats: [6, 8],
+    ),
+    const MoveDef(
+      id: 'revolving_door',
+      displayName: 'revolving door',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
+        'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {hand} {whom}',
+      goodBeats: [8],
+    ),
+    const MoveDef(
+      id: 'star_promenade',
+      displayName: 'star promenade',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'turn': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+      },
+      renderTemplate: '{who} {move} {hand} {turn}',
+      goodBeats: [4],
+    ),
+    const MoveDef(
+      id: 'allemande_orbit',
+      displayName: 'allemande orbit',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
+        'inner': ParamSpec(ParamKind.rotation, defaultValue: 1.5),
+        'outer': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {hand} {inner} {outer}',
+      searchKeywords: ['orbit'],
+      goodBeats: [8],
+    ),
     const MoveDef(
       id: customMoveId,
       displayName: 'custom',
