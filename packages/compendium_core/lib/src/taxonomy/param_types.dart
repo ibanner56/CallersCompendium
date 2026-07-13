@@ -60,6 +60,17 @@ abstract final class ParamVocab {
     'nextNeighbors',
     'thirdNeighbors',
     'fourthNeighbors',
+    // Roadmap 2.4a (PR3): the center dancers as a group (Rory O'More's
+    // chooser_pairc_or_everyone).
+    'centers',
+    // Roadmap 2.4a (PR3): single-dancer identities — one couple (1s/2s) × one
+    // role — for moves that name an individual (figure_8's `lead`,
+    // dolphin_hey's `whom`). Equivalent to ContraDB's chooser_dancer
+    // "first/second gentlespoon/ladle".
+    'onesRole1',
+    'onesRole2',
+    'twosRole1',
+    'twosRole2',
   ];
   static const List<String> sides = ['right', 'left'];
   static const List<String> spins = ['clockwise', 'counterclockwise'];
