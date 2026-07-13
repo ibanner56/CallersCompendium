@@ -132,3 +132,36 @@ source URLs.
 
 Multi-user/sync, choreography validation (external project), ECD/square
 taxonomies (schema-ready, not populated), authoring back to online sources.
+
+## CC parity backfill (2026-07-12 schema audit → ROADMAP Phase 4b+)
+
+A direct parse of the shipped Caller's Companion `.USR`
+(research/callers-companion.md "Schema-level addendum") surfaced native CC
+fields/entities this model does not yet carry. They are **not** in the v0.1
+model above; they are planned additive work (Phases 0–3 stay complete). Listed
+here so the model contract stays honest about the intended end-state.
+
+**Dance** — to add:
+- `level` (enum or ordered scale) + a "mixed level" marker. **High priority**:
+  primary filter/programming axis for callers. Feeds a `Level` search leaf
+  (design/search.md) and the Collection facet panel.
+- `composedOn` / `revisedOn` (optional, partial-precision) — distinct from
+  `createdAt`/`updatedAt` record stamps.
+- `rating` (optional) — sortable curation signal. May ship as a default custom
+  field instead of a core column; decision tracked in ROADMAP 4b.3.
+- structured `reference` (title + page/number), beyond a URL `DanceLink`.
+
+**Choreographer** — optional contact fields (email, location, deceased flag)
+toward CC `Author`; privacy-aware, all optional.
+
+**Program / ProgramSlot** — to add (before/with Phase 4):
+- `Program`: `band`, `caller`, `dancerLevel` alongside `eventDate`/`venue`/
+  `notes`; optional `timeStart` / running length.
+- `ProgramSlot`: structured `caller` (guest) and planned `time`/`length`,
+  rather than folding them into the free-text `text` note.
+
+**New entities (Later milestones)** — `Venue` (reusable, addressed) instead of
+the current free-text `Program.venue` string; `GlossaryTerm`
+(term/definition/source). A decision is still open on user-defined quick-entry
+**snippets** (CC "Insert Call" buttons) given our taxonomy type-ahead already
+covers entry speed.

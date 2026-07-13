@@ -99,3 +99,66 @@ seamless migration path for anyone who chooses to switch.
    source/video links, large-type calling view, print/email formats.
 5. **Tablet use is a first-class reality** (Nils Fredland photos, FileMaker Go
    support) — validates our desktop+tablet+phone platform decision.
+
+## Schema-level addendum (2026-07-12)
+
+*The inventory above was compiled from the site tour + announcements. This
+addendum records what a **direct parse of the shipped `.USR`** revealed, so our
+parity + migration work is grounded in the real schema rather than marketing
+copy. Method: built the open-source `fmptools` FM12 reader and dumped tables,
+columns, and lookup rows from both the demo and full `CallersCompanion2.USR`.*
+
+### Tables (22)
+
+`Dance`, `Author`, `Set`, `SetItem`, `Phrase`, `Resource`, `Admin`, `Venue`,
+`To Do List`, `Colors`, `Dance_Related`, `Term`, `Elements`, `InsertCall`,
+`Import`, `AuthorPermission`, `MD_References`, `MD_Sources`, `MD_URL`,
+`MD_Dances`, `UpdateImport`, `Videos`. (`MD_*` = a bundled "master dance"
+cross-reference index of published collections.)
+
+### Notable fields confirmed on `Dance` (≈230 columns; most are FileMaker
+calc/display/search helpers, prefixed `zc_`/`zi_`/`zk_`). Substantive user data:
+
+- Identity/authorship: `Name`, `Author1`/`Author2` (+ ids), `AuthorOrTraditional`,
+  `IsTraditional`, `Editor`, `Credits`.
+- Classification: `Type`/`SubType`, `Formation`/`FormationOther`, `ContraForm`
+  (Improper/Becket/Proper…), `Progression`/`ProgressionOther`, `MinorSet`,
+  **`Level`/`LevelNum`/`Mixed Level`**, `Direction`, `Symmetrical`.
+- Body: `A1`/`A2`/`B1`/`B2`/`C1`/`C2` (+ `*_Parsed`), `Moves`, `CallList*`,
+  `Phrase*`; the `Phrase` table holds per-section text incl. **gender-swapped
+  variants** (`PhraseText_GenderSwap_LR/RL/Switch`).
+- Dates: **`DateComposed`/`DateRevised`** (+ partial day/month/year fields),
+  separate from record created/modified stamps.
+- Curation: **`Rating`**, `Status`, `StarterSet`, `DistinctiveMove`,
+  `CountInSets`, `MostRecentSet`, `Mark`.
+- Sources/media: `SourceURL`, up to **5 `VideoURL`s**, `Reference`/`PageNumber`,
+  `ReferenceID`, `CallersBox_id` (import-by-id precedent), `ImportSource`.
+- User customization: **`UserDefined_1..3`** with matching `*_Name` labels.
+- Per-dance **`Elements`** (32-boolean checklist) drives the programming matrix.
+
+### Lookup data extracted
+
+- **Elements (32)**: N/P/M Swing, allemandes, Down 4, Gypsy, Hey (full/half),
+  Half Fig 8, Petronella, chains, stars, RL, DSD, LLFB, Promenade, waves, etc.
+  — the exact vocabulary CC's element-search + matrix depend on, and which our
+  structured taxonomy replaces (derived, not hand-ticked).
+- **InsertCall** buttons: label → `InsertButtonText` (+ `…Alt` gender-free
+  variant) + `InsertButtonBeats` (e.g. `B&S-N` → "Neighbor balance and swing",
+  alt "Neighbor gypsy and swing", 16). Confirms the per-user snippet model and
+  that CC's gender-free switch is a second stored string per snippet.
+- **Set / SetItem**: `Set` carries `Date`, `Location`, `Band`, `Caller`,
+  `DancerLevel`, `Notes`, `TimeStart`/`TimeElapsed`, `GenderFree`,
+  `SetList_HideALT`; `SetItem` carries `Order`, `Break`, `AlternateDance`,
+  per-slot **`Caller`** (guest) and **`Time`**.
+- **Author**: full contact card (address, phones, email, website, DOB,
+  `Deceased`, notes) — richer than our `Choreographer`.
+- **Venue**: address, two contacts, sponsor, price, website, generic schedule.
+- **Term**: term + definition + source (a glossary).
+
+### Parity implications (folded into ROADMAP Phase 4b/5/6 + design docs)
+
+Model gaps to backfill: dance **`level`** (high), composed/revised **dates**,
+**`rating`**, richer **choreographer** contact, structured **citation**;
+program **band/caller/dancerLevel**, per-slot guest **caller**/**time**,
+**venue entity**, **glossary**, and a decision on user **snippets** +
+**localization**. Migration (6.5) now maps against these concrete tables.
