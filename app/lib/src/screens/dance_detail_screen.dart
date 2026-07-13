@@ -12,10 +12,18 @@ import 'dance_editor_screen.dart';
 /// grouped by derived section with a canonical ⇄ dialect toggle, and the
 /// calling notes / links / custom-field sections. The Edit action opens the
 /// [DanceEditorScreen] (roadmap 3.3).
+///
+/// [onRestored] is called (if provided) when the user taps the Undo action
+/// on the delete snackbar — allowing the caller (e.g. the Collection screen)
+/// to reload its list so the restored dance reappears immediately.
 class DanceDetailScreen extends StatefulWidget {
-  const DanceDetailScreen({super.key, required this.danceId});
+  const DanceDetailScreen({super.key, required this.danceId, this.onRestored});
 
   final String danceId;
+
+  /// Optional callback invoked after a soft-delete is undone (restored).
+  /// The Collection screen passes `() => _boot()` here so the list reloads.
+  final VoidCallback? onRestored;
 
   @override
   State<DanceDetailScreen> createState() => _DanceDetailScreenState();
@@ -109,6 +117,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// calls [DanceRepository.restore] if tapped. Pops back to the list after
   /// deleting (before the snackbar appears, so the deleted dance is no longer
   /// visible in the collection). Pops with `true` so the caller can reload.
+  /// [widget.onRestored] is called on undo so the Collection can re-display
+  /// the dance without requiring user-initiated navigation.
   Future<void> _delete() async {
     final title = (await _future)?.dance.title ?? 'Dance';
     final now = DateTime.now().toUtc();
@@ -124,8 +134,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         content: Text('"$title" deleted.'),
         action: SnackBarAction(
           label: 'Undo',
-          onPressed: () =>
-              _repos.dances.restore(widget.danceId, at: DateTime.now().toUtc()),
+          onPressed: () async {
+            await _repos.dances.restore(
+              widget.danceId,
+              at: DateTime.now().toUtc(),
+            );
+            widget.onRestored?.call();
+          },
         ),
       ),
     );

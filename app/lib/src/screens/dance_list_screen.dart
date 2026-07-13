@@ -503,9 +503,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
             onTap: () async {
               // DanceDetailScreen pops with true when a dance is deleted so
               // the Collection can reload and remove the stale row immediately.
+              // onRestored is called if the user taps Undo, so the restored
+              // dance reappears in the list without a manual reload.
               final deleted = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
-                  builder: (_) => DanceDetailScreen(danceId: entry.dance.id),
+                  builder: (_) => DanceDetailScreen(
+                    danceId: entry.dance.id,
+                    onRestored: () {
+                      if (mounted) _boot();
+                    },
+                  ),
                 ),
               );
               if (mounted && deleted == true) await _boot();

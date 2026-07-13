@@ -568,4 +568,66 @@ void main() {
       expect(find.text('Recently Deleted'), findsOneWidget);
     },
   );
+
+  // ── Delete from detail screen: collection reloads ──────────────────────────
+
+  testWidgets(
+    'deleting from the detail screen removes the dance from the collection',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Delete From Detail'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Stay Here'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      // Navigate to the detail screen via the list tile.
+      await tester.tap(find.text('Delete From Detail'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DanceDetailScreen), findsOneWidget);
+
+      // Delete from the detail screen.
+      await tester.tap(find.byKey(const ValueKey('delete-dance')));
+      await tester.pumpAndSettle();
+
+      // Back on the collection; deleted dance is gone, other dance remains.
+      expect(find.text('Delete From Detail'), findsNothing);
+      expect(find.text('Stay Here'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'undo on the detail-delete snackbar restores the dance in the collection',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Undo Detail Delete'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      // Navigate to detail, delete, then undo.
+      await tester.tap(find.text('Undo Detail Delete'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('delete-dance')));
+      await tester.pumpAndSettle();
+
+      // Dance is gone from the collection (delete took effect).
+      expect(find.text('Undo Detail Delete'), findsNothing);
+      expect(find.text('"Undo Detail Delete" deleted.'), findsOneWidget);
+
+      // Tap Undo — triggers restore() + onRestored callback → _boot().
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      // Dance reappears in the collection after reload.
+      expect(find.text('Undo Detail Delete'), findsOneWidget);
+
+      // Storage confirms restore.
+      final dance = await repos.dances.getById('d1');
+      expect(dance, isNotNull);
+      expect(dance!.deletedAt, isNull);
+    },
+  );
 }
