@@ -112,8 +112,20 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   to `role1s`/`role2s`. `gate.face` (up/down/in/out) is a dedicated `choice`
   rather than spatial `direction`. Beat-shaping flags that ContraDB uses only to
   recompute beats (`give`, `balance`) are not render tokens.
-- PR3 choice-enum (+`centers`), PR4 places-family (+`ParamKind.places`),
-  PR5 hey/wave family — remaining.
+- **PR3 (choice-enum + `centers`/single-dancer vocab):** added `down_the_hall`,
+  `up_the_hall`, `zig_zag`, `slice`, `contra_corners`, `turn_alone`, `figure_8`,
+  `poussette`, `rory_o_more`. Move-specific enums are `ParamKind.choice` with
+  lowerCamelCase values (hall enders, zig-zag enders, march facing, slice
+  return/increment, figure-8 dir, all/center/outsides); `half_or_full` maps onto
+  `fraction` (`half`/`full`); left/right spins are `choice['left','right']`.
+  Added `centers` and the single-dancer tokens `onesRole1`/`onesRole2`/
+  `twosRole1`/`twosRole2` to `ParamVocab.dancerSets` (1s/2s × role — ContraDB's
+  chooser_dancer; used by `figure_8.lead`). Optional/secondary modifiers that
+  default to "none" (enders, figure-8 dir), embedded custom text
+  (`contra_corners`/`turn_alone`), the who-coupled `moving`, and the single
+  `lead` are structured params but not render-template tokens (cf. swing.prefix)
+  so canonical text stays free of literal "none".
+- PR4 places-family (+`ParamKind.places`), PR5 hey/wave family — remaining.
 
 **Confirmed divergences from ContraDB (already applied in the seed):**
 - Canonical roles are `role1`/`role2`; ContraDB `gentlespoons`→`role1(s)`,

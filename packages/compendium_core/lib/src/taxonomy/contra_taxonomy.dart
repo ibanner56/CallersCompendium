@@ -5,11 +5,25 @@ import 'param_types.dart';
 import 'taxonomy.dart';
 
 /// Version of the seeded contra taxonomy. Bumped when moves/params change.
-/// v2: roadmap 2.4a data entry (additive ContraDB move build-out).
-const int contraTaxonomyVersion = 2;
+/// v2: roadmap 2.4a PR2 (dancer-interaction moves).
+/// v3: roadmap 2.4a PR3 (choice-enum moves + `centers`/single-dancer vocab).
+const int contraTaxonomyVersion = 3;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
+
+// ContraDB chooser_down_the_hall_ender values (shared by down/up the hall).
+const _downTheHallEnders = [
+  'none',
+  'turnCouple',
+  'turnAlone',
+  'circle',
+  'cozy',
+  'cloverleaf',
+  'threadNeedle',
+  'rightHandHigh',
+  'slidingDoors',
+];
 
 /// The seed contra move taxonomy.
 ///
@@ -386,6 +400,197 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move} {dir} {who2}',
       searchKeywords: ['cross trail'],
       goodBeats: [4],
+    ),
+    // --- Roadmap 2.4a: choice-enum moves (PR3) ---
+    // Additive ContraDB moves whose variants are move-specific enums
+    // (ParamKind.choice). Optional/secondary modifiers (enders that default to
+    // "none", embedded custom text, single-dancer `lead`, the who-coupled
+    // `moving`) are structured params but NOT render-template tokens: the terse
+    // canonical line carries the identifying phrase, while these are surfaced by
+    // the verbose/dialect renderer (design-doc TODO) and structural search.
+    // This mirrors swing.prefix (a "none"-valued choice that is not templated)
+    // and keeps default renders free of literal "none" tokens.
+    const MoveDef(
+      id: 'down_the_hall',
+      displayName: 'down the hall',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'everyone'),
+        // Who moves; ContraDB couples this to `who` (everyone <-> all).
+        'moving': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'all',
+          choices: ['all', 'center', 'outsides'],
+        ),
+        'facing': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'forward',
+          choices: ['forward', 'forwardThenBackward', 'backward'],
+        ),
+        'ender': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'turnCouple',
+          choices: _downTheHallEnders,
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {facing} {ender}',
+      goodBeats: [8],
+    ),
+    const MoveDef(
+      id: 'up_the_hall',
+      displayName: 'up the hall',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'everyone'),
+        'moving': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'all',
+          choices: ['all', 'center', 'outsides'],
+        ),
+        'facing': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'forward',
+          choices: ['forward', 'forwardThenBackward', 'backward'],
+        ),
+        'ender': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'circle',
+          choices: _downTheHallEnders,
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {facing} {ender}',
+      goodBeats: [8],
+    ),
+    const MoveDef(
+      id: 'zig_zag',
+      displayName: 'zig zag',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'turn': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'left',
+          choices: ['left', 'right'],
+        ),
+        // Default "none": structured, not a render token.
+        'ender': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'none',
+          choices: ['none', 'ring', 'allemande'],
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 6),
+      },
+      renderTemplate: '{who} {move} {turn}',
+      goodBeats: [6],
+    ),
+    const MoveDef(
+      id: 'slice',
+      displayName: 'slice',
+      params: {
+        'slice': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'left',
+          choices: ['left', 'right'],
+        ),
+        'by': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'couple',
+          choices: ['couple', 'dancer'],
+        ),
+        'return': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'straight',
+          choices: ['straight', 'diagonal', 'none'],
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{move} {slice} {by} {return}',
+      // ContraDB: return=="none" -> 4 beats, else 8.
+      goodBeats: [4, 8],
+    ),
+    const MoveDef(
+      id: 'contra_corners',
+      displayName: 'contra corners',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        // Embedded turning-figure text; structured (the value humanizer would
+        // mangle free-text case), surfaced by the verbose renderer.
+        'custom': ParamSpec(ParamKind.text, defaultValue: ''),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 16),
+      },
+      renderTemplate: '{who} {move}',
+      goodBeats: [16],
+    ),
+    const MoveDef(
+      id: 'turn_alone',
+      displayName: 'turn alone',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'everyone'),
+        'custom': ParamSpec(ParamKind.text, defaultValue: ''),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+      },
+      renderTemplate: '{who} {move}',
+      // ContraDB rule is 0 <= beats <= 4 (a range the list-based goodBeats
+      // can't express); left unset so any in-domain count is accepted.
+    ),
+    const MoveDef(
+      id: 'figure_8',
+      displayName: 'figure 8',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        // Default "none": structured, not a render token.
+        'dir': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'none',
+          choices: ['none', 'above', 'below', 'across'],
+        ),
+        // Single-dancer lead (ContraDB "first ladle" = ones' role2).
+        'lead': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'onesRole2',
+          choices: ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2'],
+        ),
+        'half': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {half}',
+      // half -> 8 beats, full -> 16.
+      goodBeats: [8, 16],
+    ),
+    const MoveDef(
+      id: 'poussette',
+      displayName: 'poussette',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'half': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
+        'turn': ParamSpec(ParamKind.spinDirection, defaultValue: 'clockwise'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 6),
+      },
+      renderTemplate: '{who} {move} {whom} {half} {turn}',
+      // half -> 6-8 beats, full -> 12-16.
+      goodBeats: [6, 8],
+    ),
+    const MoveDef(
+      id: 'rory_o_more',
+      displayName: "Rory O'More",
+      params: {
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'everyone',
+          choices: ['everyone', 'role1s', 'role2s', 'centers', 'ones', 'twos'],
+        ),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: true),
+        'slide': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'right',
+          choices: ['left', 'right'],
+        ),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {slide}',
+      searchKeywords: ['rory o more', 'rory'],
+      // ContraDB: balance -> 8 beats, no balance -> 4.
+      goodBeats: [4, 8],
     ),
     const MoveDef(
       id: customMoveId,
