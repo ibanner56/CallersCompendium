@@ -9,18 +9,35 @@ import 'move_autocomplete.dart';
 // ---------------------------------------------------------------------------
 
 /// A [TextEditingController] that overlays "lingo line" decorations on typed
-/// text: discouraged terms are struck through, role terms are underlined.
+/// text: discouraged terms are struck through, role terms are underlined
+/// (solid), and recognized taxonomy move keywords are dotted-underlined.
 /// Styles are recomputed from core APIs on every change, so character offsets
 /// stay correct across arbitrary edits.
 class LingoTextEditingController extends TextEditingController {
-  LingoTextEditingController({super.text, required this.dialect});
+  LingoTextEditingController({
+    super.text,
+    required this.dialect,
+    this.taxonomy,
+  });
 
   Dialect dialect;
+
+  /// The active taxonomy used to detect move keywords.  When `null`, no
+  /// move-keyword spans are computed (the discouraged-strike and role-underline
+  /// are unaffected).
+  Taxonomy? taxonomy;
 
   /// Replaces the active dialect and redraws the styled spans.
   void updateDialect(Dialect newDialect) {
     if (dialect == newDialect) return;
     dialect = newDialect;
+    notifyListeners();
+  }
+
+  /// Replaces the active taxonomy and redraws the styled spans.
+  void updateTaxonomy(Taxonomy? newTaxonomy) {
+    if (taxonomy == newTaxonomy) return;
+    taxonomy = newTaxonomy;
     notifyListeners();
   }
 
@@ -35,28 +52,24 @@ class LingoTextEditingController extends TextEditingController {
 
     final discSpans = canonicalize(raw, dialect).discouraged;
     final roleSpanList = roleSpans(raw, dialect);
+    final tax = taxonomy;
+    final moveSpanList = tax == null
+        ? const <({String text, int start})>[]
+        : moveKeywordSpans(raw, tax);
 
-    // Each event carries a numeric priority so tie-breaking is deterministic:
-    // 0 = composing region (highest — must always render for IME correctness),
-    // 1 = discouraged (strikethrough), 2 = role term (underline).
+    // Lingo events: priority controls tie-breaking when two spans share the
+    // same start position. 1 = discouraged (highest among lingo), 2 = role,
+    // 3 = move keyword (supplementary hint, lowest).
     final events =
-        <({int start, int end, TextDecoration decoration, int priority})>[];
-
-    // IME composing region: add first so it always wins at the same position.
-    if (withComposing &&
-        value.composing.isValid &&
-        !value.composing.isCollapsed) {
-      final cs = value.composing.start.clamp(0, raw.length);
-      final ce = value.composing.end.clamp(0, raw.length);
-      if (cs < ce) {
-        events.add((
-          start: cs,
-          end: ce,
-          decoration: TextDecoration.underline,
-          priority: 0,
-        ));
-      }
-    }
+        <
+          ({
+            int start,
+            int end,
+            TextDecoration decoration,
+            TextDecorationStyle? decorationStyle,
+            int priority,
+          })
+        >[];
 
     for (final s in discSpans) {
       final end = (s.start + s.text.length).clamp(0, raw.length);
@@ -65,6 +78,7 @@ class LingoTextEditingController extends TextEditingController {
           start: s.start,
           end: end,
           decoration: TextDecoration.lineThrough,
+          decorationStyle: null,
           priority: 1,
         ));
       }
@@ -76,8 +90,79 @@ class LingoTextEditingController extends TextEditingController {
           start: s.start,
           end: end,
           decoration: TextDecoration.underline,
+          decorationStyle: null,
           priority: 2,
         ));
+      }
+    }
+    for (final s in moveSpanList) {
+      final end = (s.start + s.text.length).clamp(0, raw.length);
+      if (s.start < end) {
+        events.add((
+          start: s.start,
+          end: end,
+          decoration: TextDecoration.underline,
+          decorationStyle: TextDecorationStyle.dotted,
+          priority: 3,
+        ));
+      }
+    }
+
+    // IME composing region must render within its exact range regardless of
+    // any lingo span that began before it.  Fragment any overlapping lingo
+    // event into [start, cs) and (ce, end] pieces, then insert the composing
+    // event so it is never blocked by a longer preceding span.
+    if (withComposing &&
+        value.composing.isValid &&
+        !value.composing.isCollapsed) {
+      final cs = value.composing.start.clamp(0, raw.length);
+      final ce = value.composing.end.clamp(0, raw.length);
+      if (cs < ce) {
+        final fragmented =
+            <
+              ({
+                int start,
+                int end,
+                TextDecoration decoration,
+                TextDecorationStyle? decorationStyle,
+                int priority,
+              })
+            >[];
+        for (final ev in events) {
+          final overlaps = ev.start < ce && ev.end > cs;
+          if (!overlaps) {
+            fragmented.add(ev);
+          } else {
+            if (ev.start < cs) {
+              fragmented.add((
+                start: ev.start,
+                end: cs,
+                decoration: ev.decoration,
+                decorationStyle: ev.decorationStyle,
+                priority: ev.priority,
+              ));
+            }
+            if (ev.end > ce) {
+              fragmented.add((
+                start: ce,
+                end: ev.end,
+                decoration: ev.decoration,
+                decorationStyle: ev.decorationStyle,
+                priority: ev.priority,
+              ));
+            }
+          }
+        }
+        fragmented.add((
+          start: cs,
+          end: ce,
+          decoration: TextDecoration.underline,
+          decorationStyle: null,
+          priority: 0,
+        ));
+        events
+          ..clear()
+          ..addAll(fragmented);
       }
     }
 
@@ -111,6 +196,7 @@ class LingoTextEditingController extends TextEditingController {
           text: raw.substring(start, end),
           style: (style ?? const TextStyle()).copyWith(
             decoration: ev.decoration,
+            decorationStyle: ev.decorationStyle,
           ),
         ),
       );
@@ -661,6 +747,7 @@ class _FigureDraftCard extends StatelessWidget {
                       key: ValueKey('figure-$index-text-${draft.id}'),
                       fieldKey: 'figure-$index-text',
                       dialect: dialect,
+                      taxonomy: taxonomy,
                       value: (draft.params['text'] as String?) ?? '',
                       onChanged: (v) {
                         draft.params['text'] = v;
@@ -726,6 +813,7 @@ class _FigureDraftCard extends StatelessWidget {
                     key: ValueKey('figure-$index-note-${draft.id}'),
                     fieldKey: 'figure-$index-note',
                     dialect: dialect,
+                    taxonomy: taxonomy,
                     value: draft.note,
                     onChanged: (text) {
                       draft.note = text;
@@ -753,12 +841,14 @@ class _LingoCustomTextField extends StatefulWidget {
     super.key,
     required this.fieldKey,
     required this.dialect,
+    required this.taxonomy,
     required this.value,
     required this.onChanged,
   });
 
   final String fieldKey;
   final Dialect dialect;
+  final Taxonomy taxonomy;
   final String value;
   final ValueChanged<String> onChanged;
 
@@ -775,6 +865,7 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
     _controller = LingoTextEditingController(
       text: widget.value,
       dialect: widget.dialect,
+      taxonomy: widget.taxonomy,
     );
   }
 
@@ -788,6 +879,9 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
     }
     if (widget.dialect != old.dialect) {
       _controller.updateDialect(widget.dialect);
+    }
+    if (widget.taxonomy != old.taxonomy) {
+      _controller.updateTaxonomy(widget.taxonomy);
     }
   }
 
@@ -819,7 +913,8 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
             isDense: true,
             border: const OutlineInputBorder(),
             helperText: hint == null
-                ? 'Role terms underlined, discouraged terms struck through'
+                ? 'Move names dotted·underline, role terms underlined, '
+                      'discouraged terms struck through'
                 : null,
           ),
           onChanged: widget.onChanged,
@@ -866,12 +961,14 @@ class _NoteField extends StatefulWidget {
     super.key,
     required this.fieldKey,
     required this.dialect,
+    required this.taxonomy,
     required this.value,
     required this.onChanged,
   });
 
   final String fieldKey;
   final Dialect dialect;
+  final Taxonomy taxonomy;
   final String value;
   final ValueChanged<String> onChanged;
 
@@ -888,6 +985,7 @@ class _NoteFieldState extends State<_NoteField> {
     _controller = LingoTextEditingController(
       text: widget.value,
       dialect: widget.dialect,
+      taxonomy: widget.taxonomy,
     );
   }
 
@@ -901,6 +999,9 @@ class _NoteFieldState extends State<_NoteField> {
     }
     if (widget.dialect != old.dialect) {
       _controller.updateDialect(widget.dialect);
+    }
+    if (widget.taxonomy != old.taxonomy) {
+      _controller.updateTaxonomy(widget.taxonomy);
     }
   }
 

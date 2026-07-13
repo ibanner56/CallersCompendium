@@ -270,6 +270,7 @@ void main() {
     WidgetTester tester, {
     required String text,
     required Dialect dialect,
+    Taxonomy? taxonomy,
   }) async {
     TextSpan? captured;
     await tester.pumpWidget(
@@ -279,6 +280,7 @@ void main() {
             final ctrl = LingoTextEditingController(
               text: text,
               dialect: dialect,
+              taxonomy: taxonomy,
             );
             captured = ctrl.buildTextSpan(
               context: context,
@@ -293,9 +295,11 @@ void main() {
     return captured!;
   }
 
-  /// Flattens a [TextSpan] tree into a list of (text, decoration?) pairs.
-  List<(String, TextDecoration?)> flattenSpan(TextSpan span) {
-    final result = <(String, TextDecoration?)>[];
+  /// Flattens a [TextSpan] tree into a list of (text, decoration?, decorationStyle?) triples.
+  List<(String, TextDecoration?, TextDecorationStyle?)> flattenSpan(
+    TextSpan span,
+  ) {
+    final result = <(String, TextDecoration?, TextDecorationStyle?)>[];
     void visit(InlineSpan s) {
       if (s is TextSpan) {
         if (s.children != null) {
@@ -303,7 +307,7 @@ void main() {
             visit(child);
           }
         } else if (s.text != null && s.text!.isNotEmpty) {
-          result.add((s.text!, s.style?.decoration));
+          result.add((s.text!, s.style?.decoration, s.style?.decorationStyle));
         }
       }
     }
@@ -313,7 +317,11 @@ void main() {
         visit(child);
       }
     } else {
-      result.add((span.text ?? '', span.style?.decoration));
+      result.add((
+        span.text ?? '',
+        span.style?.decoration,
+        span.style?.decorationStyle,
+      ));
     }
     return result;
   }
@@ -329,7 +337,7 @@ void main() {
     final parts = flattenSpan(span);
     final discPart = parts.firstWhere(
       (p) => p.$1.toLowerCase() == 'gents',
-      orElse: () => ('', null),
+      orElse: () => ('', null, null),
     );
     expect(discPart.$2, TextDecoration.lineThrough);
   });
@@ -345,7 +353,7 @@ void main() {
     final parts = flattenSpan(span);
     final rolePart = parts.firstWhere(
       (p) => p.$1.toLowerCase() == 'larks',
-      orElse: () => ('', null),
+      orElse: () => ('', null, null),
     );
     expect(rolePart.$2, TextDecoration.underline);
   });
@@ -361,11 +369,11 @@ void main() {
     final parts = flattenSpan(span);
     final r1 = parts.firstWhere(
       (p) => p.$1 == 'role1',
-      orElse: () => ('', null),
+      orElse: () => ('', null, null),
     );
     final r2s = parts.firstWhere(
       (p) => p.$1 == 'role2s',
-      orElse: () => ('', null),
+      orElse: () => ('', null, null),
     );
     expect(r1.$2, TextDecoration.underline);
     expect(r2s.$2, TextDecoration.underline);
@@ -378,9 +386,9 @@ void main() {
       dialect: Dialect.canonical,
     );
     final parts = flattenSpan(span);
-    for (final (_, dec) in parts) {
-      expect(dec, isNot(TextDecoration.lineThrough));
-      expect(dec, isNot(TextDecoration.underline));
+    for (final part in parts) {
+      expect(part.$2, isNot(TextDecoration.lineThrough));
+      expect(part.$2, isNot(TextDecoration.underline));
     }
   });
 
@@ -488,7 +496,7 @@ void main() {
       final parts = flattenSpan(span);
       final gentsPart = parts.firstWhere(
         (p) => p.$1.toLowerCase() == 'gents',
-        orElse: () => ('', null),
+        orElse: () => ('', null, null),
       );
       expect(
         gentsPart.$2,
@@ -850,4 +858,190 @@ void main() {
     expect(figures[1].move, 'swing');
     expect(figures[2].move, 'balance');
   });
+
+  // -------------------------------------------------------------------------
+  // Lingo: move-keyword dotted-underline (defer-lingo-movekw)
+  // -------------------------------------------------------------------------
+
+  testWidgets('lingo: recognized move keyword (swing) gets dotted-underline', (
+    tester,
+  ) async {
+    final span = await buildLingoSpan(
+      tester,
+      text: 'swing your neighbor',
+      dialect: Dialect.canonical,
+      taxonomy: contraTaxonomy,
+    );
+    final parts = flattenSpan(span);
+    final swingPart = parts.firstWhere(
+      (p) => p.$1.toLowerCase() == 'swing',
+      orElse: () => ('', null, null),
+    );
+    expect(swingPart.$2, TextDecoration.underline);
+    expect(swingPart.$3, TextDecorationStyle.dotted);
+  });
+
+  testWidgets(
+    'lingo: move keyword is distinct from role term (different style)',
+    (tester) async {
+      final span = await buildLingoSpan(
+        tester,
+        text: 'larks swing',
+        dialect: Dialect.canonical,
+        taxonomy: contraTaxonomy,
+      );
+      final parts = flattenSpan(span);
+      // Role term "larks": solid underline (no decorationStyle override).
+      final larksPart = parts.firstWhere(
+        (p) => p.$1.toLowerCase() == 'larks',
+        orElse: () => ('', null, null),
+      );
+      expect(larksPart.$2, TextDecoration.underline);
+      expect(
+        larksPart.$3,
+        isNot(TextDecorationStyle.dotted),
+        reason: 'role term uses solid underline (no dotted style)',
+      );
+
+      // Move keyword "swing": dotted underline.
+      final swingPart = parts.firstWhere(
+        (p) => p.$1.toLowerCase() == 'swing',
+        orElse: () => ('', null, null),
+      );
+      expect(swingPart.$2, TextDecoration.underline);
+      expect(swingPart.$3, TextDecorationStyle.dotted);
+    },
+  );
+
+  testWidgets('lingo: discouraged term wins over move keyword for same token', (
+    tester,
+  ) async {
+    // "gypsy" is a search keyword for shoulder_round AND is in the
+    // discouraged-terms list for larksRobins dialect. Strikethrough must win.
+    final span = await buildLingoSpan(
+      tester,
+      text: 'gypsy neighbors',
+      dialect: Dialect.larksRobins,
+      taxonomy: contraTaxonomy,
+    );
+    final parts = flattenSpan(span);
+    final gypsyPart = parts.firstWhere(
+      (p) => p.$1.toLowerCase() == 'gypsy',
+      orElse: () => ('', null, null),
+    );
+    expect(
+      gypsyPart.$2,
+      TextDecoration.lineThrough,
+      reason: 'discouraged-strike has higher priority than move-keyword',
+    );
+  });
+
+  testWidgets(
+    'lingo: non-keyword text has no dotted underline; recognized move keyword does',
+    (tester) async {
+      // Text with no known move keyword — no dotted underline expected.
+      final spanBefore = await buildLingoSpan(
+        tester,
+        text: 'step step',
+        dialect: Dialect.canonical,
+        taxonomy: contraTaxonomy,
+      );
+      final beforeParts = flattenSpan(spanBefore);
+      expect(
+        beforeParts.any((p) => p.$3 == TextDecorationStyle.dotted),
+        isFalse,
+      );
+
+      // Text containing a recognized move keyword — dotted underline expected.
+      final spanAfter = await buildLingoSpan(
+        tester,
+        text: 'petronella here',
+        dialect: Dialect.canonical,
+        taxonomy: contraTaxonomy,
+      );
+      final afterParts = flattenSpan(spanAfter);
+      expect(
+        afterParts.any(
+          (p) =>
+              p.$1.toLowerCase() == 'petronella' &&
+              p.$2 == TextDecoration.underline &&
+              p.$3 == TextDecorationStyle.dotted,
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets(
+    'lingo: move keyword offset stays correct after mid-string position',
+    (tester) async {
+      // "do a petronella" — "petronella" starts at offset 5.
+      final span = await buildLingoSpan(
+        tester,
+        text: 'do a petronella',
+        dialect: Dialect.canonical,
+        taxonomy: contraTaxonomy,
+      );
+      final parts = flattenSpan(span);
+      // Preceding text "do a " should not have a dotted underline.
+      final preceding = parts.firstWhere(
+        (p) => p.$1 == 'do a ',
+        orElse: () => ('', null, null),
+      );
+      expect(preceding.$3, isNot(TextDecorationStyle.dotted));
+
+      // "petronella" itself should.
+      final pet = parts.firstWhere(
+        (p) => p.$1.toLowerCase() == 'petronella',
+        orElse: () => ('', null, null),
+      );
+      expect(pet.$2, TextDecoration.underline);
+      expect(pet.$3, TextDecorationStyle.dotted);
+    },
+  );
+
+  testWidgets('lingo: no move-keyword decoration when taxonomy is null', (
+    tester,
+  ) async {
+    final span = await buildLingoSpan(
+      tester,
+      text: 'swing your neighbor',
+      dialect: Dialect.canonical,
+      // taxonomy omitted — no move-keyword highlighting.
+    );
+    final parts = flattenSpan(span);
+    expect(parts.any((p) => p.$3 == TextDecorationStyle.dotted), isFalse);
+  });
+
+  testWidgets('lingo: no false positive for substring of a move keyword', (
+    tester,
+  ) async {
+    // "swinging" is not a word-boundary match for "swing".
+    final span = await buildLingoSpan(
+      tester,
+      text: 'they were swinging',
+      dialect: Dialect.canonical,
+      taxonomy: contraTaxonomy,
+    );
+    final parts = flattenSpan(span);
+    expect(parts.any((p) => p.$3 == TextDecorationStyle.dotted), isFalse);
+  });
+
+  testWidgets(
+    'lingo: custom figure text field shows dotted-underline for move keyword',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          move: customMove,
+          params: {'text': 'petronella and swing', 'beats': 8},
+        ),
+      ];
+      await _pump(tester, drafts);
+
+      // The field should be visible.
+      expect(find.byKey(const ValueKey('figure-0-text')), findsOneWidget);
+      // The helper text should mention dotted underline for moves.
+      expect(find.textContaining('dotted'), findsOneWidget);
+    },
+  );
 }
