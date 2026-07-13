@@ -572,7 +572,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ),
           child: DanceListTile(
             entry: entry,
-            selected: widget.selectedDanceId == entry.dance.id,
+            // Only highlight the selected row when in split-pane mode
+            // (onSelectDance != null). In routed mode selectedDanceId has
+            // no visual effect, keeping the API contract consistent.
+            selected:
+                widget.onSelectDance != null &&
+                widget.selectedDanceId == entry.dance.id,
             onTap: widget.onSelectDance != null
                 ? () => widget.onSelectDance!(entry.dance.id)
                 : () async {

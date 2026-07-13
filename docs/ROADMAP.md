@@ -114,7 +114,7 @@ Design items (each produces a design doc + review):
 - ~~Desktop list/detail **split-pane** editor layout (v1 ships a full-screen editor route).~~
   **Resolved in Consolidation PR5** (consolidation-pr5-split-pane-layout): `CollectionShell`
   responsive wrapper in `app/lib/src/screens/collection_shell.dart`; breakpoint 900 px logical
-  width; wide mode = 350 px fixed list pane (with `DanceListScreen` + `onSelectDance`/
+  width; wide mode = 400 px fixed list pane (with `DanceListScreen` + `onSelectDance`/
   `selectedDanceId`/`refreshTrigger` seam) + flexible detail pane (`DanceDetailScreen` or
   empty-state placeholder); `DanceDetailScreen` gains `onDeleted`/`onNavigateTo` so delete
   and duplicate work correctly without a route pop; narrow mode behavior fully unchanged.

@@ -12,7 +12,7 @@ import 'dance_list_screen.dart';
 ///   existing push-navigation to [DanceDetailScreen]. No behaviour change on
 ///   phones or narrow tablet portrait.
 /// - **Wide (≥ 900 px):** renders a master-detail [Row]:
-///   - *List pane* (fixed 350 px): [DanceListScreen] with [onSelectDance] wired
+///   - *List pane* (fixed 400 px): [DanceListScreen] with [onSelectDance] wired
 ///     to update the detail pane, and the currently selected row highlighted.
 ///   - *Detail pane* (flexible remaining space): the selected
 ///     [DanceDetailScreen]; or an empty-state placeholder when nothing is
