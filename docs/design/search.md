@@ -488,9 +488,10 @@ Flagged for coordinator/user input before 3.2b:
 *Not part of 3.2; recorded so the AST/compiler grow consistently when the
 dance-model backfill lands (design/domain-model.md "CC parity backfill").*
 
-- `Level(level, {op})` — filter by dance difficulty once `dance.level` exists
-  (a scalar column like Status/Progression; add a facet in the panel and, if the
-  scale is ordered, `lte`/`gte` operators). CC's `Level`/`LevelNum` is a primary
-  programming axis, so this is the first backfill leaf to add.
+- `Level(level, op)` — filter by dance difficulty once `dance.level` exists
+  (a scalar column like Status/Progression; add a facet in the panel, and `op`
+  supports `lte`/`gte` when the scale is ordered — mirroring `CustomFieldOp`).
+  CC's `Level`/`LevelNum` is a primary programming axis, so this is the first
+  backfill leaf to add.
 - Optional `rating` and `composedOn`/`revisedOn` become scalar leaves + sort
   keys if those land as core columns rather than custom fields.
