@@ -271,7 +271,10 @@ void main() {
     expect(dance.customFields.single.value, true);
   });
 
-  testWidgets('editing preserves relatedDance links', (tester) async {
+  testWidgets('relatedDance link: edit round-trip via the editor', (
+    tester,
+  ) async {
+    // PR3: relatedDance links are now first-class editable, not read-only.
     final repos = openTestRepositories();
     // FK target for the relatedDance link.
     await repos.dances.create(_dance(id: 'd2', title: 'Target'));
@@ -300,7 +303,7 @@ void main() {
 
     final saved = await repos.dances.getById('d1');
     final kinds = saved!.links.map((l) => l.kind).toList();
-    // The relatedDance link survives; the URL link is retained too.
+    // Both links survive the round-trip.
     expect(kinds, containsAll([LinkKind.relatedDance, LinkKind.source]));
     final related = saved.links.firstWhere(
       (l) => l.kind == LinkKind.relatedDance,
@@ -449,5 +452,244 @@ void main() {
     final saved = await repos.dances.getById('d1');
     expect(saved!.figures, hasLength(1));
     expect(saved.figures.single.move, 'balance');
+  });
+
+  // ── relatedDance link picker ──────────────────────────────────────────────
+
+  /// Finds the relatedDance picker TextField by its unique labelText.
+  Finder pickerField() => find.byWidgetPredicate(
+    (w) => w is TextField && w.decoration?.labelText == 'Related dance',
+  );
+
+  /// Finds and opens the link-kind dropdown for the first link row.
+  Future<void> openLinkKindDropdown(WidgetTester tester) async {
+    final kindDropdown = find.byWidgetPredicate(
+      (w) =>
+          w.key is ValueKey &&
+          (w.key as ValueKey).value.toString().startsWith('link-kind-'),
+    );
+    await tester.tap(kindDropdown.first);
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('relatedDance: create link via picker and save', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'target', title: 'Target Dance'));
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('title-field')),
+      'With Related',
+    );
+
+    // Add a link row.
+    await tester.tap(find.byKey(const ValueKey('link-add')));
+    await tester.pumpAndSettle();
+
+    // Change the kind to relatedDance.
+    await openLinkKindDropdown(tester);
+    await tester.tap(find.text('Related').last);
+    await tester.pumpAndSettle();
+
+    // Type in the picker to search.
+    await tester.enterText(pickerField().first, 'Target');
+    await tester.pumpAndSettle();
+
+    // Tap the matching option.
+    await tester.tap(find.byKey(const ValueKey('link-dance-option-target')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    // The created dance (not 'target') should have 1 relatedDance link.
+    final all = await repos.dances.listAll();
+    final created = all.firstWhere((d) => d.id != 'target');
+    expect(created.links, hasLength(1));
+    expect(created.links.single.kind, LinkKind.relatedDance);
+    expect(created.links.single.targetDanceId, 'target');
+  });
+
+  testWidgets('relatedDance: remove link removes it on save', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'target', title: 'Target'));
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'target',
+          ),
+        ],
+      ),
+    );
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // Remove the link.
+    await tester.tap(find.byKey(const ValueKey('link-remove-l1')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('title-field')),
+      'No links',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.links, isEmpty);
+  });
+
+  testWidgets('relatedDance: picker excludes the dance being edited', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Self Dance'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Other Dance'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // Add a link row and switch to relatedDance.
+    await tester.tap(find.byKey(const ValueKey('link-add')));
+    await tester.pumpAndSettle();
+
+    await openLinkKindDropdown(tester);
+    await tester.tap(find.text('Related').last);
+    await tester.pumpAndSettle();
+
+    // Type to show options.
+    await tester.enterText(pickerField().first, 'Dance');
+    await tester.pumpAndSettle();
+
+    // 'Self Dance' (d1) must NOT appear — it is the dance being edited.
+    expect(find.byKey(const ValueKey('link-dance-option-d1')), findsNothing);
+    // 'Other Dance' (d2) SHOULD appear.
+    expect(find.byKey(const ValueKey('link-dance-option-d2')), findsOneWidget);
+  });
+
+  testWidgets('relatedDance: picker excludes soft-deleted dances', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'live', title: 'Live Dance'));
+    await repos.dances.create(_dance(id: 'gone', title: 'Gone Dance'));
+    await repos.dances.softDelete('gone', at: DateTime.now().toUtc());
+    await _pumpEditor(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('link-add')));
+    await tester.pumpAndSettle();
+
+    await openLinkKindDropdown(tester);
+    await tester.tap(find.text('Related').last);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(pickerField().first, 'Dance');
+    await tester.pumpAndSettle();
+
+    // Live Dance is in the picker; Gone Dance is soft-deleted and excluded.
+    expect(
+      find.byKey(const ValueKey('link-dance-option-live')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('link-dance-option-gone')), findsNothing);
+  });
+
+  testWidgets(
+    'relatedDance: soft-deleted target shows "(missing dance)" in picker',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'gone-target', title: 'Was Here'));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          links: [
+            DanceLink(
+              id: 'l1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'gone-target',
+            ),
+          ],
+        ),
+      );
+      // Soft-delete the target so it is absent from _danceNamesById on load.
+      await repos.dances.softDelete('gone-target', at: DateTime.now().toUtc());
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // Picker shows placeholder because target is soft-deleted (not in listAll).
+      expect(find.text('(missing dance)'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'relatedDance: undo of link removal restores the relatedDance link',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'target', title: 'Target'));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          links: [
+            DanceLink(
+              id: 'l1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'target',
+            ),
+          ],
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // The link remove button is present.
+      expect(find.byKey(const ValueKey('link-remove-l1')), findsOneWidget);
+
+      // Remove the link — triggers an immediate undo snapshot push.
+      await tester.tap(find.byKey(const ValueKey('link-remove-l1')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('link-remove-l1')), findsNothing);
+
+      // Undo — link is restored.
+      await tester.tap(find.byKey(const ValueKey('undo-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('link-remove-l1')), findsOneWidget);
+
+      // Save and confirm the relatedDance link is persisted.
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.links, hasLength(1));
+      expect(saved.links.single.kind, LinkKind.relatedDance);
+      expect(saved.links.single.targetDanceId, 'target');
+    },
+  );
+
+  testWidgets('URL kinds still work after PR3 changes', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('title-field')),
+      'URL Test',
+    );
+    await tester.tap(find.byKey(const ValueKey('link-add')));
+    await tester.pumpAndSettle();
+
+    // Default kind is 'source' — URL field is visible.
+    final urlField = find.byWidgetPredicate(
+      (w) =>
+          w.key is ValueKey &&
+          (w.key as ValueKey).value.toString().startsWith('link-url-'),
+    );
+    await tester.enterText(urlField.first, 'https://example.com');
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final dance = (await repos.dances.listAll()).single;
+    expect(dance.links, hasLength(1));
+    expect(dance.links.single.kind, LinkKind.source);
+    expect(dance.links.single.url, 'https://example.com');
   });
 }

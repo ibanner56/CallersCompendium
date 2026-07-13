@@ -64,6 +64,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final tagNames = {for (final t in tags) t.id: t.name};
     final defsById = {for (final d in fieldDefs) d.id: d};
 
+    // Resolve titles for relatedDance links.
+    final relatedDanceTitles = <String, String>{};
+    for (final link in dance.links) {
+      if (link.kind == LinkKind.relatedDance && link.targetDanceId != null) {
+        final target = await _repos.dances.getById(link.targetDanceId!);
+        if (target != null) {
+          relatedDanceTitles[link.targetDanceId!] = target.title;
+        }
+      }
+    }
+
     return _DanceDetail(
       dance: dance,
       authorNames: [
@@ -79,6 +90,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           if (defsById[value.fieldId] case final def?)
             (label: def.label, value: _formatFieldValue(value.value)),
       ],
+      relatedDanceTitles: relatedDanceTitles,
     );
   }
 
@@ -295,7 +307,26 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         if (dance.links.isNotEmpty) ...[
           const SizedBox(height: 24),
           Text('Links', style: theme.textTheme.titleMedium),
-          for (final link in dance.links) _LinkRow(link: link),
+          for (final link in dance.links)
+            _LinkRow(
+              key: ValueKey('link-row-${link.id}'),
+              link: link,
+              relatedDanceTitle: link.kind == LinkKind.relatedDance
+                  ? (detail.relatedDanceTitles[link.targetDanceId ?? ''] ??
+                        '(missing dance)')
+                  : null,
+              onTap:
+                  link.kind == LinkKind.relatedDance &&
+                      link.targetDanceId != null &&
+                      detail.relatedDanceTitles.containsKey(link.targetDanceId)
+                  ? () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            DanceDetailScreen(danceId: link.targetDanceId!),
+                      ),
+                    )
+                  : null,
+            ),
         ],
         if (detail.customFields.isNotEmpty) ...[
           const SizedBox(height: 24),
@@ -423,32 +454,54 @@ class _ProvenanceLine extends StatelessWidget {
 }
 
 class _LinkRow extends StatelessWidget {
-  const _LinkRow({required this.link});
+  const _LinkRow({
+    super.key,
+    required this.link,
+    this.relatedDanceTitle,
+    this.onTap,
+  });
 
   final DanceLink link;
+
+  /// For relatedDance links: the target dance's title, or `"(missing dance)"`
+  /// if the target has been deleted/purged.  `null` for non-relatedDance links.
+  final String? relatedDanceTitle;
+
+  /// If non-null, the row is tappable and calls this callback.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final label = link.label?.trim();
-    final display = (label != null && label.isNotEmpty)
-        ? label
-        : (link.url ?? link.targetDanceId ?? '');
+    final String display;
+    if (label != null && label.isNotEmpty) {
+      display = label;
+    } else if (link.kind == LinkKind.relatedDance) {
+      display = relatedDanceTitle ?? link.targetDanceId ?? '';
+    } else {
+      display = link.url ?? '';
+    }
     final icon = switch (link.kind) {
       LinkKind.source => Icons.article_outlined,
       LinkKind.video => Icons.play_circle_outline,
       LinkKind.relatedDance => Icons.link,
       LinkKind.other => Icons.open_in_new,
     };
-    return Padding(
+    Widget content = Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
           Icon(icon, size: 16),
           const SizedBox(width: 6),
           Expanded(child: Text(display)),
+          if (onTap != null) const Icon(Icons.chevron_right, size: 16),
         ],
       ),
     );
+    if (onTap != null) {
+      content = InkWell(onTap: onTap, child: content);
+    }
+    return content;
   }
 }
 
@@ -460,10 +513,15 @@ class _DanceDetail {
     required this.authorNames,
     required this.tagNames,
     required this.customFields,
+    required this.relatedDanceTitles,
   });
 
   final Dance dance;
   final List<String> authorNames;
   final List<String> tagNames;
   final List<_CustomFieldDisplay> customFields;
+
+  /// Maps targetDanceId → title for relatedDance links whose target exists.
+  /// Missing entries indicate the target dance has been deleted/purged.
+  final Map<String, String> relatedDanceTitles;
 }

@@ -7,7 +7,11 @@ import 'editor_snapshot.dart';
 /// Draft schema version. Increment if the JSON shape changes in a
 /// backward-incompatible way; [decodeDraft] checks this and rejects
 /// unrecognised future versions gracefully.
-const _kDraftVersion = 1;
+///
+/// v1 → v2: `links` now supports relatedDance kind with `targetDanceId`;
+/// the separate `preservedLinks` bucket is removed (all four LinkKinds live
+/// in `links`).
+const _kDraftVersion = 2;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -16,18 +20,19 @@ const _kDraftVersion = 1;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v1):
+/// Schema (v2):
 /// ```jsonc
 /// {
-///   "v": 1,
+///   "v": 2,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "phrase": "...", "formationDetail": "...",
 ///   "form": "contra", "formationShape": "dupleImproper",
 ///   "progression": "single", "status": "active",
 ///   "authorIds": ["..."], "tagIds": ["..."], "tunes": ["..."],
-///   "links": [{"id":"...", "kind":"source", "url":"...", "label":"..."}],
-///   "preservedLinks": [{"id":"...", "kind":"relatedDance",
-///                        "targetDanceId":"...", "label":"..."}],
+///   "links": [
+///     {"id":"...", "kind":"source", "url":"...", "label":"..."},
+///     {"id":"...", "kind":"relatedDance", "targetDanceId":"...", "label":"..."}
+///   ],
 ///   "customValues": {"fieldId": <value>},
 ///   "figureDrafts": [
 ///     {"id":"...", "move":"swing",
@@ -37,7 +42,7 @@ const _kDraftVersion = 1;
 /// }
 /// ```
 /// `move` may be `null` for an incomplete draft row.
-/// `label` and `url` may be omitted when empty.
+/// `label`, `url`, and `targetDanceId` may be omitted when empty/null.
 String encodeDraft(EditorSnapshot snapshot) {
   return jsonEncode({
     'v': _kDraftVersion,
@@ -60,16 +65,7 @@ String encodeDraft(EditorSnapshot snapshot) {
           'kind': l.kind.name,
           if (l.url.isNotEmpty) 'url': l.url,
           if (l.label.isNotEmpty) 'label': l.label,
-        },
-    ],
-    'preservedLinks': [
-      for (final l in snapshot.preservedLinks)
-        {
-          'id': l.id,
-          'kind': l.kind.name,
-          if (l.url != null) 'url': l.url,
           if (l.targetDanceId != null) 'targetDanceId': l.targetDanceId,
-          if (l.label != null) 'label': l.label,
         },
     ],
     'customValues': snapshot.customValues,
@@ -94,7 +90,7 @@ String encodeDraft(EditorSnapshot snapshot) {
 /// Deserialises a draft JSON value (as returned by [SettingsRepository.get])
 /// back into an [EditorSnapshot].
 ///
-/// Throws [FormatException] when the value is not a valid v1 draft.
+/// Throws [FormatException] when the value is not a valid v2 draft.
 /// Unknown top-level keys are silently ignored (forward-compat).
 EditorSnapshot decodeDraft(Object? value) {
   final Map<String, Object?> json;
@@ -134,7 +130,6 @@ EditorSnapshot decodeDraft(Object? value) {
     tagIds: _strList(json, 'tagIds'),
     tunes: _strList(json, 'tunes'),
     links: _parseLinks(json['links']),
-    preservedLinks: _parsePreservedLinks(json['preservedLinks']),
     customValues: _parseCustomValues(json['customValues']),
     figureDrafts: _parseFigureDrafts(json['figureDrafts']),
   );
@@ -187,42 +182,10 @@ LinkSnapshot _parseLinkSnapshot(Object? e) {
     kind: _parseEnum(LinkKind.values, _str(m, 'kind')),
     url: _str(m, 'url'),
     label: _str(m, 'label'),
-  );
-}
-
-List<DanceLink> _parsePreservedLinks(Object? raw) {
-  if (raw == null) return const [];
-  if (raw is! List) {
-    throw const FormatException('draft.preservedLinks must be an array');
-  }
-  final result = <DanceLink>[];
-  for (final e in raw) {
-    if (e is! Map) {
-      throw const FormatException('preservedLink entry must be an object');
-    }
-    final m = e.cast<String, Object?>();
-    final id = _str(m, 'id');
-    final kind = _parseEnum(LinkKind.values, _str(m, 'kind'));
-    final url = m['url'] is String ? m['url'] as String : null;
-    final targetDanceId = m['targetDanceId'] is String
+    targetDanceId: m['targetDanceId'] is String
         ? m['targetDanceId'] as String
-        : null;
-    final label = m['label'] is String ? m['label'] as String : null;
-    try {
-      result.add(
-        DanceLink(
-          id: id,
-          kind: kind,
-          url: url,
-          targetDanceId: targetDanceId,
-          label: label,
-        ),
-      );
-    } catch (_) {
-      // Skip malformed preserved links — better to lose them than to crash.
-    }
-  }
-  return result;
+        : null,
+  );
 }
 
 Map<String, Object?> _parseCustomValues(Object? raw) {

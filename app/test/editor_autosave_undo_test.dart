@@ -100,7 +100,6 @@ EditorSnapshot _snap({
   tagIds: const [],
   tunes: const [],
   links: const [],
-  preservedLinks: const [],
   customValues: const {},
   figureDrafts: figureDrafts,
 );
@@ -228,13 +227,12 @@ void main() {
               url: 'http://x.y',
               label: 'X',
             ),
-          ],
-          preservedLinks: [
-            DanceLink(
+            LinkSnapshot(
               id: 'pl1',
               kind: LinkKind.relatedDance,
-              targetDanceId: 'other',
+              url: '',
               label: 'Related',
+              targetDanceId: 'other',
             ),
           ],
           customValues: const {'f1': 'hello', 'f2': true},
@@ -264,8 +262,14 @@ void main() {
         expect(d.hook, 'A hook');
         expect(d.formationShape, FormationShape.becketCw);
         expect(d.progression, Progression.double);
-        expect(d.links.single.url, 'http://x.y');
-        expect(d.preservedLinks.single.targetDanceId, 'other');
+        expect(
+          d.links.firstWhere((l) => l.kind == LinkKind.source).url,
+          'http://x.y',
+        );
+        final related = d.links.firstWhere(
+          (l) => l.kind == LinkKind.relatedDance,
+        );
+        expect(related.targetDanceId, 'other');
         expect(d.customValues['f1'], 'hello');
         expect(d.customValues['f2'], true);
         expect(d.figureDrafts[0].move, 'swing');
@@ -287,7 +291,7 @@ void main() {
 
     test('decodeDraft tolerates missing optional arrays (empty defaults)', () {
       final minimal = {
-        'v': 1,
+        'v': 2,
         'title': 'T',
         'hook': '',
         'notes': '',
@@ -308,7 +312,7 @@ void main() {
       // SettingsRepository returns the raw JSON string from .get(); decodeDraft
       // must handle a String in addition to a Map.
       final inner = {
-        'v': 1,
+        'v': 2,
         'title': 'Stringified',
         'hook': '',
         'notes': '',
@@ -740,36 +744,32 @@ void main() {
       expect(await repos.settings.contains('editor_draft:new'), isFalse);
     });
 
-    // Regression: fix #3 — type-check casts in _parsePreservedLinks
-    test(
-      'decodeDraft: non-string preservedLink fields are gracefully skipped',
-      () {
-        // A preserved link with non-string values for url/targetDanceId/label
-        // should not throw a TypeError — it should be skipped by the catch block.
-        final withBadPreservedLink = {
-          'v': 1,
-          'title': 'T',
-          'hook': '',
-          'notes': '',
-          'phrase': '',
-          'formationDetail': '',
-          'form': 'contra',
-          'formationShape': 'dupleImproper',
-          'progression': 'single',
-          'status': 'active',
-          'preservedLinks': [
-            {
-              'id': 'pl1',
-              'kind': 'relatedDance',
-              'targetDanceId': 42,
-            }, // int, not String
-          ],
-        };
-        // Should not throw — malformed entry is silently skipped.
-        final decoded = decodeDraft(withBadPreservedLink);
-        expect(decoded.preservedLinks, isEmpty);
-      },
-    );
+    // Regression: fix #3 — v1 drafts are now rejected (codec bumped to v2)
+    test('decodeDraft: v1 draft is rejected with FormatException', () {
+      // A v1 JSON blob (separate preservedLinks bucket) must be rejected so
+      // relatedDance links are not silently lost when upgrading.
+      final v1Map = {
+        'v': 1,
+        'title': 'T',
+        'hook': '',
+        'notes': '',
+        'phrase': '',
+        'formationDetail': '',
+        'form': 'contra',
+        'formationShape': 'dupleImproper',
+        'progression': 'single',
+        'status': 'active',
+        'preservedLinks': [
+          {
+            'id': 'pl1',
+            'kind': 'relatedDance',
+            'targetDanceId': 42, // int, not String
+          },
+        ],
+      };
+      // v1 version mismatch → FormatException; the editor discards it.
+      expect(() => decodeDraft(v1Map), throwsA(isA<FormatException>()));
+    });
 
     // Regression: fix #4 — custom text/number captured from controllers
     testWidgets('autosave captures custom text field typed by user', (
