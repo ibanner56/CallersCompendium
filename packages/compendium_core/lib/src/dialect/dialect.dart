@@ -89,18 +89,21 @@ class Dialect {
   /// All shipped dialect presets, in display order.
   /// `canonical` is first (the identity/no-op dialect); `larksRobins` is the
   /// modern gender-free default and the app's out-of-box active dialect.
-  static final List<Dialect> presets = [
+  ///
+  /// The list is unmodifiable — callers must not mutate it.
+  static final List<Dialect> presets = List.unmodifiable([
     canonical,
     larksRobins,
     gentsLadies,
     leadsFollows,
     ladlesGentlespoons,
-  ];
+  ]);
 
-  /// Returns the preset whose [name] exactly matches [name], or `null`.
-  static Dialect? forName(String name) {
+  /// Returns the preset whose [Dialect.name] exactly matches [presetName],
+  /// or `null` if no preset with that name exists.
+  static Dialect? forName(String presetName) {
     for (final d in presets) {
-      if (d.name == name) return d;
+      if (d.name == presetName) return d;
     }
     return null;
   }

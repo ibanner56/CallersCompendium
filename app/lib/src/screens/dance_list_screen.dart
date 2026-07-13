@@ -280,13 +280,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Future<void> _openSettings() async {
+    final dialectBefore = _dialect;
     await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
-    // Re-run search in case the dialect changed while on the settings screen.
-    // (The dialect change also fires re-run via didChangeDependencies, so this
-    // is a belt-and-suspenders guard for correctness.)
-    if (mounted) await _runSearch();
+    // didChangeDependencies fires a re-run when the dialect changes; only do
+    // an extra re-run here if the dialect is unchanged (belt-and-suspenders
+    // for edge cases where didChangeDependencies doesn't fire after pop).
+    if (mounted && _dialect == dialectBefore) await _runSearch();
   }
 
   Future<void> _openRecentlyDeleted() async {

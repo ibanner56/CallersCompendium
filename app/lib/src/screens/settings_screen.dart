@@ -28,14 +28,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _onDialectChanged(Dialect dialect) async {
-    // Persist first so a crash between update and save is harmless — the
-    // notifier update is effectively fire-and-forget from the user's view.
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kActiveDialectKey, dialect.name);
-    if (!mounted) return;
-    // Update live: all descendants of ActiveDialectScope rebuild.
+    // Update UI and the live notifier immediately so the selection feels
+    // instant, then persist in the background.
     ActiveDialectScope.notifierOf(context).value = dialect;
     setState(() => _selected = dialect);
+    // Fire-and-forget: store the selection; if the app crashes between here
+    // and storage completing the write, the in-memory notifier was already
+    // correct for this session.
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kActiveDialectKey, dialect.name);
   }
 
   @override
