@@ -110,6 +110,10 @@ class Program {
 
   bool get isDeleted => deletedAt != null;
 
+  /// The `?? this.x` pattern cannot distinguish "leave unchanged" from "set to
+  /// null" for nullable fields. To clear [eventDate] or [venue], pass the
+  /// matching `clear*` flag (mirrors the [clearDeletedAt] precedent); a set
+  /// flag wins over any value passed for the same field.
   Program copyWith({
     String? title,
     DateTime? eventDate,
@@ -119,12 +123,14 @@ class Program {
     List<ProgramSlot>? slots,
     DateTime? updatedAt,
     DateTime? deletedAt,
+    bool clearEventDate = false,
+    bool clearVenue = false,
     bool clearDeletedAt = false,
   }) => Program(
     id: id,
     title: title ?? this.title,
-    eventDate: eventDate ?? this.eventDate,
-    venue: venue ?? this.venue,
+    eventDate: clearEventDate ? null : (eventDate ?? this.eventDate),
+    venue: clearVenue ? null : (venue ?? this.venue),
     notes: notes ?? this.notes,
     status: status ?? this.status,
     slots: slots ?? this.slots,

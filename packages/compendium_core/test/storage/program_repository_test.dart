@@ -252,4 +252,73 @@ void main() {
       expect(await repo.lastCalledByDance(), isEmpty);
     });
   });
+
+  group('duplicate', () {
+    test('mints fresh ids, resets to draft, and persists the copy', () async {
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Petronella',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          id: 'p1',
+          title: 'Spring Dance 2026',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 1, 1),
+            ),
+            ProgramSlot(id: 's2', position: 1, text: 'Waltz', isAlt: true),
+          ],
+        ),
+      );
+      // Mark performed so we can assert history is cleared on the copy.
+      final performed = (await repo.getById(
+        'p1',
+      ))!.copyWith(status: ProgramStatus.performed);
+      await repo.update(performed);
+
+      var n = 0;
+      final now = DateTime.utc(2026, 6, 1);
+      final copy = await repo.duplicate(
+        id: 'p1',
+        newId: 'p2',
+        newSlotId: () => 'ns${n++}',
+        now: now,
+        newTitle: 'Spring Dance 2026 (copy)',
+      );
+
+      expect(copy.id, 'p2');
+      expect(copy.title, 'Spring Dance 2026 (copy)');
+      expect(copy.status, ProgramStatus.draft);
+      expect(copy.venue, 'Grange Hall');
+      expect(copy.slots.map((s) => s.id), ['ns0', 'ns1']);
+      expect(copy.slots[0].performedAt, isNull);
+      expect(copy.slots[1].isAlt, isTrue);
+
+      // Persisted and independent from the original.
+      final reloaded = await repo.getById('p2');
+      expect(reloaded, isNotNull);
+      expect(reloaded!.slots, hasLength(2));
+      expect(await repo.getById('p1'), isNotNull);
+    });
+
+    test('throws for an unknown id', () async {
+      expect(
+        () => repo.duplicate(
+          id: 'missing',
+          newId: 'p2',
+          newSlotId: () => 's',
+          now: DateTime.utc(2026, 6, 1),
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
 }
