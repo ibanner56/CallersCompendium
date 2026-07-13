@@ -96,24 +96,17 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
 `contradb-taxonomy-extract.md`.
 
 **2.4a progress:**
-- **PR1 (simple moves)** — added `butterfly_whirl`, `arch_and_dive`,
+- **PR1 (simple moves, no new vocab):** added `butterfly_whirl`, `arch_and_dive`,
   `california_twirl`, `stand_still`, `slide_along_set`, `mad_robin`,
   `revolving_door`, `star_promenade`, `allemande_orbit`. All fit the existing
-  `ParamKind` set (no new vocabulary). ContraDB "no default" choosers get
-  sensible community defaults (our `ParamSpec` requires one); rotations stored
-  in full turns; `stand_still` omits `goodBeats` (ContraDB's "beats ≥ 1").
+  `ParamKind` set (no new vocabulary). ContraDB params with "no default" (which
+  force a chooser selection there) take sensible community defaults here, since
+  `ParamSpec.defaultValue` is required; rotations are stored in full turns.
+  `stand_still` omits `goodBeats`, so any in-range beat count (0–64) is accepted
+  without a warning; ContraDB's "beats ≥ 1" min-rule isn't expressible in the
+  list-based `goodBeats` model and is not enforced.
 - PR2 dancer-interaction, PR3 choice-enum (+`centers`), PR4 places-family
   (+`ParamKind.places`), PR5 hey/wave family — remaining.
-
-**2.4a data-entry progress:**
-- _PR1 (simple moves, no new vocab):_ added `butterfly_whirl`, `arch_and_dive`,
-  `california_twirl`, `stand_still`, `slide_along_set`, `mad_robin`,
-  `revolving_door`, `star_promenade`, `allemande_orbit`. ContraDB params with
-  "no default" (which force a chooser selection there) take sensible community
-  defaults here, since `ParamSpec.defaultValue` is required. `stand_still` omits
-  `goodBeats`, so any in-range beat count (0–64) is accepted without a warning;
-  ContraDB's "beats ≥ 1" min-rule isn't expressible in the list-based
-  `goodBeats` model and is not enforced.
 
 **Confirmed divergences from ContraDB (already applied in the seed):**
 - Canonical roles are `role1`/`role2`; ContraDB `gentlespoons`→`role1(s)`,
