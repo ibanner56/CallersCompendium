@@ -597,12 +597,13 @@ final Taxonomy contraTaxonomy = Taxonomy(
     ),
     // --- Roadmap 2.4a: places family (PR4) ---
     // Moves whose travel is measured in "places" around a ring/star
-    // (ParamKind.places, int 1..10). ContraDB's per-move place restrictions
-    // (e.g. square through's 2-4) and its param-dependent places/beats ratios
-    // are typical-only, not enforced — so goodBeats is omitted rather than
-    // emitting false warnings (cf. poussette). box_circulate is intentionally
-    // NOT here: it carries no places param (ContraDB lists it under
-    // moveCaresAboutPlaces only for angle display).
+    // (ParamKind.places, int 1..10). Each move keeps a simple typical-beats
+    // list in goodBeats, but ContraDB's *conditional* rules — square through's
+    // 2-4 place restriction and the moves' param-dependent places/beats ratios
+    // — are intentionally not encoded/enforced (they can't be captured by the
+    // list model without false warnings; cf. poussette). box_circulate is
+    // intentionally NOT here: it carries no places param (ContraDB lists it
+    // under moveCaresAboutPlaces only for angle display).
     const MoveDef(
       id: 'circle',
       displayName: 'circle',
@@ -626,8 +627,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // community default.
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         'places': ParamSpec(ParamKind.places, defaultValue: 4),
-        // grip == 'none' is structured, not a render token (cf. PR3 enders):
-        // ContraDB prints the grip only when specified.
+        // grip is a structured param, not a render token (cf. PR3 enders): it
+        // is never emitted in canonical text, and is surfaced by the
+        // verbose/dialect renderer + structural search. 'none' is the
+        // unspecified value.
         'grip': ParamSpec(
           ParamKind.choice,
           defaultValue: 'none',
