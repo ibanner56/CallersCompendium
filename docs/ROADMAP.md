@@ -104,7 +104,13 @@ Design items (each produces a design doc + review):
   field and priority-3 dotted-underline events (discouraged-strike > role-underline > move-dotted);
   a11y: dotted vs solid underline is shape-distinct (not color-alone); move highlighting is
   supplementary (helper text updated to describe all three styles).
-- `relatedDance` link target picker (3.3a links editor is URL-based only).
+- ~~`relatedDance` link target picker (3.3a links editor is URL-based only).~~
+  **Resolved in Consolidation PR3** (consolidation-pr3-related-dance-picker):
+  `_LinkDraft` generalized to carry either URL or `targetDanceId`; `relatedDance` added to the
+  link-kind dropdown; dance type-ahead picker (excludes self + soft-deleted); `_preservedLinks`
+  shunt removed — all four `LinkKind`s are now fully editable; snapshot/undo/autosave-draft updated
+  (draft codec bumped to v2); detail screen resolves and displays target dance title with tappable
+  navigation; dangling targets show `(missing dance)` placeholder.
 - Desktop list/detail **split-pane** editor layout (v1 ships a full-screen editor route).
 - Cross-session / persistent **undo** (3.3d ships in-memory undo/redo only).
 - ~~`revisit-lingo-dialect` — active dialect settings (persisted user-selectable dialect,

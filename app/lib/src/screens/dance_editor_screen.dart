@@ -85,10 +85,17 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   final List<String> _tunes = [];
   final List<_LinkDraft> _links = [];
 
-  /// Existing links this editor can't edit yet (relatedDance target picking is
-  /// deferred). Held verbatim so an edit-save round-trip never drops them.
-  final List<DanceLink> _preservedLinks = [];
   final Map<String, Object?> _customValues = {};
+
+  List<Dance> _allDances = [];
+  Map<String, String> _danceNamesById = {};
+
+  /// Dance options for the related-dance picker: all non-deleted dances except
+  /// the dance currently being edited.
+  List<_NameOption> get _danceOptions => [
+    for (final d in _allDances)
+      if (d.id != widget.danceId) (id: d.id, name: d.title),
+  ];
 
   List<Choreographer> _choreographers = [];
   List<Tag> _tags = [];
@@ -141,6 +148,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       final choreographers = await _repos.choreographers.listAll();
       final tags = await _repos.tags.listAll();
       final fieldDefs = await _repos.customFieldDefs.listAll();
+      final allDances = await _repos.dances.listAll();
       final dance = widget.danceId == null
           ? null
           : await _repos.dances.getById(widget.danceId!);
@@ -148,6 +156,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       _choreographers = choreographers;
       _tags = tags;
       _fieldDefs = fieldDefs;
+      _allDances = allDances;
+      _danceNamesById = {for (final d in allDances) d.id: d.title};
       _choreographerNames = {for (final c in choreographers) c.id: c.name};
       _tagNames = {for (final t in tags) t.id: t.name};
 
@@ -166,11 +176,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         _tagIds.addAll(dance.tagIds);
         _tunes.addAll(dance.tunes);
         for (final link in dance.links) {
-          if (link.kind == LinkKind.relatedDance) {
-            _preservedLinks.add(link);
-          } else {
-            _links.add(_LinkDraft.fromLink(link));
-          }
+          _links.add(_LinkDraft.fromLink(link));
         }
         for (final value in dance.customFields) {
           _customValues[value.fieldId] = value.value;
@@ -253,7 +259,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         _formationShape,
         detail: formationDetail.isEmpty ? null : formationDetail,
       );
-      final links = [..._preservedLinks, for (final l in _links) ?l.toLink()];
+      final links = [for (final l in _links) ?l.toLink()];
       final customFields = _collectCustomFields();
 
       final Dance dance;
@@ -335,10 +341,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           kind: l.kind,
           url: l.urlController.text,
           label: l.labelController.text,
+          targetDanceId: l.targetDanceId,
         ),
       ),
     ),
-    preservedLinks: List.unmodifiable(_preservedLinks),
     // Custom text/number fields are edited via _customTextControllers and do
     // not keep _customValues in sync — read from the controllers directly so
     // the snapshot captures whatever the user has typed.
@@ -386,18 +392,13 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       ..clear()
       ..addAll(s.tunes);
 
-    // URL-kind links: dispose old drafts, reconstruct from snapshot.
+    // URL-kind and relatedDance links: dispose old drafts, reconstruct from snapshot.
     for (final l in _links) {
       l.dispose();
     }
     _links
       ..clear()
       ..addAll(s.links.map(_LinkDraft.fromSnapshot));
-
-    // Preserved links (relatedDance etc.).
-    _preservedLinks
-      ..clear()
-      ..addAll(s.preservedLinks);
 
     // Custom values.
     _customValues
@@ -893,6 +894,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           _Label('Links'),
           _LinksEditor(
             links: _links,
+            danceOptions: _danceOptions,
+            danceNamesById: _danceNamesById,
             onAdd: () {
               setState(() => _links.add(_LinkDraft.empty()));
               _pushUndoNow();
@@ -1364,12 +1367,22 @@ class _TuneEditor extends StatelessWidget {
 class _LinksEditor extends StatelessWidget {
   const _LinksEditor({
     required this.links,
+    required this.danceOptions,
+    required this.danceNamesById,
     required this.onAdd,
     required this.onRemove,
     required this.onChanged,
   });
 
   final List<_LinkDraft> links;
+
+  /// Non-deleted dances eligible for relatedDance selection (self excluded).
+  final List<_NameOption> danceOptions;
+
+  /// Title lookup for resolving a [_LinkDraft.targetDanceId] to its display
+  /// name. A missing entry means the target dance was deleted/purged.
+  final Map<String, String> danceNamesById;
+
   final VoidCallback onAdd;
   final ValueChanged<_LinkDraft> onRemove;
   final VoidCallback onChanged;
@@ -1408,6 +1421,10 @@ class _LinksEditor extends StatelessWidget {
                         value: LinkKind.other,
                         child: Text('Other'),
                       ),
+                      DropdownMenuItem(
+                        value: LinkKind.relatedDance,
+                        child: Text('Related'),
+                      ),
                     ],
                     onChanged: (value) {
                       if (value != null) {
@@ -1421,23 +1438,43 @@ class _LinksEditor extends StatelessWidget {
                 Expanded(
                   child: Column(
                     children: [
-                      TextField(
-                        key: ValueKey('link-url-${draft.id}'),
-                        controller: draft.urlController,
-                        decoration: const InputDecoration(
-                          labelText: 'URL',
-                          isDense: true,
-                          border: OutlineInputBorder(),
+                      if (draft.kind == LinkKind.relatedDance)
+                        _RelatedDancePicker(
+                          key: ValueKey(
+                            'link-dance-picker-${draft.id}-'
+                            '${draft.targetDanceId ?? 'null'}',
+                          ),
+                          initialTitle: draft.targetDanceId == null
+                              ? ''
+                              : (danceNamesById[draft.targetDanceId!] ??
+                                    '(missing dance)'),
+                          danceOptions: danceOptions,
+                          onSelected: (id) {
+                            draft.targetDanceId = id;
+                            onChanged();
+                          },
+                        )
+                      else
+                        TextField(
+                          key: ValueKey('link-url-${draft.id}'),
+                          controller: draft.urlController,
+                          decoration: const InputDecoration(
+                            labelText: 'URL',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (_) => onChanged(),
                         ),
-                      ),
                       const SizedBox(height: 4),
                       TextField(
+                        key: ValueKey('link-label-${draft.id}'),
                         controller: draft.labelController,
                         decoration: const InputDecoration(
                           labelText: 'Label (optional)',
                           isDense: true,
                           border: OutlineInputBorder(),
                         ),
+                        onChanged: (_) => onChanged(),
                       ),
                     ],
                   ),
@@ -1465,15 +1502,86 @@ class _LinksEditor extends StatelessWidget {
   }
 }
 
-/// Mutable editing state for a single [DanceLink] (URL-based kinds only in
-/// 3.3a; relatedDance target picking is deferred).
+/// Dance type-ahead for selecting a related dance in a link row.
+///
+/// Keyed externally on `draft.id + targetDanceId` so it is recreated (and
+/// [initialTitle] applied) whenever the selection changes via undo/redo.
+class _RelatedDancePicker extends StatelessWidget {
+  const _RelatedDancePicker({
+    super.key,
+    required this.initialTitle,
+    required this.danceOptions,
+    required this.onSelected,
+  });
+
+  final String initialTitle;
+  final List<_NameOption> danceOptions;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<_NameOption>(
+      initialValue: TextEditingValue(text: initialTitle),
+      displayStringForOption: (opt) => opt.name,
+      optionsBuilder: (value) {
+        final q = value.text.trim().toLowerCase();
+        if (q.isEmpty) return const Iterable<_NameOption>.empty();
+        return danceOptions.where((o) => o.name.toLowerCase().contains(q));
+      },
+      onSelected: (choice) => onSelected(choice.id),
+      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+        return TextField(
+          controller: controller,
+          focusNode: focusNode,
+          decoration: const InputDecoration(
+            labelText: 'Related dance',
+            hintText: 'Type to search…',
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
+        );
+      },
+      optionsViewBuilder: (context, onSelected, choices) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 320),
+              child: ListView(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                children: [
+                  for (final choice in choices)
+                    ListTile(
+                      key: ValueKey('link-dance-option-${choice.id}'),
+                      dense: true,
+                      leading: const Icon(Icons.link, size: 18),
+                      title: Text(choice.name),
+                      onTap: () => onSelected(choice),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Mutable editing state for a single [DanceLink] (all four [LinkKind]s).
+///
+/// URL-kind links (source/video/other) use [urlController]; relatedDance links
+/// use [targetDanceId]. The [labelController] is shared by all kinds.
 class _LinkDraft {
   _LinkDraft({
     required this.id,
-    required this.kind,
+    required LinkKind kind,
     required this.urlController,
     required this.labelController,
-  });
+    this.targetDanceId,
+  }) : _kind = kind; // ignore: prefer_initializing_formals
 
   factory _LinkDraft.empty() => _LinkDraft(
     id: uuidV4(),
@@ -1487,6 +1595,7 @@ class _LinkDraft {
     kind: link.kind,
     urlController: TextEditingController(text: link.url ?? ''),
     labelController: TextEditingController(text: link.label ?? ''),
+    targetDanceId: link.targetDanceId,
   );
 
   /// Reconstructs a draft from an [EditorSnapshot]'s [LinkSnapshot], used
@@ -1496,24 +1605,56 @@ class _LinkDraft {
     kind: s.kind,
     urlController: TextEditingController(text: s.url),
     labelController: TextEditingController(text: s.label),
+    targetDanceId: s.targetDanceId,
   );
 
   final String id;
-  LinkKind kind;
+  LinkKind _kind;
+
+  LinkKind get kind => _kind;
+
+  set kind(LinkKind value) {
+    if (_kind == value) return;
+    _kind = value;
+    // Clear incompatible state when switching between URL and relatedDance.
+    if (value == LinkKind.relatedDance) {
+      urlController.clear();
+    } else {
+      targetDanceId = null;
+    }
+  }
+
   final TextEditingController urlController;
   final TextEditingController labelController;
 
-  /// Builds a [DanceLink], or `null` when the URL is blank (skipped on save).
+  /// Set when [kind] is [LinkKind.relatedDance]; `null` otherwise.
+  String? targetDanceId;
+
+  /// Builds a [DanceLink], or `null` when the required target is absent.
+  ///
+  /// For relatedDance: returns `null` if no dance has been selected yet.
+  /// For URL kinds: returns `null` if the URL field is blank.
   DanceLink? toLink() {
-    final url = urlController.text.trim();
-    if (url.isEmpty) return null;
     final label = labelController.text.trim();
-    return DanceLink(
-      id: id,
-      kind: kind,
-      url: url,
-      label: label.isEmpty ? null : label,
-    );
+    if (kind == LinkKind.relatedDance) {
+      final target = targetDanceId;
+      if (target == null || target.isEmpty) return null;
+      return DanceLink(
+        id: id,
+        kind: kind,
+        targetDanceId: target,
+        label: label.isEmpty ? null : label,
+      );
+    } else {
+      final url = urlController.text.trim();
+      if (url.isEmpty) return null;
+      return DanceLink(
+        id: id,
+        kind: kind,
+        url: url,
+        label: label.isEmpty ? null : label,
+      );
+    }
   }
 
   void dispose() {

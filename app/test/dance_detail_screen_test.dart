@@ -420,4 +420,117 @@ void main() {
     // Canonical role tokens shown.
     expect(find.text('role2s chain across'), findsOneWidget);
   });
+
+  // ── relatedDance links ─────────────────────────────────────────────────────
+
+  testWidgets('relatedDance link shows target dance title, not raw id', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'target', title: 'Petronella Jig'));
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'target',
+            label: '',
+          ),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    // Title is shown, not the raw id.
+    expect(find.text('Petronella Jig'), findsOneWidget);
+    expect(find.text('target'), findsNothing);
+  });
+
+  testWidgets('relatedDance link with label shows label (not title or id)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'target', title: 'Hidden Title'));
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'target',
+            label: 'See this one',
+          ),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    // Label takes priority.
+    expect(find.text('See this one'), findsOneWidget);
+  });
+
+  testWidgets(
+    'relatedDance link with dangling targetDanceId shows placeholder',
+    (tester) async {
+      final repos = openTestRepositories();
+      // Create the target dance and then soft-delete it to simulate a link
+      // whose target has been removed from the visible collection.
+      await repos.dances.create(_dance(id: 'gone-target', title: 'Was Here'));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          links: [
+            DanceLink(
+              id: 'l1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'gone-target',
+              label: '',
+            ),
+          ],
+        ),
+      );
+      await repos.dances.softDelete('gone-target', at: DateTime.now().toUtc());
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      // Falls back to placeholder text because getById returns null.
+      expect(find.text('(missing dance)'), findsOneWidget);
+    },
+  );
+
+  testWidgets('relatedDance link is tappable when target exists', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'target', title: 'Target Dance', hook: 'target hook'),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'target',
+          ),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    // Tap the related-dance link row.
+    await tester.tap(find.byKey(const ValueKey('link-row-l1')));
+    await tester.pumpAndSettle();
+
+    // Navigated to the target dance's detail screen.
+    expect(find.text('Target Dance'), findsOneWidget);
+    expect(find.text('target hook'), findsOneWidget);
+  });
 }

@@ -46,7 +46,7 @@ class FigureDraftSnapshot {
 }
 
 // ---------------------------------------------------------------------------
-// LinkSnapshot — immutable copy of a URL-kind link draft's mutable fields.
+// LinkSnapshot — immutable copy of a single link draft's mutable fields.
 // ---------------------------------------------------------------------------
 
 @immutable
@@ -56,12 +56,19 @@ class LinkSnapshot {
     required this.kind,
     required this.url,
     required this.label,
+    this.targetDanceId,
   });
 
   final String id;
   final LinkKind kind;
+
+  /// URL for source/video/other kinds; empty string for relatedDance.
   final String url;
+
   final String label;
+
+  /// Set when [kind] is [LinkKind.relatedDance]; `null` otherwise.
+  final String? targetDanceId;
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +97,6 @@ class EditorSnapshot {
     required this.tagIds,
     required this.tunes,
     required this.links,
-    required this.preservedLinks,
     required this.customValues,
     required this.figureDrafts,
   });
@@ -115,12 +121,8 @@ class EditorSnapshot {
 
   // ---- Links ----
 
-  /// URL-kind links that the editor can directly edit (source, video, other).
+  /// All editable links (source, video, other, and relatedDance).
   final List<LinkSnapshot> links;
-
-  /// Links the editor cannot edit yet (e.g. relatedDance — target picker
-  /// deferred to a later phase).  Held verbatim to survive round-trips.
-  final List<DanceLink> preservedLinks;
 
   // ---- Custom fields ----
   final Map<String, Object?> customValues;
