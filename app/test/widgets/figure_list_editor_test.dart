@@ -936,35 +936,41 @@ void main() {
     );
   });
 
-  testWidgets('lingo: move keyword updates live on edit', (tester) async {
-    // No taxonomy → no dotted underline.
-    final spanBefore = await buildLingoSpan(
-      tester,
-      text: 'step step',
-      dialect: Dialect.canonical,
-      taxonomy: contraTaxonomy,
-    );
-    final beforeParts = flattenSpan(spanBefore);
-    expect(beforeParts.any((p) => p.$3 == TextDecorationStyle.dotted), isFalse);
+  testWidgets(
+    'lingo: non-keyword text has no dotted underline; recognized move keyword does',
+    (tester) async {
+      // Text with no known move keyword — no dotted underline expected.
+      final spanBefore = await buildLingoSpan(
+        tester,
+        text: 'step step',
+        dialect: Dialect.canonical,
+        taxonomy: contraTaxonomy,
+      );
+      final beforeParts = flattenSpan(spanBefore);
+      expect(
+        beforeParts.any((p) => p.$3 == TextDecorationStyle.dotted),
+        isFalse,
+      );
 
-    // Now with a recognized move keyword.
-    final spanAfter = await buildLingoSpan(
-      tester,
-      text: 'petronella here',
-      dialect: Dialect.canonical,
-      taxonomy: contraTaxonomy,
-    );
-    final afterParts = flattenSpan(spanAfter);
-    expect(
-      afterParts.any(
-        (p) =>
-            p.$1.toLowerCase() == 'petronella' &&
-            p.$2 == TextDecoration.underline &&
-            p.$3 == TextDecorationStyle.dotted,
-      ),
-      isTrue,
-    );
-  });
+      // Text containing a recognized move keyword — dotted underline expected.
+      final spanAfter = await buildLingoSpan(
+        tester,
+        text: 'petronella here',
+        dialect: Dialect.canonical,
+        taxonomy: contraTaxonomy,
+      );
+      final afterParts = flattenSpan(spanAfter);
+      expect(
+        afterParts.any(
+          (p) =>
+              p.$1.toLowerCase() == 'petronella' &&
+              p.$2 == TextDecoration.underline &&
+              p.$3 == TextDecorationStyle.dotted,
+        ),
+        isTrue,
+      );
+    },
+  );
 
   testWidgets(
     'lingo: move keyword offset stays correct after mid-string position',

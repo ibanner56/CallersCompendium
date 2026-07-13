@@ -93,7 +93,7 @@ List<({String text, int start})> roleSpans(String text, Dialect dialect) {
 /// `custom` move is excluded.
 ///
 /// Matching is case-insensitive and word/phrase-boundary-aware: single-word
-/// names ('swing') use the same `(?<![\w])...(? ![\w])` boundaries as
+/// names ('swing') use the same `(?<![\w])...(?![\w])` boundaries as
 /// [roleSpans]; multi-word phrases ('do si do', 'right left through') match the
 /// phrase as a unit — boundaries apply only at the phrase start and end, not
 /// at internal spaces.

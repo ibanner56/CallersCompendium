@@ -57,13 +57,9 @@ class LingoTextEditingController extends TextEditingController {
         ? const <({String text, int start})>[]
         : moveKeywordSpans(raw, tax);
 
-    // Each event carries a numeric priority so tie-breaking is deterministic:
-    // 0 = composing region (highest — must always render for IME correctness),
-    // 1 = discouraged (strikethrough),
-    // 2 = role term (solid underline),
-    // 3 = move keyword (dotted underline — lowest, supplementary hint).
-    // Discouraged wins over move-keyword so a term that is both (e.g. a legacy
-    // move name that is also dialect-discouraged) shows the stronger warning.
+    // Lingo events: priority controls tie-breaking when two spans share the
+    // same start position. 1 = discouraged (highest among lingo), 2 = role,
+    // 3 = move keyword (supplementary hint, lowest).
     final events =
         <
           ({
@@ -74,23 +70,6 @@ class LingoTextEditingController extends TextEditingController {
             int priority,
           })
         >[];
-
-    // IME composing region: add first so it always wins at the same position.
-    if (withComposing &&
-        value.composing.isValid &&
-        !value.composing.isCollapsed) {
-      final cs = value.composing.start.clamp(0, raw.length);
-      final ce = value.composing.end.clamp(0, raw.length);
-      if (cs < ce) {
-        events.add((
-          start: cs,
-          end: ce,
-          decoration: TextDecoration.underline,
-          decorationStyle: null,
-          priority: 0,
-        ));
-      }
-    }
 
     for (final s in discSpans) {
       final end = (s.start + s.text.length).clamp(0, raw.length);
@@ -126,6 +105,64 @@ class LingoTextEditingController extends TextEditingController {
           decorationStyle: TextDecorationStyle.dotted,
           priority: 3,
         ));
+      }
+    }
+
+    // IME composing region must render within its exact range regardless of
+    // any lingo span that began before it.  Fragment any overlapping lingo
+    // event into [start, cs) and (ce, end] pieces, then insert the composing
+    // event so it is never blocked by a longer preceding span.
+    if (withComposing &&
+        value.composing.isValid &&
+        !value.composing.isCollapsed) {
+      final cs = value.composing.start.clamp(0, raw.length);
+      final ce = value.composing.end.clamp(0, raw.length);
+      if (cs < ce) {
+        final fragmented =
+            <
+              ({
+                int start,
+                int end,
+                TextDecoration decoration,
+                TextDecorationStyle? decorationStyle,
+                int priority,
+              })
+            >[];
+        for (final ev in events) {
+          final overlaps = ev.start < ce && ev.end > cs;
+          if (!overlaps) {
+            fragmented.add(ev);
+          } else {
+            if (ev.start < cs) {
+              fragmented.add((
+                start: ev.start,
+                end: cs,
+                decoration: ev.decoration,
+                decorationStyle: ev.decorationStyle,
+                priority: ev.priority,
+              ));
+            }
+            if (ev.end > ce) {
+              fragmented.add((
+                start: ce,
+                end: ev.end,
+                decoration: ev.decoration,
+                decorationStyle: ev.decorationStyle,
+                priority: ev.priority,
+              ));
+            }
+          }
+        }
+        fragmented.add((
+          start: cs,
+          end: ce,
+          decoration: TextDecoration.underline,
+          decorationStyle: null,
+          priority: 0,
+        ));
+        events
+          ..clear()
+          ..addAll(fragmented);
       }
     }
 
