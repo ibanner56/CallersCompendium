@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_query.dart';
@@ -11,6 +12,7 @@ import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
+import '../screens/settings_screen.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 
@@ -28,10 +30,9 @@ class DanceListScreen extends StatefulWidget {
 }
 
 class _DanceListScreenState extends State<DanceListScreen> {
-  /// The active dialect the compiler canonicalizes input against. No user
-  /// dialect setting is persisted yet (later roadmap work), so the canonical
-  /// dialect is the default; the compiler still canonicalizes against it.
-  static final Dialect _dialect = Dialect.canonical;
+  /// Active dialect for search canonicalization — read from [ActiveDialectScope]
+  /// in [didChangeDependencies] and updated live when the user changes it.
+  Dialect _dialect = Dialect.larksRobins;
 
   static const Duration _debounce = Duration(milliseconds: 250);
 
@@ -58,10 +59,19 @@ class _DanceListScreenState extends State<DanceListScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_started) return;
-    _started = true;
-    _repos = RepositoriesScope.of(context);
-    _boot();
+    // Read the active dialect from the scope (registers rebuild dependency so
+    // didChangeDependencies fires again when the dialect changes).
+    final newDialect = ActiveDialectScope.of(context);
+    final dialectChanged = _started && newDialect != _dialect;
+    _dialect = newDialect;
+
+    if (!_started) {
+      _started = true;
+      _repos = RepositoriesScope.of(context);
+      _boot();
+    } else if (dialectChanged) {
+      _runSearch();
+    }
   }
 
   @override
@@ -209,6 +219,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
               icon: const Icon(Icons.restore_from_trash_outlined),
               onPressed: _openRecentlyDeleted,
             ),
+            IconButton(
+              key: const ValueKey('settings'),
+              tooltip: 'Settings',
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: _openSettings,
+            ),
             PopupMenuButton<CollectionSort>(
               tooltip: 'Sort by',
               initialValue: _sort,
@@ -261,6 +277,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
     ).push(MaterialPageRoute(builder: (_) => const CustomFieldsScreen()));
     // Reload so newly-created/edited fields show up as facets.
     if (mounted) await _boot();
+  }
+
+  Future<void> _openSettings() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
+    // Re-run search in case the dialect changed while on the settings screen.
+    // (The dialect change also fires re-run via didChangeDependencies, so this
+    // is a belt-and-suspenders guard for correctness.)
+    if (mounted) await _runSearch();
   }
 
   Future<void> _openRecentlyDeleted() async {

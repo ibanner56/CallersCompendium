@@ -86,6 +86,25 @@ class Dialect {
     discouragedTerms: defaultDiscouragedTerms,
   );
 
+  /// All shipped dialect presets, in display order.
+  /// `canonical` is first (the identity/no-op dialect); `larksRobins` is the
+  /// modern gender-free default and the app's out-of-box active dialect.
+  static final List<Dialect> presets = [
+    canonical,
+    larksRobins,
+    gentsLadies,
+    leadsFollows,
+    ladlesGentlespoons,
+  ];
+
+  /// Returns the preset whose [name] exactly matches [name], or `null`.
+  static Dialect? forName(String name) {
+    for (final d in presets) {
+      if (d.name == name) return d;
+    }
+    return null;
+  }
+
   /// Shipped default for the discouraged-terms list (editable by users).
   static const List<String> defaultDiscouragedTerms = [
     'gypsy',

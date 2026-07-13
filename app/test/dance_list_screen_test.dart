@@ -3,6 +3,7 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
@@ -40,16 +41,21 @@ Dance _dance({
 
 Future<void> _pumpScreen(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
+  CompendiumRepositories repos, {
+  Dialect? activeDialect,
+}) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
   await tester.binding.setSurfaceSize(const Size(1200, 3000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
+  final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
+  addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
-      builder: (context, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(notifier: notifier, child: child!),
+      ),
       home: const DanceListScreen(),
     ),
   );
@@ -630,4 +636,25 @@ void main() {
       expect(dance!.deletedAt, isNull);
     },
   );
+
+  // ── Settings entry ─────────────────────────────────────────────────────────
+
+  testWidgets('Settings button is present in the app bar', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('settings')), findsOneWidget);
+  });
+
+  testWidgets('Settings button navigates to SettingsScreen', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('settings')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Settings'), findsOneWidget);
+  });
 }
