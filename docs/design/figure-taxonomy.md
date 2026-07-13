@@ -137,7 +137,23 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   list-expressible, cf. poussette). `box_circulate` is intentionally excluded:
   it carries no places param. `star.grip` (`none`/`wristGrip`/`handsAcross`) is
   structured, not a render token (cf. PR3 enders).
-- PR5 hey/wave family — remaining.
+- **PR5 (hey/wave family, no new vocab) — completes the 2.4a set:** added
+  `pass_by`, `hey`, `dolphin_hey`, `form_long_waves`, `form_a_long_wave`,
+  `form_an_ocean_wave`. `hey` uses the approved **reduced-but-structured** model:
+  `pass1`/`pass2` (pass2 defaults to a hey-scoped `unspecified` sentinel),
+  `shoulder`, `length` (`full`/`half` only — ContraDB's `lessThanHalf`/
+  `betweenHalfAndFull` and `dancer%%N` meeting encodings are out of scope), `dir`,
+  four ricochet flags (`rico1`–`rico4`), and `beats`. `dolphin_hey.whom` uses the
+  single-dancer tokens. Wave formations carry their in/out/balance/pass-through
+  flags and ocean-wave hands as structured params; ContraDB's editor-only
+  auto-beat recomputation is out of scope (explicit beats are stored). Canonical
+  templates keep the identifying phrase (e.g. `role2s hey right`,
+  `form an ocean wave`) with the descriptive modifiers held structured for the
+  verbose renderer + structural search.
+
+**The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
+landed). Exactly one new engine type was required across the whole build-out —
+`ParamKind.places`; everything else fits the original kinds.
 
 **Confirmed divergences from ContraDB (already applied in the seed):**
 - Canonical roles are `role1`/`role2`; ContraDB `gentlespoons`→`role1(s)`,
@@ -161,8 +177,8 @@ kinds:
   figure-8 dir, left/right spins).
 - **`half_or_full`** — DONE (PR3): maps onto `fraction` (`half`/`full`).
 - **`hey`** (pass pairs, shoulder, length, dir, four ricochet flags, beats) and
-  the **ocean/long-wave family** — modeled with existing kinds in PR5 (no new
-  `ParamKind`). ContraDB's editor-only auto-beat "change" behaviors and the
+  the **ocean/long-wave family** — DONE (PR5): modeled with existing kinds (no
+  new `ParamKind`). ContraDB's editor-only auto-beat "change" behaviors and the
   `dancer%%N`/`lessThanHalf`/`betweenHalfAndFull` hey encodings are out of scope
   for the pure model.
 
