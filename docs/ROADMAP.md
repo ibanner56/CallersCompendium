@@ -120,7 +120,17 @@ Design items (each produces a design doc + review):
   `SettingsScreen` with radio preset list; Collection app bar Settings entry;
   default = `Dialect.larksRobins`.
 - (Already tracked elsewhere, pointers only: 2.4a full taxonomy data; the 3.2
-  follow-ups — nested figure groups inside `then`, per-Type taxonomy selection.)
+  follow-ups — ~~nested figure groups inside `then`~~, per-Type taxonomy selection.)
+  - ~~Nested figure groups inside `then`~~: **Resolved in Consolidation PR4**
+    (consolidation-pr4-nested-figure-groups): `BuilderFigureNode` sealed
+    hierarchy (`BuilderFigure` + `BuilderFigureGroup`) in `collection_query.dart`;
+    `BuilderThen.before/after` generalized from a fixed `BuilderFigure` to any
+    `BuilderFigureNode`; `_FigureOperandEditor` + `_FigureGroupEditor` widgets in
+    `advanced_query_builder.dart`; "Group figures" / "Single figure" affordances
+    in the `then` row; no compiler changes needed (filter_compiler already handles
+    nested `FigureQuery` in `ThenFilter`). Model supports arbitrary nesting depth;
+    UI exposes one level. **Per-Type taxonomy selection remains deferred** (blocked
+    on multi-form taxonomy data — ECD/square taxonomy does not yet exist).
 
 ## Phase 4 — Programs
 

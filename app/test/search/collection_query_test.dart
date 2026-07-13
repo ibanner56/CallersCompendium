@@ -452,4 +452,238 @@ void main() {
       expect((f.after as FigureLeaf).move, 'swing');
     });
   });
+
+  group('BuilderFigureGroup folding', () {
+    test('empty group folds to null', () {
+      expect(BuilderFigureGroup().toFigureQuery(), isNull);
+    });
+
+    test('all-of yields FigureAnd', () {
+      final all = BuilderFigureGroup(
+        kind: GroupKind.all,
+        children: [
+          BuilderFigure(move: 'swing'),
+          BuilderFigure(move: 'balance'),
+        ],
+      );
+      expect(all.toFigureQuery(), isA<FigureAnd>());
+    });
+
+    test('any-of yields FigureOr', () {
+      final any = BuilderFigureGroup(
+        kind: GroupKind.any,
+        children: [
+          BuilderFigure(move: 'swing'),
+          BuilderFigure(move: 'balance'),
+        ],
+      );
+      expect(any.toFigureQuery(), isA<FigureOr>());
+    });
+
+    test('none-of wraps FigureOr in FigureNot', () {
+      final none = BuilderFigureGroup(
+        kind: GroupKind.none,
+        children: [
+          BuilderFigure(move: 'swing'),
+          BuilderFigure(move: 'balance'),
+        ],
+      );
+      final q = none.toFigureQuery();
+      expect(q, isA<FigureNot>());
+      expect((q as FigureNot).child, isA<FigureOr>());
+    });
+
+    test('single-child group unwraps the redundant combinator', () {
+      final single = BuilderFigureGroup(
+        kind: GroupKind.any,
+        children: [BuilderFigure(move: 'swing')],
+      );
+      // One effective child → no wrapping OR, just the leaf
+      expect(single.toFigureQuery(), isA<FigureLeaf>());
+      expect((single.toFigureQuery()! as FigureLeaf).move, 'swing');
+    });
+
+    test('single none-of child wraps in FigureNot(FigureLeaf)', () {
+      final none = BuilderFigureGroup(
+        kind: GroupKind.none,
+        children: [BuilderFigure(move: 'chain')],
+      );
+      final q = none.toFigureQuery();
+      expect(q, isA<FigureNot>());
+      expect((q as FigureNot).child, isA<FigureLeaf>());
+      expect(((q).child as FigureLeaf).move, 'chain');
+    });
+
+    test('incomplete figure children are skipped', () {
+      final group = BuilderFigureGroup(
+        kind: GroupKind.any,
+        children: [
+          BuilderFigure(), // incomplete — no move
+          BuilderFigure(move: 'swing'),
+        ],
+      );
+      // Skips incomplete → one effective child → unwraps to FigureLeaf
+      final q = group.toFigureQuery();
+      expect(q, isA<FigureLeaf>());
+      expect((q! as FigureLeaf).move, 'swing');
+    });
+
+    test('all-incomplete children fold to null', () {
+      final group = BuilderFigureGroup(
+        kind: GroupKind.any,
+        children: [BuilderFigure(), BuilderFigure()],
+      );
+      expect(group.toFigureQuery(), isNull);
+    });
+
+    test('FigureOr children contain the correct moves', () {
+      final group = BuilderFigureGroup(
+        kind: GroupKind.any,
+        children: [
+          BuilderFigure(move: 'swing'),
+          BuilderFigure(move: 'balance'),
+          BuilderFigure(move: 'petronella'),
+        ],
+      );
+      final q = group.toFigureQuery() as FigureOr;
+      final moves = q.children.cast<FigureLeaf>().map((l) => l.move).toSet();
+      expect(moves, {'swing', 'balance', 'petronella'});
+    });
+
+    test('nested BuilderFigureGroup folds recursively', () {
+      final inner = BuilderFigureGroup(
+        kind: GroupKind.any,
+        children: [
+          BuilderFigure(move: 'swing'),
+          BuilderFigure(move: 'balance'),
+        ],
+      );
+      final outer = BuilderFigureGroup(
+        kind: GroupKind.all,
+        children: [
+          inner,
+          BuilderFigure(move: 'chain'),
+        ],
+      );
+      final q = outer.toFigureQuery();
+      expect(q, isA<FigureAnd>());
+      final andChildren = (q as FigureAnd).children;
+      expect(andChildren, hasLength(2));
+      expect(andChildren.first, isA<FigureOr>());
+      expect(andChildren.last, isA<FigureLeaf>());
+    });
+  });
+
+  group('BuilderThen with figure groups', () {
+    test(
+      'before=group(any), after=leaf folds to ThenFilter(FigureOr, FigureLeaf)',
+      () {
+        final thenNode = BuilderThen(
+          before: BuilderFigureGroup(
+            kind: GroupKind.any,
+            children: [
+              BuilderFigure(move: 'swing'),
+              BuilderFigure(move: 'balance'),
+            ],
+          ),
+          after: BuilderFigure(move: 'chain'),
+        );
+        final f = thenNode.toFilter();
+        expect(f, isA<ThenFilter>());
+        final tf = f as ThenFilter;
+        expect(tf.before, isA<FigureOr>());
+        expect(tf.after, isA<FigureLeaf>());
+        expect((tf.after as FigureLeaf).move, 'chain');
+        final orMoves = (tf.before as FigureOr).children
+            .cast<FigureLeaf>()
+            .map((l) => l.move)
+            .toSet();
+        expect(orMoves, {'swing', 'balance'});
+      },
+    );
+
+    test(
+      'before=leaf, after=none-of-group folds to ThenFilter(FigureLeaf, FigureNot)',
+      () {
+        final thenNode = BuilderThen(
+          before: BuilderFigure(move: 'petronella'),
+          after: BuilderFigureGroup(
+            kind: GroupKind.none,
+            children: [BuilderFigure(move: 'chain')],
+          ),
+        );
+        final f = thenNode.toFilter();
+        expect(f, isA<ThenFilter>());
+        final tf = f as ThenFilter;
+        expect(tf.before, isA<FigureLeaf>());
+        expect((tf.before as FigureLeaf).move, 'petronella');
+        expect(tf.after, isA<FigureNot>());
+        // none-of with one child → FigureNot(FigureLeaf)
+        expect((tf.after as FigureNot).child, isA<FigureLeaf>());
+        expect(((tf.after as FigureNot).child as FigureLeaf).move, 'chain');
+      },
+    );
+
+    test('both operands groups: any-of before, none-of after', () {
+      final thenNode = BuilderThen(
+        before: BuilderFigureGroup(
+          kind: GroupKind.any,
+          children: [
+            BuilderFigure(move: 'swing'),
+            BuilderFigure(move: 'balance'),
+          ],
+        ),
+        after: BuilderFigureGroup(
+          kind: GroupKind.none,
+          children: [
+            BuilderFigure(move: 'chain'),
+            BuilderFigure(move: 'hey'),
+          ],
+        ),
+      );
+      final f = thenNode.toFilter();
+      expect(f, isA<ThenFilter>());
+      final tf = f as ThenFilter;
+      expect(tf.before, isA<FigureOr>());
+      expect(tf.after, isA<FigureNot>());
+      expect((tf.after as FigureNot).child, isA<FigureOr>());
+      final notOrMoves = ((tf.after as FigureNot).child as FigureOr).children
+          .cast<FigureLeaf>()
+          .map((l) => l.move)
+          .toSet();
+      expect(notOrMoves, {'chain', 'hey'});
+    });
+
+    test('before=group with all-incomplete children, after=leaf → null', () {
+      final thenNode = BuilderThen(
+        before: BuilderFigureGroup(
+          kind: GroupKind.any,
+          children: [BuilderFigure(), BuilderFigure()], // all incomplete
+        ),
+        after: BuilderFigure(move: 'chain'),
+      );
+      expect(thenNode.toFilter(), isNull);
+    });
+
+    test(
+      'before=group(all-of), after=leaf folds to ThenFilter(FigureAnd, FigureLeaf)',
+      () {
+        final thenNode = BuilderThen(
+          before: BuilderFigureGroup(
+            kind: GroupKind.all,
+            children: [
+              BuilderFigure(move: 'swing', section: 'B1'),
+              BuilderFigure(move: 'circle'),
+            ],
+          ),
+          after: BuilderFigure(move: 'star'),
+        );
+        final f = thenNode.toFilter();
+        expect(f, isA<ThenFilter>());
+        final tf = f as ThenFilter;
+        expect(tf.before, isA<FigureAnd>());
+        expect((tf.before as FigureAnd).children, hasLength(2));
+      },
+    );
+  });
 }
