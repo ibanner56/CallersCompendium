@@ -12,10 +12,18 @@ import 'dance_editor_screen.dart';
 /// grouped by derived section with a canonical ⇄ dialect toggle, and the
 /// calling notes / links / custom-field sections. The Edit action opens the
 /// [DanceEditorScreen] (roadmap 3.3).
+///
+/// [onRestored] is called (if provided) when the user taps the Undo action
+/// on the delete snackbar — allowing the caller (e.g. the Collection screen)
+/// to reload its list so the restored dance reappears immediately.
 class DanceDetailScreen extends StatefulWidget {
-  const DanceDetailScreen({super.key, required this.danceId});
+  const DanceDetailScreen({super.key, required this.danceId, this.onRestored});
 
   final String danceId;
+
+  /// Optional callback invoked after a soft-delete is undone (restored).
+  /// The Collection screen passes `() => _boot()` here so the list reloads.
+  final VoidCallback? onRestored;
 
   @override
   State<DanceDetailScreen> createState() => _DanceDetailScreenState();
@@ -83,6 +91,61 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     if (mounted) _reload();
   }
 
+  /// Duplicates the dance, appends " (copy)" to the copy's title (since
+  /// [Dance.duplicate] preserves the original title verbatim), then navigates
+  /// to the new copy's detail screen.
+  Future<void> _duplicate() async {
+    final now = DateTime.now().toUtc();
+    final copy = await _repos.dances.duplicate(
+      id: widget.danceId,
+      newId: uuidV4(),
+      now: now,
+    );
+    // Append " (copy)" so the duplicate is visually distinct in the list.
+    await _repos.dances.update(
+      copy.copyWith(title: '${copy.title} (copy)', updatedAt: now),
+    );
+    if (!mounted) return;
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => DanceDetailScreen(danceId: copy.id),
+      ),
+    );
+  }
+
+  /// Soft-deletes the dance immediately and shows an "Undo" snackbar that
+  /// calls [DanceRepository.restore] if tapped. Pops back to the list after
+  /// deleting (before the snackbar appears, so the deleted dance is no longer
+  /// visible in the collection). Pops with `true` so the caller can reload.
+  /// [widget.onRestored] is called on undo so the Collection can re-display
+  /// the dance without requiring user-initiated navigation.
+  Future<void> _delete() async {
+    final title = (await _future)?.dance.title ?? 'Dance';
+    final now = DateTime.now().toUtc();
+    await _repos.dances.softDelete(widget.danceId, at: now);
+    if (!mounted) return;
+    // Capture ScaffoldMessengerState before pop() so we don't read a
+    // deactivating context after the route is removed from the tree.
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop(true);
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('deleted-snackbar'),
+        content: Text('"$title" deleted.'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            await _repos.dances.restore(
+              widget.danceId,
+              at: DateTime.now().toUtc(),
+            );
+            widget.onRestored?.call();
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,11 +156,28 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.data == null) return const SizedBox.shrink();
-              return TextButton.icon(
-                key: const ValueKey('edit-dance'),
-                onPressed: _openEditor,
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Edit'),
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    key: const ValueKey('duplicate-dance'),
+                    tooltip: 'Duplicate dance',
+                    icon: const Icon(Icons.copy_all_outlined),
+                    onPressed: _duplicate,
+                  ),
+                  TextButton.icon(
+                    key: const ValueKey('edit-dance'),
+                    onPressed: _openEditor,
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Edit'),
+                  ),
+                  IconButton(
+                    key: const ValueKey('delete-dance'),
+                    tooltip: 'Delete dance',
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: _delete,
+                  ),
+                ],
               );
             },
           ),

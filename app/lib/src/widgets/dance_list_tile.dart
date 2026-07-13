@@ -6,11 +6,16 @@ import '../screens/dance_detail_screen.dart';
 
 /// One Collection result row: title, authors, formation chip, status/tag chips
 /// and `showInList` custom fields (Phase 3.1 rendering). Tapping it opens
-/// [DanceDetailScreen].
+/// [DanceDetailScreen]. Pass an [onTap] to override the default navigation
+/// (e.g. when the caller needs to await a result from the detail route).
 class DanceListTile extends StatelessWidget {
-  const DanceListTile({super.key, required this.entry});
+  const DanceListTile({super.key, required this.entry, this.onTap});
 
   final DanceListEntry entry;
+
+  /// Optional override for the tap action. When null, the default behaviour
+  /// (push [DanceDetailScreen] without awaiting a result) is used.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -71,9 +76,13 @@ class DanceListTile extends StatelessWidget {
       ),
       isThreeLine: false,
       trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => DanceDetailScreen(danceId: dance.id)),
-      ),
+      onTap:
+          onTap ??
+          () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => DanceDetailScreen(danceId: dance.id),
+            ),
+          ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
   }

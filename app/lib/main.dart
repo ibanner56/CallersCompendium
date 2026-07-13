@@ -14,12 +14,14 @@ void main() {
 /// Root widget. Opens the on-device database once, runs any pending schema
 /// migration / derived-index back-fill via
 /// [CompendiumRepositories.ensureMigrated] (schema-v2 `dance_figures.section`),
+/// then performs a startup purge sweep that hard-deletes soft-deleted dances
+/// past the 30-day retention window ([DanceRepository.purgeDeleted]). The app
 /// then hands the repositories facade down to the Collection screen via
 /// [RepositoriesScope].
 ///
-/// Startup is gated on the migration by [AppBootstrap]: the app shows a loading
-/// screen until the back-fill completes so no screen reads the derived indexes
-/// before they are rebuilt (an error screen with retry is shown if it fails).
+/// Startup is gated on the migration + purge by [AppBootstrap]: the app shows a
+/// loading screen until both complete so no screen reads stale data (an error
+/// screen with retry is shown if either fails).
 class CompendiumApp extends StatefulWidget {
   const CompendiumApp({super.key});
 
@@ -35,7 +37,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
   void initState() {
     super.initState();
     _appData = AppData(openAppDatabase());
-    _bootstrap = _appData.repositories.ensureMigrated();
+    _bootstrap = _startupSequence();
+  }
+
+  Future<void> _startupSequence() async {
+    await _appData.repositories.ensureMigrated();
+    await _appData.repositories.dances.purgeDeleted(
+      now: DateTime.now().toUtc(),
+    );
   }
 
   @override
@@ -47,7 +56,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   }
 
   void _retry() {
-    setState(() => _bootstrap = _appData.repositories.ensureMigrated());
+    setState(() => _bootstrap = _startupSequence());
   }
 
   @override

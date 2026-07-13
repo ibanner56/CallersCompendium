@@ -90,7 +90,9 @@ Design items (each produces a design doc + review):
     choice value is stored on any dance; label/showInList/searchable always editable. Text and number
     custom-field facets added to `FacetPanel` + `FacetSelections` + `buildCollectionFilter` (text:
     contains/equals; number: eq/lt/gt/between).
-- [ ] 3.5 Dance duplication, soft-delete/restore
+- [x] 3.5 Dance duplication, soft-delete/restore — Duplicate action (app bar + copy title); soft-delete
+  with undo snackbar (detail + swipe-to-dismiss on list); Recently Deleted screen (restore, purge
+  ETA, permanent delete); startup purge sweep. **Phase 3 complete.**
 
 ### Deferred from 3.3a (dance editor metadata form) — tracked follow-ups
 
