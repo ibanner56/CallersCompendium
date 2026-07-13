@@ -115,6 +115,74 @@ void main() {
       expect(copy.createdAt, later);
       expect(copy.updatedAt, later);
     });
+
+    test('regenerates link ids so a persisted copy cannot collide', () {
+      final original = Dance(
+        id: 'd1',
+        title: 'Butter',
+        links: [
+          DanceLink(id: 'link-1', kind: LinkKind.video, url: 'https://v'),
+          DanceLink(id: 'link-2', kind: LinkKind.source, url: 'https://s'),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      );
+      var counter = 0;
+      final copy = original.duplicate(
+        newId: 'd2',
+        now: now,
+        newLinkId: () => 'new-${counter++}',
+      );
+      // Fresh ids …
+      expect(copy.links.map((l) => l.id), ['new-0', 'new-1']);
+      // … but the rest of each link is preserved.
+      expect(copy.links[0].kind, LinkKind.video);
+      expect(copy.links[0].url, 'https://v');
+      expect(copy.links[1].kind, LinkKind.source);
+      expect(copy.links[1].url, 'https://s');
+    });
+
+    test('preserves a related-dance link target while regenerating its id', () {
+      final original = Dance(
+        id: 'd1',
+        title: 'Butter',
+        links: [
+          DanceLink(
+            id: 'link-1',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'other',
+          ),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final copy = original.duplicate(
+        newId: 'd2',
+        now: now,
+        newLinkId: () => 'fresh',
+      );
+      expect(copy.links.single.id, 'fresh');
+      expect(copy.links.single.kind, LinkKind.relatedDance);
+      expect(copy.links.single.targetDanceId, 'other');
+    });
+
+    test('default id generator yields unique link ids', () {
+      final original = Dance(
+        id: 'd1',
+        title: 'Butter',
+        links: [
+          DanceLink(id: 'link-1', kind: LinkKind.video, url: 'https://v'),
+          DanceLink(id: 'link-2', kind: LinkKind.source, url: 'https://s'),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final copy = original.duplicate(newId: 'd2', now: now);
+      final ids = copy.links.map((l) => l.id).toSet();
+      expect(ids.length, 2);
+      expect(ids, isNot(contains('link-1')));
+      expect(ids, isNot(contains('link-2')));
+    });
   });
 
   group('value equality', () {

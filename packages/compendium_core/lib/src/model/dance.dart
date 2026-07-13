@@ -9,6 +9,7 @@ import 'figure.dart';
 import 'formation.dart';
 import 'phrase_structure.dart';
 import 'provenance.dart';
+import '../util/uuid.dart';
 
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
 
@@ -141,25 +142,47 @@ class Dance {
   /// A duplicate with a new identity, suitable for "duplicate dance":
   /// same content, fresh id/timestamps, provenance dropped (the copy is the
   /// user's own editable record).
-  Dance duplicate({required String newId, required DateTime now}) => Dance(
-    id: newId,
-    title: title,
-    authorIds: authorIds,
-    form: form,
-    formation: formation,
-    progression: progression,
-    phraseStructure: phraseStructure.raw,
-    figures: figures,
-    hook: hook,
-    callingNotes: callingNotes,
-    status: status,
-    tunes: tunes,
-    customFields: customFields,
-    tagIds: tagIds,
-    links: links,
-    createdAt: now,
-    updatedAt: now,
-  );
+  ///
+  /// [DanceLink]s are copied with **freshly generated ids** (via [newLinkId],
+  /// which defaults to [uuidV4]): link ids are globally unique primary keys,
+  /// so reusing the source's ids would collide when the copy is persisted.
+  /// A link's `targetDanceId` (for `relatedDance` links) is preserved — the
+  /// copy legitimately references the same related dance as the original.
+  Dance duplicate({
+    required String newId,
+    required DateTime now,
+    String Function()? newLinkId,
+  }) {
+    final genLinkId = newLinkId ?? uuidV4;
+    return Dance(
+      id: newId,
+      title: title,
+      authorIds: authorIds,
+      form: form,
+      formation: formation,
+      progression: progression,
+      phraseStructure: phraseStructure.raw,
+      figures: figures,
+      hook: hook,
+      callingNotes: callingNotes,
+      status: status,
+      tunes: tunes,
+      customFields: customFields,
+      tagIds: tagIds,
+      links: [
+        for (final link in links)
+          DanceLink(
+            id: genLinkId(),
+            kind: link.kind,
+            url: link.url,
+            targetDanceId: link.targetDanceId,
+            label: link.label,
+          ),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
