@@ -189,7 +189,7 @@ kinds:
 - `renderTemplate` produces **canonical text**; dialect substitution then
   produces display text; both are pure functions in the core package →
   golden-tested. Screen readers get an expanded verbose rendering (a11y
-  baseline requirement) — verbose rendering still TODO.
+  baseline requirement) — verbose rendering is deferred to roadmap item 5.4.
 - FTS indexing uses canonical rendered text + searchKeywords (incl. legacy
   terms like "gypsy" so searches by older users still find shoulder round).
 
