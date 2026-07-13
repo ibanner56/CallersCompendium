@@ -67,6 +67,43 @@ void main() {
     });
   });
 
+  group('presets list', () {
+    test('contains exactly 5 entries', () {
+      expect(Dialect.presets.length, 5);
+    });
+
+    test('first entry is canonical', () {
+      expect(Dialect.presets.first, same(Dialect.canonical));
+    });
+
+    test(
+      'contains larksRobins, gentsLadies, leadsFollows, ladlesGentlespoons',
+      () {
+        final names = Dialect.presets.map((d) => d.name).toSet();
+        expect(
+          names,
+          containsAll([
+            'Canonical',
+            'Larks/Robins',
+            'Gents/Ladies',
+            'Leads/Follows',
+            'Ladles/Gentlespoons',
+          ]),
+        );
+      },
+    );
+
+    test('forName returns the matching preset', () {
+      for (final preset in Dialect.presets) {
+        expect(Dialect.forName(preset.name), same(preset));
+      }
+    });
+
+    test('forName returns null for an unknown name', () {
+      expect(Dialect.forName('NotADialect'), isNull);
+    });
+  });
+
   group('value equality', () {
     test('equal dialects compare equal', () {
       expect(

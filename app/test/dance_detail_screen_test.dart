@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 
@@ -36,14 +37,19 @@ Dance _dance({
 Future<void> _pumpDetail(
   WidgetTester tester,
   CompendiumRepositories repos,
-  String danceId,
-) async {
+  String danceId, {
+  Dialect? activeDialect,
+}) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
+  final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
+  addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
-      builder: (context, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(notifier: notifier, child: child!),
+      ),
       home: DanceDetailScreen(danceId: danceId),
     ),
   );
@@ -252,10 +258,14 @@ void main() {
 
     await tester.binding.setSurfaceSize(const Size(1200, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(notifier.dispose);
     await tester.pumpWidget(
       MaterialApp(
-        builder: (context, child) =>
-            RepositoriesScope(repositories: repos, child: child!),
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
         home: Builder(
           builder: (ctx) => Scaffold(
             body: GestureDetector(
@@ -302,10 +312,14 @@ void main() {
 
     await tester.binding.setSurfaceSize(const Size(1200, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(notifier.dispose);
     await tester.pumpWidget(
       MaterialApp(
-        builder: (context, child) =>
-            RepositoriesScope(repositories: repos, child: child!),
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
         home: Builder(
           builder: (ctx) => Scaffold(
             body: GestureDetector(
@@ -335,5 +349,75 @@ void main() {
     final dance = await repos.dances.getById('d1');
     expect(dance, isNotNull);
     expect(dance!.deletedAt, isNull);
+  });
+
+  // ── Active dialect threading ───────────────────────────────────────────────
+
+  testWidgets('figure table uses active dialect and toggle shows canonical', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1', activeDialect: Dialect.larksRobins);
+
+    // Active dialect = Larks/Robins: role2s → Robins.
+    expect(find.text('Robins chain across'), findsOneWidget);
+    // Toggle is visible because active dialect is not canonical.
+    expect(find.byKey(const ValueKey('dialect-toggle')), findsOneWidget);
+
+    // Toggle to canonical.
+    await tester.tap(find.byKey(const ValueKey('dialect-toggle')));
+    await tester.pumpAndSettle();
+    expect(find.text('role2s chain across'), findsOneWidget);
+  });
+
+  testWidgets('with Gents/Ladies dialect figure table shows those terms', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1', activeDialect: Dialect.gentsLadies);
+
+    // role2s → Ladies in Gents/Ladies dialect.
+    expect(find.text('Ladies chain across'), findsOneWidget);
+    // Toggle is present (non-canonical dialect).
+    expect(find.byKey(const ValueKey('dialect-toggle')), findsOneWidget);
+  });
+
+  testWidgets('with Canonical dialect the dialect toggle is hidden', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1', activeDialect: Dialect.canonical);
+
+    // Toggle is hidden when active dialect is already canonical.
+    expect(find.byKey(const ValueKey('dialect-toggle')), findsNothing);
+    // Canonical role tokens shown.
+    expect(find.text('role2s chain across'), findsOneWidget);
   });
 }

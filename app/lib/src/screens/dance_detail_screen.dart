@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
@@ -33,9 +34,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   late CompendiumRepositories _repos;
   Future<_DanceDetail?>? _future;
 
-  /// Show the default display dialect (Larks/Robins) by default; the toggle
-  /// swaps to canonical role tokens. No user dialect is persisted yet, so the
-  /// shipped default preset stands in for "the active dialect".
+  /// When `false` the figure table renders in the user's active dialect;
+  /// when `true` it renders canonical role/move tokens.  The toggle is hidden
+  /// when the active dialect is already [Dialect.canonical] (toggling would
+  /// be a no-op).
   bool _canonicalView = false;
 
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
@@ -202,7 +204,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Widget _buildBody(_DanceDetail detail) {
     final theme = Theme.of(context);
     final dance = detail.dance;
-    final dialect = _canonicalView ? Dialect.canonical : Dialect.larksRobins;
+    final activeDialect = ActiveDialectScope.of(context);
+    // When the active dialect is already canonical, _canonicalView is a no-op
+    // (both sides of the toggle are identical).  In that case hide the toggle.
+    final isCanonicalDialect = activeDialect == Dialect.canonical;
+    final dialect = _canonicalView ? Dialect.canonical : activeDialect;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -258,10 +264,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           children: [
             Text('Figures', style: theme.textTheme.titleMedium),
             const Spacer(),
-            _DialectToggle(
-              canonical: _canonicalView,
-              onChanged: (value) => setState(() => _canonicalView = value),
-            ),
+            if (!isCanonicalDialect)
+              _DialectToggle(
+                canonical: _canonicalView,
+                onChanged: (value) => setState(() => _canonicalView = value),
+              ),
           ],
         ),
         FigureTable(

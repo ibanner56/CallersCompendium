@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../editor/editor_draft_codec.dart';
 import '../editor/editor_snapshot.dart';
@@ -929,6 +930,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             drafts: _figureDrafts,
             taxonomy: _taxonomy,
             phraseStructure: _phraseStructure,
+            dialect: ActiveDialectScope.of(context),
             onChanged: () {
               setState(_recomputeWarnings);
               _scheduleUndoPush();

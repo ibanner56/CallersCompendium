@@ -101,6 +101,12 @@ Design items (each produces a design doc + review):
 - `relatedDance` link target picker (3.3a links editor is URL-based only).
 - Desktop list/detail **split-pane** editor layout (v1 ships a full-screen editor route).
 - Cross-session / persistent **undo** (3.3d ships in-memory undo/redo only).
+- ~~`revisit-lingo-dialect` — active dialect settings (persisted user-selectable dialect,
+  settings screen, threading through detail toggle / lingo line / search).~~
+  **Resolved in Consolidation PR1** (dialect-settings branch): `Dialect.presets` +
+  `Dialect.forName` in core; `ActiveDialectScope` (`InheritedNotifier<ValueNotifier<Dialect>>`);
+  `SettingsScreen` with radio preset list; Collection app bar Settings entry;
+  default = `Dialect.larksRobins`.
 - (Already tracked elsewhere, pointers only: 2.4a full taxonomy data; the 3.2
   follow-ups — nested figure groups inside `then`, per-Type taxonomy selection.)
 
