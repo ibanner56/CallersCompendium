@@ -96,8 +96,14 @@ Design items (each produces a design doc + review):
 
 ### Deferred from 3.3a (dance editor metadata form) — tracked follow-ups
 
-- Custom-figure lingo line: underline recognized **taxonomy move** keywords (3.3a/c
-  ships only `canonicalize()`'s discouraged-strike + role-underline; ux.md §3 partial).
+- ~~Custom-figure lingo line: underline recognized **taxonomy move** keywords (3.3a/c
+  ships only `canonicalize()`'s discouraged-strike + role-underline; ux.md §3 partial).~~
+  **Resolved in Consolidation PR2** (consolidation-pr2-lingo-move-keywords): `moveKeywordSpans()`
+  in core (word/phrase-boundary matching across all `MoveDef`/`MoveAlias` display names + search
+  keywords, excluding `custom`); `LingoTextEditingController` extended with optional `taxonomy`
+  field and priority-3 dotted-underline events (discouraged-strike > role-underline > move-dotted);
+  a11y: dotted vs solid underline is shape-distinct (not color-alone); move highlighting is
+  supplementary (helper text updated to describe all three styles).
 - `relatedDance` link target picker (3.3a links editor is URL-based only).
 - Desktop list/detail **split-pane** editor layout (v1 ships a full-screen editor route).
 - Cross-session / persistent **undo** (3.3d ships in-memory undo/redo only).

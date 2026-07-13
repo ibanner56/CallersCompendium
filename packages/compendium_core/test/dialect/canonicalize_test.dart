@@ -118,4 +118,121 @@ void main() {
       expect(spans.where((s) => s.text.toLowerCase() == 'larks'), isEmpty);
     });
   });
+
+  group('moveKeywordSpans', () {
+    test('finds a single-word move name (swing)', () {
+      final spans = moveKeywordSpans('neighbors swing', contraTaxonomy);
+      expect(spans, hasLength(1));
+      expect(spans.first.text.toLowerCase(), 'swing');
+      expect(spans.first.start, 10);
+    });
+
+    test('finds a single-word move name at the start of the string', () {
+      final spans = moveKeywordSpans('swing your partner', contraTaxonomy);
+      expect(spans, hasLength(1));
+      expect(spans.first.text.toLowerCase(), 'swing');
+      expect(spans.first.start, 0);
+    });
+
+    test('finds a multi-word display name (do si do) as a phrase', () {
+      final spans = moveKeywordSpans('neighbors do si do', contraTaxonomy);
+      final doSiDo = spans.firstWhere(
+        (s) => s.text.toLowerCase() == 'do si do',
+        orElse: () => (text: '', start: -1),
+      );
+      expect(doSiDo.text.toLowerCase(), 'do si do');
+      expect(doSiDo.start, 10);
+    });
+
+    test('finds a multi-word display name (right left through)', () {
+      final spans = moveKeywordSpans(
+        'right left through across',
+        contraTaxonomy,
+      );
+      final rlt = spans.firstWhere(
+        (s) => s.text.toLowerCase() == 'right left through',
+        orElse: () => (text: '', start: -1),
+      );
+      expect(rlt.text.toLowerCase(), 'right left through');
+      expect(rlt.start, 0);
+    });
+
+    test('finds a legacy search keyword (gypsy → shoulder_round)', () {
+      final spans = moveKeywordSpans('gypsy one and a half', contraTaxonomy);
+      final gypsy = spans.firstWhere(
+        (s) => s.text.toLowerCase() == 'gypsy',
+        orElse: () => (text: '', start: -1),
+      );
+      expect(gypsy.text.toLowerCase(), 'gypsy');
+      expect(gypsy.start, 0);
+    });
+
+    test('is case-insensitive', () {
+      final spans = moveKeywordSpans('SWING your partner', contraTaxonomy);
+      expect(spans, isNotEmpty);
+      expect(spans.first.text, 'SWING');
+    });
+
+    test('is case-insensitive for a multi-word phrase', () {
+      final spans = moveKeywordSpans('Do Si Do', contraTaxonomy);
+      final doSiDo = spans.firstWhere(
+        (s) => s.text.toLowerCase() == 'do si do',
+        orElse: () => (text: '', start: -1),
+      );
+      expect(doSiDo.text, 'Do Si Do');
+    });
+
+    test('respects word boundaries — no false positive in "swinging"', () {
+      // "swinging" shares the prefix "swing" but is not a word-boundary match.
+      final spans = moveKeywordSpans(
+        'they were swinging around',
+        contraTaxonomy,
+      );
+      expect(spans.where((s) => s.text.toLowerCase() == 'swing'), isEmpty);
+    });
+
+    test('respects word boundaries — no false positive in "petronellas"', () {
+      // "petronellas" is not in the taxonomy (only "petronella").
+      final spans = moveKeywordSpans('two petronellas', contraTaxonomy);
+      expect(spans.where((s) => s.text.toLowerCase() == 'petronella'), isEmpty);
+    });
+
+    test('finds alias display name (see saw)', () {
+      final spans = moveKeywordSpans('see saw instead', contraTaxonomy);
+      final seeSaw = spans.firstWhere(
+        (s) => s.text.toLowerCase() == 'see saw',
+        orElse: () => (text: '', start: -1),
+      );
+      expect(seeSaw.text.toLowerCase(), 'see saw');
+    });
+
+    test('returns empty for text with no known moves', () {
+      final spans = moveKeywordSpans('hello world', contraTaxonomy);
+      expect(spans, isEmpty);
+    });
+
+    test('returns empty for empty string', () {
+      expect(moveKeywordSpans('', contraTaxonomy), isEmpty);
+    });
+
+    test('does not match the custom move displayName ("custom")', () {
+      final spans = moveKeywordSpans('my custom step', contraTaxonomy);
+      expect(spans.where((s) => s.text.toLowerCase() == 'custom'), isEmpty);
+    });
+
+    test('finds petronella with correct offset in mid-string', () {
+      final spans = moveKeywordSpans('do a petronella here', contraTaxonomy);
+      final pet = spans.firstWhere(
+        (s) => s.text.toLowerCase() == 'petronella',
+        orElse: () => (text: '', start: -1),
+      );
+      expect(pet.start, 5);
+    });
+
+    test('finds multiple moves in one string', () {
+      final spans = moveKeywordSpans('swing then petronella', contraTaxonomy);
+      final texts = spans.map((s) => s.text.toLowerCase()).toList();
+      expect(texts, containsAll(['swing', 'petronella']));
+    });
+  });
 }

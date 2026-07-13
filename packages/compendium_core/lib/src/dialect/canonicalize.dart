@@ -1,3 +1,5 @@
+import '../model/figure.dart' show customMoveId;
+import '../taxonomy/taxonomy.dart';
 import 'dialect.dart';
 import 'renderer.dart';
 import 'substitution.dart';
@@ -82,4 +84,41 @@ List<({String text, int start})> roleSpans(String text, Dialect dialect) {
     map.putIfAbsent(token, () => token);
   }
   return Substitutor(map, caseInsensitive: true).matches(text);
+}
+
+/// Returns spans in [text] that are recognised as taxonomy move keywords, for
+/// the editor "lingo line" dotted-underline.  Covers each [MoveDef] and
+/// [MoveAlias] `displayName` and `searchKeywords` (e.g. 'swing', 'petronella',
+/// 'do si do', 'gypsy' → shoulder_round's legacy keyword).  The generic
+/// `custom` move is excluded.
+///
+/// Matching is case-insensitive and word/phrase-boundary-aware: single-word
+/// names ('swing') use the same `(?<![\w])...(? ![\w])` boundaries as
+/// [roleSpans]; multi-word phrases ('do si do', 'right left through') match the
+/// phrase as a unit — boundaries apply only at the phrase start and end, not
+/// at internal spaces.
+///
+/// All returned spans hold positions in the original [text].
+List<({String text, int start})> moveKeywordSpans(
+  String text,
+  Taxonomy taxonomy,
+) {
+  if (text.isEmpty) return const [];
+  // Build a keyword → id map (values aren't used by .matches(); any non-empty
+  // string works as the map value).
+  final keywords = <String, String>{};
+  for (final move in taxonomy.moves.values) {
+    if (move.id == customMoveId) continue;
+    keywords[move.displayName.toLowerCase()] = move.id;
+    for (final kw in move.searchKeywords) {
+      if (kw.isNotEmpty) keywords[kw.toLowerCase()] = move.id;
+    }
+  }
+  for (final alias in taxonomy.aliases.values) {
+    keywords[alias.displayName.toLowerCase()] = alias.id;
+    for (final kw in alias.searchKeywords) {
+      if (kw.isNotEmpty) keywords[kw.toLowerCase()] = alias.id;
+    }
+  }
+  return Substitutor(keywords, caseInsensitive: true).matches(text);
 }
