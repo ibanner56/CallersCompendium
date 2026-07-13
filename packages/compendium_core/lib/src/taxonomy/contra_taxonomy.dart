@@ -28,13 +28,13 @@ const _downTheHallEnders = [
 ];
 
 // hey's second pass may be any pair OR left unspecified (ContraDB
-// chooser_pairz_or_unspecified). Kept hey-scoped rather than polluting the
-// shared dancer vocabulary with the sentinel.
-const _heyPass2Choices = [...ParamVocab.dancerSets, 'unspecified'];
+// chooser_pairz_or_unspecified). Built from the pair-level dancer sets so a
+// single-dancer identity can't be selected as a "pair".
+const _heyPass2Choices = [...ParamVocab.pairDancerSets, 'unspecified'];
 
 // The four single-dancer identities (ContraDB chooser_dancer: 1st/2nd couple x
 // role), for moves that name an individual dancer.
-const _singleDancers = ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2'];
+const _singleDancers = ParamVocab.singleDancers;
 
 /// The seed contra move taxonomy.
 ///

@@ -48,7 +48,10 @@ enum ParamKind {
 
 /// Canonical value vocabularies for the closed parameter kinds.
 abstract final class ParamVocab {
-  static const List<String> dancerSets = [
+  /// Pair/group-level dancer sets — everything except the single-dancer
+  /// identities. These are the values valid wherever a param names a *pair* or
+  /// group (e.g. hey's `pass2`, most `who`/`whom` params).
+  static const List<String> pairDancerSets = [
     'everyone',
     'role1s',
     'role2s',
@@ -68,15 +71,21 @@ abstract final class ParamVocab {
     // Roadmap 2.4a (PR3): the center dancers as a group (Rory O'More's
     // chooser_pairc_or_everyone).
     'centers',
-    // Roadmap 2.4a (PR3): single-dancer identities — one couple (1s/2s) × one
-    // role — for moves that name an individual (figure_8's `lead`,
-    // dolphin_hey's `whom`). Equivalent to ContraDB's chooser_dancer
-    // "first/second gentlespoon/ladle".
+  ];
+
+  /// Single-dancer identities — one couple (1s/2s) × one role — for moves that
+  /// name an individual (figure_8's `lead`, dolphin_hey's `whom`). Equivalent
+  /// to ContraDB's chooser_dancer "first/second gentlespoon/ladle" (2.4a PR3).
+  static const List<String> singleDancers = [
     'onesRole1',
     'onesRole2',
     'twosRole1',
     'twosRole2',
   ];
+
+  /// All dancer tokens (pair/group + single-dancer identities). The default
+  /// domain for [ParamKind.dancerSet] / [ParamKind.dancerPair].
+  static const List<String> dancerSets = [...pairDancerSets, ...singleDancers];
   static const List<String> sides = ['right', 'left'];
   static const List<String> spins = ['clockwise', 'counterclockwise'];
   static const List<String> fractions = [

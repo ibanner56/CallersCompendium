@@ -98,6 +98,18 @@ void main() {
       );
     });
 
+    test('pass2 rejects a single-dancer identity (must be a pair)', () {
+      for (final d in ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2']) {
+        expect(
+          tax
+              .validateFigure(Figure(move: 'hey', params: {'pass2': d}))
+              .any((i) => i.code == 'invalid_param_value'),
+          isTrue,
+          reason: '$d is a single dancer, not a valid pass2 pair',
+        );
+      }
+    });
+
     test('all four ricochet flags are present and boolean', () {
       for (final r in ['rico1', 'rico2', 'rico3', 'rico4']) {
         expect(
