@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
@@ -22,8 +23,37 @@ import 'dance_editor_screen.dart';
 /// single [DanceFilter] that is run against the search core
 /// ([DanceRepository.search], `docs/design/search.md`). Results reuse the
 /// Phase 3.1 list rendering and open [DanceDetailScreen] on tap.
+///
+/// [onSelectDance] is an optional callback for split-pane callers (e.g.
+/// [CollectionShell]). When provided, tapping a dance tile calls this instead
+/// of pushing a [DanceDetailScreen] route, so the parent can display the
+/// detail in a side pane. When null (default), the existing push-navigation
+/// behavior is preserved.
+///
+/// [selectedDanceId] highlights the currently selected row in split-pane mode.
+///
+/// [refreshTrigger] allows a parent widget to request a full list reload by
+/// incrementing the notifier value (e.g. after a detail-pane delete/restore).
 class DanceListScreen extends StatefulWidget {
-  const DanceListScreen({super.key});
+  const DanceListScreen({
+    super.key,
+    this.onSelectDance,
+    this.selectedDanceId,
+    this.refreshTrigger,
+  });
+
+  /// Called with the tapped dance's id when the split-pane shell needs to
+  /// control navigation. Null ⇒ use the standard [Navigator.push] route.
+  final void Function(String danceId)? onSelectDance;
+
+  /// Id of the currently selected dance for row highlighting in split-pane
+  /// mode. Has no effect when [onSelectDance] is null.
+  final String? selectedDanceId;
+
+  /// When non-null, the list calls [_boot] whenever this notifier's value
+  /// changes — allowing the [CollectionShell] to trigger a refresh after a
+  /// delete or restore in the detail pane.
+  final ValueListenable<int>? refreshTrigger;
 
   @override
   State<DanceListScreen> createState() => _DanceListScreenState();
@@ -68,6 +98,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
+      widget.refreshTrigger?.addListener(_onRefreshTriggered);
       _boot();
     } else if (dialectChanged) {
       _runSearch();
@@ -75,7 +106,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   @override
+  void didUpdateWidget(DanceListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshTrigger != widget.refreshTrigger) {
+      oldWidget.refreshTrigger?.removeListener(_onRefreshTriggered);
+      widget.refreshTrigger?.addListener(_onRefreshTriggered);
+    }
+  }
+
+  void _onRefreshTriggered() {
+    if (mounted) _boot();
+  }
+
+  @override
   void dispose() {
+    widget.refreshTrigger?.removeListener(_onRefreshTriggered);
     _debounceTimer?.cancel();
     _ftsController.dispose();
     super.dispose();
@@ -527,23 +572,32 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ),
           child: DanceListTile(
             entry: entry,
-            onTap: () async {
-              // DanceDetailScreen pops with true when a dance is deleted so
-              // the Collection can reload and remove the stale row immediately.
-              // onRestored is called if the user taps Undo, so the restored
-              // dance reappears in the list without a manual reload.
-              final deleted = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                  builder: (_) => DanceDetailScreen(
-                    danceId: entry.dance.id,
-                    onRestored: () {
-                      if (mounted) _boot();
-                    },
-                  ),
-                ),
-              );
-              if (mounted && deleted == true) await _boot();
-            },
+            // Only highlight the selected row when in split-pane mode
+            // (onSelectDance != null). In routed mode selectedDanceId has
+            // no visual effect, keeping the API contract consistent.
+            selected:
+                widget.onSelectDance != null &&
+                widget.selectedDanceId == entry.dance.id,
+            onTap: widget.onSelectDance != null
+                ? () => widget.onSelectDance!(entry.dance.id)
+                : () async {
+                    // DanceDetailScreen pops with true when a dance is deleted
+                    // so the Collection can reload and remove the stale row.
+                    // onRestored is called if the user taps Undo, so the
+                    // restored dance reappears in the list without a manual
+                    // reload.
+                    final deleted = await Navigator.of(context).push<bool>(
+                      MaterialPageRoute(
+                        builder: (_) => DanceDetailScreen(
+                          danceId: entry.dance.id,
+                          onRestored: () {
+                            if (mounted) _boot();
+                          },
+                        ),
+                      ),
+                    );
+                    if (mounted && deleted == true) await _boot();
+                  },
           ),
         );
       },

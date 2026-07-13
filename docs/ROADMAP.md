@@ -111,7 +111,17 @@ Design items (each produces a design doc + review):
   shunt removed — all four `LinkKind`s are now fully editable; snapshot/undo/autosave-draft updated
   (draft codec bumped to v2); detail screen resolves and displays target dance title with tappable
   navigation; dangling targets show `(missing dance)` placeholder.
-- Desktop list/detail **split-pane** editor layout (v1 ships a full-screen editor route).
+- ~~Desktop list/detail **split-pane** editor layout (v1 ships a full-screen editor route).~~
+  **Resolved in Consolidation PR5** (consolidation-pr5-split-pane-layout): `CollectionShell`
+  responsive wrapper in `app/lib/src/screens/collection_shell.dart`; breakpoint 900 px logical
+  width; wide mode = 400 px fixed list pane (with `DanceListScreen` + `onSelectDance`/
+  `selectedDanceId`/`refreshTrigger` seam) + flexible detail pane (`DanceDetailScreen` or
+  empty-state placeholder); `DanceDetailScreen` gains `onDeleted`/`onNavigateTo` so delete
+  and duplicate work correctly without a route pop; narrow mode behavior fully unchanged.
+  `main.dart` home updated to `CollectionShell`. Selected-row highlight via `ListTile.selected`.
+  All deferred follow-ups from Phase 3/3.2 are now addressed **except** the two still blocked
+  by missing data: per-Type taxonomy selection (needs ECD/Square taxonomy) and the
+  `listIdsAndTitles` perf tweak.
 - Cross-session / persistent **undo** (3.3d ships in-memory undo/redo only).
 - ~~`revisit-lingo-dialect` — active dialect settings (persisted user-selectable dialect,
   settings screen, threading through detail toggle / lingo line / search).~~

@@ -9,7 +9,12 @@ import '../screens/dance_detail_screen.dart';
 /// [DanceDetailScreen]. Pass an [onTap] to override the default navigation
 /// (e.g. when the caller needs to await a result from the detail route).
 class DanceListTile extends StatelessWidget {
-  const DanceListTile({super.key, required this.entry, this.onTap});
+  const DanceListTile({
+    super.key,
+    required this.entry,
+    this.onTap,
+    this.selected = false,
+  });
 
   final DanceListEntry entry;
 
@@ -17,12 +22,16 @@ class DanceListTile extends StatelessWidget {
   /// (push [DanceDetailScreen] without awaiting a result) is used.
   final VoidCallback? onTap;
 
+  /// Whether this tile is the currently selected row (e.g. in split-pane mode).
+  final bool selected;
+
   @override
   Widget build(BuildContext context) {
     final dance = entry.dance;
     final theme = Theme.of(context);
 
     return ListTile(
+      selected: selected,
       title: Text(dance.title),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
