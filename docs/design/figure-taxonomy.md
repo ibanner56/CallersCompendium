@@ -111,8 +111,9 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   `revolving_door`, `star_promenade`, `allemande_orbit`. ContraDB params with
   "no default" (which force a chooser selection there) take sensible community
   defaults here, since `ParamSpec.defaultValue` is required. `stand_still` omits
-  `goodBeats` because ContraDB's "beats ≥ 1" min-rule isn't expressible in the
-  list-based `goodBeats` model.
+  `goodBeats`, so any in-range beat count (0–64) is accepted without a warning;
+  ContraDB's "beats ≥ 1" min-rule isn't expressible in the list-based
+  `goodBeats` model and is not enforced.
 
 **Confirmed divergences from ContraDB (already applied in the seed):**
 - Canonical roles are `role1`/`role2`; ContraDB `gentlespoons`→`role1(s)`,

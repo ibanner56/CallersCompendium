@@ -228,8 +228,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'stand still',
       params: {'beats': ParamSpec(ParamKind.beats, defaultValue: 8)},
       renderTemplate: '{move}',
-      // ContraDB's rule is "beats >= 1", which the list-based goodBeats can't
-      // express; any positive count is fine, so no typical-beats warning.
+      // No goodBeats: any in-domain beat count (0..64) is accepted without a
+      // warning. ContraDB's "beats >= 1" min-rule isn't expressible in the
+      // list-based goodBeats model and is not enforced here.
     ),
     const MoveDef(
       id: 'slide_along_set',
@@ -265,7 +266,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {hand}',
+      renderTemplate: '{who} {move} {hand} {whom}',
       goodBeats: [8],
     ),
     const MoveDef(
