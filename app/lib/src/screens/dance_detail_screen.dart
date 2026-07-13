@@ -17,14 +17,39 @@ import 'dance_editor_screen.dart';
 /// [onRestored] is called (if provided) when the user taps the Undo action
 /// on the delete snackbar — allowing the caller (e.g. the Collection screen)
 /// to reload its list so the restored dance reappears immediately.
+///
+/// [onDeleted] is called (if provided) instead of [Navigator.pop] when a
+/// delete is confirmed — used by [CollectionShell] when this screen is
+/// embedded in the split-pane detail pane rather than pushed as a route.
+///
+/// [onNavigateTo] is called (if provided) instead of [Navigator.pushReplacement]
+/// when the user duplicates a dance — used by [CollectionShell] to update the
+/// selected dance id in the detail pane without a route push.
 class DanceDetailScreen extends StatefulWidget {
-  const DanceDetailScreen({super.key, required this.danceId, this.onRestored});
+  const DanceDetailScreen({
+    super.key,
+    required this.danceId,
+    this.onRestored,
+    this.onDeleted,
+    this.onNavigateTo,
+  });
 
   final String danceId;
 
   /// Optional callback invoked after a soft-delete is undone (restored).
   /// The Collection screen passes `() => _boot()` here so the list reloads.
   final VoidCallback? onRestored;
+
+  /// Optional callback invoked after a soft-delete is confirmed. When set
+  /// (split-pane embedded mode), the parent handles navigation; when null
+  /// (routed mode), [Navigator.pop] with `true` is used instead.
+  final VoidCallback? onDeleted;
+
+  /// Optional callback invoked with a [danceId] when navigation to a different
+  /// dance is needed (e.g. after duplication). When set (split-pane mode), the
+  /// parent updates the selected id; when null (routed mode), the screen uses
+  /// [Navigator.pushReplacement] instead.
+  final void Function(String danceId)? onNavigateTo;
 
   @override
   State<DanceDetailScreen> createState() => _DanceDetailScreenState();
@@ -115,7 +140,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   /// Duplicates the dance, appends " (copy)" to the copy's title (since
   /// [Dance.duplicate] preserves the original title verbatim), then navigates
-  /// to the new copy's detail screen.
+  /// to the new copy's detail screen. In routed mode, uses
+  /// [Navigator.pushReplacement]; in embedded split-pane mode, calls
+  /// [widget.onNavigateTo] so the parent shell updates the selected id.
   Future<void> _duplicate() async {
     final now = DateTime.now().toUtc();
     final copy = await _repos.dances.duplicate(
@@ -128,28 +155,41 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       copy.copyWith(title: '${copy.title} (copy)', updatedAt: now),
     );
     if (!mounted) return;
-    await Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => DanceDetailScreen(danceId: copy.id),
-      ),
-    );
+    if (widget.onNavigateTo != null) {
+      // Embedded (split-pane) mode: let the shell display the new dance.
+      widget.onNavigateTo!(copy.id);
+    } else {
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => DanceDetailScreen(danceId: copy.id),
+        ),
+      );
+    }
   }
 
   /// Soft-deletes the dance immediately and shows an "Undo" snackbar that
-  /// calls [DanceRepository.restore] if tapped. Pops back to the list after
-  /// deleting (before the snackbar appears, so the deleted dance is no longer
-  /// visible in the collection). Pops with `true` so the caller can reload.
+  /// calls [DanceRepository.restore] if tapped. In routed mode (no [onDeleted]
+  /// callback), pops back to the list with `true` so the caller can reload.
+  /// In embedded split-pane mode ([onDeleted] is set), calls that callback
+  /// instead of popping (the screen is not on the Navigator stack).
   /// [widget.onRestored] is called on undo so the Collection can re-display
   /// the dance without requiring user-initiated navigation.
+  ///
+  /// Note: the snackbar is shown BEFORE [onDeleted] or pop so the current
+  /// Scaffold is still registered with its [ScaffoldMessenger] when the
+  /// snackbar is enqueued. In split-pane mode, this ensures the snackbar
+  /// appears in the detail pane rather than being lost on unmount.
   Future<void> _delete() async {
     final title = (await _future)?.dance.title ?? 'Dance';
     final now = DateTime.now().toUtc();
     await _repos.dances.softDelete(widget.danceId, at: now);
     if (!mounted) return;
-    // Capture ScaffoldMessengerState before pop() so we don't read a
-    // deactivating context after the route is removed from the tree.
+    // Capture ScaffoldMessengerState before any navigation/callback so we
+    // don't read a deactivating context after the widget is removed.
     final messenger = ScaffoldMessenger.of(context);
-    Navigator.of(context).pop(true);
+    // Show the snackbar first so the Scaffold is still in the tree when the
+    // messenger enqueues it — then notify the parent (which may unmount this
+    // widget) or pop the route.
     messenger.showSnackBar(
       SnackBar(
         key: const ValueKey('deleted-snackbar'),
@@ -166,6 +206,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ),
       ),
     );
+    if (widget.onDeleted != null) {
+      // Embedded (split-pane) mode: notify the parent; no route to pop.
+      widget.onDeleted!.call();
+    } else {
+      // Routed mode: pop with true so the list screen can reload.
+      Navigator.of(context).pop(true);
+    }
   }
 
   @override
