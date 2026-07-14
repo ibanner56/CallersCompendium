@@ -43,9 +43,11 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
 
 This project is made available free-of-charge (free of a kind, the birds and the frees, Staying Alive by the Free-Gees, etc.) under the GNU Affero General Public License, because the developer does not believe in putting financial barriers between aspiring callers and accessible calling resources[^1] and because Open Source Software has always been the one true path forward in the modern digital era. 
 
-Maybe that means something to you, maybe you're just reading this because you like Isaac Banner rants (I don't understand why, but I'm glad you're here). Either way, if you like what this project is doing and you'd like to support it, you can donate via the link below. 
+Maybe that means something to you, maybe you're just reading this because you like Isaac Banner rants (I don't understand why, but I'm glad you're here). Either way, if you like what this project is doing and you'd like to support it, you can donate via GitHub Sponsors.
 
-**[Someday a donation link will go here]**
+**❤️ [Sponsor this project on GitHub Sponsors](https://github.com/sponsors/ibanner56)**
+
+Sponsorships (one-time or recurring) go directly toward development time and keeping the project free for everyone. You can also support the project without spending a cent — star the repo, file issues, and contribute (see [Contributing](#contributing)).
 
 ## Choreography and Copyright
 
