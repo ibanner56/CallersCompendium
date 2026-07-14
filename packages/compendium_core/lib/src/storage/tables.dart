@@ -34,6 +34,15 @@ class Dances extends Table {
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 
+  /// Difficulty on the ordered [DanceLevel] scale, persisted by enum name;
+  /// nullable (`null` = unspecified). Added in schema v4 (CC-parity `Level`).
+  TextColumn get level =>
+      text().nullable().map(const EnumNameConverter(DanceLevel.values))();
+
+  /// Marks a dance that spans the difficulty scale; kept separate from [level]
+  /// so the ordered scale stays total. Added in schema v4 (CC `Mixed Level`).
+  BoolColumn get mixedLevel => boolean().withDefault(const Constant(false))();
+
   /// JSON array of tune name strings.
   TextColumn get tunesJson => text().withDefault(const Constant('[]'))();
   DateTimeColumn get createdAt => dateTime()();

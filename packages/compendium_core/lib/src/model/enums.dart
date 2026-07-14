@@ -8,6 +8,18 @@ enum Progression { none, single, double, triple, quadruple, other }
 /// Lifecycle status of a dance (mirrors The Caller's Box vocabulary).
 enum DanceStatus { active, deprecated, broken }
 
+/// Difficulty of a dance, as an **ordered** scale (mirrors CC's `Level`;
+/// enum index is the ordinal, encoding CC's `LevelNum` without a separate
+/// column). A future `Level(level, op)` search leaf (docs/design/search.md)
+/// relies on this ordering for `lte`/`gte` comparisons.
+///
+/// A "mixed level" event spans the scale rather than sitting at a single
+/// point, so it is modelled as a separate `Dance.mixedLevel` flag rather than
+/// an enum member — keeping this scale total keeps ordered comparisons clean.
+/// Persisted by name (like [DanceStatus]/[Progression]); reordering members is
+/// a migration concern.
+enum DanceLevel { beginner, intermediate, advanced }
+
 /// Lifecycle status of a program (set list).
 enum ProgramStatus { draft, finalized, performed }
 

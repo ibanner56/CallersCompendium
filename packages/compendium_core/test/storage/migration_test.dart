@@ -71,7 +71,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       // A v1 fixture migrates through every step to the current schema.
-      expect(rows.single.data.values.first, 3);
+      expect(rows.single.data.values.first, 4);
 
       await db.close();
     });
@@ -264,13 +264,13 @@ void main() {
       await db.close();
     });
 
-    test('drift schema version is 3 after upgrade', () async {
+    test('drift schema version is 4 after upgrade', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 3);
+      expect(rows.single.data.values.first, 4);
 
       await db.close();
     });
@@ -343,6 +343,122 @@ void main() {
       expect(reloaded.dancerLevel, 'intermediate');
       expect(reloaded.slots.first.guestCaller, 'Bob');
       expect(reloaded.slots.first.plannedMinutes, 12);
+
+      await db.close();
+    });
+  });
+
+  group('v3 -> v4 upgrade', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v4_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v3 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v3.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('adds the CC-parity dance difficulty columns', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final danceCols = await db
+          .customSelect('PRAGMA table_info(dances)')
+          .get();
+      expect(
+        danceCols.map((r) => r.read<String>('name')),
+        containsAll(['level', 'mixed_level']),
+      );
+
+      await db.close();
+    });
+
+    test('drift schema version is 4 after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, 4);
+
+      await db.close();
+    });
+
+    test(
+      'preserves existing dance rows; level is NULL / mixedLevel is false',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final dance = await repos.dances.getById('dance-1');
+        expect(dance, isNotNull);
+        expect(dance!.title, 'Petronella Reel');
+        // New difficulty columns default on migrated rows.
+        expect(dance.level, isNull);
+        expect(dance.mixedLevel, isFalse);
+
+        await db.close();
+      },
+    );
+
+    test('the migration does not schedule a derived rebuild', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      await db.customSelect('SELECT 1').get(); // force onUpgrade
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker,
+        isEmpty,
+        reason: 'dance level is scalar metadata, not figure text',
+      );
+      await db.close();
+    });
+
+    test('new fields round-trip after the migration', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final dance = (await repos.dances.getById('dance-1'))!;
+      await repos.dances.update(
+        dance.copyWith(
+          level: DanceLevel.intermediate,
+          mixedLevel: true,
+          updatedAt: DateTime.utc(2026, 4, 1),
+        ),
+      );
+      final reloaded = (await repos.dances.getById('dance-1'))!;
+      expect(reloaded.level, DanceLevel.intermediate);
+      expect(reloaded.mixedLevel, isTrue);
+
+      // The clear-flag resets a set level back to NULL.
+      await repos.dances.update(
+        reloaded.copyWith(
+          clearLevel: true,
+          updatedAt: DateTime.utc(2026, 4, 2),
+        ),
+      );
+      final cleared = (await repos.dances.getById('dance-1'))!;
+      expect(cleared.level, isNull);
+      expect(cleared.mixedLevel, isTrue);
 
       await db.close();
     });
