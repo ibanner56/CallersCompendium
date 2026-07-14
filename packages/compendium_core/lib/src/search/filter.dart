@@ -148,9 +148,15 @@ class MixedLevelFilter extends DanceFilter {
 /// dances I rated [minimum] stars or better". Unrated dances (`dances.rating
 /// IS NULL`) never match — a NULL rating is not a point on the scale, so the
 /// SQL `rating >= ?` comparison against NULL is not-true (excluded).
+///
+/// [minimum] must be on the `1..5` scale (asserted at construction, mirroring
+/// how [Dance.rating] validates its own range): an out-of-range floor is
+/// meaningless — `0` would match every rated dance and `6` none — so it is a
+/// caller bug, not a valid query. The [FilterCompiler] re-checks defensively.
 @immutable
 class RatingFilter extends DanceFilter {
-  const RatingFilter(this.minimum);
+  const RatingFilter(this.minimum)
+    : assert(minimum >= 1 && minimum <= 5, 'RatingFilter.minimum must be 1..5');
 
   final int minimum;
 }

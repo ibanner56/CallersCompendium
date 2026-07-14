@@ -134,6 +134,16 @@ class FilterCompiler {
         binds.add(mixed ? 1 : 0);
         return 'mixed_level = ?';
       case RatingFilter(:final minimum):
+        // Defensive: construction already asserts this, but never trust the
+        // tree at compile time (asserts are stripped in release) — throw
+        // loudly in all builds for an out-of-range floor.
+        if (minimum < 1 || minimum > 5) {
+          throw ArgumentError.value(
+            minimum,
+            'RatingFilter.minimum',
+            'must be 1..5',
+          );
+        }
         // `rating >= ?`: NULL (unrated) never satisfies the comparison, so
         // unrated dances are excluded — an unspecified rating is not a point
         // on the scale (mirrors the LevelFilter ordered-op NULL guard).

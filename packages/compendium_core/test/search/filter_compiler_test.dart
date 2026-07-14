@@ -155,6 +155,9 @@ void main() {
     test('RatingFilter compiles a minimum-rating floor with the bind', () {
       expect(pred(const RatingFilter(4)), 'rating >= ?');
       expect(compiler.compile(const RatingFilter(4)).binds, [4]);
+      // The scale boundaries compile fine.
+      expect(compiler.compile(const RatingFilter(1)).binds, [1]);
+      expect(compiler.compile(const RatingFilter(5)).binds, [5]);
     });
 
     test('level leaves compose under And/Or with pre-order binds', () {
