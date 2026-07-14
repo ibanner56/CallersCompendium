@@ -216,9 +216,10 @@ String _omittedCaption(int n) =>
 
 class _Corner extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => const SizedBox(
+  Widget build(BuildContext context) => Container(
     width: ProgramMatrixTable.rowHeaderWidth,
     height: ProgramMatrixTable.columnHeaderHeight,
+    color: Theme.of(context).colorScheme.surfaceContainerHighest,
   );
 }
 
@@ -240,6 +241,7 @@ class _ColumnHeader extends StatelessWidget {
           width: ProgramMatrixTable.columnWidth,
           height: ProgramMatrixTable.columnHeaderHeight,
           alignment: Alignment.bottomCenter,
+          color: theme.colorScheme.surfaceContainerHighest,
           padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
           child: Text(
             label,
@@ -272,6 +274,7 @@ class _RowHeader extends StatelessWidget {
         height: ProgramMatrixTable.rowHeight,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         alignment: Alignment.centerLeft,
+        color: theme.colorScheme.surfaceContainerHighest,
         child: Row(
           children: [
             if (isAlt) ...[

@@ -362,6 +362,22 @@ class _SlotTile extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // Ordinal: the slot's 1-based position in the running order.
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: SizedBox(
+                    width: 24,
+                    child: Text(
+                      '${index + 1}',
+                      key: ValueKey('slot-$index-ordinal'),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ),
                 if (draggable)
                   ReorderableDragStartListener(
                     index: index,

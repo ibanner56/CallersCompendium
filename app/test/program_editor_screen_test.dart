@@ -285,6 +285,31 @@ void main() {
     expect(saved.slots.single.danceId, isNull);
   });
 
+  testWidgets('slot cards show their 1-based ordinal position', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 's0', position: 0, text: 'First'),
+          ProgramSlot(id: 's1', position: 1, text: 'Second'),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    // Ordinals are 1-based and run in visible order.
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('slot-0-ordinal'))).data,
+      '1',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('slot-1-ordinal'))).data,
+      '2',
+    );
+  });
+
   testWidgets('reorders slots via move-up keeping positions contiguous', (
     tester,
   ) async {
