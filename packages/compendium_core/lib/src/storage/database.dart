@@ -63,6 +63,13 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 ///   and `program_slots.planned_minutes`. All nullable with no back-fill
 ///   (existing rows get NULL); programs/slots do not feed the derived
 ///   `dance_figures`/`dance_fts` indexes, so no derived rebuild is required.
+/// - v4 (2026-07-13): CC-parity dance difficulty (`docs/design/domain-model.md`
+///   "CC parity backfill", ROADMAP 4b.1). Adds the nullable
+///   `dances.level` (ordered [DanceLevel], persisted by name) and
+///   `dances.mixed_level` (bool, defaults `false`) columns. Existing rows get
+///   `level` NULL / `mixed_level` false. `level`/`mixed_level` are dance-scalar
+///   metadata, not figure text, so they do not feed the derived
+///   `dance_figures`/`dance_fts` indexes and no derived rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -90,7 +97,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   CompendiumDatabase(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -123,6 +130,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await m.addColumn(programs, programs.dancerLevel);
         await m.addColumn(programSlots, programSlots.guestCaller);
         await m.addColumn(programSlots, programSlots.plannedMinutes);
+      }
+      if (from < 4) {
+        // CC-parity dance difficulty. `level` is nullable (existing rows get
+        // NULL); `mixed_level` defaults to false. Both are dance-scalar
+        // metadata (not figure text), so they don't feed the derived
+        // `dance_figures`/`dance_fts` indexes and no rebuild is required.
+        await m.addColumn(dances, dances.level);
+        await m.addColumn(dances, dances.mixedLevel);
       }
     },
     beforeOpen: (details) async {

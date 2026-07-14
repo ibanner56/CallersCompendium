@@ -59,6 +59,8 @@ class DanceRepository {
             hook: Value(dance.hook),
             callingNotes: Value(dance.callingNotes),
             status: dance.status,
+            level: Value(dance.level),
+            mixedLevel: Value(dance.mixedLevel),
             tunesJson: Value(jsonEncode(dance.tunes)),
             createdAt: dance.createdAt,
             updatedAt: dance.updatedAt,
@@ -523,6 +525,8 @@ class DanceRepository {
       hook: row.hook,
       callingNotes: row.callingNotes,
       status: row.status,
+      level: row.level,
+      mixedLevel: row.mixedLevel,
       tunes: (jsonDecode(row.tunesJson) as List).cast<String>(),
       customFields: [
         for (final r in customRows)

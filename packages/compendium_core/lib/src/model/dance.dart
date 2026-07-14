@@ -32,6 +32,8 @@ class Dance {
     this.hook = '',
     this.callingNotes = '',
     this.status = DanceStatus.active,
+    this.level,
+    this.mixedLevel = false,
     List<String> tunes = const [],
     List<CustomFieldValue> customFields = const [],
     List<String> tagIds = const [],
@@ -72,6 +74,16 @@ class Dance {
   /// Teaching/history notes; dialect-aware free text.
   final String callingNotes;
   final DanceStatus status;
+
+  /// Difficulty on the ordered [DanceLevel] scale; `null` when unspecified
+  /// (existing/imported dances stay valid). Distinct from [mixedLevel].
+  final DanceLevel? level;
+
+  /// Marks an event/dance that spans the difficulty scale rather than sitting
+  /// at a single [level]. Kept separate from [level] so the ordered scale
+  /// stays total for `lte`/`gte` search comparisons.
+  final bool mixedLevel;
+
   final List<String> tunes;
   final List<CustomFieldValue> customFields;
   final List<String> tagIds;
@@ -98,6 +110,12 @@ class Dance {
     return issues;
   }
 
+  /// Returns a copy with the given fields replaced.
+  ///
+  /// Nullable fields use the clear-flag pattern (precedent: [clearDeletedAt]):
+  /// pass `clearLevel: true` to set [level] back to `null`. A set clear flag
+  /// **wins** over any value passed for the same field, so
+  /// `copyWith(level: DanceLevel.advanced, clearLevel: true)` clears it.
   Dance copyWith({
     String? title,
     List<String>? authorIds,
@@ -109,6 +127,9 @@ class Dance {
     String? hook,
     String? callingNotes,
     DanceStatus? status,
+    DanceLevel? level,
+    bool clearLevel = false,
+    bool? mixedLevel,
     List<String>? tunes,
     List<CustomFieldValue>? customFields,
     List<String>? tagIds,
@@ -129,6 +150,8 @@ class Dance {
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
     status: status ?? this.status,
+    level: clearLevel ? null : (level ?? this.level),
+    mixedLevel: mixedLevel ?? this.mixedLevel,
     tunes: tunes ?? this.tunes,
     customFields: customFields ?? this.customFields,
     tagIds: tagIds ?? this.tagIds,
@@ -166,6 +189,8 @@ class Dance {
       hook: hook,
       callingNotes: callingNotes,
       status: status,
+      level: level,
+      mixedLevel: mixedLevel,
       tunes: tunes,
       customFields: customFields,
       tagIds: tagIds,
@@ -198,6 +223,8 @@ class Dance {
       other.hook == hook &&
       other.callingNotes == callingNotes &&
       other.status == status &&
+      other.level == level &&
+      other.mixedLevel == mixedLevel &&
       _listEq.equals(other.tunes, tunes) &&
       _listEq.equals(other.customFields, customFields) &&
       _listEq.equals(other.tagIds, tagIds) &&

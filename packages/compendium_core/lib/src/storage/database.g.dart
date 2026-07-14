@@ -119,6 +119,30 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<DanceStatus>($DancesTable.$converterstatus);
+  @override
+  late final GeneratedColumnWithTypeConverter<DanceLevel?, String> level =
+      GeneratedColumn<String>(
+        'level',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<DanceLevel?>($DancesTable.$converterleveln);
+  static const VerificationMeta _mixedLevelMeta = const VerificationMeta(
+    'mixedLevel',
+  );
+  @override
+  late final GeneratedColumn<bool> mixedLevel = GeneratedColumn<bool>(
+    'mixed_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("mixed_level" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _tunesJsonMeta = const VerificationMeta(
     'tunesJson',
   );
@@ -177,6 +201,8 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     hook,
     callingNotes,
     status,
+    level,
+    mixedLevel,
     tunesJson,
     createdAt,
     updatedAt,
@@ -247,6 +273,12 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
           data['calling_notes']!,
           _callingNotesMeta,
         ),
+      );
+    }
+    if (data.containsKey('mixed_level')) {
+      context.handle(
+        _mixedLevelMeta,
+        mixedLevel.isAcceptableOrUnknown(data['mixed_level']!, _mixedLevelMeta),
       );
     }
     if (data.containsKey('tunes_json')) {
@@ -338,6 +370,16 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
           data['${effectivePrefix}status'],
         )!,
       ),
+      level: $DancesTable.$converterleveln.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}level'],
+        ),
+      ),
+      mixedLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}mixed_level'],
+      )!,
       tunesJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}tunes_json'],
@@ -370,6 +412,10 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       const EnumNameConverter(Progression.values);
   static JsonTypeConverter2<DanceStatus, String, String> $converterstatus =
       const EnumNameConverter(DanceStatus.values);
+  static JsonTypeConverter2<DanceLevel, String, String> $converterlevel =
+      const EnumNameConverter(DanceLevel.values);
+  static JsonTypeConverter2<DanceLevel?, String?, String?> $converterleveln =
+      JsonTypeConverter2.asNullable($converterlevel);
 }
 
 class DanceRow extends DataClass implements Insertable<DanceRow> {
@@ -389,6 +435,14 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   final String callingNotes;
   final DanceStatus status;
 
+  /// Difficulty on the ordered [DanceLevel] scale, persisted by enum name;
+  /// nullable (`null` = unspecified). Added in schema v4 (CC-parity `Level`).
+  final DanceLevel? level;
+
+  /// Marks a dance that spans the difficulty scale; kept separate from [level]
+  /// so the ordered scale stays total. Added in schema v4 (CC `Mixed Level`).
+  final bool mixedLevel;
+
   /// JSON array of tune name strings.
   final String tunesJson;
   final DateTime createdAt;
@@ -406,6 +460,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.hook,
     required this.callingNotes,
     required this.status,
+    this.level,
+    required this.mixedLevel,
     required this.tunesJson,
     required this.createdAt,
     required this.updatedAt,
@@ -441,6 +497,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
         $DancesTable.$converterstatus.toSql(status),
       );
     }
+    if (!nullToAbsent || level != null) {
+      map['level'] = Variable<String>(
+        $DancesTable.$converterleveln.toSql(level),
+      );
+    }
+    map['mixed_level'] = Variable<bool>(mixedLevel);
     map['tunes_json'] = Variable<String>(tunesJson);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -465,6 +527,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       hook: Value(hook),
       callingNotes: Value(callingNotes),
       status: Value(status),
+      level: level == null && nullToAbsent
+          ? const Value.absent()
+          : Value(level),
+      mixedLevel: Value(mixedLevel),
       tunesJson: Value(tunesJson),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -499,6 +565,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       status: $DancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
+      level: $DancesTable.$converterleveln.fromJson(
+        serializer.fromJson<String?>(json['level']),
+      ),
+      mixedLevel: serializer.fromJson<bool>(json['mixedLevel']),
       tunesJson: serializer.fromJson<String>(json['tunesJson']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -528,6 +598,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'status': serializer.toJson<String>(
         $DancesTable.$converterstatus.toJson(status),
       ),
+      'level': serializer.toJson<String?>(
+        $DancesTable.$converterleveln.toJson(level),
+      ),
+      'mixedLevel': serializer.toJson<bool>(mixedLevel),
       'tunesJson': serializer.toJson<String>(tunesJson),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -547,6 +621,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     String? hook,
     String? callingNotes,
     DanceStatus? status,
+    Value<DanceLevel?> level = const Value.absent(),
+    bool? mixedLevel,
     String? tunesJson,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -565,6 +641,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
     status: status ?? this.status,
+    level: level.present ? level.value : this.level,
+    mixedLevel: mixedLevel ?? this.mixedLevel,
     tunesJson: tunesJson ?? this.tunesJson,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -595,6 +673,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ? data.callingNotes.value
           : this.callingNotes,
       status: data.status.present ? data.status.value : this.status,
+      level: data.level.present ? data.level.value : this.level,
+      mixedLevel: data.mixedLevel.present
+          ? data.mixedLevel.value
+          : this.mixedLevel,
       tunesJson: data.tunesJson.present ? data.tunesJson.value : this.tunesJson,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -616,6 +698,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('hook: $hook, ')
           ..write('callingNotes: $callingNotes, ')
           ..write('status: $status, ')
+          ..write('level: $level, ')
+          ..write('mixedLevel: $mixedLevel, ')
           ..write('tunesJson: $tunesJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -637,6 +721,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     hook,
     callingNotes,
     status,
+    level,
+    mixedLevel,
     tunesJson,
     createdAt,
     updatedAt,
@@ -657,6 +743,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.hook == this.hook &&
           other.callingNotes == this.callingNotes &&
           other.status == this.status &&
+          other.level == this.level &&
+          other.mixedLevel == this.mixedLevel &&
           other.tunesJson == this.tunesJson &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -675,6 +763,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<String> hook;
   final Value<String> callingNotes;
   final Value<DanceStatus> status;
+  final Value<DanceLevel?> level;
+  final Value<bool> mixedLevel;
   final Value<String> tunesJson;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -692,6 +782,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.hook = const Value.absent(),
     this.callingNotes = const Value.absent(),
     this.status = const Value.absent(),
+    this.level = const Value.absent(),
+    this.mixedLevel = const Value.absent(),
     this.tunesJson = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -710,6 +802,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.hook = const Value.absent(),
     this.callingNotes = const Value.absent(),
     required DanceStatus status,
+    this.level = const Value.absent(),
+    this.mixedLevel = const Value.absent(),
     this.tunesJson = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -735,6 +829,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? hook,
     Expression<String>? callingNotes,
     Expression<String>? status,
+    Expression<String>? level,
+    Expression<bool>? mixedLevel,
     Expression<String>? tunesJson,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -753,6 +849,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (hook != null) 'hook': hook,
       if (callingNotes != null) 'calling_notes': callingNotes,
       if (status != null) 'status': status,
+      if (level != null) 'level': level,
+      if (mixedLevel != null) 'mixed_level': mixedLevel,
       if (tunesJson != null) 'tunes_json': tunesJson,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -773,6 +871,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<String>? hook,
     Value<String>? callingNotes,
     Value<DanceStatus>? status,
+    Value<DanceLevel?>? level,
+    Value<bool>? mixedLevel,
     Value<String>? tunesJson,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -791,6 +891,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       hook: hook ?? this.hook,
       callingNotes: callingNotes ?? this.callingNotes,
       status: status ?? this.status,
+      level: level ?? this.level,
+      mixedLevel: mixedLevel ?? this.mixedLevel,
       tunesJson: tunesJson ?? this.tunesJson,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -843,6 +945,14 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
         $DancesTable.$converterstatus.toSql(status.value),
       );
     }
+    if (level.present) {
+      map['level'] = Variable<String>(
+        $DancesTable.$converterleveln.toSql(level.value),
+      );
+    }
+    if (mixedLevel.present) {
+      map['mixed_level'] = Variable<bool>(mixedLevel.value);
+    }
     if (tunesJson.present) {
       map['tunes_json'] = Variable<String>(tunesJson.value);
     }
@@ -875,6 +985,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('hook: $hook, ')
           ..write('callingNotes: $callingNotes, ')
           ..write('status: $status, ')
+          ..write('level: $level, ')
+          ..write('mixedLevel: $mixedLevel, ')
           ..write('tunesJson: $tunesJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -6226,6 +6338,8 @@ typedef $$DancesTableCreateCompanionBuilder =
       Value<String> hook,
       Value<String> callingNotes,
       required DanceStatus status,
+      Value<DanceLevel?> level,
+      Value<bool> mixedLevel,
       Value<String> tunesJson,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -6245,6 +6359,8 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<String> hook,
       Value<String> callingNotes,
       Value<DanceStatus> status,
+      Value<DanceLevel?> level,
+      Value<bool> mixedLevel,
       Value<String> tunesJson,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -6477,6 +6593,17 @@ class $$DancesTableFilterComposer
         column: $table.status,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
+
+  ColumnWithTypeConverterFilters<DanceLevel?, DanceLevel, String> get level =>
+      $composableBuilder(
+        column: $table.level,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<bool> get mixedLevel => $composableBuilder(
+    column: $table.mixedLevel,
+    builder: (column) => ColumnFilters(column),
+  );
 
   ColumnFilters<String> get tunesJson => $composableBuilder(
     column: $table.tunesJson,
@@ -6763,6 +6890,16 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get mixedLevel => $composableBuilder(
+    column: $table.mixedLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get tunesJson => $composableBuilder(
     column: $table.tunesJson,
     builder: (column) => ColumnOrderings(column),
@@ -6839,6 +6976,14 @@ class $$DancesTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<DanceStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DanceLevel?, String> get level =>
+      $composableBuilder(column: $table.level, builder: (column) => column);
+
+  GeneratedColumn<bool> get mixedLevel => $composableBuilder(
+    column: $table.mixedLevel,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get tunesJson =>
       $composableBuilder(column: $table.tunesJson, builder: (column) => column);
@@ -7102,6 +7247,8 @@ class $$DancesTableTableManager
                 Value<String> hook = const Value.absent(),
                 Value<String> callingNotes = const Value.absent(),
                 Value<DanceStatus> status = const Value.absent(),
+                Value<DanceLevel?> level = const Value.absent(),
+                Value<bool> mixedLevel = const Value.absent(),
                 Value<String> tunesJson = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -7119,6 +7266,8 @@ class $$DancesTableTableManager
                 hook: hook,
                 callingNotes: callingNotes,
                 status: status,
+                level: level,
+                mixedLevel: mixedLevel,
                 tunesJson: tunesJson,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7138,6 +7287,8 @@ class $$DancesTableTableManager
                 Value<String> hook = const Value.absent(),
                 Value<String> callingNotes = const Value.absent(),
                 required DanceStatus status,
+                Value<DanceLevel?> level = const Value.absent(),
+                Value<bool> mixedLevel = const Value.absent(),
                 Value<String> tunesJson = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -7155,6 +7306,8 @@ class $$DancesTableTableManager
                 hook: hook,
                 callingNotes: callingNotes,
                 status: status,
+                level: level,
+                mixedLevel: mixedLevel,
                 tunesJson: tunesJson,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
