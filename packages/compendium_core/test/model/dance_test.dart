@@ -296,4 +296,41 @@ void main() {
       );
     });
   });
+
+  group('rating', () {
+    test('null by default (unrated); a valid 1..5 value is accepted', () {
+      expect(make().rating, isNull);
+      for (var r = Dance.minRating; r <= Dance.maxRating; r++) {
+        expect(make().copyWith(rating: r).rating, r);
+      }
+    });
+
+    test('out-of-range ratings are rejected at construction', () {
+      expect(() => make().copyWith(rating: 0), throwsArgumentError);
+      expect(() => make().copyWith(rating: 6), throwsArgumentError);
+      expect(() => make().copyWith(rating: -1), throwsArgumentError);
+    });
+
+    test('copyWith sets a value and clearRating resets it', () {
+      final d = make().copyWith(rating: 3);
+      expect(d.rating, 3);
+      expect(d.copyWith(clearRating: true).rating, isNull);
+    });
+
+    test('a set clear flag wins over a value for the same field', () {
+      final d = make().copyWith(rating: 3);
+      expect(d.copyWith(rating: 5, clearRating: true).rating, isNull);
+    });
+
+    test('duplicate carries rating through', () {
+      final original = make().copyWith(rating: 4);
+      expect(original.duplicate(newId: 'd2', now: now).rating, 4);
+    });
+
+    test('differing ratings compare unequal; equal ratings compare equal', () {
+      final base = make();
+      expect(base.copyWith(rating: 3), isNot(equals(base.copyWith(rating: 4))));
+      expect(base.copyWith(rating: 3), equals(base.copyWith(rating: 3)));
+    });
+  });
 }

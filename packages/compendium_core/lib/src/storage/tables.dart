@@ -43,6 +43,12 @@ class Dances extends Table {
   /// so the ordered scale stays total. Added in schema v4 (CC `Mixed Level`).
   BoolColumn get mixedLevel => boolean().withDefault(const Constant(false))();
 
+  /// Curator's subjective quality rating on a 1..5 scale; nullable
+  /// (`null` = unrated). Added in schema v6 (CC-parity `Rating`). A plain
+  /// integer (not an enum-mapped column, unlike [level]) — the 1..5 range is
+  /// validated at the [Dance] boundary.
+  IntColumn get rating => integer().nullable()();
+
   /// JSON array of tune name strings.
   TextColumn get tunesJson => text().withDefault(const Constant('[]'))();
 

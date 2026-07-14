@@ -152,6 +152,20 @@ void main() {
     });
   });
 
+  group('rating leaf', () {
+    test('RatingFilter compiles a minimum-rating match with a NULL guard', () {
+      expect(pred(RatingFilter(4)), 'rating IS NOT NULL AND rating >= ?');
+      expect(compiler.compile(RatingFilter(4)).binds, [4]);
+    });
+
+    test('RatingFilter composes under And with pre-order binds', () {
+      final c = compiler.compile(
+        AndFilter([RatingFilter(3), const MixedLevelFilter(false)]),
+      );
+      expect(c.binds, [3, 0]);
+    });
+  });
+
   group('combinators', () {
     test('empty And is TRUE, empty Or is FALSE', () {
       expect(compiler.compile(const AndFilter([])).sql, contains('AND (1)'));

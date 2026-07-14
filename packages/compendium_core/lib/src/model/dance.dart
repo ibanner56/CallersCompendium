@@ -35,6 +35,7 @@ class Dance {
     this.status = DanceStatus.active,
     this.level,
     this.mixedLevel = false,
+    this.rating,
     List<String> tunes = const [],
     List<CustomFieldValue> customFields = const [],
     List<String> tagIds = const [],
@@ -55,6 +56,25 @@ class Dance {
        links = List.unmodifiable(links) {
     if (title.trim().isEmpty) {
       throw ArgumentError.value(title, 'title', 'must be non-empty');
+    }
+    validateRating(rating);
+  }
+
+  /// The inclusive bounds of the [rating] scale (1 = lowest, 5 = highest).
+  static const int minRating = 1;
+  static const int maxRating = 5;
+
+  /// Throws [ArgumentError] unless [value] is `null` (unrated) or an integer in
+  /// the inclusive `[minRating, maxRating]` range. Rating is a plain validated
+  /// scalar (no named tiers), so the range is enforced here rather than via an
+  /// enum type.
+  static void validateRating(int? value) {
+    if (value != null && (value < minRating || value > maxRating)) {
+      throw ArgumentError.value(
+        value,
+        'rating',
+        'must be null (unrated) or an integer in $minRating..$maxRating',
+      );
     }
   }
 
@@ -86,6 +106,12 @@ class Dance {
   /// at a single [level]. Kept separate from [level] so the ordered scale
   /// stays total for `lte`/`gte` search comparisons.
   final bool mixedLevel;
+
+  /// Curator's subjective quality rating on a 1..5 star scale; `null` when the
+  /// dance is unrated. A plain validated integer (not an enum — rating has no
+  /// named tiers, unlike [level]); the `[minRating, maxRating]` range is
+  /// enforced at construction via [validateRating].
+  final int? rating;
 
   final List<String> tunes;
   final List<CustomFieldValue> customFields;
@@ -149,7 +175,7 @@ class Dance {
   /// pass `clearLevel: true` to set [level] back to `null`. A set clear flag
   /// **wins** over any value passed for the same field, so
   /// `copyWith(level: DanceLevel.advanced, clearLevel: true)` clears it. The
-  /// same holds for `clearComposedOn` / `clearRevisedOn`.
+  /// same holds for `clearComposedOn` / `clearRevisedOn` / `clearRating`.
   Dance copyWith({
     String? title,
     List<String>? authorIds,
@@ -164,6 +190,8 @@ class Dance {
     DanceLevel? level,
     bool clearLevel = false,
     bool? mixedLevel,
+    int? rating,
+    bool clearRating = false,
     List<String>? tunes,
     List<CustomFieldValue>? customFields,
     List<String>? tagIds,
@@ -190,6 +218,7 @@ class Dance {
     status: status ?? this.status,
     level: clearLevel ? null : (level ?? this.level),
     mixedLevel: mixedLevel ?? this.mixedLevel,
+    rating: clearRating ? null : (rating ?? this.rating),
     tunes: tunes ?? this.tunes,
     customFields: customFields ?? this.customFields,
     tagIds: tagIds ?? this.tagIds,
@@ -204,9 +233,10 @@ class Dance {
 
   /// A duplicate with a new identity, suitable for "duplicate dance":
   /// same content, fresh id/timestamps, provenance dropped (the copy is the
-  /// user's own editable record). [composedOn]/[revisedOn] are **carried
-  /// through**: unlike provenance (which describes an import), they are
-  /// authorship metadata about the dance itself, which the copy shares.
+  /// user's own editable record). [composedOn]/[revisedOn]/[rating] are
+  /// **carried through**: unlike provenance (which describes an import), they
+  /// are curation/authorship metadata about the dance itself, which the copy
+  /// shares.
   ///
   /// [DanceLink]s are copied with **freshly generated ids** (via [newLinkId],
   /// which defaults to [uuidV4]): link ids are globally unique primary keys,
@@ -233,6 +263,7 @@ class Dance {
       status: status,
       level: level,
       mixedLevel: mixedLevel,
+      rating: rating,
       tunes: tunes,
       customFields: customFields,
       tagIds: tagIds,
@@ -269,6 +300,7 @@ class Dance {
       other.status == status &&
       other.level == level &&
       other.mixedLevel == mixedLevel &&
+      other.rating == rating &&
       _listEq.equals(other.tunes, tunes) &&
       _listEq.equals(other.customFields, customFields) &&
       _listEq.equals(other.tagIds, tagIds) &&

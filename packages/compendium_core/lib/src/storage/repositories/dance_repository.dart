@@ -62,6 +62,7 @@ class DanceRepository {
             status: dance.status,
             level: Value(dance.level),
             mixedLevel: Value(dance.mixedLevel),
+            rating: Value(dance.rating),
             composedOn: Value(dance.composedOn?.serialize()),
             revisedOn: Value(dance.revisedOn?.serialize()),
             tunesJson: Value(jsonEncode(dance.tunes)),
@@ -366,6 +367,7 @@ class DanceRepository {
       case SearchSort.recentlyAdded:
       case SearchSort.recentlyEdited:
       case SearchSort.composedOn:
+      case SearchSort.rating:
       case SearchSort.relevance:
         return ids;
     }
@@ -531,6 +533,7 @@ class DanceRepository {
       status: row.status,
       level: row.level,
       mixedLevel: row.mixedLevel,
+      rating: row.rating,
       composedOn: row.composedOn == null
           ? null
           : PartialDate.parse(row.composedOn!),

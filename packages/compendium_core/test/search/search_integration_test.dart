@@ -18,6 +18,7 @@ Dance _dance({
   DanceStatus status = DanceStatus.active,
   DanceLevel? level,
   bool mixedLevel = false,
+  int? rating,
   PartialDate? composedOn,
   DateTime? createdAt,
   DateTime? updatedAt,
@@ -36,6 +37,7 @@ Dance _dance({
     status: status,
     level: level,
     mixedLevel: mixedLevel,
+    rating: rating,
     composedOn: composedOn,
     figures:
         figures ??
@@ -620,6 +622,27 @@ void main() {
         await dances.search(const AndFilter([]), sort: SearchSort.composedOn),
         ['y1989', 'y1989m03', 'y1990', 'none'],
       );
+    });
+
+    test('rating: highest first, NULLs last, title tiebreak', () async {
+      await dances.create(_dance(id: 'r5', title: 'best', rating: 5));
+      await dances.create(_dance(id: 'r3b', title: 'beta', rating: 3));
+      await dances.create(_dance(id: 'r3a', title: 'alpha', rating: 3));
+      await dances.create(_dance(id: 'n1', title: 'zeta', rating: null));
+      await dances.create(_dance(id: 'n2', title: 'aardvark', rating: null));
+      expect(
+        await dances.search(const AndFilter([]), sort: SearchSort.rating),
+        // 5, then the two 3s in title order, then unrated in title order.
+        ['r5', 'r3a', 'r3b', 'n2', 'n1'],
+      );
+    });
+
+    test('RatingFilter matches rating >= N, excluding unrated', () async {
+      await dances.create(_dance(id: 'r5', title: 'five', rating: 5));
+      await dances.create(_dance(id: 'r4', title: 'four', rating: 4));
+      await dances.create(_dance(id: 'r2', title: 'two', rating: 2));
+      await dances.create(_dance(id: 'none', title: 'unrated'));
+      expect((await dances.search(RatingFilter(4))).toSet(), {'r4', 'r5'});
     });
 
     test('author by first author name', () async {

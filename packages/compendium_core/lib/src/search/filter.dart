@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../model/custom_field.dart';
+import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/formation.dart';
 
@@ -139,6 +140,22 @@ class MixedLevelFilter extends DanceFilter {
   const MixedLevelFilter(this.mixed);
 
   final bool mixed;
+}
+
+/// Dances whose curator [Dance.rating] is at least [minRating] (`rating >= N`).
+///
+/// A "minimum rating" leaf: `RatingFilter(4)` matches dances rated 4 or 5.
+/// [minRating] is validated to the `[Dance.minRating, Dance.maxRating]` range
+/// at construction. Unrated dances (`dances.rating IS NULL`) never match — an
+/// unrated dance is not a point on the scale, mirroring [LevelFilter]'s NULL
+/// guard.
+@immutable
+class RatingFilter extends DanceFilter {
+  RatingFilter(this.minRating) {
+    Dance.validateRating(minRating);
+  }
+
+  final int minRating;
 }
 
 /// Dances tagged with the tag id [tagId].

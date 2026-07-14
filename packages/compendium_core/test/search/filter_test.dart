@@ -11,6 +11,18 @@ CustomFieldDef _def(CustomFieldType type, {List<String>? choices}) =>
     );
 
 void main() {
+  group('RatingFilter validation', () {
+    test('accepts a minimum rating in the 1..5 range', () {
+      expect(RatingFilter(1).minRating, 1);
+      expect(RatingFilter(5).minRating, 5);
+    });
+
+    test('rejects an out-of-range minimum rating', () {
+      expect(() => RatingFilter(0), throwsArgumentError);
+      expect(() => RatingFilter(6), throwsArgumentError);
+    });
+  });
+
   group('FigureLeaf param key validation', () {
     test('accepts well-formed identifier keys', () {
       expect(

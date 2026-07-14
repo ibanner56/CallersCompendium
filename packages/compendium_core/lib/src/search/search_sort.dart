@@ -32,6 +32,13 @@ enum SearchSort {
   /// month-qualified value in the same year).
   composedOn,
 
+  /// By curator [Dance.rating], highest first, unrated (NULL) dances last.
+  /// Compiles to `rating IS NULL, rating DESC, title COLLATE NOCASE`: the
+  /// explicit `rating IS NULL` leading key forces unrated dances after all
+  /// rated ones (SQLite's bare `rating DESC` would otherwise sort NULLs first),
+  /// with a case-insensitive title tiebreak.
+  rating,
+
   /// Most recently called first, never-called last (Dart post-sort).
   lastCalled,
 }

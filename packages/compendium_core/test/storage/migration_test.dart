@@ -71,7 +71,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       // A v1 fixture migrates through every step to the current schema.
-      expect(rows.single.data.values.first, 5);
+      expect(rows.single.data.values.first, db.schemaVersion);
 
       await db.close();
     });
@@ -270,7 +270,7 @@ void main() {
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 5);
+      expect(rows.single.data.values.first, db.schemaVersion);
 
       await db.close();
     });
@@ -392,7 +392,7 @@ void main() {
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 5);
+      expect(rows.single.data.values.first, db.schemaVersion);
 
       await db.close();
     });
@@ -502,13 +502,13 @@ void main() {
       await db.close();
     });
 
-    test('drift schema version is 5 after upgrade', () async {
+    test('drift schema version is current after upgrade', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 5);
+      expect(rows.single.data.values.first, db.schemaVersion);
 
       await db.close();
     });
@@ -598,6 +598,110 @@ void main() {
         await db.close();
       },
     );
+  });
+
+  group('v5 -> v6 upgrade', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v6_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v5 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v5.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('adds the CC-parity rating column', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final danceCols = await db
+          .customSelect('PRAGMA table_info(dances)')
+          .get();
+      expect(danceCols.map((r) => r.read<String>('name')), contains('rating'));
+
+      await db.close();
+    });
+
+    test('drift schema version is 6 after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, 6);
+
+      await db.close();
+    });
+
+    test('preserves existing dance rows; rating is NULL', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final dance = await repos.dances.getById('dance-1');
+      expect(dance, isNotNull);
+      expect(dance!.title, 'Petronella Reel');
+      // Pre-existing v5 metadata survives the upgrade.
+      expect(dance.level, DanceLevel.intermediate);
+      expect(dance.composedOn, PartialDate(1989));
+      expect(dance.revisedOn, PartialDate(2004, 3));
+      // New rating column defaults to NULL on migrated rows.
+      expect(dance.rating, isNull);
+
+      await db.close();
+    });
+
+    test('the migration does not schedule a derived rebuild', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      await db.customSelect('SELECT 1').get(); // force onUpgrade
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker,
+        isEmpty,
+        reason: 'rating is scalar curation metadata, not figure text',
+      );
+      await db.close();
+    });
+
+    test('rating round-trips after the migration', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final dance = (await repos.dances.getById('dance-1'))!;
+      await repos.dances.update(
+        dance.copyWith(rating: 4, updatedAt: DateTime.utc(2026, 4, 1)),
+      );
+      expect((await repos.dances.getById('dance-1'))!.rating, 4);
+
+      // The clear-flag resets rating back to NULL.
+      await repos.dances.update(
+        (await repos.dances.getById(
+          'dance-1',
+        ))!.copyWith(clearRating: true, updatedAt: DateTime.utc(2026, 4, 2)),
+      );
+      expect((await repos.dances.getById('dance-1'))!.rating, isNull);
+
+      await db.close();
+    });
   });
 
   test(

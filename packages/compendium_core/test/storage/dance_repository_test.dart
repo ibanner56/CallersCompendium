@@ -29,6 +29,16 @@ void main() {
       expect(loaded, dance);
     });
 
+    test('round-trips rating (set and unrated)', () async {
+      final rated = sampleDance(id: 'rated', rating: 4);
+      await dances.create(rated);
+      expect((await dances.getById('rated'))!.rating, 4);
+
+      final unrated = sampleDance(id: 'unrated');
+      await dances.create(unrated);
+      expect((await dances.getById('unrated'))!.rating, isNull);
+    });
+
     test('round-trips authors in position order', () async {
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
       await choreographers.upsert(Choreographer(id: 'c2', name: 'Bob'));
