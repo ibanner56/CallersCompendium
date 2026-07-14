@@ -20,6 +20,7 @@ Dance _dance({
   List<CustomFieldValue> customFields = const [],
   DanceLevel? level,
   bool mixedLevel = false,
+  int? rating,
   PartialDate? composedOn,
 }) => Dance(
   id: id,
@@ -30,6 +31,7 @@ Dance _dance({
   customFields: customFields,
   level: level,
   mixedLevel: mixedLevel,
+  rating: rating,
   composedOn: composedOn,
   createdAt: _now,
   updatedAt: _now,
@@ -184,6 +186,108 @@ void main() {
 
     final saved = await repos.dances.getById('d1');
     expect(saved!.level, isNull);
+  });
+
+  testWidgets('rating: setting a star round-trips on save', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await tester.tap(find.byKey(const ValueKey('rating-star-4')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.rating, 4);
+  });
+
+  testWidgets('rating: tapping the selected star clears to unrated', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original', rating: 3));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // Tapping the current top star (3) unsets the rating.
+    await tester.tap(find.byKey(const ValueKey('rating-star-3')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.rating, isNull);
+  });
+
+  testWidgets('rating: clear button unsets an existing rating', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original', rating: 5));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await tester.tap(find.byKey(const ValueKey('rating-clear')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.rating, isNull);
+  });
+
+  testWidgets('rating: undo reverts a change; redo re-applies it', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // Set a rating (pushes an undo entry immediately).
+    await tester.tap(find.byKey(const ValueKey('rating-star-2')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('rating-clear')), findsOneWidget);
+
+    // Undo → back to unrated (no clear button, no filled stars).
+    await tester.tap(find.byKey(const ValueKey('undo-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('rating-clear')), findsNothing);
+
+    // Redo → rating restored.
+    await tester.tap(find.byKey(const ValueKey('redo-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('rating-clear')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.rating, 2);
+  });
+
+  testWidgets('rating: stars and clear expose semantic labels', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original', rating: 3));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    final handle = tester.ensureSemantics();
+
+    // Overall control exposes a semantic value reflecting the current rating.
+    // (label 'Rating' + value '3 of 5 stars' → announced 'Rating, 3 of 5 stars'.)
+    expect(
+      tester
+          .getSemantics(find.byKey(const ValueKey('rating-field')))
+          .getSemanticsData()
+          .value,
+      '3 of 5 stars',
+    );
+
+    // Each star is an actionable control with a descriptive label.
+    expect(find.bySemanticsLabel('Set rating to 4 of 5 stars'), findsOneWidget);
+
+    // The clear action is labelled.
+    expect(find.bySemanticsLabel('Clear rating'), findsOneWidget);
+
+    handle.dispose();
   });
 
   testWidgets('composed date: year-only round-trips on save', (tester) async {

@@ -30,6 +30,7 @@ class CollectionData {
     required this.statuses,
     required this.levels,
     required this.hasMixedLevel,
+    required this.hasRating,
     required this.taxonomy,
     required this.sectionLabels,
   });
@@ -57,6 +58,10 @@ class CollectionData {
 
   /// Whether any dance is flagged mixed-level (drives the Mixed level facet).
   final bool hasMixedLevel;
+
+  /// Whether any dance carries a star rating (drives the minimum-rating facet;
+  /// an all-unrated collection hides it, matching the present-value pattern).
+  final bool hasRating;
 
   final Taxonomy taxonomy;
   final List<String> sectionLabels;
@@ -86,6 +91,7 @@ class CollectionData {
         dances.map((d) => d.level).whereType<DanceLevel>().toSet().toList()
           ..sort((a, b) => a.index.compareTo(b.index));
     final hasMixedLevel = dances.any((d) => d.mixedLevel);
+    final hasRating = dances.any((d) => d.rating != null);
 
     final usedAuthorIds = {for (final d in dances) ...d.authorIds};
     final usedTagIds = {for (final d in dances) ...d.tagIds};
@@ -126,6 +132,7 @@ class CollectionData {
       statuses: statuses,
       levels: levels,
       hasMixedLevel: hasMixedLevel,
+      hasRating: hasRating,
       taxonomy: contraTaxonomy,
       sectionLabels: PhraseStructure.standard.labels,
     );

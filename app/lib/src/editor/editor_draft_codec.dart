@@ -18,7 +18,10 @@ import 'editor_snapshot.dart';
 ///
 /// v3 → v4: adds `composedOn` / `revisedOn` (nullable canonical [PartialDate]
 /// strings, omitted when unspecified). Older drafts decode with both `null`.
-const _kDraftVersion = 4;
+///
+/// v4 → v5: adds `rating` (nullable `int` star rating on the closed `1..5`
+/// scale, omitted when unrated). Older drafts decode with `rating:null`.
+const _kDraftVersion = 5;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -27,15 +30,17 @@ const _kDraftVersion = 4;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v2):
+/// Schema (v5):
 /// ```jsonc
 /// {
-///   "v": 2,
+///   "v": 5,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "phrase": "...", "formationDetail": "...",
 ///   "form": "contra", "formationShape": "dupleImproper",
 ///   "progression": "single", "status": "active",
 ///   "level": "intermediate", "mixedLevel": false,
+///   "rating": 4,
+///   "composedOn": "1989", "revisedOn": "2004-03-15",
 ///   "authorIds": ["..."], "tagIds": ["..."], "tunes": ["..."],
 ///   "links": [
 ///     {"id":"...", "kind":"source", "url":"...", "label":"..."},
@@ -51,6 +56,7 @@ const _kDraftVersion = 4;
 /// ```
 /// `move` may be `null` for an incomplete draft row.
 /// `label`, `url`, and `targetDanceId` may be omitted when empty/null.
+/// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset.
 String encodeDraft(EditorSnapshot snapshot) {
   return jsonEncode({
     'v': _kDraftVersion,
@@ -65,6 +71,7 @@ String encodeDraft(EditorSnapshot snapshot) {
     'status': snapshot.status.name,
     if (snapshot.level != null) 'level': snapshot.level!.name,
     'mixedLevel': snapshot.mixedLevel,
+    if (snapshot.rating != null) 'rating': snapshot.rating,
     if (snapshot.composedOn != null)
       'composedOn': snapshot.composedOn!.serialize(),
     if (snapshot.revisedOn != null)
@@ -152,6 +159,7 @@ EditorSnapshot decodeDraft(Object? value) {
     status: _parseEnum(DanceStatus.values, _str(json, 'status')),
     level: _parseNullableEnum(DanceLevel.values, json['level']),
     mixedLevel: _bool(json, 'mixedLevel'),
+    rating: _parseNullableRating(json['rating']),
     composedOn: _parseNullablePartialDate(json['composedOn']),
     revisedOn: _parseNullablePartialDate(json['revisedOn']),
     authorIds: _strList(json, 'authorIds'),
@@ -215,6 +223,20 @@ PartialDate? _parseNullablePartialDate(Object? raw) {
     throw FormatException('draft date value must be a string: $raw');
   }
   return PartialDate.parse(raw);
+}
+
+/// Parses an optional star rating: `null`/absent → `null`; otherwise an `int`
+/// on the closed `1..5` scale (out-of-range or non-int values throw). Used for
+/// the nullable `rating` field.
+int? _parseNullableRating(Object? raw) {
+  if (raw == null) return null;
+  if (raw is! int) {
+    throw FormatException('draft rating value must be an int: $raw');
+  }
+  if (raw < 1 || raw > 5) {
+    throw FormatException('draft rating must be null or 1..5: $raw');
+  }
+  return raw;
 }
 
 bool _bool(Map<String, Object?> json, String key) {

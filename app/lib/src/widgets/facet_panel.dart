@@ -20,6 +20,7 @@ class FacetPanel extends StatelessWidget {
     required this.statuses,
     required this.levels,
     required this.hasMixedLevel,
+    required this.hasRating,
     required this.authors,
     required this.tags,
     required this.choiceFields,
@@ -36,6 +37,11 @@ class FacetPanel extends StatelessWidget {
   final List<DanceStatus> statuses;
   final List<DanceLevel> levels;
   final bool hasMixedLevel;
+
+  /// Whether any dance carries a star rating; hides the minimum-rating section
+  /// for an all-unrated collection.
+  final bool hasRating;
+
   final List<Choreographer> authors;
   final List<Tag> tags;
   final List<CustomFieldDef> choiceFields;
@@ -158,6 +164,29 @@ class FacetPanel extends StatelessWidget {
                 onChanged();
               },
             ),
+          ],
+        ),
+      );
+    }
+
+    if (hasRating) {
+      sections.add(
+        _FacetSection(
+          label: 'Minimum rating',
+          chips: [
+            for (var min = 1; min <= 5; min++)
+              _chip(
+                key: 'min-rating-$min',
+                label: '≥$min★',
+                icon: Icons.star,
+                selected: facets.minRating == min,
+                // Single-valued floor: selecting sets it, tapping the current
+                // selection clears it (removes the RatingFilter).
+                onSelected: (sel) {
+                  facets.minRating = sel ? min : null;
+                  onChanged();
+                },
+              ),
           ],
         ),
       );

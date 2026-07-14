@@ -190,8 +190,14 @@ design/domain-model.md "CC parity backfill".*
   field + optional sort. Delivered: pure-Dart `PartialDate` (partial-precision,
   ISO-like canonical serialization), schema v4→v5, precision-aware editor input,
   and a `composedOn` search sort.
-- [ ] 4b.3 **Rating** — optional numeric/star `rating` on a dance (CC `Rating`,
-  sortable). Decide whether this is core or a shipped-default custom field.
+- [x] 4b.3 **Rating** — optional star `rating` on a dance (CC `Rating`,
+  sortable), a first-class nullable `int? rating` (`1..5`, `null` = unrated).
+  Delivered in two parts: **4b.3a core** — schema v5→v6 (`dances.rating`),
+  `Dance.rating` with range validation, `SearchSort.rating`, and the
+  `RatingFilter` search leaf; **4b.3b UI** — accessible editor star control
+  (keyboard-reachable, per-star + clear semantics, shape-not-colour state),
+  draft codec v4→v5, Collection list-tile rating indicator, and a
+  minimum-rating (`≥N★`) facet emitting `RatingFilter`.
 - [ ] 4b.4 **Choreographer contact card** — extend `Choreographer` beyond
   name/website/notes toward CC `Author` (email, location, deceased flag) for
   users who maintain composer contacts. Keep optional; privacy-aware.

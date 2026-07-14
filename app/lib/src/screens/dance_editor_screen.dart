@@ -81,6 +81,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   DanceStatus _status = DanceStatus.active;
   DanceLevel? _level;
   bool _mixedLevel = false;
+  int? _rating;
   PartialDate? _composedOn;
   PartialDate? _revisedOn;
 
@@ -178,6 +179,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         _status = dance.status;
         _level = dance.level;
         _mixedLevel = dance.mixedLevel;
+        _rating = dance.rating;
         _composedOn = dance.composedOn;
         _revisedOn = dance.revisedOn;
         _authorIds.addAll(dance.authorIds);
@@ -285,6 +287,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           level: _level,
           clearLevel: _level == null,
           mixedLevel: _mixedLevel,
+          rating: _rating,
+          clearRating: _rating == null,
           composedOn: _composedOn,
           clearComposedOn: _composedOn == null,
           revisedOn: _revisedOn,
@@ -311,6 +315,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           status: _status,
           level: _level,
           mixedLevel: _mixedLevel,
+          rating: _rating,
           composedOn: _composedOn,
           revisedOn: _revisedOn,
           tunes: List.of(_tunes),
@@ -352,6 +357,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     status: _status,
     level: _level,
     mixedLevel: _mixedLevel,
+    rating: _rating,
     composedOn: _composedOn,
     revisedOn: _revisedOn,
     authorIds: List.unmodifiable(_authorIds),
@@ -405,6 +411,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     _status = s.status;
     _level = s.level;
     _mixedLevel = s.mixedLevel;
+    _rating = s.rating;
     _composedOn = s.composedOn;
     _revisedOn = s.revisedOn;
 
@@ -857,6 +864,15 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             contentPadding: EdgeInsets.zero,
           ),
           const SizedBox(height: 16),
+          _RatingField(
+            value: _rating,
+            onChanged: (v) {
+              setState(() => _rating = v);
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+          ),
+          const SizedBox(height: 16),
           _PartialDateField(
             fieldKey: 'composed-on',
             label: 'Composed',
@@ -1215,6 +1231,78 @@ class _EnumDropdown<T> extends StatelessWidget {
       onChanged: (v) {
         if (v != null) onChanged(v);
       },
+    );
+  }
+}
+
+/// An accessible 1..5 star rating control with an explicit UNRATED affordance.
+///
+/// Accessibility (a11y is a merge gate for this control):
+/// - Each star is a focusable, actionable [IconButton] with a semantic label
+///   ('Set rating to N of 5 stars').
+/// - The whole control is wrapped in [Semantics] with `label: 'Rating'` and a
+///   value like '3 of 5 stars' or 'unrated' (announced as 'Rating, 3 of 5
+///   stars'). The value deliberately omits a 'Rating:' prefix so the label
+///   isn't announced twice.
+/// - Filled vs empty stars differ by icon *shape* ([Icons.star] vs
+///   [Icons.star_border]) and carry semantics — state is never conveyed by
+///   colour alone.
+/// - Clearing is available two ways: an explicit labelled clear button, and
+///   tapping the currently-selected top star to unset it.
+///
+/// `null` is the unrated state; saved via `copyWith(clearRating: true)`.
+class _RatingField extends StatelessWidget {
+  const _RatingField({required this.value, required this.onChanged});
+
+  final int? value;
+  final ValueChanged<int?> onChanged;
+
+  static const _max = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final semanticValue = value == null ? 'unrated' : '$value of $_max stars';
+
+    return Semantics(
+      key: const ValueKey('rating-field'),
+      container: true,
+      label: 'Rating',
+      value: semanticValue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 4),
+            child: Text('Rating', style: theme.textTheme.bodySmall),
+          ),
+          Row(
+            children: [
+              for (var star = 1; star <= _max; star++)
+                IconButton(
+                  key: ValueKey('rating-star-$star'),
+                  // Tapping the current top star unsets; otherwise sets to it.
+                  onPressed: () => onChanged(value == star ? null : star),
+                  tooltip: 'Set rating to $star of $_max stars',
+                  icon: Icon(
+                    (value ?? 0) >= star ? Icons.star : Icons.star_border,
+                    semanticLabel: 'Set rating to $star of $_max stars',
+                    color: (value ?? 0) >= star
+                        ? theme.colorScheme.primary
+                        : null,
+                  ),
+                ),
+              if (value != null)
+                IconButton(
+                  key: const ValueKey('rating-clear'),
+                  onPressed: () => onChanged(null),
+                  tooltip: 'Clear rating',
+                  icon: const Icon(Icons.clear, semanticLabel: 'Clear rating'),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -82,6 +82,17 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
+            if (dance.rating != null)
+              Chip(
+                key: const ValueKey('rating-indicator'),
+                avatar: const Icon(Icons.star, size: 16),
+                label: Text(
+                  '${dance.rating}',
+                  semanticsLabel: 'Rating: ${dance.rating} of 5 stars',
+                ),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             for (final tag in entry.tagNames)
               Chip(
                 avatar: const Icon(Icons.label_outline, size: 16),
