@@ -8,7 +8,7 @@ must contain.
 
 These are intentionally **monochrome and structure-only**. Color, real typography, final
 spacing, and the design-system tokens live in the visual proposal
-[`../ux-modernization.md`](../ux-modernization.md) (PR #42), not here. The wireframes lock
+[`../ux-modernization.md`](../ux-modernization.md), not here. The wireframes lock
 **layout, content, and interaction**; the modernization doc dresses them.
 
 ## Index
@@ -39,7 +39,7 @@ Shared visual language, identical across every file:
 **Responsiveness** follows `ux.md`: desktop = nav **rail** + list/detail split; phone =
 **bottom nav**, single pane. Each wireframe annotates its responsive behavior rather than
 drawing every breakpoint. Performance mode (§5) is shown on its dark-stage default to convey
-the ≥7:1 contrast requirement from [`../research/accessibility-baseline.md`](../research/accessibility-baseline.md).
+the ≥7:1 contrast requirement from [`../../research/accessibility-baseline.md`](../../research/accessibility-baseline.md).
 
 The Matrix wireframe (#5) mirrors the **already-implemented** `program_matrix_table.dart`
 (pinned row/column headers, mirrored scrolling, ★ first-figure / ✓ present, legend) — its
