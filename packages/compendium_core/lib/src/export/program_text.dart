@@ -1,0 +1,125 @@
+import '../model/program.dart';
+
+/// Renders a [Program] as a clean, human-readable plain-text set list — the
+/// "emailable set list" of ROADMAP §4.3 (CC parity: "email set list").
+///
+/// This lives in `compendium_core` and is intentionally **pure Dart**: it takes
+/// no Flutter/intl dependency so it can be unit-tested and reused by the app's
+/// share/copy path and by the PDF layout (which reuses the same field ordering).
+///
+/// The set list is titles + metadata + slot notes only — deliberately **not**
+/// full per-dance figure breakdowns (that is Perform / dance-card territory,
+/// ROADMAP §5). Dance titles are not dialect terms, so no canonicalize is
+/// applied here.
+///
+/// - [titleFor] resolves a slot's [ProgramSlot.danceId] to a dance title;
+///   return `null` for an unknown/unavailable dance and the renderer falls back
+///   to [unknownDanceLabel].
+/// - [formatDate] formats [Program.eventDate]; defaults to an ISO `yyyy-MM-dd`
+///   date. The app passes a locale-aware formatter
+///   (`MaterialLocalizations.formatMediumDate`).
+///
+/// Layout:
+/// ```
+/// <TITLE>
+/// <date> · <venue>
+/// Band: <band>
+/// Caller: <caller>
+/// Level: <dancerLevel>
+///
+/// 1. <dance title | free text>[ — <slot note>][ (guest: <x>; <n> min)][ [performed]]
+///    ALT: <alt line, same format, no number>
+/// 2. ...
+///
+/// Notes:
+/// <program notes>
+/// ```
+/// Primaries are numbered `1..n`; alternates (via [Program.grouped]) are
+/// indented under their primary with an `ALT:` prefix. A leading/orphaned alt
+/// still renders (grouping keeps it as a degenerate primary). Absent metadata
+/// parts are omitted. An empty program renders the header only.
+String programToPlainText(
+  Program program, {
+  required String? Function(String danceId) titleFor,
+  String Function(DateTime date)? formatDate,
+  String unknownDanceLabel = 'Untitled dance',
+}) {
+  final fmtDate = formatDate ?? _isoDate;
+  final lines = <String>[];
+
+  lines.add(program.title.trim());
+
+  // date · venue on one line (only the present parts).
+  final dateVenue = <String>[
+    if (program.eventDate != null) fmtDate(program.eventDate!),
+    if (_has(program.venue)) program.venue!.trim(),
+  ];
+  if (dateVenue.isNotEmpty) lines.add(dateVenue.join(' · '));
+
+  if (_has(program.band)) lines.add('Band: ${program.band!.trim()}');
+  if (_has(program.caller)) lines.add('Caller: ${program.caller!.trim()}');
+  if (_has(program.dancerLevel)) {
+    lines.add('Level: ${program.dancerLevel!.trim()}');
+  }
+
+  final groups = program.grouped;
+  if (groups.isNotEmpty) {
+    lines.add('');
+    var n = 1;
+    for (final group in groups) {
+      lines.add('$n. ${_slotLine(group.primary, titleFor, unknownDanceLabel)}');
+      for (final alt in group.alternates) {
+        lines.add('   ALT: ${_slotLine(alt, titleFor, unknownDanceLabel)}');
+      }
+      n++;
+    }
+  }
+
+  if (_has(program.notes)) {
+    lines.add('');
+    lines.add('Notes:');
+    lines.add(program.notes.trim());
+  }
+
+  return lines.join('\n');
+}
+
+/// Builds the content of a single slot line (without the number or `ALT:`
+/// prefix): the dance title or free text, an optional per-slot note, an optional
+/// `(guest: …; N min)` suffix, and a trailing `[performed]` marker.
+String _slotLine(
+  ProgramSlot slot,
+  String? Function(String danceId) titleFor,
+  String unknownDanceLabel,
+) {
+  final buffer = StringBuffer();
+
+  if (slot.danceId != null) {
+    final title = titleFor(slot.danceId!);
+    buffer.write(_has(title) ? title!.trim() : unknownDanceLabel);
+    // On a dance slot, `text` is a per-slot caller note.
+    if (_has(slot.text)) buffer.write(' — ${slot.text!.trim()}');
+  } else {
+    // Text-only slot (break, waltz, announcement): text is the whole content.
+    buffer.write(slot.text!.trim());
+  }
+
+  final meta = <String>[
+    if (_has(slot.guestCaller)) 'guest: ${slot.guestCaller!.trim()}',
+    if (slot.plannedMinutes != null) '${slot.plannedMinutes} min',
+  ];
+  if (meta.isNotEmpty) buffer.write(' (${meta.join('; ')})');
+
+  if (slot.performedAt != null) buffer.write(' [performed]');
+
+  return buffer.toString();
+}
+
+bool _has(String? value) => value != null && value.trim().isNotEmpty;
+
+String _isoDate(DateTime date) {
+  final y = date.year.toString().padLeft(4, '0');
+  final m = date.month.toString().padLeft(2, '0');
+  final d = date.day.toString().padLeft(2, '0');
+  return '$y-$m-$d';
+}

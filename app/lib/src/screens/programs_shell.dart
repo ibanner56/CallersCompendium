@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../data/repositories_scope.dart';
+import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'program_editor_screen.dart';
 import 'programs_list_screen.dart';
@@ -141,6 +142,7 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
   late CompendiumRepositories _repos;
   bool _started = false;
   Program? _program;
+  Map<String, String> _danceTitles = const {};
   bool _loading = true;
   Object? _error;
 
@@ -169,9 +171,21 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
     setState(() => _loading = true);
     try {
       final program = await _repos.programs.getById(widget.programId);
+      final titles = <String, String>{};
+      if (program != null) {
+        final ids = {
+          for (final s in program.slots)
+            if (s.danceId != null) s.danceId!,
+        };
+        for (final id in ids) {
+          final dance = await _repos.dances.getById(id);
+          if (dance != null) titles[id] = dance.title;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _program = program;
+        _danceTitles = titles;
         _loading = false;
         _error = null;
       });
@@ -273,6 +287,10 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
               tooltip: 'Duplicate',
               icon: const Icon(Icons.copy_all_outlined),
               onPressed: _duplicate,
+            ),
+            ProgramExportMenu(
+              program: program,
+              titleFor: (id) => _danceTitles[id],
             ),
             IconButton(
               key: const ValueKey('summary-delete'),
