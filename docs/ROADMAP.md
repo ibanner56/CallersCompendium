@@ -147,14 +147,14 @@ Design items (each produces a design doc + review):
 
 ## Phase 4 — Programs
 
-- [ ] 4.1 Program CRUD: create, edit, save, duplicate
-- [ ] 4.2 Program builder UX: add/reorder dances, notes/breaks, event metadata.
+- [x] 4.1 Program CRUD: create, edit, save, duplicate
+- [x] 4.2 Program builder UX: add/reorder dances, notes/breaks, event metadata.
   **Event metadata must reach CC parity** (schema audit 2026-07-12,
   research/callers-companion.md): program-level `band`, `caller`, `dancerLevel`
   in addition to date/venue/notes; per-slot **guest caller** and **planned
   time/length** (CC `SetItem.Caller`/`Time`) as structured fields, not just the
   free-text slot note; ALT dances (done in model via `isAlt`).
-- [ ] 4.3 Program printing/export (PDF, plain text, **emailable text set list** —
+- [x] 4.3 Program printing/export (PDF, plain text, **emailable text set list** —
   CC parity: "email set list")
 - [x] 4.4 Programming matrix view (figures × dances, computed from structured
   figures; first-figure highlight) — CC's Elements matrix without the manual
@@ -175,7 +175,7 @@ sequenced here so it lands before/with Programs, which depend on some of it.
 See research/callers-companion.md "Schema-level addendum" and
 design/domain-model.md "CC parity backfill".*
 
-- [ ] 4b.1 **Dance difficulty / level** — a first-class `level` field (CC
+- [x] 4b.1 **Dance difficulty / level** — a first-class `level` field (CC
   `Level`/`LevelNum`, plus a "mixed level" marker). High priority: callers
   filter and program by level constantly. Add to the domain model, the schema
   (+ back-fillable index), the editor metadata form, the Collection list/facet,
