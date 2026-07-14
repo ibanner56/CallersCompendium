@@ -222,6 +222,42 @@ void main() {
     expect(copy.hook, 'A great hook');
   });
 
+  testWidgets('overview is presented in a card and figure rows are separated', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Separated Reel',
+        figures: [
+          Figure(move: 'balance', params: const {'beats': 8}),
+          Figure(move: 'swing', params: const {'beats': 8}),
+          Figure(move: 'circle', params: const {'beats': 8}),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    // Overview title sits in a Card, styled as the Fraunces headline.
+    final title = tester.widget<Text>(find.text('Separated Reel'));
+    final expected = Theme.of(
+      tester.element(find.text('Separated Reel')),
+    ).textTheme.headlineMedium;
+    expect(title.style, expected);
+    expect(
+      find.ancestor(
+        of: find.text('Separated Reel'),
+        matching: find.byType(Card),
+      ),
+      findsOneWidget,
+    );
+
+    // Consecutive figure rows are divided by outlineVariant separators.
+    expect(find.byType(Divider), findsWidgets);
+  });
+
   testWidgets('Duplicate succeeds for a dance that has links', (tester) async {
     // Regression: duplicating a dance with links used to reuse the link ids
     // and crash on the DanceLinks primary-key constraint.

@@ -63,6 +63,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Type',
+          activeCount: facets.forms.length,
           chips: [
             for (final f in forms)
               _chip(
@@ -81,6 +82,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Formation',
+          activeCount: facets.formations.length,
           chips: [
             for (final shape in formations)
               _chip(
@@ -99,6 +101,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Progression',
+          activeCount: facets.progressions.length,
           chips: [
             for (final p in progressions)
               _chip(
@@ -117,6 +120,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Status',
+          activeCount: facets.statuses.length,
           chips: [
             for (final s in statuses)
               _chip(
@@ -135,6 +139,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Level',
+          activeCount: facets.levels.length,
           chips: [
             for (final l in levels)
               _chip(
@@ -153,6 +158,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Mixed level',
+          activeCount: facets.mixedLevel == true ? 1 : 0,
           chips: [
             _chip(
               key: 'mixed-level-yes',
@@ -173,6 +179,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Minimum rating',
+          activeCount: facets.minRating != null ? 1 : 0,
           chips: [
             for (var min = 1; min <= 5; min++)
               _chip(
@@ -196,6 +203,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Author',
+          activeCount: facets.authorIds.length,
           chips: [
             for (final a in authors)
               _chip(
@@ -214,6 +222,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Tags',
+          activeCount: facets.tagIds.length,
           chips: [
             for (final t in tags)
               _chip(
@@ -235,6 +244,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: def.label,
+          activeCount: selected.length,
           chips: [
             for (final choice in def.choices ?? const <String>[])
               _chip(
@@ -259,6 +269,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: def.label,
+          activeCount: current != null ? 1 : 0,
           chips: [
             _chip(
               key: 'cf-${def.id}-yes',
@@ -321,6 +332,22 @@ class FacetPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (!facets.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const ValueKey('clear-filters'),
+                icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                label: const Text('Clear filters'),
+                onPressed: () {
+                  facets.clear();
+                  onChanged();
+                },
+              ),
+            ),
+          ),
         for (final section in sections)
           Padding(padding: const EdgeInsets.only(bottom: 8), child: section),
       ],
@@ -343,20 +370,71 @@ class FacetPanel extends StatelessWidget {
 }
 
 class _FacetSection extends StatelessWidget {
-  const _FacetSection({required this.label, required this.chips});
+  const _FacetSection({
+    required this.label,
+    required this.chips,
+    this.activeCount = 0,
+  });
 
   final String label;
   final List<Widget> chips;
 
+  /// Number of active selections in this section; drives the count badge.
+  final int activeCount;
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 4),
-        Wrap(spacing: 8, runSpacing: 4, children: chips),
-      ],
+    return _FacetExpansion(
+      label: label,
+      activeCount: activeCount,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Wrap(spacing: 8, runSpacing: 4, children: chips),
+      ),
+    );
+  }
+}
+
+/// Shared collapsible shell for a facet section: a labelled [ExpansionTile]
+/// with a trailing count badge that surfaces how many selections are active
+/// while the section is collapsed. Starts expanded so keyboard traversal order
+/// still matches the visual order and every chip is reachable by default.
+class _FacetExpansion extends StatelessWidget {
+  const _FacetExpansion({
+    required this.label,
+    required this.activeCount,
+    required this.child,
+  });
+
+  final String label;
+  final int activeCount;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ExpansionTile(
+      key: ValueKey('facet-section-$label'),
+      initiallyExpanded: true,
+      dense: true,
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(bottom: 8),
+      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+      shape: const Border(),
+      collapsedShape: const Border(),
+      title: Row(
+        children: [
+          Flexible(child: Text(label, style: theme.textTheme.labelLarge)),
+          if (activeCount > 0) ...[
+            const SizedBox(width: 8),
+            Badge(
+              label: Text('$activeCount'),
+              backgroundColor: theme.colorScheme.primary,
+            ),
+          ],
+        ],
+      ),
+      children: [child],
     );
   }
 }
@@ -421,59 +499,63 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(widget.def.label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 4),
-        Wrap(
-          spacing: 8,
-          children: [
-            FilterChip(
-              key: ValueKey('cf-text-${widget.def.id}-contains'),
-              label: const Text('contains'),
-              selected: _op == CustomFieldOp.contains,
-              onSelected: (_) {
-                setState(() => _op = CustomFieldOp.contains);
-                _commit();
-              },
-            ),
-            FilterChip(
-              key: ValueKey('cf-text-${widget.def.id}-equals'),
-              label: const Text('equals'),
-              selected: _op == CustomFieldOp.equals,
-              onSelected: (_) {
-                setState(() => _op = CustomFieldOp.equals);
-                _commit();
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        TextField(
-          key: ValueKey('cf-text-${widget.def.id}-input'),
-          controller: _controller,
-          decoration: InputDecoration(
-            hintText: 'Filter by ${widget.def.label}…',
-            isDense: true,
-            border: const OutlineInputBorder(),
-            suffixIcon: _controller.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear, size: 18),
-                    onPressed: () {
-                      _controller.clear();
-                      _commit();
-                      setState(() {});
-                    },
-                  )
-                : null,
+    final active =
+        widget.facets.textValues[widget.def.id]?.isEffective ?? false;
+    return _FacetExpansion(
+      label: widget.def.label,
+      activeCount: active ? 1 : 0,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            children: [
+              FilterChip(
+                key: ValueKey('cf-text-${widget.def.id}-contains'),
+                label: const Text('contains'),
+                selected: _op == CustomFieldOp.contains,
+                onSelected: (_) {
+                  setState(() => _op = CustomFieldOp.contains);
+                  _commit();
+                },
+              ),
+              FilterChip(
+                key: ValueKey('cf-text-${widget.def.id}-equals'),
+                label: const Text('equals'),
+                selected: _op == CustomFieldOp.equals,
+                onSelected: (_) {
+                  setState(() => _op = CustomFieldOp.equals);
+                  _commit();
+                },
+              ),
+            ],
           ),
-          onChanged: (_) {
-            _commit();
-            setState(() {});
-          },
-        ),
-      ],
+          const SizedBox(height: 4),
+          TextField(
+            key: ValueKey('cf-text-${widget.def.id}-input'),
+            controller: _controller,
+            decoration: InputDecoration(
+              hintText: 'Filter by ${widget.def.label}…',
+              isDense: true,
+              border: const OutlineInputBorder(),
+              suffixIcon: _controller.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _controller.clear();
+                        _commit();
+                        setState(() {});
+                      },
+                    )
+                  : null,
+            ),
+            onChanged: (_) {
+              _commit();
+              setState(() {});
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -566,65 +648,44 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(widget.def.label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 4),
-        Wrap(
-          spacing: 8,
-          children: [
-            for (final entry in _ops)
-              FilterChip(
-                key: ValueKey('cf-num-${widget.def.id}-${entry.op.name}'),
-                label: Text(entry.label),
-                selected: _op == entry.op,
-                onSelected: (_) {
-                  setState(() => _op = entry.op);
-                  _commit();
-                },
-              ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                key: ValueKey('cf-num-${widget.def.id}-lo'),
-                controller: _lo,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                  signed: true,
+    final active =
+        widget.facets.numberValues[widget.def.id]?.isEffective ?? false;
+    return _FacetExpansion(
+      label: widget.def.label,
+      activeCount: active ? 1 : 0,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final entry in _ops)
+                FilterChip(
+                  key: ValueKey('cf-num-${widget.def.id}-${entry.op.name}'),
+                  label: Text(entry.label),
+                  selected: _op == entry.op,
+                  onSelected: (_) {
+                    setState(() => _op = entry.op);
+                    _commit();
+                  },
                 ),
-                decoration: InputDecoration(
-                  hintText: _op == CustomFieldOp.between ? 'From' : 'Value',
-                  isDense: true,
-                  border: const OutlineInputBorder(),
-                ),
-                onChanged: (_) {
-                  _commit();
-                  setState(() {});
-                },
-              ),
-            ),
-            if (_op == CustomFieldOp.between) ...[
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('–'),
-              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
               Expanded(
                 child: TextField(
-                  key: ValueKey('cf-num-${widget.def.id}-hi'),
-                  controller: _hi,
+                  key: ValueKey('cf-num-${widget.def.id}-lo'),
+                  controller: _lo,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                     signed: true,
                   ),
-                  decoration: const InputDecoration(
-                    hintText: 'To',
+                  decoration: InputDecoration(
+                    hintText: _op == CustomFieldOp.between ? 'From' : 'Value',
                     isDense: true,
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                   ),
                   onChanged: (_) {
                     _commit();
@@ -632,10 +693,35 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
                   },
                 ),
               ),
+              if (_op == CustomFieldOp.between) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('–'),
+                ),
+                Expanded(
+                  child: TextField(
+                    key: ValueKey('cf-num-${widget.def.id}-hi'),
+                    controller: _hi,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                      signed: true,
+                    ),
+                    decoration: const InputDecoration(
+                      hintText: 'To',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (_) {
+                      _commit();
+                      setState(() {});
+                    },
+                  ),
+                ),
+              ],
             ],
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }

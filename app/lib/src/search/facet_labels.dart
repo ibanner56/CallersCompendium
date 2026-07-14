@@ -1,10 +1,21 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart' show Icons;
 
 /// Human-readable labels for the facet enums, for chips and dropdowns.
 String danceFormLabel(DanceForm form) => switch (form) {
   DanceForm.contra => 'Contra',
   DanceForm.ecd => 'English (ECD)',
   DanceForm.square => 'Square',
+};
+
+/// A representative icon for a dance form, used for the Collection tile's
+/// leading avatar. Always paired with a text label (form name) so meaning is
+/// never carried by the glyph alone.
+IconData danceFormIcon(DanceForm form) => switch (form) {
+  DanceForm.contra => Icons.view_stream_outlined,
+  DanceForm.ecd => Icons.groups_outlined,
+  DanceForm.square => Icons.crop_square,
 };
 
 String progressionLabel(Progression p) => switch (p) {

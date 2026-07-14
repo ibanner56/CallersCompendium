@@ -11,6 +11,7 @@ DanceListEntry _entry({int? rating}) => DanceListEntry(
   dance: Dance(
     id: 'd1',
     title: 'Test Dance',
+    form: DanceForm.ecd,
     rating: rating,
     createdAt: _now,
     updatedAt: _now,
@@ -54,5 +55,37 @@ void main() {
   ) async {
     await _pump(tester, _entry());
     expect(find.byKey(const ValueKey('rating-indicator')), findsNothing);
+  });
+
+  testWidgets('shows a form-type leading avatar with an icon + text label', (
+    tester,
+  ) async {
+    await _pump(tester, _entry());
+
+    // The avatar carries the form icon...
+    final avatar = find.byType(CircleAvatar);
+    expect(avatar, findsOneWidget);
+    expect(
+      find.descendant(of: avatar, matching: find.byIcon(Icons.groups_outlined)),
+      findsOneWidget,
+    );
+    // ...and the meaning is not glyph-only: the form label is the tooltip.
+    expect(
+      find.ancestor(of: avatar, matching: find.byType(Tooltip)),
+      findsOneWidget,
+    );
+    final tooltip = tester.widget<Tooltip>(
+      find.ancestor(of: avatar, matching: find.byType(Tooltip)),
+    );
+    expect(tooltip.message, 'English (ECD)');
+  });
+
+  testWidgets('title uses the themed titleMedium style', (tester) async {
+    await _pump(tester, _entry());
+    final title = tester.widget<Text>(find.text('Test Dance'));
+    final expected = Theme.of(
+      tester.element(find.text('Test Dance')),
+    ).textTheme.titleMedium;
+    expect(title.style, expected);
   });
 }
