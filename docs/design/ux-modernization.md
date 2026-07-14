@@ -165,8 +165,10 @@ icon+text by `program_status_chip.dart`; tokens add theme-driven color):
 ## 3. Fonts — `app/pubspec.yaml` registration
 
 The existing `assets/fonts/Roboto-VariableFont.ttf` entry is a raw **asset**, not
-a registered font family, so `fontFamily: 'Roboto'` does not resolve today. We
-establish the convention (keeping Roboto as a documented fallback):
+a registered font family, so `fontFamily: 'Roboto'` won't reliably resolve to the
+bundled asset until it's registered — depending on platform/system fonts it may
+instead pick up a system Roboto or the platform default. We establish the
+convention (keeping Roboto as a documented fallback):
 
 ```yaml
 flutter:
@@ -200,11 +202,16 @@ explicit selections:
 enum AppThemeSelection { system, light, dark, highContrast }
 ```
 
-- `app/lib/src/theme/app_theme_scope.dart`: `AppThemeScope extends
-  InheritedNotifier<ValueNotifier<AppThemeSelection>>` — direct analog of the
-  existing `ActiveDialectScope`.
-- Persist via `repos.settings.set('theme_mode', …)`, load on boot — mirrors
-  `kActiveDialectKey` + `_onDialectChanged`.
+- `app/lib/src/data/app_theme_scope.dart`: `AppThemeScope extends
+  InheritedNotifier<ValueNotifier<AppThemeSelection>>` — placed **alongside the
+  existing `ActiveDialectScope`** (verified to live in `src/data/`), not under
+  `src/theme/`. The `src/theme/` foundation (tokens, `ColorScheme`s, `AppTheme`)
+  stays presentation-only; the scope is runtime app state, so it belongs with the
+  other data scopes.
+- Persist via `repos.settings.set(kAppThemeKey, …)`, load on boot — mirrors
+  `kActiveDialectKey` + `_onDialectChanged`. Define a `const String kAppThemeKey =
+  'theme_mode';` next to `kActiveDialectKey` in `settings_screen.dart` rather than
+  a bare string literal.
 - `main.dart` `MaterialApp`:
   ```dart
   theme: AppTheme.light,
@@ -287,14 +294,17 @@ Program X                           Program X   [◐ Draft]  [Export ▾]   ← 
 1 Dance A                           ┌ 1 · ⠿ Dance A ── reel · 32 ──── ✎ ✕ ┐  slot cards + ordinal
 2 Dance B                           ├ 2 · ⠿ Dance B ── jig · 48 ───── ✎ ✕ ┤
 [ matrix: raw grid ]                └───────────────────────────────────┘
-                                    Matrix ▸ sticky headers, compact density, legend
+                                    Matrix ▸ themed (headers + legend already present), compact density
 ```
 
 - **Verified:** `program_matrix_table` is a custom `Container`-cell grid (not
-  `DataTable`) already colored from `theme.colorScheme` and marking first-figure
-  with a **star icon** + present with a **check icon** — i.e. it already pairs
-  icon with color (not color-only) and will auto-adapt to Hearth. **Delta:** add
-  a legend, compact density, and pinned row/column headers.
+  `DataTable`) that already colors cells from `theme.colorScheme`, marks
+  first-figure with a **star icon** + present with a **check icon** (icon+color,
+  not color-only), and **already implements pinned row/column headers** (a
+  four-quadrant layout with mirrored `ScrollController`s) **and a legend**
+  (`_Legend`). It will auto-adapt to Hearth. **Delta is theming/polish only:**
+  apply the §1/§2 tokens, tighten to the compact density (§1d), and restyle the
+  existing headers/legend — no structural or behavioral change to the grid.
 - `program_status_chip` already maps `ProgramStatus` to icon+text; it gains
   theme-driven color from the §2 tokens. `collection_picker` becomes a
   searchable right-hand sheet reusing the Collection filter panel.
