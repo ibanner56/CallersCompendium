@@ -25,6 +25,7 @@ class CollectionPicker extends StatefulWidget {
     required this.data,
     required this.dialect,
     required this.onAddDance,
+    this.scrollController,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -36,6 +37,11 @@ class CollectionPicker extends StatefulWidget {
 
   /// Called with the tapped dance's id to add it to the program.
   final void Function(String danceId) onAddDance;
+
+  /// Optional controller for the results scroll view. When the picker is hosted
+  /// in a [DraggableScrollableSheet], pass its controller so sheet dragging and
+  /// list scrolling coordinate correctly.
+  final ScrollController? scrollController;
 
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
@@ -177,6 +183,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ),
         Expanded(
           child: CustomScrollView(
+            controller: widget.scrollController,
             slivers: [
               SliverList(
                 delegate: SliverChildListDelegate([

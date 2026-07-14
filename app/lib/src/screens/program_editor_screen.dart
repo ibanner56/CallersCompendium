@@ -612,6 +612,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
                     key: const ValueKey('sheet-picker'),
                     data: data,
                     dialect: _dialect,
+                    scrollController: scrollController,
                     // Keep the sheet open so callers can add several dances.
                     onAddDance: _addDanceSlot,
                   ),

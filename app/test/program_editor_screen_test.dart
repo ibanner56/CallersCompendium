@@ -489,6 +489,37 @@ void main() {
     expect(saved.slots[1].performedAt, isNull);
   });
 
+  testWidgets('blocks clearing a free-text slot to empty', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, text: 'Break')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const ValueKey('slot-edit-note')), '');
+    await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+    await tester.pumpAndSettle();
+
+    // Dialog stays open with an error; original text is preserved.
+    expect(find.text('Enter some text for this slot.'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('slot-edit-cancel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.single.text, 'Break');
+  });
+
   testWidgets('save advances updatedAt', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(

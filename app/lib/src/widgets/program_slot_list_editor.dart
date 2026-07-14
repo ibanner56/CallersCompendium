@@ -576,6 +576,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   );
   late bool _isAlt = widget.slot.isAlt;
   String? _minutesError;
+  String? _noteError;
 
   bool get _isDanceSlot => widget.slot.danceId != null;
 
@@ -592,6 +593,13 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     final guestText = _guest.text.trim();
     final minutesText = _minutes.text.trim();
 
+    // A free-text slot must keep some text (its danceId is null); a dance slot
+    // may clear its optional caller note entirely.
+    if (!_isDanceSlot && noteText.isEmpty) {
+      setState(() => _noteError = 'Enter some text for this slot.');
+      return;
+    }
+
     int? minutes;
     if (minutesText.isNotEmpty) {
       final parsed = int.tryParse(minutesText);
@@ -602,20 +610,11 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
       minutes = parsed;
     }
 
-    // A free-text slot must keep some text (danceId is null); a dance slot may
-    // clear its note entirely.
-    if (!_isDanceSlot && noteText.isEmpty) {
-      setState(() {}); // no-op; validator below handles messaging
-    }
-    final effectiveText = noteText.isEmpty
-        ? (_isDanceSlot ? null : widget.slot.text)
-        : noteText;
-
     final updated = ProgramSlot(
       id: widget.slot.id,
       position: widget.slot.position,
       danceId: widget.slot.danceId,
-      text: effectiveText,
+      text: noteText.isEmpty ? null : noteText,
       isAlt: _isAlt,
       guestCaller: guestText.isEmpty ? null : guestText,
       plannedMinutes: minutes,
@@ -637,11 +636,15 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
               controller: _note,
               minLines: 1,
               maxLines: 4,
+              onChanged: (_) {
+                if (_noteError != null) setState(() => _noteError = null);
+              },
               decoration: InputDecoration(
                 labelText: _isDanceSlot ? 'Caller note (optional)' : 'Text',
                 hintText: _isDanceSlot
                     ? 'e.g. teach the hey first'
                     : 'e.g. Break, waltz, announcement',
+                errorText: _noteError,
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -659,6 +662,9 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
               key: const ValueKey('slot-edit-minutes'),
               controller: _minutes,
               keyboardType: TextInputType.number,
+              onChanged: (_) {
+                if (_minutesError != null) setState(() => _minutesError = null);
+              },
               decoration: InputDecoration(
                 labelText: 'Planned minutes (optional)',
                 errorText: _minutesError,
