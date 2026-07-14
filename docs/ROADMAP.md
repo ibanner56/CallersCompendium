@@ -156,9 +156,14 @@ Design items (each produces a design doc + review):
   free-text slot note; ALT dances (done in model via `isAlt`).
 - [ ] 4.3 Program printing/export (PDF, plain text, **emailable text set list** —
   CC parity: "email set list")
-- [ ] 4.4 Programming matrix view (figures × dances, computed from structured
+- [x] 4.4 Programming matrix view (figures × dances, computed from structured
   figures; first-figure highlight) — CC's Elements matrix without the manual
-  checklist. See design/ux.md §4.
+  checklist. See design/ux.md §4. Derivation is a pure, Flutter-free core
+  (`buildProgramMatrix`); UI is a Matrix tab on the Program builder with pinned
+  headers and full table semantics. **Deferred** (additive follow-ons): a
+  print/report version of the matrix (CC parity — a separate print layout, does
+  not fall out of 4.3 text/PDF export); and per-cell within-dance repeat
+  **counts** (presence is boolean for now, matching CC's checklist semantics).
 
 ## Phase 4b — Caller's Companion parity backfill (dance & metadata model)
 
