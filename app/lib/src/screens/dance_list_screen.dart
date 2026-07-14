@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
+import '../search/collection_data.dart';
 import '../search/collection_query.dart';
 import '../widgets/advanced_query_builder.dart';
 import '../widgets/dance_list_tile.dart';
@@ -76,7 +77,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   late CompendiumRepositories _repos;
   bool _started = false;
 
-  _CollectionData? _data;
+  CollectionData? _data;
   Object? _loadError;
 
   List<DanceListEntry> _results = const [];
@@ -128,7 +129,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   Future<void> _boot() async {
     try {
-      final data = await _CollectionData.load(_repos);
+      final data = await CollectionData.load(_repos);
       if (!mounted) return;
       setState(() {
         _data = data;
@@ -442,7 +443,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
-  Widget _buildFiltersPanel(_CollectionData data) {
+  Widget _buildFiltersPanel(CollectionData data) {
     final activeCount = _activeFacetCount();
     return ExpansionTile(
       key: const ValueKey('filters-panel'),
@@ -470,7 +471,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
-  Widget _buildAdvancedPanel(_CollectionData data) {
+  Widget _buildAdvancedPanel(CollectionData data) {
     return ExpansionTile(
       key: const ValueKey('advanced-panel'),
       leading: const Icon(Icons.account_tree_outlined),
@@ -616,131 +617,4 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _facets.textValues.values.where((s) => s.isEffective).length +
         _facets.numberValues.values.where((s) => s.isEffective).length;
   }
-}
-
-/// Reference/vocabulary data loaded once for the Collection, used both to build
-/// facet controls and to hydrate search-result ids into [DanceListEntry]s
-/// without re-querying per row.
-class _CollectionData {
-  _CollectionData({
-    required this.dancesById,
-    required this.choreographerNames,
-    required this.tagNames,
-    required this.customFieldDefs,
-    required this.listFieldDefs,
-    required this.choiceFields,
-    required this.booleanFields,
-    required this.textFields,
-    required this.numberFields,
-    required this.lastCalled,
-    required this.authors,
-    required this.tags,
-    required this.forms,
-    required this.formations,
-    required this.progressions,
-    required this.statuses,
-    required this.taxonomy,
-    required this.sectionLabels,
-  });
-
-  final Map<String, Dance> dancesById;
-  final Map<String, String> choreographerNames;
-  final Map<String, String> tagNames;
-  final List<CustomFieldDef> customFieldDefs;
-  final List<CustomFieldDef> listFieldDefs;
-  final List<CustomFieldDef> choiceFields;
-  final List<CustomFieldDef> booleanFields;
-  final List<CustomFieldDef> textFields;
-  final List<CustomFieldDef> numberFields;
-  final Map<String, DateTime> lastCalled;
-  final List<Choreographer> authors;
-  final List<Tag> tags;
-  final List<DanceForm> forms;
-  final List<FormationShape> formations;
-  final List<Progression> progressions;
-  final List<DanceStatus> statuses;
-  final Taxonomy taxonomy;
-  final List<String> sectionLabels;
-
-  static Future<_CollectionData> load(CompendiumRepositories repos) async {
-    final dances = await repos.dances.listAll();
-    final choreographers = await repos.choreographers.listAll();
-    final tags = await repos.tags.listAll();
-    final defs = await repos.customFieldDefs.listAll();
-    final lastCalled = await repos.programs.lastCalledByDance();
-
-    final dancesById = {for (final d in dances) d.id: d};
-    final choreographerNames = {for (final c in choreographers) c.id: c.name};
-    final tagNames = {for (final t in tags) t.id: t.name};
-
-    // Facet vocabularies: only values actually present in the collection, so
-    // empty facets don't clutter the panel (matching the Phase 3.1 approach).
-    final forms = dances.map((d) => d.form).toSet().toList()
-      ..sort((a, b) => a.index.compareTo(b.index));
-    final formations = dances.map((d) => d.formation.shape).toSet().toList()
-      ..sort((a, b) => a.index.compareTo(b.index));
-    final progressions = dances.map((d) => d.progression).toSet().toList()
-      ..sort((a, b) => a.index.compareTo(b.index));
-    final statuses = dances.map((d) => d.status).toSet().toList()
-      ..sort((a, b) => a.index.compareTo(b.index));
-
-    final usedAuthorIds = {for (final d in dances) ...d.authorIds};
-    final usedTagIds = {for (final d in dances) ...d.tagIds};
-    final authors =
-        choreographers.where((c) => usedAuthorIds.contains(c.id)).toList()
-          ..sort(
-            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-          );
-    final tagList = tags.where((t) => usedTagIds.contains(t.id)).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-
-    final searchable = defs.where((d) => d.searchable).toList();
-
-    return _CollectionData(
-      dancesById: dancesById,
-      choreographerNames: choreographerNames,
-      tagNames: tagNames,
-      customFieldDefs: defs,
-      listFieldDefs: defs.where((d) => d.showInList).toList(),
-      choiceFields: searchable
-          .where((d) => d.type == CustomFieldType.choice)
-          .toList(),
-      booleanFields: searchable
-          .where((d) => d.type == CustomFieldType.boolean)
-          .toList(),
-      textFields: searchable
-          .where((d) => d.type == CustomFieldType.text)
-          .toList(),
-      numberFields: searchable
-          .where((d) => d.type == CustomFieldType.number)
-          .toList(),
-      lastCalled: lastCalled,
-      authors: authors,
-      tags: tagList,
-      forms: forms,
-      formations: formations,
-      progressions: progressions,
-      statuses: statuses,
-      taxonomy: contraTaxonomy,
-      sectionLabels: PhraseStructure.standard.labels,
-    );
-  }
-
-  DanceListEntry entryFor(Dance dance) => DanceListEntry(
-    dance: dance,
-    authorNames: [
-      for (final id in dance.authorIds)
-        if (choreographerNames[id] != null) choreographerNames[id]!,
-    ],
-    tagNames: [
-      for (final id in dance.tagIds)
-        if (tagNames[id] != null) tagNames[id]!,
-    ],
-    listCustomFields: [
-      for (final def in listFieldDefs)
-        for (final value in dance.customFields)
-          if (value.fieldId == def.id) '${def.label}: ${value.value}',
-    ],
-    lastCalled: lastCalled[dance.id],
-  );
 }
