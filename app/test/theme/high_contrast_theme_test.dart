@@ -148,7 +148,9 @@ void main() {
           expect(focused.borderSide.width, 2.0);
           expect(focused.borderSide.color, theme.colorScheme.primary);
 
-          // Buttons carry no resting border in the standard treatment.
+          // The standard treatment does not override the button border, so
+          // OutlinedButtons fall back to Material's default side rather than
+          // the HC outline.
           final side = theme.outlinedButtonTheme.style!.side;
           expect(
             side,

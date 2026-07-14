@@ -46,8 +46,9 @@ class ComponentThemes {
   final NavigationRailThemeData navigationRail;
   final NavigationBarThemeData navigationBar;
 
-  /// Minimum interactive height. Material's padded tap target already lifts hit
-  /// testing to 48px, but a ≥24px visual minimum satisfies the UX-2 AC directly.
+  /// Minimum visual button height, in logical pixels. Comfortably clears the
+  /// UX-2 AC of ≥24px while staying below Material's 48px padded tap target
+  /// (which continues to govern hit-testing regardless of this value).
   static const double _minTarget = 40;
 
   factory ComponentThemes.forScheme(
