@@ -113,7 +113,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
 
   Future<void> _pickEventDate() async {
     final now = DateTime.now();
-    final initial = _eventDate?.toLocal() ?? now;
+    // _eventDate is a UTC "date-only" (midnight UTC). Reconstruct the same
+    // calendar day in local time by reading its components directly —
+    // toLocal() would shift the day in non-UTC time zones.
+    final stored = _eventDate;
+    final initial = stored == null
+        ? now
+        : DateTime(stored.year, stored.month, stored.day);
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -170,11 +176,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
       }
       if (!mounted) return;
       setState(() => _saving = false);
+      // Capture the messenger before invoking the callback: onSaved may
+      // rebuild the shell and move this element, making `context` unsafe.
+      final messenger = ScaffoldMessenger.of(context);
       if (widget.isEmbedded) {
+        messenger.showSnackBar(SnackBar(content: Text('"$title" saved.')));
         widget.onSaved?.call(id);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('"$title" saved.')));
       } else {
         Navigator.of(context).pop(id);
       }
@@ -199,6 +206,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
       newTitle: '${source.title} (copy)',
     );
     if (!mounted) return;
+    // Enqueue the snackbar on the captured messenger before navigating:
+    // pushReplacement unmounts this widget and onNavigateTo rebuilds the
+    // shell, so `context` must not be used afterwards.
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(content: Text('Duplicated as "${copy.title}".')),
+    );
     if (widget.isEmbedded) {
       widget.onNavigateTo?.call(copy.id);
     } else {
@@ -209,9 +223,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
         ),
       );
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Duplicated as "${copy.title}".')));
   }
 
   Future<void> _delete() async {
@@ -220,7 +231,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
     final title = source.title;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    // Capture the messenger before the callback/pop moves or unmounts us.
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
       SnackBar(
         content: Text('"$title" deleted.'),
         action: SnackBarAction(

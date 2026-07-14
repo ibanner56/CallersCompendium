@@ -31,7 +31,7 @@ class ProgramListTile extends StatelessWidget {
     final subtitleParts = <String>[
       ?dateLabel,
       if (venue != null && venue.isNotEmpty) venue,
-      '$slotCount ${slotCount == 1 ? 'dance' : 'dances'}',
+      '$slotCount ${slotCount == 1 ? 'slot' : 'slots'}',
     ];
 
     return ListTile(
