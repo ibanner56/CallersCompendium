@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="740" viewBox="0 0 1160 740" font-family="system-ui,Segoe UI,Roboto,sans-serif">
+  <style>
+    .frame{fill:#ffffff;stroke:#333;stroke-width:2}
+    .panel{fill:#f5f5f5;stroke:#c4c4c4;stroke-width:1.5}
+    .card{fill:#ffffff;stroke:#a8a8a8;stroke-width:1.5}
+    .bar{fill:#d3d3d3}.barD{fill:#9e9e9e}
+    .ph{fill:none;stroke:#c0c0c0;stroke-width:1.5;stroke-dasharray:5 5}
+    .icon{fill:#dcdcdc;stroke:#9a9a9a;stroke-width:1}
+    .t{fill:#2b2b2b;font-weight:700;font-size:15px}
+    .l{fill:#3a3a3a;font-weight:600;font-size:12px}
+    .s{fill:#6a6a6a;font-size:11px}
+    .an{fill:#ffffff;font-weight:700;font-size:11px}.anc{fill:#b04a2f}
+    .note{fill:#3a3a3a;font-size:12px}.noteh{fill:#b04a2f;font-weight:700;font-size:12px}
+    .focus{fill:none;stroke:#b04a2f;stroke-width:2}
+    .pop{fill:#ffffff;stroke:#b04a2f;stroke-width:1.5}
+    .warn{fill:#fbeee9;stroke:#b04a2f;stroke-width:1.5}
+    .ul{stroke:#8a8a8a;stroke-width:1}.strike{stroke:#b04a2f;stroke-width:1.5}
+  </style>
+  <rect class="frame" x="1" y="1" width="1158" height="738" rx="10"/>
+  <text class="t" x="20" y="30">Dance editor — keyboard-first figure entry</text>
+  <text class="s" x="20" y="48">ux.md §3 · low-fi</text>
+  <line x1="0" y1="60" x2="900" y2="60" stroke="#e0e0e0"/>
+
+  <!-- editor main -->
+  <rect class="panel" x="20" y="70" width="760" height="646" rx="8"/>
+  <text class="l" x="40" y="94">Figures</text>
+  <text class="s" x="640" y="94">autosave · draft</text>
+
+  <!-- entry field with type-ahead popover -->
+  <rect class="card" x="40" y="104" width="500" height="34" rx="8"/>
+  <rect class="focus" x="40" y="104" width="500" height="34" rx="8"/>
+  <text class="s" x="54" y="126">type "sw"…</text>
+  <rect class="pop" x="40" y="142" width="300" height="96" rx="8"/>
+  <rect class="bar" x="54" y="158" width="120" height="8" rx="4"/><text class="s" x="250" y="166">↵ defaults</text>
+  <rect class="bar" x="54" y="180" width="160" height="8" rx="4"/>
+  <rect class="bar" x="54" y="202" width="100" height="8" rx="4"/>
+  <text class="s" x="54" y="230">swing · allemande · slide…  (Tab cycles params)</text>
+
+  <!-- section with running beat count -->
+  <text class="l" x="40" y="286">A1</text><line x1="66" y1="282" x2="756" y2="282" stroke="#ddd"/>
+  <text class="s" x="660" y="286">beats: 16 / 16</text>
+  <g>
+    <circle class="icon" cx="52" cy="308" r="7"/><rect class="bar" x="70" y="304" width="360" height="8" rx="4"/><text class="s" x="720" y="312">8</text>
+    <!-- reorder controls -->
+    <rect class="card" x="560" y="298" width="20" height="20" rx="4"/><text class="s" x="565" y="313">⋮⋮</text>
+    <rect class="card" x="586" y="298" width="20" height="20" rx="4"/><text class="s" x="592" y="313">▲</text>
+    <rect class="card" x="610" y="298" width="20" height="20" rx="4"/><text class="s" x="616" y="313">▼</text>
+    <circle class="icon" cx="52" cy="340" r="7"/><rect class="bar" x="70" y="336" width="300" height="8" rx="4"/><text class="s" x="720" y="344">8</text>
+  </g>
+  <text class="l" x="40" y="386">A2</text><line x1="66" y1="382" x2="756" y2="382" stroke="#ddd"/>
+  <text class="s" x="660" y="386">beats: 18 / 16</text>
+  <rect class="warn" x="40" y="396" width="716" height="22" rx="6"/><circle class="icon" cx="56" cy="407" r="7"/><text class="s" x="70" y="411">overflow — inline warning (not an error): section runs long</text>
+
+  <!-- custom / lingo-line feedback -->
+  <text class="l" x="40" y="452">B1  ¶</text><line x1="86" y1="448" x2="756" y2="448" stroke="#ddd"/>
+  <rect class="card" x="40" y="462" width="716" height="34" rx="8"/>
+  <text class="s" x="54" y="484">custom line: <tspan fill="#3a3a3a">balance</tspan> and <tspan fill="#3a3a3a">gyre</tspan> your partner</text>
+  <line class="ul" x1="94" y1="488" x2="140" y2="488"/>
+  <line class="ul" x1="168" y1="488" x2="196" y2="488"/>
+  <line class="strike" x1="230" y1="480" x2="268" y2="480"/>
+  <text class="s" x="40" y="516">recognized terms underlined · discouraged terms struck through</text>
+
+  <rect class="ph" x="40" y="530" width="716" height="168" rx="8"/><text class="s" x="360" y="620">more sections…</text>
+
+  <!-- metadata + footer -->
+  <rect class="panel" x="796" y="70" width="344" height="646" rx="8"/>
+  <text class="l" x="814" y="94">Metadata</text>
+  <rect class="card" x="814" y="106" width="308" height="30" rx="6"/><text class="s" x="826" y="126">Title</text>
+  <rect class="card" x="814" y="144" width="308" height="30" rx="6"/><text class="s" x="826" y="164">Author ▾ (autocomplete)</text>
+  <rect class="card" x="814" y="182" width="308" height="30" rx="6"/><text class="s" x="826" y="202">Formation ▾</text>
+  <rect class="card" x="814" y="220" width="308" height="30" rx="6"/><text class="s" x="826" y="240">Custom field ▾</text>
+  <line x1="814" y1="266" x2="1122" y2="266" stroke="#ddd"/>
+  <rect class="card" x="814" y="640" width="120" height="34" rx="6"/><text class="s" x="838" y="662">Undo ↶</text>
+  <rect class="card" x="960" y="640" width="162" height="34" rx="8"/><text class="s" x="988" y="662">Save (commit)</text>
+
+  <!-- annotations -->
+  <circle class="anc" cx="40" cy="120" r="10"/><text class="an" x="36" y="124">1</text>
+  <circle class="anc" cx="656" cy="286" r="10"/><text class="an" x="652" y="290">2</text>
+  <circle class="anc" cx="570" cy="290" r="10"/><text class="an" x="566" y="294">3</text>
+  <circle class="anc" cx="40" cy="484" r="10"/><text class="an" x="36" y="488">4</text>
+  <circle class="anc" cx="814" cy="120" r="10"/><text class="an" x="810" y="124">5</text>
+  <circle class="anc" cx="960" cy="657" r="10"/><text class="an" x="956" y="661">6</text>
+
+  <text class="noteh" x="40" y="716">1 type-ahead move picker (↵ accepts defaults, Tab cycles params) · 2 running beat count/section · 3 drag + ▲▼ + cut/paste (WCAG 2.5.7) · 4 lingo-line feedback · 5 metadata w/ autocomplete · 6 autosave draft, explicit save, undo</text>
+</svg>

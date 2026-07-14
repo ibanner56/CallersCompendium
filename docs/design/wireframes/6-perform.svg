@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="740" viewBox="0 0 1160 740" font-family="system-ui,Segoe UI,Roboto,sans-serif">
+  <style>
+    .t{fill:#2b2b2b;font-weight:700;font-size:15px}
+    .s{fill:#6a6a6a;font-size:11px}
+    .an{fill:#ffffff;font-weight:700;font-size:11px}.anc{fill:#b04a2f}
+    .note{fill:#3a3a3a;font-size:12px}.noteh{fill:#b04a2f;font-weight:700;font-size:12px}
+    /* dark-stage */
+    .zone{fill:#242424;stroke:#3d3d3d;stroke-width:1.5}
+    .barhi{fill:#f2efe9}.barmid{fill:#cfc9bf}
+    .darkcard{fill:#2c2c2c;stroke:#4a4a4a;stroke-width:1.5}
+    .arrow{fill:#e9e4da;font-size:60px;font-weight:700}
+    .dl{fill:#cfc9bf;font-size:12px}
+  </style>
+  <rect x="1" y="1" width="1158" height="738" rx="10" fill="#ffffff" stroke="#333" stroke-width="2"/>
+  <text class="t" x="20" y="30">Performance mode — dark-stage, full-screen</text>
+  <text class="s" x="20" y="48">ux.md §5 · high-contrast (≥7:1) · low-fi</text>
+
+  <!-- full-bleed dark stage -->
+  <rect x="20" y="62" width="1120" height="600" rx="10" fill="#1b1b1b"/>
+
+  <!-- giant prev / next hit zones -->
+  <rect class="zone" x="20" y="62" width="150" height="600" rx="10"/>
+  <text class="arrow" x="70" y="382">‹</text>
+  <rect class="zone" x="990" y="62" width="150" height="600" rx="10"/>
+  <text class="arrow" x="1044" y="382">›</text>
+
+  <!-- current dance card -->
+  <text class="dl" x="200" y="96">Slot 4 of 12 · A1</text>
+  <rect class="barhi" x="200" y="130" width="620" height="34" rx="6"/>
+  <rect class="barhi" x="200" y="182" width="740" height="34" rx="6"/>
+  <rect class="barmid" x="200" y="234" width="520" height="26" rx="6"/>
+  <rect class="barmid" x="200" y="276" width="600" height="26" rx="6"/>
+  <rect class="barmid" x="200" y="318" width="420" height="26" rx="6"/>
+  <text class="dl" x="200" y="392">huge, user-set type size / weight / spacing — no upper bound</text>
+
+  <!-- ALT swap + jump-to-slot + adjust -->
+  <rect class="darkcard" x="200" y="430" width="150" height="40" rx="20"/><text class="dl" x="228" y="455">⇄ ALT swap</text>
+  <rect class="darkcard" x="370" y="430" width="180" height="40" rx="8"/><text class="dl" x="392" y="455">▤ jump to slot</text>
+  <rect class="darkcard" x="570" y="430" width="150" height="40" rx="8"/><text class="dl" x="600" y="455">⚙ adjust ▾</text>
+
+  <!-- exit (deliberate + confirm) -->
+  <rect class="darkcard" x="820" y="86" width="120" height="36" rx="8"/><text class="dl" x="846" y="109">✕ Exit…</text>
+
+  <!-- bottom strip: overview + wake lock -->
+  <g>
+    <rect class="darkcard" x="200" y="590" width="30" height="40" rx="5"/>
+    <rect class="darkcard" x="236" y="590" width="30" height="40" rx="5"/>
+    <rect x="272" y="590" width="30" height="40" rx="5" fill="#5a5147" stroke="#b04a2f" stroke-width="2"/>
+    <rect class="darkcard" x="308" y="590" width="30" height="40" rx="5"/>
+    <rect class="darkcard" x="344" y="590" width="30" height="40" rx="5"/>
+    <text class="dl" x="392" y="616">jump-to-slot overview (current highlighted)</text>
+    <text class="dl" x="740" y="616">🔒 wake-lock on · optional slot timer/clock</text>
+  </g>
+
+  <!-- annotations -->
+  <circle class="anc" cx="95" cy="352" r="12"/><text class="an" x="91" y="356">1</text>
+  <circle class="anc" cx="1065" cy="352" r="12"/><text class="an" x="1061" y="356">1</text>
+  <circle class="anc" cx="205" cy="392" r="10"/><text class="an" x="201" y="396">2</text>
+  <circle class="anc" cx="228" cy="450" r="10"/><text class="an" x="224" y="454">3</text>
+  <circle class="anc" cx="392" cy="450" r="10"/><text class="an" x="388" y="454">4</text>
+  <circle class="anc" cx="826" cy="104" r="10"/><text class="an" x="822" y="108">5</text>
+  <circle class="anc" cx="287" cy="610" r="10"/><text class="an" x="283" y="614">6</text>
+
+  <text class="noteh" x="20" y="690">Notes</text>
+  <text class="note" x="20" y="708">1 · Giant next/prev hit zones at edges (44pt+), also swipe + arrow/page keys.  2 · Huge type, dark-stage default, 7:1 contrast.  3 · ALT dance one-tap swap.</text>
+  <text class="note" x="20" y="726">4 · "adjust" sheet reorders / inserts / notes without disturbing the reading view.  5 · Exit only via deliberate gesture + confirm; zero destructive actions reachable.  6 · Jump-to-slot overview; wake-lock on.</text>
+</svg>

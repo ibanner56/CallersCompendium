@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="740" viewBox="0 0 1160 740" font-family="system-ui,Segoe UI,Roboto,sans-serif">
+  <style>
+    .frame{fill:#ffffff;stroke:#333;stroke-width:2}
+    .panel{fill:#f5f5f5;stroke:#c4c4c4;stroke-width:1.5}
+    .card{fill:#ffffff;stroke:#a8a8a8;stroke-width:1.5}
+    .bar{fill:#d3d3d3}.barD{fill:#9e9e9e}
+    .hdr{fill:#ececec;stroke:#bdbdbd;stroke-width:1}
+    .cell{fill:#ffffff;stroke:#dcdcdc;stroke-width:1}
+    .icon{fill:#dcdcdc;stroke:#9a9a9a;stroke-width:1}
+    .t{fill:#2b2b2b;font-weight:700;font-size:15px}
+    .l{fill:#3a3a3a;font-weight:600;font-size:12px}
+    .s{fill:#6a6a6a;font-size:11px}
+    .an{fill:#ffffff;font-weight:700;font-size:11px}.anc{fill:#b04a2f}
+    .note{fill:#3a3a3a;font-size:12px}.noteh{fill:#b04a2f;font-weight:700;font-size:12px}
+    .tab{fill:#ffffff;stroke:#a8a8a8;stroke-width:1.5}.tabon{fill:#b04a2f}
+    .glyph{fill:#6a6a6a;font-size:13px}
+    .pin{fill:none;stroke:#b04a2f;stroke-width:1.5;stroke-dasharray:4 3}
+  </style>
+  <rect class="frame" x="1" y="1" width="1158" height="738" rx="10"/>
+  <text class="t" x="20" y="30">Programs — Matrix view (figures × dances)</text>
+  <text class="s" x="20" y="48">ux.md §4 Matrix tab · mirrors current program_matrix_table.dart · low-fi</text>
+  <line x1="0" y1="60" x2="960" y2="60" stroke="#e0e0e0"/>
+
+  <!-- view tabs -->
+  <rect class="tab" x="20" y="72" width="90" height="30" rx="6"/><text class="s" x="46" y="92">List</text>
+  <rect class="tabon" x="116" y="72" width="90" height="30" rx="6"/><text class="an" x="136" y="92">Matrix</text>
+
+  <!-- corner (pinned) -->
+  <rect class="hdr" x="20" y="118" width="200" height="56" rx="4"/><text class="s" x="34" y="150">dance ＼ move</text>
+  <!-- column headers (pinned top, horizontally scrolling) -->
+  <g>
+    <rect class="hdr" x="222" y="118" width="120" height="56"/><text class="s" x="238" y="150">swing</text>
+    <rect class="hdr" x="344" y="118" width="120" height="56"/><text class="s" x="360" y="150">allemande</text>
+    <rect class="hdr" x="466" y="118" width="120" height="56"/><text class="s" x="482" y="150">chain</text>
+    <rect class="hdr" x="588" y="118" width="120" height="56"/><text class="s" x="604" y="150">star</text>
+    <rect class="hdr" x="710" y="118" width="120" height="56"/><text class="s" x="726" y="150">petronella</text>
+    <rect class="hdr" x="832" y="118" width="120" height="56"/><text class="s" x="848" y="150">balance</text>
+    <rect class="hdr" x="954" y="118" width="120" height="56"/><text class="s" x="970" y="150">gyre</text>
+  </g>
+  <!-- pinned indicators -->
+  <line class="pin" x1="220" y1="112" x2="220" y2="646"/>
+  <line class="pin" x1="14" y1="176" x2="1092" y2="176"/>
+
+  <!-- rows: pinned row headers + cells -->
+  <g>
+    <!-- row 1 -->
+    <rect class="hdr" x="20" y="176" width="200" height="52"/><rect class="bar" x="34" y="198" width="150" height="8" rx="4"/>
+    <rect class="cell" x="222" y="176" width="120" height="52"/><text class="glyph" x="270" y="207">★</text>
+    <rect class="cell" x="344" y="176" width="120" height="52"/>
+    <rect class="cell" x="466" y="176" width="120" height="52"/><text class="glyph" x="518" y="207">✓</text>
+    <rect class="cell" x="588" y="176" width="120" height="52"/><text class="glyph" x="640" y="207">✓</text>
+    <rect class="cell" x="710" y="176" width="120" height="52"/>
+    <rect class="cell" x="832" y="176" width="120" height="52"/><text class="glyph" x="884" y="207">✓</text>
+    <rect class="cell" x="954" y="176" width="120" height="52"/>
+    <!-- row 2 -->
+    <rect class="hdr" x="20" y="230" width="200" height="52"/><rect class="bar" x="34" y="252" width="120" height="8" rx="4"/>
+    <rect class="cell" x="222" y="230" width="120" height="52"/><text class="glyph" x="270" y="261">✓</text>
+    <rect class="cell" x="344" y="230" width="120" height="52"/><text class="glyph" x="392" y="261">★</text>
+    <rect class="cell" x="466" y="230" width="120" height="52"/>
+    <rect class="cell" x="588" y="230" width="120" height="52"/><text class="glyph" x="640" y="261">✓</text>
+    <rect class="cell" x="710" y="230" width="120" height="52"/><text class="glyph" x="762" y="261">✓</text>
+    <rect class="cell" x="832" y="230" width="120" height="52"/>
+    <rect class="cell" x="954" y="230" width="120" height="52"/><text class="glyph" x="1006" y="261">✓</text>
+    <!-- row 3 -->
+    <rect class="hdr" x="20" y="284" width="200" height="52"/><rect class="bar" x="34" y="306" width="160" height="8" rx="4"/>
+    <rect class="cell" x="222" y="284" width="120" height="52"/><text class="glyph" x="270" y="315">✓</text>
+    <rect class="cell" x="344" y="284" width="120" height="52"/>
+    <rect class="cell" x="466" y="284" width="120" height="52"/><text class="glyph" x="518" y="315">★</text>
+    <rect class="cell" x="588" y="284" width="120" height="52"/>
+    <rect class="cell" x="710" y="284" width="120" height="52"/><text class="glyph" x="762" y="315">✓</text>
+    <rect class="cell" x="832" y="284" width="120" height="52"/><text class="glyph" x="884" y="315">✓</text>
+    <rect class="cell" x="954" y="284" width="120" height="52"/>
+  </g>
+  <!-- scroll region continues -->
+  <rect x="20" y="338" width="1054" height="308" fill="none" stroke="#c0c0c0" stroke-width="1.5" stroke-dasharray="5 5"/>
+  <text class="s" x="470" y="500">scrolls both axes — headers stay pinned (linked ScrollControllers)</text>
+  <text class="s" x="1040" y="360">→</text>
+
+  <!-- legend -->
+  <rect class="card" x="20" y="656" width="360" height="34" rx="8"/>
+  <text class="glyph" x="40" y="678">★</text><text class="s" x="58" y="678">first figure</text>
+  <text class="glyph" x="170" y="678">✓</text><text class="s" x="188" y="678">move present</text>
+
+  <!-- annotations -->
+  <circle class="anc" cx="270" cy="132" r="10"/><text class="an" x="266" y="136">1</text>
+  <circle class="anc" cx="34" cy="150" r="10"/><text class="an" x="30" y="154">2</text>
+  <circle class="anc" cx="270" cy="192" r="10"/><text class="an" x="266" y="196">3</text>
+  <circle class="anc" cx="1040" cy="352" r="10"/><text class="an" x="1036" y="356">4</text>
+  <circle class="anc" cx="30" cy="673" r="10"/><text class="an" x="26" y="677">5</text>
+
+  <text class="noteh" x="470" y="656">Notes</text>
+  <text class="note" x="470" y="676">1 · Moves = columns, dances = rows; per-dance presence.  2 · Pinned column + row headers,</text>
+  <text class="note" x="470" y="692">AT-navigable as a table.  3 · First-figure = ★ icon, present = ✓ (icon, not color-only).</text>
+  <text class="note" x="470" y="708">4 · Horizontally + vertically scrollable, headers mirrored.  5 · Legend (already implemented).</text>
+</svg>
