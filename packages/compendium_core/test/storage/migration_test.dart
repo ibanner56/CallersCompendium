@@ -64,13 +64,14 @@ void main() {
       await db.close();
     });
 
-    test('drift schema version is 2 after upgrade', () async {
+    test('drift schema version is current after upgrade', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 2);
+      // A v1 fixture migrates through every step to the current schema.
+      expect(rows.single.data.values.first, 3);
 
       await db.close();
     });
@@ -213,6 +214,135 @@ void main() {
           )
           .get();
       expect(cleared, isEmpty);
+
+      await db.close();
+    });
+  });
+
+  group('v2 -> v3 upgrade', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v3_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v2 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v2.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('adds the CC-parity program/slot columns', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final programCols = await db
+          .customSelect('PRAGMA table_info(programs)')
+          .get();
+      expect(
+        programCols.map((r) => r.read<String>('name')),
+        containsAll(['band', 'caller', 'dancer_level']),
+      );
+      final slotCols = await db
+          .customSelect('PRAGMA table_info(program_slots)')
+          .get();
+      expect(
+        slotCols.map((r) => r.read<String>('name')),
+        containsAll(['guest_caller', 'planned_minutes']),
+      );
+
+      await db.close();
+    });
+
+    test('drift schema version is 3 after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, 3);
+
+      await db.close();
+    });
+
+    test(
+      'preserves existing program/slot rows; new columns default to NULL',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final program = await repos.programs.getById('prog-1');
+        expect(program, isNotNull);
+        expect(program!.title, 'Spring Dance 2026');
+        expect(program.venue, 'Grange Hall');
+        expect(program.notes, 'A lovely night');
+        // New program-level columns default to NULL on migrated rows.
+        expect(program.band, isNull);
+        expect(program.caller, isNull);
+        expect(program.dancerLevel, isNull);
+
+        expect(program.slots.map((s) => s.id), ['slot-1', 'slot-2']);
+        expect(program.slots.first.danceId, 'dance-1');
+        expect(program.slots.last.isAlt, isTrue);
+        // New per-slot columns default to NULL on migrated rows.
+        expect(program.slots.every((s) => s.guestCaller == null), isTrue);
+        expect(program.slots.every((s) => s.plannedMinutes == null), isTrue);
+
+        await db.close();
+      },
+    );
+
+    test('the migration does not schedule a derived rebuild', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      await db.customSelect('SELECT 1').get(); // force onUpgrade
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(marker, isEmpty, reason: 'programs do not feed derived indexes');
+      await db.close();
+    });
+
+    test('new fields round-trip after the migration', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final program = (await repos.programs.getById('prog-1'))!;
+      await repos.programs.update(
+        program.copyWith(
+          band: 'The Fiddleheads',
+          caller: 'Alice',
+          dancerLevel: 'intermediate',
+          slots: [
+            program.slots.first.copyWith(
+              guestCaller: 'Bob',
+              plannedMinutes: 12,
+            ),
+            program.slots.last,
+          ],
+          updatedAt: DateTime.utc(2026, 4, 1),
+        ),
+      );
+      final reloaded = (await repos.programs.getById('prog-1'))!;
+      expect(reloaded.band, 'The Fiddleheads');
+      expect(reloaded.caller, 'Alice');
+      expect(reloaded.dancerLevel, 'intermediate');
+      expect(reloaded.slots.first.guestCaller, 'Bob');
+      expect(reloaded.slots.first.plannedMinutes, 12);
 
       await db.close();
     });

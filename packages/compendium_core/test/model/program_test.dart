@@ -154,4 +154,222 @@ void main() {
       expect(p.copyWith(venue: 'Elsewhere', clearVenue: true).venue, isNull);
     });
   });
+
+  group('event metadata fields', () {
+    test('Program carries band, caller, and dancerLevel', () {
+      final p = Program(
+        id: 'p1',
+        title: 'Contra Night',
+        band: 'The Fiddleheads',
+        caller: 'Alice',
+        dancerLevel: 'intermediate',
+        createdAt: now,
+        updatedAt: now,
+      );
+      expect(p.band, 'The Fiddleheads');
+      expect(p.caller, 'Alice');
+      expect(p.dancerLevel, 'intermediate');
+    });
+
+    test('ProgramSlot carries guestCaller and plannedMinutes', () {
+      final s = ProgramSlot(
+        id: 's1',
+        position: 0,
+        danceId: 'd1',
+        guestCaller: 'Bob',
+        plannedMinutes: 12,
+      );
+      expect(s.guestCaller, 'Bob');
+      expect(s.plannedMinutes, 12);
+    });
+
+    test('plannedMinutes >= 0 is enforced; 0 is allowed', () {
+      expect(
+        () => ProgramSlot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          plannedMinutes: -1,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        ProgramSlot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          plannedMinutes: 0,
+        ).plannedMinutes,
+        0,
+      );
+    });
+
+    test('Program.copyWith clears band/caller/dancerLevel via flags', () {
+      final p = Program(
+        id: 'p1',
+        title: 'T',
+        band: 'B',
+        caller: 'C',
+        dancerLevel: 'L',
+        createdAt: now,
+        updatedAt: now,
+      );
+      final cleared = p.copyWith(
+        clearBand: true,
+        clearCaller: true,
+        clearDancerLevel: true,
+      );
+      expect(cleared.band, isNull);
+      expect(cleared.caller, isNull);
+      expect(cleared.dancerLevel, isNull);
+      // A set clear flag wins over a passed value.
+      expect(p.copyWith(band: 'X', clearBand: true).band, isNull);
+      // Without the flag, values pass through / are preserved.
+      final updated = p.copyWith(band: 'New');
+      expect(updated.band, 'New');
+      expect(updated.caller, 'C');
+    });
+
+    test(
+      'ProgramSlot.copyWith clears guestCaller/plannedMinutes via flags',
+      () {
+        final s = ProgramSlot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          guestCaller: 'Bob',
+          plannedMinutes: 10,
+        );
+        final cleared = s.copyWith(
+          clearGuestCaller: true,
+          clearPlannedMinutes: true,
+        );
+        expect(cleared.guestCaller, isNull);
+        expect(cleared.plannedMinutes, isNull);
+        expect(
+          s
+              .copyWith(plannedMinutes: 20, clearPlannedMinutes: true)
+              .plannedMinutes,
+          isNull,
+        );
+        expect(s.copyWith(plannedMinutes: 20).plannedMinutes, 20);
+      },
+    );
+
+    test('duplicate carries the new fields through', () {
+      final original = Program(
+        id: 'p1',
+        title: 'Night',
+        band: 'The Fiddleheads',
+        caller: 'Alice',
+        dancerLevel: 'beginner',
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            guestCaller: 'Bob',
+            plannedMinutes: 12,
+            performedAt: now,
+          ),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final copy = original.duplicate(
+        newId: 'p2',
+        newSlotId: () => 'ns1',
+        now: now,
+      );
+      expect(copy.band, 'The Fiddleheads');
+      expect(copy.caller, 'Alice');
+      expect(copy.dancerLevel, 'beginner');
+      expect(copy.slots.single.guestCaller, 'Bob');
+      expect(copy.slots.single.plannedMinutes, 12);
+      // performedAt still resets per existing behavior.
+      expect(copy.slots.single.performedAt, isNull);
+    });
+  });
+
+  group('ALT grouping (Program.grouped)', () {
+    Program program(List<ProgramSlot> slots) => Program(
+      id: 'p1',
+      title: 'T',
+      slots: slots,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    ProgramSlot slot(String id, int pos, {bool alt = false}) =>
+        ProgramSlot(id: id, position: pos, text: id, isAlt: alt);
+
+    test('all primaries produce one group each with no alternates', () {
+      final g = program([slot('a', 0), slot('b', 1), slot('c', 2)]).grouped;
+      expect(g.map((x) => x.primary.id), ['a', 'b', 'c']);
+      expect(g.every((x) => x.alternates.isEmpty), isTrue);
+    });
+
+    test('groups multiple alts under the nearest preceding primary', () {
+      final g = program([
+        slot('a', 0),
+        slot('a1', 1, alt: true),
+        slot('a2', 2, alt: true),
+        slot('b', 3),
+        slot('b1', 4, alt: true),
+      ]).grouped;
+      expect(g.map((x) => x.primary.id), ['a', 'b']);
+      expect(g[0].alternates.map((s) => s.id), ['a1', 'a2']);
+      expect(g[1].alternates.map((s) => s.id), ['b1']);
+    });
+
+    test('leading/orphaned alt renders without throwing as its own group', () {
+      final g = program([
+        slot('orphan', 0, alt: true),
+        slot('a', 1),
+        slot('a1', 2, alt: true),
+      ]).grouped;
+      expect(g.map((x) => x.primary.id), ['orphan', 'a']);
+      expect(g[0].alternates, isEmpty);
+      expect(g[1].alternates.map((s) => s.id), ['a1']);
+      // Every slot appears exactly once across all groups.
+      final all = [
+        for (final grp in g) grp.primary.id,
+        for (final grp in g) ...grp.alternates.map((s) => s.id),
+      ];
+      expect(all.toSet(), {'orphan', 'a', 'a1'});
+      expect(all, hasLength(3));
+    });
+
+    test('empty program yields no groups', () {
+      expect(program(const []).grouped, isEmpty);
+    });
+  });
+
+  group('Program.validate', () {
+    Program program(List<ProgramSlot> slots) => Program(
+      id: 'p1',
+      title: 'T',
+      slots: slots,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    test('is clean for a well-formed program', () {
+      final issues = program([
+        ProgramSlot(id: 'a', position: 0, text: 'a'),
+        ProgramSlot(id: 'a1', position: 1, text: 'a1', isAlt: true),
+      ]).validate();
+      expect(issues, isEmpty);
+    });
+
+    test('warns (non-blocking) about a leading/orphaned alt', () {
+      final issues = program([
+        ProgramSlot(id: 'orphan', position: 0, text: 'x', isAlt: true),
+        ProgramSlot(id: 'a', position: 1, text: 'a'),
+      ]).validate();
+      expect(issues, hasLength(1));
+      expect(issues.single.severity, ValidationSeverity.warning);
+      expect(issues.single.code, 'orphaned_alt');
+    });
+  });
 }

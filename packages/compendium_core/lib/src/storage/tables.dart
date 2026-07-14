@@ -109,6 +109,9 @@ class Programs extends Table {
   TextColumn get title => text()();
   DateTimeColumn get eventDate => dateTime().nullable()();
   TextColumn get venue => text().nullable()();
+  TextColumn get band => text().nullable()();
+  TextColumn get caller => text().nullable()();
+  TextColumn get dancerLevel => text().nullable()();
   TextColumn get notes => text().withDefault(const Constant(''))();
   TextColumn get status =>
       text().map(const EnumNameConverter(ProgramStatus.values))();
@@ -134,6 +137,8 @@ class ProgramSlots extends Table {
       text().nullable().references(Dances, #id, onDelete: KeyAction.setNull)();
   TextColumn get text_ => text().nullable().named('text')();
   BoolColumn get isAlt => boolean().withDefault(const Constant(false))();
+  TextColumn get guestCaller => text().nullable()();
+  IntColumn get plannedMinutes => integer().nullable()();
   DateTimeColumn get performedAt => dateTime().nullable()();
 
   @override
