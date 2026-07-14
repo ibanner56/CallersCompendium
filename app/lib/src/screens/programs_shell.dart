@@ -177,9 +177,9 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
           for (final s in program.slots)
             if (s.danceId != null) s.danceId!,
         };
-        for (final id in ids) {
-          final dance = await _repos.dances.getById(id);
-          if (dance != null) titles[id] = dance.title;
+        final dances = await Future.wait(ids.map(_repos.dances.getById));
+        for (final dance in dances) {
+          if (dance != null) titles[dance.id] = dance.title;
         }
       }
       if (!mounted) return;
