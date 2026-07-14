@@ -28,6 +28,7 @@ lead:
 | Fonts delivery | Bundled offline as `pubspec.yaml` assets — **no `google_fonts`** runtime fetch (local-first) |
 | High-contrast | One dark-based HC theme, **shared with Phase 5 Perform mode** |
 | Theme selection | User-selectable: System / Light / Dark / High-contrast |
+| Theme gallery (net-new) | Beyond System/Light/Dark/HC, a curated set of **IDE-inspired palettes** (Solarized, Atom One, Monokai, One Dark Pro, Noctis…). Each is a full, contrast-validated `ColorScheme` that bakes in its own contrast **and** background darkness ("omega": true-black / deep / charcoal / grey). Users pick a whole theme — **no separate contrast/omega sliders.** Extends the §4 switcher (see §4A). |
 
 *Considered alternative:* palette "Fiddle & Brass" (garnet / forest / brass) —
 bolder and more saturated, but its garnet primary visually competes with the red
@@ -228,6 +229,151 @@ enum AppThemeSelection { system, light, dark, highContrast }
   a small live preview swatch. Our in-app selector is the source of truth; the OS
   high-contrast flag is a bonus path, not the only route to HC.
 
+## 4A. Theme gallery — palette picker (net-new; extends §4)
+
+The default Hearth palette + System/Light/Dark/High-contrast (§4) covers the
+baseline, but callers coming from code editors expect their favorite look. This
+section adds a **theme gallery**: a curated set of selectable palettes inspired
+by the most-used IDE themes. Each gallery palette bakes in its own brightness,
+contrast character, and **background darkness ("omega")** — true-black vs
+deep-saturated vs warm-charcoal vs blue-grey vs paper-white. The user selects a
+*whole theme*; there are **no separate contrast or omega sliders** (that
+complexity is pre-resolved by curating the set).
+
+This is purely additive to the UX-0 foundation shipping in **PR #45** — it
+reuses `AppColorSchemes`, `AppTheme`, `AppThemeScope`, and the Settings
+"Appearance" plumbing rather than introducing a parallel system.
+
+### 4A.1 Model — extend, don't replace
+
+Grow the existing `AppThemeSelection` (§4) from a 4-value *mode* enum into a
+small **palette registry**. `system` stays special (follows the OS light/dark
+setting using the Hearth family); every other value pins one specific,
+contrast-validated `ColorScheme`.
+
+```dart
+enum AppThemeSelection {
+  system,               // follow OS → Hearth light/dark (unchanged)
+  light,                // Hearth light   (unchanged)
+  dark,                 // Hearth dark    (unchanged)
+  highContrast,         // ≥7:1, shared with Perform (unchanged)
+  // — IDE-inspired gallery (net-new) —
+  solarizedLight, solarizedDark,
+  atomOneLight,   atomOneDark,
+  monokai,
+  oneDarkPro, oneDarkProDarker,   // "Darker" = deeper omega variant
+  noctis,     noctisLux,          // dark + light siblings
+}
+```
+
+- **Persistence is backward-compatible.** The stored value is still the enum
+  `.name` under `kAppThemeKey` (`'theme_mode'`), so existing
+  `system`/`light`/`dark`/`highContrast` selections keep resolving; new palettes
+  are simply new names.
+- Each value gains three resolvers used by the wiring + settings UI:
+  `Brightness get brightness`, `ColorScheme get scheme` (from an extended
+  `AppColorSchemes`, or a `paletteSchemes` map), and a `group` for the gallery UI
+  (System · Default · Light · Dark).
+- **No per-palette bespoke code.** `AppTheme._build(ColorScheme)` (§1e, #45)
+  already turns *any* `ColorScheme` into full `ThemeData` (typography, adaptive
+  density, visible focus, and the `AppThemeExtension` semantic tokens), so a new
+  palette is "one validated `ColorScheme` + one enum entry."
+
+### 4A.2 `main.dart` wiring — generalize the high-contrast special-case
+
+UX-0 (#45) special-cases high-contrast by forcing both `theme`/`darkTheme` to
+`AppTheme.highContrast` with `themeMode: dark`. Generalize that single branch:
+
+- `system` → `theme: AppTheme.light`, `darkTheme: AppTheme.dark`,
+  `themeMode: system` (today's behavior).
+- any pinned palette → build its `ThemeData` once, set it on **both** `theme`
+  and `darkTheme`, and set `themeMode` from `selection.brightness`
+  (light palette ⇒ `ThemeMode.light`, dark palette ⇒ `ThemeMode.dark`).
+
+The `highContrastTheme`/`highContrastDarkTheme` slots and the OS high-contrast
+path stay exactly as in §4.
+
+### 4A.3 The initial gallery
+
+Anchor ("identity") colors below make each palette recognizable; the **full
+30-role `ColorScheme` per palette is derived and WCAG-validated during
+implementation** (§4A.4), the same process that produced Hearth in §1a. Exact
+per-role hex against each source palette is an implementation deliverable.
+
+| Palette | Mode | Background — "omega" | Foreground | Signature accents | Inspired by |
+|---|---|---|---|---|---|
+| **Hearth** *(default, ships in UX-0)* | light+dark+HC | `#FBF7F2` / `#1A120E` | `#201A17` / `#EDE0D9` | terracotta `#9C4A2F` · pine `#4E6B4F` · ochre `#7A5900` | house palette (§1a/§1b) |
+| Solarized Light | light | `#FDF6E3` warm paper | `#657B83` | `#268BD2` `#859900` `#B58900` `#DC322F` `#6C71C4` `#2AA198` | Solarized (Ethan Schoonover, MIT) |
+| Solarized Dark | dark | `#002B36` deep teal | `#839496` | *(same accent set)* | Solarized (MIT) |
+| Atom One Light | light | `#FAFAFA` cool white | `#383A42` | `#4078F2` `#50A14F` `#E45649` `#A626A4` `#0184BC` | Atom One Light |
+| Atom One Dark | dark | `#282C34` blue-grey | `#ABB2BF` | `#61AFEF` `#98C379` `#E06C75` `#C678DD` `#56B6C2` `#E5C07B` | Atom One Dark |
+| One Dark Pro | dark | `#282C34` blue-grey | `#ABB2BF` | *(refined One Dark accents)* | One Dark Pro |
+| One Dark Pro Darker | dark | `#21252B` near-black | `#ABB2BF` | *(as above)* | One Dark Pro "Darker" (deeper omega) |
+| Monokai | dark | `#272822` warm charcoal | `#F8F8F2` | `#F92672` `#A6E22E` `#E6DB74` `#FD971F` `#AE81FF` `#66D9EF` | Monokai (Wimer Hazenberg / Sublime) |
+| Noctis | dark | `#1B2932` teal blue-black | `#D6DEEB` | teal/green forward | Noctis (Liviu Schera) |
+| Noctis Lux | light | `#F9F6F2` | `#53606C` | teal/green forward | Noctis Lux |
+
+The set deliberately spans the **omega spectrum** — paper-white → cool-white →
+warm-charcoal → blue-grey → near-black → deep-saturated-teal — so users get real
+variety, not ten shades of the same dark. A true-black AMOLED entry can be added
+later if requested; it's a natural extension of the same registry.
+
+### 4A.4 Accessibility contract (non-negotiable)
+
+- **Every gallery palette clears the same bar as Hearth**: WCAG 2.2 **AA** per
+  `research/accessibility-baseline.md` — body text ≥ 4.5:1, large text &
+  non-text UI ≥ 3:1 — validated by the same contrast test used for §1a during
+  implementation.
+- Several famous themes are **below AA on some pairings** (Solarized is
+  intentionally low-contrast; Monokai comments; low-emphasis text on many dark
+  themes). Policy: **preserve the identity hue, tune the tone** until the pairing
+  reaches AA. We never ship a text role below AA to stay "pixel-accurate" to a
+  source theme; identity is in the hues, not the exact luminance.
+- **Gallery choice is app-chrome only and cannot weaken Perform mode.** The
+  `perform*` tokens in `AppThemeExtension` are fixed to the ≥7:1 high-contrast
+  values (§1b/§2) regardless of the active `ColorScheme`, so selecting a
+  low-contrast gallery theme leaves Perform legibility untouched. High-contrast
+  remains its own gallery entry and the OS high-contrast route (§4) is unchanged.
+- **No color-only meaning**, still. Palettes only re-tint the §2 semantic tokens
+  via `AppThemeExtension.fromColorScheme`; every status/badge keeps its icon +
+  text channel.
+
+### 4A.5 Settings UX — from radio list to swatch gallery
+
+The §4 four-item `RadioGroup` doesn't scale to ~12 palettes. Replace the
+Appearance body with a **grouped swatch gallery**:
+
+- Labeled sections — **System · Default (Hearth) · Light · Dark** — each a wrap
+  of selectable **preview cards**.
+- Each card renders a **mini live sample over that palette's real background**: a
+  surface tile, a Fraunces heading + Atkinson body line, three accent chips, and
+  a focus-ring demo — so contrast and "omega" are visible *before* selecting.
+- Preserve single-selection radio semantics: one selected at a time, each card
+  exposes name/role/state, keyboard-traversable in visual order, with a visible
+  focus indicator (accessibility-baseline). Selection is instant and persisted
+  via the existing `_onThemeChanged` path (live `AppThemeScope` notifier +
+  background `repos.settings.set`).
+
+### 4A.6 Attribution & licensing
+
+- **Solarized** — a precise, **MIT-licensed** palette (Ethan Schoonover); we may
+  reproduce its exact values and credit it (in an in-app "About themes" note and
+  in `docs/`).
+- **Monokai / Atom One / One Dark Pro / Noctis** — names and looks associated
+  with their authors and editors. We ship **"inspired by" palettes** — our own
+  contrast-tuned `ColorScheme`s — credit the inspiration, and avoid implying
+  endorsement. If a specific name is a concern, use a descriptive house name with
+  an "inspired by X" subtitle. Resolve exact naming in the UX-6 implementation
+  issue.
+
+### 4A.7 Scope & sequencing
+
+- **Depends on UX-0 (PR #45)** landing (the registry, `AppTheme`,
+  `AppThemeScope`, and the Appearance switcher it extends).
+- Lands as its own roadmap step **UX-6 — Theme gallery** (§7). Independent of the
+  UX-2→UX-5 component work, but benefits from UX-2's shared component sub-themes
+  so the preview cards render faithfully.
+
 ## 5. Component direction — before → after
 
 Grounded in the real widgets, with code-verified notes.
@@ -340,6 +486,13 @@ Each step carries accessibility acceptance criteria drawn from
   a table with pinned headers keyboard-reachable.*
 - **UX-5 — Shell / adaptive polish + Cmd-K + full keyboard map.** *AC: complete
   desktop keyboard map; global search shortcut; focus visible throughout.*
+- **UX-6 — Theme gallery (palette picker).** IDE-inspired palettes (§4A) as
+  contrast-validated `ColorScheme`s; extend `AppThemeSelection` + `AppColorSchemes`;
+  generalize the `main.dart` theme-slot wiring; swap the Settings Appearance
+  radio list for a grouped swatch gallery with live previews. Depends on UX-0.
+  *AC: every palette passes WCAG 2.2 AA (4.5:1 text / 3:1 large & non-text);
+  Perform mode still ≥7:1 regardless of selection; gallery is keyboard-navigable
+  with visible focus; no color-only meaning.*
 
 **Sequencing:** UX-0 and UX-1 land **before/with Phase 5 (Perform mode)** so
 Perform inherits the tokens and shares the high-contrast theme; UX-2→UX-5 follow.
@@ -365,7 +518,8 @@ Confirmed directly against the current source before writing this doc:
 ## 9. Roadmap integration
 
 This work is **not currently on the roadmap** and is net-new. It should be added
-as its own "Phase UX" (items UX-0…UX-5 above), sequenced so UX-0/UX-1 land with
+as its own "Phase UX" (items UX-0…UX-6 above), sequenced so UX-0/UX-1 land with
 Phase 5 Performance mode. Deliverables to follow this doc: annotated
 before/after mockups committed under `docs/design/wireframes/` (optional), and
-per-step implementation issues carrying the acceptance criteria above.
+per-step implementation issues carrying the acceptance criteria above. UX-6 (the
+theme gallery, §4A) is optional polish that can slot in any time after UX-0.

@@ -88,7 +88,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   quick-switch also exposed on dance card / perform screens.
 - Data sources: snapshot URL(s), update check/download with progress + review
   queue entry point; import from file (CC .USR, JSON).
-- Custom field definitions; appearance (theme, text scale); backup/export.
+- Custom field definitions; appearance (theme gallery — System/light/dark/high-contrast
+  plus IDE-inspired palettes; see ux-modernization.md §4A; text scale);
+  backup/export.
 
 ## Cross-cutting UX rules
 
