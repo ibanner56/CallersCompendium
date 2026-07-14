@@ -272,12 +272,13 @@ void main() {
     final handle = tester.ensureSemantics();
 
     // Overall control exposes a semantic value reflecting the current rating.
+    // (label 'Rating' + value '3 of 5 stars' → announced 'Rating, 3 of 5 stars'.)
     expect(
       tester
           .getSemantics(find.byKey(const ValueKey('rating-field')))
           .getSemanticsData()
           .value,
-      'Rating: 3 of 5 stars',
+      '3 of 5 stars',
     );
 
     // Each star is an actionable control with a descriptive label.

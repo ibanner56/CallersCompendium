@@ -1240,8 +1240,10 @@ class _EnumDropdown<T> extends StatelessWidget {
 /// Accessibility (a11y is a merge gate for this control):
 /// - Each star is a focusable, actionable [IconButton] with a semantic label
 ///   ('Set rating to N of 5 stars').
-/// - The whole control is wrapped in [Semantics] exposing a value like
-///   'Rating: 3 of 5 stars' or 'Rating: unrated'.
+/// - The whole control is wrapped in [Semantics] with `label: 'Rating'` and a
+///   value like '3 of 5 stars' or 'unrated' (announced as 'Rating, 3 of 5
+///   stars'). The value deliberately omits a 'Rating:' prefix so the label
+///   isn't announced twice.
 /// - Filled vs empty stars differ by icon *shape* ([Icons.star] vs
 ///   [Icons.star_border]) and carry semantics — state is never conveyed by
 ///   colour alone.
@@ -1263,11 +1265,11 @@ class _RatingField extends StatelessWidget {
     final semanticValue = value == null ? 'unrated' : '$value of $_max stars';
 
     return Semantics(
+      key: const ValueKey('rating-field'),
       container: true,
       label: 'Rating',
-      value: 'Rating: $semanticValue',
+      value: semanticValue,
       child: Column(
-        key: const ValueKey('rating-field'),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(

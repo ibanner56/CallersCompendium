@@ -30,15 +30,17 @@ const _kDraftVersion = 5;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v2):
+/// Schema (v5):
 /// ```jsonc
 /// {
-///   "v": 2,
+///   "v": 5,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "phrase": "...", "formationDetail": "...",
 ///   "form": "contra", "formationShape": "dupleImproper",
 ///   "progression": "single", "status": "active",
 ///   "level": "intermediate", "mixedLevel": false,
+///   "rating": 4,
+///   "composedOn": "1989", "revisedOn": "2004-03-15",
 ///   "authorIds": ["..."], "tagIds": ["..."], "tunes": ["..."],
 ///   "links": [
 ///     {"id":"...", "kind":"source", "url":"...", "label":"..."},
@@ -54,6 +56,7 @@ const _kDraftVersion = 5;
 /// ```
 /// `move` may be `null` for an incomplete draft row.
 /// `label`, `url`, and `targetDanceId` may be omitted when empty/null.
+/// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset.
 String encodeDraft(EditorSnapshot snapshot) {
   return jsonEncode({
     'v': _kDraftVersion,
