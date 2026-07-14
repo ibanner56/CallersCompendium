@@ -7,6 +7,7 @@ import 'choreographer_repository.dart';
 import 'custom_field_repository.dart';
 import 'dance_repository.dart';
 import 'program_repository.dart';
+import 'published_source_repository.dart';
 import 'settings_repository.dart';
 import 'snapshot_repository.dart';
 import 'tag_repository.dart';
@@ -21,6 +22,7 @@ class CompendiumRepositories {
       tags = TagRepository(db),
       customFieldDefs = CustomFieldDefRepository(db),
       programs = ProgramRepository(db),
+      publishedSources = PublishedSourceRepository(db),
       settings = SettingsRepository(db),
       snapshots = SnapshotRepository(db);
 
@@ -30,6 +32,7 @@ class CompendiumRepositories {
   final TagRepository tags;
   final CustomFieldDefRepository customFieldDefs;
   final ProgramRepository programs;
+  final PublishedSourceRepository publishedSources;
   final SettingsRepository settings;
   final SnapshotRepository snapshots;
 

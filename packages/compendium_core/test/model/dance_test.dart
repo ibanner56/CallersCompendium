@@ -185,6 +185,56 @@ void main() {
     });
   });
 
+  group('sourceCitations', () {
+    test('defaults to an empty, unmodifiable list', () {
+      final d = make();
+      expect(d.sourceCitations, isEmpty);
+      expect(
+        () => d.sourceCitations.add(SourceCitation(sourceId: 's1')),
+        throwsUnsupportedError,
+      );
+    });
+
+    test('copyWith sets sourceCitations', () {
+      final citations = [
+        SourceCitation(sourceId: 's1', page: '12'),
+        SourceCitation(sourceId: 's2', number: 'A1'),
+      ];
+      final d = make().copyWith(sourceCitations: citations);
+      expect(d.sourceCitations, citations);
+    });
+
+    test('== distinguishes differing sourceCitations', () {
+      final base = make();
+      expect(
+        base.copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+        isNot(
+          equals(
+            base.copyWith(sourceCitations: [SourceCitation(sourceId: 's2')]),
+          ),
+        ),
+      );
+      expect(
+        base.copyWith(
+          sourceCitations: [SourceCitation(sourceId: 's1', page: '12')],
+        ),
+        equals(
+          base.copyWith(
+            sourceCitations: [SourceCitation(sourceId: 's1', page: '12')],
+          ),
+        ),
+      );
+    });
+
+    test('duplicate carries sourceCitations through', () {
+      final original = make().copyWith(
+        sourceCitations: [SourceCitation(sourceId: 's1', page: '12')],
+      );
+      final copy = original.duplicate(newId: 'd2', now: now);
+      expect(copy.sourceCitations, original.sourceCitations);
+    });
+  });
+
   group('value equality', () {
     test('identical content compares equal', () {
       expect(make(figures: [fig(8)]), equals(make(figures: [fig(8)])));

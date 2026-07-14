@@ -255,6 +255,44 @@ class DanceLinks extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// A reusable published source (book, collection, magazine, website) that
+/// dances cite. A first-class entity (like [Choreographers]/[Tags]); the
+/// per-dance page/number lives on the [DanceSources] join. Added in schema v8.
+@DataClassName('PublishedSourceRow')
+class PublishedSources extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  TextColumn get author => text().nullable()();
+  IntColumn get year => integer().nullable()();
+  TextColumn get url => text().nullable()();
+  TextColumn get notes => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Ordered dance <-> published-source join carrying the citation detail
+/// (freeform `page`/`number`). `position` gives an unambiguous citation order
+/// (never inferred from row order); mirrors [DanceAuthors]. Added in schema v8.
+@DataClassName('DanceSourceRow')
+class DanceSources extends Table {
+  TextColumn get danceId =>
+      text().references(Dances, #id, onDelete: KeyAction.cascade)();
+  TextColumn get sourceId =>
+      text().references(PublishedSources, #id, onDelete: KeyAction.cascade)();
+  TextColumn get page => text().nullable()();
+  TextColumn get number => text().nullable()();
+  IntColumn get position => integer()();
+
+  @override
+  Set<Column> get primaryKey => {danceId, sourceId};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {danceId, position},
+  ];
+}
+
 /// Import provenance, one row per dance (at most).
 @DataClassName('ProvenanceRow')
 class Provenance extends Table {

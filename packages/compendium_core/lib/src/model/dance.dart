@@ -10,6 +10,7 @@ import 'formation.dart';
 import 'partial_date.dart';
 import 'phrase_structure.dart';
 import 'provenance.dart';
+import 'source_citation.dart';
 import '../util/uuid.dart';
 
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
@@ -40,6 +41,7 @@ class Dance {
     List<CustomFieldValue> customFields = const [],
     List<String> tagIds = const [],
     List<DanceLink> links = const [],
+    List<SourceCitation> sourceCitations = const [],
     this.provenance,
     this.composedOn,
     this.revisedOn,
@@ -53,7 +55,8 @@ class Dance {
        tunes = List.unmodifiable(tunes),
        customFields = List.unmodifiable(customFields),
        tagIds = List.unmodifiable(tagIds),
-       links = List.unmodifiable(links) {
+       links = List.unmodifiable(links),
+       sourceCitations = List.unmodifiable(sourceCitations) {
     if (title.trim().isEmpty) {
       throw ArgumentError.value(title, 'title', 'must be non-empty');
     }
@@ -109,6 +112,10 @@ class Dance {
   final List<CustomFieldValue> customFields;
   final List<String> tagIds;
   final List<DanceLink> links;
+
+  /// Citations of reusable [PublishedSource]s (book/collection provenance with
+  /// optional page/number), distinct from bare-URL [links]. Ordered.
+  final List<SourceCitation> sourceCitations;
   final Provenance? provenance;
 
   /// When the dance was *composed* by its author, at whatever precision is
@@ -188,6 +195,7 @@ class Dance {
     List<CustomFieldValue>? customFields,
     List<String>? tagIds,
     List<DanceLink>? links,
+    List<SourceCitation>? sourceCitations,
     Provenance? provenance,
     PartialDate? composedOn,
     bool clearComposedOn = false,
@@ -215,6 +223,7 @@ class Dance {
     customFields: customFields ?? this.customFields,
     tagIds: tagIds ?? this.tagIds,
     links: links ?? this.links,
+    sourceCitations: sourceCitations ?? this.sourceCitations,
     provenance: provenance ?? this.provenance,
     composedOn: clearComposedOn ? null : (composedOn ?? this.composedOn),
     revisedOn: clearRevisedOn ? null : (revisedOn ?? this.revisedOn),
@@ -269,6 +278,7 @@ class Dance {
             label: link.label,
           ),
       ],
+      sourceCitations: sourceCitations,
       composedOn: composedOn,
       revisedOn: revisedOn,
       createdAt: now,
@@ -297,6 +307,7 @@ class Dance {
       _listEq.equals(other.customFields, customFields) &&
       _listEq.equals(other.tagIds, tagIds) &&
       _listEq.equals(other.links, links) &&
+      _listEq.equals(other.sourceCitations, sourceCitations) &&
       other.composedOn == composedOn &&
       other.revisedOn == revisedOn &&
       other.createdAt == createdAt &&

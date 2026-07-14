@@ -5970,6 +5970,772 @@ class ProvenanceCompanion extends UpdateCompanion<ProvenanceRow> {
   }
 }
 
+class $PublishedSourcesTable extends PublishedSources
+    with TableInfo<$PublishedSourcesTable, PublishedSourceRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PublishedSourcesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _authorMeta = const VerificationMeta('author');
+  @override
+  late final GeneratedColumn<String> author = GeneratedColumn<String>(
+    'author',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+    'year',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _urlMeta = const VerificationMeta('url');
+  @override
+  late final GeneratedColumn<String> url = GeneratedColumn<String>(
+    'url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, title, author, year, url, notes];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'published_sources';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PublishedSourceRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('author')) {
+      context.handle(
+        _authorMeta,
+        author.isAcceptableOrUnknown(data['author']!, _authorMeta),
+      );
+    }
+    if (data.containsKey('year')) {
+      context.handle(
+        _yearMeta,
+        year.isAcceptableOrUnknown(data['year']!, _yearMeta),
+      );
+    }
+    if (data.containsKey('url')) {
+      context.handle(
+        _urlMeta,
+        url.isAcceptableOrUnknown(data['url']!, _urlMeta),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PublishedSourceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PublishedSourceRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      author: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}author'],
+      ),
+      year: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}year'],
+      ),
+      url: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}url'],
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+    );
+  }
+
+  @override
+  $PublishedSourcesTable createAlias(String alias) {
+    return $PublishedSourcesTable(attachedDatabase, alias);
+  }
+}
+
+class PublishedSourceRow extends DataClass
+    implements Insertable<PublishedSourceRow> {
+  final String id;
+  final String title;
+  final String? author;
+  final int? year;
+  final String? url;
+  final String? notes;
+  const PublishedSourceRow({
+    required this.id,
+    required this.title,
+    this.author,
+    this.year,
+    this.url,
+    this.notes,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || author != null) {
+      map['author'] = Variable<String>(author);
+    }
+    if (!nullToAbsent || year != null) {
+      map['year'] = Variable<int>(year);
+    }
+    if (!nullToAbsent || url != null) {
+      map['url'] = Variable<String>(url);
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    return map;
+  }
+
+  PublishedSourcesCompanion toCompanion(bool nullToAbsent) {
+    return PublishedSourcesCompanion(
+      id: Value(id),
+      title: Value(title),
+      author: author == null && nullToAbsent
+          ? const Value.absent()
+          : Value(author),
+      year: year == null && nullToAbsent ? const Value.absent() : Value(year),
+      url: url == null && nullToAbsent ? const Value.absent() : Value(url),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+    );
+  }
+
+  factory PublishedSourceRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PublishedSourceRow(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      author: serializer.fromJson<String?>(json['author']),
+      year: serializer.fromJson<int?>(json['year']),
+      url: serializer.fromJson<String?>(json['url']),
+      notes: serializer.fromJson<String?>(json['notes']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'author': serializer.toJson<String?>(author),
+      'year': serializer.toJson<int?>(year),
+      'url': serializer.toJson<String?>(url),
+      'notes': serializer.toJson<String?>(notes),
+    };
+  }
+
+  PublishedSourceRow copyWith({
+    String? id,
+    String? title,
+    Value<String?> author = const Value.absent(),
+    Value<int?> year = const Value.absent(),
+    Value<String?> url = const Value.absent(),
+    Value<String?> notes = const Value.absent(),
+  }) => PublishedSourceRow(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    author: author.present ? author.value : this.author,
+    year: year.present ? year.value : this.year,
+    url: url.present ? url.value : this.url,
+    notes: notes.present ? notes.value : this.notes,
+  );
+  PublishedSourceRow copyWithCompanion(PublishedSourcesCompanion data) {
+    return PublishedSourceRow(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      author: data.author.present ? data.author.value : this.author,
+      year: data.year.present ? data.year.value : this.year,
+      url: data.url.present ? data.url.value : this.url,
+      notes: data.notes.present ? data.notes.value : this.notes,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PublishedSourceRow(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('author: $author, ')
+          ..write('year: $year, ')
+          ..write('url: $url, ')
+          ..write('notes: $notes')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, title, author, year, url, notes);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PublishedSourceRow &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.author == this.author &&
+          other.year == this.year &&
+          other.url == this.url &&
+          other.notes == this.notes);
+}
+
+class PublishedSourcesCompanion extends UpdateCompanion<PublishedSourceRow> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String?> author;
+  final Value<int?> year;
+  final Value<String?> url;
+  final Value<String?> notes;
+  final Value<int> rowid;
+  const PublishedSourcesCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.author = const Value.absent(),
+    this.year = const Value.absent(),
+    this.url = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PublishedSourcesCompanion.insert({
+    required String id,
+    required String title,
+    this.author = const Value.absent(),
+    this.year = const Value.absent(),
+    this.url = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title);
+  static Insertable<PublishedSourceRow> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? author,
+    Expression<int>? year,
+    Expression<String>? url,
+    Expression<String>? notes,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (author != null) 'author': author,
+      if (year != null) 'year': year,
+      if (url != null) 'url': url,
+      if (notes != null) 'notes': notes,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PublishedSourcesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String?>? author,
+    Value<int?>? year,
+    Value<String?>? url,
+    Value<String?>? notes,
+    Value<int>? rowid,
+  }) {
+    return PublishedSourcesCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      author: author ?? this.author,
+      year: year ?? this.year,
+      url: url ?? this.url,
+      notes: notes ?? this.notes,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (author.present) {
+      map['author'] = Variable<String>(author.value);
+    }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
+    if (url.present) {
+      map['url'] = Variable<String>(url.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PublishedSourcesCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('author: $author, ')
+          ..write('year: $year, ')
+          ..write('url: $url, ')
+          ..write('notes: $notes, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DanceSourcesTable extends DanceSources
+    with TableInfo<$DanceSourcesTable, DanceSourceRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DanceSourcesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _danceIdMeta = const VerificationMeta(
+    'danceId',
+  );
+  @override
+  late final GeneratedColumn<String> danceId = GeneratedColumn<String>(
+    'dance_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES dances (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _sourceIdMeta = const VerificationMeta(
+    'sourceId',
+  );
+  @override
+  late final GeneratedColumn<String> sourceId = GeneratedColumn<String>(
+    'source_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES published_sources (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _pageMeta = const VerificationMeta('page');
+  @override
+  late final GeneratedColumn<String> page = GeneratedColumn<String>(
+    'page',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _numberMeta = const VerificationMeta('number');
+  @override
+  late final GeneratedColumn<String> number = GeneratedColumn<String>(
+    'number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    danceId,
+    sourceId,
+    page,
+    number,
+    position,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dance_sources';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DanceSourceRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('dance_id')) {
+      context.handle(
+        _danceIdMeta,
+        danceId.isAcceptableOrUnknown(data['dance_id']!, _danceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_danceIdMeta);
+    }
+    if (data.containsKey('source_id')) {
+      context.handle(
+        _sourceIdMeta,
+        sourceId.isAcceptableOrUnknown(data['source_id']!, _sourceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceIdMeta);
+    }
+    if (data.containsKey('page')) {
+      context.handle(
+        _pageMeta,
+        page.isAcceptableOrUnknown(data['page']!, _pageMeta),
+      );
+    }
+    if (data.containsKey('number')) {
+      context.handle(
+        _numberMeta,
+        number.isAcceptableOrUnknown(data['number']!, _numberMeta),
+      );
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {danceId, sourceId};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {danceId, position},
+  ];
+  @override
+  DanceSourceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DanceSourceRow(
+      danceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dance_id'],
+      )!,
+      sourceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_id'],
+      )!,
+      page: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}page'],
+      ),
+      number: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}number'],
+      ),
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+    );
+  }
+
+  @override
+  $DanceSourcesTable createAlias(String alias) {
+    return $DanceSourcesTable(attachedDatabase, alias);
+  }
+}
+
+class DanceSourceRow extends DataClass implements Insertable<DanceSourceRow> {
+  final String danceId;
+  final String sourceId;
+  final String? page;
+  final String? number;
+  final int position;
+  const DanceSourceRow({
+    required this.danceId,
+    required this.sourceId,
+    this.page,
+    this.number,
+    required this.position,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['dance_id'] = Variable<String>(danceId);
+    map['source_id'] = Variable<String>(sourceId);
+    if (!nullToAbsent || page != null) {
+      map['page'] = Variable<String>(page);
+    }
+    if (!nullToAbsent || number != null) {
+      map['number'] = Variable<String>(number);
+    }
+    map['position'] = Variable<int>(position);
+    return map;
+  }
+
+  DanceSourcesCompanion toCompanion(bool nullToAbsent) {
+    return DanceSourcesCompanion(
+      danceId: Value(danceId),
+      sourceId: Value(sourceId),
+      page: page == null && nullToAbsent ? const Value.absent() : Value(page),
+      number: number == null && nullToAbsent
+          ? const Value.absent()
+          : Value(number),
+      position: Value(position),
+    );
+  }
+
+  factory DanceSourceRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DanceSourceRow(
+      danceId: serializer.fromJson<String>(json['danceId']),
+      sourceId: serializer.fromJson<String>(json['sourceId']),
+      page: serializer.fromJson<String?>(json['page']),
+      number: serializer.fromJson<String?>(json['number']),
+      position: serializer.fromJson<int>(json['position']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'danceId': serializer.toJson<String>(danceId),
+      'sourceId': serializer.toJson<String>(sourceId),
+      'page': serializer.toJson<String?>(page),
+      'number': serializer.toJson<String?>(number),
+      'position': serializer.toJson<int>(position),
+    };
+  }
+
+  DanceSourceRow copyWith({
+    String? danceId,
+    String? sourceId,
+    Value<String?> page = const Value.absent(),
+    Value<String?> number = const Value.absent(),
+    int? position,
+  }) => DanceSourceRow(
+    danceId: danceId ?? this.danceId,
+    sourceId: sourceId ?? this.sourceId,
+    page: page.present ? page.value : this.page,
+    number: number.present ? number.value : this.number,
+    position: position ?? this.position,
+  );
+  DanceSourceRow copyWithCompanion(DanceSourcesCompanion data) {
+    return DanceSourceRow(
+      danceId: data.danceId.present ? data.danceId.value : this.danceId,
+      sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
+      page: data.page.present ? data.page.value : this.page,
+      number: data.number.present ? data.number.value : this.number,
+      position: data.position.present ? data.position.value : this.position,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DanceSourceRow(')
+          ..write('danceId: $danceId, ')
+          ..write('sourceId: $sourceId, ')
+          ..write('page: $page, ')
+          ..write('number: $number, ')
+          ..write('position: $position')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(danceId, sourceId, page, number, position);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DanceSourceRow &&
+          other.danceId == this.danceId &&
+          other.sourceId == this.sourceId &&
+          other.page == this.page &&
+          other.number == this.number &&
+          other.position == this.position);
+}
+
+class DanceSourcesCompanion extends UpdateCompanion<DanceSourceRow> {
+  final Value<String> danceId;
+  final Value<String> sourceId;
+  final Value<String?> page;
+  final Value<String?> number;
+  final Value<int> position;
+  final Value<int> rowid;
+  const DanceSourcesCompanion({
+    this.danceId = const Value.absent(),
+    this.sourceId = const Value.absent(),
+    this.page = const Value.absent(),
+    this.number = const Value.absent(),
+    this.position = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DanceSourcesCompanion.insert({
+    required String danceId,
+    required String sourceId,
+    this.page = const Value.absent(),
+    this.number = const Value.absent(),
+    required int position,
+    this.rowid = const Value.absent(),
+  }) : danceId = Value(danceId),
+       sourceId = Value(sourceId),
+       position = Value(position);
+  static Insertable<DanceSourceRow> custom({
+    Expression<String>? danceId,
+    Expression<String>? sourceId,
+    Expression<String>? page,
+    Expression<String>? number,
+    Expression<int>? position,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (danceId != null) 'dance_id': danceId,
+      if (sourceId != null) 'source_id': sourceId,
+      if (page != null) 'page': page,
+      if (number != null) 'number': number,
+      if (position != null) 'position': position,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DanceSourcesCompanion copyWith({
+    Value<String>? danceId,
+    Value<String>? sourceId,
+    Value<String?>? page,
+    Value<String?>? number,
+    Value<int>? position,
+    Value<int>? rowid,
+  }) {
+    return DanceSourcesCompanion(
+      danceId: danceId ?? this.danceId,
+      sourceId: sourceId ?? this.sourceId,
+      page: page ?? this.page,
+      number: number ?? this.number,
+      position: position ?? this.position,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (danceId.present) {
+      map['dance_id'] = Variable<String>(danceId.value);
+    }
+    if (sourceId.present) {
+      map['source_id'] = Variable<String>(sourceId.value);
+    }
+    if (page.present) {
+      map['page'] = Variable<String>(page.value);
+    }
+    if (number.present) {
+      map['number'] = Variable<String>(number.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DanceSourcesCompanion(')
+          ..write('danceId: $danceId, ')
+          ..write('sourceId: $sourceId, ')
+          ..write('page: $page, ')
+          ..write('number: $number, ')
+          ..write('position: $position, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $SettingsTable extends Settings
     with TableInfo<$SettingsTable, SettingRow> {
   @override
@@ -6529,6 +7295,10 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $DanceTagsTable danceTags = $DanceTagsTable(this);
   late final $DanceLinksTable danceLinks = $DanceLinksTable(this);
   late final $ProvenanceTable provenance = $ProvenanceTable(this);
+  late final $PublishedSourcesTable publishedSources = $PublishedSourcesTable(
+    this,
+  );
+  late final $DanceSourcesTable danceSources = $DanceSourcesTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
   late final $SnapshotsTable snapshots = $SnapshotsTable(this);
   @override
@@ -6548,6 +7318,8 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     danceTags,
     danceLinks,
     provenance,
+    publishedSources,
+    danceSources,
     settings,
     snapshots,
   ];
@@ -6636,6 +7408,20 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('provenance', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'dances',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('dance_sources', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'published_sources',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('dance_sources', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -6841,6 +7627,25 @@ final class $$DancesTableReferences
     ).filter((f) => f.danceId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_provenanceRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DanceSourcesTable, List<DanceSourceRow>>
+  _danceSourcesRefsTable(_$CompendiumDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.danceSources,
+        aliasName: 'dances__id__dance_sources__dance_id',
+      );
+
+  $$DanceSourcesTableProcessedTableManager get danceSourcesRefs {
+    final manager = $$DanceSourcesTableTableManager(
+      $_db,
+      $_db.danceSources,
+    ).filter((f) => f.danceId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_danceSourcesRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -7152,6 +7957,31 @@ class $$DancesTableFilterComposer
           }) => $$ProvenanceTableFilterComposer(
             $db: $db,
             $table: $db.provenance,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> danceSourcesRefs(
+    Expression<bool> Function($$DanceSourcesTableFilterComposer f) f,
+  ) {
+    final $$DanceSourcesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.danceSources,
+      getReferencedColumn: (t) => t.danceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DanceSourcesTableFilterComposer(
+            $db: $db,
+            $table: $db.danceSources,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -7559,6 +8389,31 @@ class $$DancesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> danceSourcesRefs<T extends Object>(
+    Expression<T> Function($$DanceSourcesTableAnnotationComposer a) f,
+  ) {
+    final $$DanceSourcesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.danceSources,
+      getReferencedColumn: (t) => t.danceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DanceSourcesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.danceSources,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$DancesTableTableManager
@@ -7583,6 +8438,7 @@ class $$DancesTableTableManager
             bool danceLinksRefs,
             bool relatedDanceLinks,
             bool provenanceRefs,
+            bool danceSourcesRefs,
           })
         > {
   $$DancesTableTableManager(_$CompendiumDatabase db, $DancesTable table)
@@ -7704,6 +8560,7 @@ class $$DancesTableTableManager
                 danceLinksRefs = false,
                 relatedDanceLinks = false,
                 provenanceRefs = false,
+                danceSourcesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -7716,6 +8573,7 @@ class $$DancesTableTableManager
                     if (danceLinksRefs) db.danceLinks,
                     if (relatedDanceLinks) db.danceLinks,
                     if (provenanceRefs) db.provenance,
+                    if (danceSourcesRefs) db.danceSources,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -7888,6 +8746,27 @@ class $$DancesTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (danceSourcesRefs)
+                        await $_getPrefetchedData<
+                          DanceRow,
+                          $DancesTable,
+                          DanceSourceRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DancesTableReferences
+                              ._danceSourcesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DancesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).danceSourcesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.danceId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -7917,6 +8796,7 @@ typedef $$DancesTableProcessedTableManager =
         bool danceLinksRefs,
         bool relatedDanceLinks,
         bool provenanceRefs,
+        bool danceSourcesRefs,
       })
     >;
 typedef $$ChoreographersTableCreateCompanionBuilder =
@@ -12133,6 +13013,749 @@ typedef $$ProvenanceTableProcessedTableManager =
       ProvenanceRow,
       PrefetchHooks Function({bool danceId})
     >;
+typedef $$PublishedSourcesTableCreateCompanionBuilder =
+    PublishedSourcesCompanion Function({
+      required String id,
+      required String title,
+      Value<String?> author,
+      Value<int?> year,
+      Value<String?> url,
+      Value<String?> notes,
+      Value<int> rowid,
+    });
+typedef $$PublishedSourcesTableUpdateCompanionBuilder =
+    PublishedSourcesCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<String?> author,
+      Value<int?> year,
+      Value<String?> url,
+      Value<String?> notes,
+      Value<int> rowid,
+    });
+
+final class $$PublishedSourcesTableReferences
+    extends
+        BaseReferences<
+          _$CompendiumDatabase,
+          $PublishedSourcesTable,
+          PublishedSourceRow
+        > {
+  $$PublishedSourcesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$DanceSourcesTable, List<DanceSourceRow>>
+  _danceSourcesRefsTable(_$CompendiumDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.danceSources,
+        aliasName: 'published_sources__id__dance_sources__source_id',
+      );
+
+  $$DanceSourcesTableProcessedTableManager get danceSourcesRefs {
+    final manager = $$DanceSourcesTableTableManager(
+      $_db,
+      $_db.danceSources,
+    ).filter((f) => f.sourceId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_danceSourcesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$PublishedSourcesTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $PublishedSourcesTable> {
+  $$PublishedSourcesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get author => $composableBuilder(
+    column: $table.author,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> danceSourcesRefs(
+    Expression<bool> Function($$DanceSourcesTableFilterComposer f) f,
+  ) {
+    final $$DanceSourcesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.danceSources,
+      getReferencedColumn: (t) => t.sourceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DanceSourcesTableFilterComposer(
+            $db: $db,
+            $table: $db.danceSources,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PublishedSourcesTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $PublishedSourcesTable> {
+  $$PublishedSourcesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get author => $composableBuilder(
+    column: $table.author,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PublishedSourcesTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $PublishedSourcesTable> {
+  $$PublishedSourcesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get author =>
+      $composableBuilder(column: $table.author, builder: (column) => column);
+
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
+  GeneratedColumn<String> get url =>
+      $composableBuilder(column: $table.url, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  Expression<T> danceSourcesRefs<T extends Object>(
+    Expression<T> Function($$DanceSourcesTableAnnotationComposer a) f,
+  ) {
+    final $$DanceSourcesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.danceSources,
+      getReferencedColumn: (t) => t.sourceId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DanceSourcesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.danceSources,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PublishedSourcesTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $PublishedSourcesTable,
+          PublishedSourceRow,
+          $$PublishedSourcesTableFilterComposer,
+          $$PublishedSourcesTableOrderingComposer,
+          $$PublishedSourcesTableAnnotationComposer,
+          $$PublishedSourcesTableCreateCompanionBuilder,
+          $$PublishedSourcesTableUpdateCompanionBuilder,
+          (PublishedSourceRow, $$PublishedSourcesTableReferences),
+          PublishedSourceRow,
+          PrefetchHooks Function({bool danceSourcesRefs})
+        > {
+  $$PublishedSourcesTableTableManager(
+    _$CompendiumDatabase db,
+    $PublishedSourcesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PublishedSourcesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PublishedSourcesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PublishedSourcesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String?> author = const Value.absent(),
+                Value<int?> year = const Value.absent(),
+                Value<String?> url = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PublishedSourcesCompanion(
+                id: id,
+                title: title,
+                author: author,
+                year: year,
+                url: url,
+                notes: notes,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String title,
+                Value<String?> author = const Value.absent(),
+                Value<int?> year = const Value.absent(),
+                Value<String?> url = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PublishedSourcesCompanion.insert(
+                id: id,
+                title: title,
+                author: author,
+                year: year,
+                url: url,
+                notes: notes,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PublishedSourcesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({danceSourcesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (danceSourcesRefs) db.danceSources],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (danceSourcesRefs)
+                    await $_getPrefetchedData<
+                      PublishedSourceRow,
+                      $PublishedSourcesTable,
+                      DanceSourceRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$PublishedSourcesTableReferences
+                          ._danceSourcesRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$PublishedSourcesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).danceSourcesRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.sourceId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PublishedSourcesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $PublishedSourcesTable,
+      PublishedSourceRow,
+      $$PublishedSourcesTableFilterComposer,
+      $$PublishedSourcesTableOrderingComposer,
+      $$PublishedSourcesTableAnnotationComposer,
+      $$PublishedSourcesTableCreateCompanionBuilder,
+      $$PublishedSourcesTableUpdateCompanionBuilder,
+      (PublishedSourceRow, $$PublishedSourcesTableReferences),
+      PublishedSourceRow,
+      PrefetchHooks Function({bool danceSourcesRefs})
+    >;
+typedef $$DanceSourcesTableCreateCompanionBuilder =
+    DanceSourcesCompanion Function({
+      required String danceId,
+      required String sourceId,
+      Value<String?> page,
+      Value<String?> number,
+      required int position,
+      Value<int> rowid,
+    });
+typedef $$DanceSourcesTableUpdateCompanionBuilder =
+    DanceSourcesCompanion Function({
+      Value<String> danceId,
+      Value<String> sourceId,
+      Value<String?> page,
+      Value<String?> number,
+      Value<int> position,
+      Value<int> rowid,
+    });
+
+final class $$DanceSourcesTableReferences
+    extends
+        BaseReferences<
+          _$CompendiumDatabase,
+          $DanceSourcesTable,
+          DanceSourceRow
+        > {
+  $$DanceSourcesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $DancesTable _danceIdTable(_$CompendiumDatabase db) =>
+      db.dances.createAlias('dance_sources__dance_id__dances__id');
+
+  $$DancesTableProcessedTableManager get danceId {
+    final $_column = $_itemColumn<String>('dance_id')!;
+
+    final manager = $$DancesTableTableManager(
+      $_db,
+      $_db.dances,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_danceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PublishedSourcesTable _sourceIdTable(_$CompendiumDatabase db) => db
+      .publishedSources
+      .createAlias('dance_sources__source_id__published_sources__id');
+
+  $$PublishedSourcesTableProcessedTableManager get sourceId {
+    final $_column = $_itemColumn<String>('source_id')!;
+
+    final manager = $$PublishedSourcesTableTableManager(
+      $_db,
+      $_db.publishedSources,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sourceIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DanceSourcesTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $DanceSourcesTable> {
+  $$DanceSourcesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get page => $composableBuilder(
+    column: $table.page,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$DancesTableFilterComposer get danceId {
+    final $$DancesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.danceId,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableFilterComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PublishedSourcesTableFilterComposer get sourceId {
+    final $$PublishedSourcesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourceId,
+      referencedTable: $db.publishedSources,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PublishedSourcesTableFilterComposer(
+            $db: $db,
+            $table: $db.publishedSources,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DanceSourcesTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $DanceSourcesTable> {
+  $$DanceSourcesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get page => $composableBuilder(
+    column: $table.page,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get number => $composableBuilder(
+    column: $table.number,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DancesTableOrderingComposer get danceId {
+    final $$DancesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.danceId,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableOrderingComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PublishedSourcesTableOrderingComposer get sourceId {
+    final $$PublishedSourcesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourceId,
+      referencedTable: $db.publishedSources,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PublishedSourcesTableOrderingComposer(
+            $db: $db,
+            $table: $db.publishedSources,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DanceSourcesTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $DanceSourcesTable> {
+  $$DanceSourcesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get page =>
+      $composableBuilder(column: $table.page, builder: (column) => column);
+
+  GeneratedColumn<String> get number =>
+      $composableBuilder(column: $table.number, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  $$DancesTableAnnotationComposer get danceId {
+    final $$DancesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.danceId,
+      referencedTable: $db.dances,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DancesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.dances,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PublishedSourcesTableAnnotationComposer get sourceId {
+    final $$PublishedSourcesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sourceId,
+      referencedTable: $db.publishedSources,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PublishedSourcesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.publishedSources,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DanceSourcesTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $DanceSourcesTable,
+          DanceSourceRow,
+          $$DanceSourcesTableFilterComposer,
+          $$DanceSourcesTableOrderingComposer,
+          $$DanceSourcesTableAnnotationComposer,
+          $$DanceSourcesTableCreateCompanionBuilder,
+          $$DanceSourcesTableUpdateCompanionBuilder,
+          (DanceSourceRow, $$DanceSourcesTableReferences),
+          DanceSourceRow,
+          PrefetchHooks Function({bool danceId, bool sourceId})
+        > {
+  $$DanceSourcesTableTableManager(
+    _$CompendiumDatabase db,
+    $DanceSourcesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DanceSourcesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DanceSourcesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DanceSourcesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> danceId = const Value.absent(),
+                Value<String> sourceId = const Value.absent(),
+                Value<String?> page = const Value.absent(),
+                Value<String?> number = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DanceSourcesCompanion(
+                danceId: danceId,
+                sourceId: sourceId,
+                page: page,
+                number: number,
+                position: position,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String danceId,
+                required String sourceId,
+                Value<String?> page = const Value.absent(),
+                Value<String?> number = const Value.absent(),
+                required int position,
+                Value<int> rowid = const Value.absent(),
+              }) => DanceSourcesCompanion.insert(
+                danceId: danceId,
+                sourceId: sourceId,
+                page: page,
+                number: number,
+                position: position,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$DanceSourcesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({danceId = false, sourceId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (danceId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.danceId,
+                                referencedTable: $$DanceSourcesTableReferences
+                                    ._danceIdTable(db),
+                                referencedColumn: $$DanceSourcesTableReferences
+                                    ._danceIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (sourceId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.sourceId,
+                                referencedTable: $$DanceSourcesTableReferences
+                                    ._sourceIdTable(db),
+                                referencedColumn: $$DanceSourcesTableReferences
+                                    ._sourceIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DanceSourcesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $DanceSourcesTable,
+      DanceSourceRow,
+      $$DanceSourcesTableFilterComposer,
+      $$DanceSourcesTableOrderingComposer,
+      $$DanceSourcesTableAnnotationComposer,
+      $$DanceSourcesTableCreateCompanionBuilder,
+      $$DanceSourcesTableUpdateCompanionBuilder,
+      (DanceSourceRow, $$DanceSourcesTableReferences),
+      DanceSourceRow,
+      PrefetchHooks Function({bool danceId, bool sourceId})
+    >;
 typedef $$SettingsTableCreateCompanionBuilder =
     SettingsCompanion Function({
       required String key,
@@ -12490,6 +14113,10 @@ class $CompendiumDatabaseManager {
       $$DanceLinksTableTableManager(_db, _db.danceLinks);
   $$ProvenanceTableTableManager get provenance =>
       $$ProvenanceTableTableManager(_db, _db.provenance);
+  $$PublishedSourcesTableTableManager get publishedSources =>
+      $$PublishedSourcesTableTableManager(_db, _db.publishedSources);
+  $$DanceSourcesTableTableManager get danceSources =>
+      $$DanceSourcesTableTableManager(_db, _db.danceSources);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
   $$SnapshotsTableTableManager get snapshots =>

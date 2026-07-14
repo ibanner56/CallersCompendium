@@ -204,6 +204,9 @@ design/domain-model.md "CC parity backfill".*
 - [ ] 4b.5 **Published-source citation** — structured `reference` + page/number
   on a dance (CC `Reference`/`PageNumber`, `MD_*` collection) beyond a bare URL
   `DanceLink`, so book/collection provenance is first-class and searchable.
+  Delivered as three atomic PRs: **a** reusable `PublishedSource` entity +
+  storage (schema v8), **b** search/FTS integration + `SourceFilter`, **c**
+  editor UI. Box is checked when **c** lands.
 
 ## Phase 5 — Performance mode
 

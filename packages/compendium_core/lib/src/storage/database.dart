@@ -93,6 +93,15 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 ///   the derived `dance_figures`/`dance_fts` indexes, so no derived rebuild is
 ///   required. (`email`/`location` are private — never emitted in shareable
 ///   exports; see [Choreographer].)
+/// - v8 (2026-07-14): first-class published-source citations
+///   (`docs/design/domain-model.md` "CC parity backfill", ROADMAP 4b.5).
+///   Adds two brand-new tables: `published_sources` (a reusable bibliographic
+///   entity — id/title plus nullable author/year/url/notes) and the ordered
+///   `dance_sources` join (danceId/sourceId FKs cascade, freeform nullable
+///   page/number, position). No columns are added to existing tables and no
+///   data is back-filled (fresh tables start empty). These new tables do NOT
+///   feed the derived `dance_fts`/`dance_figures` indexes (searchability is
+///   ROADMAP 4b.5b), so NO derived rebuild is required by this migration.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -112,6 +121,8 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
     DanceTags,
     DanceLinks,
     Provenance,
+    PublishedSources,
+    DanceSources,
     Settings,
     Snapshots,
   ],
@@ -120,7 +131,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   CompendiumDatabase(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -185,6 +196,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await m.addColumn(choreographers, choreographers.email);
         await m.addColumn(choreographers, choreographers.location);
         await m.addColumn(choreographers, choreographers.deceased);
+      }
+      if (from < 8) {
+        // First-class published-source citations. Two brand-new tables; no
+        // columns added to existing tables, no back-fill. They don't feed the
+        // derived `dance_fts`/`dance_figures` indexes (search is ROADMAP
+        // 4b.5b), so no derived rebuild is required.
+        await m.createTable(publishedSources);
+        await m.createTable(danceSources);
       }
     },
     beforeOpen: (details) async {

@@ -22,6 +22,8 @@ export 'src/model/partial_date.dart';
 export 'src/model/phrase_structure.dart';
 export 'src/model/program.dart';
 export 'src/model/provenance.dart';
+export 'src/model/published_source.dart';
+export 'src/model/source_citation.dart';
 export 'src/model/tag.dart';
 export 'src/search/search_sort.dart';
 export 'src/search/filter.dart';
@@ -37,6 +39,7 @@ export 'src/storage/repositories/custom_field_repository.dart'
         encodeCustomFieldValue;
 export 'src/storage/repositories/dance_repository.dart';
 export 'src/storage/repositories/program_repository.dart';
+export 'src/storage/repositories/published_source_repository.dart';
 export 'src/storage/repositories/repositories.dart';
 export 'src/storage/repositories/settings_repository.dart';
 export 'src/storage/repositories/snapshot_repository.dart';
