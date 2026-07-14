@@ -68,7 +68,7 @@ All dances made available for download and import into Callers Compendium are of
 
 ## Acknowledgements
 
-This project draws on prior work from
+This project draws on prior work from:  
 [Caller's Companion](http://callerscompanion.com/) (Will Loving),  
 [ContraDB](https://github.com/contradb/contra) (David Morse, AGPL-3.0), and  
 [The Caller's Box](https://www.ibiblio.org/contradance/thecallersbox/)
