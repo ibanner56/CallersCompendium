@@ -11,7 +11,11 @@ import 'support/test_repositories.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
-Dance _dance({required String id, required String title}) => Dance(
+Dance _dance({
+  required String id,
+  required String title,
+  List<Figure> figures = const [],
+}) => Dance(
   id: id,
   title: title,
   authorIds: const [],
@@ -19,7 +23,7 @@ Dance _dance({required String id, required String title}) => Dance(
   form: DanceForm.contra,
   formation: const Formation(FormationShape.dupleImproper),
   status: DanceStatus.active,
-  figures: const [],
+  figures: figures,
   customFields: const [],
   hook: '',
   createdAt: _now,
@@ -542,5 +546,40 @@ void main() {
 
     final after = (await repos.programs.getById('p1'))!.updatedAt;
     expect(after.isAfter(before), isTrue);
+  });
+
+  testWidgets('Matrix tab renders the programming matrix from draft slots', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Matrix Dance',
+        figures: [
+          Figure(move: 'swing'),
+          Figure(move: 'balance'),
+        ],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    // Build tab is showing first; switch to the Matrix tab.
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('program-matrix-table')), findsOneWidget);
+    expect(find.text('Matrix Dance'), findsOneWidget);
+    expect(find.text('swing'), findsOneWidget);
+    expect(find.text('balance'), findsOneWidget);
+    // The save FAB hides on the read-only Matrix tab.
+    expect(find.byKey(const ValueKey('save-program')), findsNothing);
   });
 }

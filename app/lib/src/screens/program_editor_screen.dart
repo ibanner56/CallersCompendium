@@ -7,6 +7,7 @@ import '../data/repositories_scope.dart';
 import '../search/collection_data.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/program_export_menu.dart';
+import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
 import '../widgets/program_status_chip.dart';
 
@@ -56,8 +57,10 @@ class ProgramEditorScreen extends StatefulWidget {
   State<ProgramEditorScreen> createState() => _ProgramEditorScreenState();
 }
 
-class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
+class _ProgramEditorScreenState extends State<ProgramEditorScreen>
+    with SingleTickerProviderStateMixin {
   late CompendiumRepositories _repos;
+  late final TabController _tabController;
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _venueController = TextEditingController();
@@ -78,6 +81,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
   bool _dirty = false;
 
   Dialect _dialect = Dialect.larksRobins;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    // Rebuild so the save FAB can hide on the read-only Matrix tab.
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -139,6 +152,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _titleController.dispose();
     _venueController.dispose();
     _bandController.dispose();
@@ -453,6 +467,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.isNew ? 'New program' : 'Build program'),
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(
+                key: ValueKey('program-build-tab'),
+                icon: Icon(Icons.list_alt_outlined),
+                text: 'Build',
+              ),
+              Tab(
+                key: ValueKey('program-matrix-tab'),
+                icon: Icon(Icons.grid_on_outlined),
+                text: 'Matrix',
+              ),
+            ],
+          ),
           actions: [
             if (_loaded && _loadError == null && _draftProgram != null)
               ProgramExportMenu(
@@ -482,8 +511,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
             ],
           ],
         ),
-        body: _buildBody(),
-        floatingActionButton: (_loaded && _loadError == null)
+        body: TabBarView(
+          controller: _tabController,
+          children: [_buildBody(), _buildMatrixTab()],
+        ),
+        floatingActionButton:
+            (_loaded && _loadError == null && _tabController.index == 0)
             ? FloatingActionButton.extended(
                 key: const ValueKey('save-program'),
                 onPressed: _saving ? null : _save,
@@ -540,6 +573,66 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildMatrixTab() {
+    if (!_loaded) {
+      return const Center(
+        child: CircularProgressIndicator(semanticsLabel: 'Loading program'),
+      );
+    }
+    if (_loadError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            _loadError is String
+                ? _loadError! as String
+                : 'Could not load the program.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    final data = _data;
+    if (data == null) return const SizedBox.shrink();
+
+    // Rows = dance slots in program order (flat). Free-text-only slots are
+    // omitted; a slot referencing a soft-deleted dance renders a tombstone
+    // row so the gap is still visible in the matrix.
+    final now = DateTime.now();
+    final rows = <Dance>[];
+    final altDanceIds = <String>{};
+    var omittedFreeText = 0;
+    for (final slot in _slots) {
+      final danceId = slot.danceId;
+      if (danceId == null) {
+        omittedFreeText++;
+        continue;
+      }
+      final dance =
+          data.dancesById[danceId] ??
+          Dance(
+            id: danceId,
+            title: '(deleted dance)',
+            createdAt: now,
+            updatedAt: now,
+          );
+      rows.add(dance);
+      if (slot.isAlt) altDanceIds.add(danceId);
+    }
+
+    final matrix = buildProgramMatrix(rows, taxonomy: data.taxonomy);
+
+    return ProgramMatrixTable(
+      key: const ValueKey('program-matrix-table'),
+      matrix: matrix,
+      taxonomy: data.taxonomy,
+      dialect: _dialect,
+      omittedFreeTextCount: omittedFreeText,
+      altDanceIds: altDanceIds,
     );
   }
 
