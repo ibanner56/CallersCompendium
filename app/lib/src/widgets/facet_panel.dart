@@ -18,6 +18,8 @@ class FacetPanel extends StatelessWidget {
     required this.formations,
     required this.progressions,
     required this.statuses,
+    required this.levels,
+    required this.hasMixedLevel,
     required this.authors,
     required this.tags,
     required this.choiceFields,
@@ -32,6 +34,8 @@ class FacetPanel extends StatelessWidget {
   final List<FormationShape> formations;
   final List<Progression> progressions;
   final List<DanceStatus> statuses;
+  final List<DanceLevel> levels;
+  final bool hasMixedLevel;
   final List<Choreographer> authors;
   final List<Tag> tags;
   final List<CustomFieldDef> choiceFields;
@@ -116,6 +120,44 @@ class FacetPanel extends StatelessWidget {
                 selected: facets.statuses.contains(s),
                 onSelected: (sel) => toggle(facets.statuses, s, sel),
               ),
+          ],
+        ),
+      );
+    }
+
+    if (levels.isNotEmpty) {
+      sections.add(
+        _FacetSection(
+          label: 'Level',
+          chips: [
+            for (final l in levels)
+              _chip(
+                key: 'level-${l.name}',
+                label: danceLevelLabel(l),
+                icon: Icons.signal_cellular_alt,
+                selected: facets.levels.contains(l),
+                onSelected: (sel) => toggle(facets.levels, l, sel),
+              ),
+          ],
+        ),
+      );
+    }
+
+    if (hasMixedLevel) {
+      sections.add(
+        _FacetSection(
+          label: 'Mixed level',
+          chips: [
+            _chip(
+              key: 'mixed-level-yes',
+              label: 'Mixed level',
+              icon: Icons.swap_vert,
+              selected: facets.mixedLevel == true,
+              onSelected: (sel) {
+                facets.mixedLevel = sel ? true : null;
+                onChanged();
+              },
+            ),
           ],
         ),
       );

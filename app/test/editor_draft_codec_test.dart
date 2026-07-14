@@ -32,7 +32,7 @@ EditorSnapshot _minimalSnapshot({List<LinkSnapshot> links = const []}) =>
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('draft codec v2 —', () {
+  group('draft codec v3 —', () {
     test('encodes and decodes a URL-kind link', () {
       final snapshot = _minimalSnapshot(
         links: [
@@ -119,6 +119,51 @@ void main() {
       expect(decoded.links, isEmpty);
     });
 
+    test('level and mixedLevel round-trip', () {
+      final snapshot = EditorSnapshot(
+        title: 'Test',
+        hook: '',
+        notes: '',
+        phrase: '',
+        formationDetail: '',
+        form: DanceForm.contra,
+        formationShape: FormationShape.dupleImproper,
+        progression: Progression.single,
+        status: DanceStatus.active,
+        level: DanceLevel.advanced,
+        mixedLevel: true,
+        authorIds: const [],
+        tagIds: const [],
+        tunes: const [],
+        links: const [],
+        customValues: const {},
+        figureDrafts: const [],
+      );
+
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      expect(decoded.level, DanceLevel.advanced);
+      expect(decoded.mixedLevel, isTrue);
+    });
+
+    test('unspecified level is omitted and decodes back to null', () {
+      final encoded = encodeDraft(_minimalSnapshot());
+      expect(encoded, isNot(contains('"level"')));
+      final decoded = decodeDraft(encoded);
+      expect(decoded.level, isNull);
+      expect(decoded.mixedLevel, isFalse);
+    });
+
+    test('v2 draft (no level/mixedLevel) decodes to null/false', () {
+      const v2Json =
+          '{"v":2,"title":"Old","hook":"","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
+          '"progression":"single","status":"active","authorIds":[],"tagIds":[],'
+          '"tunes":[],"links":[],"customValues":{},"figureDrafts":[]}';
+      final decoded = decodeDraft(v2Json);
+      expect(decoded.level, isNull);
+      expect(decoded.mixedLevel, isFalse);
+    });
+
     test('rejects a future version (v > _kDraftVersion)', () {
       // A draft written by a newer version of the app must be rejected so we
       // never silently mangle data from a schema we don't understand.
@@ -159,7 +204,7 @@ void main() {
       // Insert a future key the current codec doesn't know about.
       final encoded = encodeDraft(
         _minimalSnapshot(),
-      ).replaceFirst('"v":2', '"v":2,"futureKey":"ignored"');
+      ).replaceFirst('"v":3', '"v":3,"futureKey":"ignored"');
       final decoded = decodeDraft(encoded);
       expect(decoded.title, 'Test');
     });

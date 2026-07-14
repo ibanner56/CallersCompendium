@@ -34,6 +34,13 @@ class FacetSelections {
   final Set<FormationShape> formations = {};
   final Set<Progression> progressions = {};
   final Set<DanceStatus> statuses = {};
+  final Set<DanceLevel> levels = {};
+
+  /// Mixed-level facet: `null` = unselected, `true`/`false` = filter to that
+  /// flag. Kept separate from [levels] because "mixed" spans the ordered scale
+  /// (mirrors the core [MixedLevelFilter] being distinct from [LevelFilter]).
+  bool? mixedLevel;
+
   final Set<String> authorIds = {};
   final Set<String> tagIds = {};
 
@@ -60,6 +67,8 @@ class FacetSelections {
       formations.isEmpty &&
       progressions.isEmpty &&
       statuses.isEmpty &&
+      levels.isEmpty &&
+      mixedLevel == null &&
       authorIds.isEmpty &&
       tagIds.isEmpty &&
       choiceValues.values.every((s) => s.isEmpty) &&
@@ -72,6 +81,8 @@ class FacetSelections {
     formations.clear();
     progressions.clear();
     statuses.clear();
+    levels.clear();
+    mixedLevel = null;
     authorIds.clear();
     tagIds.clear();
     choiceValues.clear();
@@ -151,6 +162,10 @@ DanceFilter buildCollectionFilter({
   addOr([for (final s in facets.formations) FormationFilter(s)]);
   addOr([for (final p in facets.progressions) ProgressionFilter(p)]);
   addOr([for (final s in facets.statuses) StatusFilter(s)]);
+  addOr([for (final l in facets.levels) LevelFilter(l)]);
+  if (facets.mixedLevel != null) {
+    branches.add(MixedLevelFilter(facets.mixedLevel!));
+  }
   addOr([for (final id in facets.authorIds) AuthorFilter(id)]);
   addOr([for (final id in facets.tagIds) TagFilter(id)]);
 

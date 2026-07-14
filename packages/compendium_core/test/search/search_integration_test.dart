@@ -16,6 +16,8 @@ Dance _dance({
   FormationShape formation = FormationShape.dupleImproper,
   Progression progression = Progression.single,
   DanceStatus status = DanceStatus.active,
+  DanceLevel? level,
+  bool mixedLevel = false,
   DateTime? createdAt,
   DateTime? updatedAt,
   DateTime? deletedAt,
@@ -31,6 +33,8 @@ Dance _dance({
     formation: Formation(formation),
     progression: progression,
     status: status,
+    level: level,
+    mixedLevel: mixedLevel,
     figures:
         figures ??
         [
@@ -108,6 +112,43 @@ void main() {
       await dances.create(_dance(id: 'a', title: 'A', tagIds: ['t1']));
       await dances.create(_dance(id: 'b', title: 'B'));
       expect(await dances.search(const TagFilter('t1')), ['a']);
+    });
+
+    test('Level: eq matches exactly, ordered ops respect the scale', () async {
+      await dances.create(
+        _dance(id: 'beg', title: 'Beg', level: DanceLevel.beginner),
+      );
+      await dances.create(
+        _dance(id: 'int', title: 'Int', level: DanceLevel.intermediate),
+      );
+      await dances.create(
+        _dance(id: 'adv', title: 'Adv', level: DanceLevel.advanced),
+      );
+      // Unspecified level: never matches any Level leaf.
+      await dances.create(_dance(id: 'non', title: 'None'));
+
+      expect(await dances.search(const LevelFilter(DanceLevel.intermediate)), [
+        'int',
+      ]);
+      expect(
+        await dances.search(
+          const LevelFilter(DanceLevel.intermediate, LevelOp.lte),
+        ),
+        ['beg', 'int'],
+      );
+      expect(
+        await dances.search(
+          const LevelFilter(DanceLevel.intermediate, LevelOp.gte),
+        ),
+        ['adv', 'int'],
+      );
+    });
+
+    test('MixedLevel matches only the flagged rows', () async {
+      await dances.create(_dance(id: 'm', title: 'Mixed', mixedLevel: true));
+      await dances.create(_dance(id: 'p', title: 'Plain'));
+      expect(await dances.search(const MixedLevelFilter(true)), ['m']);
+      expect(await dances.search(const MixedLevelFilter(false)), ['p']);
     });
 
     test('FullText', () async {

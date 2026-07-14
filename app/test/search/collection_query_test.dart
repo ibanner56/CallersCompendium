@@ -114,6 +114,35 @@ void main() {
       expect((f as CustomFieldFilter).value, true);
     });
 
+    test('a single level facet yields a LevelFilter(eq) leaf', () {
+      final facets = FacetSelections()..levels.add(DanceLevel.intermediate);
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<LevelFilter>());
+      final l = f as LevelFilter;
+      expect(l.level, DanceLevel.intermediate);
+      expect(l.op, LevelOp.eq);
+    });
+
+    test('multiple levels OR within the level facet', () {
+      final facets = FacetSelections()
+        ..levels.addAll({DanceLevel.beginner, DanceLevel.advanced});
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<OrFilter>());
+      final levels = (f as OrFilter).children.whereType<LevelFilter>().toList();
+      expect(levels.map((l) => l.level).toSet(), {
+        DanceLevel.beginner,
+        DanceLevel.advanced,
+      });
+      expect(levels.every((l) => l.op == LevelOp.eq), isTrue);
+    });
+
+    test('mixedLevel facet yields a MixedLevelFilter', () {
+      final facets = FacetSelections()..mixedLevel = true;
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<MixedLevelFilter>());
+      expect((f as MixedLevelFilter).mixed, isTrue);
+    });
+
     test('advanced tree ANDs onto the facet leaves', () {
       final facets = FacetSelections()..forms.add(DanceForm.contra);
       final root = BuilderGroup(children: [BuilderFigure(move: 'swing')]);
@@ -342,6 +371,24 @@ void main() {
         hi: 7,
       );
       expect(facets.isEmpty, isFalse);
+    });
+
+    test('level and mixedLevel facets count toward isEmpty', () {
+      final withLevel = FacetSelections()..levels.add(DanceLevel.beginner);
+      expect(withLevel.isEmpty, isFalse);
+      final withMixed = FacetSelections()..mixedLevel = true;
+      expect(withMixed.isEmpty, isFalse);
+    });
+
+    test('clear() resets level and mixedLevel facets', () {
+      final facets = FacetSelections()
+        ..levels.add(DanceLevel.advanced)
+        ..mixedLevel = false;
+      expect(facets.isEmpty, isFalse);
+      facets.clear();
+      expect(facets.levels, isEmpty);
+      expect(facets.mixedLevel, isNull);
+      expect(facets.isEmpty, isTrue);
     });
 
     test(

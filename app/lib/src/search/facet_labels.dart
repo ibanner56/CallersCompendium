@@ -22,6 +22,14 @@ String danceStatusLabel(DanceStatus s) => switch (s) {
   DanceStatus.broken => 'Broken',
 };
 
+/// Human-readable label for a difficulty [DanceLevel] (app UI string, not a
+/// dialect term).
+String danceLevelLabel(DanceLevel level) => switch (level) {
+  DanceLevel.beginner => 'Beginner',
+  DanceLevel.intermediate => 'Intermediate',
+  DanceLevel.advanced => 'Advanced',
+};
+
 /// The discrete, pickable value vocabulary for a figure parameter, or `null`
 /// when the parameter has no closed vocabulary (rotation/beats/text). Used to
 /// offer optional param dropdowns on an Advanced "has figure" row.

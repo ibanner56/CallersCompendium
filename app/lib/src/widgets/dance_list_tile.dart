@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/dance_list_entry.dart';
 import '../screens/dance_detail_screen.dart';
+import '../search/facet_labels.dart';
 
 /// One Collection result row: title, authors, formation chip, status/tag chips
 /// and `showInList` custom fields (Phase 3.1 rendering). Tapping it opens
@@ -64,6 +65,20 @@ class DanceListTile extends StatelessWidget {
                       ? 'Deprecated'
                       : 'Broken',
                 ),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            if (dance.level != null)
+              Chip(
+                avatar: const Icon(Icons.signal_cellular_alt, size: 16),
+                label: Text(danceLevelLabel(dance.level!)),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            if (dance.mixedLevel)
+              Chip(
+                avatar: const Icon(Icons.swap_vert, size: 16),
+                label: const Text('Mixed level'),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
