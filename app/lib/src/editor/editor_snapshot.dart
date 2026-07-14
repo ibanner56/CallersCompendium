@@ -95,6 +95,8 @@ class EditorSnapshot {
     required this.status,
     this.level,
     this.mixedLevel = false,
+    this.composedOn,
+    this.revisedOn,
     required this.authorIds,
     required this.tagIds,
     required this.tunes,
@@ -121,6 +123,12 @@ class EditorSnapshot {
 
   /// Whether the dance spans the difficulty scale (distinct from [level]).
   final bool mixedLevel;
+
+  /// Author composition date at partial precision; `null` when unspecified.
+  final PartialDate? composedOn;
+
+  /// Author revision date at partial precision; `null` when unspecified.
+  final PartialDate? revisedOn;
 
   // ---- Multi-value lists ----
   final List<String> authorIds;

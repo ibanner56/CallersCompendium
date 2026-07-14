@@ -81,6 +81,10 @@ class FilterCompiler {
   static String _orderBy(SearchSort sort) => switch (sort) {
     SearchSort.recentlyAdded => 'created_at DESC',
     SearchSort.recentlyEdited => 'updated_at DESC',
+    // Canonical PartialDate strings sort lexicographically == chronologically.
+    // NULLs (no composed date) sort last; ties break by title.
+    SearchSort.composedOn =>
+      'composed_on IS NULL, composed_on, title COLLATE NOCASE',
     SearchSort.title ||
     SearchSort.author ||
     SearchSort.lastCalled ||

@@ -32,7 +32,7 @@ EditorSnapshot _minimalSnapshot({List<LinkSnapshot> links = const []}) =>
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('draft codec v3 —', () {
+  group('draft codec v4 —', () {
     test('encodes and decodes a URL-kind link', () {
       final snapshot = _minimalSnapshot(
         links: [
@@ -204,9 +204,56 @@ void main() {
       // Insert a future key the current codec doesn't know about.
       final encoded = encodeDraft(
         _minimalSnapshot(),
-      ).replaceFirst('"v":3', '"v":3,"futureKey":"ignored"');
+      ).replaceFirst('"v":4', '"v":4,"futureKey":"ignored"');
       final decoded = decodeDraft(encoded);
       expect(decoded.title, 'Test');
+    });
+
+    test('composedOn / revisedOn round-trip partial precisions', () {
+      final snapshot = EditorSnapshot(
+        title: 'Test',
+        hook: '',
+        notes: '',
+        phrase: '',
+        formationDetail: '',
+        form: DanceForm.contra,
+        formationShape: FormationShape.dupleImproper,
+        progression: Progression.single,
+        status: DanceStatus.active,
+        composedOn: PartialDate(1989),
+        revisedOn: PartialDate(2004, 3, 15),
+        authorIds: const [],
+        tagIds: const [],
+        tunes: const [],
+        links: const [],
+        customValues: const {},
+        figureDrafts: const [],
+      );
+
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      expect(decoded.composedOn, PartialDate(1989));
+      expect(decoded.revisedOn, PartialDate(2004, 3, 15));
+    });
+
+    test('unspecified dates are omitted and decode back to null', () {
+      final encoded = encodeDraft(_minimalSnapshot());
+      expect(encoded, isNot(contains('"composedOn"')));
+      expect(encoded, isNot(contains('"revisedOn"')));
+      final decoded = decodeDraft(encoded);
+      expect(decoded.composedOn, isNull);
+      expect(decoded.revisedOn, isNull);
+    });
+
+    test('v3 draft (no composed/revised dates) decodes to null', () {
+      const v3Json =
+          '{"v":3,"title":"Old","hook":"","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
+          '"progression":"single","status":"active","mixedLevel":false,'
+          '"authorIds":[],"tagIds":[],"tunes":[],"links":[],'
+          '"customValues":{},"figureDrafts":[]}';
+      final decoded = decodeDraft(v3Json);
+      expect(decoded.composedOn, isNull);
+      expect(decoded.revisedOn, isNull);
     });
   });
 }

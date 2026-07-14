@@ -7,6 +7,7 @@ import '../../dialect/renderer.dart';
 import '../../model/dance.dart';
 import '../../model/dance_link.dart';
 import '../../model/formation.dart';
+import '../../model/partial_date.dart';
 import '../../model/provenance.dart' as model;
 import '../../search/search_sort.dart';
 import '../../search/filter.dart';
@@ -61,6 +62,8 @@ class DanceRepository {
             status: dance.status,
             level: Value(dance.level),
             mixedLevel: Value(dance.mixedLevel),
+            composedOn: Value(dance.composedOn?.serialize()),
+            revisedOn: Value(dance.revisedOn?.serialize()),
             tunesJson: Value(jsonEncode(dance.tunes)),
             createdAt: dance.createdAt,
             updatedAt: dance.updatedAt,
@@ -362,6 +365,7 @@ class DanceRepository {
       case SearchSort.title:
       case SearchSort.recentlyAdded:
       case SearchSort.recentlyEdited:
+      case SearchSort.composedOn:
       case SearchSort.relevance:
         return ids;
     }
@@ -527,6 +531,12 @@ class DanceRepository {
       status: row.status,
       level: row.level,
       mixedLevel: row.mixedLevel,
+      composedOn: row.composedOn == null
+          ? null
+          : PartialDate.parse(row.composedOn!),
+      revisedOn: row.revisedOn == null
+          ? null
+          : PartialDate.parse(row.revisedOn!),
       tunes: (jsonDecode(row.tunesJson) as List).cast<String>(),
       customFields: [
         for (final r in customRows)

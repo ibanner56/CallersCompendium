@@ -7,6 +7,7 @@ import 'dance_link.dart';
 import 'enums.dart';
 import 'figure.dart';
 import 'formation.dart';
+import 'partial_date.dart';
 import 'phrase_structure.dart';
 import 'provenance.dart';
 import '../util/uuid.dart';
@@ -39,6 +40,8 @@ class Dance {
     List<String> tagIds = const [],
     List<DanceLink> links = const [],
     this.provenance,
+    this.composedOn,
+    this.revisedOn,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -89,6 +92,17 @@ class Dance {
   final List<String> tagIds;
   final List<DanceLink> links;
   final Provenance? provenance;
+
+  /// When the dance was *composed* by its author, at whatever precision is
+  /// known (year / year+month / full date). Bibliographic/authorship metadata,
+  /// deliberately distinct from the record stamp [createdAt]; `null` when
+  /// unknown.
+  final PartialDate? composedOn;
+
+  /// When the dance was last *revised* by its author, at whatever precision is
+  /// known. Distinct from the record stamp [updatedAt]; `null` when unknown.
+  final PartialDate? revisedOn;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -107,6 +121,21 @@ class Dance {
   List<ValidationIssue> validate() {
     final issues = <ValidationIssue>[];
     deriveSections(figures, phraseStructure, issues: issues);
+    final composed = composedOn;
+    final revised = revisedOn;
+    if (composed != null &&
+        revised != null &&
+        revised.compareTo(composed) < 0) {
+      issues.add(
+        ValidationIssue(
+          severity: ValidationSeverity.warning,
+          code: 'revised_before_composed',
+          message:
+              'Revised date (${revised.serialize()}) is before the composed '
+              'date (${composed.serialize()}).',
+        ),
+      );
+    }
     return issues;
   }
 
@@ -115,7 +144,8 @@ class Dance {
   /// Nullable fields use the clear-flag pattern (precedent: [clearDeletedAt]):
   /// pass `clearLevel: true` to set [level] back to `null`. A set clear flag
   /// **wins** over any value passed for the same field, so
-  /// `copyWith(level: DanceLevel.advanced, clearLevel: true)` clears it.
+  /// `copyWith(level: DanceLevel.advanced, clearLevel: true)` clears it. The
+  /// same holds for `clearComposedOn` / `clearRevisedOn`.
   Dance copyWith({
     String? title,
     List<String>? authorIds,
@@ -135,6 +165,10 @@ class Dance {
     List<String>? tagIds,
     List<DanceLink>? links,
     Provenance? provenance,
+    PartialDate? composedOn,
+    bool clearComposedOn = false,
+    PartialDate? revisedOn,
+    bool clearRevisedOn = false,
     DateTime? updatedAt,
     DateTime? deletedAt,
     bool clearDeletedAt = false,
@@ -157,6 +191,8 @@ class Dance {
     tagIds: tagIds ?? this.tagIds,
     links: links ?? this.links,
     provenance: provenance ?? this.provenance,
+    composedOn: clearComposedOn ? null : (composedOn ?? this.composedOn),
+    revisedOn: clearRevisedOn ? null : (revisedOn ?? this.revisedOn),
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
@@ -164,7 +200,9 @@ class Dance {
 
   /// A duplicate with a new identity, suitable for "duplicate dance":
   /// same content, fresh id/timestamps, provenance dropped (the copy is the
-  /// user's own editable record).
+  /// user's own editable record). [composedOn]/[revisedOn] are **carried
+  /// through**: unlike provenance (which describes an import), they are
+  /// authorship metadata about the dance itself, which the copy shares.
   ///
   /// [DanceLink]s are copied with **freshly generated ids** (via [newLinkId],
   /// which defaults to [uuidV4]): link ids are globally unique primary keys,
@@ -204,6 +242,8 @@ class Dance {
             label: link.label,
           ),
       ],
+      composedOn: composedOn,
+      revisedOn: revisedOn,
       createdAt: now,
       updatedAt: now,
     );
@@ -229,6 +269,8 @@ class Dance {
       _listEq.equals(other.customFields, customFields) &&
       _listEq.equals(other.tagIds, tagIds) &&
       _listEq.equals(other.links, links) &&
+      other.composedOn == composedOn &&
+      other.revisedOn == revisedOn &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&
       other.deletedAt == deletedAt;

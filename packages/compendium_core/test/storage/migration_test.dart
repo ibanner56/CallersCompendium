@@ -71,7 +71,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       // A v1 fixture migrates through every step to the current schema.
-      expect(rows.single.data.values.first, 4);
+      expect(rows.single.data.values.first, 5);
 
       await db.close();
     });
@@ -264,13 +264,13 @@ void main() {
       await db.close();
     });
 
-    test('drift schema version is 4 after upgrade', () async {
+    test('drift schema version is current after upgrade', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 4);
+      expect(rows.single.data.values.first, 5);
 
       await db.close();
     });
@@ -386,13 +386,13 @@ void main() {
       await db.close();
     });
 
-    test('drift schema version is 4 after upgrade', () async {
+    test('drift schema version is current after upgrade', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 4);
+      expect(rows.single.data.values.first, 5);
 
       await db.close();
     });
@@ -462,6 +462,142 @@ void main() {
 
       await db.close();
     });
+  });
+
+  group('v4 -> v5 upgrade', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v5_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v4 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v4.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('adds the CC-parity composed/revised date columns', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final danceCols = await db
+          .customSelect('PRAGMA table_info(dances)')
+          .get();
+      expect(
+        danceCols.map((r) => r.read<String>('name')),
+        containsAll(['composed_on', 'revised_on']),
+      );
+
+      await db.close();
+    });
+
+    test('drift schema version is 5 after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, 5);
+
+      await db.close();
+    });
+
+    test(
+      'preserves existing dance rows; composedOn / revisedOn are NULL',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final dance = await repos.dances.getById('dance-1');
+        expect(dance, isNotNull);
+        expect(dance!.title, 'Petronella Reel');
+        // Pre-existing v4 metadata survives the upgrade.
+        expect(dance.level, DanceLevel.intermediate);
+        // New date columns default to NULL on migrated rows.
+        expect(dance.composedOn, isNull);
+        expect(dance.revisedOn, isNull);
+
+        await db.close();
+      },
+    );
+
+    test('the migration does not schedule a derived rebuild', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      await db.customSelect('SELECT 1').get(); // force onUpgrade
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker,
+        isEmpty,
+        reason: 'composed/revised dates are scalar metadata, not figure text',
+      );
+      await db.close();
+    });
+
+    test(
+      'new date fields round-trip partial precisions after the migration',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final dance = (await repos.dances.getById('dance-1'))!;
+        // Year-only composed, full-precision revised.
+        await repos.dances.update(
+          dance.copyWith(
+            composedOn: PartialDate(1989),
+            revisedOn: PartialDate(2004, 3, 15),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        );
+        final reloaded = (await repos.dances.getById('dance-1'))!;
+        expect(reloaded.composedOn, PartialDate(1989));
+        expect(reloaded.composedOn!.precision, DatePrecision.year);
+        expect(reloaded.revisedOn, PartialDate(2004, 3, 15));
+        expect(reloaded.revisedOn!.precision, DatePrecision.day);
+
+        // Year+month precision also round-trips.
+        await repos.dances.update(
+          reloaded.copyWith(
+            composedOn: PartialDate(2010, 6),
+            updatedAt: DateTime.utc(2026, 4, 2),
+          ),
+        );
+        final month = (await repos.dances.getById('dance-1'))!;
+        expect(month.composedOn, PartialDate(2010, 6));
+        expect(month.composedOn!.precision, DatePrecision.month);
+
+        // The clear-flags reset set dates back to NULL.
+        await repos.dances.update(
+          month.copyWith(
+            clearComposedOn: true,
+            clearRevisedOn: true,
+            updatedAt: DateTime.utc(2026, 4, 3),
+          ),
+        );
+        final cleared = (await repos.dances.getById('dance-1'))!;
+        expect(cleared.composedOn, isNull);
+        expect(cleared.revisedOn, isNull);
+
+        await db.close();
+      },
+    );
   });
 
   test(

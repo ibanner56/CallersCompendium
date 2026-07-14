@@ -45,6 +45,17 @@ class Dances extends Table {
 
   /// JSON array of tune name strings.
   TextColumn get tunesJson => text().withDefault(const Constant('[]'))();
+
+  /// Author composition date at partial precision, persisted as the canonical
+  /// [PartialDate] string (`YYYY` / `YYYY-MM` / `YYYY-MM-DD`); nullable.
+  /// Added in schema v5. Distinct from the record stamp [createdAt].
+  TextColumn get composedOn => text().nullable()();
+
+  /// Author revision date at partial precision, persisted as the canonical
+  /// [PartialDate] string; nullable. Added in schema v5. Distinct from the
+  /// record stamp [updatedAt].
+  TextColumn get revisedOn => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();

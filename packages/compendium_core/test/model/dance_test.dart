@@ -193,5 +193,92 @@ void main() {
     test('differing figures compare unequal', () {
       expect(make(figures: [fig(8)]), isNot(equals(make(figures: [fig(16)]))));
     });
+
+    test('differing composed/revised dates compare unequal', () {
+      final base = make();
+      expect(
+        base.copyWith(composedOn: PartialDate(1989)),
+        isNot(equals(base.copyWith(composedOn: PartialDate(1990)))),
+      );
+      expect(
+        base.copyWith(composedOn: PartialDate(1989)),
+        equals(base.copyWith(composedOn: PartialDate(1989))),
+      );
+    });
+  });
+
+  group('composed / revised dates', () {
+    test('copyWith sets values and clear flags reset them', () {
+      final d = make().copyWith(
+        composedOn: PartialDate(1989),
+        revisedOn: PartialDate(2004, 3, 15),
+      );
+      expect(d.composedOn, PartialDate(1989));
+      expect(d.revisedOn, PartialDate(2004, 3, 15));
+
+      final clearedComposed = d.copyWith(clearComposedOn: true);
+      expect(clearedComposed.composedOn, isNull);
+      expect(clearedComposed.revisedOn, PartialDate(2004, 3, 15));
+
+      final clearedRevised = d.copyWith(clearRevisedOn: true);
+      expect(clearedRevised.revisedOn, isNull);
+      expect(clearedRevised.composedOn, PartialDate(1989));
+    });
+
+    test('a set clear flag wins over a value for the same field', () {
+      final d = make().copyWith(composedOn: PartialDate(1989));
+      final result = d.copyWith(
+        composedOn: PartialDate(2020),
+        clearComposedOn: true,
+      );
+      expect(result.composedOn, isNull);
+    });
+
+    test('duplicate carries both dates through', () {
+      final original = make().copyWith(
+        composedOn: PartialDate(1989),
+        revisedOn: PartialDate(2004, 3),
+      );
+      final copy = original.duplicate(newId: 'd2', now: now);
+      expect(copy.composedOn, PartialDate(1989));
+      expect(copy.revisedOn, PartialDate(2004, 3));
+    });
+
+    test('validate warns (never throws) when revised precedes composed', () {
+      final d = make().copyWith(
+        composedOn: PartialDate(2004),
+        revisedOn: PartialDate(1989),
+      );
+      final issues = d.validate();
+      expect(
+        issues.where((i) => i.code == 'revised_before_composed'),
+        hasLength(1),
+      );
+      expect(
+        issues.firstWhere((i) => i.code == 'revised_before_composed').severity,
+        ValidationSeverity.warning,
+      );
+    });
+
+    test('validate is silent when revised is on/after composed', () {
+      expect(
+        make()
+            .copyWith(
+              composedOn: PartialDate(1989),
+              revisedOn: PartialDate(2004),
+            )
+            .validate()
+            .where((i) => i.code == 'revised_before_composed'),
+        isEmpty,
+      );
+      // Only one of the two present → no comparison, no warning.
+      expect(
+        make()
+            .copyWith(composedOn: PartialDate(1989))
+            .validate()
+            .where((i) => i.code == 'revised_before_composed'),
+        isEmpty,
+      );
+    });
   });
 }

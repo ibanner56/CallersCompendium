@@ -185,9 +185,11 @@ design/domain-model.md "CC parity backfill".*
     (`eq`/`lte`/`gte`) and is fully tested — but the Advanced-builder UI entry
     point for the ordered comparisons is not yet wired; the Collection facet
     currently exercises `eq` (exact multi-select) only.
-- [ ] 4b.2 **Composed / revised dates** — optional `composedOn` / `revisedOn`
+- [x] 4b.2 **Composed / revised dates** — optional `composedOn` / `revisedOn`
   (CC keeps partial y/m/d); distinct from record `createdAt`/`updatedAt`. Editor
-  field + optional sort.
+  field + optional sort. Delivered: pure-Dart `PartialDate` (partial-precision,
+  ISO-like canonical serialization), schema v4→v5, precision-aware editor input,
+  and a `composedOn` search sort.
 - [ ] 4b.3 **Rating** — optional numeric/star `rating` on a dance (CC `Rating`,
   sortable). Decide whether this is core or a shipped-default custom field.
 - [ ] 4b.4 **Choreographer contact card** — extend `Choreographer` beyond

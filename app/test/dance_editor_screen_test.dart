@@ -20,6 +20,7 @@ Dance _dance({
   List<CustomFieldValue> customFields = const [],
   DanceLevel? level,
   bool mixedLevel = false,
+  PartialDate? composedOn,
 }) => Dance(
   id: id,
   title: title,
@@ -29,6 +30,7 @@ Dance _dance({
   customFields: customFields,
   level: level,
   mixedLevel: mixedLevel,
+  composedOn: composedOn,
   createdAt: _now,
   updatedAt: _now,
 );
@@ -182,6 +184,81 @@ void main() {
 
     final saved = await repos.dances.getById('d1');
     expect(saved!.level, isNull);
+  });
+
+  testWidgets('composed date: year-only round-trips on save', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await tester.enterText(
+      find.byKey(const ValueKey('composed-on-year')),
+      '1989',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.composedOn, PartialDate(1989));
+    expect(saved.composedOn!.precision, DatePrecision.year);
+  });
+
+  testWidgets('composed date: year+month round-trips on save', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await tester.enterText(
+      find.byKey(const ValueKey('composed-on-year')),
+      '2004',
+    );
+    await tester.pumpAndSettle();
+
+    // Month becomes selectable once a valid year is present.
+    final monthField = find.byKey(const ValueKey('composed-on-month-0'));
+    await tester.ensureVisible(monthField);
+    await tester.tap(monthField);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mar').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.composedOn, PartialDate(2004, 3));
+    expect(saved.composedOn!.precision, DatePrecision.month);
+  });
+
+  testWidgets('revised date loads and clearing the year clears it', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Original', composedOn: PartialDate(1995, 6)),
+    );
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // The existing year is shown in the field.
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('composed-on-year')))
+          .controller!
+          .text,
+      '1995',
+    );
+
+    // Clearing the year clears the whole date.
+    await tester.enterText(find.byKey(const ValueKey('composed-on-year')), '');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.composedOn, isNull);
   });
 
   testWidgets('invalid phrase structure blocks save', (tester) async {
