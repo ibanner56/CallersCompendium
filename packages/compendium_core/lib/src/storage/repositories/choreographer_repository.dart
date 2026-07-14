@@ -19,6 +19,9 @@ class ChoreographerRepository {
           name: c.name,
           website: Value(c.website),
           notes: Value(c.notes),
+          email: Value(c.email),
+          location: Value(c.location),
+          deceased: Value(c.deceased),
         ),
       );
 
@@ -57,5 +60,8 @@ class ChoreographerRepository {
     name: row.name,
     website: row.website,
     notes: row.notes,
+    email: row.email,
+    location: row.location,
+    deceased: row.deceased,
   );
 }

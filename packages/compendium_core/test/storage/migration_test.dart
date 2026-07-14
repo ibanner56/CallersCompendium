@@ -71,7 +71,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       // A v1 fixture migrates through every step to the current schema.
-      expect(rows.single.data.values.first, 6);
+      expect(rows.single.data.values.first, db.schemaVersion);
 
       await db.close();
     });
@@ -270,7 +270,7 @@ void main() {
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 6);
+      expect(rows.single.data.values.first, db.schemaVersion);
 
       await db.close();
     });
@@ -392,7 +392,7 @@ void main() {
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 6);
+      expect(rows.single.data.values.first, db.schemaVersion);
 
       await db.close();
     });
@@ -508,7 +508,7 @@ void main() {
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 6);
+      expect(rows.single.data.values.first, db.schemaVersion);
 
       await db.close();
     });
@@ -635,13 +635,13 @@ void main() {
       await db.close();
     });
 
-    test('drift schema version is 6 after upgrade', () async {
+    test('drift schema version is current after upgrade', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.ensureMigrated();
 
       final rows = await db.customSelect('PRAGMA user_version').get();
-      expect(rows.single.data.values.first, 6);
+      expect(rows.single.data.values.first, db.schemaVersion);
 
       await db.close();
     });
@@ -701,6 +701,125 @@ void main() {
 
       await db.close();
     });
+  });
+
+  group('v6 -> v7 upgrade', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v7_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v6 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v6.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('adds the CC-parity author contact columns', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final cols = await db
+          .customSelect('PRAGMA table_info(choreographers)')
+          .get();
+      final names = cols.map((r) => r.read<String>('name')).toSet();
+      expect(names, containsAll(['email', 'location', 'deceased']));
+
+      await db.close();
+    });
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test(
+      'preserves existing choreographer rows; contact fields default',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final chor = await repos.choreographers.getById('chor-1');
+        expect(chor, isNotNull);
+        expect(chor!.name, 'Cary Ravitz');
+        // Pre-existing v6 metadata survives the upgrade.
+        expect(chor.website, 'https://ravitz.us');
+        // New contact columns default to NULL / false on migrated rows.
+        expect(chor.email, isNull);
+        expect(chor.location, isNull);
+        expect(chor.deceased, isFalse);
+
+        await db.close();
+      },
+    );
+
+    test('the migration does not schedule a derived rebuild', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      await db.customSelect('SELECT 1').get(); // force onUpgrade
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker,
+        isEmpty,
+        reason: 'author contact is scalar metadata, not figure text',
+      );
+      await db.close();
+    });
+
+    test(
+      'contact fields round-trip (incl. clear) after the migration',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final chor = (await repos.choreographers.getById('chor-1'))!;
+        await repos.choreographers.upsert(
+          chor.copyWith(
+            email: 'cary@example.com',
+            location: 'Lexington, KY',
+            deceased: true,
+          ),
+        );
+        final updated = (await repos.choreographers.getById('chor-1'))!;
+        expect(updated.email, 'cary@example.com');
+        expect(updated.location, 'Lexington, KY');
+        expect(updated.deceased, isTrue);
+
+        // The clear-flags reset the contact fields back to NULL.
+        await repos.choreographers.upsert(
+          updated.copyWith(clearEmail: true, clearLocation: true),
+        );
+        final cleared = (await repos.choreographers.getById('chor-1'))!;
+        expect(cleared.email, isNull);
+        expect(cleared.location, isNull);
+        expect(cleared.deceased, isTrue);
+
+        await db.close();
+      },
+    );
   });
 
   test(

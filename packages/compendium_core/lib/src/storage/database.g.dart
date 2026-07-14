@@ -1202,8 +1202,51 @@ class $ChoreographersTable extends Choreographers
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
   @override
-  List<GeneratedColumn> get $columns => [id, name, website, notes];
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _locationMeta = const VerificationMeta(
+    'location',
+  );
+  @override
+  late final GeneratedColumn<String> location = GeneratedColumn<String>(
+    'location',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deceasedMeta = const VerificationMeta(
+    'deceased',
+  );
+  @override
+  late final GeneratedColumn<bool> deceased = GeneratedColumn<bool>(
+    'deceased',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deceased" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    website,
+    notes,
+    email,
+    location,
+    deceased,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1241,6 +1284,24 @@ class $ChoreographersTable extends Choreographers
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    }
+    if (data.containsKey('location')) {
+      context.handle(
+        _locationMeta,
+        location.isAcceptableOrUnknown(data['location']!, _locationMeta),
+      );
+    }
+    if (data.containsKey('deceased')) {
+      context.handle(
+        _deceasedMeta,
+        deceased.isAcceptableOrUnknown(data['deceased']!, _deceasedMeta),
+      );
+    }
     return context;
   }
 
@@ -1266,6 +1327,18 @@ class $ChoreographersTable extends Choreographers
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      ),
+      location: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location'],
+      ),
+      deceased: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deceased'],
+      )!,
     );
   }
 
@@ -1281,11 +1354,24 @@ class ChoreographerRow extends DataClass
   final String name;
   final String? website;
   final String? notes;
+
+  /// Private contact email; nullable freeform. Added in schema v7 (CC-parity
+  /// author contact). Never emitted in shareable exports (see [Choreographer]).
+  final String? email;
+
+  /// Private freeform locality; nullable. Added in schema v7.
+  final String? location;
+
+  /// Whether the author is deceased; defaults to false. Added in schema v7.
+  final bool deceased;
   const ChoreographerRow({
     required this.id,
     required this.name,
     this.website,
     this.notes,
+    this.email,
+    this.location,
+    required this.deceased,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1298,6 +1384,13 @@ class ChoreographerRow extends DataClass
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
+    if (!nullToAbsent || email != null) {
+      map['email'] = Variable<String>(email);
+    }
+    if (!nullToAbsent || location != null) {
+      map['location'] = Variable<String>(location);
+    }
+    map['deceased'] = Variable<bool>(deceased);
     return map;
   }
 
@@ -1311,6 +1404,13 @@ class ChoreographerRow extends DataClass
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      email: email == null && nullToAbsent
+          ? const Value.absent()
+          : Value(email),
+      location: location == null && nullToAbsent
+          ? const Value.absent()
+          : Value(location),
+      deceased: Value(deceased),
     );
   }
 
@@ -1324,6 +1424,9 @@ class ChoreographerRow extends DataClass
       name: serializer.fromJson<String>(json['name']),
       website: serializer.fromJson<String?>(json['website']),
       notes: serializer.fromJson<String?>(json['notes']),
+      email: serializer.fromJson<String?>(json['email']),
+      location: serializer.fromJson<String?>(json['location']),
+      deceased: serializer.fromJson<bool>(json['deceased']),
     );
   }
   @override
@@ -1334,6 +1437,9 @@ class ChoreographerRow extends DataClass
       'name': serializer.toJson<String>(name),
       'website': serializer.toJson<String?>(website),
       'notes': serializer.toJson<String?>(notes),
+      'email': serializer.toJson<String?>(email),
+      'location': serializer.toJson<String?>(location),
+      'deceased': serializer.toJson<bool>(deceased),
     };
   }
 
@@ -1342,11 +1448,17 @@ class ChoreographerRow extends DataClass
     String? name,
     Value<String?> website = const Value.absent(),
     Value<String?> notes = const Value.absent(),
+    Value<String?> email = const Value.absent(),
+    Value<String?> location = const Value.absent(),
+    bool? deceased,
   }) => ChoreographerRow(
     id: id ?? this.id,
     name: name ?? this.name,
     website: website.present ? website.value : this.website,
     notes: notes.present ? notes.value : this.notes,
+    email: email.present ? email.value : this.email,
+    location: location.present ? location.value : this.location,
+    deceased: deceased ?? this.deceased,
   );
   ChoreographerRow copyWithCompanion(ChoreographersCompanion data) {
     return ChoreographerRow(
@@ -1354,6 +1466,9 @@ class ChoreographerRow extends DataClass
       name: data.name.present ? data.name.value : this.name,
       website: data.website.present ? data.website.value : this.website,
       notes: data.notes.present ? data.notes.value : this.notes,
+      email: data.email.present ? data.email.value : this.email,
+      location: data.location.present ? data.location.value : this.location,
+      deceased: data.deceased.present ? data.deceased.value : this.deceased,
     );
   }
 
@@ -1363,13 +1478,17 @@ class ChoreographerRow extends DataClass
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('website: $website, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('email: $email, ')
+          ..write('location: $location, ')
+          ..write('deceased: $deceased')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, website, notes);
+  int get hashCode =>
+      Object.hash(id, name, website, notes, email, location, deceased);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1377,7 +1496,10 @@ class ChoreographerRow extends DataClass
           other.id == this.id &&
           other.name == this.name &&
           other.website == this.website &&
-          other.notes == this.notes);
+          other.notes == this.notes &&
+          other.email == this.email &&
+          other.location == this.location &&
+          other.deceased == this.deceased);
 }
 
 class ChoreographersCompanion extends UpdateCompanion<ChoreographerRow> {
@@ -1385,12 +1507,18 @@ class ChoreographersCompanion extends UpdateCompanion<ChoreographerRow> {
   final Value<String> name;
   final Value<String?> website;
   final Value<String?> notes;
+  final Value<String?> email;
+  final Value<String?> location;
+  final Value<bool> deceased;
   final Value<int> rowid;
   const ChoreographersCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.website = const Value.absent(),
     this.notes = const Value.absent(),
+    this.email = const Value.absent(),
+    this.location = const Value.absent(),
+    this.deceased = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ChoreographersCompanion.insert({
@@ -1398,6 +1526,9 @@ class ChoreographersCompanion extends UpdateCompanion<ChoreographerRow> {
     required String name,
     this.website = const Value.absent(),
     this.notes = const Value.absent(),
+    this.email = const Value.absent(),
+    this.location = const Value.absent(),
+    this.deceased = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name);
@@ -1406,6 +1537,9 @@ class ChoreographersCompanion extends UpdateCompanion<ChoreographerRow> {
     Expression<String>? name,
     Expression<String>? website,
     Expression<String>? notes,
+    Expression<String>? email,
+    Expression<String>? location,
+    Expression<bool>? deceased,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1413,6 +1547,9 @@ class ChoreographersCompanion extends UpdateCompanion<ChoreographerRow> {
       if (name != null) 'name': name,
       if (website != null) 'website': website,
       if (notes != null) 'notes': notes,
+      if (email != null) 'email': email,
+      if (location != null) 'location': location,
+      if (deceased != null) 'deceased': deceased,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1422,6 +1559,9 @@ class ChoreographersCompanion extends UpdateCompanion<ChoreographerRow> {
     Value<String>? name,
     Value<String?>? website,
     Value<String?>? notes,
+    Value<String?>? email,
+    Value<String?>? location,
+    Value<bool>? deceased,
     Value<int>? rowid,
   }) {
     return ChoreographersCompanion(
@@ -1429,6 +1569,9 @@ class ChoreographersCompanion extends UpdateCompanion<ChoreographerRow> {
       name: name ?? this.name,
       website: website ?? this.website,
       notes: notes ?? this.notes,
+      email: email ?? this.email,
+      location: location ?? this.location,
+      deceased: deceased ?? this.deceased,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1448,6 +1591,15 @@ class ChoreographersCompanion extends UpdateCompanion<ChoreographerRow> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (location.present) {
+      map['location'] = Variable<String>(location.value);
+    }
+    if (deceased.present) {
+      map['deceased'] = Variable<bool>(deceased.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1461,6 +1613,9 @@ class ChoreographersCompanion extends UpdateCompanion<ChoreographerRow> {
           ..write('name: $name, ')
           ..write('website: $website, ')
           ..write('notes: $notes, ')
+          ..write('email: $email, ')
+          ..write('location: $location, ')
+          ..write('deceased: $deceased, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7770,6 +7925,9 @@ typedef $$ChoreographersTableCreateCompanionBuilder =
       required String name,
       Value<String?> website,
       Value<String?> notes,
+      Value<String?> email,
+      Value<String?> location,
+      Value<bool> deceased,
       Value<int> rowid,
     });
 typedef $$ChoreographersTableUpdateCompanionBuilder =
@@ -7778,6 +7936,9 @@ typedef $$ChoreographersTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String?> website,
       Value<String?> notes,
+      Value<String?> email,
+      Value<String?> location,
+      Value<bool> deceased,
       Value<int> rowid,
     });
 
@@ -7843,6 +8004,21 @@ class $$ChoreographersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deceased => $composableBuilder(
+    column: $table.deceased,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> danceAuthorsRefs(
     Expression<bool> Function($$DanceAuthorsTableFilterComposer f) f,
   ) {
@@ -7897,6 +8073,21 @@ class $$ChoreographersTableOrderingComposer
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deceased => $composableBuilder(
+    column: $table.deceased,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ChoreographersTableAnnotationComposer
@@ -7919,6 +8110,15 @@ class $$ChoreographersTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get location =>
+      $composableBuilder(column: $table.location, builder: (column) => column);
+
+  GeneratedColumn<bool> get deceased =>
+      $composableBuilder(column: $table.deceased, builder: (column) => column);
 
   Expression<T> danceAuthorsRefs<T extends Object>(
     Expression<T> Function($$DanceAuthorsTableAnnotationComposer a) f,
@@ -7980,12 +8180,18 @@ class $$ChoreographersTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String?> website = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> email = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                Value<bool> deceased = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ChoreographersCompanion(
                 id: id,
                 name: name,
                 website: website,
                 notes: notes,
+                email: email,
+                location: location,
+                deceased: deceased,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7994,12 +8200,18 @@ class $$ChoreographersTableTableManager
                 required String name,
                 Value<String?> website = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> email = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                Value<bool> deceased = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ChoreographersCompanion.insert(
                 id: id,
                 name: name,
                 website: website,
                 notes: notes,
+                email: email,
+                location: location,
+                deceased: deceased,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -78,6 +78,16 @@ class Choreographers extends Table {
   TextColumn get website => text().nullable()();
   TextColumn get notes => text().nullable()();
 
+  /// Private contact email; nullable freeform. Added in schema v7 (CC-parity
+  /// author contact). Never emitted in shareable exports (see [Choreographer]).
+  TextColumn get email => text().nullable()();
+
+  /// Private freeform locality; nullable. Added in schema v7.
+  TextColumn get location => text().nullable()();
+
+  /// Whether the author is deceased; defaults to false. Added in schema v7.
+  BoolColumn get deceased => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

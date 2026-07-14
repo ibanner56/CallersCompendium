@@ -27,6 +27,69 @@ void main() {
     expect(await repo.getById('c1'), c);
   });
 
+  test('round-trips contact fields (email/location/deceased)', () async {
+    final c = Choreographer(
+      id: 'c1',
+      name: 'Cary Ravitz',
+      email: 'cary@example.com',
+      location: 'Lexington, KY',
+      deceased: true,
+    );
+    await repo.upsert(c);
+    final read = await repo.getById('c1');
+    expect(read!.email, 'cary@example.com');
+    expect(read.location, 'Lexington, KY');
+    expect(read.deceased, isTrue);
+  });
+
+  test('contact fields default to null/false when unset', () async {
+    await repo.upsert(Choreographer(id: 'c1', name: 'Minimal'));
+    final read = await repo.getById('c1');
+    expect(read!.email, isNull);
+    expect(read.location, isNull);
+    expect(read.deceased, isFalse);
+  });
+
+  test('normalizes empty/whitespace email & location to null', () async {
+    await repo.upsert(
+      Choreographer(id: 'c1', name: 'Blank', email: '   ', location: ''),
+    );
+    final read = await repo.getById('c1');
+    expect(read!.email, isNull);
+    expect(read.location, isNull);
+  });
+
+  test('trims surrounding whitespace on email & location', () async {
+    await repo.upsert(
+      Choreographer(
+        id: 'c1',
+        name: 'Trimmed',
+        email: '  a@b.com  ',
+        location: '  Portland  ',
+      ),
+    );
+    final read = await repo.getById('c1');
+    expect(read!.email, 'a@b.com');
+    expect(read.location, 'Portland');
+  });
+
+  test('copyWith clear flags win over passed values', () async {
+    final c = Choreographer(
+      id: 'c1',
+      name: 'Cleared',
+      email: 'a@b.com',
+      location: 'Portland',
+    );
+    final cleared = c.copyWith(
+      email: 'ignored@b.com',
+      clearEmail: true,
+      location: 'Ignored',
+      clearLocation: true,
+    );
+    expect(cleared.email, isNull);
+    expect(cleared.location, isNull);
+  });
+
   test('upsert updates in place (same id)', () async {
     await repo.upsert(Choreographer(id: 'c1', name: 'Old Name'));
     await repo.upsert(Choreographer(id: 'c1', name: 'New Name'));

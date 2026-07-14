@@ -84,6 +84,15 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 ///   `null` = unrated). Existing rows get NULL. `rating` is dance-scalar
 ///   curation metadata, not figure text, so it does not feed the derived
 ///   `dance_figures`/`dance_fts` indexes and no derived rebuild is required.
+/// - v7 (2026-07-14): CC-parity author contact (`docs/design/domain-model.md`
+///   "CC parity backfill", ROADMAP 4b.4). Adds the nullable
+///   `choreographers.email` and `choreographers.location` columns plus
+///   `choreographers.deceased` (bool, defaults `false`). Existing rows get
+///   email/location NULL and deceased false. Choreographer contact is
+///   scalar author metadata (not figure text) and choreographers do not feed
+///   the derived `dance_figures`/`dance_fts` indexes, so no derived rebuild is
+///   required. (`email`/`location` are private — never emitted in shareable
+///   exports; see [Choreographer].)
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -111,7 +120,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   CompendiumDatabase(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -167,6 +176,15 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // Dance-scalar curation metadata (not figure text), so it doesn't feed
         // the derived `dance_figures`/`dance_fts` indexes — no rebuild.
         await m.addColumn(dances, dances.rating);
+      }
+      if (from < 7) {
+        // CC-parity author contact. `email`/`location` nullable (existing rows
+        // get NULL); `deceased` defaults to false. Scalar author metadata (not
+        // figure text) and choreographers don't feed the derived
+        // `dance_figures`/`dance_fts` indexes — no rebuild is required.
+        await m.addColumn(choreographers, choreographers.email);
+        await m.addColumn(choreographers, choreographers.location);
+        await m.addColumn(choreographers, choreographers.deceased);
       }
     },
     beforeOpen: (details) async {
