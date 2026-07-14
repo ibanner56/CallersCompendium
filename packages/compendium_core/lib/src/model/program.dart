@@ -238,12 +238,17 @@ class Program {
     for (final slot in slots) {
       if (slot.isAlt) {
         if (!sawPrimary) {
+          // `message` is user-facing (shown in the warnings card), so refer to
+          // the slot by its 1-based position (and text, when present) rather
+          // than the internal id, which is typically an opaque UUID.
+          final label = slot.text == null ? '' : ' ("${slot.text}")';
           issues.add(
             ValidationIssue(
               severity: ValidationSeverity.warning,
               code: 'orphaned_alt',
               message:
-                  'alternate slot "${slot.id}" has no preceding primary slot',
+                  'alternate at position ${slot.position + 1}$label has no '
+                  'preceding primary slot',
             ),
           );
         }

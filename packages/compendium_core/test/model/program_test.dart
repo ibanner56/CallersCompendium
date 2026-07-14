@@ -370,6 +370,10 @@ void main() {
       expect(issues, hasLength(1));
       expect(issues.single.severity, ValidationSeverity.warning);
       expect(issues.single.code, 'orphaned_alt');
+      // User-facing message references position/text, not the internal id.
+      expect(issues.single.message, isNot(contains('orphan')));
+      expect(issues.single.message, contains('position 1'));
+      expect(issues.single.message, contains('"x"'));
     });
   });
 }
