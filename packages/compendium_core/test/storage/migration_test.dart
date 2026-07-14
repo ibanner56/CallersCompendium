@@ -303,7 +303,7 @@ void main() {
       },
     );
 
-    test('the migration does not schedule a derived rebuild', () async {
+    test('the migration schedules a rebuild for the v9 FTS reshape', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       await db.customSelect('SELECT 1').get(); // force onUpgrade
       final marker = await db
@@ -312,7 +312,13 @@ void main() {
             variables: [Variable.withString(derivedRebuildRequiredKey)],
           )
           .get();
-      expect(marker, isEmpty, reason: 'programs do not feed derived indexes');
+      expect(
+        marker,
+        isNotEmpty,
+        reason:
+            'upgrading past v9 reshapes dance_fts and schedules a rebuild '
+            '(the v3 program metadata itself does not feed derived indexes)',
+      );
       await db.close();
     });
 
@@ -415,7 +421,7 @@ void main() {
       },
     );
 
-    test('the migration does not schedule a derived rebuild', () async {
+    test('the migration schedules a rebuild for the v9 FTS reshape', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       await db.customSelect('SELECT 1').get(); // force onUpgrade
       final marker = await db
@@ -426,8 +432,10 @@ void main() {
           .get();
       expect(
         marker,
-        isEmpty,
-        reason: 'dance level is scalar metadata, not figure text',
+        isNotEmpty,
+        reason:
+            'upgrading past v9 reshapes dance_fts and schedules a rebuild '
+            '(dance level is scalar metadata, not figure text)',
       );
       await db.close();
     });
@@ -533,7 +541,7 @@ void main() {
       },
     );
 
-    test('the migration does not schedule a derived rebuild', () async {
+    test('the migration schedules a rebuild for the v9 FTS reshape', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       await db.customSelect('SELECT 1').get(); // force onUpgrade
       final marker = await db
@@ -544,8 +552,10 @@ void main() {
           .get();
       expect(
         marker,
-        isEmpty,
-        reason: 'composed/revised dates are scalar metadata, not figure text',
+        isNotEmpty,
+        reason:
+            'upgrading past v9 reshapes dance_fts and schedules a rebuild '
+            '(composed/revised dates are scalar metadata, not figure text)',
       );
       await db.close();
     });
@@ -663,7 +673,7 @@ void main() {
       await db.close();
     });
 
-    test('the migration does not schedule a derived rebuild', () async {
+    test('the migration schedules a rebuild for the v9 FTS reshape', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       await db.customSelect('SELECT 1').get(); // force onUpgrade
       final marker = await db
@@ -674,8 +684,10 @@ void main() {
           .get();
       expect(
         marker,
-        isEmpty,
-        reason: 'rating is scalar curation metadata, not figure text',
+        isNotEmpty,
+        reason:
+            'upgrading past v9 reshapes dance_fts and schedules a rebuild '
+            '(rating is scalar curation metadata, not figure text)',
       );
       await db.close();
     });
@@ -771,7 +783,7 @@ void main() {
       },
     );
 
-    test('the migration does not schedule a derived rebuild', () async {
+    test('the migration schedules a rebuild for the v9 FTS reshape', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       await db.customSelect('SELECT 1').get(); // force onUpgrade
       final marker = await db
@@ -782,8 +794,10 @@ void main() {
           .get();
       expect(
         marker,
-        isEmpty,
-        reason: 'author contact is scalar metadata, not figure text',
+        isNotEmpty,
+        reason:
+            'upgrading past v9 reshapes dance_fts and schedules a rebuild '
+            '(author contact is scalar metadata, not figure text)',
       );
       await db.close();
     });
@@ -891,7 +905,7 @@ void main() {
       await db.close();
     });
 
-    test('the migration does not schedule a derived rebuild', () async {
+    test('the migration schedules a rebuild for the v9 FTS reshape', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       await db.customSelect('SELECT 1').get(); // force onUpgrade
       final marker = await db
@@ -902,8 +916,10 @@ void main() {
           .get();
       expect(
         marker,
-        isEmpty,
-        reason: 'new source tables do not feed the derived FTS/figure indexes',
+        isNotEmpty,
+        reason:
+            'upgrading past v9 reshapes dance_fts (adding the sources column) '
+            'and schedules a rebuild so citations become searchable',
       );
       await db.close();
     });
@@ -930,6 +946,179 @@ void main() {
 
       await db.close();
     });
+  });
+
+  group('v8 -> v9 upgrade', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v9_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v8 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v8.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('recreates dance_fts with the sources column', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final cols = await db.customSelect('PRAGMA table_info(dance_fts)').get();
+      final names = cols.map((r) => r.read<String>('name')).toList();
+      expect(names, contains('sources'));
+      // The pre-v9 columns survive the recreation.
+      expect(
+        names,
+        containsAll([
+          'dance_id',
+          'title',
+          'authors',
+          'hook',
+          'notes',
+          'figures_text',
+          'custom_values',
+        ]),
+      );
+
+      await db.close();
+    });
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test('the migration schedules a derived rebuild', () async {
+      // First open forces onUpgrade, which records the durable marker BEFORE
+      // ensureMigrated() consumes it — the FTS shape changed, so a full
+      // derived rebuild is owed to repopulate the new `sources` column.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      await db.customSelect('SELECT 1').get(); // force onUpgrade
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker,
+        isNotEmpty,
+        reason: 'the dance_fts shape changed, so a rebuild must be scheduled',
+      );
+      await db.close();
+    });
+
+    test('ensureMigrated performs the rebuild and clears the marker', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final cleared = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(cleared, isEmpty);
+
+      await db.close();
+    });
+
+    test('preserves pre-existing rows across the upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final chor = await repos.choreographers.getById('chor-1');
+      expect(chor?.name, 'Cary Ravitz');
+
+      final dance = await repos.dances.getById('dance-1');
+      expect(dance, isNotNull);
+      expect(dance!.title, 'Petronella Reel');
+      expect(dance.sourceCitations, hasLength(1));
+      expect(dance.sourceCitations.single.sourceId, 'src-1');
+
+      final source = await repos.publishedSources.getById('src-1');
+      expect(source?.title, 'Zesty Contras');
+
+      await db.close();
+    });
+
+    test(
+      'after the rebuild a cited dance is findable by its source title',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        // The v8 fixture's FTS row did NOT index the source; the derived
+        // rebuild repopulates the new `sources` column, so the cited dance is
+        // now reachable both by a bare full-text search and the SourceFilter.
+        expect(await repos.dances.search(const FullTextFilter('Zesty')), [
+          'dance-1',
+        ]);
+        expect(await repos.dances.search(const SourceFilter('Zesty Contras')), [
+          'dance-1',
+        ]);
+
+        await db.close();
+      },
+    );
+
+    test(
+      'rebuild marker survives a crash before back-fill (retried)',
+      () async {
+        // First open: onUpgrade recreates dance_fts (now empty) + sets the
+        // durable marker, then the process "crashes" before ensureMigrated()
+        // completes the rebuild.
+        final crashed = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        await crashed.customSelect('SELECT 1').get(); // force onUpgrade
+        final beforeBackfill = await crashed
+            .customSelect('SELECT COUNT(*) AS n FROM dance_fts')
+            .get();
+        expect(
+          beforeBackfill.single.read<int>('n'),
+          0,
+          reason: 'recreated dance_fts is empty until the rebuild runs',
+        );
+        await crashed.close();
+
+        // Second open: schema is already v9 (no onUpgrade), but the durable
+        // marker makes ensureMigrated() retry the back-fill.
+        final reopened = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(reopened, contraTaxonomy);
+        await repos.ensureMigrated();
+        expect(await repos.dances.search(const SourceFilter('Zesty')), [
+          'dance-1',
+        ]);
+        final cleared = await reopened
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ?',
+              variables: [Variable.withString(derivedRebuildRequiredKey)],
+            )
+            .get();
+        expect(cleared, isEmpty);
+        await reopened.close();
+      },
+    );
   });
 
   test(

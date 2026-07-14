@@ -113,6 +113,17 @@ class FilterCompiler {
         binds.add(choreographerId);
         return 'id IN (SELECT dance_id FROM dance_authors '
             'WHERE choreographer_id = ?)';
+      case SourceFilter(:final query):
+        // Substring match on the cited source's title OR author. `author` is
+        // nullable — a NULL yields NULL (not-true) under LIKE, so the OR still
+        // matches on title alone. Field-scoped counterpart to the bare
+        // full-text search over the `dance_fts.sources` column.
+        binds.add(query);
+        binds.add(query);
+        return 'id IN (SELECT ds.dance_id FROM dance_sources ds '
+            'JOIN published_sources ps ON ps.id = ds.source_id '
+            "WHERE ps.title LIKE '%' || ? || '%' "
+            "OR ps.author LIKE '%' || ? || '%')";
       case TagFilter(:final tagId):
         binds.add(tagId);
         return 'id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)';
