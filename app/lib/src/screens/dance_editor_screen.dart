@@ -11,6 +11,7 @@ import '../editor/editor_snapshot.dart';
 import '../editor/editor_undo_stack.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
+import '../widgets/choreographer_details_dialog.dart';
 import '../widgets/figure_list_editor.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
@@ -756,6 +757,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               _scheduleAutosave();
             },
             onCreate: _createChoreographer,
+            onEdit: _editChoreographer,
           ),
           const SizedBox(height: 16),
           _Label('Formation'),
@@ -1156,6 +1158,33 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       };
     }
     return choreographer.id;
+  }
+
+  /// Opens the shared-author details dialog for [id] and, on save, upserts the
+  /// updated record and refreshes the in-memory caches. This is an immediate
+  /// shared-entity write — independent of the dance draft/autosave/undo stack
+  /// (author *selection* lives in the snapshot; contact data does not).
+  Future<void> _editChoreographer(String id) async {
+    final existing = _choreographers.firstWhere(
+      (c) => c.id == id,
+      orElse: () => Choreographer(id: id, name: _choreographerNames[id] ?? id),
+    );
+    final updated = await ChoreographerDetailsDialog.show(context, existing);
+    if (updated == null || !mounted) return;
+    await _repos.choreographers.upsert(updated);
+    if (!mounted) return;
+    setState(() {
+      // Replace the existing cache entry, or append if the author wasn't
+      // cached (mirrors the defensive `orElse` in the lookup above), so the
+      // in-memory caches never go stale after a shared-entity edit.
+      final hasEntry = _choreographers.any((c) => c.id == id);
+      _choreographers = [
+        for (final c in _choreographers)
+          if (c.id == id) updated else c,
+        if (!hasEntry) updated,
+      ];
+      _choreographerNames = {..._choreographerNames, id: updated.name};
+    });
   }
 
   Future<String> _createTag(String name) async {
@@ -1559,6 +1588,7 @@ class _NamePicker extends StatelessWidget {
     required this.onAdd,
     required this.onRemove,
     required this.onCreate,
+    this.onEdit,
   });
 
   final String fieldKey;
@@ -1569,6 +1599,13 @@ class _NamePicker extends StatelessWidget {
   final ValueChanged<String> onRemove;
   final Future<String> Function(String name) onCreate;
 
+  /// When non-null, each selected chip becomes tappable (an [InputChip]) and
+  /// tapping its body invokes [onEdit] with the id — used by the Authors picker
+  /// to edit the shared choreographer record. When null (e.g. the Tags picker),
+  /// chips stay plain, non-editable [Chip]s. Async: the returned future is a
+  /// fire-and-forget dialog+persist flow the picker does not await.
+  final Future<void> Function(String id)? onEdit;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1577,14 +1614,7 @@ class _NamePicker extends StatelessWidget {
         if (selectedIds.isNotEmpty)
           Wrap(
             spacing: 8,
-            children: [
-              for (final id in selectedIds)
-                Chip(
-                  key: ValueKey('$fieldKey-chip-$id'),
-                  label: Text(namesById[id] ?? id),
-                  onDeleted: () => onRemove(id),
-                ),
-            ],
+            children: [for (final id in selectedIds) _buildChip(id)],
           ),
         _AddAutocomplete(
           fieldKey: fieldKey,
@@ -1594,6 +1624,24 @@ class _NamePicker extends StatelessWidget {
           onCreate: onCreate,
         ),
       ],
+    );
+  }
+
+  Widget _buildChip(String id) {
+    final label = namesById[id] ?? id;
+    final key = ValueKey('$fieldKey-chip-$id');
+    if (onEdit == null) {
+      return Chip(key: key, label: Text(label), onDeleted: () => onRemove(id));
+    }
+    // Editable chip: tapping the body opens the details dialog; the delete
+    // affordance still removes the author from the dance. The tooltip makes the
+    // tap affordance discoverable for pointer and screen-reader users.
+    return InputChip(
+      key: key,
+      label: Text(label),
+      tooltip: 'Edit $label',
+      onPressed: () => unawaited(onEdit!(id)),
+      onDeleted: () => onRemove(id),
     );
   }
 }

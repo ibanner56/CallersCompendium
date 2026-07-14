@@ -443,7 +443,7 @@ void main() {
     expect(choreographers.map((c) => c.name), contains('Gene Hubert'));
 
     // Chip shown, then save and confirm it is attached to the dance.
-    expect(find.widgetWithText(Chip, 'Gene Hubert'), findsOneWidget);
+    expect(find.widgetWithText(InputChip, 'Gene Hubert'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('title-field')),
       'With Author',
@@ -454,6 +454,65 @@ void main() {
     final dance = (await repos.dances.listAll()).single;
     expect(dance.authorIds, hasLength(1));
     expect(dance.authorIds.single, choreographers.single.id);
+  });
+
+  testWidgets('author chip opens details dialog and saves shared edits', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.choreographers.upsert(
+      Choreographer(id: 'c1', name: 'Gene Hubert'),
+    );
+    await _pumpEditor(tester, repos, danceId: null);
+
+    // Add the existing author, then edit via the chip.
+    await tester.enterText(find.byKey(const ValueKey('author-input')), 'Gene');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('author-option-c1')));
+    await tester.pumpAndSettle();
+
+    // The author chip is an editable InputChip; tapping its body opens the
+    // dialog.
+    expect(find.widgetWithText(InputChip, 'Gene Hubert'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('author-chip-c1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choreographer details'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('choreographer-name-field')),
+      'Gene H.',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('choreographer-email-field')),
+      'gene@example.com',
+    );
+    await tester.tap(find.byKey(const ValueKey('choreographer-save')));
+    await tester.pumpAndSettle();
+
+    // Shared record persisted immediately (independent of dance save).
+    final saved = await repos.choreographers.getById('c1');
+    expect(saved!.name, 'Gene H.');
+    expect(saved.email, 'gene@example.com');
+    // Chip label reflects the renamed author.
+    expect(find.widgetWithText(InputChip, 'Gene H.'), findsOneWidget);
+  });
+
+  testWidgets('tag chips are not editable (no details dialog)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'flowy');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('tag-option-t1')));
+    await tester.pumpAndSettle();
+
+    // Tag chips stay plain, non-tappable Chips — never InputChips.
+    expect(find.widgetWithText(Chip, 'flowy'), findsOneWidget);
+    expect(find.widgetWithText(InputChip, 'flowy'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('tag-chip-t1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Choreographer details'), findsNothing);
   });
 
   testWidgets('surfaces non-blocking phrase warnings', (tester) async {
