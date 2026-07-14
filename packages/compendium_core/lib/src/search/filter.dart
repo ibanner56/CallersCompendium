@@ -65,6 +65,23 @@ class AuthorFilter extends DanceFilter {
   final String choreographerId;
 }
 
+/// Dances that cite a [PublishedSource] whose title or bibliographic author
+/// contains [query] (case-insensitive substring match).
+///
+/// A targeted, field-scoped alternative to the bare [FullTextFilter] (which
+/// also searches source text via the `dance_fts.sources` column): this leaf
+/// restricts the match to the source's `title`/`author` via a subquery over
+/// `dance_sources` joined to `published_sources`, mirroring how [AuthorFilter]
+/// scopes to a choreographer. [query] is a plain substring (compiled to
+/// `LIKE '%' || ? || '%'`), not an FTS expression — so `"` / `*` / `AND` are
+/// treated literally.
+@immutable
+class SourceFilter extends DanceFilter {
+  const SourceFilter(this.query);
+
+  final String query;
+}
+
 /// Dances of a given [DanceForm] (roadmap "Type": contra / ecd / square).
 @immutable
 class FormFilter extends DanceFilter {

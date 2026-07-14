@@ -20,7 +20,7 @@ part 'database.g.dart';
 const String createDanceFtsSql = '''
 CREATE VIRTUAL TABLE dance_fts USING fts5(
   dance_id UNINDEXED,
-  title, authors, hook, notes, figures_text, custom_values
+  title, authors, hook, notes, figures_text, custom_values, sources
 )
 ''';
 
@@ -102,6 +102,19 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 ///   data is back-filled (fresh tables start empty). These new tables do NOT
 ///   feed the derived `dance_fts`/`dance_figures` indexes (searchability is
 ///   ROADMAP 4b.5b), so NO derived rebuild is required by this migration.
+/// - v9 (2026-07-14): published-source citations become SEARCHABLE (ROADMAP
+///   4b.5b). Adds a `sources` column to the `dance_fts` FTS5 virtual table
+///   holding the searchable text (title + author) of each cited
+///   [PublishedSources] row. Because an FTS5 table's column set is fixed at
+///   creation, the migration DROPs and recreates `dance_fts` with the new
+///   shape; the FTS rows cannot be repopulated in the migration (that needs the
+///   taxonomy/renderer to re-derive figure text and the repository to join the
+///   citation → published-source text), so — exactly like the v2
+///   `dance_figures.section` back-fill — `onUpgrade` durably records
+///   [derivedRebuildRequiredKey] and [CompendiumRepositories.ensureMigrated]
+///   performs the full derived rebuild ([DanceRepository.rebuildAllDerived]),
+///   which repopulates every `dance_fts` row (including the new `sources`
+///   column) and clears the marker. No table columns are added elsewhere.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -131,7 +144,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   CompendiumDatabase(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -204,6 +217,23 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // 4b.5b), so no derived rebuild is required.
         await m.createTable(publishedSources);
         await m.createTable(danceSources);
+      }
+      if (from < 9) {
+        // Published-source citations become searchable: `dance_fts` gains a
+        // `sources` column. An FTS5 table's columns are fixed at creation, so
+        // drop and recreate it with the new shape. The FTS rows can't be
+        // repopulated here (that needs the taxonomy/renderer plus the
+        // citation → published-source join owned by the repository layer), so
+        // durably record that a derived rebuild is owed — exactly like the v2
+        // `section` back-fill. CompendiumRepositories.ensureMigrated() runs
+        // DanceRepository.rebuildAllDerived(), which refills every `dance_fts`
+        // row (including `sources`) and clears the marker.
+        await customStatement('DROP TABLE IF EXISTS dance_fts');
+        await customStatement(createDanceFtsSql);
+        await customStatement(
+          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+          [derivedRebuildRequiredKey, 'true'],
+        );
       }
     },
     beforeOpen: (details) async {

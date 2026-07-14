@@ -76,6 +76,21 @@ void main() {
       expect(compiler.compile(const AuthorFilter('c1')).binds, ['c1']);
     });
 
+    test('Source', () {
+      expect(
+        pred(const SourceFilter('Zesty')),
+        'id IN (SELECT ds.dance_id FROM dance_sources ds '
+        'JOIN published_sources ps ON ps.id = ds.source_id '
+        "WHERE ps.title LIKE '%' || ? || '%' "
+        "OR ps.author LIKE '%' || ? || '%')",
+      );
+      // The query is bound once per LIKE clause (title, then author).
+      expect(compiler.compile(const SourceFilter('Zesty')).binds, [
+        'Zesty',
+        'Zesty',
+      ]);
+    });
+
     test('Tag', () {
       expect(
         pred(const TagFilter('t1')),

@@ -225,10 +225,20 @@ class DanceRepository {
     final customValueText = dance.customFields
         .map((v) => v.value.toString())
         .join(' ');
+    final sourceTexts = <String>[];
+    for (final citation in dance.sourceCitations) {
+      final row = await (_db.select(
+        _db.publishedSources,
+      )..where((t) => t.id.equals(citation.sourceId))).getSingleOrNull();
+      if (row == null) continue;
+      sourceTexts.add(row.title);
+      if (row.author != null) sourceTexts.add(row.author!);
+    }
     await _db.customStatement(
       'INSERT INTO dance_fts'
-      '(dance_id, title, authors, hook, notes, figures_text, custom_values) '
-      'VALUES (?, ?, ?, ?, ?, ?, ?)',
+      '(dance_id, title, authors, hook, notes, figures_text, custom_values, '
+      'sources) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
       [
         dance.id,
         dance.title,
@@ -237,6 +247,7 @@ class DanceRepository {
         dance.callingNotes,
         canonicalTexts.join(' '),
         customValueText,
+        sourceTexts.join(' '),
       ],
     );
   }

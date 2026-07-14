@@ -183,6 +183,62 @@ void main() {
       );
       expect(await dances.search(const FullTextFilter('Petronella')), ['a']);
     });
+
+    test('Source: matches dances citing a source by title or author', () async {
+      final sources = PublishedSourceRepository(db);
+      await sources.upsert(
+        PublishedSource(
+          id: 's1',
+          title: 'Zesty Contras',
+          author: 'Larry Jennings',
+        ),
+      );
+      await sources.upsert(PublishedSource(id: 's2', title: 'Give-and-Take'));
+      await dances.create(
+        _dance(
+          id: 'cited',
+          title: 'Cited',
+        ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+      );
+      await dances.create(
+        _dance(
+          id: 'other',
+          title: 'Other',
+        ).copyWith(sourceCitations: [SourceCitation(sourceId: 's2')]),
+      );
+      await dances.create(_dance(id: 'uncited', title: 'Uncited'));
+
+      // Substring match on the source title.
+      expect(await dances.search(const SourceFilter('Zesty')), ['cited']);
+      // Match on the source author.
+      expect(await dances.search(const SourceFilter('Jennings')), ['cited']);
+      // A source the dance does not cite must not match it.
+      expect(await dances.search(const SourceFilter('Give-and-Take')), [
+        'other',
+      ]);
+      // No citation, no match.
+      expect(
+        await dances.search(const SourceFilter('Zesty')),
+        isNot(contains('uncited')),
+      );
+    });
+
+    test('FullText also searches cited source text', () async {
+      final sources = PublishedSourceRepository(db);
+      await sources.upsert(
+        PublishedSource(id: 's1', title: 'Shadrach', author: 'Ted Sannella'),
+      );
+      await dances.create(
+        _dance(
+          id: 'a',
+          title: 'A',
+        ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+      );
+      await dances.create(_dance(id: 'b', title: 'B'));
+      // The source title and author feed the `dance_fts.sources` column.
+      expect(await dances.search(const FullTextFilter('Shadrach')), ['a']);
+      expect(await dances.search(const FullTextFilter('Sannella')), ['a']);
+    });
   });
 
   group('combinators', () {
