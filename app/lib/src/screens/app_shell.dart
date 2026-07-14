@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../screens/dance_detail_screen.dart';
+import '../screens/program_editor_screen.dart';
+import '../widgets/command_palette.dart';
 import 'collection_shell.dart';
 import 'programs_shell.dart';
 
@@ -42,8 +46,43 @@ class _AppShellState extends State<AppShell> {
 
   void _onSelect(int index) => setState(() => _index = index);
 
+  /// Opens the global search palette and, if the user picks a result, switches
+  /// to the matching section and opens that item's route. Wired to Ctrl/Cmd-K
+  /// and the persistent rail search affordance (`ux-modernization.md` §6).
+  Future<void> _openSearch() async {
+    final result = await showCommandPalette(context);
+    if (result == null || !mounted) return;
+    switch (result.kind) {
+      case CommandResultKind.dance:
+        setState(() => _index = 0);
+        await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => DanceDetailScreen(danceId: result.id),
+          ),
+        );
+      case CommandResultKind.program:
+        setState(() => _index = 1);
+        await Navigator.of(context).push<String>(
+          MaterialPageRoute(
+            builder: (_) => ProgramEditorScreen(programId: result.id),
+          ),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true):
+            _openSearch,
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _openSearch,
+      },
+      child: Focus(autofocus: true, child: _buildScaffold(context)),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= AppShell.railBreakpoint;
@@ -57,6 +96,15 @@ class _AppShellState extends State<AppShell> {
                   selectedIndex: _index,
                   onDestinationSelected: _onSelect,
                   labelType: NavigationRailLabelType.all,
+                  leading: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: IconButton.filledTonal(
+                      key: const ValueKey('global-search-button'),
+                      icon: const Icon(Icons.search),
+                      tooltip: 'Search (Ctrl/Cmd-K)',
+                      onPressed: _openSearch,
+                    ),
+                  ),
                   destinations: [
                     for (final d in _destinations)
                       NavigationRailDestination(
@@ -75,6 +123,14 @@ class _AppShellState extends State<AppShell> {
 
         return Scaffold(
           body: body,
+          floatingActionButton: FloatingActionButton.small(
+            key: const ValueKey('global-search-fab'),
+            heroTag: 'global-search',
+            tooltip: 'Search (Ctrl/Cmd-K)',
+            onPressed: _openSearch,
+            child: const Icon(Icons.search),
+          ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
           bottomNavigationBar: NavigationBar(
             selectedIndex: _index,
             onDestinationSelected: _onSelect,
