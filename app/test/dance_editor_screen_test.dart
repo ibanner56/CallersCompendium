@@ -232,6 +232,51 @@ void main() {
     expect(saved.composedOn!.precision, DatePrecision.month);
   });
 
+  testWidgets('composed date: changing year clears a now-invalid day', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await tester.enterText(
+      find.byKey(const ValueKey('composed-on-year')),
+      '2004', // leap year
+    );
+    await tester.pumpAndSettle();
+
+    // Pick February …
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('composed-on-month-0')),
+    );
+    await tester.tap(find.byKey(const ValueKey('composed-on-month-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Feb').last);
+    await tester.pumpAndSettle();
+    // … and the 29th (valid in 2004).
+    await tester.ensureVisible(find.byKey(const ValueKey('composed-on-day-0')));
+    await tester.tap(find.byKey(const ValueKey('composed-on-day-0')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('29').last);
+    await tester.pumpAndSettle();
+
+    // Switch to a non-leap year: Feb 29 is no longer valid. This must not throw
+    // (the Day dropdown would otherwise get an initialValue absent from items).
+    await tester.enterText(
+      find.byKey(const ValueKey('composed-on-year')),
+      '2005',
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    // Day was cleared; year+month precision remains.
+    expect(saved!.composedOn, PartialDate(2005, 2));
+  });
+
   testWidgets('revised date loads and clearing the year clears it', (
     tester,
   ) async {

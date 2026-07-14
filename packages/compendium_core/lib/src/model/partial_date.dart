@@ -111,6 +111,18 @@ class PartialDate implements Comparable<PartialDate> {
     return DatePrecision.year;
   }
 
+  /// The earliest calendar day this partial date could denote — missing
+  /// components take their minimum (month 1, day 1). Used for temporal-bound
+  /// reasoning across differing precisions (see [latestDay]).
+  DateTime get earliestDay => DateTime.utc(year, month ?? 1, day ?? 1);
+
+  /// The latest calendar day this partial date could denote — missing
+  /// components take their maximum (month 12, last day of the month).
+  DateTime get latestDay {
+    final m = month ?? 12;
+    return DateTime.utc(year, m, day ?? _daysInMonth(year, m));
+  }
+
   /// The canonical ISO-like string sized to [precision] (see class docs).
   String serialize() {
     final buffer = StringBuffer(_pad4(year));

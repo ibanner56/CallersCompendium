@@ -1364,7 +1364,19 @@ class _PartialDateFieldState extends State<_PartialDateField> {
                   counterText: '',
                   errorText: showYearError ? '1–9999' : null,
                 ),
-                onChanged: (_) => setState(_emit),
+                onChanged: (_) => setState(() {
+                  // A year change can invalidate a chosen day (e.g. Feb 29 in a
+                  // leap year, then a non-leap year). Clear it so the Day
+                  // dropdown never gets an initialValue absent from its items.
+                  final y = _year;
+                  if (y != null &&
+                      _month != null &&
+                      _day != null &&
+                      _day! > _daysIn(y, _month!)) {
+                    _day = null;
+                  }
+                  _emit();
+                }),
               ),
             ),
             const SizedBox(width: 8),

@@ -123,9 +123,13 @@ class Dance {
     deriveSections(figures, phraseStructure, issues: issues);
     final composed = composedOn;
     final revised = revisedOn;
+    // Warn only when the *latest* the revision could have happened is still
+    // strictly before the *earliest* the composition could have happened, so
+    // overlapping partial precisions (e.g. composed 1989-03, revised 1989)
+    // never trip a false warning.
     if (composed != null &&
         revised != null &&
-        revised.compareTo(composed) < 0) {
+        revised.latestDay.isBefore(composed.earliestDay)) {
       issues.add(
         ValidationIssue(
           severity: ValidationSeverity.warning,

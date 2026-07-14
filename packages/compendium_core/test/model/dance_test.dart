@@ -280,5 +280,20 @@ void main() {
         isEmpty,
       );
     });
+
+    test('validate does not warn on overlapping partial precisions', () {
+      // composed 1989-03 vs revised 1989 (year-only): the revision could
+      // plausibly be later in 1989, so this is not a definite inversion.
+      expect(
+        make()
+            .copyWith(
+              composedOn: PartialDate(1989, 3),
+              revisedOn: PartialDate(1989),
+            )
+            .validate()
+            .where((i) => i.code == 'revised_before_composed'),
+        isEmpty,
+      );
+    });
   });
 }

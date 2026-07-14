@@ -123,4 +123,31 @@ void main() {
       expect(a.serialize().compareTo(b.serialize()), lessThan(0));
     });
   });
+
+  group('day-range bounds', () {
+    test('year-only spans the whole year', () {
+      final d = PartialDate(1989);
+      expect(d.earliestDay, DateTime.utc(1989, 1, 1));
+      expect(d.latestDay, DateTime.utc(1989, 12, 31));
+    });
+
+    test('year+month spans the whole month (leap-aware)', () {
+      expect(PartialDate(2004, 2).earliestDay, DateTime.utc(2004, 2, 1));
+      expect(PartialDate(2004, 2).latestDay, DateTime.utc(2004, 2, 29));
+      expect(PartialDate(2005, 2).latestDay, DateTime.utc(2005, 2, 28));
+    });
+
+    test('full date bounds are the same single day', () {
+      final d = PartialDate(2004, 3, 15);
+      expect(d.earliestDay, DateTime.utc(2004, 3, 15));
+      expect(d.latestDay, DateTime.utc(2004, 3, 15));
+    });
+
+    test('overlapping precisions are not a definite inversion', () {
+      // revised 1989 (year-only) can be later than composed 1989-03.
+      final composed = PartialDate(1989, 3);
+      final revised = PartialDate(1989);
+      expect(revised.latestDay.isBefore(composed.earliestDay), isFalse);
+    });
+  });
 }
