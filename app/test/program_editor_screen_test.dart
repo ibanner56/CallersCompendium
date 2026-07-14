@@ -285,6 +285,40 @@ void main() {
     expect(saved.slots.single.danceId, isNull);
   });
 
+  testWidgets('slot cards number primaries and mark alternates', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 's0', position: 0, text: 'First'),
+          ProgramSlot(id: 's1', position: 1, text: 'Alt of first', isAlt: true),
+          ProgramSlot(id: 's2', position: 2, text: 'Second'),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    // Primaries carry 1-based running-order numbers; the alt in the middle is
+    // grouped under its primary and shows "ALT", not its own number — so the
+    // slot after it is #2, not #3.
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('slot-0-ordinal'))).data,
+      '1',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('slot-1-ordinal'))).data,
+      'ALT',
+    );
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('slot-2-ordinal'))).data,
+      '2',
+    );
+  });
+
   testWidgets('reorders slots via move-up keeping positions contiguous', (
     tester,
   ) async {
