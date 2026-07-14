@@ -79,6 +79,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   FormationShape _formationShape = FormationShape.dupleImproper;
   Progression _progression = Progression.single;
   DanceStatus _status = DanceStatus.active;
+  DanceLevel? _level;
+  bool _mixedLevel = false;
 
   final List<String> _authorIds = [];
   final List<String> _tagIds = [];
@@ -172,6 +174,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         _formationShape = dance.formation.shape;
         _progression = dance.progression;
         _status = dance.status;
+        _level = dance.level;
+        _mixedLevel = dance.mixedLevel;
         _authorIds.addAll(dance.authorIds);
         _tagIds.addAll(dance.tagIds);
         _tunes.addAll(dance.tunes);
@@ -274,6 +278,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           hook: _hookController.text.trim(),
           callingNotes: _notesController.text.trim(),
           status: _status,
+          level: _level,
+          clearLevel: _level == null,
+          mixedLevel: _mixedLevel,
           tunes: List.of(_tunes),
           customFields: customFields,
           tagIds: List.of(_tagIds),
@@ -294,6 +301,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           hook: _hookController.text.trim(),
           callingNotes: _notesController.text.trim(),
           status: _status,
+          level: _level,
+          mixedLevel: _mixedLevel,
           tunes: List.of(_tunes),
           customFields: customFields,
           tagIds: List.of(_tagIds),
@@ -331,6 +340,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     formationShape: _formationShape,
     progression: _progression,
     status: _status,
+    level: _level,
+    mixedLevel: _mixedLevel,
     authorIds: List.unmodifiable(_authorIds),
     tagIds: List.unmodifiable(_tagIds),
     tunes: List.unmodifiable(_tunes),
@@ -380,6 +391,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     _formationShape = s.formationShape;
     _progression = s.progression;
     _status = s.status;
+    _level = s.level;
+    _mixedLevel = s.mixedLevel;
 
     // Multi-value lists.
     _authorIds
@@ -806,6 +819,30 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             },
           ),
           const SizedBox(height: 16),
+          _LevelDropdown(
+            value: _level,
+            onChanged: (v) {
+              setState(() => _level = v);
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+          ),
+          const SizedBox(height: 8),
+          CheckboxListTile(
+            key: const ValueKey('mixed-level-field'),
+            value: _mixedLevel,
+            onChanged: (v) {
+              setState(() => _mixedLevel = v ?? false);
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+            title: const Text('Mixed level'),
+            subtitle: const Text('Spans the difficulty scale'),
+            secondary: const Icon(Icons.swap_vert),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 16),
           TextFormField(
             key: const ValueKey('phrase-field'),
             controller: _phraseController,
@@ -1140,6 +1177,42 @@ class _EnumDropdown<T> extends StatelessWidget {
       onChanged: (v) {
         if (v != null) onChanged(v);
       },
+    );
+  }
+}
+
+/// A difficulty [DanceLevel] dropdown that includes an explicit "Unspecified"
+/// (`null`) option. Mirrors [_EnumDropdown] but is nullable so a dance can have
+/// no assigned level (saved via `copyWith(clearLevel: true)`).
+class _LevelDropdown extends StatelessWidget {
+  const _LevelDropdown({required this.value, required this.onChanged});
+
+  final DanceLevel? value;
+  final ValueChanged<DanceLevel?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<DanceLevel?>(
+      // Value-based key so the FormField re-initialises when `value` changes
+      // externally (e.g. via undo/redo), matching [_EnumDropdown].
+      key: ValueKey('level-field-${value?.name ?? 'none'}'),
+      initialValue: value,
+      decoration: const InputDecoration(
+        labelText: 'Level',
+        border: OutlineInputBorder(),
+      ),
+      items: [
+        const DropdownMenuItem<DanceLevel?>(
+          value: null,
+          child: Text('Unspecified'),
+        ),
+        for (final v in DanceLevel.values)
+          DropdownMenuItem<DanceLevel?>(
+            value: v,
+            child: Text(danceLevelLabel(v)),
+          ),
+      ],
+      onChanged: onChanged,
     );
   }
 }

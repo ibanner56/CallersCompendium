@@ -98,6 +98,49 @@ class StatusFilter extends DanceFilter {
   final DanceStatus status;
 }
 
+/// Ordered comparison operators for a [LevelFilter]. The [DanceLevel] scale is
+/// ordered (enum index = ordinal), so callers can ask for a level exactly
+/// ([eq]), "that level or easier" ([lte]), or "that level or harder" ([gte]) —
+/// mirroring the numeric operators of [CustomFieldOp] but as a small dedicated
+/// vocabulary (`docs/design/search.md` "Future leaves").
+enum LevelOp {
+  /// `level = ?` (exact difficulty).
+  eq,
+
+  /// The dance's difficulty is at or below the given level (easier-or-equal).
+  lte,
+
+  /// The dance's difficulty is at or above the given level (harder-or-equal).
+  gte,
+}
+
+/// Dances at a given [DanceLevel], compared with [op] on the ordered scale.
+///
+/// Dances with an **unspecified** level (`dances.level IS NULL`) never match an
+/// ordered comparison ([LevelOp.lte]/[LevelOp.gte]) — an unspecified difficulty
+/// is not a point on the scale. "Mixed level" is a separate axis: see
+/// [MixedLevelFilter].
+@immutable
+class LevelFilter extends DanceFilter {
+  const LevelFilter(this.level, [this.op = LevelOp.eq]);
+
+  final DanceLevel level;
+  final LevelOp op;
+}
+
+/// Dances whose "mixed level" flag equals [mixed] (`dances.mixed_level`).
+///
+/// A separate boolean leaf rather than a point on the ordered [LevelFilter]
+/// scale: a mixed-level event spans the difficulty scale, so it is modelled
+/// orthogonally to keep the ordered comparisons total (mirrors
+/// [Dance.mixedLevel] being distinct from [Dance.level]).
+@immutable
+class MixedLevelFilter extends DanceFilter {
+  const MixedLevelFilter(this.mixed);
+
+  final bool mixed;
+}
+
 /// Dances tagged with the tag id [tagId].
 @immutable
 class TagFilter extends DanceFilter {

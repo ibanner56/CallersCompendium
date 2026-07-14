@@ -93,6 +93,8 @@ class EditorSnapshot {
     required this.formationShape,
     required this.progression,
     required this.status,
+    this.level,
+    this.mixedLevel = false,
     required this.authorIds,
     required this.tagIds,
     required this.tunes,
@@ -113,6 +115,12 @@ class EditorSnapshot {
   final FormationShape formationShape;
   final Progression progression;
   final DanceStatus status;
+
+  /// Difficulty on the ordered [DanceLevel] scale; `null` when unspecified.
+  final DanceLevel? level;
+
+  /// Whether the dance spans the difficulty scale (distinct from [level]).
+  final bool mixedLevel;
 
   // ---- Multi-value lists ----
   final List<String> authorIds;

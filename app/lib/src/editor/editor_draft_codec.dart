@@ -11,7 +11,11 @@ import 'editor_snapshot.dart';
 /// v1 → v2: `links` now supports relatedDance kind with `targetDanceId`;
 /// the separate `preservedLinks` bucket is removed (all four LinkKinds live
 /// in `links`).
-const _kDraftVersion = 2;
+///
+/// v2 → v3: adds `level` (nullable [DanceLevel] name, omitted when unspecified)
+/// and `mixedLevel` (bool). Older drafts decode with `level:null` /
+/// `mixedLevel:false`.
+const _kDraftVersion = 3;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -28,6 +32,7 @@ const _kDraftVersion = 2;
 ///   "phrase": "...", "formationDetail": "...",
 ///   "form": "contra", "formationShape": "dupleImproper",
 ///   "progression": "single", "status": "active",
+///   "level": "intermediate", "mixedLevel": false,
 ///   "authorIds": ["..."], "tagIds": ["..."], "tunes": ["..."],
 ///   "links": [
 ///     {"id":"...", "kind":"source", "url":"...", "label":"..."},
@@ -55,6 +60,8 @@ String encodeDraft(EditorSnapshot snapshot) {
     'formationShape': snapshot.formationShape.name,
     'progression': snapshot.progression.name,
     'status': snapshot.status.name,
+    if (snapshot.level != null) 'level': snapshot.level!.name,
+    'mixedLevel': snapshot.mixedLevel,
     'authorIds': snapshot.authorIds,
     'tagIds': snapshot.tagIds,
     'tunes': snapshot.tunes,
@@ -136,6 +143,8 @@ EditorSnapshot decodeDraft(Object? value) {
     ),
     progression: _parseEnum(Progression.values, _str(json, 'progression')),
     status: _parseEnum(DanceStatus.values, _str(json, 'status')),
+    level: _parseNullableEnum(DanceLevel.values, json['level']),
+    mixedLevel: _bool(json, 'mixedLevel'),
     authorIds: _strList(json, 'authorIds'),
     tagIds: _strList(json, 'tagIds'),
     tunes: _strList(json, 'tunes'),
@@ -176,6 +185,23 @@ T _parseEnum<T extends Enum>(List<T> values, String name) {
       'unknown enum value "$name" for ${values.first.runtimeType}',
     ),
   );
+}
+
+/// Parses an optional enum name: `null`/absent → `null`; a string is resolved
+/// against [values] (unknown names throw). Used for the nullable `level` field.
+T? _parseNullableEnum<T extends Enum>(List<T> values, Object? raw) {
+  if (raw == null) return null;
+  if (raw is! String) {
+    throw FormatException('draft enum value must be a string: $raw');
+  }
+  return _parseEnum(values, raw);
+}
+
+bool _bool(Map<String, Object?> json, String key) {
+  final v = json[key];
+  if (v == null) return false;
+  if (v is! bool) throw FormatException('draft.$key must be a bool: $v');
+  return v;
 }
 
 List<LinkSnapshot> _parseLinks(Object? raw) {

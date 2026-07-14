@@ -18,6 +18,8 @@ Dance _dance({
   List<String> authorIds = const [],
   List<DanceLink> links = const [],
   List<CustomFieldValue> customFields = const [],
+  DanceLevel? level,
+  bool mixedLevel = false,
 }) => Dance(
   id: id,
   title: title,
@@ -25,6 +27,8 @@ Dance _dance({
   authorIds: authorIds,
   links: links,
   customFields: customFields,
+  level: level,
+  mixedLevel: mixedLevel,
   createdAt: _now,
   updatedAt: _now,
 );
@@ -136,6 +140,48 @@ void main() {
     expect(saved!.title, 'Renamed');
     // createdAt preserved from the original.
     expect(saved.createdAt, _now);
+  });
+
+  testWidgets('level and mixed level round-trip on save', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // Pick a level from the dropdown.
+    await tester.tap(find.byKey(const ValueKey('level-field-none')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Intermediate').last);
+    await tester.pumpAndSettle();
+
+    // Toggle mixed level on.
+    await tester.tap(find.byKey(const ValueKey('mixed-level-field')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.level, DanceLevel.intermediate);
+    expect(saved.mixedLevel, isTrue);
+  });
+
+  testWidgets('selecting Unspecified clears an existing level', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Original', level: DanceLevel.advanced),
+    );
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await tester.tap(find.byKey(const ValueKey('level-field-advanced')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Unspecified').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.level, isNull);
   });
 
   testWidgets('invalid phrase structure blocks save', (tester) async {

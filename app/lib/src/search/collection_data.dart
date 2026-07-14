@@ -28,6 +28,8 @@ class CollectionData {
     required this.formations,
     required this.progressions,
     required this.statuses,
+    required this.levels,
+    required this.hasMixedLevel,
     required this.taxonomy,
     required this.sectionLabels,
   });
@@ -48,6 +50,14 @@ class CollectionData {
   final List<FormationShape> formations;
   final List<Progression> progressions;
   final List<DanceStatus> statuses;
+
+  /// Distinct assigned [DanceLevel]s present in the collection (sorted by
+  /// ordinal); unspecified levels are excluded so an empty facet doesn't show.
+  final List<DanceLevel> levels;
+
+  /// Whether any dance is flagged mixed-level (drives the Mixed level facet).
+  final bool hasMixedLevel;
+
   final Taxonomy taxonomy;
   final List<String> sectionLabels;
 
@@ -72,6 +82,10 @@ class CollectionData {
       ..sort((a, b) => a.index.compareTo(b.index));
     final statuses = dances.map((d) => d.status).toSet().toList()
       ..sort((a, b) => a.index.compareTo(b.index));
+    final levels =
+        dances.map((d) => d.level).whereType<DanceLevel>().toSet().toList()
+          ..sort((a, b) => a.index.compareTo(b.index));
+    final hasMixedLevel = dances.any((d) => d.mixedLevel);
 
     final usedAuthorIds = {for (final d in dances) ...d.authorIds};
     final usedTagIds = {for (final d in dances) ...d.tagIds};
@@ -110,6 +124,8 @@ class CollectionData {
       formations: formations,
       progressions: progressions,
       statuses: statuses,
+      levels: levels,
+      hasMixedLevel: hasMixedLevel,
       taxonomy: contraTaxonomy,
       sectionLabels: PhraseStructure.standard.labels,
     );

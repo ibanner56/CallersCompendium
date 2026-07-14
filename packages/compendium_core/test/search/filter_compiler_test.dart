@@ -94,6 +94,64 @@ void main() {
     });
   });
 
+  group('level leaves', () {
+    test('LevelFilter eq is a plain name match', () {
+      expect(pred(const LevelFilter(DanceLevel.intermediate)), 'level = ?');
+      expect(
+        compiler.compile(const LevelFilter(DanceLevel.intermediate)).binds,
+        ['intermediate'],
+      );
+    });
+
+    test('LevelFilter lte compiles an ordered CASE with a NULL guard', () {
+      expect(
+        pred(const LevelFilter(DanceLevel.intermediate, LevelOp.lte)),
+        'level IS NOT NULL AND (CASE level '
+        "WHEN 'beginner' THEN 0 "
+        "WHEN 'intermediate' THEN 1 "
+        "WHEN 'advanced' THEN 2 END) <= ?",
+      );
+      expect(
+        compiler
+            .compile(const LevelFilter(DanceLevel.intermediate, LevelOp.lte))
+            .binds,
+        [DanceLevel.intermediate.index],
+      );
+    });
+
+    test('LevelFilter gte compiles an ordered CASE with a NULL guard', () {
+      expect(
+        pred(const LevelFilter(DanceLevel.advanced, LevelOp.gte)),
+        'level IS NOT NULL AND (CASE level '
+        "WHEN 'beginner' THEN 0 "
+        "WHEN 'intermediate' THEN 1 "
+        "WHEN 'advanced' THEN 2 END) >= ?",
+      );
+      expect(
+        compiler
+            .compile(const LevelFilter(DanceLevel.advanced, LevelOp.gte))
+            .binds,
+        [DanceLevel.advanced.index],
+      );
+    });
+
+    test('MixedLevelFilter matches mixed_level with a 1/0 bind', () {
+      expect(pred(const MixedLevelFilter(true)), 'mixed_level = ?');
+      expect(compiler.compile(const MixedLevelFilter(true)).binds, [1]);
+      expect(compiler.compile(const MixedLevelFilter(false)).binds, [0]);
+    });
+
+    test('level leaves compose under And/Or with pre-order binds', () {
+      final c = compiler.compile(
+        const AndFilter([
+          LevelFilter(DanceLevel.beginner, LevelOp.gte),
+          MixedLevelFilter(false),
+        ]),
+      );
+      expect(c.binds, [DanceLevel.beginner.index, 0]);
+    });
+  });
+
   group('combinators', () {
     test('empty And is TRUE, empty Or is FALSE', () {
       expect(compiler.compile(const AndFilter([])).sql, contains('AND (1)'));
