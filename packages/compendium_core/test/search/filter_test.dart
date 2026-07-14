@@ -189,4 +189,19 @@ void main() {
       );
     });
   });
+
+  group('RatingFilter range validation', () {
+    test('rejects an out-of-range minimum at construction', () {
+      // `0` (would match every rated dance) and `6` (matches none) are caller
+      // bugs, not valid queries — the constructor assert fires.
+      expect(() => RatingFilter(0), throwsA(isA<AssertionError>()));
+      expect(() => RatingFilter(6), throwsA(isA<AssertionError>()));
+      expect(() => RatingFilter(-1), throwsA(isA<AssertionError>()));
+    });
+
+    test('accepts the 1..5 scale boundaries', () {
+      expect(() => RatingFilter(1), returnsNormally);
+      expect(() => RatingFilter(5), returnsNormally);
+    });
+  });
 }

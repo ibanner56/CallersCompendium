@@ -296,4 +296,42 @@ void main() {
       );
     });
   });
+
+  group('rating', () {
+    test('accepts null (unrated) and every in-range 1..5 value', () {
+      expect(make().rating, isNull);
+      for (final r in [1, 2, 3, 4, 5]) {
+        expect(make().copyWith(rating: r).rating, r);
+      }
+    });
+
+    test('rejects out-of-range ratings at construction', () {
+      for (final bad in [0, 6, -1, 100]) {
+        expect(() => make().copyWith(rating: bad), throwsArgumentError);
+      }
+    });
+
+    test('copyWith sets a value and clearRating resets it', () {
+      final rated = make().copyWith(rating: 4);
+      expect(rated.rating, 4);
+      expect(rated.copyWith(clearRating: true).rating, isNull);
+    });
+
+    test('a set clear flag wins over a value for the same field', () {
+      final d = make().copyWith(rating: 3);
+      expect(d.copyWith(rating: 5, clearRating: true).rating, isNull);
+    });
+
+    test('== distinguishes differing ratings', () {
+      final base = make();
+      expect(base.copyWith(rating: 4), isNot(equals(base.copyWith(rating: 5))));
+      expect(base.copyWith(rating: 4), equals(base.copyWith(rating: 4)));
+    });
+
+    test('duplicate carries the rating through', () {
+      final original = make().copyWith(rating: 5);
+      final copy = original.duplicate(newId: 'd2', now: now);
+      expect(copy.rating, 5);
+    });
+  });
 }

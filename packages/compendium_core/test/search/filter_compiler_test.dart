@@ -45,6 +45,17 @@ void main() {
         expect(c.sql, endsWith('ORDER BY title COLLATE NOCASE'));
       }
     });
+
+    test('rating sorts highest-first with NULLs last and a title tiebreak', () {
+      final c = compiler.compile(
+        const FormFilter(DanceForm.contra),
+        sort: SearchSort.rating,
+      );
+      expect(
+        c.sql,
+        endsWith('ORDER BY rating IS NULL, rating DESC, title COLLATE NOCASE'),
+      );
+    });
   });
 
   group('metadata leaves', () {
@@ -139,6 +150,14 @@ void main() {
       expect(pred(const MixedLevelFilter(true)), 'mixed_level = ?');
       expect(compiler.compile(const MixedLevelFilter(true)).binds, [1]);
       expect(compiler.compile(const MixedLevelFilter(false)).binds, [0]);
+    });
+
+    test('RatingFilter compiles a minimum-rating floor with the bind', () {
+      expect(pred(const RatingFilter(4)), 'rating >= ?');
+      expect(compiler.compile(const RatingFilter(4)).binds, [4]);
+      // The scale boundaries compile fine.
+      expect(compiler.compile(const RatingFilter(1)).binds, [1]);
+      expect(compiler.compile(const RatingFilter(5)).binds, [5]);
     });
 
     test('level leaves compose under And/Or with pre-order binds', () {

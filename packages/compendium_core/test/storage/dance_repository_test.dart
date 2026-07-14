@@ -29,6 +29,18 @@ void main() {
       expect(loaded, dance);
     });
 
+    test('round-trips a rating and its cleared (NULL) state', () async {
+      final rated = sampleDance().copyWith(rating: 5);
+      await dances.create(rated);
+      expect((await dances.getById(rated.id))!.rating, 5);
+
+      // Clearing the rating persists as NULL.
+      await dances.update(
+        rated.copyWith(clearRating: true, updatedAt: DateTime.utc(2026, 2, 1)),
+      );
+      expect((await dances.getById(rated.id))!.rating, isNull);
+    });
+
     test('round-trips authors in position order', () async {
       await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
       await choreographers.upsert(Choreographer(id: 'c2', name: 'Bob'));

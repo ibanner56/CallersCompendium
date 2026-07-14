@@ -35,6 +35,7 @@ class Dance {
     this.status = DanceStatus.active,
     this.level,
     this.mixedLevel = false,
+    this.rating,
     List<String> tunes = const [],
     List<CustomFieldValue> customFields = const [],
     List<String> tagIds = const [],
@@ -55,6 +56,17 @@ class Dance {
        links = List.unmodifiable(links) {
     if (title.trim().isEmpty) {
       throw ArgumentError.value(title, 'title', 'must be non-empty');
+    }
+    _validateRating(rating);
+  }
+
+  /// Validates the optional [rating]: `null` (unrated) is always allowed;
+  /// otherwise it must be an integer star rating on the closed `1..5` scale.
+  /// Anything out of range (`0`, `6`, negatives) fails at construction so an
+  /// invalid rating can never be persisted.
+  static void _validateRating(int? rating) {
+    if (rating != null && (rating < 1 || rating > 5)) {
+      throw ArgumentError.value(rating, 'rating', 'must be null or 1..5');
     }
   }
 
@@ -86,6 +98,12 @@ class Dance {
   /// at a single [level]. Kept separate from [level] so the ordered scale
   /// stays total for `lte`/`gte` search comparisons.
   final bool mixedLevel;
+
+  /// Curatorial star rating on the closed `1..5` scale; `null` when unrated
+  /// (existing/imported dances stay valid). A first-class scalar column
+  /// (validated at the [Dance] boundary), not an enum and not a custom field —
+  /// mirrors the CC-parity `Rating`. Higher is better.
+  final int? rating;
 
   final List<String> tunes;
   final List<CustomFieldValue> customFields;
@@ -149,7 +167,7 @@ class Dance {
   /// pass `clearLevel: true` to set [level] back to `null`. A set clear flag
   /// **wins** over any value passed for the same field, so
   /// `copyWith(level: DanceLevel.advanced, clearLevel: true)` clears it. The
-  /// same holds for `clearComposedOn` / `clearRevisedOn`.
+  /// same holds for `clearComposedOn` / `clearRevisedOn` / `clearRating`.
   Dance copyWith({
     String? title,
     List<String>? authorIds,
@@ -164,6 +182,8 @@ class Dance {
     DanceLevel? level,
     bool clearLevel = false,
     bool? mixedLevel,
+    int? rating,
+    bool clearRating = false,
     List<String>? tunes,
     List<CustomFieldValue>? customFields,
     List<String>? tagIds,
@@ -190,6 +210,7 @@ class Dance {
     status: status ?? this.status,
     level: clearLevel ? null : (level ?? this.level),
     mixedLevel: mixedLevel ?? this.mixedLevel,
+    rating: clearRating ? null : (rating ?? this.rating),
     tunes: tunes ?? this.tunes,
     customFields: customFields ?? this.customFields,
     tagIds: tagIds ?? this.tagIds,
@@ -204,9 +225,10 @@ class Dance {
 
   /// A duplicate with a new identity, suitable for "duplicate dance":
   /// same content, fresh id/timestamps, provenance dropped (the copy is the
-  /// user's own editable record). [composedOn]/[revisedOn] are **carried
-  /// through**: unlike provenance (which describes an import), they are
-  /// authorship metadata about the dance itself, which the copy shares.
+  /// user's own editable record). [composedOn]/[revisedOn]/[rating] are
+  /// **carried through**: unlike provenance (which describes an import), they
+  /// are authorship/curation metadata about the dance itself, which the copy
+  /// shares.
   ///
   /// [DanceLink]s are copied with **freshly generated ids** (via [newLinkId],
   /// which defaults to [uuidV4]): link ids are globally unique primary keys,
@@ -233,6 +255,7 @@ class Dance {
       status: status,
       level: level,
       mixedLevel: mixedLevel,
+      rating: rating,
       tunes: tunes,
       customFields: customFields,
       tagIds: tagIds,
@@ -269,6 +292,7 @@ class Dance {
       other.status == status &&
       other.level == level &&
       other.mixedLevel == mixedLevel &&
+      other.rating == rating &&
       _listEq.equals(other.tunes, tunes) &&
       _listEq.equals(other.customFields, customFields) &&
       _listEq.equals(other.tagIds, tagIds) &&

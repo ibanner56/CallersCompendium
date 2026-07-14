@@ -43,6 +43,12 @@ class Dances extends Table {
   /// so the ordered scale stays total. Added in schema v4 (CC `Mixed Level`).
   BoolColumn get mixedLevel => boolean().withDefault(const Constant(false))();
 
+  /// Curatorial star rating on the closed `1..5` scale; nullable (`null` =
+  /// unrated). A first-class dance-scalar column (the `1..5` range is validated
+  /// at the [Dance] boundary), not an enum or custom field. Added in schema v6
+  /// (CC-parity `Rating`).
+  IntColumn get rating => integer().nullable()();
+
   /// JSON array of tune name strings.
   TextColumn get tunesJson => text().withDefault(const Constant('[]'))();
 
