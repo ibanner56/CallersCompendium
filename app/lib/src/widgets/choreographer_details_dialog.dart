@@ -77,20 +77,19 @@ class _ChoreographerDetailsDialogState
     if (!_formKey.currentState!.validate()) return;
     final existing = widget.choreographer;
 
-    final email = _trimmedOrNull(_emailController);
-    final location = _trimmedOrNull(_locationController);
-
-    // Pass the model's clear flags for emptied contact fields so they become
-    // null explicitly (the model also normalizes, but being explicit matches
-    // the Dance.clearRating precedent and documents intent).
-    final updated = existing.copyWith(
+    // Build a fresh record from the controllers (rather than copyWith) so that
+    // clearing an optional field actually clears it: copyWith treats a null
+    // website/notes as "keep existing", which would make website/notes
+    // un-clearable from this dialog. The model normalizes email/location
+    // (empty/whitespace -> null) itself; we pass website/notes trimmed-or-null
+    // so they clear the same way. id/deceased carry over explicitly.
+    final updated = Choreographer(
+      id: existing.id,
       name: _nameController.text.trim(),
       website: _trimmedOrNull(_websiteController),
       notes: _trimmedOrNull(_notesController),
-      email: email,
-      clearEmail: email == null,
-      location: location,
-      clearLocation: location == null,
+      email: _trimmedOrNull(_emailController),
+      location: _trimmedOrNull(_locationController),
       deceased: _deceased,
     );
     Navigator.of(context).pop(updated);

@@ -1174,9 +1174,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     await _repos.choreographers.upsert(updated);
     if (!mounted) return;
     setState(() {
+      // Replace the existing cache entry, or append if the author wasn't
+      // cached (mirrors the defensive `orElse` in the lookup above), so the
+      // in-memory caches never go stale after a shared-entity edit.
+      final hasEntry = _choreographers.any((c) => c.id == id);
       _choreographers = [
         for (final c in _choreographers)
           if (c.id == id) updated else c,
+        if (!hasEntry) updated,
       ];
       _choreographerNames = {..._choreographerNames, id: updated.name};
     });
@@ -1597,8 +1602,9 @@ class _NamePicker extends StatelessWidget {
   /// When non-null, each selected chip becomes tappable (an [InputChip]) and
   /// tapping its body invokes [onEdit] with the id — used by the Authors picker
   /// to edit the shared choreographer record. When null (e.g. the Tags picker),
-  /// chips stay plain, non-editable [Chip]s.
-  final ValueChanged<String>? onEdit;
+  /// chips stay plain, non-editable [Chip]s. Async: the returned future is a
+  /// fire-and-forget dialog+persist flow the picker does not await.
+  final Future<void> Function(String id)? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -1634,7 +1640,7 @@ class _NamePicker extends StatelessWidget {
       key: key,
       label: Text(label),
       tooltip: 'Edit $label',
-      onPressed: () => onEdit!(id),
+      onPressed: () => unawaited(onEdit!(id)),
       onDeleted: () => onRemove(id),
     );
   }

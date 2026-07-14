@@ -239,23 +239,28 @@ void main() {
     });
 
     // Privacy invariant (ROADMAP 4b.4 / Choreographer doc): the emailable set
-    // list resolves dances by *title* only (via titleFor) and never serializes
-    // choreographer records, so private contact data (email/location) cannot
-    // leak into a shared export. This test locks that API shape: even a
-    // contact-bearing lookup value is only ever surfaced as a title.
-    test('renders dances by title only — no choreographer contact leaks', () {
-      String? contactBearingTitles(String id) =>
-          const {'d1': 'Rory O\'More'}[id];
+    // list is built solely from the Program plus the `titleFor` lookup, which
+    // resolves a dance id to a *title* string. It never receives or serializes
+    // choreographer records, so private contact data (email/location) has no
+    // path into a shared export. This test locks that API shape by asserting
+    // the sole per-dance content comes from `titleFor`.
+    test('renders dances only via the titleFor lookup', () {
+      final seenIds = <String>[];
+      String? titleFor(String id) {
+        seenIds.add(id);
+        return const {'d1': 'Rory O\'More'}[id];
+      }
+
       final text = programToPlainText(
         program(
           slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
         ),
-        titleFor: contactBearingTitles,
+        titleFor: titleFor,
       );
+
+      // The dance line is exactly the title resolved by titleFor.
       expect(text, contains('1. Rory O\'More'));
-      expect(text, isNot(contains('@')));
-      expect(text.toLowerCase(), isNot(contains('email')));
-      expect(text.toLowerCase(), isNot(contains('location')));
+      expect(seenIds, ['d1']);
     });
   });
 }

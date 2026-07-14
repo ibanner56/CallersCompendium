@@ -124,12 +124,16 @@ void main() {
     expect(result.deceased, isTrue);
   });
 
-  testWidgets('clearing email/location persists null', (tester) async {
+  testWidgets('clearing email/location/website/notes persists null', (
+    tester,
+  ) async {
     final result = await openAndAct(
       tester,
       Choreographer(
         id: 'c1',
         name: 'Gene',
+        website: 'https://old.example',
+        notes: 'old notes',
         email: 'gene@example.com',
         location: 'Durham, NC',
       ),
@@ -142,6 +146,14 @@ void main() {
           find.byKey(const ValueKey('choreographer-location-field')),
           '',
         );
+        await tester.enterText(
+          find.byKey(const ValueKey('choreographer-website-field')),
+          '',
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey('choreographer-notes-field')),
+          '   ',
+        );
         await tester.tap(find.byKey(const ValueKey('choreographer-save')));
       },
     );
@@ -149,6 +161,8 @@ void main() {
     expect(result, isNotNull);
     expect(result!.email, isNull);
     expect(result.location, isNull);
+    expect(result.website, isNull);
+    expect(result.notes, isNull);
   });
 
   testWidgets('empty name blocks save', (tester) async {
