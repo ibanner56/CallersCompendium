@@ -83,6 +83,20 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     return false;
   }
 
+  /// The 1-based running-order ordinal for the slot at [index], or `null` when
+  /// the slot is an alternate rendered under a preceding primary. Numbers only
+  /// primaries (matching [Program.grouped] and the plain-text export, where
+  /// primaries are numbered and alts render as `ALT:` lines) so an alt is never
+  /// counted as its own running-order position.
+  int? _ordinalAtIndex(int index) {
+    if (_isAltAtIndex(index)) return null;
+    var ordinal = 0;
+    for (var i = 0; i <= index; i++) {
+      if (!_isAltAtIndex(i)) ordinal++;
+    }
+    return ordinal;
+  }
+
   String _slotTitle(ProgramSlot slot) {
     final danceId = slot.danceId;
     if (danceId != null) {
@@ -155,6 +169,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   index: i,
                   slot: slots[i],
                   title: _slotTitle(slots[i]),
+                  ordinal: _ordinalAtIndex(i),
                   isDanceSlot: slots[i].danceId != null,
                   isTombstone:
                       slots[i].danceId != null &&
@@ -186,6 +201,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   index: i,
                   slot: slots[i],
                   title: _slotTitle(slots[i]),
+                  ordinal: _ordinalAtIndex(i),
                   isDanceSlot: slots[i].danceId != null,
                   isTombstone:
                       slots[i].danceId != null &&
@@ -307,6 +323,7 @@ class _SlotTile extends StatelessWidget {
     required this.index,
     required this.slot,
     required this.title,
+    required this.ordinal,
     required this.isDanceSlot,
     required this.isTombstone,
     required this.indented,
@@ -324,6 +341,10 @@ class _SlotTile extends StatelessWidget {
   final int index;
   final ProgramSlot slot;
   final String title;
+
+  /// The 1-based running-order number for a primary slot, or `null` for an
+  /// alternate (which is grouped under its primary and carries no number).
+  final int? ordinal;
   final bool isDanceSlot;
   final bool isTombstone;
   final bool indented;
@@ -362,19 +383,28 @@ class _SlotTile extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Ordinal: the slot's 1-based position in the running order.
+                // Ordinal: the primary slot's 1-based running-order position.
+                // Alternates are grouped under their primary, so they show an
+                // "ALT" marker instead of a number (never color alone) to
+                // avoid implying a separate running-order position.
                 Padding(
                   padding: const EdgeInsets.only(right: 4),
                   child: SizedBox(
                     width: 24,
                     child: Text(
-                      '${index + 1}',
+                      ordinal != null ? '$ordinal' : 'ALT',
                       key: ValueKey('slot-$index-ordinal'),
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
+                      style:
+                          (ordinal != null
+                                  ? theme.textTheme.labelMedium
+                                  : theme.textTheme.labelSmall)
+                              ?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
                     ),
                   ),
                 ),
