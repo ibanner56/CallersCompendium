@@ -33,7 +33,17 @@ class DanceListTile extends StatelessWidget {
 
     return ListTile(
       selected: selected,
-      title: Text(dance.title),
+      visualDensity: VisualDensity.compact,
+      leading: Tooltip(
+        message: danceFormLabel(dance.form),
+        child: CircleAvatar(
+          radius: 20,
+          backgroundColor: theme.colorScheme.secondaryContainer,
+          foregroundColor: theme.colorScheme.onSecondaryContainer,
+          child: Icon(danceFormIcon(dance.form), size: 20),
+        ),
+      ),
+      title: Text(dance.title, style: theme.textTheme.titleMedium),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
         child: Wrap(

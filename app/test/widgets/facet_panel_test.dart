@@ -9,6 +9,7 @@ Future<void> _pump(
   WidgetTester tester,
   FacetSelections facets, {
   List<DanceLevel> levels = const [],
+  List<CustomFieldDef> choiceFields = const [],
   bool hasMixedLevel = false,
   bool hasRating = false,
   required VoidCallback onChanged,
@@ -29,7 +30,7 @@ Future<void> _pump(
               hasRating: hasRating,
               authors: const [],
               tags: const [],
-              choiceFields: const [],
+              choiceFields: choiceFields,
               booleanFields: const [],
               textFields: const [],
               numberFields: const [],
@@ -151,5 +152,91 @@ void main() {
     await _pump(tester, FacetSelections(), onChanged: () {});
     expect(find.text('Minimum rating'), findsNothing);
     expect(find.byKey(const ValueKey('min-rating-4')), findsNothing);
+  });
+
+  testWidgets('a section shows an active-count badge when selections exist', (
+    tester,
+  ) async {
+    final facets = FacetSelections();
+    await _pump(tester, facets, levels: DanceLevel.values, onChanged: () {});
+
+    // No badge before any selection.
+    expect(find.byType(Badge), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('level-beginner')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('level-advanced')));
+    await tester.pump();
+
+    // The Level section now surfaces a "2" count badge.
+    final badge = find.byType(Badge);
+    expect(badge, findsOneWidget);
+    expect(
+      find.descendant(of: badge, matching: find.text('2')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the Clear filters bar appears only when a facet is active and '
+      'clears every selection', (tester) async {
+    final facets = FacetSelections();
+    var changes = 0;
+    await _pump(
+      tester,
+      facets,
+      levels: DanceLevel.values,
+      onChanged: () => changes++,
+    );
+
+    // Hidden while nothing is selected.
+    expect(find.byKey(const ValueKey('clear-filters')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('level-intermediate')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('clear-filters')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('clear-filters')));
+    await tester.pump();
+
+    expect(facets.isEmpty, isTrue);
+    expect(facets.levels, isEmpty);
+    // Selecting (1) + clearing (1) both notify the parent.
+    expect(changes, 2);
+    expect(find.byKey(const ValueKey('clear-filters')), findsNothing);
+  });
+
+  testWidgets('two custom-field sections with the same label do not collide', (
+    tester,
+  ) async {
+    // Custom-field labels are user-authored and not unique; sections must be
+    // keyed by the field id so a shared label can't trigger the duplicate-key
+    // assertion.
+    await _pump(
+      tester,
+      FacetSelections(),
+      choiceFields: [
+        CustomFieldDef(
+          id: 'a',
+          key: 'a',
+          label: 'Region',
+          type: CustomFieldType.choice,
+          choices: const ['north', 'south'],
+        ),
+        CustomFieldDef(
+          id: 'b',
+          key: 'b',
+          label: 'Region',
+          type: CustomFieldType.choice,
+          choices: const ['east', 'west'],
+        ),
+      ],
+      onChanged: () {},
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Region'), findsNWidgets(2));
+    // Both fields' chips are reachable (distinct keys, not colliding sections).
+    expect(find.byKey(const ValueKey('cf-a-north')), findsOneWidget);
+    expect(find.byKey(const ValueKey('cf-b-east')), findsOneWidget);
   });
 }

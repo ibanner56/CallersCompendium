@@ -280,39 +280,53 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(dance.title, style: theme.textTheme.headlineSmall),
-        if (detail.authorNames.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(detail.authorNames.join(', '), style: theme.textTheme.bodyLarge),
-        ],
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            const Icon(Icons.grid_view, size: 18),
-            const SizedBox(width: 6),
-            Expanded(child: Text(formationLabel(dance.formation))),
-          ],
+        Card(
+          color: theme.colorScheme.surfaceContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(dance.title, style: theme.textTheme.headlineMedium),
+                if (detail.authorNames.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    detail.authorNames.join(', '),
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.grid_view, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(formationLabel(dance.formation))),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.repeat, size: 18),
+                    const SizedBox(width: 6),
+                    Text(progressionLabel(dance.progression)),
+                  ],
+                ),
+                if (dance.status != DanceStatus.active) ...[
+                  const SizedBox(height: 12),
+                  _StatusBanner(status: dance.status),
+                ],
+                if (dance.provenance != null) ...[
+                  const SizedBox(height: 8),
+                  _ProvenanceLine(provenance: dance.provenance!),
+                ],
+                if (dance.hook.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(dance.hook, style: theme.textTheme.bodyLarge),
+                ],
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            const Icon(Icons.repeat, size: 18),
-            const SizedBox(width: 6),
-            Text(progressionLabel(dance.progression)),
-          ],
-        ),
-        if (dance.status != DanceStatus.active) ...[
-          const SizedBox(height: 12),
-          _StatusBanner(status: dance.status),
-        ],
-        if (dance.provenance != null) ...[
-          const SizedBox(height: 8),
-          _ProvenanceLine(provenance: dance.provenance!),
-        ],
-        if (dance.hook.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text(dance.hook, style: theme.textTheme.bodyLarge),
-        ],
         if (detail.tagNames.isNotEmpty) ...[
           const SizedBox(height: 16),
           Wrap(

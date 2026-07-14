@@ -35,10 +35,15 @@ class FigureTable extends StatelessWidget {
     final sectioned = deriveSections(figures, phraseStructure);
     final rows = <Widget>[];
     String? lastLabel;
+    var isFirstRowInSection = true;
     for (final sf in sectioned) {
       if (sf.label != lastLabel) {
         rows.add(_SectionHeader(label: sf.label));
         lastLabel = sf.label;
+        isFirstRowInSection = true;
+      }
+      if (!isFirstRowInSection) {
+        rows.add(const Divider(height: 1));
       }
       rows.add(
         _FigureRow(
@@ -48,6 +53,7 @@ class FigureTable extends StatelessWidget {
           note: sf.figure.note,
         ),
       );
+      isFirstRowInSection = false;
     }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows);
@@ -142,8 +148,10 @@ class _FigureRow extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               beatsLabel,
+              textAlign: TextAlign.end,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ],
