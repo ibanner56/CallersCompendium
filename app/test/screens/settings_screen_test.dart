@@ -170,10 +170,14 @@ void main() {
     ) async {
       await _pumpSettings(tester, initialTheme: AppThemeSelection.dark);
 
-      final radio = tester.widget<RadioListTile<AppThemeSelection>>(
-        find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}')),
+      // Assert the actual checked state: the enclosing RadioGroup's
+      // groupValue is what drives which tile renders selected, so this fails
+      // if the default-selection wiring (AppThemeScope -> _themeSelected)
+      // breaks. Asserting the tile's constant `value` would prove nothing.
+      final group = tester.widget<RadioGroup<AppThemeSelection>>(
+        find.byType(RadioGroup<AppThemeSelection>),
       );
-      expect(radio.value, equals(AppThemeSelection.dark));
+      expect(group.groupValue, equals(AppThemeSelection.dark));
     });
 
     testWidgets('selecting a theme updates the notifier live', (tester) async {

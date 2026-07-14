@@ -5,14 +5,17 @@ import 'app_typography.dart';
 import 'color_schemes.dart';
 
 /// Assembles the app's [ThemeData] from the design-system foundation:
-/// palette "Hearth" [ColorScheme]s, the Fraunces/Atkinson [TextTheme], shape
-/// tokens, adaptive density, and the semantic [AppThemeExtension].
+/// palette "Hearth" [ColorScheme]s, the Fraunces/Atkinson [TextTheme],
+/// adaptive density, a visible keyboard-focus color, and the semantic
+/// [AppThemeExtension] (which carries the spacing/shape/status tokens for
+/// widgets to read).
 ///
 /// This replaces the two inline seed lines that previously lived in
 /// `main.dart`. Deeper component theming (buttons, chips, the shared
-/// `InputDecorationTheme`, nav sub-themes) is intentionally deferred to a later
-/// phase (UX-2); this foundation is non-regressive and drives color +
-/// typography app-wide.
+/// `InputDecorationTheme`, nav sub-themes, and applying the shape tokens to
+/// `CardTheme`/`DialogTheme`) is intentionally deferred to a later phase
+/// (UX-2); this foundation is non-regressive and drives color + typography
+/// app-wide.
 class AppTheme {
   const AppTheme._();
 
