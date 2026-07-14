@@ -6,6 +6,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../search/collection_data.dart';
 import '../widgets/collection_picker.dart';
+import '../widgets/program_export_menu.dart';
 import '../widgets/program_slot_list_editor.dart';
 import '../widgets/program_status_chip.dart';
 
@@ -251,16 +252,36 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
   // --- Persistence ----------------------------------------------------------
 
   /// The live program assembled from the current form + slots, used to drive
-  /// warning-level validation (`orphaned_alt`).
+  /// warning-level validation (`orphaned_alt`) and export (share/copy/PDF).
   Program? get _draftProgram {
     final title = _titleController.text.trim();
     if (title.isEmpty) return null;
     final now = _existing?.createdAt ?? DateTime.now().toUtc();
+    String? nn(TextEditingController c) {
+      final v = c.text.trim();
+      return v.isEmpty ? null : v;
+    }
+
     try {
       final base =
           _existing ??
           Program(id: 'draft', title: title, createdAt: now, updatedAt: now);
-      return base.copyWith(title: title, slots: _renumber(_slots));
+      return base.copyWith(
+        title: title,
+        eventDate: _eventDate,
+        clearEventDate: _eventDate == null,
+        venue: nn(_venueController),
+        clearVenue: nn(_venueController) == null,
+        band: nn(_bandController),
+        clearBand: nn(_bandController) == null,
+        caller: nn(_callerController),
+        clearCaller: nn(_callerController) == null,
+        dancerLevel: nn(_levelController),
+        clearDancerLevel: nn(_levelController) == null,
+        notes: _notesController.text,
+        status: _status,
+        slots: _renumber(_slots),
+      );
     } catch (_) {
       return null;
     }
@@ -433,6 +454,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen> {
         appBar: AppBar(
           title: Text(widget.isNew ? 'New program' : 'Build program'),
           actions: [
+            if (_loaded && _loadError == null && _draftProgram != null)
+              ProgramExportMenu(
+                program: _draftProgram!,
+                titleFor: _titleForDance,
+              ),
             if (!widget.isNew && _existing != null) ...[
               if (_slots.any((s) => s.danceId != null))
                 IconButton(

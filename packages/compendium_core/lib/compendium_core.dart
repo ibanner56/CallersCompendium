@@ -9,6 +9,7 @@ export 'src/dialect/canonicalize.dart';
 export 'src/dialect/dialect.dart';
 export 'src/dialect/renderer.dart';
 export 'src/dialect/substitution.dart' show Substitutor;
+export 'src/export/program_text.dart';
 export 'src/model/choreographer.dart';
 export 'src/model/custom_field.dart';
 export 'src/model/dance.dart';
