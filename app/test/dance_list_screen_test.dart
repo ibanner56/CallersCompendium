@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
@@ -50,11 +51,18 @@ Future<void> _pumpScreen(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final themeNotifier = ValueNotifier<AppThemeSelection>(
+    AppThemeSelection.system,
+  );
+  addTearDown(themeNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: AppThemeScope(
+          notifier: themeNotifier,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
       ),
       home: const DanceListScreen(),
     ),

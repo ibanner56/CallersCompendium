@@ -29,3 +29,17 @@ flutter:
   uses-material-design: true
   assets:
     - assets/fonts/Roboto-VariableFont.ttf
+  fonts:
+    - family: Fraunces # display / headings (serif, OFL) — variable opsz/wght
+      fonts:
+        - asset: assets/fonts/Fraunces-VariableFont.ttf
+    - family: AtkinsonHyperlegible # body / UI / Perform (OFL, low-vision)
+      fonts:
+        - asset: assets/fonts/AtkinsonHyperlegible-Regular.ttf
+        - asset: assets/fonts/AtkinsonHyperlegible-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/AtkinsonHyperlegible-Italic.ttf
+          style: italic
+    - family: Roboto # fallback
+      fonts:
+        - asset: assets/fonts/Roboto-VariableFont.ttf

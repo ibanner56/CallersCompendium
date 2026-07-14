@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/app_database.dart';
+import 'src/data/app_theme_scope.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/screens/app_shell.dart';
-import 'src/screens/settings_screen.dart' show kActiveDialectKey;
+import 'src/screens/settings_screen.dart' show kActiveDialectKey, kAppThemeKey;
+import 'src/theme/app_theme.dart';
 import 'src/widgets/app_bootstrap.dart';
 
 void main() {
@@ -38,6 +40,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<Dialect> _dialectNotifier = ValueNotifier(
     Dialect.larksRobins,
   );
+  final ValueNotifier<AppThemeSelection> _themeNotifier = ValueNotifier(
+    AppThemeSelection.system,
+  );
 
   @override
   void initState() {
@@ -58,11 +63,17 @@ class _CompendiumAppState extends State<CompendiumApp> {
       final preset = Dialect.forName(name);
       if (preset != null) _dialectNotifier.value = preset;
     }
+    // Load the persisted theme selection, defaulting to System when unset.
+    final themeName =
+        await _appData.repositories.settings.get(kAppThemeKey) as String?;
+    final selection = AppThemeSelection.forName(themeName);
+    if (selection != null) _themeNotifier.value = selection;
   }
 
   @override
   void dispose() {
     _dialectNotifier.dispose();
+    _themeNotifier.dispose();
     // dispose() can't be async; explicitly mark the close as fire-and-forget
     // rather than silently dropping an unawaited Future (unawaited_futures).
     unawaited(_appData.close());
@@ -75,23 +86,44 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: "Caller's Compendium",
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.indigo,
-        brightness: Brightness.dark,
-      ),
-      builder: (context, child) => RepositoriesScope(
-        repositories: _appData.repositories,
-        child: ActiveDialectScope(notifier: _dialectNotifier, child: child!),
-      ),
-      home: AppBootstrap(
-        future: _bootstrap,
-        onRetry: _retry,
-        builder: (_) => const AppShell(),
-      ),
+    // The theme selection is a MaterialApp property (not just inherited state),
+    // so the MaterialApp itself must rebuild when it changes.
+    return ValueListenableBuilder<AppThemeSelection>(
+      valueListenable: _themeNotifier,
+      builder: (context, selection, _) {
+        // High-contrast is not a ThemeMode; force it into both light and dark
+        // slots so it applies regardless of the OS brightness.
+        final lightTheme = selection.isHighContrast
+            ? AppTheme.highContrast
+            : AppTheme.light;
+        final darkTheme = selection.isHighContrast
+            ? AppTheme.highContrast
+            : AppTheme.dark;
+
+        return MaterialApp(
+          title: "Caller's Compendium",
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          highContrastTheme: AppTheme.highContrast,
+          highContrastDarkTheme: AppTheme.highContrast,
+          themeMode: selection.themeMode,
+          builder: (context, child) => RepositoriesScope(
+            repositories: _appData.repositories,
+            child: AppThemeScope(
+              notifier: _themeNotifier,
+              child: ActiveDialectScope(
+                notifier: _dialectNotifier,
+                child: child!,
+              ),
+            ),
+          ),
+          home: AppBootstrap(
+            future: _bootstrap,
+            onRetry: _retry,
+            builder: (_) => const AppShell(),
+          ),
+        );
+      },
     );
   }
 }
