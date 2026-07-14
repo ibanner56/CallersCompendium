@@ -226,13 +226,18 @@ class DanceRepository {
         .map((v) => v.value.toString())
         .join(' ');
     final sourceTexts = <String>[];
-    for (final citation in dance.sourceCitations) {
-      final row = await (_db.select(
+    if (dance.sourceCitations.isNotEmpty) {
+      final sourceIds = dance.sourceCitations.map((c) => c.sourceId).toList();
+      final rows = await (_db.select(
         _db.publishedSources,
-      )..where((t) => t.id.equals(citation.sourceId))).getSingleOrNull();
-      if (row == null) continue;
-      sourceTexts.add(row.title);
-      if (row.author != null) sourceTexts.add(row.author!);
+      )..where((t) => t.id.isIn(sourceIds))).get();
+      final byId = {for (final r in rows) r.id: r};
+      for (final citation in dance.sourceCitations) {
+        final row = byId[citation.sourceId];
+        if (row == null) continue;
+        sourceTexts.add(row.title);
+        if (row.author != null) sourceTexts.add(row.author!);
+      }
     }
     await _db.customStatement(
       'INSERT INTO dance_fts'
