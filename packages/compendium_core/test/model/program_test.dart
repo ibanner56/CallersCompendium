@@ -120,4 +120,38 @@ void main() {
       expect(deleted.copyWith(clearDeletedAt: true).isDeleted, isFalse);
     });
   });
+
+  group('copyWith clearing nullable fields', () {
+    final p = Program(
+      id: 'p1',
+      title: 'Friday night',
+      eventDate: now,
+      venue: 'Grange Hall',
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    test('clearEventDate clears the event date', () {
+      expect(p.copyWith(clearEventDate: true).eventDate, isNull);
+    });
+
+    test('clearVenue clears the venue', () {
+      expect(p.copyWith(clearVenue: true).venue, isNull);
+    });
+
+    test('without the clear flag the value is preserved', () {
+      final unchanged = p.copyWith(title: 'Saturday night');
+      expect(unchanged.eventDate, now);
+      expect(unchanged.venue, 'Grange Hall');
+    });
+
+    test('a set clear flag wins over a passed value', () {
+      final later = now.add(const Duration(days: 1));
+      expect(
+        p.copyWith(eventDate: later, clearEventDate: true).eventDate,
+        isNull,
+      );
+      expect(p.copyWith(venue: 'Elsewhere', clearVenue: true).venue, isNull);
+    });
+  });
 }

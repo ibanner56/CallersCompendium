@@ -129,6 +129,31 @@ class ProgramRepository {
     };
   }
 
+  /// Duplicates the program identified by [id] under [newId] via
+  /// [Program.duplicate] (fresh identity everywhere, draft status, performance
+  /// history cleared) and persists it. [newSlotId] mints an id per copied slot.
+  Future<Program> duplicate({
+    required String id,
+    required String newId,
+    required String Function() newSlotId,
+    required DateTime now,
+    String? newTitle,
+  }) async {
+    assertUtc(now, 'now');
+    final source = await getById(id, includeDeleted: true);
+    if (source == null) {
+      throw ArgumentError.value(id, 'id', 'no such program');
+    }
+    final copy = source.duplicate(
+      newId: newId,
+      newSlotId: newSlotId,
+      now: now,
+      newTitle: newTitle,
+    );
+    await create(copy);
+    return copy;
+  }
+
   Future<void> softDelete(String id, {required DateTime at}) {
     assertUtc(at, 'at');
     return (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(

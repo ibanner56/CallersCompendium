@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/app_database.dart';
 import 'src/data/repositories_scope.dart';
-import 'src/screens/collection_shell.dart';
+import 'src/screens/app_shell.dart';
 import 'src/screens/settings_screen.dart' show kActiveDialectKey;
 import 'src/widgets/app_bootstrap.dart';
 
@@ -90,7 +90,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       home: AppBootstrap(
         future: _bootstrap,
         onRetry: _retry,
-        builder: (_) => const CollectionShell(),
+        builder: (_) => const AppShell(),
       ),
     );
   }
