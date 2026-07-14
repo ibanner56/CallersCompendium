@@ -9,6 +9,7 @@ Future<void> _pump(
   WidgetTester tester,
   FacetSelections facets, {
   List<DanceLevel> levels = const [],
+  List<CustomFieldDef> choiceFields = const [],
   bool hasMixedLevel = false,
   bool hasRating = false,
   required VoidCallback onChanged,
@@ -29,7 +30,7 @@ Future<void> _pump(
               hasRating: hasRating,
               authors: const [],
               tags: const [],
-              choiceFields: const [],
+              choiceFields: choiceFields,
               booleanFields: const [],
               textFields: const [],
               numberFields: const [],
@@ -202,5 +203,40 @@ void main() {
     // Selecting (1) + clearing (1) both notify the parent.
     expect(changes, 2);
     expect(find.byKey(const ValueKey('clear-filters')), findsNothing);
+  });
+
+  testWidgets('two custom-field sections with the same label do not collide', (
+    tester,
+  ) async {
+    // Custom-field labels are user-authored and not unique; sections must be
+    // keyed by the field id so a shared label can't trigger the duplicate-key
+    // assertion.
+    await _pump(
+      tester,
+      FacetSelections(),
+      choiceFields: [
+        CustomFieldDef(
+          id: 'a',
+          key: 'a',
+          label: 'Region',
+          type: CustomFieldType.choice,
+          choices: const ['north', 'south'],
+        ),
+        CustomFieldDef(
+          id: 'b',
+          key: 'b',
+          label: 'Region',
+          type: CustomFieldType.choice,
+          choices: const ['east', 'west'],
+        ),
+      ],
+      onChanged: () {},
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Region'), findsNWidgets(2));
+    // Both fields' chips are reachable (distinct keys, not colliding sections).
+    expect(find.byKey(const ValueKey('cf-a-north')), findsOneWidget);
+    expect(find.byKey(const ValueKey('cf-b-east')), findsOneWidget);
   });
 }

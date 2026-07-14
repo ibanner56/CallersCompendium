@@ -63,6 +63,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Type',
+          sectionId: 'form',
           activeCount: facets.forms.length,
           chips: [
             for (final f in forms)
@@ -82,6 +83,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Formation',
+          sectionId: 'formation',
           activeCount: facets.formations.length,
           chips: [
             for (final shape in formations)
@@ -101,6 +103,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Progression',
+          sectionId: 'progression',
           activeCount: facets.progressions.length,
           chips: [
             for (final p in progressions)
@@ -120,6 +123,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Status',
+          sectionId: 'status',
           activeCount: facets.statuses.length,
           chips: [
             for (final s in statuses)
@@ -139,6 +143,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Level',
+          sectionId: 'level',
           activeCount: facets.levels.length,
           chips: [
             for (final l in levels)
@@ -158,6 +163,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Mixed level',
+          sectionId: 'mixed-level',
           activeCount: facets.mixedLevel == true ? 1 : 0,
           chips: [
             _chip(
@@ -179,6 +185,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Minimum rating',
+          sectionId: 'min-rating',
           activeCount: facets.minRating != null ? 1 : 0,
           chips: [
             for (var min = 1; min <= 5; min++)
@@ -203,6 +210,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Author',
+          sectionId: 'author',
           activeCount: facets.authorIds.length,
           chips: [
             for (final a in authors)
@@ -222,6 +230,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: 'Tags',
+          sectionId: 'tags',
           activeCount: facets.tagIds.length,
           chips: [
             for (final t in tags)
@@ -244,6 +253,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: def.label,
+          sectionId: 'cf-choice-${def.id}',
           activeCount: selected.length,
           chips: [
             for (final choice in def.choices ?? const <String>[])
@@ -269,6 +279,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           label: def.label,
+          sectionId: 'cf-bool-${def.id}',
           activeCount: current != null ? 1 : 0,
           chips: [
             _chip(
@@ -373,11 +384,17 @@ class _FacetSection extends StatelessWidget {
   const _FacetSection({
     required this.label,
     required this.chips,
+    required this.sectionId,
     this.activeCount = 0,
   });
 
   final String label;
   final List<Widget> chips;
+
+  /// A stable, unique id for this section (built-in slug or custom-field id).
+  /// Distinct from [label], which is user-authored for custom fields and so is
+  /// not guaranteed unique across sections.
+  final String sectionId;
 
   /// Number of active selections in this section; drives the count badge.
   final int activeCount;
@@ -386,6 +403,7 @@ class _FacetSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return _FacetExpansion(
       label: label,
+      sectionId: sectionId,
       activeCount: activeCount,
       child: Align(
         alignment: Alignment.centerLeft,
@@ -396,17 +414,22 @@ class _FacetSection extends StatelessWidget {
 }
 
 /// Shared collapsible shell for a facet section: a labelled [ExpansionTile]
-/// with a trailing count badge that surfaces how many selections are active
-/// while the section is collapsed. Starts expanded so keyboard traversal order
-/// still matches the visual order and every chip is reachable by default.
+/// with a trailing count badge that surfaces how many selections are active in
+/// the section (handy in particular once it is collapsed). Starts expanded so
+/// keyboard traversal order still matches the visual order and every chip is
+/// reachable by default.
 class _FacetExpansion extends StatelessWidget {
   const _FacetExpansion({
     required this.label,
+    required this.sectionId,
     required this.activeCount,
     required this.child,
   });
 
   final String label;
+
+  /// Stable, unique key source for the section — never the user-authored label.
+  final String sectionId;
   final int activeCount;
   final Widget child;
 
@@ -414,7 +437,7 @@ class _FacetExpansion extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return ExpansionTile(
-      key: ValueKey('facet-section-$label'),
+      key: ValueKey('facet-section-$sectionId'),
       initiallyExpanded: true,
       dense: true,
       tilePadding: EdgeInsets.zero,
@@ -503,6 +526,7 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
         widget.facets.textValues[widget.def.id]?.isEffective ?? false;
     return _FacetExpansion(
       label: widget.def.label,
+      sectionId: 'cf-text-${widget.def.id}',
       activeCount: active ? 1 : 0,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -652,6 +676,7 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
         widget.facets.numberValues[widget.def.id]?.isEffective ?? false;
     return _FacetExpansion(
       label: widget.def.label,
+      sectionId: 'cf-num-${widget.def.id}',
       activeCount: active ? 1 : 0,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
