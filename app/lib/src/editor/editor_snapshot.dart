@@ -95,6 +95,7 @@ class EditorSnapshot {
     required this.status,
     this.level,
     this.mixedLevel = false,
+    this.rating,
     this.composedOn,
     this.revisedOn,
     required this.authorIds,
@@ -123,6 +124,9 @@ class EditorSnapshot {
 
   /// Whether the dance spans the difficulty scale (distinct from [level]).
   final bool mixedLevel;
+
+  /// Curatorial star rating on the closed `1..5` scale; `null` when unrated.
+  final int? rating;
 
   /// Author composition date at partial precision; `null` when unspecified.
   final PartialDate? composedOn;

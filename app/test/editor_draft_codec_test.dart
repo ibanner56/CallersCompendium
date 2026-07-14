@@ -32,7 +32,7 @@ EditorSnapshot _minimalSnapshot({List<LinkSnapshot> links = const []}) =>
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('draft codec v4 —', () {
+  group('draft codec v5 —', () {
     test('encodes and decodes a URL-kind link', () {
       final snapshot = _minimalSnapshot(
         links: [
@@ -204,7 +204,7 @@ void main() {
       // Insert a future key the current codec doesn't know about.
       final encoded = encodeDraft(
         _minimalSnapshot(),
-      ).replaceFirst('"v":4', '"v":4,"futureKey":"ignored"');
+      ).replaceFirst('"v":5', '"v":5,"futureKey":"ignored"');
       final decoded = decodeDraft(encoded);
       expect(decoded.title, 'Test');
     });
@@ -254,6 +254,58 @@ void main() {
       final decoded = decodeDraft(v3Json);
       expect(decoded.composedOn, isNull);
       expect(decoded.revisedOn, isNull);
+    });
+
+    test('rating round-trips', () {
+      final snapshot = EditorSnapshot(
+        title: 'Test',
+        hook: '',
+        notes: '',
+        phrase: '',
+        formationDetail: '',
+        form: DanceForm.contra,
+        formationShape: FormationShape.dupleImproper,
+        progression: Progression.single,
+        status: DanceStatus.active,
+        rating: 4,
+        authorIds: const [],
+        tagIds: const [],
+        tunes: const [],
+        links: const [],
+        customValues: const {},
+        figureDrafts: const [],
+      );
+
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      expect(decoded.rating, 4);
+    });
+
+    test('unrated is omitted and decodes back to null', () {
+      final encoded = encodeDraft(_minimalSnapshot());
+      expect(encoded, isNot(contains('"rating"')));
+      final decoded = decodeDraft(encoded);
+      expect(decoded.rating, isNull);
+    });
+
+    test('v4 draft (no rating) decodes to null', () {
+      const v4Json =
+          '{"v":4,"title":"Old","hook":"","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
+          '"progression":"single","status":"active","mixedLevel":false,'
+          '"authorIds":[],"tagIds":[],"tunes":[],"links":[],'
+          '"customValues":{},"figureDrafts":[]}';
+      final decoded = decodeDraft(v4Json);
+      expect(decoded.rating, isNull);
+    });
+
+    test('rejects an out-of-range rating', () {
+      const badJson =
+          '{"v":5,"title":"Bad","hook":"","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
+          '"progression":"single","status":"active","rating":6,'
+          '"authorIds":[],"tagIds":[],"tunes":[],"links":[],'
+          '"customValues":{},"figureDrafts":[]}';
+      expect(() => decodeDraft(badJson), throwsA(isA<FormatException>()));
     });
   });
 }

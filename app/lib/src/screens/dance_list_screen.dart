@@ -461,6 +461,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           statuses: data.statuses,
           levels: data.levels,
           hasMixedLevel: data.hasMixedLevel,
+          hasRating: data.hasRating,
           authors: data.authors,
           tags: data.tags,
           choiceFields: data.choiceFields,

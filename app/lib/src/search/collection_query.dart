@@ -41,6 +41,11 @@ class FacetSelections {
   /// (mirrors the core [MixedLevelFilter] being distinct from [LevelFilter]).
   bool? mixedLevel;
 
+  /// Minimum-rating facet: `null` = unselected, otherwise a floor on the closed
+  /// `1..5` scale that emits a [RatingFilter] (`rating >= minRating`; unrated
+  /// dances are excluded). Single-valued (a floor, not a multi-select set).
+  int? minRating;
+
   final Set<String> authorIds = {};
   final Set<String> tagIds = {};
 
@@ -69,6 +74,7 @@ class FacetSelections {
       statuses.isEmpty &&
       levels.isEmpty &&
       mixedLevel == null &&
+      minRating == null &&
       authorIds.isEmpty &&
       tagIds.isEmpty &&
       choiceValues.values.every((s) => s.isEmpty) &&
@@ -83,6 +89,7 @@ class FacetSelections {
     statuses.clear();
     levels.clear();
     mixedLevel = null;
+    minRating = null;
     authorIds.clear();
     tagIds.clear();
     choiceValues.clear();
@@ -165,6 +172,9 @@ DanceFilter buildCollectionFilter({
   addOr([for (final l in facets.levels) LevelFilter(l)]);
   if (facets.mixedLevel != null) {
     branches.add(MixedLevelFilter(facets.mixedLevel!));
+  }
+  if (facets.minRating != null) {
+    branches.add(RatingFilter(facets.minRating!));
   }
   addOr([for (final id in facets.authorIds) AuthorFilter(id)]);
   addOr([for (final id in facets.tagIds) TagFilter(id)]);

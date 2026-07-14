@@ -143,6 +143,13 @@ void main() {
       expect((f as MixedLevelFilter).mixed, isTrue);
     });
 
+    test('minRating facet yields a RatingFilter with the chosen floor', () {
+      final facets = FacetSelections()..minRating = 4;
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<RatingFilter>());
+      expect((f as RatingFilter).minimum, 4);
+    });
+
     test('advanced tree ANDs onto the facet leaves', () {
       final facets = FacetSelections()..forms.add(DanceForm.contra);
       final root = BuilderGroup(children: [BuilderFigure(move: 'swing')]);
@@ -378,6 +385,14 @@ void main() {
       expect(withLevel.isEmpty, isFalse);
       final withMixed = FacetSelections()..mixedLevel = true;
       expect(withMixed.isEmpty, isFalse);
+    });
+
+    test('minRating facet counts toward isEmpty and clear() resets it', () {
+      final facets = FacetSelections()..minRating = 3;
+      expect(facets.isEmpty, isFalse);
+      facets.clear();
+      expect(facets.minRating, isNull);
+      expect(facets.isEmpty, isTrue);
     });
 
     test('clear() resets level and mixedLevel facets', () {
