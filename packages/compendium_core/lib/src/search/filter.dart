@@ -141,6 +141,20 @@ class MixedLevelFilter extends DanceFilter {
   final bool mixed;
 }
 
+/// Dances whose curatorial rating is **at least** [minimum] (`rating >= N`) on
+/// the closed `1..5` scale.
+///
+/// A minimum-rating floor (mirrors [LevelFilter]'s ordered `gte`): "show me
+/// dances I rated [minimum] stars or better". Unrated dances (`dances.rating
+/// IS NULL`) never match — a NULL rating is not a point on the scale, so the
+/// SQL `rating >= ?` comparison against NULL is not-true (excluded).
+@immutable
+class RatingFilter extends DanceFilter {
+  const RatingFilter(this.minimum);
+
+  final int minimum;
+}
+
 /// Dances tagged with the tag id [tagId].
 @immutable
 class TagFilter extends DanceFilter {

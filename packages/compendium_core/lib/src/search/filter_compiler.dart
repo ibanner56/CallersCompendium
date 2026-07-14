@@ -85,6 +85,9 @@ class FilterCompiler {
     // NULLs (no composed date) sort last; ties break by title.
     SearchSort.composedOn =>
       'composed_on IS NULL, composed_on, title COLLATE NOCASE',
+    // Highest rating first; the explicit `rating IS NULL` guard forces unrated
+    // (NULL) rows last regardless of SQLite's default NULL ordering on DESC.
+    SearchSort.rating => 'rating IS NULL, rating DESC, title COLLATE NOCASE',
     SearchSort.title ||
     SearchSort.author ||
     SearchSort.lastCalled ||
@@ -130,6 +133,12 @@ class FilterCompiler {
       case MixedLevelFilter(:final mixed):
         binds.add(mixed ? 1 : 0);
         return 'mixed_level = ?';
+      case RatingFilter(:final minimum):
+        // `rating >= ?`: NULL (unrated) never satisfies the comparison, so
+        // unrated dances are excluded — an unspecified rating is not a point
+        // on the scale (mirrors the LevelFilter ordered-op NULL guard).
+        binds.add(minimum);
+        return 'rating >= ?';
       case CustomFieldFilter():
         return _customField(filter, binds);
       case FigureFilter(:final query):

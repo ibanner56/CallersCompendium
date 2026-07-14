@@ -78,6 +78,12 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 ///   scalar metadata (distinct from the record stamps `created_at`/
 ///   `updated_at`), not figure text, so they do not feed the derived
 ///   `dance_figures`/`dance_fts` indexes and no derived rebuild is required.
+/// - v6 (2026-07-13): CC-parity dance rating (`docs/design/domain-model.md`
+///   "CC parity backfill", ROADMAP 4b.3). Adds the nullable `dances.rating`
+///   column (an `int` star rating validated to `1..5` at the [Dance] boundary;
+///   `null` = unrated). Existing rows get NULL. `rating` is dance-scalar
+///   curation metadata, not figure text, so it does not feed the derived
+///   `dance_figures`/`dance_fts` indexes and no derived rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -105,7 +111,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   CompendiumDatabase(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -154,6 +160,13 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // feed the derived `dance_figures`/`dance_fts` indexes — no rebuild.
         await m.addColumn(dances, dances.composedOn);
         await m.addColumn(dances, dances.revisedOn);
+      }
+      if (from < 6) {
+        // CC-parity dance rating. Nullable (existing rows get NULL); the 1..5
+        // range is validated at the Dance boundary, not by a DB constraint.
+        // Dance-scalar curation metadata (not figure text), so it doesn't feed
+        // the derived `dance_figures`/`dance_fts` indexes — no rebuild.
+        await m.addColumn(dances, dances.rating);
       }
     },
     beforeOpen: (details) async {

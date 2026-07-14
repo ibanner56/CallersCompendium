@@ -18,6 +18,7 @@ Dance _dance({
   DanceStatus status = DanceStatus.active,
   DanceLevel? level,
   bool mixedLevel = false,
+  int? rating,
   PartialDate? composedOn,
   DateTime? createdAt,
   DateTime? updatedAt,
@@ -36,6 +37,7 @@ Dance _dance({
     status: status,
     level: level,
     mixedLevel: mixedLevel,
+    rating: rating,
     composedOn: composedOn,
     figures:
         figures ??
@@ -152,6 +154,21 @@ void main() {
       expect(await dances.search(const MixedLevelFilter(true)), ['m']);
       expect(await dances.search(const MixedLevelFilter(false)), ['p']);
     });
+
+    test(
+      'Rating: >= N matches the floor and above, excludes lower / unrated',
+      () async {
+        await dances.create(_dance(id: 'r3', title: 'R3', rating: 3));
+        await dances.create(_dance(id: 'r4', title: 'R4', rating: 4));
+        await dances.create(_dance(id: 'r5', title: 'R5', rating: 5));
+        // Unrated (NULL rating) never matches a `>= N` floor.
+        await dances.create(_dance(id: 'non', title: 'None'));
+
+        expect(await dances.search(const RatingFilter(4)), ['r4', 'r5']);
+        expect(await dances.search(const RatingFilter(1)), ['r3', 'r4', 'r5']);
+        expect(await dances.search(const RatingFilter(5)), ['r5']);
+      },
+    );
 
     test('FullText', () async {
       await dances.create(_dance(id: 'a', title: 'Petronella Special'));
@@ -619,6 +636,20 @@ void main() {
       expect(
         await dances.search(const AndFilter([]), sort: SearchSort.composedOn),
         ['y1989', 'y1989m03', 'y1990', 'none'],
+      );
+    });
+
+    test('rating highest-first, unrated last, title tiebreak', () async {
+      await dances.create(_dance(id: 'r5b', title: 'Beta', rating: 5));
+      await dances.create(_dance(id: 'r5a', title: 'Alpha', rating: 5));
+      await dances.create(_dance(id: 'r3', title: 'Gamma', rating: 3));
+      await dances.create(_dance(id: 'u2', title: 'Zeta'));
+      await dances.create(_dance(id: 'u1', title: 'Delta'));
+      expect(
+        await dances.search(const AndFilter([]), sort: SearchSort.rating),
+        // 5s first (title tiebreak Alpha<Beta), then 3, then unrated last
+        // (title tiebreak Delta<Zeta).
+        ['r5a', 'r5b', 'r3', 'u1', 'u2'],
       );
     });
 
