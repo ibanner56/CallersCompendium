@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
@@ -13,30 +14,47 @@ import '../support/test_repositories.dart';
 // Helpers
 // ---------------------------------------------------------------------------
 
-Future<({CompendiumRepositories repos, ValueNotifier<Dialect> notifier})>
-_pumpSettings(WidgetTester tester, {Dialect? initialDialect}) async {
+Future<
+  ({
+    CompendiumRepositories repos,
+    ValueNotifier<Dialect> notifier,
+    ValueNotifier<AppThemeSelection> themeNotifier,
+  })
+>
+_pumpSettings(
+  WidgetTester tester, {
+  Dialect? initialDialect,
+  AppThemeSelection? initialTheme,
+}) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
 
   final notifier = ValueNotifier<Dialect>(
     initialDialect ?? Dialect.larksRobins,
   );
+  final themeNotifier = ValueNotifier<AppThemeSelection>(
+    initialTheme ?? AppThemeSelection.system,
+  );
 
   await tester.binding.setSurfaceSize(const Size(800, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(notifier.dispose);
+  addTearDown(themeNotifier.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: AppThemeScope(
+          notifier: themeNotifier,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
       ),
       home: const SettingsScreen(),
     ),
   );
   await tester.pumpAndSettle();
-  return (repos: repos, notifier: notifier);
+  return (repos: repos, notifier: notifier, themeNotifier: themeNotifier);
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +148,99 @@ void main() {
           (name != null ? Dialect.forName(name) : null) ?? Dialect.larksRobins;
 
       expect(preset, equals(Dialect.larksRobins));
+    });
+  });
+
+  group('SettingsScreen — theme selection', () {
+    testWidgets('renders every theme option', (tester) async {
+      await _pumpSettings(tester);
+
+      for (final option in AppThemeSelection.values) {
+        expect(
+          find.byKey(ValueKey('theme-${option.name}')),
+          findsOneWidget,
+          reason: 'Expected radio tile for ${option.name}',
+        );
+        expect(find.text(option.label), findsOneWidget);
+      }
+    });
+
+    testWidgets('default selection matches the active theme notifier', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, initialTheme: AppThemeSelection.dark);
+
+      final radio = tester.widget<RadioListTile<AppThemeSelection>>(
+        find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}')),
+      );
+      expect(radio.value, equals(AppThemeSelection.dark));
+    });
+
+    testWidgets('selecting a theme updates the notifier live', (tester) async {
+      final ctx = await _pumpSettings(
+        tester,
+        initialTheme: AppThemeSelection.system,
+      );
+
+      await tester.tap(
+        find.byKey(ValueKey('theme-${AppThemeSelection.highContrast.name}')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(ctx.themeNotifier.value, equals(AppThemeSelection.highContrast));
+    });
+
+    testWidgets('selecting a theme persists to SettingsRepository', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(
+        tester,
+        initialTheme: AppThemeSelection.system,
+      );
+
+      await tester.tap(
+        find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}')),
+      );
+      await tester.pumpAndSettle();
+
+      final stored = await ctx.repos.settings.get(kAppThemeKey) as String?;
+      expect(stored, equals(AppThemeSelection.dark.name));
+    });
+
+    testWidgets('round-trip: stored name is restored to correct selection', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      await repos.settings.set(kAppThemeKey, AppThemeSelection.light.name);
+
+      final name = await repos.settings.get(kAppThemeKey) as String?;
+      final selection = AppThemeSelection.forName(name);
+
+      expect(selection, equals(AppThemeSelection.light));
+    });
+
+    testWidgets('default-when-unset resolves to null (System default)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+
+      final name = await repos.settings.get(kAppThemeKey) as String?;
+      final selection =
+          AppThemeSelection.forName(name) ?? AppThemeSelection.system;
+
+      expect(selection, equals(AppThemeSelection.system));
+    });
+
+    test('themeMode mapping is correct for each selection', () {
+      expect(AppThemeSelection.system.themeMode, ThemeMode.system);
+      expect(AppThemeSelection.light.themeMode, ThemeMode.light);
+      expect(AppThemeSelection.dark.themeMode, ThemeMode.dark);
+      // High-contrast forces the dark slot (both theme slots are high-contrast).
+      expect(AppThemeSelection.highContrast.themeMode, ThemeMode.dark);
+      expect(AppThemeSelection.highContrast.isHighContrast, isTrue);
+      expect(AppThemeSelection.light.isHighContrast, isFalse);
     });
   });
 }

@@ -2,10 +2,14 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/app_theme_scope.dart';
 import '../data/repositories_scope.dart';
 
 /// Key used to persist and load the active dialect.
 const String kActiveDialectKey = 'active_dialect';
+
+/// Key used to persist and load the app theme selection.
+const String kAppThemeKey = 'theme_mode';
 
 /// Settings screen.  Currently hosts the active-dialect selection; designed
 /// to accommodate additional settings rows in future phases.
@@ -20,11 +24,13 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late Dialect _selected;
+  late AppThemeSelection _themeSelected;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _selected = ActiveDialectScope.of(context);
+    _themeSelected = AppThemeScope.of(context);
   }
 
   Future<void> _onDialectChanged(Dialect dialect) async {
@@ -39,12 +45,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await repos.settings.set(kActiveDialectKey, dialect.name);
   }
 
+  Future<void> _onThemeChanged(AppThemeSelection selection) async {
+    // Mirror the dialect pattern: update the live notifier + UI instantly,
+    // then persist in the background.
+    AppThemeScope.notifierOf(context).value = selection;
+    setState(() => _themeSelected = selection);
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kAppThemeKey, selection.name);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          _SectionHeader(title: 'Appearance'),
+          RadioGroup<AppThemeSelection>(
+            groupValue: _themeSelected,
+            onChanged: (s) {
+              if (s != null) _onThemeChanged(s);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final option in AppThemeSelection.values)
+                  RadioListTile<AppThemeSelection>(
+                    key: ValueKey('theme-${option.name}'),
+                    title: Text(option.label),
+                    subtitle: Text(option.description),
+                    value: option,
+                  ),
+              ],
+            ),
+          ),
           _SectionHeader(title: 'Dialect'),
           RadioGroup<Dialect>(
             groupValue: _selected,
