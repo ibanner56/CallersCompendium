@@ -120,27 +120,43 @@ void main() {
     });
   });
 
-  group('Light / dark themes are unaffected by the HC sub-themes', () {
-    test('focus ring is the 2px primary ring, not the HC ochre', () {
-      for (final theme in [AppTheme.light, AppTheme.dark]) {
-        final ext = theme.extension<AppThemeExtension>()!;
-        expect(ext.focusRingWidth, 2.0);
-        expect(ext.focusRing, theme.colorScheme.primary);
-      }
-    });
+  group(
+    'Light / dark themes: standard component treatment, not HC outline',
+    () {
+      test('focus ring is the 2px primary ring, not the HC ochre', () {
+        for (final theme in [AppTheme.light, AppTheme.dark]) {
+          final ext = theme.extension<AppThemeExtension>()!;
+          expect(ext.focusRingWidth, 2.0);
+          expect(ext.focusRing, theme.colorScheme.primary);
+        }
+      });
 
-    test('no HC outline sub-themes leak into light/dark', () {
-      for (final theme in [AppTheme.light, AppTheme.dark]) {
-        // These stay at M3 defaults until UX-2 — the HC overrides must not
-        // apply to the default themes.
-        expect(theme.cardTheme.shape, isNull);
-        expect(theme.outlinedButtonTheme.style, isNull);
-        expect(theme.filledButtonTheme.style, isNull);
-        // No outlined-input override leaked: the default has no forced borders.
-        expect(theme.inputDecorationTheme.enabledBorder, isNull);
-        expect(theme.inputDecorationTheme.focusedBorder, isNull);
-        expect(theme.dividerTheme.color, isNull);
-      }
-    });
-  });
+      test('components use the filled/tonal treatment without HC outlines', () {
+        for (final theme in [AppTheme.light, AppTheme.dark]) {
+          // Cards are rounded but NOT outline-driven (that is HC-only).
+          final cardShape = theme.cardTheme.shape as RoundedRectangleBorder;
+          expect(
+            cardShape.side,
+            BorderSide.none,
+            reason: 'light/dark cards have no outline (tonal, not HC)',
+          );
+
+          // Inputs are filled with a 2px (non-HC) focus ring.
+          final focused =
+              theme.inputDecorationTheme.focusedBorder as OutlineInputBorder;
+          expect(theme.inputDecorationTheme.filled, isTrue);
+          expect(focused.borderSide.width, 2.0);
+          expect(focused.borderSide.color, theme.colorScheme.primary);
+
+          // Buttons carry no resting border in the standard treatment.
+          final side = theme.outlinedButtonTheme.style!.side;
+          expect(
+            side,
+            isNull,
+            reason: 'standard buttons rely on M3 defaults, not an HC border',
+          );
+        }
+      });
+    },
+  );
 }
