@@ -198,7 +198,7 @@ design/domain-model.md "CC parity backfill".*
   (keyboard-reachable, per-star + clear semantics, shape-not-colour state),
   draft codec v4→v5, Collection list-tile rating indicator, and a
   minimum-rating (`≥N★`) facet emitting `RatingFilter`.
-- [ ] 4b.4 **Choreographer contact card** — extend `Choreographer` beyond
+- [x] 4b.4 **Choreographer contact card** — extend `Choreographer` beyond
   name/website/notes toward CC `Author` (email, location, deceased flag) for
   users who maintain composer contacts. Keep optional; privacy-aware.
 - [ ] 4b.5 **Published-source citation** — structured `reference` + page/number
