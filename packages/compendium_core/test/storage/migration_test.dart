@@ -822,6 +822,116 @@ void main() {
     );
   });
 
+  group('v7 -> v8 upgrade', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v8_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v7 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v7.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('creates the published_sources and dance_sources tables', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final tables = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name IN ('published_sources', 'dance_sources')",
+          )
+          .get();
+      final names = tables.map((r) => r.read<String>('name')).toSet();
+      expect(names, containsAll(['published_sources', 'dance_sources']));
+
+      await db.close();
+    });
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test('preserves pre-existing rows across the upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final chor = await repos.choreographers.getById('chor-1');
+      expect(chor, isNotNull);
+      expect(chor!.name, 'Cary Ravitz');
+
+      final dance = await repos.dances.getById('dance-1');
+      expect(dance, isNotNull);
+      expect(dance!.title, 'Petronella Reel');
+      expect(dance.authorIds, ['chor-1']);
+      // A migrated dance has no citations yet (fresh, empty tables).
+      expect(dance.sourceCitations, isEmpty);
+
+      await db.close();
+    });
+
+    test('the migration does not schedule a derived rebuild', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      await db.customSelect('SELECT 1').get(); // force onUpgrade
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker,
+        isEmpty,
+        reason: 'new source tables do not feed the derived FTS/figure indexes',
+      );
+      await db.close();
+    });
+
+    test('citations round-trip on the migrated database', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      await repos.publishedSources.upsert(
+        PublishedSource(id: 's1', title: 'Zesty Contras', year: 1983),
+      );
+      final dance = (await repos.dances.getById('dance-1'))!;
+      await repos.dances.update(
+        dance.copyWith(
+          sourceCitations: [SourceCitation(sourceId: 's1', page: '12')],
+          updatedAt: DateTime.utc(2026, 2, 1),
+        ),
+      );
+      final reloaded = (await repos.dances.getById('dance-1'))!;
+      expect(reloaded.sourceCitations, hasLength(1));
+      expect(reloaded.sourceCitations.single.sourceId, 's1');
+      expect(reloaded.sourceCitations.single.page, '12');
+
+      await db.close();
+    });
+  });
+
   test(
     'beforeOpen recreates dance_fts if missing from an existing database',
     () async {

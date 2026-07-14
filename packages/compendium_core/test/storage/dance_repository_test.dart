@@ -79,6 +79,48 @@ void main() {
       expect(loaded.links.last.targetDanceId, 'dance-2');
     });
 
+    test('round-trips source citations in position order', () async {
+      await PublishedSourceRepository(
+        db,
+      ).upsert(PublishedSource(id: 's1', title: 'Zesty Contras'));
+      await PublishedSourceRepository(
+        db,
+      ).upsert(PublishedSource(id: 's2', title: 'Give-and-Take'));
+      final dance = sampleDance(
+        sourceCitations: [
+          SourceCitation(sourceId: 's2', page: '12-14', number: 'A1'),
+          SourceCitation(sourceId: 's1'),
+        ],
+      );
+      await dances.create(dance);
+      final loaded = await dances.getById(dance.id);
+      expect(loaded!.sourceCitations, hasLength(2));
+      expect(loaded.sourceCitations.first.sourceId, 's2');
+      expect(loaded.sourceCitations.first.page, '12-14');
+      expect(loaded.sourceCitations.first.number, 'A1');
+      expect(loaded.sourceCitations.last.sourceId, 's1');
+      expect(loaded.sourceCitations.last.page, isNull);
+      expect(loaded.sourceCitations.last.number, isNull);
+    });
+
+    test('deleting a dance cascades its source citations', () async {
+      final sources = PublishedSourceRepository(db);
+      await sources.upsert(PublishedSource(id: 's1', title: 'Zesty Contras'));
+      final dance = sampleDance(
+        sourceCitations: [SourceCitation(sourceId: 's1', page: '12')],
+      );
+      await dances.create(dance);
+      // Hard-purge the dance so the FK cascade fires.
+      await dances.softDelete(dance.id, at: DateTime.utc(2026, 2, 1));
+      await dances.purgeDeleted(
+        now: DateTime.utc(2026, 3, 5),
+        retention: Duration.zero,
+      );
+      // The join row is gone (the source itself is now deletable).
+      await sources.delete('s1');
+      expect(await sources.getById('s1'), isNull);
+    });
+
     test('round-trips provenance', () async {
       final dance = sampleDance(
         provenance: Provenance(

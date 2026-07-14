@@ -31,6 +31,126 @@ void main() {
     });
   });
 
+  group('PublishedSource', () {
+    test('rejects empty titles', () {
+      expect(() => PublishedSource(id: 's1', title: '  '), throwsArgumentError);
+    });
+
+    test('rejects a non-positive year', () {
+      expect(
+        () => PublishedSource(id: 's1', title: 'Book', year: 0),
+        throwsArgumentError,
+      );
+      expect(
+        () => PublishedSource(id: 's1', title: 'Book', year: -5),
+        throwsArgumentError,
+      );
+      expect(PublishedSource(id: 's1', title: 'Book', year: 1651).year, 1651);
+    });
+
+    test('normalizes empty/whitespace optional strings to null', () {
+      final s = PublishedSource(
+        id: 's1',
+        title: 'Book',
+        author: '   ',
+        url: '',
+        notes: '\t',
+      );
+      expect(s.author, isNull);
+      expect(s.url, isNull);
+      expect(s.notes, isNull);
+    });
+
+    test('trims surrounding whitespace on optional strings', () {
+      final s = PublishedSource(
+        id: 's1',
+        title: 'Book',
+        author: '  Ralph Page  ',
+        url: '  https://x.y  ',
+        notes: '  seminal  ',
+      );
+      expect(s.author, 'Ralph Page');
+      expect(s.url, 'https://x.y');
+      expect(s.notes, 'seminal');
+    });
+
+    test('copyWith clear flags win over passed values', () {
+      final s = PublishedSource(
+        id: 's1',
+        title: 'Book',
+        author: 'A',
+        year: 1990,
+        url: 'https://x.y',
+        notes: 'n',
+      );
+      final cleared = s.copyWith(
+        author: 'ignored',
+        clearAuthor: true,
+        year: 2000,
+        clearYear: true,
+        url: 'ignored',
+        clearUrl: true,
+        notes: 'ignored',
+        clearNotes: true,
+      );
+      expect(cleared.author, isNull);
+      expect(cleared.year, isNull);
+      expect(cleared.url, isNull);
+      expect(cleared.notes, isNull);
+      expect(cleared.title, 'Book');
+    });
+
+    test('copyWith replaces without clearing', () {
+      final s = PublishedSource(id: 's1', title: 'Book', author: 'A');
+      final updated = s.copyWith(title: 'Booke', author: 'B', year: 1651);
+      expect(updated.title, 'Booke');
+      expect(updated.author, 'B');
+      expect(updated.year, 1651);
+    });
+
+    test('== and hashCode cover all fields', () {
+      PublishedSource make() => PublishedSource(
+        id: 's1',
+        title: 'Book',
+        author: 'A',
+        year: 1990,
+        url: 'https://x.y',
+        notes: 'n',
+      );
+      expect(make(), make());
+      expect(make().hashCode, make().hashCode);
+      expect(make(), isNot(make().copyWith(title: 'Other')));
+      expect(make(), isNot(make().copyWith(clearYear: true)));
+    });
+  });
+
+  group('SourceCitation', () {
+    test('normalizes empty/whitespace page & number to null', () {
+      final c = SourceCitation(sourceId: 's1', page: '  ', number: '');
+      expect(c.page, isNull);
+      expect(c.number, isNull);
+    });
+
+    test('trims and preserves freeform page & number', () {
+      final c = SourceCitation(
+        sourceId: 's1',
+        page: '  12-14 ',
+        number: ' A1 ',
+      );
+      expect(c.page, '12-14');
+      expect(c.number, 'A1');
+    });
+
+    test('== and hashCode cover all fields', () {
+      SourceCitation make() =>
+          SourceCitation(sourceId: 's1', page: '12', number: 'A1');
+      expect(make(), make());
+      expect(make().hashCode, make().hashCode);
+      expect(make(), isNot(SourceCitation(sourceId: 's2', page: '12')));
+      expect(make(), isNot(SourceCitation(sourceId: 's1', page: '13')));
+    });
+  });
+
   group('DanceLink', () {
     test('relatedDance links require targetDanceId', () {
       expect(

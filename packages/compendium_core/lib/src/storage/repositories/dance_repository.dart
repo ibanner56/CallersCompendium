@@ -9,6 +9,7 @@ import '../../model/dance_link.dart';
 import '../../model/formation.dart';
 import '../../model/partial_date.dart';
 import '../../model/provenance.dart' as model;
+import '../../model/source_citation.dart';
 import '../../search/search_sort.dart';
 import '../../search/filter.dart';
 import '../../search/filter_compiler.dart';
@@ -110,6 +111,24 @@ class DanceRepository {
               url: Value(link.url),
               targetDanceId: Value(link.targetDanceId),
               label: Value(link.label),
+            ),
+          );
+    }
+
+    await (_db.delete(
+      _db.danceSources,
+    )..where((t) => t.danceId.equals(dance.id))).go();
+    for (var i = 0; i < dance.sourceCitations.length; i++) {
+      final citation = dance.sourceCitations[i];
+      await _db
+          .into(_db.danceSources)
+          .insert(
+            DanceSourcesCompanion.insert(
+              danceId: dance.id,
+              sourceId: citation.sourceId,
+              page: Value(citation.page),
+              number: Value(citation.number),
+              position: i,
             ),
           );
     }
@@ -506,6 +525,11 @@ class DanceRepository {
     final linkRows = await (_db.select(
       _db.danceLinks,
     )..where((t) => t.danceId.equals(row.id))).get();
+    final sourceRows =
+        await (_db.select(_db.danceSources)
+              ..where((t) => t.danceId.equals(row.id))
+              ..orderBy([(t) => OrderingTerm(expression: t.position)]))
+            .get();
     final customRows =
         await (_db.select(
           _db.customFieldValues,
@@ -560,6 +584,10 @@ class DanceRepository {
             targetDanceId: l.targetDanceId,
             label: l.label,
           ),
+      ],
+      sourceCitations: [
+        for (final s in sourceRows)
+          SourceCitation(sourceId: s.sourceId, page: s.page, number: s.number),
       ],
       provenance: provRow == null
           ? null
