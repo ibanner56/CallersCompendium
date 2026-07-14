@@ -2053,6 +2053,35 @@ class $ProgramsTable extends Programs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _bandMeta = const VerificationMeta('band');
+  @override
+  late final GeneratedColumn<String> band = GeneratedColumn<String>(
+    'band',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _callerMeta = const VerificationMeta('caller');
+  @override
+  late final GeneratedColumn<String> caller = GeneratedColumn<String>(
+    'caller',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dancerLevelMeta = const VerificationMeta(
+    'dancerLevel',
+  );
+  @override
+  late final GeneratedColumn<String> dancerLevel = GeneratedColumn<String>(
+    'dancer_level',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -2111,6 +2140,9 @@ class $ProgramsTable extends Programs
     title,
     eventDate,
     venue,
+    band,
+    caller,
+    dancerLevel,
     notes,
     status,
     createdAt,
@@ -2152,6 +2184,27 @@ class $ProgramsTable extends Programs
       context.handle(
         _venueMeta,
         venue.isAcceptableOrUnknown(data['venue']!, _venueMeta),
+      );
+    }
+    if (data.containsKey('band')) {
+      context.handle(
+        _bandMeta,
+        band.isAcceptableOrUnknown(data['band']!, _bandMeta),
+      );
+    }
+    if (data.containsKey('caller')) {
+      context.handle(
+        _callerMeta,
+        caller.isAcceptableOrUnknown(data['caller']!, _callerMeta),
+      );
+    }
+    if (data.containsKey('dancer_level')) {
+      context.handle(
+        _dancerLevelMeta,
+        dancerLevel.isAcceptableOrUnknown(
+          data['dancer_level']!,
+          _dancerLevelMeta,
+        ),
       );
     }
     if (data.containsKey('notes')) {
@@ -2207,6 +2260,18 @@ class $ProgramsTable extends Programs
         DriftSqlType.string,
         data['${effectivePrefix}venue'],
       ),
+      band: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}band'],
+      ),
+      caller: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}caller'],
+      ),
+      dancerLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dancer_level'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -2246,6 +2311,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   final String title;
   final DateTime? eventDate;
   final String? venue;
+  final String? band;
+  final String? caller;
+  final String? dancerLevel;
   final String notes;
   final ProgramStatus status;
   final DateTime createdAt;
@@ -2256,6 +2324,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     required this.title,
     this.eventDate,
     this.venue,
+    this.band,
+    this.caller,
+    this.dancerLevel,
     required this.notes,
     required this.status,
     required this.createdAt,
@@ -2272,6 +2343,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     }
     if (!nullToAbsent || venue != null) {
       map['venue'] = Variable<String>(venue);
+    }
+    if (!nullToAbsent || band != null) {
+      map['band'] = Variable<String>(band);
+    }
+    if (!nullToAbsent || caller != null) {
+      map['caller'] = Variable<String>(caller);
+    }
+    if (!nullToAbsent || dancerLevel != null) {
+      map['dancer_level'] = Variable<String>(dancerLevel);
     }
     map['notes'] = Variable<String>(notes);
     {
@@ -2297,6 +2377,13 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       venue: venue == null && nullToAbsent
           ? const Value.absent()
           : Value(venue),
+      band: band == null && nullToAbsent ? const Value.absent() : Value(band),
+      caller: caller == null && nullToAbsent
+          ? const Value.absent()
+          : Value(caller),
+      dancerLevel: dancerLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dancerLevel),
       notes: Value(notes),
       status: Value(status),
       createdAt: Value(createdAt),
@@ -2317,6 +2404,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       title: serializer.fromJson<String>(json['title']),
       eventDate: serializer.fromJson<DateTime?>(json['eventDate']),
       venue: serializer.fromJson<String?>(json['venue']),
+      band: serializer.fromJson<String?>(json['band']),
+      caller: serializer.fromJson<String?>(json['caller']),
+      dancerLevel: serializer.fromJson<String?>(json['dancerLevel']),
       notes: serializer.fromJson<String>(json['notes']),
       status: $ProgramsTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
@@ -2334,6 +2424,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       'title': serializer.toJson<String>(title),
       'eventDate': serializer.toJson<DateTime?>(eventDate),
       'venue': serializer.toJson<String?>(venue),
+      'band': serializer.toJson<String?>(band),
+      'caller': serializer.toJson<String?>(caller),
+      'dancerLevel': serializer.toJson<String?>(dancerLevel),
       'notes': serializer.toJson<String>(notes),
       'status': serializer.toJson<String>(
         $ProgramsTable.$converterstatus.toJson(status),
@@ -2349,6 +2442,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     String? title,
     Value<DateTime?> eventDate = const Value.absent(),
     Value<String?> venue = const Value.absent(),
+    Value<String?> band = const Value.absent(),
+    Value<String?> caller = const Value.absent(),
+    Value<String?> dancerLevel = const Value.absent(),
     String? notes,
     ProgramStatus? status,
     DateTime? createdAt,
@@ -2359,6 +2455,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     title: title ?? this.title,
     eventDate: eventDate.present ? eventDate.value : this.eventDate,
     venue: venue.present ? venue.value : this.venue,
+    band: band.present ? band.value : this.band,
+    caller: caller.present ? caller.value : this.caller,
+    dancerLevel: dancerLevel.present ? dancerLevel.value : this.dancerLevel,
     notes: notes ?? this.notes,
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
@@ -2371,6 +2470,11 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       title: data.title.present ? data.title.value : this.title,
       eventDate: data.eventDate.present ? data.eventDate.value : this.eventDate,
       venue: data.venue.present ? data.venue.value : this.venue,
+      band: data.band.present ? data.band.value : this.band,
+      caller: data.caller.present ? data.caller.value : this.caller,
+      dancerLevel: data.dancerLevel.present
+          ? data.dancerLevel.value
+          : this.dancerLevel,
       notes: data.notes.present ? data.notes.value : this.notes,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -2386,6 +2490,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('title: $title, ')
           ..write('eventDate: $eventDate, ')
           ..write('venue: $venue, ')
+          ..write('band: $band, ')
+          ..write('caller: $caller, ')
+          ..write('dancerLevel: $dancerLevel, ')
           ..write('notes: $notes, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
@@ -2401,6 +2508,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     title,
     eventDate,
     venue,
+    band,
+    caller,
+    dancerLevel,
     notes,
     status,
     createdAt,
@@ -2415,6 +2525,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.title == this.title &&
           other.eventDate == this.eventDate &&
           other.venue == this.venue &&
+          other.band == this.band &&
+          other.caller == this.caller &&
+          other.dancerLevel == this.dancerLevel &&
           other.notes == this.notes &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
@@ -2427,6 +2540,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<String> title;
   final Value<DateTime?> eventDate;
   final Value<String?> venue;
+  final Value<String?> band;
+  final Value<String?> caller;
+  final Value<String?> dancerLevel;
   final Value<String> notes;
   final Value<ProgramStatus> status;
   final Value<DateTime> createdAt;
@@ -2438,6 +2554,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.title = const Value.absent(),
     this.eventDate = const Value.absent(),
     this.venue = const Value.absent(),
+    this.band = const Value.absent(),
+    this.caller = const Value.absent(),
+    this.dancerLevel = const Value.absent(),
     this.notes = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2450,6 +2569,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     required String title,
     this.eventDate = const Value.absent(),
     this.venue = const Value.absent(),
+    this.band = const Value.absent(),
+    this.caller = const Value.absent(),
+    this.dancerLevel = const Value.absent(),
     this.notes = const Value.absent(),
     required ProgramStatus status,
     required DateTime createdAt,
@@ -2466,6 +2588,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<String>? title,
     Expression<DateTime>? eventDate,
     Expression<String>? venue,
+    Expression<String>? band,
+    Expression<String>? caller,
+    Expression<String>? dancerLevel,
     Expression<String>? notes,
     Expression<String>? status,
     Expression<DateTime>? createdAt,
@@ -2478,6 +2603,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (title != null) 'title': title,
       if (eventDate != null) 'event_date': eventDate,
       if (venue != null) 'venue': venue,
+      if (band != null) 'band': band,
+      if (caller != null) 'caller': caller,
+      if (dancerLevel != null) 'dancer_level': dancerLevel,
       if (notes != null) 'notes': notes,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
@@ -2492,6 +2620,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<String>? title,
     Value<DateTime?>? eventDate,
     Value<String?>? venue,
+    Value<String?>? band,
+    Value<String?>? caller,
+    Value<String?>? dancerLevel,
     Value<String>? notes,
     Value<ProgramStatus>? status,
     Value<DateTime>? createdAt,
@@ -2504,6 +2635,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       title: title ?? this.title,
       eventDate: eventDate ?? this.eventDate,
       venue: venue ?? this.venue,
+      band: band ?? this.band,
+      caller: caller ?? this.caller,
+      dancerLevel: dancerLevel ?? this.dancerLevel,
       notes: notes ?? this.notes,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -2527,6 +2661,15 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     }
     if (venue.present) {
       map['venue'] = Variable<String>(venue.value);
+    }
+    if (band.present) {
+      map['band'] = Variable<String>(band.value);
+    }
+    if (caller.present) {
+      map['caller'] = Variable<String>(caller.value);
+    }
+    if (dancerLevel.present) {
+      map['dancer_level'] = Variable<String>(dancerLevel.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -2558,6 +2701,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('title: $title, ')
           ..write('eventDate: $eventDate, ')
           ..write('venue: $venue, ')
+          ..write('band: $band, ')
+          ..write('caller: $caller, ')
+          ..write('dancerLevel: $dancerLevel, ')
           ..write('notes: $notes, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
@@ -2645,6 +2791,28 @@ class $ProgramSlotsTable extends ProgramSlots
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _guestCallerMeta = const VerificationMeta(
+    'guestCaller',
+  );
+  @override
+  late final GeneratedColumn<String> guestCaller = GeneratedColumn<String>(
+    'guest_caller',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _plannedMinutesMeta = const VerificationMeta(
+    'plannedMinutes',
+  );
+  @override
+  late final GeneratedColumn<int> plannedMinutes = GeneratedColumn<int>(
+    'planned_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _performedAtMeta = const VerificationMeta(
     'performedAt',
   );
@@ -2664,6 +2832,8 @@ class $ProgramSlotsTable extends ProgramSlots
     danceId,
     text_,
     isAlt,
+    guestCaller,
+    plannedMinutes,
     performedAt,
   ];
   @override
@@ -2717,6 +2887,24 @@ class $ProgramSlotsTable extends ProgramSlots
         isAlt.isAcceptableOrUnknown(data['is_alt']!, _isAltMeta),
       );
     }
+    if (data.containsKey('guest_caller')) {
+      context.handle(
+        _guestCallerMeta,
+        guestCaller.isAcceptableOrUnknown(
+          data['guest_caller']!,
+          _guestCallerMeta,
+        ),
+      );
+    }
+    if (data.containsKey('planned_minutes')) {
+      context.handle(
+        _plannedMinutesMeta,
+        plannedMinutes.isAcceptableOrUnknown(
+          data['planned_minutes']!,
+          _plannedMinutesMeta,
+        ),
+      );
+    }
     if (data.containsKey('performed_at')) {
       context.handle(
         _performedAtMeta,
@@ -2759,6 +2947,14 @@ class $ProgramSlotsTable extends ProgramSlots
         DriftSqlType.bool,
         data['${effectivePrefix}is_alt'],
       )!,
+      guestCaller: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}guest_caller'],
+      ),
+      plannedMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}planned_minutes'],
+      ),
       performedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}performed_at'],
@@ -2779,6 +2975,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
   final String? danceId;
   final String? text_;
   final bool isAlt;
+  final String? guestCaller;
+  final int? plannedMinutes;
   final DateTime? performedAt;
   const ProgramSlotRow({
     required this.id,
@@ -2787,6 +2985,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     this.danceId,
     this.text_,
     required this.isAlt,
+    this.guestCaller,
+    this.plannedMinutes,
     this.performedAt,
   });
   @override
@@ -2802,6 +3002,12 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       map['text'] = Variable<String>(text_);
     }
     map['is_alt'] = Variable<bool>(isAlt);
+    if (!nullToAbsent || guestCaller != null) {
+      map['guest_caller'] = Variable<String>(guestCaller);
+    }
+    if (!nullToAbsent || plannedMinutes != null) {
+      map['planned_minutes'] = Variable<int>(plannedMinutes);
+    }
     if (!nullToAbsent || performedAt != null) {
       map['performed_at'] = Variable<DateTime>(performedAt);
     }
@@ -2820,6 +3026,12 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
           ? const Value.absent()
           : Value(text_),
       isAlt: Value(isAlt),
+      guestCaller: guestCaller == null && nullToAbsent
+          ? const Value.absent()
+          : Value(guestCaller),
+      plannedMinutes: plannedMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plannedMinutes),
       performedAt: performedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(performedAt),
@@ -2838,6 +3050,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       danceId: serializer.fromJson<String?>(json['danceId']),
       text_: serializer.fromJson<String?>(json['text_']),
       isAlt: serializer.fromJson<bool>(json['isAlt']),
+      guestCaller: serializer.fromJson<String?>(json['guestCaller']),
+      plannedMinutes: serializer.fromJson<int?>(json['plannedMinutes']),
       performedAt: serializer.fromJson<DateTime?>(json['performedAt']),
     );
   }
@@ -2851,6 +3065,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       'danceId': serializer.toJson<String?>(danceId),
       'text_': serializer.toJson<String?>(text_),
       'isAlt': serializer.toJson<bool>(isAlt),
+      'guestCaller': serializer.toJson<String?>(guestCaller),
+      'plannedMinutes': serializer.toJson<int?>(plannedMinutes),
       'performedAt': serializer.toJson<DateTime?>(performedAt),
     };
   }
@@ -2862,6 +3078,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     Value<String?> danceId = const Value.absent(),
     Value<String?> text_ = const Value.absent(),
     bool? isAlt,
+    Value<String?> guestCaller = const Value.absent(),
+    Value<int?> plannedMinutes = const Value.absent(),
     Value<DateTime?> performedAt = const Value.absent(),
   }) => ProgramSlotRow(
     id: id ?? this.id,
@@ -2870,6 +3088,10 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     danceId: danceId.present ? danceId.value : this.danceId,
     text_: text_.present ? text_.value : this.text_,
     isAlt: isAlt ?? this.isAlt,
+    guestCaller: guestCaller.present ? guestCaller.value : this.guestCaller,
+    plannedMinutes: plannedMinutes.present
+        ? plannedMinutes.value
+        : this.plannedMinutes,
     performedAt: performedAt.present ? performedAt.value : this.performedAt,
   );
   ProgramSlotRow copyWithCompanion(ProgramSlotsCompanion data) {
@@ -2880,6 +3102,12 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       danceId: data.danceId.present ? data.danceId.value : this.danceId,
       text_: data.text_.present ? data.text_.value : this.text_,
       isAlt: data.isAlt.present ? data.isAlt.value : this.isAlt,
+      guestCaller: data.guestCaller.present
+          ? data.guestCaller.value
+          : this.guestCaller,
+      plannedMinutes: data.plannedMinutes.present
+          ? data.plannedMinutes.value
+          : this.plannedMinutes,
       performedAt: data.performedAt.present
           ? data.performedAt.value
           : this.performedAt,
@@ -2895,14 +3123,25 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
           ..write('danceId: $danceId, ')
           ..write('text_: $text_, ')
           ..write('isAlt: $isAlt, ')
+          ..write('guestCaller: $guestCaller, ')
+          ..write('plannedMinutes: $plannedMinutes, ')
           ..write('performedAt: $performedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, programId, position, danceId, text_, isAlt, performedAt);
+  int get hashCode => Object.hash(
+    id,
+    programId,
+    position,
+    danceId,
+    text_,
+    isAlt,
+    guestCaller,
+    plannedMinutes,
+    performedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2913,6 +3152,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
           other.danceId == this.danceId &&
           other.text_ == this.text_ &&
           other.isAlt == this.isAlt &&
+          other.guestCaller == this.guestCaller &&
+          other.plannedMinutes == this.plannedMinutes &&
           other.performedAt == this.performedAt);
 }
 
@@ -2923,6 +3164,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
   final Value<String?> danceId;
   final Value<String?> text_;
   final Value<bool> isAlt;
+  final Value<String?> guestCaller;
+  final Value<int?> plannedMinutes;
   final Value<DateTime?> performedAt;
   final Value<int> rowid;
   const ProgramSlotsCompanion({
@@ -2932,6 +3175,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     this.danceId = const Value.absent(),
     this.text_ = const Value.absent(),
     this.isAlt = const Value.absent(),
+    this.guestCaller = const Value.absent(),
+    this.plannedMinutes = const Value.absent(),
     this.performedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2942,6 +3187,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     this.danceId = const Value.absent(),
     this.text_ = const Value.absent(),
     this.isAlt = const Value.absent(),
+    this.guestCaller = const Value.absent(),
+    this.plannedMinutes = const Value.absent(),
     this.performedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -2954,6 +3201,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     Expression<String>? danceId,
     Expression<String>? text_,
     Expression<bool>? isAlt,
+    Expression<String>? guestCaller,
+    Expression<int>? plannedMinutes,
     Expression<DateTime>? performedAt,
     Expression<int>? rowid,
   }) {
@@ -2964,6 +3213,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
       if (danceId != null) 'dance_id': danceId,
       if (text_ != null) 'text': text_,
       if (isAlt != null) 'is_alt': isAlt,
+      if (guestCaller != null) 'guest_caller': guestCaller,
+      if (plannedMinutes != null) 'planned_minutes': plannedMinutes,
       if (performedAt != null) 'performed_at': performedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2976,6 +3227,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     Value<String?>? danceId,
     Value<String?>? text_,
     Value<bool>? isAlt,
+    Value<String?>? guestCaller,
+    Value<int?>? plannedMinutes,
     Value<DateTime?>? performedAt,
     Value<int>? rowid,
   }) {
@@ -2986,6 +3239,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
       danceId: danceId ?? this.danceId,
       text_: text_ ?? this.text_,
       isAlt: isAlt ?? this.isAlt,
+      guestCaller: guestCaller ?? this.guestCaller,
+      plannedMinutes: plannedMinutes ?? this.plannedMinutes,
       performedAt: performedAt ?? this.performedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -3012,6 +3267,12 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     if (isAlt.present) {
       map['is_alt'] = Variable<bool>(isAlt.value);
     }
+    if (guestCaller.present) {
+      map['guest_caller'] = Variable<String>(guestCaller.value);
+    }
+    if (plannedMinutes.present) {
+      map['planned_minutes'] = Variable<int>(plannedMinutes.value);
+    }
     if (performedAt.present) {
       map['performed_at'] = Variable<DateTime>(performedAt.value);
     }
@@ -3030,6 +3291,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
           ..write('danceId: $danceId, ')
           ..write('text_: $text_, ')
           ..write('isAlt: $isAlt, ')
+          ..write('guestCaller: $guestCaller, ')
+          ..write('plannedMinutes: $plannedMinutes, ')
           ..write('performedAt: $performedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -8192,6 +8455,9 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       required String title,
       Value<DateTime?> eventDate,
       Value<String?> venue,
+      Value<String?> band,
+      Value<String?> caller,
+      Value<String?> dancerLevel,
       Value<String> notes,
       required ProgramStatus status,
       required DateTime createdAt,
@@ -8205,6 +8471,9 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<DateTime?> eventDate,
       Value<String?> venue,
+      Value<String?> band,
+      Value<String?> caller,
+      Value<String?> dancerLevel,
       Value<String> notes,
       Value<ProgramStatus> status,
       Value<DateTime> createdAt,
@@ -8263,6 +8532,21 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<String> get venue => $composableBuilder(
     column: $table.venue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get band => $composableBuilder(
+    column: $table.band,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get caller => $composableBuilder(
+    column: $table.caller,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dancerLevel => $composableBuilder(
+    column: $table.dancerLevel,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8347,6 +8631,21 @@ class $$ProgramsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get band => $composableBuilder(
+    column: $table.band,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get caller => $composableBuilder(
+    column: $table.caller,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dancerLevel => $composableBuilder(
+    column: $table.dancerLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -8393,6 +8692,17 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumn<String> get venue =>
       $composableBuilder(column: $table.venue, builder: (column) => column);
+
+  GeneratedColumn<String> get band =>
+      $composableBuilder(column: $table.band, builder: (column) => column);
+
+  GeneratedColumn<String> get caller =>
+      $composableBuilder(column: $table.caller, builder: (column) => column);
+
+  GeneratedColumn<String> get dancerLevel => $composableBuilder(
+    column: $table.dancerLevel,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -8467,6 +8777,9 @@ class $$ProgramsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<DateTime?> eventDate = const Value.absent(),
                 Value<String?> venue = const Value.absent(),
+                Value<String?> band = const Value.absent(),
+                Value<String?> caller = const Value.absent(),
+                Value<String?> dancerLevel = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 Value<ProgramStatus> status = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -8478,6 +8791,9 @@ class $$ProgramsTableTableManager
                 title: title,
                 eventDate: eventDate,
                 venue: venue,
+                band: band,
+                caller: caller,
+                dancerLevel: dancerLevel,
                 notes: notes,
                 status: status,
                 createdAt: createdAt,
@@ -8491,6 +8807,9 @@ class $$ProgramsTableTableManager
                 required String title,
                 Value<DateTime?> eventDate = const Value.absent(),
                 Value<String?> venue = const Value.absent(),
+                Value<String?> band = const Value.absent(),
+                Value<String?> caller = const Value.absent(),
+                Value<String?> dancerLevel = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 required ProgramStatus status,
                 required DateTime createdAt,
@@ -8502,6 +8821,9 @@ class $$ProgramsTableTableManager
                 title: title,
                 eventDate: eventDate,
                 venue: venue,
+                band: band,
+                caller: caller,
+                dancerLevel: dancerLevel,
                 notes: notes,
                 status: status,
                 createdAt: createdAt,
@@ -8572,6 +8894,8 @@ typedef $$ProgramSlotsTableCreateCompanionBuilder =
       Value<String?> danceId,
       Value<String?> text_,
       Value<bool> isAlt,
+      Value<String?> guestCaller,
+      Value<int?> plannedMinutes,
       Value<DateTime?> performedAt,
       Value<int> rowid,
     });
@@ -8583,6 +8907,8 @@ typedef $$ProgramSlotsTableUpdateCompanionBuilder =
       Value<String?> danceId,
       Value<String?> text_,
       Value<bool> isAlt,
+      Value<String?> guestCaller,
+      Value<int?> plannedMinutes,
       Value<DateTime?> performedAt,
       Value<int> rowid,
     });
@@ -8657,6 +8983,16 @@ class $$ProgramSlotsTableFilterComposer
 
   ColumnFilters<bool> get isAlt => $composableBuilder(
     column: $table.isAlt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get guestCaller => $composableBuilder(
+    column: $table.guestCaller,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get plannedMinutes => $composableBuilder(
+    column: $table.plannedMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8741,6 +9077,16 @@ class $$ProgramSlotsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get guestCaller => $composableBuilder(
+    column: $table.guestCaller,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get plannedMinutes => $composableBuilder(
+    column: $table.plannedMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get performedAt => $composableBuilder(
     column: $table.performedAt,
     builder: (column) => ColumnOrderings(column),
@@ -8813,6 +9159,16 @@ class $$ProgramSlotsTableAnnotationComposer
 
   GeneratedColumn<bool> get isAlt =>
       $composableBuilder(column: $table.isAlt, builder: (column) => column);
+
+  GeneratedColumn<String> get guestCaller => $composableBuilder(
+    column: $table.guestCaller,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get plannedMinutes => $composableBuilder(
+    column: $table.plannedMinutes,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get performedAt => $composableBuilder(
     column: $table.performedAt,
@@ -8902,6 +9258,8 @@ class $$ProgramSlotsTableTableManager
                 Value<String?> danceId = const Value.absent(),
                 Value<String?> text_ = const Value.absent(),
                 Value<bool> isAlt = const Value.absent(),
+                Value<String?> guestCaller = const Value.absent(),
+                Value<int?> plannedMinutes = const Value.absent(),
                 Value<DateTime?> performedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramSlotsCompanion(
@@ -8911,6 +9269,8 @@ class $$ProgramSlotsTableTableManager
                 danceId: danceId,
                 text_: text_,
                 isAlt: isAlt,
+                guestCaller: guestCaller,
+                plannedMinutes: plannedMinutes,
                 performedAt: performedAt,
                 rowid: rowid,
               ),
@@ -8922,6 +9282,8 @@ class $$ProgramSlotsTableTableManager
                 Value<String?> danceId = const Value.absent(),
                 Value<String?> text_ = const Value.absent(),
                 Value<bool> isAlt = const Value.absent(),
+                Value<String?> guestCaller = const Value.absent(),
+                Value<int?> plannedMinutes = const Value.absent(),
                 Value<DateTime?> performedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramSlotsCompanion.insert(
@@ -8931,6 +9293,8 @@ class $$ProgramSlotsTableTableManager
                 danceId: danceId,
                 text_: text_,
                 isAlt: isAlt,
+                guestCaller: guestCaller,
+                plannedMinutes: plannedMinutes,
                 performedAt: performedAt,
                 rowid: rowid,
               ),

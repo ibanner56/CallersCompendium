@@ -86,9 +86,17 @@ create near-duplicates: "Gene Hubert" vs "Hubert, Gene").
 |---|---|
 | id, title | id, programId, position |
 | eventDate?, venue?, notes | danceId? (nullable → free-text slot: break, waltz, announcement) |
-| status: draft/final/performed | text? (used when danceId null, or per-slot caller note) |
-| createdAt/updatedAt/deletedAt | isAlt: bool (alternate dance, decided at event time) |
+| band?, caller?, dancerLevel? | text? (used when danceId null, or per-slot caller note) |
+| status: draft/final/performed | isAlt: bool (alternate dance, decided at event time) |
+| createdAt/updatedAt/deletedAt | guestCaller?, plannedMinutes? (structured, not folded into `text`) |
 | | performedAt? (set when actually called → feeds dance calling history) |
+
+`band`, `caller` (primary/host caller), and `dancerLevel` are the CC-parity
+event-metadata fields (schema v3). `dancerLevel` is nullable free-text for now;
+a first-class dance-level enum is separate (ROADMAP 4b.1) and a different
+concept. Per-slot, `guestCaller` names a caller other than the host and
+`plannedMinutes` is the planned length (CC `SetItem.Time`), kept structured
+rather than buried in the free-text `text` note (`plannedMinutes >= 0`).
 
 Duplicate-program = deep copy of slots. The programming matrix is a **view**
 computed from structured figures (no manual "elements" checklist — the fix for
@@ -126,6 +134,16 @@ source URLs.
 - ProgramSlot requires at least one of `danceId` or `text` to be non-null;
   both may be set simultaneously (`text` is a per-slot caller note when a
   dance is attached, or the full slot content for free-text slots like breaks).
+- `ProgramSlot.plannedMinutes`, when present, is `>= 0` (structural, enforced
+  at construction).
+- **ALT association** (intended invariant, *warning* not error): an `isAlt`
+  slot alternates for the nearest preceding non-alt slot in position order;
+  `Program.grouped` renders that structure (alts under their primary, per
+  ux.md §4). A leading/orphaned alt (no preceding primary) is a **non-blocking
+  warning** — surfaced by `Program.validate()` (`orphaned_alt`), never a
+  construction error, so a program with bad ALT ordering (a reorder bug, an
+  import, a deleted primary) always stays loadable and fixable. `grouped` is
+  total: an orphaned alt renders as its own degenerate group.
 - Deleting a dance (soft) keeps program slots valid; UI shows tombstone.
 
 ## Explicitly out of v1

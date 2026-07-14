@@ -102,6 +102,45 @@ void main() {
       expect(await repo.getById('nope'), isNull);
     });
 
+    test('round-trips event metadata and per-slot fields', () async {
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Petronella',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      final program = Program(
+        id: 'pm',
+        title: 'Metadata Night',
+        eventDate: DateTime.utc(2026, 3, 15),
+        venue: 'Grange Hall',
+        band: 'The Fiddleheads',
+        caller: 'Alice',
+        dancerLevel: 'intermediate',
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            guestCaller: 'Bob',
+            plannedMinutes: 12,
+          ),
+        ],
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      );
+      await repo.create(program);
+      final loaded = await repo.getById('pm');
+      expect(loaded, program);
+      expect(loaded!.band, 'The Fiddleheads');
+      expect(loaded.caller, 'Alice');
+      expect(loaded.dancerLevel, 'intermediate');
+      expect(loaded.slots.single.guestCaller, 'Bob');
+      expect(loaded.slots.single.plannedMinutes, 12);
+    });
+
     test('excludes soft-deleted programs by default', () async {
       final program = sampleProgram(deletedAt: DateTime.utc(2026, 1, 2));
       await repo.create(program);

@@ -57,6 +57,12 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 ///   [CompendiumRepositories.ensureMigrated] runs when the marker is set — the
 ///   rebuild needs the taxonomy/renderer, which `MigrationStrategy` can't
 ///   reach.
+/// - v3 (2026-07-13): CC-parity program event metadata (`docs/design/
+///   domain-model.md` "CC parity backfill"). Adds nullable `programs.band`,
+///   `programs.caller`, `programs.dancer_level`, `program_slots.guest_caller`,
+///   and `program_slots.planned_minutes`. All nullable with no back-fill
+///   (existing rows get NULL); programs/slots do not feed the derived
+///   `dance_figures`/`dance_fts` indexes, so no derived rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -84,7 +90,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   CompendiumDatabase(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -108,6 +114,15 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
           [derivedRebuildRequiredKey, 'true'],
         );
+      }
+      if (from < 3) {
+        // CC-parity program event metadata. All nullable; existing rows get
+        // NULL. Programs/slots don't feed the derived indexes, so no rebuild.
+        await m.addColumn(programs, programs.band);
+        await m.addColumn(programs, programs.caller);
+        await m.addColumn(programs, programs.dancerLevel);
+        await m.addColumn(programSlots, programSlots.guestCaller);
+        await m.addColumn(programSlots, programSlots.plannedMinutes);
       }
     },
     beforeOpen: (details) async {
