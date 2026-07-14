@@ -81,6 +81,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   DanceStatus _status = DanceStatus.active;
   DanceLevel? _level;
   bool _mixedLevel = false;
+  PartialDate? _composedOn;
+  PartialDate? _revisedOn;
 
   final List<String> _authorIds = [];
   final List<String> _tagIds = [];
@@ -176,6 +178,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         _status = dance.status;
         _level = dance.level;
         _mixedLevel = dance.mixedLevel;
+        _composedOn = dance.composedOn;
+        _revisedOn = dance.revisedOn;
         _authorIds.addAll(dance.authorIds);
         _tagIds.addAll(dance.tagIds);
         _tunes.addAll(dance.tunes);
@@ -281,6 +285,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           level: _level,
           clearLevel: _level == null,
           mixedLevel: _mixedLevel,
+          composedOn: _composedOn,
+          clearComposedOn: _composedOn == null,
+          revisedOn: _revisedOn,
+          clearRevisedOn: _revisedOn == null,
           tunes: List.of(_tunes),
           customFields: customFields,
           tagIds: List.of(_tagIds),
@@ -303,6 +311,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           status: _status,
           level: _level,
           mixedLevel: _mixedLevel,
+          composedOn: _composedOn,
+          revisedOn: _revisedOn,
           tunes: List.of(_tunes),
           customFields: customFields,
           tagIds: List.of(_tagIds),
@@ -342,6 +352,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     status: _status,
     level: _level,
     mixedLevel: _mixedLevel,
+    composedOn: _composedOn,
+    revisedOn: _revisedOn,
     authorIds: List.unmodifiable(_authorIds),
     tagIds: List.unmodifiable(_tagIds),
     tunes: List.unmodifiable(_tunes),
@@ -393,6 +405,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     _status = s.status;
     _level = s.level;
     _mixedLevel = s.mixedLevel;
+    _composedOn = s.composedOn;
+    _revisedOn = s.revisedOn;
 
     // Multi-value lists.
     _authorIds
@@ -843,6 +857,30 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             contentPadding: EdgeInsets.zero,
           ),
           const SizedBox(height: 16),
+          _PartialDateField(
+            fieldKey: 'composed-on',
+            label: 'Composed',
+            helperText: 'When the dance was composed (year, or add month/day)',
+            value: _composedOn,
+            onChanged: (v) {
+              setState(() => _composedOn = v);
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+          ),
+          const SizedBox(height: 16),
+          _PartialDateField(
+            fieldKey: 'revised-on',
+            label: 'Revised',
+            helperText: 'When the dance was last revised by its author',
+            value: _revisedOn,
+            onChanged: (v) {
+              setState(() => _revisedOn = v);
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+          ),
+          const SizedBox(height: 16),
           TextFormField(
             key: const ValueKey('phrase-field'),
             controller: _phraseController,
@@ -1216,6 +1254,209 @@ class _LevelDropdown extends StatelessWidget {
     );
   }
 }
+
+/// A precision-aware partial-date entry: a required 4-digit **Year** plus an
+/// optional **Month** and (when a month is set) **Day**. Emits a [PartialDate]
+/// via [onChanged] — `null` when the year is blank/invalid. A raw date picker
+/// is deliberately avoided: it would force full year/month/day, but composition
+/// dates are frequently known only to the year (or year+month).
+class _PartialDateField extends StatefulWidget {
+  const _PartialDateField({
+    required this.fieldKey,
+    required this.label,
+    required this.helperText,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String fieldKey;
+  final String label;
+  final String helperText;
+  final PartialDate? value;
+  final ValueChanged<PartialDate?> onChanged;
+
+  @override
+  State<_PartialDateField> createState() => _PartialDateFieldState();
+}
+
+class _PartialDateFieldState extends State<_PartialDateField> {
+  late final TextEditingController _yearController;
+  int? _month;
+  int? _day;
+
+  @override
+  void initState() {
+    super.initState();
+    _yearController = TextEditingController(
+      text: widget.value?.year.toString() ?? '',
+    );
+    _month = widget.value?.month;
+    _day = widget.value?.day;
+  }
+
+  @override
+  void didUpdateWidget(covariant _PartialDateField old) {
+    super.didUpdateWidget(old);
+    // Re-sync when the value changes externally (undo/redo, draft restore),
+    // but not when it merely echoes what this field just emitted (avoids
+    // clobbering the caret mid-edit).
+    if (widget.value != _compute()) {
+      _yearController.text = widget.value?.year.toString() ?? '';
+      _month = widget.value?.month;
+      _day = widget.value?.day;
+    }
+  }
+
+  @override
+  void dispose() {
+    _yearController.dispose();
+    super.dispose();
+  }
+
+  int? get _year {
+    final y = int.tryParse(_yearController.text.trim());
+    if (y == null || y < 1 || y > 9999) return null;
+    return y;
+  }
+
+  /// The current value, or `null` when the year is blank/invalid.
+  PartialDate? _compute() {
+    final y = _year;
+    if (y == null) return null;
+    try {
+      return PartialDate(y, _month, _day);
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  static int _daysIn(int year, int month) => DateTime(year, month + 1, 0).day;
+
+  void _emit() => widget.onChanged(_compute());
+
+  @override
+  Widget build(BuildContext context) {
+    final year = _year;
+    final yearText = _yearController.text.trim();
+    final showYearError = yearText.isNotEmpty && year == null;
+    final dayEnabled = year != null && _month != null;
+    final maxDay = dayEnabled ? _daysIn(year, _month!) : 31;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(widget.label, style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 4),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: TextField(
+                key: ValueKey('${widget.fieldKey}-year'),
+                controller: _yearController,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                decoration: InputDecoration(
+                  labelText: 'Year',
+                  hintText: 'e.g. 1989',
+                  border: const OutlineInputBorder(),
+                  counterText: '',
+                  errorText: showYearError ? '1–9999' : null,
+                ),
+                onChanged: (_) => setState(() {
+                  // A year change can invalidate a chosen day (e.g. Feb 29 in a
+                  // leap year, then a non-leap year). Clear it so the Day
+                  // dropdown never gets an initialValue absent from its items.
+                  final y = _year;
+                  if (y != null &&
+                      _month != null &&
+                      _day != null &&
+                      _day! > _daysIn(y, _month!)) {
+                    _day = null;
+                  }
+                  _emit();
+                }),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 3,
+              child: DropdownButtonFormField<int?>(
+                key: ValueKey('${widget.fieldKey}-month-${_month ?? 0}'),
+                initialValue: _month,
+                decoration: const InputDecoration(
+                  labelText: 'Month',
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  const DropdownMenuItem<int?>(value: null, child: Text('—')),
+                  for (var m = 1; m <= 12; m++)
+                    DropdownMenuItem<int?>(
+                      value: m,
+                      child: Text(_monthLabels[m - 1]),
+                    ),
+                ],
+                onChanged: year == null
+                    ? null
+                    : (m) => setState(() {
+                        _month = m;
+                        // A day needs a month, and must stay valid for it.
+                        if (m == null) {
+                          _day = null;
+                        } else if (_day != null && _day! > _daysIn(year, m)) {
+                          _day = null;
+                        }
+                        _emit();
+                      }),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: DropdownButtonFormField<int?>(
+                key: ValueKey('${widget.fieldKey}-day-${_day ?? 0}'),
+                initialValue: _day,
+                decoration: const InputDecoration(
+                  labelText: 'Day',
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  const DropdownMenuItem<int?>(value: null, child: Text('—')),
+                  for (var d = 1; d <= maxDay; d++)
+                    DropdownMenuItem<int?>(value: d, child: Text('$d')),
+                ],
+                onChanged: dayEnabled
+                    ? (d) => setState(() {
+                        _day = d;
+                        _emit();
+                      })
+                    : null,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(widget.helperText, style: Theme.of(context).textTheme.bodySmall),
+      ],
+    );
+  }
+}
+
+const List<String> _monthLabels = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 typedef _NameOption = ({String id, String name});
 

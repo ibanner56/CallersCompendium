@@ -18,6 +18,7 @@ Dance _dance({
   DanceStatus status = DanceStatus.active,
   DanceLevel? level,
   bool mixedLevel = false,
+  PartialDate? composedOn,
   DateTime? createdAt,
   DateTime? updatedAt,
   DateTime? deletedAt,
@@ -35,6 +36,7 @@ Dance _dance({
     status: status,
     level: level,
     mixedLevel: mixedLevel,
+    composedOn: composedOn,
     figures:
         figures ??
         [
@@ -595,6 +597,28 @@ void main() {
           sort: SearchSort.recentlyEdited,
         ),
         ['new', 'old'],
+      );
+    });
+
+    test('composedOn chronological, year-only before same-year month, '
+        'NULLs last', () async {
+      await dances.create(
+        _dance(id: 'y1990', title: 'later', composedOn: PartialDate(1990)),
+      );
+      await dances.create(
+        _dance(id: 'y1989', title: 'yearOnly', composedOn: PartialDate(1989)),
+      );
+      await dances.create(
+        _dance(
+          id: 'y1989m03',
+          title: 'sameYearMonth',
+          composedOn: PartialDate(1989, 3),
+        ),
+      );
+      await dances.create(_dance(id: 'none', title: 'noDate'));
+      expect(
+        await dances.search(const AndFilter([]), sort: SearchSort.composedOn),
+        ['y1989', 'y1989m03', 'y1990', 'none'],
       );
     });
 

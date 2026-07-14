@@ -25,6 +25,13 @@ enum SearchSort {
   /// Most recently edited first (`updated_at DESC`).
   recentlyEdited,
 
+  /// By author composition date ([Dance.composedOn]), earliest first, dances
+  /// with no composed date last. Partial dates are stored as the canonical
+  /// [PartialDate] string, whose lexicographic order is chronological, so this
+  /// is a plain SQL `ORDER BY` (a year-only value sorts before a
+  /// month-qualified value in the same year).
+  composedOn,
+
   /// Most recently called first, never-called last (Dart post-sort).
   lastCalled,
 }

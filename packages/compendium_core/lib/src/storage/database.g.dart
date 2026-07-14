@@ -155,6 +155,28 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
+  static const VerificationMeta _composedOnMeta = const VerificationMeta(
+    'composedOn',
+  );
+  @override
+  late final GeneratedColumn<String> composedOn = GeneratedColumn<String>(
+    'composed_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _revisedOnMeta = const VerificationMeta(
+    'revisedOn',
+  );
+  @override
+  late final GeneratedColumn<String> revisedOn = GeneratedColumn<String>(
+    'revised_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -204,6 +226,8 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     level,
     mixedLevel,
     tunesJson,
+    composedOn,
+    revisedOn,
     createdAt,
     updatedAt,
     deletedAt,
@@ -285,6 +309,18 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       context.handle(
         _tunesJsonMeta,
         tunesJson.isAcceptableOrUnknown(data['tunes_json']!, _tunesJsonMeta),
+      );
+    }
+    if (data.containsKey('composed_on')) {
+      context.handle(
+        _composedOnMeta,
+        composedOn.isAcceptableOrUnknown(data['composed_on']!, _composedOnMeta),
+      );
+    }
+    if (data.containsKey('revised_on')) {
+      context.handle(
+        _revisedOnMeta,
+        revisedOn.isAcceptableOrUnknown(data['revised_on']!, _revisedOnMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -384,6 +420,14 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         DriftSqlType.string,
         data['${effectivePrefix}tunes_json'],
       )!,
+      composedOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}composed_on'],
+      ),
+      revisedOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}revised_on'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -445,6 +489,16 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
 
   /// JSON array of tune name strings.
   final String tunesJson;
+
+  /// Author composition date at partial precision, persisted as the canonical
+  /// [PartialDate] string (`YYYY` / `YYYY-MM` / `YYYY-MM-DD`); nullable.
+  /// Added in schema v5. Distinct from the record stamp [createdAt].
+  final String? composedOn;
+
+  /// Author revision date at partial precision, persisted as the canonical
+  /// [PartialDate] string; nullable. Added in schema v5. Distinct from the
+  /// record stamp [updatedAt].
+  final String? revisedOn;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -463,6 +517,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     this.level,
     required this.mixedLevel,
     required this.tunesJson,
+    this.composedOn,
+    this.revisedOn,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -504,6 +560,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     }
     map['mixed_level'] = Variable<bool>(mixedLevel);
     map['tunes_json'] = Variable<String>(tunesJson);
+    if (!nullToAbsent || composedOn != null) {
+      map['composed_on'] = Variable<String>(composedOn);
+    }
+    if (!nullToAbsent || revisedOn != null) {
+      map['revised_on'] = Variable<String>(revisedOn);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -532,6 +594,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           : Value(level),
       mixedLevel: Value(mixedLevel),
       tunesJson: Value(tunesJson),
+      composedOn: composedOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(composedOn),
+      revisedOn: revisedOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(revisedOn),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -570,6 +638,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       ),
       mixedLevel: serializer.fromJson<bool>(json['mixedLevel']),
       tunesJson: serializer.fromJson<String>(json['tunesJson']),
+      composedOn: serializer.fromJson<String?>(json['composedOn']),
+      revisedOn: serializer.fromJson<String?>(json['revisedOn']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -603,6 +673,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       ),
       'mixedLevel': serializer.toJson<bool>(mixedLevel),
       'tunesJson': serializer.toJson<String>(tunesJson),
+      'composedOn': serializer.toJson<String?>(composedOn),
+      'revisedOn': serializer.toJson<String?>(revisedOn),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -624,6 +696,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     Value<DanceLevel?> level = const Value.absent(),
     bool? mixedLevel,
     String? tunesJson,
+    Value<String?> composedOn = const Value.absent(),
+    Value<String?> revisedOn = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -644,6 +718,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     level: level.present ? level.value : this.level,
     mixedLevel: mixedLevel ?? this.mixedLevel,
     tunesJson: tunesJson ?? this.tunesJson,
+    composedOn: composedOn.present ? composedOn.value : this.composedOn,
+    revisedOn: revisedOn.present ? revisedOn.value : this.revisedOn,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -678,6 +754,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ? data.mixedLevel.value
           : this.mixedLevel,
       tunesJson: data.tunesJson.present ? data.tunesJson.value : this.tunesJson,
+      composedOn: data.composedOn.present
+          ? data.composedOn.value
+          : this.composedOn,
+      revisedOn: data.revisedOn.present ? data.revisedOn.value : this.revisedOn,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -701,6 +781,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('level: $level, ')
           ..write('mixedLevel: $mixedLevel, ')
           ..write('tunesJson: $tunesJson, ')
+          ..write('composedOn: $composedOn, ')
+          ..write('revisedOn: $revisedOn, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
@@ -724,6 +806,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     level,
     mixedLevel,
     tunesJson,
+    composedOn,
+    revisedOn,
     createdAt,
     updatedAt,
     deletedAt,
@@ -746,6 +830,8 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.level == this.level &&
           other.mixedLevel == this.mixedLevel &&
           other.tunesJson == this.tunesJson &&
+          other.composedOn == this.composedOn &&
+          other.revisedOn == this.revisedOn &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
@@ -766,6 +852,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<DanceLevel?> level;
   final Value<bool> mixedLevel;
   final Value<String> tunesJson;
+  final Value<String?> composedOn;
+  final Value<String?> revisedOn;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -785,6 +873,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.level = const Value.absent(),
     this.mixedLevel = const Value.absent(),
     this.tunesJson = const Value.absent(),
+    this.composedOn = const Value.absent(),
+    this.revisedOn = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -805,6 +895,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.level = const Value.absent(),
     this.mixedLevel = const Value.absent(),
     this.tunesJson = const Value.absent(),
+    this.composedOn = const Value.absent(),
+    this.revisedOn = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
@@ -832,6 +924,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? level,
     Expression<bool>? mixedLevel,
     Expression<String>? tunesJson,
+    Expression<String>? composedOn,
+    Expression<String>? revisedOn,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -852,6 +946,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (level != null) 'level': level,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
       if (tunesJson != null) 'tunes_json': tunesJson,
+      if (composedOn != null) 'composed_on': composedOn,
+      if (revisedOn != null) 'revised_on': revisedOn,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -874,6 +970,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<DanceLevel?>? level,
     Value<bool>? mixedLevel,
     Value<String>? tunesJson,
+    Value<String?>? composedOn,
+    Value<String?>? revisedOn,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -894,6 +992,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       level: level ?? this.level,
       mixedLevel: mixedLevel ?? this.mixedLevel,
       tunesJson: tunesJson ?? this.tunesJson,
+      composedOn: composedOn ?? this.composedOn,
+      revisedOn: revisedOn ?? this.revisedOn,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -956,6 +1056,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     if (tunesJson.present) {
       map['tunes_json'] = Variable<String>(tunesJson.value);
     }
+    if (composedOn.present) {
+      map['composed_on'] = Variable<String>(composedOn.value);
+    }
+    if (revisedOn.present) {
+      map['revised_on'] = Variable<String>(revisedOn.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -988,6 +1094,8 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('level: $level, ')
           ..write('mixedLevel: $mixedLevel, ')
           ..write('tunesJson: $tunesJson, ')
+          ..write('composedOn: $composedOn, ')
+          ..write('revisedOn: $revisedOn, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -6341,6 +6449,8 @@ typedef $$DancesTableCreateCompanionBuilder =
       Value<DanceLevel?> level,
       Value<bool> mixedLevel,
       Value<String> tunesJson,
+      Value<String?> composedOn,
+      Value<String?> revisedOn,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<DateTime?> deletedAt,
@@ -6362,6 +6472,8 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<DanceLevel?> level,
       Value<bool> mixedLevel,
       Value<String> tunesJson,
+      Value<String?> composedOn,
+      Value<String?> revisedOn,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -6607,6 +6719,16 @@ class $$DancesTableFilterComposer
 
   ColumnFilters<String> get tunesJson => $composableBuilder(
     column: $table.tunesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get composedOn => $composableBuilder(
+    column: $table.composedOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revisedOn => $composableBuilder(
+    column: $table.revisedOn,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6905,6 +7027,16 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get composedOn => $composableBuilder(
+    column: $table.composedOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get revisedOn => $composableBuilder(
+    column: $table.revisedOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -6987,6 +7119,14 @@ class $$DancesTableAnnotationComposer
 
   GeneratedColumn<String> get tunesJson =>
       $composableBuilder(column: $table.tunesJson, builder: (column) => column);
+
+  GeneratedColumn<String> get composedOn => $composableBuilder(
+    column: $table.composedOn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get revisedOn =>
+      $composableBuilder(column: $table.revisedOn, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -7250,6 +7390,8 @@ class $$DancesTableTableManager
                 Value<DanceLevel?> level = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
                 Value<String> tunesJson = const Value.absent(),
+                Value<String?> composedOn = const Value.absent(),
+                Value<String?> revisedOn = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -7269,6 +7411,8 @@ class $$DancesTableTableManager
                 level: level,
                 mixedLevel: mixedLevel,
                 tunesJson: tunesJson,
+                composedOn: composedOn,
+                revisedOn: revisedOn,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -7290,6 +7434,8 @@ class $$DancesTableTableManager
                 Value<DanceLevel?> level = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
                 Value<String> tunesJson = const Value.absent(),
+                Value<String?> composedOn = const Value.absent(),
+                Value<String?> revisedOn = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -7309,6 +7455,8 @@ class $$DancesTableTableManager
                 level: level,
                 mixedLevel: mixedLevel,
                 tunesJson: tunesJson,
+                composedOn: composedOn,
+                revisedOn: revisedOn,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,

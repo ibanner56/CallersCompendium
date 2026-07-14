@@ -15,7 +15,10 @@ import 'editor_snapshot.dart';
 /// v2 → v3: adds `level` (nullable [DanceLevel] name, omitted when unspecified)
 /// and `mixedLevel` (bool). Older drafts decode with `level:null` /
 /// `mixedLevel:false`.
-const _kDraftVersion = 3;
+///
+/// v3 → v4: adds `composedOn` / `revisedOn` (nullable canonical [PartialDate]
+/// strings, omitted when unspecified). Older drafts decode with both `null`.
+const _kDraftVersion = 4;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -62,6 +65,10 @@ String encodeDraft(EditorSnapshot snapshot) {
     'status': snapshot.status.name,
     if (snapshot.level != null) 'level': snapshot.level!.name,
     'mixedLevel': snapshot.mixedLevel,
+    if (snapshot.composedOn != null)
+      'composedOn': snapshot.composedOn!.serialize(),
+    if (snapshot.revisedOn != null)
+      'revisedOn': snapshot.revisedOn!.serialize(),
     'authorIds': snapshot.authorIds,
     'tagIds': snapshot.tagIds,
     'tunes': snapshot.tunes,
@@ -145,6 +152,8 @@ EditorSnapshot decodeDraft(Object? value) {
     status: _parseEnum(DanceStatus.values, _str(json, 'status')),
     level: _parseNullableEnum(DanceLevel.values, json['level']),
     mixedLevel: _bool(json, 'mixedLevel'),
+    composedOn: _parseNullablePartialDate(json['composedOn']),
+    revisedOn: _parseNullablePartialDate(json['revisedOn']),
     authorIds: _strList(json, 'authorIds'),
     tagIds: _strList(json, 'tagIds'),
     tunes: _strList(json, 'tunes'),
@@ -195,6 +204,17 @@ T? _parseNullableEnum<T extends Enum>(List<T> values, Object? raw) {
     throw FormatException('draft enum value must be a string: $raw');
   }
   return _parseEnum(values, raw);
+}
+
+/// Parses an optional canonical [PartialDate] string: `null`/absent → `null`;
+/// a string is parsed (an unparseable/invalid value throws). Used for the
+/// nullable `composedOn` / `revisedOn` fields.
+PartialDate? _parseNullablePartialDate(Object? raw) {
+  if (raw == null) return null;
+  if (raw is! String) {
+    throw FormatException('draft date value must be a string: $raw');
+  }
+  return PartialDate.parse(raw);
 }
 
 bool _bool(Map<String, Object?> json, String key) {

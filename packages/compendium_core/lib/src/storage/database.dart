@@ -70,6 +70,14 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 ///   `level` NULL / `mixed_level` false. `level`/`mixed_level` are dance-scalar
 ///   metadata, not figure text, so they do not feed the derived
 ///   `dance_figures`/`dance_fts` indexes and no derived rebuild is required.
+/// - v5 (2026-07-13): CC-parity composed/revised dates (`docs/design/
+///   domain-model.md` "CC parity backfill", ROADMAP 4b.2). Adds the nullable
+///   `dances.composed_on` and `dances.revised_on` columns, each holding a
+///   canonical partial-precision [PartialDate] string (`YYYY`/`YYYY-MM`/
+///   `YYYY-MM-DD`). Existing rows get NULL. These are author/bibliographic
+///   scalar metadata (distinct from the record stamps `created_at`/
+///   `updated_at`), not figure text, so they do not feed the derived
+///   `dance_figures`/`dance_fts` indexes and no derived rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -97,7 +105,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   CompendiumDatabase(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -138,6 +146,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // `dance_figures`/`dance_fts` indexes and no rebuild is required.
         await m.addColumn(dances, dances.level);
         await m.addColumn(dances, dances.mixedLevel);
+      }
+      if (from < 5) {
+        // CC-parity composed/revised dates. Both nullable (existing rows get
+        // NULL); each stores a canonical partial-precision PartialDate string.
+        // Author/bibliographic scalar metadata (not figure text), so they don't
+        // feed the derived `dance_figures`/`dance_fts` indexes — no rebuild.
+        await m.addColumn(dances, dances.composedOn);
+        await m.addColumn(dances, dances.revisedOn);
       }
     },
     beforeOpen: (details) async {

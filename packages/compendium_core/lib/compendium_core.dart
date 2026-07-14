@@ -18,6 +18,7 @@ export 'src/model/dance_link.dart';
 export 'src/model/enums.dart';
 export 'src/model/figure.dart';
 export 'src/model/formation.dart';
+export 'src/model/partial_date.dart';
 export 'src/model/phrase_structure.dart';
 export 'src/model/program.dart';
 export 'src/model/provenance.dart';
