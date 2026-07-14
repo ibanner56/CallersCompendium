@@ -206,11 +206,13 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
       ],
     );
   }
-
-  static String _omittedCaption(int n) =>
-      '$n free-text ${n == 1 ? 'slot' : 'slots'} '
-      '(breaks, notes) omitted — the matrix shows dances only.';
 }
+
+/// Caption noting free-text slots that don't appear in the matrix (the matrix
+/// is dances-only), so the omission is always explicit.
+String _omittedCaption(int n) =>
+    '$n free-text ${n == 1 ? 'slot' : 'slots'} '
+    '(breaks, notes) omitted — the matrix shows dances only.';
 
 class _Corner extends StatelessWidget {
   @override
@@ -434,6 +436,16 @@ class _EmptyState extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
+            if (omittedFreeTextCount > 0) ...[
+              const SizedBox(height: 12),
+              Text(
+                _omittedCaption(omittedFreeTextCount),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ],
         ),
       ),

@@ -129,6 +129,18 @@ void main() {
     expect(find.byIcon(Icons.check), findsNothing);
   });
 
+  testWidgets('empty matrix still notes omitted free-text slots', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      dances: [dance('d1', 'Stub', const [])],
+      omittedFreeTextCount: 3,
+    );
+    expect(find.text('No structured figures yet'), findsOneWidget);
+    expect(find.textContaining('3 free-text slots'), findsOneWidget);
+  });
+
   testWidgets('omitted free-text slots are noted in a caption', (tester) async {
     await pump(
       tester,
