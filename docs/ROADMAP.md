@@ -175,6 +175,11 @@ design/domain-model.md "CC parity backfill".*
   filter and program by level constantly. Add to the domain model, the schema
   (+ back-fillable index), the editor metadata form, the Collection list/facet,
   and search (`Level` filter leaf in design/search.md).
+  - Deferred (4b.1b): the **Advanced query-builder `Level` lte/gte UI row**. The
+    search engine landed in 4b.1b — `LevelFilter` supports all three ops
+    (`eq`/`lte`/`gte`) and is fully tested — but the Advanced-builder UI entry
+    point for the ordered comparisons is not yet wired; the Collection facet
+    currently exercises `eq` (exact multi-select) only.
 - [ ] 4b.2 **Composed / revised dates** — optional `composedOn` / `revisedOn`
   (CC keeps partial y/m/d); distinct from record `createdAt`/`updatedAt`. Editor
   field + optional sort.
