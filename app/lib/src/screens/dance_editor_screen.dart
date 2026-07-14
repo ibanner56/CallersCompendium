@@ -1602,9 +1602,8 @@ class _NamePicker extends StatelessWidget {
   /// When non-null, each selected chip becomes tappable (an [InputChip]) and
   /// tapping its body invokes [onEdit] with the id — used by the Authors picker
   /// to edit the shared choreographer record. When null (e.g. the Tags picker),
-  /// chips stay plain, non-editable [Chip]s. Async: the returned future is a
-  /// fire-and-forget dialog+persist flow the picker does not await.
-  final Future<void> Function(String id)? onEdit;
+  /// chips stay plain, non-editable [Chip]s.
+  final ValueChanged<String>? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -1640,7 +1639,7 @@ class _NamePicker extends StatelessWidget {
       key: key,
       label: Text(label),
       tooltip: 'Edit $label',
-      onPressed: () => unawaited(onEdit!(id)),
+      onPressed: () => onEdit!(id),
       onDeleted: () => onRemove(id),
     );
   }
