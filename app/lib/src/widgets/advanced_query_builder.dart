@@ -628,9 +628,9 @@ class _MoveField extends StatelessWidget {
 /// the By-Phrase panel so both search moves identically.
 ///
 /// [onSelected] fires when the user picks a move; [onCleared] (optional) fires
-/// when the field is emptied. [clearOnSubmit] empties the field after a
-/// selection is committed — used by multi-select callers that show chosen moves
-/// as chips and want the input ready for the next entry.
+/// when the field is emptied. Multi-select callers (e.g. the By-Phrase panel)
+/// show chosen moves as chips and remount this field with a fresh [initialText]
+/// after each pick so the input is ready for the next entry.
 class MoveTypeAheadField extends StatelessWidget {
   const MoveTypeAheadField({
     super.key,
