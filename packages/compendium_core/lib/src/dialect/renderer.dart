@@ -75,6 +75,12 @@ class FigureRenderer {
     if (value is String && roleTokens.contains(value)) {
       return _roleTerm(value, dialect);
     }
+    if (value is String &&
+        (spec?.kind == ParamKind.dancerSet ||
+            spec?.kind == ParamKind.dancerPair)) {
+      final substitution = dialect.dancers[value];
+      if (substitution != null) return substitution;
+    }
     if (spec?.kind == ParamKind.rotation && value is num) {
       return _formatRotation(value);
     }

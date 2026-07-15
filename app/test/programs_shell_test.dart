@@ -3,7 +3,9 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
@@ -20,6 +22,23 @@ Program _program({required String id, required String title}) => Program(
   updatedAt: _now,
 );
 
+Dance _dance({required String id, required String title, DanceLevel? level}) =>
+    Dance(
+      id: id,
+      title: title,
+      authorIds: const [],
+      tagIds: const [],
+      form: DanceForm.contra,
+      formation: const Formation(FormationShape.dupleImproper),
+      status: DanceStatus.active,
+      level: level,
+      figures: const [],
+      customFields: const [],
+      hook: '',
+      createdAt: _now,
+      updatedAt: _now,
+    );
+
 Future<void> _pumpWide(
   WidgetTester tester,
   CompendiumRepositories repos,
@@ -32,8 +51,13 @@ Future<void> _pumpWide(
   });
   await tester.pumpWidget(
     MaterialApp(
-      builder: (context, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(
+          notifier: ValueNotifier<Dialect>(Dialect.canonical),
+          child: child!,
+        ),
+      ),
       home: const ProgramsShell(),
     ),
   );
@@ -72,4 +96,183 @@ void main() {
       expect(find.byType(ProgramEditorScreen), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'summary pane renders the set list in order with ALT alternates indented '
+    'under their primary and free-text slots as text',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Chase the Squirrel',
+          level: DanceLevel.beginner,
+        ),
+      );
+      await repos.dances.create(_dance(id: 'd2', title: 'Petronella'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2', isAlt: true),
+            ProgramSlot(id: 's2', position: 2, text: 'Break'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      // Section header carries the slot count.
+      expect(find.text('Set list (3)'), findsOneWidget);
+
+      // All three slots render.
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Petronella'), findsOneWidget);
+      expect(find.text('Break'), findsOneWidget);
+
+      // The dance rows are tappable; the free-text slot is not.
+      expect(find.byKey(const ValueKey('summary-slot-s0')), findsOneWidget);
+      expect(find.byKey(const ValueKey('summary-slot-s1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('summary-slot-s2')), findsNothing);
+
+      // Primary secondary line surfaces formation + level.
+      expect(find.text('Duple improper · Beginner'), findsOneWidget);
+
+      // The alternate (s1) renders indented (extra left padding) relative to
+      // its primary (s0) and shows an "Alt" label + icon, never colour alone.
+      expect(find.text('Alt'), findsOneWidget);
+      expect(find.byIcon(Icons.subdirectory_arrow_right), findsOneWidget);
+      final primaryLeft = tester
+          .getTopLeft(find.byKey(const ValueKey('summary-slot-s0')))
+          .dx;
+      final altLeft = tester
+          .getTopLeft(find.byKey(const ValueKey('summary-slot-s1')))
+          .dx;
+      expect(altLeft, greaterThan(primaryLeft));
+
+      // Position order: primary dance sits above its alternate, which sits
+      // above the trailing free-text slot.
+      final primaryTop = tester.getTopLeft(find.text('Chase the Squirrel')).dy;
+      final altTop = tester.getTopLeft(find.text('Petronella')).dy;
+      final breakTop = tester.getTopLeft(find.text('Break')).dy;
+      expect(primaryTop, lessThan(altTop));
+      expect(altTop, lessThan(breakTop));
+    },
+  );
+
+  testWidgets(
+    'tapping a dance row in the summary set list opens DanceDetailScreen',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DanceDetailScreen), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('summary-slot-s0')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DanceDetailScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a dance row exposes a single button semantics node (role + label + '
+    'focusable + tap action)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      final handle = tester.ensureSemantics();
+      expect(
+        tester.getSemantics(find.byKey(const ValueKey('summary-slot-s0'))),
+        isSemantics(
+          label: 'Chase the Squirrel',
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+        ),
+      );
+      handle.dispose();
+    },
+  );
+
+  testWidgets(
+    'an unresolved dance id renders a non-tappable "Dance unavailable" fallback',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+      // The dance is soft-deleted after the program references it, so the
+      // slot's danceId no longer resolves to a title.
+      await repos.dances.softDelete('d1', at: _now);
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dance unavailable'), findsOneWidget);
+      expect(find.byKey(const ValueKey('summary-slot-s0')), findsNothing);
+    },
+  );
+
+  testWidgets('an empty program shows the teaching empty state', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
+
+    await _pumpWide(tester, repos);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Set list (0)'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('summary-set-list-empty')),
+      findsOneWidget,
+    );
+  });
 }

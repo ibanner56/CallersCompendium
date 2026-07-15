@@ -57,9 +57,11 @@ class Dialect {
     required this.name,
     Map<String, RoleTerm> roles = const {},
     Map<String, String> moves = const {},
+    Map<String, String> dancers = const {},
     List<String> discouragedTerms = const [],
   }) : roles = Map.unmodifiable(roles),
        moves = Map.unmodifiable(moves),
+       dancers = Map.unmodifiable(dancers),
        discouragedTerms = List.unmodifiable(
          discouragedTerms.map((t) => t.toLowerCase()),
        );
@@ -72,6 +74,12 @@ class Dialect {
   /// Canonical move id → display substitution. `%S` injects the figure's
   /// shoulder/hand side ("%S shoulder round" → "right shoulder round").
   final Map<String, String> moves;
+
+  /// Canonical positional/relational dancer token (e.g. `neighbors`,
+  /// `nextNeighbors`) → display substitution. Parallel to [moves]; the
+  /// role-driven tokens `role1s`/`role2s` are intentionally excluded (they flow
+  /// through role-term substitution instead).
+  final Map<String, String> dancers;
 
   /// Terms the entry editor flags (struck through, never blocked).
   /// User-editable data with shipped defaults — not hardcoded policy.
@@ -139,21 +147,24 @@ class Dialect {
     String? name,
     Map<String, RoleTerm>? roles,
     Map<String, String>? moves,
+    Map<String, String>? dancers,
     List<String>? discouragedTerms,
   }) => Dialect(
     name: name ?? this.name,
     roles: roles ?? this.roles,
     moves: moves ?? this.moves,
+    dancers: dancers ?? this.dancers,
     discouragedTerms: discouragedTerms ?? this.discouragedTerms,
   );
 
   /// Serializes the whole dialect (name + role terms + move substitutions +
-  /// discouraged terms) so a fully-custom dialect can be persisted, not just a
-  /// preset name.
+  /// dancer substitutions + discouraged terms) so a fully-custom dialect can be
+  /// persisted, not just a preset name.
   Map<String, Object?> toJson() => {
     'name': name,
     'roles': {for (final e in roles.entries) e.key: e.value.toJson()},
     'moves': Map<String, String>.from(moves),
+    'dancers': Map<String, String>.from(dancers),
     'discouragedTerms': List<String>.from(discouragedTerms),
   };
 
@@ -179,6 +190,14 @@ class Dialect {
         if (value is String) moves[entry.key.toString()] = value;
       }
     }
+    final dancers = <String, String>{};
+    final dancersJson = json['dancers'];
+    if (dancersJson is Map) {
+      for (final entry in dancersJson.entries) {
+        final value = entry.value;
+        if (value is String) dancers[entry.key.toString()] = value;
+      }
+    }
     final discouraged = <String>[];
     final discouragedJson = json['discouragedTerms'];
     if (discouragedJson is List) {
@@ -191,6 +210,7 @@ class Dialect {
       name: rawName is String ? rawName : customName,
       roles: roles,
       moves: moves,
+      dancers: dancers,
       discouragedTerms: discouraged,
     );
   }
@@ -235,6 +255,9 @@ class Dialect {
     for (final e in moves.entries) {
       check(e.key, e.value);
     }
+    for (final e in dancers.entries) {
+      check(e.key, e.value);
+    }
     return issues;
   }
 
@@ -244,6 +267,7 @@ class Dialect {
       other.name == name &&
       _mapEq.equals(other.roles, roles) &&
       _mapEq.equals(other.moves, moves) &&
+      _mapEq.equals(other.dancers, dancers) &&
       _listEq.equals(other.discouragedTerms, discouragedTerms);
 
   @override
@@ -251,6 +275,7 @@ class Dialect {
     name,
     _mapEq.hash(roles),
     _mapEq.hash(moves),
+    _mapEq.hash(dancers),
     _listEq.hash(discouragedTerms),
   );
 }

@@ -1,11 +1,13 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 
+import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
@@ -651,7 +653,14 @@ void main() {
     ) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1'));
-      await repos.programs.create(program(id: 'p1', title: 'Barn Dance'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Barn Dance',
+          eventDate: DateTime.utc(2026, 3, 14),
+          slots: [ProgramSlot(id: 's0', position: 0, text: 'Welcome')],
+        ),
+      );
       await repos.programs.create(program(id: 'p2', title: 'Contra Jam'));
 
       await _pumpDetail(tester, repos, 'd1');
@@ -662,6 +671,12 @@ void main() {
       expect(find.byKey(const ValueKey('program-pick-p2')), findsOneWidget);
       expect(find.text('Barn Dance'), findsOneWidget);
       expect(find.text('Contra Jam'), findsOneWidget);
+      // Subtitle: event date (when set) + slot count, joined with ' · '.
+      expect(find.textContaining('· 1 dance'), findsOneWidget);
+      // A program without an event date shows only the slot count — no
+      // literal "null" leaks in from the omitted date label.
+      expect(find.text('0 dances'), findsOneWidget);
+      expect(find.textContaining('null'), findsNothing);
     });
 
     testWidgets('a program row is a11y-reachable', (tester) async {
@@ -765,5 +780,149 @@ void main() {
         findsOneWidget,
       );
     });
+  });
+
+  // ── External-link launching ──────────────────────────────────────────────
+
+  testWidgets('tapping a video link launches its URL externally', (
+    tester,
+  ) async {
+    final fake = installFakeUrlLauncher();
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Linked Dance',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.video,
+            url: 'https://youtu.be/abc',
+            label: 'Watch it',
+          ),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+    await tester.tap(find.byKey(const ValueKey('link-row-l1')));
+    await tester.pumpAndSettle();
+
+    expect(fake.lastLaunchedUrl, 'https://youtu.be/abc');
+    expect(fake.launchedModes.single, PreferredLaunchMode.externalApplication);
+  });
+
+  testWidgets('tapping a source-citation URL launches it externally', (
+    tester,
+  ) async {
+    final fake = installFakeUrlLauncher();
+    final repos = openTestRepositories();
+    await repos.publishedSources.upsert(
+      PublishedSource(
+        id: 's1',
+        title: 'Zesty Contras',
+        url: 'https://example.com/zesty',
+      ),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Cited Dance',
+      ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+    await tester.tap(find.byKey(const ValueKey('source-citation-s1')));
+    await tester.pumpAndSettle();
+
+    expect(fake.lastLaunchedUrl, 'https://example.com/zesty');
+    expect(fake.launchedModes.single, PreferredLaunchMode.externalApplication);
+  });
+
+  testWidgets('a non-http(s) link URL renders plain text, no launch on tap', (
+    tester,
+  ) async {
+    final fake = installFakeUrlLauncher();
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Linked Dance',
+        links: [
+          DanceLink(id: 'l1', kind: LinkKind.other, url: 'mailto:a@b.com'),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    // Plain-text row: not exposed as a button, and tapping launches nothing.
+    final semantics = tester.getSemantics(
+      find.byKey(const ValueKey('link-row-l1')),
+    );
+    expect(semantics, isNot(isSemantics(isButton: true)));
+
+    await tester.tap(find.byKey(const ValueKey('link-row-l1')));
+    await tester.pumpAndSettle();
+    expect(fake.launchedUrls, isEmpty);
+  });
+
+  testWidgets('a launch failure surfaces a SnackBar and does not crash', (
+    tester,
+  ) async {
+    final fake = installFakeUrlLauncher();
+    fake.launchResult = false;
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Linked Dance',
+        links: [
+          DanceLink(id: 'l1', kind: LinkKind.video, url: 'https://v.example'),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+    await tester.tap(find.byKey(const ValueKey('link-row-l1')));
+    await tester.pump();
+
+    expect(find.text("Couldn't open link"), findsOneWidget);
+  });
+
+  testWidgets('a launchable link exposes a reachable button in the a11y tree', (
+    tester,
+  ) async {
+    installFakeUrlLauncher();
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Linked Dance',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.video,
+            url: 'https://v.example',
+            label: 'A video',
+          ),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    final semantics = tester.getSemantics(
+      find.byKey(const ValueKey('link-row-l1')),
+    );
+    expect(
+      semantics,
+      isSemantics(
+        isButton: true,
+        isFocusable: true,
+        hasTapAction: true,
+        label: 'Open video: A video',
+      ),
+    );
   });
 }

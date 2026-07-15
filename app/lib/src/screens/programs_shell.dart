@@ -3,8 +3,11 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../data/repositories_scope.dart';
+import '../models/dance_list_entry.dart';
+import '../search/facet_labels.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
+import 'dance_detail_screen.dart';
 import 'program_editor_screen.dart';
 import 'programs_list_screen.dart';
 
@@ -143,6 +146,7 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
   bool _started = false;
   Program? _program;
   Map<String, String> _danceTitles = const {};
+  Map<String, Dance> _dances = const {};
   bool _loading = true;
   Object? _error;
 
@@ -172,20 +176,25 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
     try {
       final program = await _repos.programs.getById(widget.programId);
       final titles = <String, String>{};
+      final dances = <String, Dance>{};
       if (program != null) {
         final ids = {
           for (final s in program.slots)
             if (s.danceId != null) s.danceId!,
         };
-        final dances = await Future.wait(ids.map(_repos.dances.getById));
-        for (final dance in dances) {
-          if (dance != null) titles[dance.id] = dance.title;
+        final loaded = await Future.wait(ids.map(_repos.dances.getById));
+        for (final dance in loaded) {
+          if (dance != null) {
+            titles[dance.id] = dance.title;
+            dances[dance.id] = dance;
+          }
         }
       }
       if (!mounted) return;
       setState(() {
         _program = program;
         _danceTitles = titles;
+        _dances = dances;
         _loading = false;
         _error = null;
       });
@@ -313,18 +322,246 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
           _summaryRow(Icons.campaign_outlined, 'Caller: ${program.caller}'),
         if (program.dancerLevel != null)
           _summaryRow(Icons.groups_outlined, 'Level: ${program.dancerLevel}'),
-        _summaryRow(
-          Icons.queue_music_outlined,
-          '$slotCount ${slotCount == 1 ? 'slot' : 'slots'}',
-        ),
         if (program.notes.trim().isNotEmpty) ...[
           const SizedBox(height: 16),
           Text('Notes', style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           Text(program.notes),
         ],
+        const SizedBox(height: 24),
+        Text('Set list ($slotCount)', style: theme.textTheme.titleSmall),
+        const SizedBox(height: 8),
+        ..._buildSetList(program),
         const SizedBox(height: 80),
       ],
+    );
+  }
+
+  /// Builds the read-only, ordered set list. Primaries are numbered 1..n and
+  /// ALT alternates render indented beneath their primary with an icon + text
+  /// label (never colour alone), per `docs/design/ux.md` §4. Dance rows are
+  /// tappable and open [DanceDetailScreen]; free-text slots are plain,
+  /// non-interactive text. Editing/reordering stays behind the builder FAB.
+  List<Widget> _buildSetList(Program program) {
+    if (program.slots.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Text(
+            'No slots yet — open the builder to add dances.',
+            key: const ValueKey('summary-set-list-empty'),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ];
+    }
+
+    final rows = <Widget>[];
+    var ordinal = 0;
+    for (final group in program.grouped) {
+      ordinal++;
+      rows.add(_slotRow(group.primary, ordinalLabel: '$ordinal'));
+      for (final alt in group.alternates) {
+        rows.add(_slotRow(alt, ordinalLabel: null, indented: true));
+      }
+    }
+    return rows;
+  }
+
+  Widget _slotRow(
+    ProgramSlot slot, {
+    required String? ordinalLabel,
+    bool indented = false,
+  }) {
+    final theme = Theme.of(context);
+    final danceId = slot.danceId;
+
+    Widget leading = SizedBox(
+      width: 28,
+      child: Text(
+        ordinalLabel ?? '',
+        textAlign: TextAlign.center,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+    );
+
+    // Secondary metadata line (guest caller / planned minutes), shared by all
+    // slot types when present. Trimmed for display, matching the builder UI.
+    final extras = <String>[
+      if (slot.guestCaller != null && slot.guestCaller!.trim().isNotEmpty)
+        'Guest: ${slot.guestCaller!.trim()}',
+      if (slot.plannedMinutes != null) '${slot.plannedMinutes} min',
+    ];
+
+    final altBadge = slot.isAlt
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.subdirectory_arrow_right,
+                size: 16,
+                color: theme.colorScheme.tertiary,
+              ),
+              const SizedBox(width: 2),
+              Text(
+                'Alt',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.tertiary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+          )
+        : null;
+
+    if (danceId != null) {
+      final dance = _dances[danceId];
+      final title = dance?.title ?? _danceTitles[danceId];
+      if (title == null) {
+        // The dance no longer resolves (deleted/tombstoned). Render a graceful,
+        // non-interactive fallback rather than a broken tappable row.
+        return Padding(
+          padding: EdgeInsets.only(left: indented ? 32 : 0, top: 4, bottom: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              leading,
+              Icon(
+                Icons.report_gmailerrorred_outlined,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ?altBadge,
+                    Text(
+                      'Dance unavailable',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      final secondaryParts = <String>[
+        if (dance != null) formationLabel(dance.formation),
+        if (dance?.level != null) danceLevelLabel(dance!.level!),
+        // A dance slot may also carry a per-slot caller note (per ProgramSlot
+        // docs); surface it like the builder UI does.
+        if (slot.text != null && slot.text!.trim().isNotEmpty)
+          'Note: ${slot.text!.trim()}',
+        ...extras,
+      ];
+      final secondary = secondaryParts.join(' · ');
+
+      return Padding(
+        padding: EdgeInsets.only(left: indented ? 32 : 0, top: 2, bottom: 2),
+        child: MergeSemantics(
+          child: Semantics(
+            button: true,
+            label: slot.isAlt ? 'Alternate: $title' : title,
+            child: InkWell(
+              key: ValueKey('summary-slot-${slot.id}'),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => DanceDetailScreen(danceId: danceId),
+                ),
+              ),
+              child: ExcludeSemantics(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      leading,
+                      Icon(
+                        Icons.music_note_outlined,
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ?altBadge,
+                            Text(title, style: theme.textTheme.bodyLarge),
+                            if (secondary.isNotEmpty)
+                              Text(
+                                secondary,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Free-text slot (break / waltz / announcement): non-interactive text.
+    final text = (slot.text ?? '').trim();
+    return Padding(
+      padding: EdgeInsets.only(left: indented ? 32 : 0, top: 6, bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          leading,
+          Icon(
+            Icons.notes_outlined,
+            size: 20,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ?altBadge,
+                Text(
+                  text,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                if (extras.isNotEmpty)
+                  Text(
+                    extras.join(' · '),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

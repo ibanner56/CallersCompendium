@@ -262,8 +262,13 @@ class _DialectViewState extends State<_DialectView> {
   /// substitution row, keyed by canonical move id.
   final Map<String, TextEditingController> _moveCtrls = {};
 
+  /// One controller per dancer token that currently has (or is being given) a
+  /// substitution row, keyed by canonical dancer token.
+  final Map<String, TextEditingController> _dancerCtrls = {};
+
   List<String> _discouraged = const [];
   bool _showMoves = false;
+  bool _showDancers = false;
 
   @override
   void initState() {
@@ -293,6 +298,14 @@ class _DialectViewState extends State<_DialectView> {
     for (final entry in d.moves.entries) {
       _moveCtrls[entry.key] = TextEditingController(text: entry.value);
     }
+    // Rebuild the dancer-substitution controllers to match the dialect.
+    for (final c in _dancerCtrls.values) {
+      c.dispose();
+    }
+    _dancerCtrls.clear();
+    for (final entry in d.dancers.entries) {
+      _dancerCtrls[entry.key] = TextEditingController(text: entry.value);
+    }
     _discouraged = List.of(d.discouragedTerms);
   }
 
@@ -304,6 +317,9 @@ class _DialectViewState extends State<_DialectView> {
     _role2Plural.dispose();
     _discouragedInput.dispose();
     for (final c in _moveCtrls.values) {
+      c.dispose();
+    }
+    for (final c in _dancerCtrls.values) {
       c.dispose();
     }
     super.dispose();
@@ -337,10 +353,17 @@ class _DialectViewState extends State<_DialectView> {
       if (v.isNotEmpty) moves[entry.key] = v;
     }
 
+    final dancers = <String, String>{};
+    for (final entry in _dancerCtrls.entries) {
+      final v = entry.value.text.trim();
+      if (v.isNotEmpty) dancers[entry.key] = v;
+    }
+
     final built = Dialect(
       name: Dialect.customName,
       roles: roles,
       moves: moves,
+      dancers: dancers,
       discouragedTerms: _discouraged,
     );
     final dialect = _presetMatching(built) ?? built;
@@ -403,6 +426,21 @@ class _DialectViewState extends State<_DialectView> {
     _emit();
   }
 
+  void _addDancerSubstitution(String token) {
+    setState(() {
+      _dancerCtrls[token] = TextEditingController();
+      _showDancers = true;
+    });
+    // No emit yet: an empty substitution is excluded until the user types.
+  }
+
+  void _removeDancerSubstitution(String token) {
+    setState(() {
+      _dancerCtrls.remove(token)?.dispose();
+    });
+    _emit();
+  }
+
   @override
   Widget build(BuildContext context) {
     // Working dialect assembled from the live editor state, for validation and
@@ -416,10 +454,15 @@ class _DialectViewState extends State<_DialectView> {
       for (final e in _moveCtrls.entries)
         if (e.value.text.trim().isNotEmpty) e.key: e.value.text.trim(),
     };
+    final dancers = <String, String>{
+      for (final e in _dancerCtrls.entries)
+        if (e.value.text.trim().isNotEmpty) e.key: e.value.text.trim(),
+    };
     final working = Dialect(
       name: Dialect.customName,
       roles: roles,
       moves: moves,
+      dancers: dancers,
       discouragedTerms: _discouraged,
     );
     final matchingPreset = _presetMatching(working);
@@ -482,6 +525,15 @@ class _DialectViewState extends State<_DialectView> {
           onEdited: _emit,
           onAdd: _addMoveSubstitution,
           onRemove: _removeMoveSubstitution,
+        ),
+        _SectionHeader(title: 'Dancer substitutions'),
+        _DancerSubstitutionsEditor(
+          controllers: _dancerCtrls,
+          expanded: _showDancers,
+          onToggle: () => setState(() => _showDancers = !_showDancers),
+          onEdited: _emit,
+          onAdd: _addDancerSubstitution,
+          onRemove: _removeDancerSubstitution,
         ),
         _SectionHeader(title: 'Discouraged terms'),
         _DiscouragedTermsEditor(
@@ -702,6 +754,135 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
                 ],
                 onChanged: (id) {
                   if (id != null) onAdd(id);
+                },
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Editable dancer-substitution list, parallel to [_MoveSubstitutionsEditor].
+/// Enumerates the positional/relational dancer tokens (the role-driven
+/// `role1s`/`role2s` are excluded — they flow through role-term substitution)
+/// and lets the caller override each with preferred wording.
+class _DancerSubstitutionsEditor extends StatelessWidget {
+  const _DancerSubstitutionsEditor({
+    required this.controllers,
+    required this.expanded,
+    required this.onToggle,
+    required this.onEdited,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final Map<String, TextEditingController> controllers;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final VoidCallback onEdited;
+  final ValueChanged<String> onAdd;
+  final ValueChanged<String> onRemove;
+
+  /// The substitutable dancer tokens: the pair/group dancer sets minus the
+  /// role-driven `role1s`/`role2s`, which are handled by role-term
+  /// substitution rather than here.
+  static final List<String> _substitutableTokens = [
+    for (final t in ParamVocab.pairDancerSets)
+      if (t != 'role1s' && t != 'role2s') t,
+  ];
+
+  /// Human-readable label for a camelCase dancer token
+  /// (e.g. `nextNeighbors` -> `next neighbors`).
+  static String _dancerLabel(String token) => token
+      .replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (_) => ' ')
+      .toLowerCase();
+
+  @override
+  Widget build(BuildContext context) {
+    final overridden = controllers.keys.toList()
+      ..sort(
+        (a, b) => _dancerLabel(
+          a,
+        ).toLowerCase().compareTo(_dancerLabel(b).toLowerCase()),
+      );
+    final available =
+        [
+          for (final token in _substitutableTokens)
+            if (!controllers.containsKey(token)) token,
+        ]..sort(
+          (a, b) => _dancerLabel(
+            a,
+          ).toLowerCase().compareTo(_dancerLabel(b).toLowerCase()),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const ValueKey('dialect-dancers-toggle'),
+              onPressed: onToggle,
+              icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
+              label: Text(
+                overridden.isEmpty
+                    ? 'Add dancer substitutions'
+                    : '${overridden.length} dancer substitution'
+                          '${overridden.length == 1 ? '' : 's'}',
+              ),
+            ),
+          ),
+          if (expanded) ...[
+            for (final token in overridden)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 140,
+                      child: Text(
+                        _dancerLabel(token),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    Expanded(
+                      child: TextField(
+                        key: ValueKey('dialect-dancer-$token'),
+                        controller: controllers[token],
+                        decoration: const InputDecoration(
+                          hintText: 'substitution',
+                        ),
+                        onChanged: (_) => onEdited(),
+                      ),
+                    ),
+                    IconButton(
+                      key: ValueKey('dialect-dancer-delete-$token'),
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Remove',
+                      onPressed: () => onRemove(token),
+                    ),
+                  ],
+                ),
+              ),
+            if (available.isNotEmpty)
+              DropdownButton<String>(
+                key: const ValueKey('dialect-add-dancer'),
+                hint: const Text('Add a dancer term…'),
+                value: null,
+                isExpanded: true,
+                items: [
+                  for (final token in available)
+                    DropdownMenuItem<String>(
+                      value: token,
+                      child: Text(_dancerLabel(token)),
+                    ),
+                ],
+                onChanged: (token) {
+                  if (token != null) onAdd(token);
                 },
               ),
           ],
