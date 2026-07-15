@@ -14,6 +14,7 @@ class MoveDef {
     required this.renderTemplate,
     this.searchKeywords = const [],
     this.goodBeats,
+    this.paramBeats,
   });
 
   /// Permanent snake_case identifier (e.g. `shoulder_round`). Never renamed;
@@ -40,6 +41,29 @@ class MoveDef {
   /// Beat counts considered musically typical. Deviations are warnings,
   /// never errors. Null/empty = any beat count is fine.
   final List<int>? goodBeats;
+
+  /// For the few moves whose canonical beat count depends on the *value* of
+  /// one of their parameters (e.g. a half vs. full hey), the driver parameter
+  /// and its per-value beat counts. Null for the vast majority of moves, which
+  /// take the flat `beats` spec default. See [ParamBeats].
+  final ParamBeats? paramBeats;
+}
+
+/// The driver parameter and per-value beat counts for a move whose canonical
+/// duration depends on a parameter *value* rather than a single per-move
+/// default (e.g. a half hey is 8 beats, a full hey 16). Attached to a
+/// [MoveDef] via [MoveDef.paramBeats]; [Taxonomy.effectiveParams] uses it to
+/// derive `beats` when a figure does not carry an explicit value.
+@immutable
+class ParamBeats {
+  const ParamBeats({required this.param, required this.byValue});
+
+  /// Name of the parameter whose value selects the beat count.
+  final String param;
+
+  /// Canonical beats for each value of [param]. A value absent here falls back
+  /// to the move's flat `beats` spec default.
+  final Map<Object?, int> byValue;
 }
 
 /// An alias entry: resolves to a canonical move with pinned params

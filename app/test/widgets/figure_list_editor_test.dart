@@ -1637,4 +1637,98 @@ void main() {
     expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
     expect(find.byKey(const ValueKey('figure-1-move-input')), findsOneWidget);
   });
+
+  group('param-value-dependent beats (ContraDB paramBeats)', () {
+    // hey's `length` (4th param) and `beats` (10th) live behind the ">3 params"
+    // More-options disclosure, so reveal it before touching them.
+    Future<void> revealMore(WidgetTester tester, int index) async {
+      await _dismissAutocomplete(tester);
+      await tester.tap(find.byKey(ValueKey('figure-$index-more-options')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets(
+      'changing hey length half->full recomputes 8->16 when untouched',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts);
+        await _selectMove(tester, 0, 'hey', 'hey');
+        // The default half hey derives 8 beats and stays unowned.
+        expect(drafts.single.move, 'hey');
+        expect(drafts.single.beats, 8);
+        expect(drafts.single.beatsTouched, isFalse);
+
+        await revealMore(tester, 0);
+        await _selectDropdownOption(tester, 'figure-0-length', 'full');
+        // A full hey re-derives to 16 (ContraDB meetTimes 2 * 8).
+        expect(drafts.single.params['length'], 'full');
+        expect(drafts.single.beats, 16);
+        expect(drafts.single.beatsTouched, isFalse);
+      },
+    );
+
+    testWidgets('a manual beats override survives a hey length change', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'hey', 'hey');
+      await revealMore(tester, 0);
+
+      // Editing beats directly takes ownership of the value.
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-beats')),
+        '12',
+      );
+      await tester.pumpAndSettle();
+      expect(drafts.single.beats, 12);
+      expect(drafts.single.beatsTouched, isTrue);
+
+      // Flipping length must not clobber the manual override.
+      await _selectDropdownOption(tester, 'figure-0-length', 'full');
+      expect(drafts.single.params['length'], 'full');
+      expect(drafts.single.beats, 12);
+    });
+
+    testWidgets(
+      'a full move change resets beats after a param-driven recompute',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts);
+        await _selectMove(tester, 0, 'hey', 'hey');
+        await revealMore(tester, 0);
+        await _selectDropdownOption(tester, 'figure-0-length', 'full');
+        expect(drafts.single.beats, 16);
+
+        // Switching moves resets to the new move's canonical default and
+        // clears ownership (preserving #131 behavior).
+        await _selectMove(tester, 0, 'ba', 'balance');
+        expect(drafts.single.move, 'balance');
+        expect(drafts.single.beats, 4);
+        expect(drafts.single.beatsTouched, isFalse);
+      },
+    );
+
+    testWidgets(
+      'toggling rory_o_more balance recomputes beats 8<->4 when untouched',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts);
+        await _selectMove(tester, 0, 'rory', 'rory_o_more');
+        // A balanced Rory O'More derives 8 beats and stays unowned.
+        expect(drafts.single.move, 'rory_o_more');
+        expect(drafts.single.params['balance'], true);
+        expect(drafts.single.beats, 8);
+        expect(drafts.single.beatsTouched, isFalse);
+
+        // Dropping the balance (a flag param) re-derives to 4 beats.
+        await _dismissAutocomplete(tester);
+        await tester.tap(find.byKey(const ValueKey('figure-0-balance')));
+        await tester.pumpAndSettle();
+        expect(drafts.single.params['balance'], false);
+        expect(drafts.single.beats, 4);
+        expect(drafts.single.beatsTouched, isFalse);
+      },
+    );
+  });
 }
