@@ -414,7 +414,7 @@ defaults) live in the **Defaults** pane section below.
   preference*; the underlying serialization is shared with 6.6. Persisted
   (reminder cadence + last-backup timestamp) via `SettingsRepository`.
 
-- [ ] G.7 **Accessibility preferences** — app-wide a11y toggles grounded in
+- [x] G.7 **Accessibility preferences** — app-wide a11y toggles grounded in
   `research/accessibility-baseline.md`: reduce-motion (dampen non-essential
   animation), always-verbose figure rendering (always apply the roadmap 5.4
   screen-reader/verbose figure rendering in the dance view, not only for AT),

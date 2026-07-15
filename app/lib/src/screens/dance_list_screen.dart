@@ -12,6 +12,7 @@ import '../data/sort_ignore_articles_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
+import '../utils/confirm_delete.dart';
 import '../widgets/advanced_query_builder.dart';
 import '../widgets/batch_tag_dialog.dart';
 import '../widgets/by_phrase_panel.dart';
@@ -849,6 +850,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
         return Dismissible(
           key: ValueKey('dismissible-${entry.dance.id}'),
           direction: DismissDirection.endToStart,
+          confirmDismiss: (_) =>
+              confirmDeleteIfEnabled(context, itemLabel: entry.dance.title),
           onDismissed: (_) =>
               _softDeleteFromList(entry.dance.id, entry.dance.title),
           background: Container(

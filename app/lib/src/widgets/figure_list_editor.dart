@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
+import '../data/reduce_motion_scope.dart';
 import 'figure_param_editors.dart';
 import 'move_autocomplete.dart';
 
@@ -433,12 +434,16 @@ class _FigureListEditorState extends State<FigureListEditor> {
   }
 
   void _ensureVisibleSoon(String id) {
+    // Respect "Reduce motion" (ROADMAP G.7): jump instantly when it's on.
+    final reduceMotion = ReduceMotionScope.of(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctx = _rowFocusNodes[id]?.context;
       if (ctx != null && ctx.mounted) {
         Scrollable.ensureVisible(
           ctx,
-          duration: const Duration(milliseconds: 200),
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
           alignment: 0.1,
         );
       }
