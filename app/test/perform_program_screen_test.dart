@@ -9,6 +9,8 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/screens/settings_screen.dart'
+    show kAutoSizePerformKey;
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
 
@@ -70,15 +72,20 @@ Future<void> _pumpProgram(
   required CollectionData data,
   int initialGroup = 0,
   Dialect? activeDialect,
+  bool autoSize = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1400, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final repos = openTestRepositories();
+  await repos.settings.set(kAutoSizePerformKey, autoSize);
   await tester.pumpWidget(
     MaterialApp(
-      builder: (context, child) =>
-          ActiveDialectScope(notifier: notifier, child: child!),
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(notifier: notifier, child: child!),
+      ),
       home: PerformProgramScreen(
         program: program,
         data: data,
@@ -714,5 +721,62 @@ void main() {
     );
 
     handle.dispose();
+  });
+
+  group('auto-size (ROADMAP G.1)', () {
+    testWidgets('recomputes the fit when navigating to another slot', (
+      tester,
+    ) async {
+      final data = await _dataWith([
+        _dance(id: 'd1', title: 'Short'),
+        _dance(id: 'd2', title: 'Short'),
+      ]);
+      final program = _program([
+        _slot(id: 's1', position: 0, danceId: 'd1'),
+        _slot(id: 's2', position: 1, text: 'Break — grab water and rest up'),
+      ]);
+
+      await _pumpProgram(tester, program: program, data: data, autoSize: true);
+
+      // First slot is a dance card; auto-size settled without overflow.
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('perform-title')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pumpAndSettle();
+
+      // Second slot is a text-only card; the fit recomputes cleanly.
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('perform-text')), findsOneWidget);
+    });
+
+    testWidgets('auto-size toggle is AT-reachable and reflects its state', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      final data = await _dataWith([_dance(id: 'd1', title: 'Short')]);
+      final program = _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
+
+      await _pumpProgram(tester, program: program, data: data, autoSize: true);
+
+      final toggle = find.byKey(const ValueKey('perform-autosize-toggle'));
+      expect(
+        tester.getSemantics(toggle),
+        isSemantics(
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+          hasToggledState: true,
+          isToggled: true,
+        ),
+      );
+
+      // Using A- hands control back to manual sizing.
+      await tester.tap(find.byKey(const ValueKey('decrease-text-size')));
+      await tester.pumpAndSettle();
+      expect(tester.getSemantics(toggle), isSemantics(isToggled: false));
+
+      handle.dispose();
+    });
   });
 }

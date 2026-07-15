@@ -6,10 +6,12 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/repositories_scope.dart';
 import '../search/collection_data.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
+import 'settings_screen.dart' show kAutoSizePerformKey;
 
 /// Full-screen, large-print performance view for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
@@ -82,6 +84,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   double _textScale = kPerformDefaultScale;
   bool _canonicalView = false;
 
+  /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the
+  /// General setting (on by default) in [didChangeDependencies]; recomputes per
+  /// slot as the shown dance/slot changes.
+  bool _autoSize = true;
+  bool _autoSizeLoaded = false;
+
+  /// Set once the user changes auto-size in-view (toggle or A-/A+). Guards the
+  /// async settings load from overwriting an in-session choice if the read
+  /// completes after the user has already acted.
+  bool _autoSizeUserSet = false;
+
   /// Ephemeral, in-view timing state (`docs/ROADMAP.md` §5.2). Timing is a
   /// display-only aid for the caller during an event: never persisted and never
   /// written back to the program (that is 5.3 territory).
@@ -120,6 +133,24 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_autoSizeLoaded) return;
+    _autoSizeLoaded = true;
+    RepositoriesScope.of(context).settings
+        .get(kAutoSizePerformKey)
+        .then((v) {
+          // Don't clobber an in-view choice the user made before the read resolved.
+          if (!mounted || _autoSizeUserSet) return;
+          final enabled = v is bool ? v : true;
+          if (enabled != _autoSize) setState(() => _autoSize = enabled);
+        })
+        .catchError((_) {
+          // Read failure: keep the on-by-default value; nothing to restore.
+        });
+  }
+
   /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
   void _resetSlotTimer() => _slotStartSeconds = _elapsedSeconds;
 
@@ -142,6 +173,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   void _decreaseTextSize() {
     setState(() {
+      // Using A-/A+ hands control back to the manual size (ROADMAP G.1).
+      _autoSizeUserSet = true;
+      _autoSize = false;
       _textScale = (_textScale - kPerformScaleStep).clamp(
         kPerformMinScale,
         double.infinity,
@@ -150,7 +184,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   void _increaseTextSize() {
-    setState(() => _textScale += kPerformScaleStep);
+    setState(() {
+      _autoSizeUserSet = true;
+      _autoSize = false;
+      _textScale += kPerformScaleStep;
+    });
   }
 
   bool get _hasPrev => _groupIndex > 0;
@@ -436,6 +474,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               onDecrease: _decreaseTextSize,
               onIncrease: _increaseTextSize,
             ),
+            PerformAutoSizeToggle(
+              autoSizeOn: _autoSize,
+              onChanged: (value) => setState(() {
+                _autoSizeUserSet = true;
+                _autoSize = value;
+              }),
+            ),
             if (!isCanonicalDialect)
               PerformDialectToggle(
                 canonical: _canonicalView,
@@ -641,12 +686,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           renderer: widget.renderer,
           dialect: dialect,
           textScale: _textScale,
+          autoSize: _autoSize,
           authorNames: _authorNamesFor(dance),
         );
       }
     }
     // Free-text-only slot (or an unresolved dance id): a simple large-print
     // text card with no figures.
-    return PerformTextCard(text: _slotLabel(slot), textScale: _textScale);
+    return PerformTextCard(
+      text: _slotLabel(slot),
+      textScale: _textScale,
+      autoSize: _autoSize,
+    );
   }
 }

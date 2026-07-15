@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/perform_dance_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/search/collection_data.dart';
@@ -33,11 +34,14 @@ Future<void> _pushPerform(WidgetTester tester, Widget screen) async {
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final repos = openTestRepositories();
 
   await tester.pumpWidget(
     MaterialApp(
-      builder: (context, child) =>
-          ActiveDialectScope(notifier: notifier, child: child!),
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(notifier: notifier, child: child!),
+      ),
       home: Builder(
         builder: (context) => Scaffold(
           body: Center(

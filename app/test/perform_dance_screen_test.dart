@@ -7,6 +7,8 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_dance_screen.dart';
+import 'package:compendium_app/src/screens/settings_screen.dart'
+    show kAutoSizePerformKey;
 import 'package:compendium_app/src/theme/color_schemes.dart';
 
 import 'support/test_repositories.dart';
@@ -40,15 +42,21 @@ Future<void> _pumpPerform(
   required Dance dance,
   List<String> authorNames = const [],
   Dialect? activeDialect,
+  bool autoSize = false,
+  Size surfaceSize = const Size(1400, 2400),
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1400, 2400));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final repos = openTestRepositories();
+  await repos.settings.set(kAutoSizePerformKey, autoSize);
   await tester.pumpWidget(
     MaterialApp(
-      builder: (context, child) =>
-          ActiveDialectScope(notifier: notifier, child: child!),
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(notifier: notifier, child: child!),
+      ),
       home: PerformDanceScreen(
         dance: dance,
         renderer: _renderer,
@@ -351,5 +359,133 @@ void main() {
 
     expect(find.byType(PerformDanceScreen), findsNothing);
     expect(find.byType(DanceDetailScreen), findsOneWidget);
+  });
+
+  group('auto-size (ROADMAP G.1)', () {
+    testWidgets(
+      'grows the text beyond the manual default to fill the viewport',
+      (tester) async {
+        await _pumpPerform(
+          tester,
+          dance: _dance(title: 'Fizz', figures: [_chain()]),
+          autoSize: true,
+        );
+
+        // A short dance on a large surface auto-scales beyond the manual
+        // large-print default (the effective text scaler at the title, over
+        // the unit system scale used in tests, exceeds kPerformDefaultScale).
+        final titleElement = tester.element(
+          find.byKey(const ValueKey('perform-title')),
+        );
+        final effectiveScale = MediaQuery.of(titleElement).textScaler.scale(1);
+        expect(effectiveScale, greaterThan(kPerformDefaultScale));
+      },
+    );
+
+    testWidgets('chooses a larger scale on a taller viewport', (tester) async {
+      final titleFinder = find.byKey(const ValueKey('perform-title'));
+      final dance = _dance(
+        title: 'Fizz',
+        figures: [_chain(), _chain(), _chain(), _chain()],
+      );
+
+      await _pumpPerform(
+        tester,
+        dance: dance,
+        autoSize: true,
+        surfaceSize: const Size(1400, 900),
+      );
+      final shortWidth = tester.getSize(titleFinder).width;
+
+      await _pumpPerform(
+        tester,
+        dance: dance,
+        autoSize: true,
+        surfaceSize: const Size(1400, 2400),
+      );
+      final tallWidth = tester.getSize(titleFinder).width;
+
+      expect(tallWidth, greaterThan(shortWidth));
+    });
+
+    testWidgets('a long dance on a small screen scrolls without overflowing', (
+      tester,
+    ) async {
+      await _pumpPerform(
+        tester,
+        dance: _dance(
+          title: 'A very long dance indeed',
+          figures: List.filled(12, _chain()),
+        ),
+        autoSize: true,
+        surfaceSize: const Size(400, 300),
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(SingleChildScrollView), findsWidgets);
+    });
+
+    testWidgets('tapping A+ hands control back to the manual size', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pumpPerform(
+        tester,
+        dance: _dance(title: 'Fizz', figures: [_chain()]),
+        autoSize: true,
+      );
+
+      final toggle = find.byKey(const ValueKey('perform-autosize-toggle'));
+      expect(tester.getSemantics(toggle), isSemantics(isToggled: true));
+
+      await tester.tap(find.byKey(const ValueKey('increase-text-size')));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSemantics(toggle),
+        isSemantics(isToggled: false),
+        reason: 'using A+ switches the session to manual sizing',
+      );
+      handle.dispose();
+    });
+
+    testWidgets('auto-size toggle is AT-reachable and reflects its state', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pumpPerform(
+        tester,
+        dance: _dance(figures: [_chain()]),
+        autoSize: true,
+      );
+
+      final toggle = find.byKey(const ValueKey('perform-autosize-toggle'));
+      expect(
+        tester.getSemantics(toggle),
+        isSemantics(
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+          hasToggledState: true,
+          isToggled: true,
+        ),
+        reason: 'auto-size toggle must announce its on state',
+      );
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getSemantics(toggle),
+        isSemantics(
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+          hasToggledState: true,
+          isToggled: false,
+        ),
+        reason: 'auto-size toggle must announce its off state after tapping',
+      );
+      handle.dispose();
+    });
   });
 }
