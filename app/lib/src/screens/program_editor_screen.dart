@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import 'package:printing/printing.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
@@ -134,6 +135,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _callerController.text = program.caller ?? '';
         _levelController.text = program.dancerLevel ?? '';
         _notesController.text = program.notes;
+      } else if (widget.isNew) {
+        // ROADMAP G.3: prefill a new program's caller/band from saved defaults.
+        // Only seeds a still-blank field, never overrides; a settings read
+        // failure falls back silently to a blank field.
+        await _prefillNewProgramDefaults();
       }
       setState(() {
         _data = data;
@@ -150,6 +156,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           _loaded = true;
         });
       }
+    }
+  }
+
+  /// Seeds the caller/band controllers for a NEW program from the saved G.3
+  /// defaults, only when the controller is still blank. A settings read failure
+  /// is swallowed so the editor still opens (with blank fields).
+  Future<void> _prefillNewProgramDefaults() async {
+    try {
+      if (_callerController.text.isEmpty) {
+        final caller = await _repos.settings.get(kDefaultProgramCallerKey);
+        if (caller is String && caller.isNotEmpty) {
+          _callerController.text = caller;
+        }
+      }
+      if (_bandController.text.isEmpty) {
+        final band = await _repos.settings.get(kDefaultProgramBandKey);
+        if (band is String && band.isNotEmpty) {
+          _bandController.text = band;
+        }
+      }
+    } catch (_) {
+      // Leave the fields blank if defaults can't be read.
     }
   }
 

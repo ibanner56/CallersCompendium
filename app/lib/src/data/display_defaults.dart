@@ -16,6 +16,16 @@ library;
 /// list falls back to its historical default (`title`).
 const String kDefaultCollectionSortKey = 'default_collection_sort';
 
+/// Key used to persist the default caller name for new programs (ROADMAP G.3).
+/// Free text; prefills a NEW program's caller in the program editor. Absent or
+/// empty ⇒ no prefill (the field opens blank).
+const String kDefaultProgramCallerKey = 'default_program_caller';
+
+/// Key used to persist the default band for new programs (ROADMAP G.3).
+/// Free text; prefills a NEW program's band in the program editor. Absent or
+/// empty ⇒ no prefill (the field opens blank).
+const String kDefaultProgramBandKey = 'default_program_band';
+
 /// Key used to persist the default dance-detail rendering (ROADMAP G.6b).
 /// Stored as the [DanceDetailRendering] enum's stable `.name`. Absent/invalid ⇒
 /// [DanceDetailRendering.activeDialect] (the historical default).

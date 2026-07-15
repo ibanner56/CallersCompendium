@@ -122,6 +122,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _defaultSortUserSet = false;
   bool _defaultRenderingUserSet = false;
 
+  /// Default caller/band for new programs (ROADMAP G.3). Free text seeded once
+  /// from storage into these controllers; a late read must not clobber text the
+  /// user typed first, so each has its own user-set guard.
+  final TextEditingController _defaultProgramCaller = TextEditingController();
+  final TextEditingController _defaultProgramBand = TextEditingController();
+  bool _defaultCallerUserSet = false;
+  bool _defaultBandUserSet = false;
+
   /// Lazily loads the persisted Display defaults the first time the Defaults
   /// section is built. Mirrors [_ensureAutoSizeLoaded]: a late read must not
   /// clobber a selection the user made before it resolved (per-setting guards).
@@ -159,6 +167,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 DanceDetailRendering.activeDialect,
           );
         });
+    repos.settings
+        .get(kDefaultProgramCallerKey)
+        .then((stored) {
+          if (!mounted || _defaultCallerUserSet) return;
+          if (stored is String && stored.isNotEmpty) {
+            _defaultProgramCaller.text = stored;
+          }
+        })
+        .catchError((_) {
+          /* fall back to a blank caller field */
+        });
+    repos.settings
+        .get(kDefaultProgramBandKey)
+        .then((stored) {
+          if (!mounted || _defaultBandUserSet) return;
+          if (stored is String && stored.isNotEmpty) {
+            _defaultProgramBand.text = stored;
+          }
+        })
+        .catchError((_) {
+          /* fall back to a blank band field */
+        });
+  }
+
+  Future<void> _onDefaultProgramCallerChanged(String value) async {
+    _defaultCallerUserSet = true;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kDefaultProgramCallerKey, value);
+  }
+
+  Future<void> _onDefaultProgramBandChanged(String value) async {
+    _defaultBandUserSet = true;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kDefaultProgramBandKey, value);
+  }
+
+  @override
+  void dispose() {
+    _defaultProgramCaller.dispose();
+    _defaultProgramBand.dispose();
+    super.dispose();
   }
 
   Future<void> _onDefaultCollectionSortChanged(CollectionSort value) async {
@@ -256,6 +305,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case _SettingsSection.defaults:
         _ensureDefaultsLoaded(context);
         return _DefaultsView(
+          programCallerController: _defaultProgramCaller,
+          onDefaultProgramCallerChanged: _onDefaultProgramCallerChanged,
+          programBandController: _defaultProgramBand,
+          onDefaultProgramBandChanged: _onDefaultProgramBandChanged,
           defaultCollectionSort: _defaultCollectionSort ?? CollectionSort.title,
           onDefaultCollectionSortChanged: _onDefaultCollectionSortChanged,
           defaultDanceDetailRendering:
@@ -1222,12 +1275,20 @@ class _SectionHeader extends StatelessWidget {
 /// subsection is stubbed until it is wired.
 class _DefaultsView extends StatelessWidget {
   const _DefaultsView({
+    required this.programCallerController,
+    required this.onDefaultProgramCallerChanged,
+    required this.programBandController,
+    required this.onDefaultProgramBandChanged,
     required this.defaultCollectionSort,
     required this.onDefaultCollectionSortChanged,
     required this.defaultDanceDetailRendering,
     required this.onDefaultDanceDetailRenderingChanged,
   });
 
+  final TextEditingController programCallerController;
+  final ValueChanged<String> onDefaultProgramCallerChanged;
+  final TextEditingController programBandController;
+  final ValueChanged<String> onDefaultProgramBandChanged;
   final CollectionSort defaultCollectionSort;
   final ValueChanged<CollectionSort> onDefaultCollectionSortChanged;
   final DanceDetailRendering defaultDanceDetailRendering;
@@ -1247,6 +1308,35 @@ class _DefaultsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       children: [
+        _SectionHeader(title: 'Program defaults'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: TextField(
+            key: const ValueKey('defaults-program-caller'),
+            controller: programCallerController,
+            onChanged: onDefaultProgramCallerChanged,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Default caller',
+              helperText: 'Prefilled into new programs; editable per program.',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: TextField(
+            key: const ValueKey('defaults-program-band'),
+            controller: programBandController,
+            onChanged: onDefaultProgramBandChanged,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Default band',
+              helperText: 'Prefilled into new programs; editable per program.',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
         _SectionHeader(title: 'Display defaults'),
         ListTile(
           title: const Text('Collection sort order'),

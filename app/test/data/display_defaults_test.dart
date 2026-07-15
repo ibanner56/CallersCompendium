@@ -27,4 +27,11 @@ void main() {
       },
     );
   });
+
+  group('program defaults keys (G.3)', () {
+    test('use their stable stored key strings', () {
+      expect(kDefaultProgramCallerKey, 'default_program_caller');
+      expect(kDefaultProgramBandKey, 'default_program_band');
+    });
+  });
 }
