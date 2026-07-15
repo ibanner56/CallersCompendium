@@ -26,7 +26,21 @@ class FigureRenderer {
   /// Display text for [figure] under [dialect] (roles + move names mapped).
   String render(Figure figure, Dialect dialect) => _render(figure, dialect);
 
-  String _render(Figure figure, Dialect dialect) {
+  /// A verbose, spoken-friendly rendering of [figure] under [dialect] for
+  /// assistive tech (accessibility baseline "Robust"; figure-taxonomy.md §5.4).
+  ///
+  /// Distinct from [render]: it expands compressed notation glyphs into
+  /// spelled-out words so a screen reader announces figures cleanly (e.g.
+  /// `neighbors allemande left 1½` becomes `neighbors allemande left one and a
+  /// half times`). Move names, roles/dancers, hands, places, directions and
+  /// free text already read as words, so they render exactly as in [render] —
+  /// keeping the verbose form dialect-aware and identical in wording except for
+  /// the glyph-free counts. This is surfaced only via `Semantics` labels; the
+  /// visible on-screen text stays terse.
+  String renderVerbose(Figure figure, Dialect dialect) =>
+      _render(figure, dialect, verbose: true);
+
+  String _render(Figure figure, Dialect dialect, {bool verbose = false}) {
     if (figure.isCustom) {
       final text = (figure.params['text'] as String?)?.trim() ?? '';
       return text.isEmpty ? customMove : renderFreeText(text, dialect);
@@ -46,7 +60,13 @@ class FigureRenderer {
       if (name == 'move') {
         return _renderMoveName(def.id, displayName, params, dialect);
       }
-      return _renderValue(name, params[name], def.params[name], dialect);
+      return _renderValue(
+        name,
+        params[name],
+        def.params[name],
+        dialect,
+        verbose,
+      );
     });
     return _collapseSpaces(rendered);
   }
@@ -70,6 +90,7 @@ class FigureRenderer {
     Object? value,
     ParamSpec? spec,
     Dialect dialect,
+    bool verbose,
   ) {
     if (value == null) return '';
     if (value is String && roleTokens.contains(value)) {
@@ -82,7 +103,10 @@ class FigureRenderer {
       if (substitution != null) return substitution;
     }
     if (spec?.kind == ParamKind.rotation && value is num) {
-      return _formatRotation(value);
+      return verbose ? _formatRotationVerbose(value) : _formatRotation(value);
+    }
+    if (spec?.kind == ParamKind.fraction && value is String && verbose) {
+      return _formatFractionVerbose(value);
     }
     if (spec?.kind == ParamKind.places && value is int) {
       return _formatPlaces(value);
@@ -144,5 +168,78 @@ class FigureRenderer {
     if (whole == 0) return fracStr ?? _formatNumber(turns);
     if (fracStr == null) return '$whole';
     return '$whole$fracStr';
+  }
+
+  /// Spoken-friendly rotation, free of the notation glyphs [_formatRotation]
+  /// uses. Whole turns keep the caller words `once`/`twice`; mixed turns spell
+  /// the fraction out (`one and a half times`); fractions of a single turn read
+  /// as travel around the ring (`three quarters of the way`).
+  static String _formatRotationVerbose(num turns) {
+    final whole = turns ~/ 1;
+    final frac = turns - whole;
+    final fracWord = frac == 0.25
+        ? 'a quarter'
+        : frac == 0.5
+        ? 'a half'
+        : frac == 0.75
+        ? 'three quarters'
+        : null;
+    if (frac == 0) {
+      if (whole == 1) return 'once';
+      if (whole == 2) return 'twice';
+      return '$whole times';
+    }
+    if (whole == 0) {
+      // A partial single turn: describe travel around the ring.
+      switch (fracWord) {
+        case 'a quarter':
+          return 'a quarter of the way';
+        case 'a half':
+          return 'halfway';
+        case 'three quarters':
+          return 'three quarters of the way';
+      }
+      return _formatNumber(turns);
+    }
+    final wholeWord = _numberWord(whole);
+    if (fracWord == null) return '$wholeWord times';
+    return '$wholeWord and $fracWord times';
+  }
+
+  /// Spelled-out fraction words for [ParamKind.fraction], avoiding the
+  /// camelCase humanization ([_humanize] turns `threeQuarter` into
+  /// `three quarter`) that reads awkwardly aloud.
+  static String _formatFractionVerbose(String fraction) {
+    switch (fraction) {
+      case 'quarter':
+        return 'a quarter';
+      case 'half':
+        return 'half';
+      case 'threeQuarter':
+        return 'three quarters';
+      case 'full':
+        return 'the whole way';
+      default:
+        return _humanize(fraction);
+    }
+  }
+
+  /// Small whole-number words for spoken rotation counts (`one`, `two`, …),
+  /// falling back to digits beyond the range figures ever use.
+  static String _numberWord(int n) {
+    const words = [
+      'zero',
+      'one',
+      'two',
+      'three',
+      'four',
+      'five',
+      'six',
+      'seven',
+      'eight',
+      'nine',
+      'ten',
+    ];
+    return (n >= 0 && n < words.length) ? words[n] : n.toString();
   }
 }

@@ -203,4 +203,109 @@ void main() {
       );
     });
   });
+
+  group('verbose (spoken-friendly) rendering', () {
+    test('spells out mixed-turn rotations, no glyphs', () {
+      expect(
+        renderer.renderVerbose(
+          Figure(move: 'allemande', params: {'hand': 'left', 'turn': 1.5}),
+          larks,
+        ),
+        'neighbors allemande left one and a half times',
+      );
+      expect(
+        renderer.renderVerbose(
+          Figure(move: 'allemande', params: {'turn': 2.5}),
+          larks,
+        ),
+        'neighbors allemande right two and a half times',
+      );
+    });
+
+    test('keeps caller words for whole turns', () {
+      expect(
+        renderer.renderVerbose(
+          Figure(move: 'do_si_do', params: {'who': 'partners'}),
+          larks,
+        ),
+        'partners do si do once',
+      );
+      expect(
+        renderer.renderVerbose(
+          Figure(move: 'allemande', params: {'turn': 2}),
+          larks,
+        ),
+        'neighbors allemande right twice',
+      );
+    });
+
+    test('describes partial single turns as travel around the ring', () {
+      String r(num t) => renderer.renderVerbose(
+        Figure(move: 'allemande', params: {'turn': t}),
+        larks,
+      );
+      expect(r(0.25), endsWith('a quarter of the way'));
+      expect(r(0.5), endsWith('halfway'));
+      expect(r(0.75), endsWith('three quarters of the way'));
+    });
+
+    test('output carries no notation glyphs', () {
+      for (final t in [0.25, 0.5, 0.75, 1, 1.5, 2, 2.5]) {
+        final out = renderer.renderVerbose(
+          Figure(move: 'allemande', params: {'turn': t}),
+          larks,
+        );
+        expect(
+          RegExp('[¼½¾]').hasMatch(out),
+          isFalse,
+          reason: 'verbose "$out" must not contain a fraction glyph',
+        );
+      }
+    });
+
+    test('is dialect-aware: role and dancer terms map like display', () {
+      expect(
+        renderer.renderVerbose(
+          Figure(move: 'swing', params: {'who': 'role1s'}),
+          larks,
+        ),
+        'Larks swing',
+      );
+      expect(
+        renderer.renderVerbose(Figure(move: 'chain'), larks),
+        'Robins chain across',
+      );
+    });
+
+    test('spells out fraction params without camelCase', () {
+      expect(
+        renderer.renderVerbose(
+          Figure(move: 'figure_8', params: {'half': 'threeQuarter'}),
+          larks,
+        ),
+        'ones figure 8 three quarters',
+      );
+      expect(
+        renderer.renderVerbose(
+          Figure(move: 'figure_8', params: {'half': 'full'}),
+          larks,
+        ),
+        'ones figure 8 the whole way',
+      );
+    });
+
+    test('custom free text and unknown moves match render', () {
+      expect(
+        renderer.renderVerbose(
+          Figure(move: customMove, params: {'text': 'weave the ring'}),
+          larks,
+        ),
+        'weave the ring',
+      );
+      expect(
+        renderer.renderVerbose(Figure(move: 'mystery_move'), larks),
+        'mystery_move',
+      );
+    });
+  });
 }

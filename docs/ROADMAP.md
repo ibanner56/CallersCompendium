@@ -318,7 +318,7 @@ design/domain-model.md "CC parity backfill".*
   4b.4 privacy invariant — authors render by name only, so choreographer contact
   fields never enter a shared export (regression-tested).
 - [ ] 5.3 On-the-fly program adjustments during an event
-- [ ] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
+- [x] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
   rendering of figures for assistive tech (distinct from the terse canonical/dialect
   display text), per the accessibility baseline ([research/accessibility-baseline.md](research/accessibility-baseline.md)) and
   the [figure-taxonomy.md](design/figure-taxonomy.md) "verbose rendering still TODO" note. Applies to the dance
