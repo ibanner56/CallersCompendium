@@ -649,14 +649,33 @@ void main() {
     expect(find.byTooltip('Export or print matrix as PDF'), findsOneWidget);
     // Actionable: the button has an onPressed callback.
     expect(tester.widget<IconButton>(control).onPressed, isNotNull);
-    // Reachable by keyboard/assistive tech: the control exposes an enabled,
-    // labelled button with a tap action in the semantics tree (not colour/icon
+
+    // Assistive-tech reachable: the control exposes an enabled, tappable button
+    // with the expected accessible label in the semantics tree (not colour/icon
     // alone).
     final handle = tester.ensureSemantics();
-    final data = tester.getSemantics(control).getSemanticsData();
-    expect(data.hasAction(SemanticsAction.tap), isTrue);
-    expect(data.tooltip, 'Export or print matrix as PDF');
+    final semantics = tester.getSemantics(control).getSemanticsData();
+    expect(semantics.hasAction(SemanticsAction.tap), isTrue);
+    expect(semantics.tooltip, 'Export or print matrix as PDF');
     handle.dispose();
+
+    // Keyboard-reachable: the enabled button establishes a focus node that can
+    // accept focus and, once requested, becomes the primary focus. Resolved via
+    // Focus.of from a descendant (the icon) with scopeOk: false, so it returns
+    // the IconButton's own (non-scope) focus node and cannot silently fall back
+    // to a surrounding FocusScope — exercising the real focus path a keyboard/Tab
+    // user relies on.
+    final iconContext = tester.element(
+      find.descendant(
+        of: control,
+        matching: find.byIcon(Icons.picture_as_pdf_outlined),
+      ),
+    );
+    final focusNode = Focus.of(iconContext, scopeOk: false);
+    expect(focusNode.canRequestFocus, isTrue);
+    focusNode.requestFocus();
+    await tester.pump();
+    expect(focusNode.hasPrimaryFocus, isTrue);
   });
 
   testWidgets('Matrix export control is disabled for an empty matrix', (
