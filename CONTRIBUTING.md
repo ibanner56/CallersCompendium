@@ -114,9 +114,15 @@ Studio's Device Manager) if the list is empty.
 simulator on Linux or Windows):
 
 ```sh
-open -a Simulator                # boot the iOS Simulator
-cd app && fvm flutter run -d ios # or `-d "iPhone 15"` to target a named simulator
+open -a Simulator                     # boot the iOS Simulator
+cd app && fvm flutter devices         # find the booted simulator's id/name
+cd app && fvm flutter run -d "iPhone 17"  # target it by name (or paste its device id)
 ```
+
+`-d` matches a device **id or name**, not a platform — there is no `-d ios`
+shortcut, so pick a booted simulator from `fvm flutter devices` and pass its
+name (e.g. `"iPhone 17"`) or its UDID. If `fvm flutter run` finds only one
+mobile target it will use it automatically.
 
 Once a simulator/emulator is booted it shows up in `fvm flutter devices`, so you
 can also select it with `-d <id>` when several targets are attached. Hot reload
