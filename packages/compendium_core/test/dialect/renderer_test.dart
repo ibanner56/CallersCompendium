@@ -215,6 +215,20 @@ void main() {
       );
       expect(
         renderer.renderVerbose(
+          Figure(move: 'allemande', params: {'turn': 1.25}),
+          larks,
+        ),
+        'neighbors allemande right one and a quarter times',
+      );
+      expect(
+        renderer.renderVerbose(
+          Figure(move: 'allemande', params: {'turn': 1.75}),
+          larks,
+        ),
+        'neighbors allemande right one and three quarters times',
+      );
+      expect(
+        renderer.renderVerbose(
           Figure(move: 'allemande', params: {'turn': 2.5}),
           larks,
         ),

@@ -202,7 +202,11 @@ class FigureRenderer {
       return _formatNumber(turns);
     }
     final wholeWord = _numberWord(whole);
-    if (fracWord == null) return '$wholeWord times';
+    if (fracWord == null) {
+      // A fraction outside the quarter-turn vocabulary (only reachable via
+      // out-of-domain data): keep the numeric value rather than dropping it.
+      return '${_formatNumber(turns)} times';
+    }
     return '$wholeWord and $fracWord times';
   }
 
