@@ -302,7 +302,10 @@ class DanceRepository {
   }) async {
     final query = _db.selectOnly(_db.dances)
       ..addColumns([_db.dances.id, _db.dances.title])
-      ..orderBy([OrderingTerm(expression: _db.dances.title)]);
+      ..orderBy([
+        OrderingTerm(expression: _db.dances.title),
+        OrderingTerm(expression: _db.dances.id),
+      ]);
     if (!includeDeleted) {
       query.where(_db.dances.deletedAt.isNull());
     }
