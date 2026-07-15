@@ -449,7 +449,7 @@ taxonomy are unchanged.
   `SettingsRepository` (store the template as the same `figures_json` shape used
   for a dance's figures).
 
-- [ ] DD.3 **Per-move figure-entry defaults** — user-configurable default
+- [x] DD.3 **Per-move figure-entry defaults** — user-configurable default
   parameter values applied when INSERTING a given move during dance entry,
   overriding that move's built-in taxonomy `MoveDef` defaults *locally* (the
   canonical `MoveDef` defaults remain the fallback and the shipped taxonomy is

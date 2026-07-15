@@ -1738,4 +1738,44 @@ void main() {
       expect(saved.figures.single.move, 'swing');
     });
   });
+
+  group('per-move insert defaults (DD.3)', () {
+    testWidgets('inserting a move applies the saved param override', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // Blank starting template so figure-add yields figure 0.
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([]),
+      );
+      // Configure a per-move default: circle turns right (default is left).
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'circle': {'turn': 'right'},
+        }),
+      );
+      await _pumpEditor(tester, repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Circled',
+      );
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await _selectMoveInEditor(tester, 0, 'circle', 'circle');
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final figure = (await repos.dances.listAll()).single.figures.single;
+      expect(figure.move, 'circle');
+      // Overridden param takes the configured value...
+      expect(figure.params['turn'], 'right');
+      // ...while non-overridden params keep the taxonomy defaults.
+      expect(figure.params['places'], 4);
+      expect(figure.params['beats'], 8);
+    });
+  });
 }

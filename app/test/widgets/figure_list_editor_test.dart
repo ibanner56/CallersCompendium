@@ -11,11 +11,13 @@ class _Host extends StatefulWidget {
     required this.drafts,
     this.phrase = PhraseStructure.standard,
     this.wireDuplicate = true,
+    this.moveParamDefaults,
   });
 
   final List<FigureDraft> drafts;
   final PhraseStructure phrase;
   final bool wireDuplicate;
+  final Map<String, Map<String, Object?>>? moveParamDefaults;
 
   @override
   State<_Host> createState() => _HostState();
@@ -31,6 +33,7 @@ class _HostState extends State<_Host> {
             drafts: widget.drafts,
             taxonomy: contraTaxonomy,
             phraseStructure: widget.phrase,
+            moveParamDefaults: widget.moveParamDefaults,
             onChanged: () => setState(() {}),
             onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
             onDelete: (d) => setState(() => widget.drafts.remove(d)),
@@ -66,11 +69,17 @@ Future<void> _pump(
   List<FigureDraft> drafts, {
   PhraseStructure phrase = PhraseStructure.standard,
   bool wireDuplicate = true,
+  Map<String, Map<String, Object?>>? moveParamDefaults,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
-    _Host(drafts: drafts, phrase: phrase, wireDuplicate: wireDuplicate),
+    _Host(
+      drafts: drafts,
+      phrase: phrase,
+      wireDuplicate: wireDuplicate,
+      moveParamDefaults: moveParamDefaults,
+    ),
   );
   await tester.pumpAndSettle();
 }
@@ -254,6 +263,74 @@ void main() {
         contraTaxonomy.effectiveParams(Figure(move: move))['beats'] as int;
     expect(beatsFor('swing'), 8);
     expect(beatsFor('balance'), 4);
+  });
+
+  group('per-move insert defaults (DD.3)', () {
+    testWidgets('overlay overrides the taxonomy default on select', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'circle': {'turn': 'right'},
+        },
+      );
+      await _selectMove(tester, 0, 'circle', 'circle');
+
+      expect(drafts.single.move, 'circle');
+      // Overridden param takes the configured value...
+      expect(drafts.single.params['turn'], 'right');
+      // ...while non-overridden params keep their taxonomy defaults.
+      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['beats'], 8);
+    });
+
+    testWidgets('no override for the move uses pure taxonomy defaults', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'star': {'places': 2},
+        },
+      );
+      await _selectMove(tester, 0, 'circle', 'circle');
+
+      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.params['places'], 4);
+    });
+
+    testWidgets('stale override key not in the move schema is ignored', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'circle': {'turn': 'right', 'not_a_param': 'x'},
+        },
+      );
+      await _selectMove(tester, 0, 'circle', 'circle');
+
+      expect(drafts.single.params['turn'], 'right');
+      expect(drafts.single.params.containsKey('not_a_param'), isFalse);
+    });
+
+    testWidgets('null moveParamDefaults leaves behavior unchanged', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'circle', 'circle');
+
+      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.params['places'], 4);
+    });
   });
 
   testWidgets('selecting an alias keeps the alias identity and pins', (
@@ -1255,6 +1332,21 @@ void main() {
     expect(find.textContaining('beats'), findsNothing);
   });
 
+  testWidgets('collapsed summary renders the swing balance prefix', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: 'swing',
+        params: {'who': 'partners', 'prefix': 'balance', 'beats': 16},
+      ),
+    ];
+    await _pump(tester, drafts);
+
+    // The collapse-to-sentence row surfaces the prefix via FigureRenderer.
+    expect(find.textContaining('balance & swing'), findsOneWidget);
+  });
+
   testWidgets('collapsed row exposes button semantics with composite label', (
     tester,
   ) async {
@@ -1314,6 +1406,60 @@ void main() {
       ),
     );
     expect(editable.focusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('opening a figure does not scroll the list viewport', (
+    tester,
+  ) async {
+    // Regression guard: expanding a figure must NOT animate the list to a new
+    // scroll offset (the old behavior scrolled the row to alignment 0.1, which
+    // felt like the viewport "jumping" on every open).
+    await tester.binding.setSurfaceSize(const Size(900, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final drafts = List<FigureDraft>.generate(
+      14,
+      (_) =>
+          FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+    );
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            controller: controller,
+            child: FigureListEditor(
+              drafts: drafts,
+              taxonomy: contraTaxonomy,
+              phraseStructure: PhraseStructure.standard,
+              onChanged: () {},
+              onAdd: () {},
+              onDelete: (_) {},
+              onReorder: (_, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Scroll partway down so an upper-middle figure is visible with room to
+    // scroll in either direction — the old ensureVisible(alignment: 0.1) would
+    // have changed the offset here.
+    controller.jumpTo(150);
+    await tester.pumpAndSettle();
+    final before = controller.offset;
+
+    final summary = find.byKey(const ValueKey('figure-3-summary'));
+    expect(summary, findsOneWidget);
+    await tester.tap(summary);
+    await tester.pumpAndSettle();
+
+    // Editor is open (Move field mounted) but the viewport did not move.
+    expect(find.byKey(const ValueKey('figure-3-move-input')), findsOneWidget);
+    expect(controller.offset, before);
   });
 
   testWidgets('add auto-opens the new figure and focuses its Move field', (

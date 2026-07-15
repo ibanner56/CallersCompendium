@@ -55,11 +55,16 @@ class FigureRenderer {
     // "do si do"); dialect move substitution is still keyed canonically.
     final alias = taxonomy.aliases[figure.move];
     final displayName = alias?.displayName ?? def.displayName;
+    // Params pinned by an alias are baked into its display name (e.g.
+    // "meltdown swing" pins prefix=meltdown), so they must not be rendered a
+    // second time as a template token — otherwise the word would double up.
+    final pinned = alias?.pinnedParams ?? const <String, Object?>{};
     final rendered = def.renderTemplate.replaceAllMapped(_placeholder, (m) {
       final name = m[1]!;
       if (name == 'move') {
         return _renderMoveName(def.id, displayName, params, dialect);
       }
+      if (pinned.containsKey(name)) return '';
       return _renderValue(
         name,
         params[name],
@@ -146,6 +151,11 @@ class FigureRenderer {
     if (value is String && roleTokens.contains(value)) {
       return _roleTerm(value, dialect);
     }
+    // Swing's `prefix` modifier reads as a natural phrase in front of the move
+    // ("balance & swing" / "meltdown swing"); `none` renders to nothing.
+    if (spec?.kind == ParamKind.choice && name == 'prefix' && value is String) {
+      return _renderPrefix(value, verbose);
+    }
     if (value is String &&
         (spec?.kind == ParamKind.dancerSet ||
             spec?.kind == ParamKind.dancerPair)) {
@@ -164,6 +174,24 @@ class FigureRenderer {
     if (value is num) return _formatNumber(value);
     if (value is bool) return value ? name : '';
     return _humanize(value.toString());
+  }
+
+  /// Formats swing's `prefix` choice as a modifier that reads naturally in
+  /// front of the move name in the render template `{who} {prefix} {move}`:
+  /// `balance & swing` (visual) / `balance and swing` (verbose),
+  /// `meltdown swing`, and nothing for `none`. The `&`/`and` connective lives
+  /// here because it joins the prefix to the following move token.
+  static String _renderPrefix(String value, bool verbose) {
+    switch (value) {
+      case 'none':
+        return '';
+      case 'balance':
+        return verbose ? 'balance and' : 'balance &';
+      case 'meltdown':
+        return 'meltdown';
+      default:
+        return _humanize(value);
+    }
   }
 
   static String _roleTerm(String token, Dialect dialect) {
