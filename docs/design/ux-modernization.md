@@ -306,9 +306,7 @@ per-role hex against each source palette is an implementation deliverable.
 | Solarized Light | light | `#FDF6E3` warm paper | `#657B83` | `#268BD2` `#859900` `#B58900` `#DC322F` `#6C71C4` `#2AA198` | Solarized (Ethan Schoonover, MIT) |
 | Solarized Dark | dark | `#002B36` deep teal | `#839496` | *(same accent set)* | Solarized (MIT) |
 | Atom One Light | light | `#FAFAFA` cool white | `#383A42` | `#4078F2` `#50A14F` `#E45649` `#A626A4` `#0184BC` | Atom One Light |
-| Atom One Dark | dark | `#282C34` blue-grey | `#ABB2BF` | `#61AFEF` `#98C379` `#E06C75` `#C678DD` `#56B6C2` `#E5C07B` | Atom One Dark |
 | One Dark Pro | dark | `#282C34` blue-grey | `#ABB2BF` | *(refined One Dark accents)* | One Dark Pro |
-| One Dark Pro Darker | dark | `#21252B` near-black | `#ABB2BF` | *(as above)* | One Dark Pro "Darker" (deeper omega) |
 | Monokai | dark | `#282C34` charcoal | `#ABB2BF` | `#E06C75` `#98C379` `#C678DD` `#F44747` | One Monokai (azemoh) — Monokai syntax on One Dark's canvas |
 
 *(The Noctis family — 11 variants — now has its own gallery section; see "Noctis family" below.)*
@@ -337,20 +335,25 @@ adding one is just "identity colors + one enum entry":
 | Everforest Dark | dark | `#2D353B` | soft green | Everforest |
 | Rosé Pine | dark | `#191724` | rose / iris | Rosé Pine |
 | Ayu Mirage | dark | `#1F2430` | amber / slate | Ayu |
-| GitHub Soft Dark | dark | `#22272E` | dimmed blue | GitHub "Dark dimmed" |
 | Cutie Pro | dark | `#231F20` | pink pastel | Cutie Pro |
-| Cute Pink Dark | dark | `#000000` | pink on black | Cute Pink Dark |
 | Pink as Heck | dark | `#2D1E2F` | hot pink | Pink as Heck |
-| Catppuccin Frappé | dark | `#303446` | pastel mauve | Catppuccin |
-| Catppuccin Macchiato | dark | `#24273A` | pastel mauve | Catppuccin |
-| One Candy Dark | dark | `#282C34` | candy pink | One Candy (Zed) |
-| Matcha | dark | `#2A2A2A` | matcha green | Matcha |
 | Material Light | light | `#FFFBFE` | Material purple | Material 3 baseline |
-| Material Dark | dark | `#1C1B1F` | Material purple | Material 3 baseline |
 | Zenburn | dark | `#3F3F3F` | low-contrast warm grey | Zenburn |
 | Shades of Purple | dark | `#2D2B55` | gold on indigo | Shades of Purple |
 | Palenight | dark | `#292D3E` | purple / blue-grey | Material Palenight |
 | Synthwave '84 | dark | `#262335` | neon on retro purple | Synthwave '84 |
+
+**Gallery curation.** After the UX-7 expansion the dark set grew redundant, so
+it was trimmed by removing palettes that perceptually overlapped a more iconic
+sibling (measured by weighted CIELAB ΔE across surface + accents): the One Dark
+canvas was collapsed to **One Dark Pro** + **Monokai** (dropping Atom One Dark,
+One Dark Pro Darker, One Candy Dark); **Catppuccin** to **Mocha** (dropping
+Frappé, Macchiato); **GitHub** to **GitHub Dark** (dropping Soft Dark); the
+muted-greens to **Everforest** + **Zenburn** (dropping Matcha); the pink cluster
+to **Cutie Pro** + **Pink as Heck** (dropping Cute Pink Dark); plus **Night Owl**
+(overlaps GitHub Dark / Tokyo Night) and **Material Dark** (the generic M3
+baseline in a crowded lavender group). The surviving set preserves every hue
+lead and canvas-darkness band.
 
 **Noctis family.** The full [Noctis](https://github.com/liviuschera/noctis)
 palette set (11 variants) lives in its own **Noctis** gallery section, below
