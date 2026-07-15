@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
+import '../search/collection_data.dart';
 import '../search/facet_labels.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
+import 'perform_program_screen.dart';
 import 'program_editor_screen.dart';
 import 'programs_list_screen.dart';
 
@@ -147,8 +149,13 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
   Program? _program;
   Map<String, String> _danceTitles = const {};
   Map<String, Dance> _dances = const {};
+  CollectionData? _collectionData;
   bool _loading = true;
   Object? _error;
+
+  /// Shared renderer for the large-print Perform view (mirrors
+  /// [ProgramEditorScreen]'s `_performRenderer`).
+  static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
 
   @override
   void didChangeDependencies() {
@@ -175,6 +182,7 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
     setState(() => _loading = true);
     try {
       final program = await _repos.programs.getById(widget.programId);
+      final data = await CollectionData.load(_repos);
       final titles = <String, String>{};
       final dances = <String, Dance>{};
       if (program != null) {
@@ -195,6 +203,7 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
         _program = program;
         _danceTitles = titles;
         _dances = dances;
+        _collectionData = data;
         _loading = false;
         _error = null;
       });
@@ -242,6 +251,24 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
       ),
     );
     widget.onDeleted();
+  }
+
+  /// Launches the large-print Perform view for the current saved program,
+  /// mirroring [ProgramEditorScreen]'s perform launch. No-op when there is
+  /// nothing to perform or the reference data has not finished loading.
+  void _performProgram() {
+    final program = _program;
+    final data = _collectionData;
+    if (program == null || data == null || program.slots.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PerformProgramScreen(
+          program: program,
+          data: data,
+          renderer: _performRenderer,
+        ),
+      ),
+    );
   }
 
   @override
@@ -313,6 +340,8 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
         const SizedBox(height: 8),
         ProgramStatusChip(status: program.status),
         const SizedBox(height: 16),
+        _buildPerformAction(program),
+        const SizedBox(height: 8),
         if (dateLabel != null) _summaryRow(Icons.event_outlined, dateLabel),
         if (program.venue != null)
           _summaryRow(Icons.place_outlined, program.venue!),
@@ -334,6 +363,30 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
         ..._buildSetList(program),
         const SizedBox(height: 80),
       ],
+    );
+  }
+
+  /// Prominent "Perform this program" action shown at the top of the summary.
+  /// Disabled (with an explanatory tooltip) when the program has no slots or the
+  /// reference data has not loaded yet, mirroring the editor's `_slots.isEmpty`
+  /// guard — never a dead button. The disabled state is exposed to assistive
+  /// technology via the button's own disabled semantics, not colour alone.
+  Widget _buildPerformAction(Program program) {
+    final canPerform = program.slots.isNotEmpty && _collectionData != null;
+    final button = FilledButton.icon(
+      key: const ValueKey('summary-perform'),
+      onPressed: canPerform ? _performProgram : null,
+      icon: const Icon(Icons.slideshow),
+      label: const Text('Perform this program'),
+    );
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: canPerform
+          ? button
+          : Tooltip(
+              message: 'Add at least one slot to perform this program',
+              child: button,
+            ),
     );
   }
 

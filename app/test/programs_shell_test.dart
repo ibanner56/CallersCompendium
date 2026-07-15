@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
@@ -275,4 +276,104 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'the summary pane renders a reachable "Perform this program" action for a '
+    'program with slots, and tapping it opens PerformProgramScreen',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+
+      // The current saved program is handed to the Perform view.
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'the "Perform this program" action is disabled for a program with no slots',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      // The action is present but a dead-button guard is in place: the button
+      // is disabled (no tap action exposed to AT), never absent-and-tappable.
+      final finder = find.byKey(const ValueKey('summary-perform'));
+      expect(finder, findsOneWidget);
+
+      final handle = tester.ensureSemantics();
+      expect(
+        tester.getSemantics(finder),
+        isSemantics(
+          label: 'Perform this program',
+          isButton: true,
+          isEnabled: false,
+          hasEnabledState: true,
+          hasTapAction: false,
+        ),
+      );
+      handle.dispose();
+    },
+  );
+
+  testWidgets(
+    'the enabled "Perform this program" action exposes a single button node '
+    '(role + label + focusable + tap action)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      final handle = tester.ensureSemantics();
+      expect(
+        tester.getSemantics(find.byKey(const ValueKey('summary-perform'))),
+        isSemantics(
+          label: 'Perform this program',
+          isButton: true,
+          isFocusable: true,
+          isEnabled: true,
+          hasEnabledState: true,
+          hasTapAction: true,
+        ),
+      );
+      handle.dispose();
+    },
+  );
 }

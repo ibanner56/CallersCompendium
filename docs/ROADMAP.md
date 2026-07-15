@@ -254,6 +254,10 @@ design/domain-model.md "CC parity backfill".*
     model (no `performedAt`/persistence — that is 5.3); timers are driven by a
     single 1s `Timer` cancelled on exit, and the readouts expose an on-demand
     (non-live-region) accessible label to avoid per-second AT spam.
+  - Program summary Perform entry point: the wide-screen program summary pane
+    (`_ProgramSummaryPane`) offers a prominent "Perform this program" action
+    (disabled with a tooltip when the program has no slots), so Perform is
+    reachable directly from a program without opening the builder.
 - [ ] 5.3 On-the-fly program adjustments during an event
 - [ ] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
   rendering of figures for assistive tech (distinct from the terse canonical/dialect
