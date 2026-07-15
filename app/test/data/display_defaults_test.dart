@@ -105,4 +105,39 @@ void main() {
       expect(PhraseStructure.parse(''), PhraseStructure.standard);
     });
   });
+
+  group('dance figures template (DD.2)', () {
+    test('the default template is a single stand_still x8', () {
+      final template = defaultNewDanceFigureTemplate();
+      expect(template, hasLength(1));
+      expect(template.single.move, 'stand_still');
+      expect(template.single.params['beats'], 8);
+    });
+
+    test('round-trips a real encodeFigures string', () {
+      final figures = [
+        Figure(move: 'balance', params: const {'who': 'neighbors', 'beats': 4}),
+        Figure(move: 'swing', params: const {'who': 'neighbors', 'beats': 12}),
+      ];
+      final restored = danceFiguresTemplateFromStored(encodeFigures(figures));
+      expect(restored, hasLength(2));
+      expect(restored[0].move, 'balance');
+      expect(restored[0].params['beats'], 4);
+      expect(restored[1].move, 'swing');
+      expect(restored[1].params['beats'], 12);
+    });
+
+    test('decodes "[]" to an intentional empty template', () {
+      expect(danceFiguresTemplateFromStored('[]'), isEmpty);
+    });
+
+    test('falls back to the default for null, non-string, empty, garbage', () {
+      for (final stored in [null, 7, '', 'not json', '{"move":"x"}']) {
+        final template = danceFiguresTemplateFromStored(stored);
+        expect(template, hasLength(1));
+        expect(template.single.move, 'stand_still');
+        expect(template.single.params['beats'], 8);
+      }
+    });
+  });
 }

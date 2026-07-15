@@ -744,6 +744,12 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // Start from a blank figure list so figure-add yields figure 0 (this test
+    // predates the DD.2 stand_still × 8 default template).
+    await repos.settings.set(
+      kDefaultDanceFiguresTemplateKey,
+      encodeFigures([]),
+    );
     await _pumpEditor(tester, repos);
 
     await tester.enterText(find.byKey(const ValueKey('title-field')), 'Swung');
@@ -778,6 +784,12 @@ void main() {
 
   testWidgets('a custom figure persists on save', (tester) async {
     final repos = openTestRepositories();
+    // Start from a blank figure list so figure-add yields figure 0 (this test
+    // predates the DD.2 stand_still × 8 default template).
+    await repos.settings.set(
+      kDefaultDanceFiguresTemplateKey,
+      encodeFigures([]),
+    );
     await _pumpEditor(tester, repos);
 
     await tester.enterText(find.byKey(const ValueKey('title-field')), 'Custom');
@@ -1612,6 +1624,118 @@ void main() {
       expect(saved.formation.shape, FormationShape.becketCw);
       expect(saved.progression, Progression.double);
       expect(saved.phraseStructure.raw, '2*8*4');
+      // The restored draft's (empty) figure list overrides the DD.2 template
+      // seed rather than being appended to it.
+      expect(saved.figures, isEmpty);
+    });
+
+    testWidgets('new dance with no template seeds the default stand_still x8', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpEditor(tester, repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Seeded Dance',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.listAll()).single;
+      expect(saved.figures, hasLength(1));
+      expect(saved.figures.single.move, 'stand_still');
+      expect(saved.figures.single.params['beats'], 8);
+    });
+
+    testWidgets('new dance seeds figures from a saved template', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(
+            move: 'balance',
+            params: const {'who': 'neighbors', 'beats': 4},
+          ),
+          Figure(
+            move: 'swing',
+            params: const {'who': 'neighbors', 'beats': 12},
+          ),
+        ]),
+      );
+      await _pumpEditor(tester, repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Templated Dance',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.listAll()).single;
+      expect(saved.figures, hasLength(2));
+      expect(saved.figures[0].move, 'balance');
+      expect(saved.figures[0].params['beats'], 4);
+      expect(saved.figures[1].move, 'swing');
+      expect(saved.figures[1].params['beats'], 12);
+    });
+
+    testWidgets(
+      'new dance with an empty saved template opens with no figures',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultDanceFiguresTemplateKey,
+          encodeFigures(const []),
+        );
+        await _pumpEditor(tester, repos);
+
+        await tester.enterText(
+          find.byKey(const ValueKey('title-field')),
+          'Blank Dance',
+        );
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+
+        final saved = (await repos.dances.listAll()).single;
+        expect(saved.figures, isEmpty);
+      },
+    );
+
+    testWidgets('existing dance is unaffected by the figures template', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(
+            move: 'balance',
+            params: const {'who': 'neighbors', 'beats': 4},
+          ),
+        ]),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          figures: [
+            Figure(
+              move: 'swing',
+              params: const {'who': 'partners', 'beats': 8},
+            ),
+          ],
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.figures, hasLength(1));
+      expect(saved.figures.single.move, 'swing');
     });
   });
 }

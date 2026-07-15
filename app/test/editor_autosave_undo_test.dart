@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
@@ -460,6 +461,12 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // Start from a blank figure list (this test predates the DD.2 default
+      // stand_still × 8 template).
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([]),
+      );
       await _pumpEditor(tester, repos);
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
@@ -715,6 +722,12 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // Start from a blank figure list (this test predates the DD.2 default
+      // stand_still × 8 template).
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([]),
+      );
       await _pumpEditor(tester, repos);
 
       // Add a figure row without selecting a move.

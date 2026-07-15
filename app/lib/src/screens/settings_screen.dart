@@ -14,6 +14,7 @@ import '../models/dance_list_entry.dart' show formationShapeLabel;
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
 import '../theme/color_schemes.dart';
+import '../widgets/figure_list_editor.dart';
 import 'theme_editor_screen.dart';
 
 /// Key used to persist and load the active dialect.
@@ -151,6 +152,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _defaultDanceProgressionUserSet = false;
   bool _defaultDancePhraseUserSet = false;
 
+  /// Default starting-figures template for NEW dances (ROADMAP DD.2). Held as a
+  /// live [FigureDraft] list driving the embedded [FigureListEditor]. Pre-seeded
+  /// synchronously with the default `stand_still × 8` so the first frame shows a
+  /// sensible template; [_ensureDefaultsLoaded] replaces it with the saved
+  /// template unless the user has already edited it (guard below).
+  final List<FigureDraft> _defaultDanceFigureDrafts = [
+    for (final figure in defaultNewDanceFigureTemplate())
+      FigureDraft.fromFigure(figure),
+  ];
+  bool _defaultDanceFiguresUserSet = false;
+
   /// Lazily loads the persisted Display defaults the first time the Defaults
   /// section is built. Mirrors [_ensureAutoSizeLoaded]: a late read must not
   /// clobber a selection the user made before it resolved (per-setting guards).
@@ -261,6 +273,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         .catchError((_) {
           /* fall back to a blank (standard) phrase field */
         });
+    repos.settings
+        .get(kDefaultDanceFiguresTemplateKey)
+        .then((stored) {
+          if (!mounted || _defaultDanceFiguresUserSet) return;
+          setState(() {
+            _defaultDanceFigureDrafts
+              ..clear()
+              ..addAll(
+                danceFiguresTemplateFromStored(
+                  stored,
+                ).map(FigureDraft.fromFigure),
+              );
+          });
+        })
+        .catchError((_) {
+          /* keep the pre-seeded default `stand_still × 8` template */
+        });
   }
 
   Future<void> _onDefaultProgramCallerChanged(String value) async {
@@ -308,6 +337,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _defaultDancePhraseUserSet = true;
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kDefaultDancePhraseStructureKey, value.trim());
+  }
+
+  /// Persists the current starting-figures template as a `figures_json` string
+  /// (ROADMAP DD.2). Marks the setting user-set so a late storage read can't
+  /// clobber the in-progress edit. Blank/moveless drafts are filtered out, so
+  /// an all-blank template serializes to `'[]'` (an intentional empty template).
+  Future<void> _persistDanceFiguresTemplate() async {
+    _defaultDanceFiguresUserSet = true;
+    final figures = [
+      for (final draft in _defaultDanceFigureDrafts) ?draft.toFigure(),
+    ];
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(
+      kDefaultDanceFiguresTemplateKey,
+      encodeFigures(figures),
+    );
   }
 
   @override
@@ -445,6 +490,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onDefaultDanceProgressionChanged: _onDefaultDanceProgressionChanged,
           dancePhraseController: _defaultDancePhrase,
           onDefaultDancePhraseChanged: _onDefaultDancePhraseChanged,
+          danceFigureTemplateDrafts: _defaultDanceFigureDrafts,
+          onDanceFigureTemplateChanged: () {
+            setState(() {});
+            _persistDanceFiguresTemplate();
+          },
+          onDanceFigureTemplateAdd: () {
+            setState(() => _defaultDanceFigureDrafts.add(FigureDraft()));
+            _persistDanceFiguresTemplate();
+          },
+          onDanceFigureTemplateDelete: (draft) {
+            setState(() => _defaultDanceFigureDrafts.remove(draft));
+            _persistDanceFiguresTemplate();
+          },
+          onDanceFigureTemplateDuplicate: (draft) {
+            setState(() {
+              final index = _defaultDanceFigureDrafts.indexOf(draft);
+              if (index == -1) return;
+              _defaultDanceFigureDrafts.insert(
+                index + 1,
+                FigureDraft(
+                  move: draft.move,
+                  params: Map<String, Object?>.of(draft.params),
+                  note: draft.note,
+                  progression: draft.progression,
+                  schemaVersion: draft.schemaVersion,
+                ),
+              );
+            });
+            _persistDanceFiguresTemplate();
+          },
+          onDanceFigureTemplateReorder: (oldIndex, newIndex) {
+            setState(() {
+              final draft = _defaultDanceFigureDrafts.removeAt(oldIndex);
+              _defaultDanceFigureDrafts.insert(newIndex, draft);
+            });
+            _persistDanceFiguresTemplate();
+          },
         );
     }
   }
@@ -1437,6 +1519,12 @@ class _DefaultsView extends StatelessWidget {
     required this.onDefaultDanceProgressionChanged,
     required this.dancePhraseController,
     required this.onDefaultDancePhraseChanged,
+    required this.danceFigureTemplateDrafts,
+    required this.onDanceFigureTemplateChanged,
+    required this.onDanceFigureTemplateAdd,
+    required this.onDanceFigureTemplateDelete,
+    required this.onDanceFigureTemplateDuplicate,
+    required this.onDanceFigureTemplateReorder,
   });
 
   final TextEditingController programCallerController;
@@ -1455,6 +1543,16 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<Progression> onDefaultDanceProgressionChanged;
   final TextEditingController dancePhraseController;
   final ValueChanged<String> onDefaultDancePhraseChanged;
+
+  /// The live draft list backing the starting-figures template editor (ROADMAP
+  /// DD.2), plus callbacks mirroring the dance editor's [FigureListEditor]
+  /// wiring. Owned by [_SettingsScreenState]; mutated in the callbacks.
+  final List<FigureDraft> danceFigureTemplateDrafts;
+  final VoidCallback onDanceFigureTemplateChanged;
+  final VoidCallback onDanceFigureTemplateAdd;
+  final ValueChanged<FigureDraft> onDanceFigureTemplateDelete;
+  final ValueChanged<FigureDraft> onDanceFigureTemplateDuplicate;
+  final void Function(int oldIndex, int newIndex) onDanceFigureTemplateReorder;
 
   /// The Collection sort orders offered as a default. Excludes
   /// [CollectionSort.relevance], which is only meaningful for a bare full-text
@@ -1611,6 +1709,39 @@ class _DefaultsView extends StatelessWidget {
                   'else e.g. 6*8*2.',
               border: OutlineInputBorder(),
             ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Starting figures',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'The figures a new dance starts with. Defaults to a single '
+                'stand still (8 beats); clear it for a blank new dance. Editable '
+                'per dance.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: FigureListEditor(
+            drafts: danceFigureTemplateDrafts,
+            taxonomy: contraTaxonomy,
+            phraseStructure: PhraseStructure.standard,
+            dialect: ActiveDialectScope.of(context),
+            onChanged: onDanceFigureTemplateChanged,
+            onAdd: onDanceFigureTemplateAdd,
+            onDelete: onDanceFigureTemplateDelete,
+            onDuplicate: onDanceFigureTemplateDuplicate,
+            onReorder: onDanceFigureTemplateReorder,
           ),
         ),
       ],
