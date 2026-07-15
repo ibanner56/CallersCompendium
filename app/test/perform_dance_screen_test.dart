@@ -153,6 +153,37 @@ void main() {
     expect(find.text('Broken'), findsOneWidget);
   });
 
+  testWidgets('exit and size controls are keyboard- and AT-reachable', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+
+    await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
+
+    // Each control must expose a tap action, an accessible name (via its
+    // tooltip — the standard icon-button pattern; a redundant Semantics label
+    // would double-announce), and be focusable — not merely have a non-null
+    // onPressed.
+    for (final (key, label) in const [
+      ('exit-perform', 'Exit performance view'),
+      ('decrease-text-size', 'Decrease text size'),
+      ('increase-text-size', 'Increase text size'),
+    ]) {
+      expect(
+        tester.getSemantics(find.byKey(ValueKey(key))),
+        isSemantics(
+          tooltip: label,
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+        ),
+        reason: '$key must be labelled, focusable, and tappable',
+      );
+    }
+
+    handle.dispose();
+  });
+
   testWidgets('detail "Perform this dance" action navigates to the view', (
     tester,
   ) async {
