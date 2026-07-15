@@ -1,4 +1,5 @@
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
+import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

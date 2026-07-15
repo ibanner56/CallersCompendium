@@ -9,6 +9,7 @@ import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
+import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 
 import 'support/test_repositories.dart';
 
@@ -1864,6 +1865,108 @@ void main() {
       // Save is always available; delete only appears for a saved dance.
       expect(find.byKey(const ValueKey('save-dance')), findsOneWidget);
       expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
+    });
+  });
+
+  group('lingo strikethrough on prose fields', () {
+    // Flattens the styled span the field's [LingoTextEditingController] renders
+    // for its current text into (text, decoration) parts.
+    List<(String, TextDecoration?)> lingoParts(
+      WidgetTester tester,
+      String fieldKey,
+    ) {
+      final editable = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(ValueKey(fieldKey)),
+          matching: find.byType(EditableText),
+        ),
+      );
+      final controller = editable.controller as LingoTextEditingController;
+      final span = controller.buildTextSpan(
+        context: tester.element(find.byKey(ValueKey(fieldKey))),
+        style: null,
+        withComposing: false,
+      );
+      final parts = <(String, TextDecoration?)>[];
+      void visit(InlineSpan s) {
+        if (s is! TextSpan) return;
+        if (s.children != null) {
+          for (final child in s.children!) {
+            visit(child);
+          }
+        } else if (s.text != null && s.text!.isNotEmpty) {
+          parts.add((s.text!, s.style?.decoration));
+        }
+      }
+
+      visit(span);
+      return parts;
+    }
+
+    testWidgets(
+      'Title strikes through a discouraged term but not a normal one',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpEditor(tester, repos);
+        await tester.enterText(
+          find.byKey(const ValueKey('title-field')),
+          'gents swing',
+        );
+        await tester.pump();
+
+        final parts = lingoParts(tester, 'title-field');
+        final gents = parts.firstWhere(
+          (p) => p.$1.toLowerCase() == 'gents',
+          orElse: () => ('', null),
+        );
+        expect(gents.$2, TextDecoration.lineThrough);
+        // A non-discouraged word keeps no strike-through decoration.
+        final swing = parts.firstWhere(
+          (p) => p.$1.toLowerCase().contains('swing'),
+          orElse: () => ('', null),
+        );
+        expect(swing.$2, isNot(TextDecoration.lineThrough));
+        // Accessible, non-visual signal is present.
+        expect(find.byKey(const ValueKey('title-lingo-hint')), findsOneWidget);
+      },
+    );
+
+    testWidgets('Calling notes strikes through a discouraged term', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('notes-field')),
+        'ask the gents to allemande',
+      );
+      await tester.pump();
+
+      final parts = lingoParts(tester, 'notes-field');
+      final gents = parts.firstWhere(
+        (p) => p.$1.toLowerCase() == 'gents',
+        orElse: () => ('', null),
+      );
+      expect(gents.$2, TextDecoration.lineThrough);
+      expect(find.byKey(const ValueKey('notes-lingo-hint')), findsOneWidget);
+    });
+
+    testWidgets('no discouraged term means no strike-through and no hint', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpEditor(tester, repos);
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'happy swing',
+      );
+      await tester.pump();
+
+      final parts = lingoParts(tester, 'title-field');
+      for (final p in parts) {
+        expect(p.$2, isNot(TextDecoration.lineThrough));
+      }
+      expect(find.byKey(const ValueKey('title-lingo-hint')), findsNothing);
     });
   });
 }
