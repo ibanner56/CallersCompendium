@@ -10,6 +10,7 @@ Future<void> _pump(
   FacetSelections facets, {
   List<DanceLevel> levels = const [],
   List<CustomFieldDef> choiceFields = const [],
+  List<PublishedSource> citedSources = const [],
   bool hasMixedLevel = false,
   bool hasRating = false,
   required VoidCallback onChanged,
@@ -30,6 +31,7 @@ Future<void> _pump(
               hasRating: hasRating,
               authors: const [],
               tags: const [],
+              citedSources: citedSources,
               choiceFields: choiceFields,
               booleanFields: const [],
               textFields: const [],
@@ -238,5 +240,43 @@ void main() {
     // Both fields' chips are reachable (distinct keys, not colliding sections).
     expect(find.byKey(const ValueKey('cf-a-north')), findsOneWidget);
     expect(find.byKey(const ValueKey('cf-b-east')), findsOneWidget);
+  });
+
+  testWidgets('source section is hidden when nothing is cited', (tester) async {
+    await _pump(tester, FacetSelections(), onChanged: () {});
+    expect(find.text('Source'), findsNothing);
+  });
+
+  testWidgets('source chips toggle the selected source ids', (tester) async {
+    final facets = FacetSelections();
+    var changes = 0;
+    await _pump(
+      tester,
+      facets,
+      citedSources: [
+        PublishedSource(id: 's1', title: 'Zesty Contras'),
+        PublishedSource(id: 's2', title: 'Give-and-Take'),
+      ],
+      onChanged: () => changes++,
+    );
+
+    expect(find.text('Source'), findsOneWidget);
+    // Chip label is the source title; the emitted/selected value is its id.
+    expect(find.text('Zesty Contras'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('source-s1')));
+    await tester.pump();
+    expect(facets.sourceIds, contains('s1'));
+    expect(changes, 1);
+
+    // Multi-select: a second source OR-s in.
+    await tester.tap(find.byKey(const ValueKey('source-s2')));
+    await tester.pump();
+    expect(facets.sourceIds, {'s1', 's2'});
+
+    // Toggling clears just that id.
+    await tester.tap(find.byKey(const ValueKey('source-s1')));
+    await tester.pump();
+    expect(facets.sourceIds, {'s2'});
   });
 }

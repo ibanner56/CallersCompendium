@@ -102,6 +102,7 @@ class EditorSnapshot {
     required this.tagIds,
     required this.tunes,
     required this.links,
+    required this.sourceCitations,
     required this.customValues,
     required this.figureDrafts,
   });
@@ -143,6 +144,14 @@ class EditorSnapshot {
 
   /// All editable links (source, video, other, and relatedDance).
   final List<LinkSnapshot> links;
+
+  // ---- Source citations ----
+
+  /// Ordered citations of reusable [PublishedSource]s (which source, and the
+  /// freeform page/number the dance appears at). The [PublishedSource] details
+  /// themselves are shared entities edited out-of-band; only the citation
+  /// (sourceId + page + number) is part of the editor working state.
+  final List<SourceCitation> sourceCitations;
 
   // ---- Custom fields ----
   final Map<String, Object?> customValues;

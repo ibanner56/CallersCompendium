@@ -100,6 +100,7 @@ EditorSnapshot _snap({
   tagIds: const [],
   tunes: const [],
   links: const [],
+  sourceCitations: const [],
   customValues: const {},
   figureDrafts: figureDrafts,
 );
@@ -235,6 +236,7 @@ void main() {
               targetDanceId: 'other',
             ),
           ],
+          sourceCitations: const [],
           customValues: const {'f1': 'hello', 'f2': true},
           figureDrafts: [
             FigureDraftSnapshot(

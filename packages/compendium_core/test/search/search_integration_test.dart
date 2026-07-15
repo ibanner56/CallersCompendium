@@ -223,6 +223,37 @@ void main() {
       );
     });
 
+    test(
+      'SourceId: matches dances citing a source by its id, not by title',
+      () async {
+        final sources = PublishedSourceRepository(db);
+        await sources.upsert(PublishedSource(id: 's1', title: 'Zesty Contras'));
+        await sources.upsert(PublishedSource(id: 's2', title: 'Give-and-Take'));
+        await dances.create(
+          _dance(
+            id: 'cited',
+            title: 'Cited',
+          ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+        );
+        await dances.create(
+          _dance(
+            id: 'other',
+            title: 'Other',
+          ).copyWith(sourceCitations: [SourceCitation(sourceId: 's2')]),
+        );
+        await dances.create(_dance(id: 'uncited', title: 'Uncited'));
+
+        // Identity match: the dance citing s1 is returned by SourceIdFilter(s1)
+        // and not by a different source's id.
+        expect(await dances.search(const SourceIdFilter('s1')), ['cited']);
+        expect(await dances.search(const SourceIdFilter('s2')), ['other']);
+        expect(
+          await dances.search(const SourceIdFilter('s1')),
+          isNot(contains('uncited')),
+        );
+      },
+    );
+
     test('FullText also searches cited source text', () async {
       final sources = PublishedSourceRepository(db);
       await sources.upsert(

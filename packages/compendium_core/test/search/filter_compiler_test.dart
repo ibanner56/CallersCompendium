@@ -91,6 +91,14 @@ void main() {
       ]);
     });
 
+    test('SourceId', () {
+      expect(
+        pred(const SourceIdFilter('s1')),
+        'id IN (SELECT dance_id FROM dance_sources WHERE source_id = ?)',
+      );
+      expect(compiler.compile(const SourceIdFilter('s1')).binds, ['s1']);
+    });
+
     test('Tag', () {
       expect(
         pred(const TagFilter('t1')),

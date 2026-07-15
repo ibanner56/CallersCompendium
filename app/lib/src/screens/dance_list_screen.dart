@@ -464,6 +464,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           hasRating: data.hasRating,
           authors: data.authors,
           tags: data.tags,
+          citedSources: data.citedSources,
           choiceFields: data.choiceFields,
           booleanFields: data.booleanFields,
           textFields: data.textFields,
@@ -615,6 +616,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _facets.statuses.length +
         _facets.authorIds.length +
         _facets.tagIds.length +
+        _facets.sourceIds.length +
         _facets.choiceValues.values.fold<int>(0, (a, s) => a + s.length) +
         _facets.booleanValues.length +
         _facets.textValues.values.where((s) => s.isEffective).length +
