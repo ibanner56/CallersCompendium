@@ -138,9 +138,7 @@ class _ThemeGallery extends StatelessWidget {
     final theme = Theme.of(context);
     final groups = <Widget>[];
     for (final group in AppThemeGroup.values) {
-      final options = AppThemeSelection.values
-          .where((o) => o.group == group)
-          .toList(growable: false);
+      final options = AppThemeSelection.inGroup(group);
       if (options.isEmpty) continue;
       groups.add(
         Padding(
