@@ -276,6 +276,14 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
           program: program,
           data: data,
           renderer: _performRenderer,
+          // This is the real in-event path: the program is saved, so in-event
+          // adjustments (`docs/design/ux.md` §5) persist immediately via the
+          // repository (bumping `updatedAt`) and the summary reloads to reflect
+          // them.
+          onProgramChanged: (updated) async {
+            await _repos.programs.update(updated);
+            if (mounted) _load();
+          },
         ),
       ),
     );

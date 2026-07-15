@@ -213,6 +213,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           program: program,
           data: data,
           renderer: _performRenderer,
+          // In-event adjustments (`docs/design/ux.md` §5) fold back into the
+          // builder's working slots so they survive returning here and persist
+          // through the editor's normal save — the draft may be unsaved, so we
+          // never write it out from Perform directly.
+          onProgramChanged: (updated) async {
+            if (!mounted) return;
+            setState(() {
+              _slots = _renumber(updated.slots.toList());
+              _dirty = true;
+            });
+          },
         ),
       ),
     );
