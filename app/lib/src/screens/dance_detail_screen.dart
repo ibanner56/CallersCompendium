@@ -122,6 +122,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       }
     }
 
+    // Candidate cross-reference targets: every other non-deleted dance's title.
+    // Loaded via the lightweight id+title query (no per-dance hydration).
+    final titlePairs = await _repos.dances.listIdsAndTitles();
+    final crossRefLinker = _DanceTitleLinker.build(
+      titlePairs,
+      excludeId: dance.id,
+    );
+
     return _DanceDetail(
       dance: dance,
       authorNames: [
@@ -139,6 +147,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       ],
       relatedDanceTitles: relatedDanceTitles,
       sourcesById: sourcesById,
+      crossRefLinker: crossRefLinker,
     );
   }
 
@@ -169,6 +178,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       ),
     );
     if (mounted) _reload();
+  }
+
+  /// Opens another dance's detail from an auto cross-reference link in the
+  /// hook / calling notes. Mirrors the `relatedDance` link navigation so the
+  /// two kinds of dance-to-dance links behave identically.
+  void _openDance(String danceId) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => DanceDetailScreen(danceId: danceId),
+      ),
+    );
   }
 
   /// Duplicates the dance, appends " (copy)" to the copy's title (since
@@ -571,7 +591,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 ],
                 if (dance.hook.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  Text(dance.hook, style: theme.textTheme.bodyLarge),
+                  _CrossReferenceText(
+                    text: dance.hook,
+                    style: theme.textTheme.bodyLarge,
+                    linker: detail.crossRefLinker,
+                    onOpenDance: _openDance,
+                  ),
                 ],
               ],
             ),
@@ -612,9 +637,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           const SizedBox(height: 24),
           Text('Calling notes', style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
-          Text(
-            _renderer.renderFreeText(dance.callingNotes, dialect),
+          _CrossReferenceText(
+            text: _renderer.renderFreeText(dance.callingNotes, dialect),
             style: theme.textTheme.bodyMedium,
+            linker: detail.crossRefLinker,
+            onOpenDance: _openDance,
           ),
         ],
         if (dance.tunes.isNotEmpty) ...[
@@ -984,6 +1011,168 @@ class _SourceCitationRow extends StatelessWidget {
 
 typedef _CustomFieldDisplay = ({String label, String value});
 
+/// Compiles the collection's dance titles into a single matcher used to find
+/// dance-title mentions inside another dance's free text (hook / calling
+/// notes) so they can be rendered as tappable cross-reference links.
+///
+/// Matching is case-insensitive, on word boundaries (a title inside a larger
+/// word is not matched), and longest-title-wins when several candidate titles
+/// could match at the same position. Titles are treated as literal text
+/// (regex-special characters are escaped).
+class _DanceTitleLinker {
+  _DanceTitleLinker._(this._pattern, this._idByNormalizedTitle);
+
+  /// `null` when there are no candidate titles to match.
+  final RegExp? _pattern;
+
+  /// Maps a lower-cased title to the id of the dance it refers to. When two
+  /// dances share a title the first (title-sorted) one wins — the input is
+  /// pre-sorted by title so this is deterministic.
+  final Map<String, String> _idByNormalizedTitle;
+
+  /// Builds a linker from `(id, title)` pairs, excluding [excludeId] (never
+  /// self-link) and skipping empty / whitespace-only titles.
+  factory _DanceTitleLinker.build(
+    List<({String id, String title})> pairs, {
+    required String excludeId,
+  }) {
+    final idByNormalized = <String, String>{};
+    final titles = <String>[];
+    for (final pair in pairs) {
+      if (pair.id == excludeId) continue;
+      final trimmed = pair.title.trim();
+      if (trimmed.isEmpty) continue;
+      final normalized = trimmed.toLowerCase();
+      // First occurrence wins (input is title-sorted → deterministic).
+      if (idByNormalized.containsKey(normalized)) continue;
+      idByNormalized[normalized] = pair.id;
+      titles.add(trimmed);
+    }
+
+    if (titles.isEmpty) {
+      return _DanceTitleLinker._(null, idByNormalized);
+    }
+
+    // Longest-first so the alternation prefers the longest match at a given
+    // position (Dart's RegExp is leftmost / first-alternative-wins, not POSIX
+    // longest). Escape each title so punctuation / regex metacharacters are
+    // treated literally.
+    titles.sort((a, b) => b.length.compareTo(a.length));
+    final alternation = titles.map(RegExp.escape).join('|');
+    // Alphanumeric look-arounds give word-boundary behavior that is robust to
+    // titles that themselves begin or end with punctuation (plain `\b` is not).
+    final pattern = RegExp(
+      r'(?<![\p{L}\p{N}])(?:'
+      '$alternation'
+      r')(?![\p{L}\p{N}])',
+      caseSensitive: false,
+      unicode: true,
+    );
+    return _DanceTitleLinker._(pattern, idByNormalized);
+  }
+
+  /// Splits [text] into inline spans, wrapping each matched dance title in a
+  /// tappable link span (via [buildLink]) and leaving all other text plain
+  /// (styled with [baseStyle]). Returns a single plain span when nothing
+  /// matches so callers can keep rendering unchanged text as-is.
+  List<InlineSpan> spansFor(
+    String text, {
+    required TextStyle? baseStyle,
+    required InlineSpan Function(String matchedText, String danceId) buildLink,
+  }) {
+    final pattern = _pattern;
+    if (pattern == null || text.isEmpty) {
+      return [TextSpan(text: text, style: baseStyle)];
+    }
+
+    final spans = <InlineSpan>[];
+    var index = 0;
+    for (final match in pattern.allMatches(text)) {
+      final id = _idByNormalizedTitle[match[0]!.toLowerCase()];
+      if (id == null) continue;
+      if (match.start > index) {
+        spans.add(
+          TextSpan(text: text.substring(index, match.start), style: baseStyle),
+        );
+      }
+      spans.add(buildLink(match[0]!, id));
+      index = match.end;
+    }
+    if (index < text.length) {
+      spans.add(TextSpan(text: text.substring(index), style: baseStyle));
+    }
+    return spans;
+  }
+
+  /// Whether any candidate titles exist (used to short-circuit rendering).
+  bool get hasTitles => _pattern != null;
+}
+
+/// Renders free text (hook / calling notes) with any mention of another
+/// dance's title turned into a tappable cross-reference link that opens that
+/// dance. Falls back to a plain [Text] when there is nothing to link, so
+/// non-matching text is rendered exactly as before.
+class _CrossReferenceText extends StatelessWidget {
+  const _CrossReferenceText({
+    required this.text,
+    required this.style,
+    required this.linker,
+    required this.onOpenDance,
+  });
+
+  final String text;
+  final TextStyle? style;
+  final _DanceTitleLinker linker;
+  final void Function(String danceId) onOpenDance;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!linker.hasTitles) {
+      return Text(text, style: style);
+    }
+
+    final theme = Theme.of(context);
+    final linkStyle = (style ?? const TextStyle()).copyWith(
+      color: theme.colorScheme.primary,
+      decoration: TextDecoration.underline,
+      decorationColor: theme.colorScheme.primary,
+    );
+
+    final spans = linker.spansFor(
+      text,
+      baseStyle: style,
+      buildLink: (matchedText, danceId) => WidgetSpan(
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
+        // One semantics node per link: link role + descriptive label +
+        // focusable + tap action (via InkWell); the visible text is decorative.
+        child: MergeSemantics(
+          child: Semantics(
+            link: true,
+            label: 'Open dance: $matchedText',
+            child: InkWell(
+              onTap: () => onOpenDance(danceId),
+              child: ExcludeSemantics(
+                child: Text(matchedText, style: linkStyle),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (spans.length == 1 && spans.first is TextSpan) {
+      // No links were produced (e.g. all matches resolved to unknown ids);
+      // render as plain text.
+      final only = spans.first as TextSpan;
+      if (only.children == null) {
+        return Text(only.text ?? text, style: style);
+      }
+    }
+    return Text.rich(TextSpan(children: spans));
+  }
+}
+
 class _DanceDetail {
   _DanceDetail({
     required this.dance,
@@ -992,6 +1181,7 @@ class _DanceDetail {
     required this.customFields,
     required this.relatedDanceTitles,
     required this.sourcesById,
+    required this.crossRefLinker,
   });
 
   final Dance dance;
@@ -1006,4 +1196,8 @@ class _DanceDetail {
   /// Maps sourceId → the cited [PublishedSource] for each of the dance's
   /// [SourceCitation]s (missing entries indicate a purged source).
   final Map<String, PublishedSource> sourcesById;
+
+  /// Matches other dances' titles inside this dance's free text (hook /
+  /// calling notes) so they can render as tappable cross-reference links.
+  final _DanceTitleLinker crossRefLinker;
 }

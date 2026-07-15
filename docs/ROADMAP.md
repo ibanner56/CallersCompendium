@@ -119,12 +119,22 @@ Design items (each produces a design doc + review):
   empty-state placeholder); `DanceDetailScreen` gains `onDeleted`/`onNavigateTo` so delete
   and duplicate work correctly without a route pop; narrow mode behavior fully unchanged.
   `main.dart` home updated to `CollectionShell`. Selected-row highlight via `ListTile.selected`.
-  All deferred follow-ups from Phase 3/3.2 are now addressed **except**: (a) per-Type
-  taxonomy selection in the figure builder — blocked until ECD/Square taxonomy data
-  exists (see "ECD and Squares support" under Later milestones); and (b) a low-priority
-  performance tweak, `DanceRepository.listIdsAndTitles()`, to avoid the N+1 `getById`
-  lookups currently used to resolve related-dance titles in the detail/editor (fine at
-  present collection sizes; optimize when needed).
+  All deferred follow-ups from Phase 3/3.2 are now addressed **except** per-Type
+  taxonomy selection in the figure builder — blocked until ECD/Square taxonomy
+  data exists (see "ECD and Squares support" under Later milestones).
+  (`DanceRepository.listIdsAndTitles()` — the lightweight id+title query that
+  avoids N+1 `getById` lookups — is now built and used by the auto
+  cross-reference links; see below.)
+- [x] 3.6 Auto-linked dance cross-references — dance titles mentioned in another
+  dance's hook / calling notes render as tappable inline links that open the
+  referenced dance's detail (distinct from the explicit `relatedDance` link).
+  App-side matcher in `app/lib/src/screens/dance_detail_screen.dart`
+  (`_DanceTitleLinker` + `_CrossReferenceText`): case-insensitive, word-boundary
+  (Unicode look-arounds), longest-title-wins, regex-safe title escaping, single
+  compiled matcher over `DanceRepository.listIdsAndTitles()` (new lightweight
+  core query), never self-links. Each link is one accessible node (link role +
+  "Open dance: <title>" label + focusable + tap) and navigates like a
+  `relatedDance` link. Dialect rendering of the notes is preserved.
 - Cross-session / persistent **undo** (3.3d ships in-memory undo/redo only).
 - ~~`revisit-lingo-dialect` — active dialect settings (persisted user-selectable dialect,
   settings screen, threading through detail toggle / lingo line / search).~~
