@@ -10,6 +10,7 @@ Future<Object? Function()> _pumpEditor(
   required String paramKey,
   required ParamSpec spec,
   required Object? value,
+  Dialect? dialect,
 }) async {
   Object? captured;
   await tester.pumpWidget(
@@ -21,6 +22,7 @@ Future<Object? Function()> _pumpEditor(
             paramKey: paramKey,
             spec: spec,
             value: value,
+            dialect: dialect ?? Dialect.canonical,
             onChanged: (v) => captured = v,
           ),
         ),
@@ -68,6 +70,7 @@ void main() {
           paramKey: 'text',
           spec: const ParamSpec(ParamKind.text, defaultValue: ''),
           value: value,
+          dialect: Dialect.canonical,
           onChanged: (v) => captured = v,
         ),
       ),
@@ -102,6 +105,7 @@ void main() {
           paramKey: 'beats',
           spec: const ParamSpec(ParamKind.beats, defaultValue: 8),
           value: value,
+          dialect: Dialect.canonical,
           onChanged: (_) {},
         ),
       ),
@@ -294,6 +298,71 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('p-balance')));
     await tester.pumpAndSettle();
     expect(read(), true);
+  });
+
+  testWidgets('dancerSet dropdown labels role tokens in the active dialect', (
+    tester,
+  ) async {
+    final read = await _pumpEditor(
+      tester,
+      paramKey: 'who',
+      spec: const ParamSpec(
+        ParamKind.dancerSet,
+        defaultValue: 'role1s',
+        choices: ['role1s', 'role2s'],
+      ),
+      value: 'role1s',
+      dialect: Dialect.larksRobins,
+    );
+    await tester.pumpAndSettle();
+    // Displayed labels use the dialect's role terms, not the canonical tokens.
+    expect(find.text('Larks'), findsOneWidget);
+    expect(find.text('role1s'), findsNothing);
+    // Selecting still stores the canonical token (storage stays canonical).
+    await _selectFromDropdown(tester, 'p-who', 'Robins');
+    expect(read(), 'role2s');
+  });
+
+  testWidgets('dancerSet dropdown shows canonical tokens under Canonical', (
+    tester,
+  ) async {
+    await _pumpEditor(
+      tester,
+      paramKey: 'who',
+      spec: const ParamSpec(
+        ParamKind.dancerSet,
+        defaultValue: 'role1s',
+        choices: ['role1s', 'role2s'],
+      ),
+      value: 'role1s',
+      dialect: Dialect.canonical,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('role1s'), findsOneWidget);
+    expect(find.text('Larks'), findsNothing);
+  });
+
+  testWidgets('dancerSet dropdown applies dialect dancer substitutions', (
+    tester,
+  ) async {
+    final dialect = Dialect(
+      name: 'Custom',
+      dancers: const {'neighbors': 'countras'},
+    );
+    await _pumpEditor(
+      tester,
+      paramKey: 'who',
+      spec: const ParamSpec(
+        ParamKind.dancerSet,
+        defaultValue: 'neighbors',
+        choices: ['neighbors', 'partners'],
+      ),
+      value: 'neighbors',
+      dialect: dialect,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('countras'), findsOneWidget);
+    expect(find.text('neighbors'), findsNothing);
   });
 
   test('humanizeToken spaces camelCase and lowercases', () {

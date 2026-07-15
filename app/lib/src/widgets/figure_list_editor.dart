@@ -650,10 +650,11 @@ class _FigureDraftCard extends StatelessWidget {
     final theme = Theme.of(context);
     final move = draft.move;
     final def = move == null ? null : taxonomy.resolve(move);
-    final alias = move == null ? null : taxonomy.aliases[move];
     final moveText = move == null
         ? ''
-        : (alias?.displayName ?? def?.displayName ?? move);
+        : FigureRenderer(
+            taxonomy,
+          ).displayMoveName(move, dialect, params: draft.params);
     final figureName = _figureDisplayName(draft, taxonomy);
 
     return Opacity(
@@ -697,7 +698,7 @@ class _FigureDraftCard extends StatelessWidget {
                     // Rebuild the picker when the move changes so it shows the
                     // new display name.
                     child: MoveAutocomplete(
-                      key: ValueKey('figure-$index-move-$move'),
+                      key: ValueKey('figure-$index-move-$move-$moveText'),
                       fieldKey: 'figure-$index-move',
                       taxonomy: taxonomy,
                       initialText: moveText,
@@ -768,6 +769,7 @@ class _FigureDraftCard extends StatelessWidget {
                             keyPrefix: 'figure-$index',
                             paramKey: entry.key,
                             spec: entry.value,
+                            dialect: dialect,
                             value:
                                 draft.params[entry.key] ??
                                 entry.value.defaultValue,
