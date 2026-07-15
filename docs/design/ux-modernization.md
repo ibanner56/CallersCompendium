@@ -264,7 +264,7 @@ enum AppThemeSelection {
   blulocoLight, githubLight,
   catppuccinLatte, gruvboxLight, everforestLight, rosePineDawn,
   ayuLight, tokyoNightLight, nordLight, kanagawaLotus,
-  noctisLilac, materialLight,
+  noctisLilac, vitesseLight,
   // Gallery palettes (§4A) — dark.
   oneDarkPro, monokai, noctis, dracula, nord,
   tokyoNight, gruvboxDark, catppuccinMocha, githubDark,
@@ -344,7 +344,7 @@ adding one is just "identity colors + one enum entry":
 | Ayu Mirage | dark | `#1F2430` | amber / slate | Ayu |
 | Cutie Pro | dark | `#231F20` | pink pastel | Cutie Pro |
 | Pink as Heck | dark | `#2D1E2F` | hot pink | Pink as Heck |
-| Material Light | light | `#FFFBFE` | Material purple | Material 3 baseline |
+| Vitesse Light | light | `#FFFFFF` | muted sage / teal | Vitesse (antfu) |
 | Zenburn | dark | `#3F3F3F` | low-contrast warm grey | Zenburn |
 | Shades of Purple | dark | `#2D2B55` | gold on indigo | Shades of Purple |
 | Palenight | dark | `#292D3E` | purple / blue-grey | Material Palenight |
@@ -374,6 +374,13 @@ dark (Palenight kept), which orphaned **Solarized Light**; and **Atom One Light*
 was orphaned when Atom One Dark was cut earlier. Both orphaned lights were removed
 and replaced by **Noctis Lilac** (lilac/lavender gap) and **Bluloco Light** (a
 vivid high-saturation light the pastel-heavy set lacked).
+
+**Material Light → Vitesse Light.** With **Material Dark** already cut in the
+trim (generic M3 baseline in a crowded lavender group), **Material Light** was
+left as an orphaned M3 baseline whose lilac/mauve character is now covered by
+Noctis Lilac + Catppuccin Latte. It was replaced by **Vitesse Light** (antfu) —
+a popular modern-minimal light with muted sage-green / teal / dusty-rose accents
+that fills a crisp cool-light niche. The light gallery holds at 12.
 
 **Light additions.** To balance the trimmed dark set, three popular light
 palettes joined the gallery: **Tokyo Night Light** (Day) mirrors the dark Tokyo

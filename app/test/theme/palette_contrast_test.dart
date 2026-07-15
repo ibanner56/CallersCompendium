@@ -44,7 +44,7 @@ final Map<String, ColorScheme> _galleryPalettes = {
   'ayuMirage': GalleryPalettes.ayuMirage,
   'cutiePro': GalleryPalettes.cutiePro,
   'pinkAsHeck': GalleryPalettes.pinkAsHeck,
-  'materialLight': GalleryPalettes.materialLight,
+  'vitesseLight': GalleryPalettes.vitesseLight,
   'zenburn': GalleryPalettes.zenburn,
   'shadesOfPurple': GalleryPalettes.shadesOfPurple,
   'palenight': GalleryPalettes.palenight,

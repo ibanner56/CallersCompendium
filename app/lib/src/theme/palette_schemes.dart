@@ -30,15 +30,16 @@ class GalleryPalettes {
 
   // ---- Light palettes -----------------------------------------------------
 
-  /// Material Light — the Material 3 baseline scheme (default purple seed).
-  static final ColorScheme materialLight = _build(
+  /// Vitesse Light (antfu.theme-vitesse) — a popular modern-minimal light:
+  /// off-white paper with muted sage-green, teal, and dusty-rose accents.
+  static final ColorScheme vitesseLight = _build(
     brightness: Brightness.light,
-    surface: const Color(0xFFFFFBFE),
-    onSurface: const Color(0xFF1C1B1F),
-    primary: const Color(0xFF6750A4),
-    secondary: const Color(0xFF625B71),
-    tertiary: const Color(0xFF7D5260),
-    error: const Color(0xFFB3261E),
+    surface: const Color(0xFFFFFFFF),
+    onSurface: const Color(0xFF393A34),
+    primary: const Color(0xFF1C6B48),
+    secondary: const Color(0xFF2993A3),
+    tertiary: const Color(0xFF7759B6),
+    error: const Color(0xFFAB5959),
   );
 
   /// Bluloco Light (uloco.bluloco-light) — crisp cool-neutral canvas with vivid

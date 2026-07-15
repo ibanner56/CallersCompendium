@@ -40,7 +40,7 @@ enum AppThemeSelection {
   nordLight,
   kanagawaLotus,
   noctisLilac,
-  materialLight,
+  vitesseLight,
   // Gallery palettes (§4A) — dark.
   oneDarkPro,
   monokai,
@@ -99,7 +99,7 @@ enum AppThemeSelection {
     AppThemeSelection.ayuMirage => GalleryPalettes.ayuMirage,
     AppThemeSelection.cutiePro => GalleryPalettes.cutiePro,
     AppThemeSelection.pinkAsHeck => GalleryPalettes.pinkAsHeck,
-    AppThemeSelection.materialLight => GalleryPalettes.materialLight,
+    AppThemeSelection.vitesseLight => GalleryPalettes.vitesseLight,
     AppThemeSelection.zenburn => GalleryPalettes.zenburn,
     AppThemeSelection.shadesOfPurple => GalleryPalettes.shadesOfPurple,
     AppThemeSelection.palenight => GalleryPalettes.palenight,
@@ -122,7 +122,7 @@ enum AppThemeSelection {
     AppThemeSelection.gruvboxLight ||
     AppThemeSelection.everforestLight ||
     AppThemeSelection.rosePineDawn ||
-    AppThemeSelection.materialLight ||
+    AppThemeSelection.vitesseLight ||
     AppThemeSelection.tokyoNightLight ||
     AppThemeSelection.nordLight ||
     AppThemeSelection.kanagawaLotus ||
@@ -171,7 +171,7 @@ enum AppThemeSelection {
     AppThemeSelection.ayuMirage => 'Ayu Mirage',
     AppThemeSelection.cutiePro => 'Cutie Pro',
     AppThemeSelection.pinkAsHeck => 'Pink as Heck',
-    AppThemeSelection.materialLight => 'Material Light',
+    AppThemeSelection.vitesseLight => 'Vitesse Light',
     AppThemeSelection.zenburn => 'Zenburn',
     AppThemeSelection.shadesOfPurple => 'Shades of Purple',
     AppThemeSelection.palenight => 'Palenight',
@@ -213,7 +213,7 @@ enum AppThemeSelection {
     AppThemeSelection.ayuMirage => 'Smooth slate with amber accents',
     AppThemeSelection.cutiePro => 'Cute af dark pastel, pink-forward',
     AppThemeSelection.pinkAsHeck => 'Unapologetic hot pink on berry',
-    AppThemeSelection.materialLight => 'The Material 3 baseline, light',
+    AppThemeSelection.vitesseLight => 'Modern muted sage, teal and rose',
     AppThemeSelection.zenburn => 'The classic low-contrast warm grey',
     AppThemeSelection.shadesOfPurple => 'Bold gold on deep indigo',
     AppThemeSelection.palenight => 'Purple-leaning Material on blue-grey',
