@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme_extension.dart';
+
 // ---------------------------------------------------------------------------
 // Lingo-line text editing controller
 // ---------------------------------------------------------------------------
@@ -10,6 +12,12 @@ import 'package:flutter/material.dart';
 /// (solid), and recognized taxonomy move keywords are dotted-underlined.
 /// Styles are recomputed from core APIs on every change, so character offsets
 /// stay correct across arbitrary edits.
+///
+/// The role-term underline is drawn in the theme's semantic
+/// [AppThemeExtension.dialectAccent] so the dialect affordance tracks the
+/// active theme. The discouraged strike-through intentionally keeps the
+/// inherited text color so it reads as a "discouraged" nudge rather than a
+/// normal accent.
 class LingoTextEditingController extends TextEditingController {
   LingoTextEditingController({
     super.text,
@@ -50,6 +58,10 @@ class LingoTextEditingController extends TextEditingController {
     final raw = text;
     if (raw.isEmpty) return TextSpan(text: raw, style: style);
 
+    // Semantic accent for dialect-scoped styling, tracked from the active
+    // theme. Applied to the role-term underline (never the discouraged strike).
+    final dialectAccent = AppThemeExtension.of(context).dialectAccent;
+
     final discSpans = canonicalize(raw, dialect).discouraged;
     final roleSpanList = roleSpans(raw, dialect);
     final tax = taxonomy;
@@ -67,6 +79,7 @@ class LingoTextEditingController extends TextEditingController {
             int end,
             TextDecoration decoration,
             TextDecorationStyle? decorationStyle,
+            Color? decorationColor,
             int priority,
           })
         >[];
@@ -79,6 +92,7 @@ class LingoTextEditingController extends TextEditingController {
           end: end,
           decoration: TextDecoration.lineThrough,
           decorationStyle: null,
+          decorationColor: null,
           priority: 1,
         ));
       }
@@ -91,6 +105,7 @@ class LingoTextEditingController extends TextEditingController {
           end: end,
           decoration: TextDecoration.underline,
           decorationStyle: null,
+          decorationColor: dialectAccent,
           priority: 2,
         ));
       }
@@ -103,6 +118,7 @@ class LingoTextEditingController extends TextEditingController {
           end: end,
           decoration: TextDecoration.underline,
           decorationStyle: TextDecorationStyle.dotted,
+          decorationColor: null,
           priority: 3,
         ));
       }
@@ -125,6 +141,7 @@ class LingoTextEditingController extends TextEditingController {
                 int end,
                 TextDecoration decoration,
                 TextDecorationStyle? decorationStyle,
+                Color? decorationColor,
                 int priority,
               })
             >[];
@@ -139,6 +156,7 @@ class LingoTextEditingController extends TextEditingController {
                 end: cs,
                 decoration: ev.decoration,
                 decorationStyle: ev.decorationStyle,
+                decorationColor: ev.decorationColor,
                 priority: ev.priority,
               ));
             }
@@ -148,6 +166,7 @@ class LingoTextEditingController extends TextEditingController {
                 end: ev.end,
                 decoration: ev.decoration,
                 decorationStyle: ev.decorationStyle,
+                decorationColor: ev.decorationColor,
                 priority: ev.priority,
               ));
             }
@@ -158,6 +177,7 @@ class LingoTextEditingController extends TextEditingController {
           end: ce,
           decoration: TextDecoration.underline,
           decorationStyle: null,
+          decorationColor: null,
           priority: 0,
         ));
         events
@@ -197,6 +217,7 @@ class LingoTextEditingController extends TextEditingController {
           style: (style ?? const TextStyle()).copyWith(
             decoration: ev.decoration,
             decorationStyle: ev.decorationStyle,
+            decorationColor: ev.decorationColor,
           ),
         ),
       );

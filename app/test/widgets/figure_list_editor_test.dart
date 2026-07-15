@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -601,6 +602,59 @@ void main() {
       orElse: () => ('', null, null),
     );
     expect(rolePart.$2, TextDecoration.underline);
+  });
+
+  testWidgets('lingo: role underline uses the theme dialectAccent color', (
+    tester,
+  ) async {
+    const accent = Color(0xFF12AB34);
+    TextSpan? captured;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(
+          extensions: [
+            AppThemeExtension.fromColorScheme(
+              const ColorScheme.light(),
+            ).copyWith(dialectAccent: accent),
+          ],
+        ),
+        home: Builder(
+          builder: (context) {
+            final ctrl = LingoTextEditingController(
+              text: 'larks lead',
+              dialect: Dialect.canonical,
+            );
+            captured = ctrl.buildTextSpan(
+              context: context,
+              style: null,
+              withComposing: false,
+            );
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+
+    // Walk the span tree collecting (text, decoration, decorationColor).
+    final parts = <(String, TextDecoration?, Color?)>[];
+    void visit(InlineSpan s) {
+      if (s is! TextSpan) return;
+      if (s.children != null) {
+        for (final child in s.children!) {
+          visit(child);
+        }
+      } else if (s.text != null && s.text!.isNotEmpty) {
+        parts.add((s.text!, s.style?.decoration, s.style?.decorationColor));
+      }
+    }
+
+    visit(captured!);
+    final role = parts.firstWhere(
+      (p) => p.$1.toLowerCase() == 'larks',
+      orElse: () => ('', null, null),
+    );
+    expect(role.$2, TextDecoration.underline);
+    expect(role.$3, accent);
   });
 
   testWidgets('lingo: canonical role token (role1) gets underline', (
