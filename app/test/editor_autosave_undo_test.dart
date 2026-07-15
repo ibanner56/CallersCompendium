@@ -71,6 +71,15 @@ Future<void> _pumpEditor(
   await tester.pumpAndSettle();
 }
 
+/// Expands the collapsible "More details" (Tier 2) section so its fields
+/// (including custom fields) become visible and hittable.
+Future<void> _expandMoreDetails(WidgetTester tester) async {
+  final tile = find.byKey(const ValueKey('more-details-tile'));
+  await tester.ensureVisible(tile);
+  await tester.tap(tile);
+  await tester.pumpAndSettle();
+}
+
 /// Returns the current text of the title TextFormField via its EditableText.
 String _titleText(WidgetTester tester) {
   final et = tester.firstWidget<EditableText>(
@@ -799,6 +808,7 @@ void main() {
         find.byKey(const ValueKey('title-field')),
         'Custom Test',
       );
+      await _expandMoreDetails(tester);
       await tester.enterText(
         find.byKey(const ValueKey('custom-cf1')),
         'my typed value',
@@ -825,6 +835,7 @@ void main() {
       );
       await _pumpEditor(tester, repos);
 
+      await _expandMoreDetails(tester);
       await tester.enterText(
         find.byKey(const ValueKey('custom-cf2')),
         'first value',

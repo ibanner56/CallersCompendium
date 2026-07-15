@@ -90,6 +90,16 @@ Future<void> _selectMoveInEditor(
   await tester.pumpAndSettle();
 }
 
+/// Expands the collapsible "More details" (Tier 2) section so its fields
+/// (status, level, dates, tags, tunes, links, published sources, related
+/// dances, custom fields) become visible and hittable.
+Future<void> _expandMoreDetails(WidgetTester tester) async {
+  final tile = find.byKey(const ValueKey('more-details-tile'));
+  await tester.ensureVisible(tile);
+  await tester.tap(tile);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -151,6 +161,8 @@ void main() {
     await repos.dances.create(_dance(id: 'd1', title: 'Original'));
     await _pumpEditor(tester, repos, danceId: 'd1');
 
+    await _expandMoreDetails(tester);
+
     // Pick a level from the dropdown.
     await tester.tap(find.byKey(const ValueKey('level-field-none')));
     await tester.pumpAndSettle();
@@ -175,6 +187,8 @@ void main() {
       _dance(id: 'd1', title: 'Original', level: DanceLevel.advanced),
     );
     await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await _expandMoreDetails(tester);
 
     await tester.tap(find.byKey(const ValueKey('level-field-advanced')));
     await tester.pumpAndSettle();
@@ -295,6 +309,8 @@ void main() {
     await repos.dances.create(_dance(id: 'd1', title: 'Original'));
     await _pumpEditor(tester, repos, danceId: 'd1');
 
+    await _expandMoreDetails(tester);
+
     await tester.enterText(
       find.byKey(const ValueKey('composed-on-year')),
       '1989',
@@ -313,6 +329,8 @@ void main() {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Original'));
     await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await _expandMoreDetails(tester);
 
     await tester.enterText(
       find.byKey(const ValueKey('composed-on-year')),
@@ -342,6 +360,8 @@ void main() {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Original'));
     await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await _expandMoreDetails(tester);
 
     await tester.enterText(
       find.byKey(const ValueKey('composed-on-year')),
@@ -389,6 +409,8 @@ void main() {
       _dance(id: 'd1', title: 'Original', composedOn: PartialDate(1995, 6)),
     );
     await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await _expandMoreDetails(tester);
 
     // The existing year is shown in the field.
     expect(
@@ -502,6 +524,8 @@ void main() {
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
     await _pumpEditor(tester, repos);
 
+    await _expandMoreDetails(tester);
+
     await tester.enterText(find.byKey(const ValueKey('tag-input')), 'flowy');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('tag-option-t1')));
@@ -544,6 +568,7 @@ void main() {
     await _pumpEditor(tester, repos);
 
     await tester.enterText(find.byKey(const ValueKey('title-field')), 'CF');
+    await _expandMoreDetails(tester);
     await tester.enterText(
       find.byKey(const ValueKey('custom-f1')),
       'hello world',
@@ -593,6 +618,7 @@ void main() {
     await _pumpEditor(tester, repos);
 
     await tester.enterText(find.byKey(const ValueKey('title-field')), 'B');
+    await _expandMoreDetails(tester);
     await tester.tap(find.byKey(const ValueKey('custom-b1')));
     await tester.tap(find.byKey(const ValueKey('save-dance')));
     await tester.pumpAndSettle();
@@ -785,25 +811,23 @@ void main() {
     expect(saved.figures.single.move, 'balance');
   });
 
-  // ── relatedDance link picker ──────────────────────────────────────────────
+  // ── Related dances subsection ─────────────────────────────────────────────
 
-  /// Finds the relatedDance picker TextField by its unique labelText.
+  /// Finds the related-dance picker TextField by its unique labelText.
   Finder pickerField() => find.byWidgetPredicate(
     (w) => w is TextField && w.decoration?.labelText == 'Related dance',
   );
 
-  /// Finds and opens the link-kind dropdown for the first link row.
-  Future<void> openLinkKindDropdown(WidgetTester tester) async {
-    final kindDropdown = find.byWidgetPredicate(
-      (w) =>
-          w.key is ValueKey &&
-          (w.key as ValueKey).value.toString().startsWith('link-kind-'),
-    );
-    await tester.tap(kindDropdown.first);
+  /// Expands "More details" and adds a blank related-dance row.
+  Future<void> addRelatedDance(WidgetTester tester) async {
+    await _expandMoreDetails(tester);
+    final addButton = find.byKey(const ValueKey('related-dance-add'));
+    await tester.ensureVisible(addButton);
+    await tester.tap(addButton);
     await tester.pumpAndSettle();
   }
 
-  testWidgets('relatedDance: create link via picker and save', (tester) async {
+  testWidgets('relatedDance: create via picker and save', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'target', title: 'Target Dance'));
     await _pumpEditor(tester, repos);
@@ -813,20 +837,12 @@ void main() {
       'With Related',
     );
 
-    // Add a link row.
-    await tester.tap(find.byKey(const ValueKey('link-add')));
-    await tester.pumpAndSettle();
+    // Add a related-dance row in the dedicated subsection.
+    await addRelatedDance(tester);
 
-    // Change the kind to relatedDance.
-    await openLinkKindDropdown(tester);
-    await tester.tap(find.text('Related').last);
-    await tester.pumpAndSettle();
-
-    // Type in the picker to search.
+    // Type in the picker to search, then tap the matching option.
     await tester.enterText(pickerField().first, 'Target');
     await tester.pumpAndSettle();
-
-    // Tap the matching option.
     await tester.tap(find.byKey(const ValueKey('link-dance-option-target')));
     await tester.pumpAndSettle();
 
@@ -841,7 +857,46 @@ void main() {
     expect(created.links.single.targetDanceId, 'target');
   });
 
-  testWidgets('relatedDance: remove link removes it on save', (tester) async {
+  testWidgets('relatedDance: note round-trips as the link label', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'target', title: 'Target Dance'));
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('title-field')),
+      'With Noted Relation',
+    );
+
+    await addRelatedDance(tester);
+    await tester.enterText(pickerField().first, 'Target');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('link-dance-option-target')));
+    await tester.pumpAndSettle();
+
+    // Add a note; it is stored on the DanceLink label.
+    final noteField = find.byWidgetPredicate(
+      (w) =>
+          w.key is ValueKey &&
+          (w.key as ValueKey).value.toString().startsWith(
+            'related-dance-note-',
+          ),
+    );
+    await tester.enterText(noteField.first, 'same author');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final all = await repos.dances.listAll();
+    final created = all.firstWhere((d) => d.id != 'target');
+    expect(created.links.single.kind, LinkKind.relatedDance);
+    expect(created.links.single.targetDanceId, 'target');
+    expect(created.links.single.label, 'same author');
+  });
+
+  testWidgets('relatedDance: remove removes it on save', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'target', title: 'Target'));
     await repos.dances.create(
@@ -858,13 +913,17 @@ void main() {
     );
     await _pumpEditor(tester, repos, danceId: 'd1');
 
-    // Remove the link.
-    await tester.tap(find.byKey(const ValueKey('link-remove-l1')));
+    await _expandMoreDetails(tester);
+
+    // Remove the related dance.
+    final removeButton = find.byKey(const ValueKey('related-dance-remove-l1'));
+    await tester.ensureVisible(removeButton);
+    await tester.tap(removeButton);
     await tester.pumpAndSettle();
 
     await tester.enterText(
       find.byKey(const ValueKey('title-field')),
-      'No links',
+      'No relations',
     );
     await tester.tap(find.byKey(const ValueKey('save-dance')));
     await tester.pumpAndSettle();
@@ -881,13 +940,7 @@ void main() {
     await repos.dances.create(_dance(id: 'd2', title: 'Other Dance'));
     await _pumpEditor(tester, repos, danceId: 'd1');
 
-    // Add a link row and switch to relatedDance.
-    await tester.tap(find.byKey(const ValueKey('link-add')));
-    await tester.pumpAndSettle();
-
-    await openLinkKindDropdown(tester);
-    await tester.tap(find.text('Related').last);
-    await tester.pumpAndSettle();
+    await addRelatedDance(tester);
 
     // Type to show options.
     await tester.enterText(pickerField().first, 'Dance');
@@ -908,12 +961,7 @@ void main() {
     await repos.dances.softDelete('gone', at: DateTime.now().toUtc());
     await _pumpEditor(tester, repos);
 
-    await tester.tap(find.byKey(const ValueKey('link-add')));
-    await tester.pumpAndSettle();
-
-    await openLinkKindDropdown(tester);
-    await tester.tap(find.text('Related').last);
-    await tester.pumpAndSettle();
+    await addRelatedDance(tester);
 
     await tester.enterText(pickerField().first, 'Dance');
     await tester.pumpAndSettle();
@@ -947,55 +995,64 @@ void main() {
       await repos.dances.softDelete('gone-target', at: DateTime.now().toUtc());
       await _pumpEditor(tester, repos, danceId: 'd1');
 
+      await _expandMoreDetails(tester);
+
       // Picker shows placeholder because target is soft-deleted (not in listAll).
       expect(find.text('(missing dance)'), findsOneWidget);
     },
   );
 
-  testWidgets(
-    'relatedDance: undo of link removal restores the relatedDance link',
-    (tester) async {
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'target', title: 'Target'));
-      await repos.dances.create(
-        _dance(
-          id: 'd1',
-          links: [
-            DanceLink(
-              id: 'l1',
-              kind: LinkKind.relatedDance,
-              targetDanceId: 'target',
-            ),
-          ],
-        ),
-      );
-      await _pumpEditor(tester, repos, danceId: 'd1');
+  testWidgets('relatedDance: undo of removal restores the relatedDance link', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'target', title: 'Target'));
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'target',
+          ),
+        ],
+      ),
+    );
+    await _pumpEditor(tester, repos, danceId: 'd1');
 
-      // The link remove button is present.
-      expect(find.byKey(const ValueKey('link-remove-l1')), findsOneWidget);
+    await _expandMoreDetails(tester);
 
-      // Remove the link — triggers an immediate undo snapshot push.
-      await tester.tap(find.byKey(const ValueKey('link-remove-l1')));
-      await tester.pumpAndSettle();
+    // The remove button is present.
+    expect(
+      find.byKey(const ValueKey('related-dance-remove-l1')),
+      findsOneWidget,
+    );
 
-      expect(find.byKey(const ValueKey('link-remove-l1')), findsNothing);
+    // Remove the related dance — triggers an immediate undo snapshot push.
+    await tester.tap(find.byKey(const ValueKey('related-dance-remove-l1')));
+    await tester.pumpAndSettle();
 
-      // Undo — link is restored.
-      await tester.tap(find.byKey(const ValueKey('undo-button')));
-      await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('related-dance-remove-l1')), findsNothing);
 
-      expect(find.byKey(const ValueKey('link-remove-l1')), findsOneWidget);
+    // Undo — the related dance is restored.
+    await tester.tap(find.byKey(const ValueKey('undo-button')));
+    await tester.pumpAndSettle();
 
-      // Save and confirm the relatedDance link is persisted.
-      await tester.tap(find.byKey(const ValueKey('save-dance')));
-      await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('related-dance-remove-l1')),
+      findsOneWidget,
+    );
 
-      final saved = await repos.dances.getById('d1');
-      expect(saved!.links, hasLength(1));
-      expect(saved.links.single.kind, LinkKind.relatedDance);
-      expect(saved.links.single.targetDanceId, 'target');
-    },
-  );
+    // Save and confirm the relatedDance link is persisted.
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.links, hasLength(1));
+    expect(saved.links.single.kind, LinkKind.relatedDance);
+    expect(saved.links.single.targetDanceId, 'target');
+  });
 
   testWidgets('URL kinds still work after PR3 changes', (tester) async {
     final repos = openTestRepositories();
@@ -1005,6 +1062,7 @@ void main() {
       find.byKey(const ValueKey('title-field')),
       'URL Test',
     );
+    await _expandMoreDetails(tester);
     await tester.tap(find.byKey(const ValueKey('link-add')));
     await tester.pumpAndSettle();
 
@@ -1030,6 +1088,7 @@ void main() {
       String query,
       String sourceId,
     ) async {
+      await _expandMoreDetails(tester);
       final input = find.byKey(const ValueKey('source-input'));
       await tester.ensureVisible(input);
       await tester.enterText(input, query);
@@ -1120,6 +1179,8 @@ void main() {
       await repos.dances.create(_dance(id: 'd1', title: 'Original'));
       await _pumpEditor(tester, repos, danceId: 'd1');
 
+      await _expandMoreDetails(tester);
+
       final input = find.byKey(const ValueKey('source-input'));
       await tester.ensureVisible(input);
       await tester.enterText(input, 'Shadrach');
@@ -1179,5 +1240,87 @@ void main() {
       final updated = await repos.publishedSources.getById('s1');
       expect(updated!.author, isNull);
     });
+  });
+
+  group('two-tier layout —', () {
+    testWidgets('Progression and Rating share a row in Tier 1', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // Both are visible without expanding "More details" (they are Tier 1).
+      expect(find.text('Progression'), findsOneWidget);
+      expect(find.byKey(const ValueKey('rating-field')), findsOneWidget);
+
+      // They sit on the same horizontal line (share a Row).
+      final progressionField = find.byWidgetPredicate(
+        (w) =>
+            w.key is ValueKey &&
+            (w.key as ValueKey).value.toString().startsWith(
+              'progression-field-',
+            ),
+      );
+      final progressionY = tester.getTopLeft(progressionField).dy;
+      final ratingY = tester
+          .getTopLeft(find.byKey(const ValueKey('rating-field')))
+          .dy;
+      expect((progressionY - ratingY).abs(), lessThan(24));
+    });
+
+    testWidgets('More details is collapsed by default and expands on tap', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // Collapsed: a Tier-2 field (Status dropdown / mixed-level) is not shown.
+      expect(find.byKey(const ValueKey('mixed-level-field')), findsNothing);
+      expect(find.text('More details'), findsOneWidget);
+
+      // Expand → Tier-2 fields become visible.
+      await _expandMoreDetails(tester);
+      expect(find.byKey(const ValueKey('mixed-level-field')), findsOneWidget);
+    });
+
+    testWidgets(
+      'Form control is absent from the UI but a loaded form round-trips',
+      (tester) async {
+        final repos = openTestRepositories();
+        // Persist a dance whose form is not the default (contra).
+        await repos.dances.create(
+          Dance(
+            id: 'd1',
+            title: 'ECD Dance',
+            form: DanceForm.ecd,
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        await _pumpEditor(tester, repos, danceId: 'd1');
+        await _expandMoreDetails(tester);
+
+        // No "Form" field is rendered anywhere in the editor.
+        final formField = find.byWidgetPredicate(
+          (w) =>
+              w.key is ValueKey &&
+              (w.key as ValueKey).value.toString().startsWith('form-field-'),
+        );
+        expect(formField, findsNothing);
+        expect(find.text('Form'), findsNothing);
+
+        // Editing an unrelated field and saving preserves the form value.
+        await tester.enterText(
+          find.byKey(const ValueKey('title-field')),
+          'ECD Dance (edited)',
+        );
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+
+        final saved = await repos.dances.getById('d1');
+        expect(saved!.title, 'ECD Dance (edited)');
+        expect(saved.form, DanceForm.ecd);
+      },
+    );
   });
 }
