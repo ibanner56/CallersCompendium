@@ -248,6 +248,211 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     }
   }
 
+  /// Opens a modal bottom sheet listing existing (non-deleted) programs so the
+  /// user can append this dance as a new slot at the end of one of them
+  /// (`docs/design/ux.md` §2 add-to-program). Programs are ordered
+  /// most-recently-updated first. When there are no programs yet, a teaching
+  /// empty state offers to create a new program seeded with this dance.
+  Future<void> _addToProgram(String danceTitle) async {
+    final programs = await _repos.programs.listAll();
+    if (!mounted) return;
+    programs.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    Text(
+                      'Add to program',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      key: const ValueKey('add-to-program-close'),
+                      tooltip: 'Close',
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: programs.isEmpty
+                      ? _buildEmptyPrograms(
+                          sheetContext,
+                          danceTitle,
+                          scrollController,
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: programs.length,
+                          itemBuilder: (context, index) => _buildProgramPickRow(
+                            sheetContext,
+                            programs[index],
+                            danceTitle,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// One selectable program row: a single merged-semantics button exposing the
+  /// program's title, event date (if any), and slot count. Mirrors the
+  /// row-as-button pattern in `collection_picker.dart`.
+  Widget _buildProgramPickRow(
+    BuildContext sheetContext,
+    Program program,
+    String danceTitle,
+  ) {
+    final slotCount = program.slots.length;
+    final dateLabel = program.eventDate == null
+        ? null
+        : MaterialLocalizations.of(
+            context,
+          ).formatMediumDate(program.eventDate!);
+    final countLabel = '$slotCount ${slotCount == 1 ? 'dance' : 'dances'}';
+    final subtitleParts = [?dateLabel, countLabel];
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        label:
+            'Add "$danceTitle" to ${program.title}, '
+            '${subtitleParts.join(', ')}',
+        child: ListTile(
+          key: ValueKey('program-pick-${program.id}'),
+          title: ExcludeSemantics(child: Text(program.title)),
+          subtitle: ExcludeSemantics(child: Text(subtitleParts.join(' · '))),
+          onTap: () => _selectProgram(sheetContext, program, danceTitle),
+        ),
+      ),
+    );
+  }
+
+  /// Teaching empty state shown when no programs exist yet, with an affordance
+  /// to create a brand-new program seeded with this dance.
+  Widget _buildEmptyPrograms(
+    BuildContext sheetContext,
+    String danceTitle,
+    ScrollController controller,
+  ) {
+    final theme = Theme.of(context);
+    return ListView(
+      controller: controller,
+      padding: const EdgeInsets.all(24),
+      children: [
+        const SizedBox(height: 16),
+        Text(
+          'No programs yet',
+          key: const ValueKey('add-to-program-empty'),
+          style: theme.textTheme.titleMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Create a program to start building a set list.',
+          style: theme.textTheme.bodyMedium,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 20),
+        Center(
+          child: FilledButton.icon(
+            key: const ValueKey('add-to-program-create'),
+            onPressed: () => _createProgramWith(sheetContext, danceTitle),
+            icon: const Icon(Icons.add),
+            label: const Text('Create a new program with this dance'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Appends this dance as a new slot at the end of [program], persists it,
+  /// closes the sheet, and confirms with an Undo snackbar that restores the
+  /// program's previous slot list (soft/undoable per project convention).
+  Future<void> _selectProgram(
+    BuildContext sheetContext,
+    Program program,
+    String danceTitle,
+  ) async {
+    // Re-load fresh so we append onto the latest persisted slot list.
+    final fresh = await _repos.programs.getById(program.id);
+    if (fresh == null) {
+      if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+      return;
+    }
+    final previousSlots = fresh.slots.toList();
+    final now = DateTime.now().toUtc();
+    final newSlot = ProgramSlot(
+      id: uuidV4(),
+      position: fresh.slots.length,
+      danceId: widget.danceId,
+    );
+    await _repos.programs.update(
+      fresh.copyWith(slots: [...fresh.slots, newSlot], updatedAt: now),
+    );
+    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('added-to-program-snackbar'),
+        content: Text('Added "$danceTitle" to ${fresh.title}.'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            final current = await _repos.programs.getById(fresh.id);
+            if (current == null) return;
+            await _repos.programs.update(
+              current.copyWith(
+                slots: previousSlots,
+                updatedAt: DateTime.now().toUtc(),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Creates a new draft program seeded with this dance as its only slot, then
+  /// closes the sheet and confirms with a snackbar. (No Undo: the new program
+  /// is itself the artifact and can be deleted from the programs list.)
+  Future<void> _createProgramWith(
+    BuildContext sheetContext,
+    String danceTitle,
+  ) async {
+    final now = DateTime.now().toUtc();
+    final program = Program(
+      id: uuidV4(),
+      title: 'New program',
+      slots: [ProgramSlot(id: uuidV4(), position: 0, danceId: widget.danceId)],
+      createdAt: now,
+      updatedAt: now,
+    );
+    await _repos.programs.create(program);
+    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('created-program-snackbar'),
+        content: Text('Created "${program.title}" with "$danceTitle".'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -272,6 +477,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     tooltip: 'Duplicate dance',
                     icon: const Icon(Icons.copy_all_outlined),
                     onPressed: _duplicate,
+                  ),
+                  IconButton(
+                    key: const ValueKey('add-dance-to-program'),
+                    tooltip: 'Add to program',
+                    icon: const Icon(Icons.playlist_add),
+                    onPressed: () => _addToProgram(snapshot.data!.dance.title),
                   ),
                   TextButton.icon(
                     key: const ValueKey('edit-dance'),
