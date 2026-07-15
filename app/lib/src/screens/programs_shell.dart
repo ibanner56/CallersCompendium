@@ -299,7 +299,7 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
               heroTag: 'open-builder',
               onPressed: widget.onOpenBuilder,
               icon: const Icon(Icons.edit_note),
-              label: const Text('Open builder'),
+              label: const Text('Edit program'),
             )
           : null,
     );
@@ -337,15 +337,23 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
             Expanded(
               child: Text(program.title, style: theme.textTheme.headlineSmall),
             ),
+            _buildPerformAction(program),
+            ProgramExportMenu(
+              program: program,
+              titleFor: (id) => _danceTitles[id],
+            ),
+            if (program.slots.any((s) => s.danceId != null))
+              IconButton(
+                key: const ValueKey('mark-all-performed'),
+                tooltip: 'Mark all performed',
+                icon: const Icon(Icons.done_all),
+                onPressed: _markAllPerformed,
+              ),
             IconButton(
               key: const ValueKey('summary-duplicate'),
               tooltip: 'Duplicate',
               icon: const Icon(Icons.copy_all_outlined),
               onPressed: _duplicate,
-            ),
-            ProgramExportMenu(
-              program: program,
-              titleFor: (id) => _danceTitles[id],
             ),
             IconButton(
               key: const ValueKey('summary-delete'),
@@ -358,8 +366,6 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
         const SizedBox(height: 8),
         ProgramStatusChip(status: program.status),
         const SizedBox(height: 16),
-        _buildPerformAction(program),
-        const SizedBox(height: 8),
         if (dateLabel != null) _summaryRow(Icons.event_outlined, dateLabel),
         if (program.venue != null)
           _summaryRow(Icons.place_outlined, program.venue!),
@@ -384,28 +390,49 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
     );
   }
 
-  /// Prominent "Perform this program" action shown at the top of the summary.
-  /// Disabled (with an explanatory tooltip) when the program has no slots or the
+  /// "Perform this program" action shown in the summary's top action Row,
+  /// mirroring the program builder's `perform-program` AppBar action. Disabled
+  /// (with an explanatory tooltip) when the program has no slots or the
   /// reference data has not loaded yet, mirroring the editor's `_slots.isEmpty`
   /// guard — never a dead button. The disabled state is exposed to assistive
   /// technology via the button's own disabled semantics, not colour alone.
   Widget _buildPerformAction(Program program) {
     final canPerform = program.slots.isNotEmpty && _collectionData != null;
-    final button = FilledButton.icon(
+    return IconButton(
       key: const ValueKey('summary-perform'),
-      onPressed: canPerform ? _performProgram : null,
+      tooltip: canPerform
+          ? 'Perform this program'
+          : 'Add at least one slot to perform this program',
       icon: const Icon(Icons.slideshow),
-      label: const Text('Perform this program'),
+      onPressed: canPerform ? _performProgram : null,
     );
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: canPerform
-          ? button
-          : Tooltip(
-              message: 'Add at least one slot to perform this program',
-              child: button,
-            ),
+  }
+
+  /// Marks every slot with a dance as performed (now), persists the change, and
+  /// reloads the summary. Mirrors [ProgramEditorScreen]'s `_markAllPerformed`
+  /// (no confirm dialog), but writes through the repository immediately because
+  /// the summary shows a saved program — there is no draft to fold into a later
+  /// save. Only reachable when at least one slot has a dance, matching the
+  /// builder's guard.
+  Future<void> _markAllPerformed() async {
+    final program = _program;
+    if (program == null) return;
+    final now = DateTime.now().toUtc();
+    final updated = program.copyWith(
+      slots: [
+        for (final s in program.slots)
+          s.danceId != null && s.performedAt == null
+              ? s.copyWith(performedAt: now)
+              : s,
+      ],
+      updatedAt: now,
     );
+    await _repos.programs.update(updated);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Marked all dances performed.')),
+    );
+    _load();
   }
 
   /// Builds the read-only, ordered set list. Primaries are numbered 1..n and

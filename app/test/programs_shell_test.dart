@@ -329,7 +329,7 @@ void main() {
       expect(
         tester.getSemantics(finder),
         isSemantics(
-          label: 'Perform this program',
+          tooltip: 'Add at least one slot to perform this program',
           isButton: true,
           isEnabled: false,
           hasEnabledState: true,
@@ -342,7 +342,7 @@ void main() {
 
   testWidgets(
     'the enabled "Perform this program" action exposes a single button node '
-    '(role + label + focusable + tap action)',
+    '(role + tooltip + focusable + tap action)',
     (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
@@ -365,7 +365,7 @@ void main() {
       expect(
         tester.getSemantics(find.byKey(const ValueKey('summary-perform'))),
         isSemantics(
-          label: 'Perform this program',
+          tooltip: 'Perform this program',
           isButton: true,
           isFocusable: true,
           isEnabled: true,
@@ -376,4 +376,74 @@ void main() {
       handle.dispose();
     },
   );
+
+  testWidgets('the summary pane FAB is labelled "Edit program"', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
+
+    await _pumpWide(tester, repos);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
+    expect(find.text('Edit program'), findsOneWidget);
+  });
+
+  testWidgets(
+    'mark-all-performed marks every dance slot performed and persists',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('mark-all-performed')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+
+      // Feedback is announced and the change is written through immediately —
+      // the summary shows a saved program, not a draft.
+      expect(find.text('Marked all dances performed.'), findsOneWidget);
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots.single.performedAt, isNotNull);
+    },
+  );
+
+  testWidgets('mark-all-performed is hidden when no slot has a dance', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // A program whose only slot is free text (no dance) — nothing to mark.
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [ProgramSlot(id: 's0', position: 0, text: 'Welcome')],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+
+    await _pumpWide(tester, repos);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
+  });
 }
