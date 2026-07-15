@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -649,17 +650,28 @@ void main() {
     // Actionable: the button has an onPressed callback.
     expect(tester.widget<IconButton>(control).onPressed, isNotNull);
 
+    // Assistive-tech reachable: the control exposes an enabled, tappable button
+    // with the expected accessible label in the semantics tree (not colour/icon
+    // alone).
+    final handle = tester.ensureSemantics();
+    final semantics = tester.getSemantics(control).getSemanticsData();
+    expect(semantics.hasAction(SemanticsAction.tap), isTrue);
+    expect(semantics.tooltip, 'Export or print matrix as PDF');
+    handle.dispose();
+
     // Keyboard-reachable: the enabled button establishes a focus node that can
     // accept focus and, once requested, becomes the primary focus. Resolved via
-    // Focus.of from a descendant (the icon), so it exercises the real focus path
-    // a keyboard/Tab user relies on rather than the button's internal wiring.
+    // Focus.of from a descendant (the icon) with scopeOk: false, so it returns
+    // the IconButton's own (non-scope) focus node and cannot silently fall back
+    // to a surrounding FocusScope — exercising the real focus path a keyboard/Tab
+    // user relies on.
     final iconContext = tester.element(
       find.descendant(
         of: control,
         matching: find.byIcon(Icons.picture_as_pdf_outlined),
       ),
     );
-    final focusNode = Focus.of(iconContext);
+    final focusNode = Focus.of(iconContext, scopeOk: false);
     expect(focusNode.canRequestFocus, isTrue);
     focusNode.requestFocus();
     await tester.pump();
