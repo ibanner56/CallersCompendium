@@ -1,8 +1,8 @@
 # Contributing to Caller's Compendium
 
-Thanks for helping build a community-maintained tool for dance callers! This
-project is young; the best starting point is the
-[roadmap](docs/ROADMAP.md) and the design docs in [docs/design/](docs/design/).
+Thanks for helping build a community-maintained tool for dance callers! The
+best starting point is the [roadmap](docs/ROADMAP.md) and the design docs in
+[docs/design/](docs/design/).
 
 ## Ground rules
 
@@ -38,12 +38,106 @@ by opening a PR adding a `Proposed` ADR.
 - The figure taxonomy is versioned data — changes to it follow the process in
   [docs/design/figure-taxonomy.md](docs/design/figure-taxonomy.md).
 
-## Getting started (pre-implementation phase)
+## Getting started
 
-The Flutter scaffold lands in Phase 2 (see roadmap). Until then, doc review,
-design feedback, and test-corpus contributions (interesting dances that stress
-the figure model!) are the most valuable contributions. Open an issue or start
-a discussion.
+The app is a Flutter [pub workspace](pubspec.yaml): the `app/` Flutter app plus a
+pure-Dart domain core in `packages/compendium_core/` (which must not import
+Flutter — ADR-001, enforced in CI). Flutter is pinned to the version in
+[`.fvmrc`](.fvmrc); [FVM](https://fvm.app/) is the way we keep
+everyone on that exact version. Install FVM, then from the repo root:
+
+```sh
+fvm install                     # fetch the pinned Flutter version (.fvmrc)
+fvm flutter pub get             # resolve the whole workspace
+```
+
+All commands below use `fvm flutter` / `fvm dart` so they run against the pinned
+SDK. (If you'd rather not prefix every command, `fvm use` sets up a `.fvm/`
+symlink you can point your editor/PATH at — see the FVM docs.)
+
+## Making a change
+
+1. Branch from `main` (`kebab-case-description`).
+2. Make your change. Domain logic (taxonomy, dialect, storage, imports) belongs
+   in `packages/compendium_core/` and must stay Flutter-free; the UI lives in
+   `app/`.
+3. Run the checks CI enforces, from the repo root:
+
+   ```sh
+   fvm dart format .                                   # format (CI fails on diffs)
+   fvm flutter analyze                                 # lint
+   (cd packages/compendium_core && fvm dart test)      # core unit tests
+   (cd app && fvm flutter test)                        # app / widget tests
+   ```
+
+4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
+
+## Running & viewing locally
+
+Run the app with hot reload against a connected device, emulator, or your
+desktop. `fvm flutter devices` lists what's available; `-d <id>` picks one.
+
+```sh
+cd app
+fvm flutter run                 # default device (prompts if several)
+fvm flutter run -d macos        # macOS desktop
+fvm flutter run -d windows      # Windows desktop
+fvm flutter run -d linux        # Linux desktop
+fvm flutter run -d chrome       # quick web preview (not a shipping target)
+fvm flutter run -d <android-id> # Android device/emulator (see `flutter devices`)
+fvm flutter run -d <ios-id>     # iOS simulator/device (macOS host only)
+```
+
+Desktop targets have host prerequisites: **Linux** needs
+`ninja-build` + `libgtk-3-dev` (and `clang`/`cmake`/`pkg-config`); **Windows**
+needs Visual Studio with the "Desktop development with C++" workload; **macOS**
+and **iOS** need Xcode; **Android** needs the Android SDK/NDK. Run
+`fvm flutter doctor` to see what's missing for the platforms you want to build.
+
+### Emulators & simulators
+
+No physical phone required — you can test the mobile targets on emulated
+devices. `fvm flutter emulators` lists the ones already configured.
+
+**Android emulator** (any host with the Android SDK):
+
+```sh
+fvm flutter emulators                        # list configured emulators
+fvm flutter emulators --launch <emulator-id> # boot one (or start it from Android Studio)
+cd app && fvm flutter run                    # runs on the booted emulator
+```
+
+Create an emulator first with `fvm flutter emulators --create` (or via Android
+Studio's Device Manager) if the list is empty.
+
+**iOS simulator** (macOS host with Xcode only — Apple does not permit the iOS
+simulator on Linux or Windows):
+
+```sh
+open -a Simulator                # boot the iOS Simulator
+cd app && fvm flutter run -d ios # or `-d "iPhone 15"` to target a named simulator
+```
+
+Once a simulator/emulator is booted it shows up in `fvm flutter devices`, so you
+can also select it with `-d <id>` when several targets are attached. Hot reload
+(`r`) and hot restart (`R`) work the same as on physical devices and desktop.
+
+To build release artifacts locally (the same set CI produces across Linux,
+macOS, Windows, Android, and iOS):
+
+```sh
+cd app
+fvm flutter build linux --release
+fvm flutter build macos --release
+fvm flutter build windows --release
+fvm flutter build apk --release          # or: appbundle
+fvm flutter build ios --release --no-codesign
+```
+
+Getting the roadmap's open items moving — see [docs/ROADMAP.md](docs/ROADMAP.md)
+— plus doc review, design feedback, and test-corpus contributions (interesting
+dances that stress the figure model!) are all welcome. Open an issue or start a
+discussion.
 
 ## Reporting bugs / requesting features
 
