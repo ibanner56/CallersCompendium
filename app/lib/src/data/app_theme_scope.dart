@@ -39,6 +39,9 @@ enum AppThemeSelection {
   everforestLight,
   rosePineDawn,
   ayuLight,
+  tokyoNightLight,
+  nordLight,
+  kanagawaLotus,
   // Gallery palettes (§4A) — dark.
   solarizedDark,
   oneDarkPro,
@@ -93,6 +96,9 @@ enum AppThemeSelection {
     AppThemeSelection.everforestLight => GalleryPalettes.everforestLight,
     AppThemeSelection.rosePineDawn => GalleryPalettes.rosePineDawn,
     AppThemeSelection.ayuLight => GalleryPalettes.ayuLight,
+    AppThemeSelection.tokyoNightLight => GalleryPalettes.tokyoNightLight,
+    AppThemeSelection.nordLight => GalleryPalettes.nordLight,
+    AppThemeSelection.kanagawaLotus => GalleryPalettes.kanagawaLotus,
     AppThemeSelection.solarizedDark => GalleryPalettes.solarizedDark,
     AppThemeSelection.oneDarkPro => GalleryPalettes.oneDarkPro,
     AppThemeSelection.monokai => GalleryPalettes.monokai,
@@ -142,6 +148,9 @@ enum AppThemeSelection {
     AppThemeSelection.everforestLight ||
     AppThemeSelection.rosePineDawn ||
     AppThemeSelection.materialLight ||
+    AppThemeSelection.tokyoNightLight ||
+    AppThemeSelection.nordLight ||
+    AppThemeSelection.kanagawaLotus ||
     AppThemeSelection.ayuLight => AppThemeGroup.light,
     AppThemeSelection.noctis ||
     AppThemeSelection.noctisLux ||
@@ -186,6 +195,9 @@ enum AppThemeSelection {
     AppThemeSelection.everforestLight => 'Everforest Light',
     AppThemeSelection.rosePineDawn => 'Rosé Pine Dawn',
     AppThemeSelection.ayuLight => 'Ayu Light',
+    AppThemeSelection.tokyoNightLight => 'Tokyo Night Light',
+    AppThemeSelection.nordLight => 'Nord Light',
+    AppThemeSelection.kanagawaLotus => 'Kanagawa Lotus',
     AppThemeSelection.dracula => 'Dracula',
     AppThemeSelection.nord => 'Nord',
     AppThemeSelection.tokyoNight => 'Tokyo Night',
@@ -234,6 +246,10 @@ enum AppThemeSelection {
     AppThemeSelection.everforestLight => 'Gentle green, easy on the eyes',
     AppThemeSelection.rosePineDawn => 'Muted rose and iris on warm paper',
     AppThemeSelection.ayuLight => 'Bright, minimal light with amber accents',
+    AppThemeSelection.tokyoNightLight =>
+      'Crisp indigo daylight, Tokyo Night’s day',
+    AppThemeSelection.nordLight => 'Cool arctic snow-storm neutrals',
+    AppThemeSelection.kanagawaLotus => 'Warm sumi-e paper with ink accents',
     AppThemeSelection.dracula => 'The classic purple-on-charcoal favorite',
     AppThemeSelection.nord => 'Cool arctic blues, understated',
     AppThemeSelection.tokyoNight => 'Neon indigo city-at-night palette',

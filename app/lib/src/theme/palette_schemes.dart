@@ -340,6 +340,39 @@ class GalleryPalettes {
     error: const Color(0xFFF07171),
   );
 
+  /// Tokyo Night Light (Day) — inspired, contrast-tuned (crisp indigo).
+  static final ColorScheme tokyoNightLight = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFE1E2E7),
+    onSurface: const Color(0xFF343B58),
+    primary: const Color(0xFF2E7DE9),
+    secondary: const Color(0xFF587539),
+    tertiary: const Color(0xFF9854F1),
+    error: const Color(0xFFF52A65),
+  );
+
+  /// Nord Light (Snow Storm) — inspired, contrast-tuned (cool arctic).
+  static final ColorScheme nordLight = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFECEFF4),
+    onSurface: const Color(0xFF2E3440),
+    primary: const Color(0xFF5E81AC),
+    secondary: const Color(0xFFA3BE8C),
+    tertiary: const Color(0xFFB48EAD),
+    error: const Color(0xFFBF616A),
+  );
+
+  /// Kanagawa Lotus — inspired, contrast-tuned (warm sumi-e paper).
+  static final ColorScheme kanagawaLotus = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFF2ECBC),
+    onSurface: const Color(0xFF545464),
+    primary: const Color(0xFF4D699B),
+    secondary: const Color(0xFF6F894E),
+    tertiary: const Color(0xFFCC6D00),
+    error: const Color(0xFFC84053),
+  );
+
   // ---- Noctis family (liviuschera/noctis) ---------------------------------
   //
   // The full Noctis palette set. Every variant shares Noctis's signature

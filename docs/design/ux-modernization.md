@@ -325,13 +325,15 @@ adding one is just "identity colors + one enum entry":
 | Everforest Light | light | `#FDF6E3` | soft green | Everforest |
 | Rosé Pine Dawn | light | `#FAF4ED` | rose / iris | Rosé Pine |
 | Ayu Light | light | `#FAFAFA` | bright amber | Ayu |
+| Tokyo Night Light | light | `#E1E2E7` | crisp indigo | Tokyo Night (Day) |
+| Nord Light | light | `#ECEFF4` | arctic blue | Nord (Snow Storm) |
+| Kanagawa Lotus | light | `#F2ECBC` | sumi-e ink | Kanagawa (Lotus) |
 | Dracula | dark | `#282A36` | purple / pink | Dracula |
 | Nord | dark | `#2E3440` | arctic blue | Nord |
 | Tokyo Night | dark | `#1A1B26` | neon indigo | Tokyo Night |
 | Gruvbox Dark | dark | `#282828` | warm amber | Gruvbox |
 | Catppuccin Mocha | dark | `#1E1E2E` | pastel mauve | Catppuccin |
 | GitHub Dark | dark | `#0D1117` | neutral blue | GitHub |
-| Night Owl | dark | `#011627` | teal-blue | Night Owl |
 | Everforest Dark | dark | `#2D353B` | soft green | Everforest |
 | Rosé Pine | dark | `#191724` | rose / iris | Rosé Pine |
 | Ayu Mirage | dark | `#1F2430` | amber / slate | Ayu |
@@ -354,6 +356,12 @@ to **Cutie Pro** + **Pink as Heck** (dropping Cute Pink Dark); plus **Night Owl*
 (overlaps GitHub Dark / Tokyo Night) and **Material Dark** (the generic M3
 baseline in a crowded lavender group). The surviving set preserves every hue
 lead and canvas-darkness band.
+
+**Light additions.** To balance the trimmed dark set, three popular light
+palettes joined the gallery: **Tokyo Night Light** (Day) mirrors the dark Tokyo
+Night with a crisp indigo daylight canvas; **Nord Light** (Snow Storm) fills the
+cool desaturated-blue gap; and **Kanagawa Lotus** brings an on-trend warm sumi-e
+paper with ink accents.
 
 **Noctis family.** The full [Noctis](https://github.com/liviuschera/noctis)
 palette set (11 variants) lives in its own **Noctis** gallery section, below
