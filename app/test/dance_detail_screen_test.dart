@@ -153,6 +153,41 @@ void main() {
     expect(find.text('role2s chain across'), findsOneWidget);
   });
 
+  testWidgets('figure row announces the verbose form to assistive tech', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(
+            move: 'allemande',
+            params: {'hand': 'left', 'turn': 1.5, 'beats': 8},
+          ),
+        ],
+      ),
+    );
+    final handle = tester.ensureSemantics();
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    // Sighted users still see the terse, glyph-bearing display text.
+    expect(find.text('neighbors allemande left 1½'), findsOneWidget);
+
+    // Screen readers get the spoken-friendly expansion (no notation glyphs) as
+    // the row's single merged semantics label.
+    final semantics = tester.getSemantics(
+      find.bySemanticsLabel(RegExp('one and a half times')),
+    );
+    expect(
+      semantics.label,
+      contains('neighbors allemande left one and a half times, 8 beats'),
+    );
+    expect(semantics.label, isNot(contains('1½')));
+    handle.dispose();
+  });
+
   testWidgets('shows status banner for a broken dance', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', status: DanceStatus.broken));

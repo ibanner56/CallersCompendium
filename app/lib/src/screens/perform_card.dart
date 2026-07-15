@@ -406,6 +406,7 @@ class _Figures extends StatelessWidget {
       children.add(
         _FigureRow(
           text: renderer.render(sf.figure, dialect),
+          verboseText: renderer.renderVerbose(sf.figure, dialect),
           beats: sf.figure.beats,
           progression: sf.figure.progression,
           note: sf.figure.note,
@@ -423,12 +424,18 @@ class _Figures extends StatelessWidget {
 class _FigureRow extends StatelessWidget {
   const _FigureRow({
     required this.text,
+    required this.verboseText,
     required this.beats,
     required this.progression,
     required this.note,
   });
 
+  /// Terse, dialect-applied text shown on screen.
   final String text;
+
+  /// Verbose, spoken-friendly rendering announced to assistive tech in place of
+  /// the terse [text] (figure-taxonomy.md §5.4 / accessibility baseline).
+  final String verboseText;
   final int beats;
   final bool progression;
   final String? note;
@@ -438,7 +445,7 @@ class _FigureRow extends StatelessWidget {
     final theme = Theme.of(context);
     final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
     final semanticsLabel = [
-      text,
+      verboseText,
       if (progression) 'progression',
       beatsLabel,
       if (note != null && note!.trim().isNotEmpty) 'note: ${note!.trim()}',
