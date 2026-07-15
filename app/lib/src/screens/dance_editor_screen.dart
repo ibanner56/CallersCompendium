@@ -437,7 +437,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     }
   }
 
-  /// Soft-deletes the dance being edited and pops back with `true` so the
+  /// Soft-deletes the dance being edited and pops back (with no result) so the
   /// caller (dance detail / list) can reload. Mirrors [DanceDetailScreen]'s
   /// delete: an "Undo" snackbar restores the dance if tapped. Only reachable
   /// for an existing dance (the action is hidden while `widget.isNew`).
