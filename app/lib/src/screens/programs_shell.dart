@@ -182,8 +182,19 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
     setState(() => _loading = true);
     try {
       final program = await _repos.programs.getById(widget.programId);
+      if (program == null) {
+        if (!mounted) return;
+        setState(() {
+          _program = null;
+          _danceTitles = const {};
+          _dances = const {};
+          _collectionData = null;
+          _loading = false;
+          _error = null;
+        });
+        return;
+      }
       final data = await CollectionData.load(_repos);
-      final titles = <String, String>{};
       final dances = <String, Dance>{};
       if (program != null) {
         final ids = {
