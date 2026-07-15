@@ -436,6 +436,23 @@ save it on-device**. Custom themes are personal to the install; nothing syncs.
 - Surfaces as a **Custom themes** section in Settings: copy from the current
   theme, then edit / duplicate / delete each saved card.
 
+## 4C. Settings — sectioned master–detail (net-new; extends §4/§4A/§4B)
+
+As Appearance grew (gallery + custom themes) and Dialect is set to expand, the
+single scrolling Settings page became unwieldy. Settings is now a **master–detail
+shell** (`screens/settings_screen.dart`):
+
+- A `_SettingsSection` enum (currently **Appearance**, **Dialect**) is the single
+  source of truth for the sidebar; adding a page is one enum value plus its
+  content in `_content`.
+- **Wide (≥ 720 px):** a left sidebar list + a content pane side by side
+  (`_SettingsSidebar`), selection shown by the highlighted tile **and** a filled
+  icon (never color alone). **Narrow:** the sidebar is a list whose rows push the
+  section as its own page with a back-navigable app bar.
+- Each section is its own widget (`_AppearanceView`, `_DialectView`), so state
+  (theme selection, dialect) stays lifted in the screen and the panes rebuild
+  live via the existing scopes.
+
 ## 5. Component direction — before → after
 
 ### 5.1 Collection — `collection_shell` / `dance_list_screen` / `dance_list_tile` / `facet_panel`
