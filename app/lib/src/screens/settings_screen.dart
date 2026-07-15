@@ -40,6 +40,15 @@ class SettingsScreen extends StatefulWidget {
   /// side by side instead of the sidebar pushing a detail page.
   static const double sideBySideBreakpoint = 720;
 
+  /// Width (logical px) of the section sidebar in the side-by-side layout.
+  ///
+  /// Settings now renders inside [AppShell], so the app's Material 3
+  /// [NavigationRail] (default `minWidth` 80) sits to the left of this sidebar.
+  /// Trimmed from the pre-embed 260 by ~that rail width so the combined left
+  /// chrome matches the old full-screen Settings footprint. "Appearance" (the
+  /// longest section label) still fits without truncation at this width.
+  static const double _sideBySideSidebarWidth = 180;
+
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
@@ -200,7 +209,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  width: 260,
+                  width: SettingsScreen._sideBySideSidebarWidth,
                   child: _SettingsSidebar(
                     selected: _section,
                     onSelect: (s) => setState(() => _section = s),
