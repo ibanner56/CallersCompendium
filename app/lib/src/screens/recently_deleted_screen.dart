@@ -2,10 +2,16 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/repositories_scope.dart';
+import '../data/soft_delete_retention.dart';
 
 /// Shows soft-deleted dances with their purge-ETA and individual Restore and
 /// Permanently delete actions (`docs/design/ux.md` cross-cutting rule:
-/// "undo/soft-delete everywhere, restore within 30 days").
+/// "undo/soft-delete everywhere, restore within the retention window").
+///
+/// The retention window is the user-configurable one (ROADMAP G.4): 30 / 90
+/// days, or "Never" (kept until manually removed). The purge-ETA and empty-state
+/// copy reflect the configured window so they never contradict what the startup
+/// sweep actually does.
 ///
 /// Reachable from the Collection screen app bar via the
 /// `restore_from_trash_outlined` icon button (`recently-deleted` key).
@@ -18,7 +24,10 @@ class RecentlyDeletedScreen extends StatefulWidget {
 }
 
 class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
-  static const Duration _retention = Duration(days: 30);
+  /// The configured retention window, or `null` for "never auto-purge". Seeded
+  /// with the historical 30-day default so the first frame is correct for the
+  /// common case; replaced once the persisted setting resolves.
+  Duration? _retention = const Duration(days: kSoftDeleteRetentionDefaultDays);
 
   late CompendiumRepositories _repos;
   Future<List<Dance>>? _future;
@@ -28,8 +37,21 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
     super.didChangeDependencies();
     if (_future == null) {
       _repos = RepositoriesScope.of(context);
+      _loadRetention();
       _reload();
     }
+  }
+
+  void _loadRetention() {
+    _repos.settings
+        .get(kSoftDeleteRetentionKey)
+        .then((stored) {
+          if (!mounted) return;
+          setState(() => _retention = softDeleteRetentionFromStored(stored));
+        })
+        .catchError((_) {
+          /* keep the 30-day default */
+        });
   }
 
   void _reload() {
@@ -104,12 +126,17 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
           }
           final deleted = snapshot.data ?? [];
           if (deleted.isEmpty) {
-            return const Center(
-              key: ValueKey('empty-state'),
+            final retention = _retention;
+            return Center(
+              key: const ValueKey('empty-state'),
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Nothing in the trash. Deleted dances appear here for 30 days before being removed.',
+                  retention == null
+                      ? 'Nothing in the trash. Deleted dances are kept here '
+                            'until you remove them.'
+                      : 'Nothing in the trash. Deleted dances appear here for '
+                            '${retention.inDays} days before being removed.',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -139,26 +166,37 @@ class _DeletedDanceTile extends StatelessWidget {
   });
 
   final Dance dance;
-  final Duration retention;
+
+  /// The configured retention window, or `null` when auto-purge is off
+  /// ("Never") — in which case no countdown is shown.
+  final Duration? retention;
   final VoidCallback onRestore;
   final VoidCallback onPermanentDelete;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final deletedAt = dance.deletedAt!;
-    final purgeAt = deletedAt.add(retention);
-    final daysLeft = purgeAt.difference(DateTime.now().toUtc()).inDays;
-    final purgeLabel = daysLeft > 0
-        ? 'Auto-deleted in $daysLeft ${daysLeft == 1 ? "day" : "days"}'
-        : 'Scheduled for deletion';
+    final retention = this.retention;
+    final String purgeLabel;
+    final bool urgent;
+    if (retention == null) {
+      purgeLabel = 'Kept until you delete it';
+      urgent = false;
+    } else {
+      final purgeAt = dance.deletedAt!.add(retention);
+      final daysLeft = purgeAt.difference(DateTime.now().toUtc()).inDays;
+      purgeLabel = daysLeft > 0
+          ? 'Auto-deleted in $daysLeft ${daysLeft == 1 ? "day" : "days"}'
+          : 'Scheduled for deletion';
+      urgent = daysLeft <= 3;
+    }
 
     return ListTile(
       title: Text(dance.title),
       subtitle: Text(
         purgeLabel,
         style: theme.textTheme.bodySmall?.copyWith(
-          color: daysLeft <= 3
+          color: urgent
               ? theme.colorScheme.error
               : theme.colorScheme.onSurfaceVariant,
         ),

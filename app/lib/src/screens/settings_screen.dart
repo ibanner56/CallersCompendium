@@ -11,6 +11,7 @@ import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
+import '../data/soft_delete_retention.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../models/dance_list_entry.dart' show formationShapeLabel;
 import '../search/collection_query.dart';
@@ -93,6 +94,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _autoSizeRequested = false;
   bool _autoSizeUserSet = false;
 
+  /// Soft-delete retention window (ROADMAP G.4), as the stored `int` day count
+  /// (`0` = never auto-purge). `null` = not yet loaded; the view shows the
+  /// 30-day default until the read resolves.
+  int? _softDeleteRetentionDays;
+  bool _softDeleteRetentionRequested = false;
+  bool _softDeleteRetentionUserSet = false;
+
   /// Lazily loads the persisted auto-size preference the first time the General
   /// section is built (avoids reading settings in `initState`, where the
   /// [RepositoriesScope] context is available but this keeps the pattern with
@@ -121,6 +129,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kAutoSizePerformKey, value);
+  }
+
+  /// Lazily loads the persisted soft-delete retention window (ROADMAP G.4) the
+  /// first time the General section is built. Mirrors [_ensureAutoSizeLoaded]: a
+  /// late read must not clobber a selection the user made before it resolved.
+  void _ensureSoftDeleteRetentionLoaded(BuildContext context) {
+    if (_softDeleteRetentionRequested) return;
+    _softDeleteRetentionRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings
+        .get(kSoftDeleteRetentionKey)
+        .then((stored) {
+          if (!mounted || _softDeleteRetentionUserSet) return;
+          setState(
+            () => _softDeleteRetentionDays = _retentionSelectionFromStored(
+              stored,
+            ),
+          );
+        })
+        .catchError((_) {
+          if (!mounted || _softDeleteRetentionUserSet) return;
+          setState(
+            () => _softDeleteRetentionDays = kSoftDeleteRetentionDefaultDays,
+          );
+        });
+  }
+
+  /// Maps a persisted retention value to the `int` the dropdown selects (one of
+  /// [kSoftDeleteRetentionDayOptions] or [kSoftDeleteRetentionNever]). Reuses
+  /// the shared resolver, then snaps any unrecognized day count to the 30-day
+  /// default so the dropdown always has a valid selection.
+  int _retentionSelectionFromStored(Object? stored) {
+    final resolved = softDeleteRetentionFromStored(stored);
+    if (resolved == null) return kSoftDeleteRetentionNever;
+    final days = resolved.inDays;
+    return kSoftDeleteRetentionDayOptions.contains(days)
+        ? days
+        : kSoftDeleteRetentionDefaultDays;
+  }
+
+  Future<void> _onSoftDeleteRetentionChanged(int value) async {
+    setState(() {
+      _softDeleteRetentionUserSet = true;
+      _softDeleteRetentionDays = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kSoftDeleteRetentionKey, value);
   }
 
   /// Default Collection sort order (ROADMAP G.6a). `null` = not yet loaded;
@@ -533,6 +588,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       case _SettingsSection.general:
         _ensureAutoSizeLoaded(context);
+        _ensureSoftDeleteRetentionLoaded(context);
         return _GeneralView(
           requirePerformedForHistory: RequirePerformedForHistoryScope.of(
             context,
@@ -543,6 +599,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onSortIgnoreArticlesChanged: _onSortIgnoreArticlesChanged,
           autoSizePerform: _autoSizePerform ?? true,
           onAutoSizeChanged: _onAutoSizeChanged,
+          softDeleteRetentionDays:
+              _softDeleteRetentionDays ?? kSoftDeleteRetentionDefaultDays,
+          onSoftDeleteRetentionChanged: _onSoftDeleteRetentionChanged,
         );
       case _SettingsSection.defaults:
         _ensureDefaultsLoaded(context);
@@ -1091,6 +1150,8 @@ class _GeneralView extends StatelessWidget {
     required this.onSortIgnoreArticlesChanged,
     required this.autoSizePerform,
     required this.onAutoSizeChanged,
+    required this.softDeleteRetentionDays,
+    required this.onSoftDeleteRetentionChanged,
   });
 
   final bool requirePerformedForHistory;
@@ -1099,6 +1160,11 @@ class _GeneralView extends StatelessWidget {
   final ValueChanged<bool> onSortIgnoreArticlesChanged;
   final bool autoSizePerform;
   final ValueChanged<bool> onAutoSizeChanged;
+
+  /// Current soft-delete retention window as the stored `int` day count
+  /// (`0` = never auto-purge — see [kSoftDeleteRetentionNever]).
+  final int softDeleteRetentionDays;
+  final ValueChanged<int> onSoftDeleteRetentionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1140,6 +1206,30 @@ class _GeneralView extends StatelessWidget {
             'as soon as it contains the dance.',
           ),
           isThreeLine: true,
+        ),
+        _SectionHeader(title: 'Deleted items'),
+        ListTile(
+          title: const Text('Keep deleted dances for'),
+          subtitle: const Text(
+            'Deleted dances are kept for this long before being permanently '
+            'removed on app launch. Never keeps them until you purge manually.',
+          ),
+          isThreeLine: true,
+          trailing: DropdownButton<int>(
+            key: const ValueKey('general-soft-delete-retention'),
+            value: softDeleteRetentionDays,
+            onChanged: (value) {
+              if (value != null) onSoftDeleteRetentionChanged(value);
+            },
+            items: [
+              for (final days in kSoftDeleteRetentionDayOptions)
+                DropdownMenuItem(value: days, child: Text('$days days')),
+              const DropdownMenuItem(
+                value: kSoftDeleteRetentionNever,
+                child: Text('Never'),
+              ),
+            ],
+          ),
         ),
       ],
     );
