@@ -972,8 +972,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   /// The collapsible "More details" drawer (Tier 2). Holds the less-frequently
   /// used metadata; collapsed by default so the always-visible Tier 1 fields
-  /// stay above the fold. [maintainState] keeps the field controllers and their
-  /// form validation alive while collapsed.
+  /// stay above the fold. While collapsed the children are removed from the
+  /// tree (the default `ExpansionTile` behavior); no edits are lost because
+  /// every value lives in the parent [State] — text controllers, [_links],
+  /// [_customValues], and the enum/date fields — and is re-seeded into the
+  /// child widgets when the section is expanded again.
   Widget _buildMoreDetails() {
     return ExpansionTile(
       key: const ValueKey('more-details-tile'),

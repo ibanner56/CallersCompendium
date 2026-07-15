@@ -72,8 +72,12 @@ Future<void> _pumpEditor(
 }
 
 /// Expands the collapsible "More details" (Tier 2) section so its fields
-/// (including custom fields) become visible and hittable.
+/// (including custom fields) become visible and hittable. Idempotent: if the
+/// section is already expanded, it does nothing.
 Future<void> _expandMoreDetails(WidgetTester tester) async {
+  if (find.byKey(const ValueKey('related-dance-add')).evaluate().isNotEmpty) {
+    return;
+  }
   final tile = find.byKey(const ValueKey('more-details-tile'));
   await tester.ensureVisible(tile);
   await tester.tap(tile);

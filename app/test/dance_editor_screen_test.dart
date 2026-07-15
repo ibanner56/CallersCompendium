@@ -92,8 +92,13 @@ Future<void> _selectMoveInEditor(
 
 /// Expands the collapsible "More details" (Tier 2) section so its fields
 /// (status, level, dates, tags, tunes, links, published sources, related
-/// dances, custom fields) become visible and hittable.
+/// dances, custom fields) become visible and hittable. Idempotent: if the
+/// section is already expanded, it does nothing (so calling it again — e.g.
+/// via [addRelatedDance] — never toggles it closed).
 Future<void> _expandMoreDetails(WidgetTester tester) async {
+  if (find.byKey(const ValueKey('related-dance-add')).evaluate().isNotEmpty) {
+    return;
+  }
   final tile = find.byKey(const ValueKey('more-details-tile'));
   await tester.ensureVisible(tile);
   await tester.tap(tile);
