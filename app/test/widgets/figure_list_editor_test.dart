@@ -1485,6 +1485,57 @@ void main() {
     expect(editable.focusNode.hasFocus, isTrue);
   });
 
+  testWidgets(
+    'activating a stand_still figure opens the Move field focused and cleared',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(move: 'stand_still', params: {'beats': 8}),
+      ];
+      await _pump(tester, drafts);
+      // The collapsed summary still reads the placeholder move.
+      expect(find.text('stand still'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+
+      final editable = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(const ValueKey('figure-0-move-input')),
+          matching: find.byType(EditableText),
+        ),
+      );
+      // Field is focused so the caller can type immediately...
+      expect(editable.focusNode.hasFocus, isTrue);
+      // ...and blank so they don't have to delete the "stand still" placeholder.
+      expect(editable.controller.text, isEmpty);
+      // The stored draft is NOT mutated: collapsing as-is keeps stand_still × 8.
+      expect(drafts.single.move, 'stand_still');
+      expect(drafts.single.params['beats'], 8);
+    },
+  );
+
+  testWidgets('activating a real figure keeps its Move field text', (
+    tester,
+  ) async {
+    // Clearing on open must apply ONLY to stand_still — a real move must never
+    // be wiped out from under the caller.
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+    ];
+    await _pump(tester, drafts);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+
+    final editable = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const ValueKey('figure-0-move-input')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(editable.controller.text, 'swing');
+  });
+
   testWidgets('more than 3 params hide extras behind "More options"', (
     tester,
   ) async {
