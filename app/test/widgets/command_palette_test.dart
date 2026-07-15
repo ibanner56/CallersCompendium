@@ -147,4 +147,37 @@ void main() {
 
     expect(find.byKey(const ValueKey('command-palette-empty')), findsOneWidget);
   });
+
+  testWidgets(
+    'keeps the highlighted row on-screen when navigating past the fold',
+    (tester) async {
+      final repos = openTestRepositories();
+      // Enough dances to overflow the palette's max height, plus a program so
+      // the list also contains a differently-sized group header.
+      for (var i = 0; i < 8; i++) {
+        await repos.dances.create(
+          _dance('d$i', 'Dance ${i.toString().padLeft(2, '0')}'),
+        );
+      }
+      await repos.programs.create(_program('p1', 'Program One'));
+
+      await _openPalette(tester, repos);
+
+      // Walk down to the last result (index 8: the program).
+      for (var i = 0; i < 8; i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      }
+      await tester.pumpAndSettle();
+
+      // The highlighted last row must be scrolled into the visible viewport.
+      final tile = find.byKey(const ValueKey('command-result-program-p1'));
+      expect(tile, findsOneWidget);
+      final dialogRect = tester.getRect(
+        find.byKey(const ValueKey('command-palette')),
+      );
+      final tileRect = tester.getRect(tile);
+      expect(tileRect.top, greaterThanOrEqualTo(dialogRect.top));
+      expect(tileRect.bottom, lessThanOrEqualTo(dialogRect.bottom + 0.5));
+    },
+  );
 }

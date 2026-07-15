@@ -52,22 +52,22 @@ class _AppShellState extends State<AppShell> {
   Future<void> _openSearch() async {
     final result = await showCommandPalette(context);
     if (result == null || !mounted) return;
-    switch (result.kind) {
-      case CommandResultKind.dance:
-        setState(() => _index = 0);
-        await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
-            builder: (_) => DanceDetailScreen(danceId: result.id),
-          ),
-        );
-      case CommandResultKind.program:
-        setState(() => _index = 1);
-        await Navigator.of(context).push<String>(
-          MaterialPageRoute(
-            builder: (_) => ProgramEditorScreen(programId: result.id),
-          ),
-        );
-    }
+    final (tabIndex, route) = switch (result.kind) {
+      CommandResultKind.dance => (
+        0,
+        MaterialPageRoute<void>(
+          builder: (_) => DanceDetailScreen(danceId: result.id),
+        ),
+      ),
+      CommandResultKind.program => (
+        1,
+        MaterialPageRoute<void>(
+          builder: (_) => ProgramEditorScreen(programId: result.id),
+        ),
+      ),
+    };
+    setState(() => _index = tabIndex);
+    await Navigator.of(context).push(route);
   }
 
   @override

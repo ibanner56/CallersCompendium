@@ -58,6 +58,7 @@ class _CommandPaletteState extends State<CommandPalette> {
 
   List<CommandResult> _all = const [];
   List<CommandResult> _results = const [];
+  List<GlobalKey> _rowKeys = const [];
   int _highlighted = 0;
   bool _loading = true;
 
@@ -116,6 +117,7 @@ class _CommandPaletteState extends State<CommandPalette> {
       if (bucket.length < CommandPalette.perGroupLimit) bucket.add(r);
     }
     _results = [...dances, ...programs];
+    _rowKeys = [for (var i = 0; i < _results.length; i++) GlobalKey()];
     _highlighted = _results.isEmpty
         ? 0
         : _highlighted.clamp(0, _results.length - 1);
@@ -160,22 +162,19 @@ class _CommandPaletteState extends State<CommandPalette> {
   }
 
   void _ensureHighlightedVisible() {
-    if (!_scrollController.hasClients) return;
-    // Rows are a fixed height; nudge the highlighted row into view.
-    const rowExtent = 60.0;
-    final target = _highlighted * rowExtent;
-    final position = _scrollController.position;
-    if (target < position.pixels) {
-      _scrollController.jumpTo(target.clamp(0, position.maxScrollExtent));
-    } else if (target + rowExtent >
-        position.pixels + position.viewportDimension) {
-      _scrollController.jumpTo(
-        (target + rowExtent - position.viewportDimension).clamp(
-          0,
-          position.maxScrollExtent,
-        ),
+    // Scroll the highlighted row into view via its element, so the maths is
+    // robust to variable row heights (group headers differ from result rows).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_highlighted < 0 || _highlighted >= _rowKeys.length) return;
+      final context = _rowKeys[_highlighted].currentContext;
+      if (context == null) return;
+      Scrollable.ensureVisible(
+        context,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
       );
-    }
+    });
   }
 
   void _activateHighlighted() {
@@ -199,7 +198,7 @@ class _CommandPaletteState extends State<CommandPalette> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: TextField(
                 key: const ValueKey('command-palette-field'),
                 focusNode: _fieldFocus,
@@ -210,11 +209,9 @@ class _CommandPaletteState extends State<CommandPalette> {
                 decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.search),
                   hintText: 'Search dances and programs…',
-                  border: InputBorder.none,
                 ),
               ),
             ),
-            const Divider(height: 1),
             Flexible(child: _buildBody(theme)),
           ],
         ),
@@ -257,10 +254,13 @@ class _CommandPaletteState extends State<CommandPalette> {
         lastKind = r.kind;
       }
       children.add(
-        _ResultTile(
-          result: r,
-          highlighted: i == _highlighted,
-          onTap: () => _activate(r),
+        KeyedSubtree(
+          key: i < _rowKeys.length ? _rowKeys[i] : null,
+          child: _ResultTile(
+            result: r,
+            highlighted: i == _highlighted,
+            onTap: () => _activate(r),
+          ),
         ),
       );
     }
