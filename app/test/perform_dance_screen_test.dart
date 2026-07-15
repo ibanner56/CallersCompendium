@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_dance_screen.dart';
+import 'package:compendium_app/src/theme/color_schemes.dart';
 
 import 'support/test_repositories.dart';
 import 'support/fake_wakelock.dart';
@@ -154,6 +156,85 @@ void main() {
   testWidgets('shows status banner for a non-active dance', (tester) async {
     await _pumpPerform(tester, dance: _dance(status: DanceStatus.broken));
     expect(find.text('Broken'), findsOneWidget);
+  });
+
+  testWidgets('opens in the dark-stage high-contrast theme by default', (
+    tester,
+  ) async {
+    await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
+
+    final scheme = Theme.of(
+      tester.element(find.byType(PerformCard)),
+    ).colorScheme;
+    expect(scheme, AppColorSchemes.highContrast);
+    expect(scheme.brightness, Brightness.dark);
+    expect(scheme.surface, AppColorSchemes.highContrast.surface);
+  });
+
+  testWidgets('stage toggle falls back to the ambient theme and back', (
+    tester,
+  ) async {
+    await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
+
+    // Default on: stage theme.
+    expect(
+      Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+      AppColorSchemes.highContrast,
+    );
+
+    // Toggle off -> the ambient MaterialApp (light) theme applies.
+    await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+      isNot(AppColorSchemes.highContrast),
+    );
+
+    // Toggle back on -> stage restored.
+    await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+      AppColorSchemes.highContrast,
+    );
+  });
+
+  testWidgets('stage toggle is keyboard/AT-reachable with on/off state', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+
+    await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
+
+    final toggle = find.byKey(const ValueKey('perform-stage-toggle'));
+    // Default on: focusable, tappable button announcing its toggled state.
+    expect(
+      tester.getSemantics(toggle),
+      isSemantics(
+        isButton: true,
+        isFocusable: true,
+        hasTapAction: true,
+        hasToggledState: true,
+        isToggled: true,
+      ),
+      reason: 'stage toggle must announce its on state',
+    );
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSemantics(toggle),
+      isSemantics(
+        isButton: true,
+        isFocusable: true,
+        hasTapAction: true,
+        hasToggledState: true,
+        isToggled: false,
+      ),
+      reason: 'stage toggle must announce its off state after tapping',
+    );
+
+    handle.dispose();
   });
 
   testWidgets('exit and size controls are keyboard- and AT-reachable', (

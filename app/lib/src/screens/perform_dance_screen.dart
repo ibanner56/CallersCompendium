@@ -39,6 +39,10 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     with PerformWakelockMixin {
   double _textScale = kPerformDefaultScale;
 
+  /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5). In
+  /// view only; persistence to Settings is a documented later follow-up.
+  bool _stageMode = true;
+
   /// When `true` figures render canonical role/move tokens; otherwise the
   /// user's active dialect. The toggle is hidden when the active dialect is
   /// already canonical (toggling would be a no-op).
@@ -65,36 +69,43 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          key: const ValueKey('exit-perform'),
-          tooltip: 'Exit performance view',
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text('Perform'),
-        actions: [
-          PerformSizeControls(
-            canDecrease: canDecrease,
-            onDecrease: _decreaseTextSize,
-            onIncrease: _increaseTextSize,
+    return PerformStageTheme(
+      enabled: _stageMode,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            key: const ValueKey('exit-perform'),
+            tooltip: 'Exit performance view',
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.of(context).pop(),
           ),
-          if (!isCanonicalDialect)
-            PerformDialectToggle(
-              canonical: _canonicalView,
-              onChanged: (value) => setState(() => _canonicalView = value),
+          title: const Text('Perform'),
+          actions: [
+            PerformSizeControls(
+              canDecrease: canDecrease,
+              onDecrease: _decreaseTextSize,
+              onIncrease: _increaseTextSize,
             ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: PerformCard(
-          dance: widget.dance,
-          renderer: widget.renderer,
-          dialect: dialect,
-          textScale: _textScale,
-          authorNames: widget.authorNames,
+            if (!isCanonicalDialect)
+              PerformDialectToggle(
+                canonical: _canonicalView,
+                onChanged: (value) => setState(() => _canonicalView = value),
+              ),
+            PerformStageToggle(
+              stageOn: _stageMode,
+              onChanged: (value) => setState(() => _stageMode = value),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: SafeArea(
+          child: PerformCard(
+            dance: widget.dance,
+            renderer: widget.renderer,
+            dialect: dialect,
+            textScale: _textScale,
+            authorNames: widget.authorNames,
+          ),
         ),
       ),
     );

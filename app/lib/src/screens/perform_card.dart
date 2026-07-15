@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_theme.dart';
 
 /// Shared large-print rendering for Performance mode (`docs/design/ux.md` §5).
 ///
@@ -197,6 +198,71 @@ class PerformDialectToggle extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Wraps a Perform screen's [Scaffold] in the high-contrast dark-stage
+/// [Theme] when [enabled], and renders under the app's ambient/inherited theme
+/// otherwise. Shared by both Perform views so the single-dance and program
+/// views theme identically (`docs/design/ux.md` §5: "7:1 contrast themes,
+/// dark-stage default"). Reuses the existing [AppTheme.highContrast] — the
+/// outline-driven, 7:1-targeted dark scheme co-owned with Perform mode — rather
+/// than inventing a palette. Wrapping the whole Scaffold means the AppBar is
+/// themed too.
+class PerformStageTheme extends StatelessWidget {
+  const PerformStageTheme({
+    super.key,
+    required this.enabled,
+    required this.child,
+  });
+
+  final bool enabled;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) return child;
+    return Theme(data: AppTheme.highContrast, child: child);
+  }
+}
+
+/// In-view toggle for the dark-stage high-contrast theme, shared by both
+/// Perform views as an AppBar action. Defaults on (see the screens' initial
+/// state). The control pairs an icon with a state-dependent tooltip (never
+/// color-only) and exposes its on/off STATE to assistive tech via
+/// [Semantics.toggled], so a caller always knows whether stage mode is active.
+class PerformStageToggle extends StatelessWidget {
+  const PerformStageToggle({
+    super.key,
+    required this.stageOn,
+    required this.onChanged,
+  });
+
+  final bool stageOn;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tooltip = stageOn
+        ? 'Stage theme on — tap to use app theme'
+        : 'Stage theme off — tap for dark stage';
+    // MergeSemantics + Semantics(toggled:) fold the on/off STATE into the
+    // IconButton's own node, so AT announces one control that carries the
+    // button role, name (tooltip), tap action, and current toggle state —
+    // rather than a static label with no sense of whether stage mode is on.
+    return MergeSemantics(
+      child: Semantics(
+        toggled: stageOn,
+        child: IconButton(
+          key: const ValueKey('perform-stage-toggle'),
+          tooltip: tooltip,
+          isSelected: stageOn,
+          icon: const Icon(Icons.dark_mode_outlined),
+          selectedIcon: const Icon(Icons.dark_mode),
+          onPressed: () => onChanged(!stageOn),
+        ),
       ),
     );
   }
