@@ -49,6 +49,13 @@ class FacetSelections {
   final Set<String> authorIds = {};
   final Set<String> tagIds = {};
 
+  /// Selected source facet: ids of cited [PublishedSource]s the user picked,
+  /// each emitted as an identity-based [SourceIdFilter]. Multi-select, OR-ed
+  /// within the facet — a pick-a-source chooser mirroring the Author facet
+  /// (which is likewise id-based via [AuthorFilter]). Kept by id (not title)
+  /// so duplicate/prefix titles or title-vs-author collisions never over-match.
+  final Set<String> sourceIds = {};
+
   /// Selected `choice` custom-field values, keyed by field id → chosen values
   /// (OR-within a field).
   final Map<String, Set<String>> choiceValues = {};
@@ -77,6 +84,7 @@ class FacetSelections {
       minRating == null &&
       authorIds.isEmpty &&
       tagIds.isEmpty &&
+      sourceIds.isEmpty &&
       choiceValues.values.every((s) => s.isEmpty) &&
       booleanValues.isEmpty &&
       textValues.values.every((s) => !s.isEffective) &&
@@ -92,6 +100,7 @@ class FacetSelections {
     minRating = null;
     authorIds.clear();
     tagIds.clear();
+    sourceIds.clear();
     choiceValues.clear();
     booleanValues.clear();
     textValues.clear();
@@ -178,6 +187,7 @@ DanceFilter buildCollectionFilter({
   }
   addOr([for (final id in facets.authorIds) AuthorFilter(id)]);
   addOr([for (final id in facets.tagIds) TagFilter(id)]);
+  addOr([for (final id in facets.sourceIds) SourceIdFilter(id)]);
 
   final defsById = {for (final d in defs) d.id: d};
   facets.choiceValues.forEach((fieldId, values) {

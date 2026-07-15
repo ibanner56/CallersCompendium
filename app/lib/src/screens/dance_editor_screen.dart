@@ -13,6 +13,7 @@ import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../widgets/choreographer_details_dialog.dart';
 import '../widgets/figure_list_editor.dart';
+import '../widgets/published_source_details_dialog.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,
@@ -91,6 +92,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   final List<String> _tunes = [];
   final List<_LinkDraft> _links = [];
 
+  /// Ordered per-dance source citations (mutable drafts; mirrors [_links]).
+  final List<_SourceCitationDraft> _sourceCitations = [];
+
   final Map<String, Object?> _customValues = {};
 
   List<Dance> _allDances = [];
@@ -108,6 +112,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   List<CustomFieldDef> _fieldDefs = [];
   Map<String, String> _choreographerNames = {};
   Map<String, String> _tagNames = {};
+
+  /// All reusable published sources (autocomplete options for the picker).
+  List<PublishedSource> _publishedSources = [];
+
+  /// Published-source lookup by id, for resolving a citation's display title
+  /// (and author/year) without re-querying. Kept in sync after inline
+  /// create/edit, mirroring the choreographer caches.
+  Map<String, PublishedSource> _sourcesById = {};
 
   List<Figure> get _figures => [
     for (final draft in _figureDrafts) ?draft.toFigure(),
@@ -146,6 +158,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     for (final l in _links) {
       l.dispose();
     }
+    for (final c in _sourceCitations) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -155,6 +170,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       final tags = await _repos.tags.listAll();
       final fieldDefs = await _repos.customFieldDefs.listAll();
       final allDances = await _repos.dances.listAll();
+      final publishedSources = await _repos.publishedSources.listAll();
       final dance = widget.danceId == null
           ? null
           : await _repos.dances.getById(widget.danceId!);
@@ -163,6 +179,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       _tags = tags;
       _fieldDefs = fieldDefs;
       _allDances = allDances;
+      _publishedSources = publishedSources;
+      _sourcesById = {for (final s in publishedSources) s.id: s};
       _danceNamesById = {for (final d in allDances) d.id: d.title};
       _choreographerNames = {for (final c in choreographers) c.id: c.name};
       _tagNames = {for (final t in tags) t.id: t.name};
@@ -188,6 +206,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         _tunes.addAll(dance.tunes);
         for (final link in dance.links) {
           _links.add(_LinkDraft.fromLink(link));
+        }
+        for (final citation in dance.sourceCitations) {
+          _sourceCitations.add(_SourceCitationDraft.fromCitation(citation));
         }
         for (final value in dance.customFields) {
           _customValues[value.fieldId] = value.value;
@@ -271,6 +292,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         detail: formationDetail.isEmpty ? null : formationDetail,
       );
       final links = [for (final l in _links) ?l.toLink()];
+      final sourceCitations = [
+        for (final c in _sourceCitations) c.toCitation(),
+      ];
       final customFields = _collectCustomFields();
 
       final Dance dance;
@@ -298,6 +322,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           customFields: customFields,
           tagIds: List.of(_tagIds),
           links: links,
+          sourceCitations: sourceCitations,
           figures: _figures,
           updatedAt: now,
         );
@@ -323,6 +348,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           customFields: customFields,
           tagIds: List.of(_tagIds),
           links: links,
+          sourceCitations: sourceCitations,
           figures: _figures,
           createdAt: now,
           updatedAt: now,
@@ -374,6 +400,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           targetDanceId: l.targetDanceId,
         ),
       ),
+    ),
+    sourceCitations: List.unmodifiable(
+      _sourceCitations.map((c) => c.toCitation()),
     ),
     // Custom text/number fields are edited via _customTextControllers and do
     // not keep _customValues in sync — read from the controllers directly so
@@ -434,6 +463,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     _links
       ..clear()
       ..addAll(s.links.map(_LinkDraft.fromSnapshot));
+
+    // Source citations: dispose old drafts, reconstruct from the snapshot.
+    for (final c in _sourceCitations) {
+      c.dispose();
+    }
+    _sourceCitations
+      ..clear()
+      ..addAll(s.sourceCitations.map(_SourceCitationDraft.fromCitation));
 
     // Custom values.
     _customValues
@@ -1008,6 +1045,28 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               _scheduleAutosave();
             },
           ),
+          const SizedBox(height: 16),
+          _Label('Published sources'),
+          _SourceCitationsEditor(
+            citations: _sourceCitations,
+            sourcesById: _sourcesById,
+            sourceOptions: _publishedSources,
+            onAttach: _attachSource,
+            onCreate: _createSource,
+            onEditSource: _editSource,
+            onRemove: (draft) {
+              setState(() {
+                _sourceCitations.remove(draft);
+                draft.dispose();
+              });
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
+            onChanged: () {
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
+          ),
           if (_fieldDefs.isNotEmpty) ...[
             const SizedBox(height: 16),
             _Label('Custom fields'),
@@ -1184,6 +1243,60 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         if (!hasEntry) updated,
       ];
       _choreographerNames = {..._choreographerNames, id: updated.name};
+    });
+  }
+
+  /// Attaches an existing [PublishedSource] as a new citation. Ignores a source
+  /// already cited (dedup, mirroring the [_NamePicker] "exclude selected"
+  /// behaviour) so the same source can't be double-cited.
+  void _attachSource(String sourceId) {
+    if (!mounted) return;
+    if (_sourceCitations.any((c) => c.sourceId == sourceId)) return;
+    setState(() {
+      _sourceCitations.add(_SourceCitationDraft.forSource(sourceId));
+    });
+    _pushUndoNow();
+    _scheduleAutosave();
+  }
+
+  /// Opens the source details dialog to create a new [PublishedSource] with the
+  /// typed [title], upserts it, refreshes the caches, and returns its id (or
+  /// `null` if the user cancels). Mirrors [_createChoreographer], but uses the
+  /// richer details dialog since a source carries more than a name.
+  Future<String?> _createSource(String title) async {
+    final draft = PublishedSource(id: uuidV4(), title: title.trim());
+    final created = await PublishedSourceDetailsDialog.show(context, draft);
+    if (created == null || !mounted) return null;
+    await _repos.publishedSources.upsert(created);
+    if (!mounted) return null;
+    setState(() {
+      _publishedSources = [
+        ..._publishedSources,
+        created,
+      ]..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      _sourcesById = {..._sourcesById, created.id: created};
+    });
+    return created.id;
+  }
+
+  /// Opens the shared-source details dialog for [id] and, on save, upserts the
+  /// updated record and refreshes the in-memory caches. This is an immediate
+  /// shared-entity write — independent of the dance draft/autosave/undo stack
+  /// (which source a dance cites lives in the snapshot; the source's own
+  /// bibliographic data does not). Mirrors [_editChoreographer].
+  Future<void> _editSource(String id) async {
+    final existing = _sourcesById[id];
+    if (existing == null) return;
+    final updated = await PublishedSourceDetailsDialog.show(context, existing);
+    if (updated == null || !mounted) return;
+    await _repos.publishedSources.upsert(updated);
+    if (!mounted) return;
+    setState(() {
+      _publishedSources = [
+        for (final s in _publishedSources)
+          if (s.id == id) updated else s,
+      ];
+      _sourcesById = {..._sourcesById, id: updated};
     });
   }
 
@@ -2110,6 +2223,291 @@ class _LinkDraft {
     urlController.dispose();
     labelController.dispose();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Source-citation editor.
+// ---------------------------------------------------------------------------
+
+/// Mutable editing state for a single [SourceCitation] (which source, plus the
+/// freeform page/number the dance appears at). Mirrors [_LinkDraft]: the
+/// [pageController]/[numberController] survive rebuilds and are read into an
+/// immutable [SourceCitation] on capture/save.
+class _SourceCitationDraft {
+  _SourceCitationDraft({
+    required this.sourceId,
+    required this.pageController,
+    required this.numberController,
+  });
+
+  factory _SourceCitationDraft.forSource(String sourceId) =>
+      _SourceCitationDraft(
+        sourceId: sourceId,
+        pageController: TextEditingController(),
+        numberController: TextEditingController(),
+      );
+
+  factory _SourceCitationDraft.fromCitation(SourceCitation c) =>
+      _SourceCitationDraft(
+        sourceId: c.sourceId,
+        pageController: TextEditingController(text: c.page ?? ''),
+        numberController: TextEditingController(text: c.number ?? ''),
+      );
+
+  final String sourceId;
+  final TextEditingController pageController;
+  final TextEditingController numberController;
+
+  /// Builds the immutable citation. [SourceCitation] normalizes empty/blank
+  /// page/number to `null` itself.
+  SourceCitation toCitation() => SourceCitation(
+    sourceId: sourceId,
+    page: pageController.text,
+    number: numberController.text,
+  );
+
+  void dispose() {
+    pageController.dispose();
+    numberController.dispose();
+  }
+}
+
+/// A short bibliographic subtitle ("Author, Year") for a source, or `null`
+/// when it has neither an author nor a year.
+String? _sourceSubtitle(PublishedSource s) {
+  final parts = <String>[
+    if (s.author != null) s.author!,
+    if (s.year != null) s.year!.toString(),
+  ];
+  return parts.isEmpty ? null : parts.join(', ');
+}
+
+/// The per-dance source-citation section: a list of cited-source rows (each an
+/// editable chip + freeform page/number) plus a type-ahead to attach an
+/// existing source or create a new one inline. Mirrors [_LinksEditor] and the
+/// [_NamePicker] create/attach precedent.
+class _SourceCitationsEditor extends StatelessWidget {
+  const _SourceCitationsEditor({
+    required this.citations,
+    required this.sourcesById,
+    required this.sourceOptions,
+    required this.onAttach,
+    required this.onCreate,
+    required this.onEditSource,
+    required this.onRemove,
+    required this.onChanged,
+  });
+
+  final List<_SourceCitationDraft> citations;
+  final Map<String, PublishedSource> sourcesById;
+  final List<PublishedSource> sourceOptions;
+
+  /// Attaches an existing source by id.
+  final ValueChanged<String> onAttach;
+
+  /// Creates a new source with the typed title; resolves to its id, or `null`
+  /// if the user cancels the create dialog.
+  final Future<String?> Function(String title) onCreate;
+
+  /// Opens the shared-source details dialog for the given source id.
+  final ValueChanged<String> onEditSource;
+
+  final ValueChanged<_SourceCitationDraft> onRemove;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final citedIds = {for (final c in citations) c.sourceId};
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final draft in citations)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: _buildRow(context, draft),
+          ),
+        _AddSourceAutocomplete(
+          citedIds: citedIds,
+          options: sourceOptions,
+          onAttach: onAttach,
+          onCreate: onCreate,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRow(BuildContext context, _SourceCitationDraft draft) {
+    final source = sourcesById[draft.sourceId];
+    final title = source?.title ?? '(unknown source)';
+    final subtitle = source == null ? null : _sourceSubtitle(source);
+    final chipLabel = subtitle == null ? title : '$title — $subtitle';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: InputChip(
+                  key: ValueKey('source-chip-${draft.sourceId}'),
+                  avatar: const Icon(Icons.menu_book_outlined, size: 18),
+                  label: Text(chipLabel, overflow: TextOverflow.ellipsis),
+                  tooltip: 'Edit $title',
+                  onPressed: () => onEditSource(draft.sourceId),
+                  onDeleted: () => onRemove(draft),
+                ),
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: ValueKey('source-page-${draft.sourceId}'),
+                  controller: draft.pageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Page (optional)',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => onChanged(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  key: ValueKey('source-number-${draft.sourceId}'),
+                  controller: draft.numberController,
+                  decoration: const InputDecoration(
+                    labelText: 'Number (optional)',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (_) => onChanged(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddSourceAutocomplete extends StatelessWidget {
+  const _AddSourceAutocomplete({
+    required this.citedIds,
+    required this.options,
+    required this.onAttach,
+    required this.onCreate,
+  });
+
+  final Set<String> citedIds;
+  final List<PublishedSource> options;
+  final ValueChanged<String> onAttach;
+  final Future<String?> Function(String title) onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<_SourceChoice>(
+      key: const ValueKey('source-autocomplete'),
+      displayStringForOption: (choice) => choice.label,
+      optionsBuilder: (value) {
+        final q = value.text.trim();
+        if (q.isEmpty) return const Iterable<_SourceChoice>.empty();
+        final lower = q.toLowerCase();
+        final matches = options
+            .where(
+              (o) =>
+                  !citedIds.contains(o.id) &&
+                  (o.title.toLowerCase().contains(lower) ||
+                      (o.author?.toLowerCase().contains(lower) ?? false)),
+            )
+            .map((o) => _SourceChoice.existing(o.id, o.title, o.author))
+            .toList();
+        final exact = options.any((o) => o.title.toLowerCase() == lower);
+        if (!exact) matches.add(_SourceChoice.create(q));
+        return matches;
+      },
+      onSelected: (choice) async {
+        if (choice.isCreate) {
+          final id = await onCreate(choice.title);
+          if (id != null) onAttach(id);
+        } else {
+          onAttach(choice.id!);
+        }
+      },
+      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+        return TextField(
+          key: const ValueKey('source-input'),
+          controller: controller,
+          focusNode: focusNode,
+          decoration: const InputDecoration(
+            hintText: 'Cite a source: type to add or create…',
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (_) => onSubmit(),
+        );
+      },
+      optionsViewBuilder: (context, onSelected, choices) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 320),
+              child: ListView(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                children: [
+                  for (final choice in choices)
+                    ListTile(
+                      key: ValueKey('source-option-${choice.optionKey}'),
+                      dense: true,
+                      leading: Icon(
+                        choice.isCreate ? Icons.add : Icons.menu_book_outlined,
+                        size: 18,
+                      ),
+                      title: Text(
+                        choice.isCreate
+                            ? 'Create "${choice.title}"'
+                            : choice.title,
+                      ),
+                      subtitle: choice.author == null
+                          ? null
+                          : Text(choice.author!),
+                      onTap: () => onSelected(choice),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SourceChoice {
+  _SourceChoice.existing(this.id, this.title, this.author) : isCreate = false;
+  _SourceChoice.create(this.title) : id = null, author = null, isCreate = true;
+
+  final String? id;
+  final String title;
+  final String? author;
+  final bool isCreate;
+
+  /// Text shown in the field when this option is selected.
+  String get label => title;
+
+  /// Stable widget key for the option row: existing items by id, the sole
+  /// "create" row by its typed title.
+  String get optionKey => isCreate ? 'create:$title' : id!;
 }
 
 // ---------------------------------------------------------------------------

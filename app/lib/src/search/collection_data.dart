@@ -24,6 +24,7 @@ class CollectionData {
     required this.lastCalled,
     required this.authors,
     required this.tags,
+    required this.citedSources,
     required this.forms,
     required this.formations,
     required this.progressions,
@@ -47,6 +48,12 @@ class CollectionData {
   final Map<String, DateTime> lastCalled;
   final List<Choreographer> authors;
   final List<Tag> tags;
+
+  /// Published sources cited by at least one dance in the collection (sorted by
+  /// title). Drives the Source facet; an empty list hides the facet, matching
+  /// the present-value pattern used for authors/tags/rating.
+  final List<PublishedSource> citedSources;
+
   final List<DanceForm> forms;
   final List<FormationShape> formations;
   final List<Progression> progressions;
@@ -71,6 +78,7 @@ class CollectionData {
     final choreographers = await repos.choreographers.listAll();
     final tags = await repos.tags.listAll();
     final defs = await repos.customFieldDefs.listAll();
+    final publishedSources = await repos.publishedSources.listAll();
     final lastCalled = await repos.programs.lastCalledByDance();
 
     final dancesById = {for (final d in dances) d.id: d};
@@ -103,6 +111,16 @@ class CollectionData {
     final tagList = tags.where((t) => usedTagIds.contains(t.id)).toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
+    final usedSourceIds = {
+      for (final d in dances)
+        for (final c in d.sourceCitations) c.sourceId,
+    };
+    final citedSources =
+        publishedSources.where((s) => usedSourceIds.contains(s.id)).toList()
+          ..sort(
+            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+          );
+
     final searchable = defs.where((d) => d.searchable).toList();
 
     return CollectionData(
@@ -126,6 +144,7 @@ class CollectionData {
       lastCalled: lastCalled,
       authors: authors,
       tags: tagList,
+      citedSources: citedSources,
       forms: forms,
       formations: formations,
       progressions: progressions,

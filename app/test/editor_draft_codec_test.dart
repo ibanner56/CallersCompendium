@@ -8,31 +8,34 @@ import 'package:compendium_app/src/editor/editor_snapshot.dart';
 // Helpers
 // ---------------------------------------------------------------------------
 
-EditorSnapshot _minimalSnapshot({List<LinkSnapshot> links = const []}) =>
-    EditorSnapshot(
-      title: 'Test',
-      hook: '',
-      notes: '',
-      phrase: '',
-      formationDetail: '',
-      form: DanceForm.contra,
-      formationShape: FormationShape.dupleImproper,
-      progression: Progression.single,
-      status: DanceStatus.active,
-      authorIds: const [],
-      tagIds: const [],
-      tunes: const [],
-      links: links,
-      customValues: const {},
-      figureDrafts: const [],
-    );
+EditorSnapshot _minimalSnapshot({
+  List<LinkSnapshot> links = const [],
+  List<SourceCitation> sourceCitations = const [],
+}) => EditorSnapshot(
+  title: 'Test',
+  hook: '',
+  notes: '',
+  phrase: '',
+  formationDetail: '',
+  form: DanceForm.contra,
+  formationShape: FormationShape.dupleImproper,
+  progression: Progression.single,
+  status: DanceStatus.active,
+  authorIds: const [],
+  tagIds: const [],
+  tunes: const [],
+  links: links,
+  sourceCitations: sourceCitations,
+  customValues: const {},
+  figureDrafts: const [],
+);
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('draft codec v5 —', () {
+  group('draft codec v6 —', () {
     test('encodes and decodes a URL-kind link', () {
       final snapshot = _minimalSnapshot(
         links: [
@@ -136,6 +139,7 @@ void main() {
         tagIds: const [],
         tunes: const [],
         links: const [],
+        sourceCitations: const [],
         customValues: const {},
         figureDrafts: const [],
       );
@@ -204,7 +208,7 @@ void main() {
       // Insert a future key the current codec doesn't know about.
       final encoded = encodeDraft(
         _minimalSnapshot(),
-      ).replaceFirst('"v":5', '"v":5,"futureKey":"ignored"');
+      ).replaceFirst('"v":6', '"v":6,"futureKey":"ignored"');
       final decoded = decodeDraft(encoded);
       expect(decoded.title, 'Test');
     });
@@ -226,6 +230,7 @@ void main() {
         tagIds: const [],
         tunes: const [],
         links: const [],
+        sourceCitations: const [],
         customValues: const {},
         figureDrafts: const [],
       );
@@ -272,6 +277,7 @@ void main() {
         tagIds: const [],
         tunes: const [],
         links: const [],
+        sourceCitations: const [],
         customValues: const {},
         figureDrafts: const [],
       );
@@ -304,6 +310,66 @@ void main() {
           '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
           '"progression":"single","status":"active","rating":6,'
           '"authorIds":[],"tagIds":[],"tunes":[],"links":[],'
+          '"customValues":{},"figureDrafts":[]}';
+      expect(() => decodeDraft(badJson), throwsA(isA<FormatException>()));
+    });
+
+    test('sourceCitations round-trip with page and number', () {
+      final snapshot = _minimalSnapshot(
+        sourceCitations: [
+          SourceCitation(sourceId: 's1', page: '12-14', number: 'A1'),
+          SourceCitation(sourceId: 's2'),
+        ],
+      );
+
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      expect(decoded.sourceCitations, hasLength(2));
+      final first = decoded.sourceCitations.first;
+      expect(first.sourceId, 's1');
+      expect(first.page, '12-14');
+      expect(first.number, 'A1');
+      final second = decoded.sourceCitations[1];
+      expect(second.sourceId, 's2');
+      expect(second.page, isNull);
+      expect(second.number, isNull);
+    });
+
+    test('no sourceCitations is omitted and decodes back to empty', () {
+      final encoded = encodeDraft(_minimalSnapshot());
+      expect(encoded, isNot(contains('"sourceCitations"')));
+      final decoded = decodeDraft(encoded);
+      expect(decoded.sourceCitations, isEmpty);
+    });
+
+    test('v5 draft (no sourceCitations) decodes to empty list', () {
+      const v5Json =
+          '{"v":5,"title":"Old","hook":"","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
+          '"progression":"single","status":"active","mixedLevel":false,'
+          '"authorIds":[],"tagIds":[],"tunes":[],"links":[],'
+          '"customValues":{},"figureDrafts":[]}';
+      final decoded = decodeDraft(v5Json);
+      expect(decoded.sourceCitations, isEmpty);
+    });
+
+    test('rejects a malformed sourceCitation (missing sourceId)', () {
+      const badJson =
+          '{"v":6,"title":"Bad","hook":"","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
+          '"progression":"single","status":"active",'
+          '"authorIds":[],"tagIds":[],"tunes":[],"links":[],'
+          '"sourceCitations":[{"page":"12"}],'
+          '"customValues":{},"figureDrafts":[]}';
+      expect(() => decodeDraft(badJson), throwsA(isA<FormatException>()));
+    });
+
+    test('rejects sourceCitations that is not an array', () {
+      const badJson =
+          '{"v":6,"title":"Bad","hook":"","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
+          '"progression":"single","status":"active",'
+          '"authorIds":[],"tagIds":[],"tunes":[],"links":[],'
+          '"sourceCitations":"nope",'
           '"customValues":{},"figureDrafts":[]}';
       expect(() => decodeDraft(badJson), throwsA(isA<FormatException>()));
     });

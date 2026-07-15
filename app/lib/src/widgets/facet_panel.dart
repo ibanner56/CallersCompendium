@@ -23,6 +23,7 @@ class FacetPanel extends StatelessWidget {
     required this.hasRating,
     required this.authors,
     required this.tags,
+    required this.citedSources,
     required this.choiceFields,
     required this.booleanFields,
     required this.textFields,
@@ -44,6 +45,11 @@ class FacetPanel extends StatelessWidget {
 
   final List<Choreographer> authors;
   final List<Tag> tags;
+
+  /// Published sources cited by at least one dance; drives the Source facet.
+  /// Empty hides the section (an uncited collection), mirroring [authors].
+  final List<PublishedSource> citedSources;
+
   final List<CustomFieldDef> choiceFields;
   final List<CustomFieldDef> booleanFields;
   final List<CustomFieldDef> textFields;
@@ -240,6 +246,26 @@ class FacetPanel extends StatelessWidget {
                 icon: Icons.label_outline,
                 selected: facets.tagIds.contains(t.id),
                 onSelected: (s) => toggle(facets.tagIds, t.id, s),
+              ),
+          ],
+        ),
+      );
+    }
+
+    if (citedSources.isNotEmpty) {
+      sections.add(
+        _FacetSection(
+          label: 'Source',
+          sectionId: 'source',
+          activeCount: facets.sourceIds.length,
+          chips: [
+            for (final s in citedSources)
+              _chip(
+                key: 'source-${s.id}',
+                label: s.title,
+                icon: Icons.menu_book_outlined,
+                selected: facets.sourceIds.contains(s.id),
+                onSelected: (sel) => toggle(facets.sourceIds, s.id, sel),
               ),
           ],
         ),

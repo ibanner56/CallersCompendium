@@ -82,6 +82,22 @@ class SourceFilter extends DanceFilter {
   final String query;
 }
 
+/// Dances that cite the [PublishedSource] with id [sourceId]; the
+/// identity-based counterpart to the text [SourceFilter].
+///
+/// Where [SourceFilter] does a substring match on the cited source's
+/// title/author (for full-text / advanced search), this leaf matches by the
+/// source's stable id via a subquery over `dance_sources` — the exact analog
+/// of [AuthorFilter] scoping to a choreographer id. Used by the Collection
+/// source facet, where the user picks a specific source (not free text) and an
+/// id match avoids the title/author over-matching a substring query would.
+@immutable
+class SourceIdFilter extends DanceFilter {
+  const SourceIdFilter(this.sourceId);
+
+  final String sourceId;
+}
+
 /// Dances of a given [DanceForm] (roadmap "Type": contra / ecd / square).
 @immutable
 class FormFilter extends DanceFilter {

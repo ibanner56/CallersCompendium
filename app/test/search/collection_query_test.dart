@@ -79,6 +79,23 @@ void main() {
       expect(tags.map((t) => t.tagId).toSet(), {'t1', 't2'});
     });
 
+    test('a single source facet yields an identity SourceIdFilter leaf', () {
+      final facets = FacetSelections()..sourceIds.add('s1');
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<SourceIdFilter>());
+      expect((f as SourceIdFilter).sourceId, 's1');
+    });
+
+    test('multiple sources OR within the source facet', () {
+      final facets = FacetSelections()..sourceIds.addAll(['s1', 's2']);
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<OrFilter>());
+      final sources = (f as OrFilter).children
+          .whereType<SourceIdFilter>()
+          .toList();
+      expect(sources.map((s) => s.sourceId).toSet(), {'s1', 's2'});
+    });
+
     test('fts + facets compose into a flat AndFilter', () {
       final facets = FacetSelections()
         ..formations.add(FormationShape.becketCw)

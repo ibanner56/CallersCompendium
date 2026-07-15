@@ -569,4 +569,34 @@ void main() {
     expect(find.text('Target Dance'), findsOneWidget);
     expect(find.text('target hook'), findsOneWidget);
   });
+
+  testWidgets('renders a cited source: title, author/year, page/number', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.publishedSources.upsert(
+      PublishedSource(
+        id: 's1',
+        title: 'Zesty Contras',
+        author: 'Larry Jennings',
+        year: 1983,
+        url: 'https://example.com/zesty',
+      ),
+    );
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Cited Dance').copyWith(
+        sourceCitations: [
+          SourceCitation(sourceId: 's1', page: '12-14', number: 'A1'),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    expect(find.text('Published sources'), findsOneWidget);
+    expect(find.byKey(const ValueKey('source-citation-s1')), findsOneWidget);
+    expect(find.text('Zesty Contras — Larry Jennings, 1983'), findsOneWidget);
+    expect(find.text('p. 12-14, no. A1'), findsOneWidget);
+    expect(find.text('https://example.com/zesty'), findsOneWidget);
+  });
 }

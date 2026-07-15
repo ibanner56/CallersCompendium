@@ -21,7 +21,11 @@ import 'editor_snapshot.dart';
 ///
 /// v4 → v5: adds `rating` (nullable `int` star rating on the closed `1..5`
 /// scale, omitted when unrated). Older drafts decode with `rating:null`.
-const _kDraftVersion = 5;
+///
+/// v5 → v6: adds `sourceCitations` (ordered list of `{sourceId, page?, number?}`
+/// citing reusable published sources; omitted entirely when empty). Older
+/// drafts (v ≤ 5) decode with `sourceCitations: const []`.
+const _kDraftVersion = 6;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -30,10 +34,10 @@ const _kDraftVersion = 5;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v5):
+/// Schema (v6):
 /// ```jsonc
 /// {
-///   "v": 5,
+///   "v": 6,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "phrase": "...", "formationDetail": "...",
 ///   "form": "contra", "formationShape": "dupleImproper",
@@ -46,6 +50,9 @@ const _kDraftVersion = 5;
 ///     {"id":"...", "kind":"source", "url":"...", "label":"..."},
 ///     {"id":"...", "kind":"relatedDance", "targetDanceId":"...", "label":"..."}
 ///   ],
+///   "sourceCitations": [
+///     {"sourceId":"...", "page":"12-14", "number":"A1"}
+///   ],
 ///   "customValues": {"fieldId": <value>},
 ///   "figureDrafts": [
 ///     {"id":"...", "move":"swing",
@@ -57,6 +64,8 @@ const _kDraftVersion = 5;
 /// `move` may be `null` for an incomplete draft row.
 /// `label`, `url`, and `targetDanceId` may be omitted when empty/null.
 /// `level`, `rating`, `composedOn`, and `revisedOn` are omitted when unset.
+/// `sourceCitations` is omitted when empty; per-citation `page`/`number` are
+/// omitted when null.
 String encodeDraft(EditorSnapshot snapshot) {
   return jsonEncode({
     'v': _kDraftVersion,
@@ -89,6 +98,15 @@ String encodeDraft(EditorSnapshot snapshot) {
           if (l.targetDanceId != null) 'targetDanceId': l.targetDanceId,
         },
     ],
+    if (snapshot.sourceCitations.isNotEmpty)
+      'sourceCitations': [
+        for (final c in snapshot.sourceCitations)
+          {
+            'sourceId': c.sourceId,
+            if (c.page != null) 'page': c.page,
+            if (c.number != null) 'number': c.number,
+          },
+      ],
     'customValues': snapshot.customValues,
     'figureDrafts': [
       for (final d in snapshot.figureDrafts)
@@ -166,6 +184,7 @@ EditorSnapshot decodeDraft(Object? value) {
     tagIds: _strList(json, 'tagIds'),
     tunes: _strList(json, 'tunes'),
     links: _parseLinks(json['links']),
+    sourceCitations: _parseSourceCitations(json['sourceCitations']),
     customValues: _parseCustomValues(json['customValues']),
     figureDrafts: _parseFigureDrafts(json['figureDrafts']),
   );
@@ -264,6 +283,38 @@ LinkSnapshot _parseLinkSnapshot(Object? e) {
         ? m['targetDanceId'] as String
         : null,
   );
+}
+
+SourceCitation _parseSourceCitation(Object? e) {
+  if (e is! Map) {
+    throw const FormatException('sourceCitation entry must be an object');
+  }
+  final m = e.cast<String, Object?>();
+  final sourceId = _str(m, 'sourceId');
+  if (sourceId.isEmpty) {
+    throw const FormatException('sourceCitation.sourceId is required');
+  }
+  final page = m['page'];
+  if (page != null && page is! String) {
+    throw FormatException('sourceCitation.page must be a string: $page');
+  }
+  final number = m['number'];
+  if (number != null && number is! String) {
+    throw FormatException('sourceCitation.number must be a string: $number');
+  }
+  return SourceCitation(
+    sourceId: sourceId,
+    page: page as String?,
+    number: number as String?,
+  );
+}
+
+List<SourceCitation> _parseSourceCitations(Object? raw) {
+  if (raw == null) return const [];
+  if (raw is! List) {
+    throw const FormatException('draft.sourceCitations must be an array');
+  }
+  return [for (final e in raw) _parseSourceCitation(e)];
 }
 
 Map<String, Object?> _parseCustomValues(Object? raw) {

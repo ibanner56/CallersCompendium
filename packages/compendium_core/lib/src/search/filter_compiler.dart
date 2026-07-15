@@ -124,6 +124,12 @@ class FilterCompiler {
             'JOIN published_sources ps ON ps.id = ds.source_id '
             "WHERE ps.title LIKE '%' || ? || '%' "
             "OR ps.author LIKE '%' || ? || '%')";
+      case SourceIdFilter(:final sourceId):
+        // Identity match on the cited source's id — the exact analog of
+        // AuthorFilter's dance_authors subquery.
+        binds.add(sourceId);
+        return 'id IN (SELECT dance_id FROM dance_sources '
+            'WHERE source_id = ?)';
       case TagFilter(:final tagId):
         binds.add(tagId);
         return 'id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)';

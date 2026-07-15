@@ -201,7 +201,7 @@ design/domain-model.md "CC parity backfill".*
 - [x] 4b.4 **Choreographer contact card** — extend `Choreographer` beyond
   name/website/notes toward CC `Author` (email, location, deceased flag) for
   users who maintain composer contacts. Keep optional; privacy-aware.
-- [ ] 4b.5 **Published-source citation** — structured `reference` + page/number
+- [x] 4b.5 **Published-source citation** — structured `reference` + page/number
   on a dance (CC `Reference`/`PageNumber`, `MD_*` collection) beyond a bare URL
   `DanceLink`, so book/collection provenance is first-class and searchable.
   Delivered as three atomic PRs: **a** reusable `PublishedSource` entity +

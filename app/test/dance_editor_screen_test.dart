@@ -1023,4 +1023,161 @@ void main() {
     expect(dance.links.single.kind, LinkKind.source);
     expect(dance.links.single.url, 'https://example.com');
   });
+
+  group('source citations —', () {
+    Future<void> attachExisting(
+      WidgetTester tester,
+      String query,
+      String sourceId,
+    ) async {
+      final input = find.byKey(const ValueKey('source-input'));
+      await tester.ensureVisible(input);
+      await tester.enterText(input, query);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('source-option-$sourceId')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('attach an existing source persists on save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.publishedSources.upsert(
+        PublishedSource(id: 's1', title: 'Zesty Contras', author: 'Jennings'),
+      );
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await attachExisting(tester, 'Zesty', 's1');
+      expect(find.byKey(const ValueKey('source-chip-s1')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.sourceCitations, hasLength(1));
+      expect(saved.sourceCitations.single.sourceId, 's1');
+    });
+
+    testWidgets('edit page and number round-trips on save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.publishedSources.upsert(
+        PublishedSource(id: 's1', title: 'Zesty Contras'),
+      );
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await attachExisting(tester, 'Zesty', 's1');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('source-page-s1')),
+        '12-14',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('source-number-s1')),
+        'A1',
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      final citation = saved!.sourceCitations.single;
+      expect(citation.sourceId, 's1');
+      expect(citation.page, '12-14');
+      expect(citation.number, 'A1');
+    });
+
+    testWidgets('remove a citation drops it on save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.publishedSources.upsert(
+        PublishedSource(id: 's1', title: 'Zesty Contras'),
+      );
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await attachExisting(tester, 'Zesty', 's1');
+      final chip = find.byKey(const ValueKey('source-chip-s1'));
+      expect(chip, findsOneWidget);
+
+      // The InputChip's delete affordance removes the citation.
+      await tester.tap(
+        find.descendant(of: chip, matching: find.byType(Icon)).last,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('source-chip-s1')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.sourceCitations, isEmpty);
+    });
+
+    testWidgets('create a new source inline via the details dialog', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final input = find.byKey(const ValueKey('source-input'));
+      await tester.ensureVisible(input);
+      await tester.enterText(input, 'Shadrach');
+      await tester.pumpAndSettle();
+      // The "create" option is offered when no exact title match exists.
+      await tester.tap(
+        find.byKey(const ValueKey('source-option-create:Shadrach')),
+      );
+      await tester.pumpAndSettle();
+
+      // The details dialog opens prefilled with the typed title.
+      expect(find.byKey(const ValueKey('source-title-field')), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('source-author-field')),
+        'Ted Sannella',
+      );
+      await tester.tap(find.byKey(const ValueKey('source-save')));
+      await tester.pumpAndSettle();
+
+      // A new source was persisted and a citation chip added.
+      final sources = await repos.publishedSources.listAll();
+      expect(sources, hasLength(1));
+      expect(sources.single.title, 'Shadrach');
+      expect(sources.single.author, 'Ted Sannella');
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.sourceCitations, hasLength(1));
+      expect(saved.sourceCitations.single.sourceId, sources.single.id);
+    });
+
+    testWidgets('editing a source clears a nullable field to null', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.publishedSources.upsert(
+        PublishedSource(id: 's1', title: 'Zesty Contras', author: 'Jennings'),
+      );
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      await attachExisting(tester, 'Zesty', 's1');
+
+      // Open the shared-source details dialog from the chip.
+      await tester.tap(find.byKey(const ValueKey('source-chip-s1')));
+      await tester.pumpAndSettle();
+      // Clear the author field.
+      await tester.enterText(
+        find.byKey(const ValueKey('source-author-field')),
+        '',
+      );
+      await tester.tap(find.byKey(const ValueKey('source-save')));
+      await tester.pumpAndSettle();
+
+      final updated = await repos.publishedSources.getById('s1');
+      expect(updated!.author, isNull);
+    });
+  });
 }

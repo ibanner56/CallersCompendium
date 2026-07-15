@@ -108,6 +108,18 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       }
     }
 
+    // Resolve the cited published sources (deduplicated) for display.
+    final sourcesById = <String, PublishedSource>{};
+    final citedSourceIds = dance.sourceCitations.map((c) => c.sourceId).toSet();
+    if (citedSourceIds.isNotEmpty) {
+      final fetched = await Future.wait(
+        citedSourceIds.map((id) => _repos.publishedSources.getById(id)),
+      );
+      for (final source in fetched) {
+        if (source != null) sourcesById[source.id] = source;
+      }
+    }
+
     return _DanceDetail(
       dance: dance,
       authorNames: [
@@ -124,6 +136,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             (label: def.label, value: _formatFieldValue(value.value)),
       ],
       relatedDanceTitles: relatedDanceTitles,
+      sourcesById: sourcesById,
     );
   }
 
@@ -397,6 +410,16 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   : null,
             ),
         ],
+        if (dance.sourceCitations.isNotEmpty) ...[
+          const SizedBox(height: 24),
+          Text('Published sources', style: theme.textTheme.titleMedium),
+          for (final citation in dance.sourceCitations)
+            _SourceCitationRow(
+              key: ValueKey('source-citation-${citation.sourceId}'),
+              citation: citation,
+              source: detail.sourcesById[citation.sourceId],
+            ),
+        ],
         if (detail.customFields.isNotEmpty) ...[
           const SizedBox(height: 24),
           Text('Custom fields', style: theme.textTheme.titleMedium),
@@ -574,6 +597,77 @@ class _LinkRow extends StatelessWidget {
   }
 }
 
+/// A single cited published source: title (+ author/year), the citation's
+/// page/number, and the source's URL if present. Read-only display mirroring
+/// [_LinkRow]. A [Semantics] label collapses the multi-line content into one
+/// screen-reader announcement.
+class _SourceCitationRow extends StatelessWidget {
+  const _SourceCitationRow({super.key, required this.citation, this.source});
+
+  final SourceCitation citation;
+
+  /// The resolved shared source, or `null` if it has been purged.
+  final PublishedSource? source;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final title = source?.title ?? '(unknown source)';
+
+    final bibParts = <String>[
+      if (source?.author != null) source!.author!,
+      if (source?.year != null) source!.year!.toString(),
+    ];
+    final bib = bibParts.isEmpty ? null : bibParts.join(', ');
+
+    final locParts = <String>[
+      if (citation.page != null) 'p. ${citation.page}',
+      if (citation.number != null) 'no. ${citation.number}',
+    ];
+    final loc = locParts.isEmpty ? null : locParts.join(', ');
+    final url = source?.url;
+
+    final semanticLabel = ['Source: $title', ?bib, ?loc, ?url].join(', ');
+
+    return Semantics(
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Icon(Icons.menu_book_outlined, size: 16),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    bib == null ? title : '$title — $bib',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  if (loc != null) Text(loc, style: theme.textTheme.bodySmall),
+                  if (url != null)
+                    Text(
+                      url,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 typedef _CustomFieldDisplay = ({String label, String value});
 
 class _DanceDetail {
@@ -583,6 +677,7 @@ class _DanceDetail {
     required this.tagNames,
     required this.customFields,
     required this.relatedDanceTitles,
+    required this.sourcesById,
   });
 
   final Dance dance;
@@ -593,4 +688,8 @@ class _DanceDetail {
   /// Maps targetDanceId → title for relatedDance links whose target exists.
   /// Missing entries indicate the target dance has been deleted/purged.
   final Map<String, String> relatedDanceTitles;
+
+  /// Maps sourceId → the cited [PublishedSource] for each of the dance's
+  /// [SourceCitation]s (missing entries indicate a purged source).
+  final Map<String, PublishedSource> sourcesById;
 }
