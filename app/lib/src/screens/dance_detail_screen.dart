@@ -932,12 +932,13 @@ class _CallingHistoryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final localizations = MaterialLocalizations.of(context);
-    // Prefer the actual performance timestamp; fall back to the program's
-    // scheduled event date when the two differ conceptually (both are shown as
-    // dates here since the exact call time is rarely meaningful to display).
-    final date = localizations.formatMediumDate(
-      (record.eventDate ?? record.performedAt).toLocal(),
-    );
+    // Show the date the dance was actually called (`performedAt`), per
+    // `docs/design/ux.md` §2 — not the program's scheduled `eventDate`, which
+    // can differ. `performedAt` is always present here (the query only returns
+    // performed slots). It is a real UTC instant, so render its date directly
+    // without a local-timezone conversion (matching how other date labels in
+    // this screen format stored UTC dates).
+    final date = localizations.formatMediumDate(record.performedAt);
     final venue = record.venue?.trim();
     final subtitleParts = <String>[
       date,

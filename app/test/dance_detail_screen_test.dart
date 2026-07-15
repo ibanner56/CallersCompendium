@@ -1041,6 +1041,10 @@ void main() {
         program(
           id: 'p1',
           title: 'Autumn Ball',
+          // A scheduled event date in a DIFFERENT year from performedAt, so the
+          // assertions below fail if the UI ever prefers eventDate over the
+          // actual performance date.
+          eventDate: DateTime.utc(2025, 1, 15),
           venue: 'Grange Hall',
           slots: [
             ProgramSlot(
@@ -1066,10 +1070,26 @@ void main() {
         isSemantics(isButton: true, isFocusable: true, hasTapAction: true),
         reason: 'each history row must be a focusable, tappable button',
       );
+      final label = tester.getSemantics(rowFinder).label;
       expect(
-        tester.getSemantics(rowFinder).label,
+        label,
         contains('Open program: Autumn Ball'),
         reason: 'the row label must name the program it opens',
+      );
+      // The announced date must come from performedAt (2026), not the program's
+      // scheduled eventDate (2025).
+      final performedDate = MaterialLocalizations.of(
+        tester.element(rowFinder),
+      ).formatMediumDate(DateTime.utc(2026, 10, 3, 20));
+      expect(
+        label,
+        contains(performedDate),
+        reason: 'the row label must announce the performedAt date',
+      );
+      expect(
+        label,
+        isNot(contains('2025')),
+        reason: 'the row must not announce the scheduled eventDate',
       );
       handle.dispose();
     });
