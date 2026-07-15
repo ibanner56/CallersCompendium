@@ -6,7 +6,6 @@ import '../data/repositories_scope.dart';
 import '../widgets/program_list_tile.dart';
 import 'program_editor_screen.dart';
 import 'programs_recently_deleted_screen.dart';
-import 'settings_screen.dart';
 
 /// How the Programs list is ordered (`docs/design/ux.md` §4).
 enum ProgramSort {
@@ -153,12 +152,6 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     if (mounted) await _load();
   }
 
-  Future<void> _openSettings() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
-  }
-
   Future<void> _softDelete(Program program) async {
     await _repos.programs.softDelete(program.id, at: DateTime.now().toUtc());
     if (!mounted) return;
@@ -193,12 +186,6 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               tooltip: 'Recently deleted',
               icon: const Icon(Icons.restore_from_trash_outlined),
               onPressed: _openRecentlyDeleted,
-            ),
-            IconButton(
-              key: const ValueKey('programs-settings'),
-              tooltip: 'Settings',
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: _openSettings,
             ),
             PopupMenuButton<ProgramSort>(
               tooltip: 'Sort by',

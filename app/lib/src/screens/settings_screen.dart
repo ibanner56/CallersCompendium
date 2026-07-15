@@ -192,7 +192,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         if (sideBySide) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Settings')),
+            appBar: AppBar(
+              title: const Text('Settings'),
+              automaticallyImplyLeading: false,
+            ),
             body: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -211,7 +214,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Settings')),
+          appBar: AppBar(
+            title: const Text('Settings'),
+            automaticallyImplyLeading: false,
+          ),
           body: ListView(
             children: [
               for (final s in _SettingsSection.values)

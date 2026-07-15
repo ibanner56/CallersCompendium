@@ -847,25 +847,4 @@ void main() {
       expect(dance!.deletedAt, isNull);
     },
   );
-
-  // ── Settings entry ─────────────────────────────────────────────────────────
-
-  testWidgets('Settings button is present in the app bar', (tester) async {
-    final repos = openTestRepositories();
-    await _pumpScreen(tester, repos);
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('settings')), findsOneWidget);
-  });
-
-  testWidgets('Settings button navigates to SettingsScreen', (tester) async {
-    final repos = openTestRepositories();
-    await _pumpScreen(tester, repos);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('settings')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Settings'), findsOneWidget);
-  });
 }

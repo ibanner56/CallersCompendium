@@ -17,7 +17,6 @@ import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
-import '../screens/settings_screen.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 
@@ -430,12 +429,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
             icon: const Icon(Icons.restore_from_trash_outlined),
             onPressed: _openRecentlyDeleted,
           ),
-          IconButton(
-            key: const ValueKey('settings'),
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: _openSettings,
-          ),
           PopupMenuButton<CollectionSort>(
             tooltip: 'Sort by (${_sort.label})',
             initialValue: _sort,
@@ -496,17 +489,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     ).push(MaterialPageRoute(builder: (_) => const CustomFieldsScreen()));
     // Reload so newly-created/edited fields show up as facets.
     if (mounted) await _boot();
-  }
-
-  Future<void> _openSettings() async {
-    final dialectBefore = _dialect;
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
-    // didChangeDependencies fires a re-run when the dialect changes; only do
-    // an extra re-run here if the dialect is unchanged (belt-and-suspenders
-    // for edge cases where didChangeDependencies doesn't fire after pop).
-    if (mounted && _dialect == dialectBefore) await _runSearch();
   }
 
   Future<void> _openRecentlyDeleted() async {
