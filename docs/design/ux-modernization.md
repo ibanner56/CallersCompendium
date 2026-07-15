@@ -261,18 +261,15 @@ enum AppThemeSelection {
   dark,                 // Hearth dark    (unchanged)
   highContrast,         // ≥7:1, shared with Perform (unchanged)
   // Gallery palettes (§4A) — light.
-  solarizedLight, atomOneLight, noctisLux, githubLight,
+  blulocoLight, githubLight,
   catppuccinLatte, gruvboxLight, everforestLight, rosePineDawn,
   ayuLight, tokyoNightLight, nordLight, kanagawaLotus,
-  materialLight,
+  noctisLilac, materialLight,
   // Gallery palettes (§4A) — dark.
-  solarizedDark, oneDarkPro, monokai, noctis, dracula, nord,
+  oneDarkPro, monokai, noctis, dracula, nord,
   tokyoNight, gruvboxDark, catppuccinMocha, githubDark,
   everforestDark, rosePine, ayuMirage, cutiePro, pinkAsHeck,
   zenburn, shadesOfPurple, palenight, synthwave84,
-  // Gallery palettes (§4A) — Noctis family.
-  noctisAzureus, noctisBordo, noctisHibernus, noctisLilac,
-  noctisMinimus, noctisObscuro, noctisSereno, noctisUva, noctisViola,
 }
 ```
 
@@ -312,14 +309,12 @@ per-role hex against each source palette is an implementation deliverable.
 
 | Palette | Mode | Background — "omega" | Foreground | Signature accents | Inspired by |
 |---|---|---|---|---|---|
-| **Hearth** *(default, ships in UX-0)* | light+dark+HC | `#FBF7F2` / `#261F1B` | `#201A17` / `#EAE1DC` | terracotta `#9C4A2F` · pine `#4E6B4F` · ochre `#7A5900` | house palette (§1a/§1b) |
-| Solarized Light | light | `#FDF6E3` warm paper | `#657B83` | `#268BD2` `#859900` `#B58900` `#DC322F` `#6C71C4` `#2AA198` | Solarized (Ethan Schoonover, MIT) |
-| Solarized Dark | dark | `#002B36` deep teal | `#839496` | *(same accent set)* | Solarized (MIT) |
-| Atom One Light | light | `#FAFAFA` cool white | `#383A42` | `#4078F2` `#50A14F` `#E45649` `#A626A4` `#0184BC` | Atom One Light |
+| **Blue Hour** *(default, ships in UX-0)* | light+dark+HC | `#F4F6FA` / `#121A24` | `#1A222C` / `#E7ECF1` | light: amber `#9A5312` · dusty-rose `#8C4A43` · wheat-gold `#6E5A16` — dark: lantern-amber `#FFB784` · dusty-rose `#E4A9A0` · wheat-gold `#D8C98A` | house palette (§1a/§1b) |
+| Bluloco Light | light | `#F9F9F9` cool-neutral | `#383A42` | `#275FE4` `#23974A` `#823FF1` `#D52753` | Bluloco Light (uloco) |
 | One Dark Pro | dark | `#282C34` blue-grey | `#ABB2BF` | *(refined One Dark accents)* | One Dark Pro |
 | Monokai | dark | `#282C34` charcoal | `#ABB2BF` | `#E06C75` `#98C379` `#C678DD` `#F44747` | One Monokai (azemoh) — Monokai syntax on One Dark's canvas |
 
-*(The Noctis family — 11 variants — now has its own gallery section; see "Noctis family" below.)*
+*(Noctis is now a single dark entry in the Dark section; Noctis Lilac is a single light entry in the Light section — see the "Noctis" note below.)*
 
 **Expanded gallery (UX-7).** Following UX-6, the gallery was widened with the
 most-requested industry/hobbyist favorites, spanning the hue spectrum in both
@@ -367,42 +362,43 @@ to **Cutie Pro** + **Pink as Heck** (dropping Cute Pink Dark); plus **Night Owl*
 baseline in a crowded lavender group). The surviving set preserves every hue
 lead and canvas-darkness band.
 
+**Default redesign + gallery re-curation.** The default palette was re-cut from
+warm "Hearth" to **Blue Hour** — a cooler, dustier, more muted pastel story on
+both light and dark slots (§1a). Alongside it the gallery was re-curated: the
+**Noctis** family (11 variants) was collapsed to two representatives — **Noctis**
+(the signature deep-teal dark, folded into the Dark section) and **Noctis Lilac**
+(the distinctive lilac light, folded into the Light section) — since the other
+nine differed only by canvas while sharing identical accents. To hold the gallery
+at 12 light / 18 dark: **Solarized Dark** was dropped as the second teal-canvas
+dark (Palenight kept), which orphaned **Solarized Light**; and **Atom One Light**
+was orphaned when Atom One Dark was cut earlier. Both orphaned lights were removed
+and replaced by **Noctis Lilac** (lilac/lavender gap) and **Bluloco Light** (a
+vivid high-saturation light the pastel-heavy set lacked).
+
 **Light additions.** To balance the trimmed dark set, three popular light
 palettes joined the gallery: **Tokyo Night Light** (Day) mirrors the dark Tokyo
 Night with a crisp indigo daylight canvas; **Nord Light** (Snow Storm) fills the
 cool desaturated-blue gap; and **Kanagawa Lotus** brings an on-trend warm sumi-e
 paper with ink accents.
 
-**Noctis family.** The full [Noctis](https://github.com/liviuschera/noctis)
-palette set (11 variants) lives in its own **Noctis** gallery section, below
-Dark. Every variant shares Noctis's signature syntax accents — mint-green
-strings, warm-pink keywords, gold functions — over its own canvas, so they read
-as one coherent family regardless of light/dark brightness. Accents are constant
-per brightness; only surface + foreground change between variants.
+**Noctis.** The [Noctis](https://github.com/liviuschera/noctis) family originally
+shipped as 11 variants in a dedicated gallery section. Because the eight darks
+shared one accent set (differing only by canvas) and the three lights another,
+the family was collapsed to two representatives that carry its signature
+mint-green / warm-pink / gold syntax accents:
 
-| Variant | Mode | Background | Foreground |
-|---|---|---|---|
-| Noctis | dark | `#052529` deep teal | `#B2CACD` |
-| Noctis Azureus | dark | `#07273B` azure-blue | `#BECFDA` |
-| Noctis Bordo | dark | `#322A2D` burgundy-brown | `#CBBEC2` |
-| Noctis Minimus | dark | `#1B2932` blue-grey | `#C5CDD3` |
-| Noctis Obscuro | dark | `#031417` near-black teal | `#B2CACD` |
-| Noctis Sereno | dark | `#062E32` mid-teal | `#B2CACD` |
-| Noctis Uva | dark | `#292640` indigo-violet | `#C5C2D6` |
-| Noctis Viola | dark | `#30243D` purple | `#CCBFD9` |
-| Noctis Hibernus | light | `#F4F6F6` cool white | `#005661` |
-| Noctis Lux | light | `#FEF8EC` warm paper | `#005661` |
-| Noctis Lilac | light | `#F2F1F8` lilac | `#0C006B` |
+| Palette | Mode | Background | Foreground | Section |
+|---|---|---|---|---|
+| Noctis | dark | `#052529` deep teal | `#B2CACD` | Dark |
+| Noctis Lilac | light | `#F2F1F8` lilac | `#0C006B` | Light |
 
 Shared accents: mint-green `#49E9A6` (light `#00B368`) · warm-pink `#DF769B`
 (light `#FF5792`) · gold `#D5971A` (light `#A88C00`) · red `#E34E1C`
-(light `#FF4000`). Minimus uses its own softer set (`#72C09F` `#C88DA2`
-`#A88C00` `#B96346`).
+(light `#FF4000`).
 
-The set deliberately spans the **omega spectrum** — paper-white → cool-white →
-warm-charcoal → blue-grey → near-black → deep-saturated-teal — so users get real
-variety, not ten shades of the same dark. A true-black AMOLED entry can be added
-later if requested; it's a natural extension of the same registry.
+The standalone Noctis section is dissolved; both survivors fold into the
+regular Dark and Light groups. A true-black AMOLED entry can be added later if
+requested; it's a natural extension of the same registry.
 
 ### 4A.4 Accessibility contract (non-negotiable)
 
