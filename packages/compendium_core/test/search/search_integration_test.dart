@@ -222,10 +222,13 @@ void main() {
         expect(await dances.search(const FullTextFilter('foo"')), ['a']);
       });
 
-      test('empty / whitespace-only text returns no rows, never throws', () async {
-        await dances.create(_dance(id: 'a', title: 'Anything'));
-        expect(await dances.search(const FullTextFilter('   ')), isEmpty);
-      });
+      test(
+        'empty / whitespace-only text returns no rows, never throws',
+        () async {
+          await dances.create(_dance(id: 'a', title: 'Anything'));
+          expect(await dances.search(const FullTextFilter('   ')), isEmpty);
+        },
+      );
 
       test('repository.searchText is sanitized too', () async {
         await dances.create(_dance(id: 'a', title: 'Do-Si-Do Delight'));

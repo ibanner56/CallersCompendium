@@ -11,10 +11,13 @@ void main() {
       expect(toFtsMatchQuery('right left'), '"right" "left"');
     });
 
-    test('neutralizes hyphens so contra terms never reach FTS as operators', () {
-      expect(toFtsMatchQuery('do-si-do'), '"do-si-do"');
-      expect(toFtsMatchQuery('right-and-left'), '"right-and-left"');
-    });
+    test(
+      'neutralizes hyphens so contra terms never reach FTS as operators',
+      () {
+        expect(toFtsMatchQuery('do-si-do'), '"do-si-do"');
+        expect(toFtsMatchQuery('right-and-left'), '"right-and-left"');
+      },
+    );
 
     test('neutralizes apostrophes', () {
       expect(toFtsMatchQuery("O'Neill"), '"O\'Neill"');
