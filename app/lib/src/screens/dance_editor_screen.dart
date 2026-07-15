@@ -832,23 +832,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             },
           ),
           const SizedBox(height: 16),
+          // Progression and Rating share one line.
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _EnumDropdown<DanceForm>(
-                  fieldKey: 'form',
-                  label: 'Form',
-                  value: _form,
-                  values: DanceForm.values,
-                  labelOf: danceFormLabel,
-                  onChanged: (v) {
-                    setState(() => _form = v);
-                    _pushUndoNow();
-                    _scheduleAutosave();
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: _EnumDropdown<Progression>(
                   fieldKey: 'progression',
@@ -863,77 +850,18 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                   },
                 ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _RatingField(
+                  value: _rating,
+                  onChanged: (v) {
+                    setState(() => _rating = v);
+                    _pushUndoNow();
+                    _scheduleAutosave();
+                  },
+                ),
+              ),
             ],
-          ),
-          const SizedBox(height: 16),
-          _EnumDropdown<DanceStatus>(
-            fieldKey: 'status',
-            label: 'Status',
-            value: _status,
-            values: DanceStatus.values,
-            labelOf: danceStatusLabel,
-            onChanged: (v) {
-              setState(() => _status = v);
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-          ),
-          const SizedBox(height: 16),
-          _LevelDropdown(
-            value: _level,
-            onChanged: (v) {
-              setState(() => _level = v);
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-          ),
-          const SizedBox(height: 8),
-          CheckboxListTile(
-            key: const ValueKey('mixed-level-field'),
-            value: _mixedLevel,
-            onChanged: (v) {
-              setState(() => _mixedLevel = v ?? false);
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            title: const Text('Mixed level'),
-            subtitle: const Text('Spans the difficulty scale'),
-            secondary: const Icon(Icons.swap_vert),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-          ),
-          const SizedBox(height: 16),
-          _RatingField(
-            value: _rating,
-            onChanged: (v) {
-              setState(() => _rating = v);
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-          ),
-          const SizedBox(height: 16),
-          _PartialDateField(
-            fieldKey: 'composed-on',
-            label: 'Composed',
-            helperText: 'When the dance was composed (year, or add month/day)',
-            value: _composedOn,
-            onChanged: (v) {
-              setState(() => _composedOn = v);
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-          ),
-          const SizedBox(height: 16),
-          _PartialDateField(
-            fieldKey: 'revised-on',
-            label: 'Revised',
-            helperText: 'When the dance was last revised by its author',
-            value: _revisedOn,
-            onChanged: (v) {
-              setState(() => _revisedOn = v);
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -958,120 +886,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               }
             },
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _hookController,
-            decoration: const InputDecoration(
-              labelText: 'Hook',
-              hintText: 'One-line "why call this"',
-              border: OutlineInputBorder(),
-            ),
-            onChanged: (_) {
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _notesController,
-            minLines: 2,
-            maxLines: 6,
-            decoration: const InputDecoration(
-              labelText: 'Calling notes',
-              border: OutlineInputBorder(),
-              alignLabelWithHint: true,
-            ),
-            onChanged: (_) {
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
-          ),
-          const SizedBox(height: 16),
-          _Label('Tags'),
-          _NamePicker(
-            fieldKey: 'tag',
-            selectedIds: _tagIds,
-            namesById: _tagNames,
-            options: [for (final t in _tags) (id: t.id, name: t.name)],
-            onAdd: (id) {
-              // Reached after an await in the picker's onSelected (create
-              // flow), so the editor may have been disposed meanwhile.
-              if (!mounted) return;
-              setState(() => _tagIds.add(id));
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            onRemove: (id) {
-              setState(() => _tagIds.remove(id));
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            onCreate: _createTag,
-          ),
-          const SizedBox(height: 16),
-          _Label('Tunes'),
-          _TuneEditor(
-            tunes: _tunes,
-            controller: _tuneController,
-            onAdd: _addTune,
-            onRemove: (tune) {
-              setState(() => _tunes.remove(tune));
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-          ),
-          const SizedBox(height: 16),
-          _Label('Links'),
-          _LinksEditor(
-            links: _links,
-            danceOptions: _danceOptions,
-            danceNamesById: _danceNamesById,
-            onAdd: () {
-              setState(() => _links.add(_LinkDraft.empty()));
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            onRemove: (draft) {
-              setState(() {
-                _links.remove(draft);
-                draft.dispose();
-              });
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            onChanged: () {
-              setState(() {});
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
-          ),
-          const SizedBox(height: 16),
-          _Label('Published sources'),
-          _SourceCitationsEditor(
-            citations: _sourceCitations,
-            sourcesById: _sourcesById,
-            sourceOptions: _publishedSources,
-            onAttach: _attachSource,
-            onCreate: _createSource,
-            onEditSource: _editSource,
-            onRemove: (draft) {
-              setState(() {
-                _sourceCitations.remove(draft);
-                draft.dispose();
-              });
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            onChanged: () {
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
-          ),
-          if (_fieldDefs.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _Label('Custom fields'),
-            for (final def in _fieldDefs) _buildCustomField(def),
-          ],
           const SizedBox(height: 24),
           Text('Figures', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 4),
@@ -1120,9 +934,228 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             const SizedBox(height: 16),
             _WarningsCard(warnings: _warnings),
           ],
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _notesController,
+            minLines: 2,
+            maxLines: 6,
+            decoration: const InputDecoration(
+              labelText: 'Calling notes',
+              border: OutlineInputBorder(),
+              alignLabelWithHint: true,
+            ),
+            onChanged: (_) {
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _hookController,
+            decoration: const InputDecoration(
+              labelText: 'Hook',
+              hintText: 'One-line "why call this"',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (_) {
+              _scheduleUndoPush();
+              _scheduleAutosave();
+            },
+          ),
+          const SizedBox(height: 24),
+          _buildMoreDetails(),
           const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+
+  /// The collapsible "More details" drawer (Tier 2). Holds the less-frequently
+  /// used metadata; collapsed by default so the always-visible Tier 1 fields
+  /// stay above the fold. While collapsed the children are removed from the
+  /// tree (the default `ExpansionTile` behavior); no edits are lost because
+  /// every value lives in the parent [State] — text controllers, [_links],
+  /// [_customValues], and the enum/date fields — and is re-seeded into the
+  /// child widgets when the section is expanded again.
+  Widget _buildMoreDetails() {
+    return ExpansionTile(
+      key: const ValueKey('more-details-tile'),
+      title: const Text('More details'),
+      initiallyExpanded: false,
+      tilePadding: EdgeInsets.zero,
+      childrenPadding: const EdgeInsets.only(top: 8),
+      expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _EnumDropdown<DanceStatus>(
+          fieldKey: 'status',
+          label: 'Status',
+          value: _status,
+          values: DanceStatus.values,
+          labelOf: danceStatusLabel,
+          onChanged: (v) {
+            setState(() => _status = v);
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+        ),
+        const SizedBox(height: 16),
+        _LevelDropdown(
+          value: _level,
+          onChanged: (v) {
+            setState(() => _level = v);
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+        ),
+        const SizedBox(height: 8),
+        CheckboxListTile(
+          key: const ValueKey('mixed-level-field'),
+          value: _mixedLevel,
+          onChanged: (v) {
+            setState(() => _mixedLevel = v ?? false);
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+          title: const Text('Mixed level'),
+          subtitle: const Text('Spans the difficulty scale'),
+          secondary: const Icon(Icons.swap_vert),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+        ),
+        const SizedBox(height: 16),
+        _PartialDateField(
+          fieldKey: 'composed-on',
+          label: 'Composed',
+          helperText: 'When the dance was composed (year, or add month/day)',
+          value: _composedOn,
+          onChanged: (v) {
+            setState(() => _composedOn = v);
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+        ),
+        const SizedBox(height: 16),
+        _PartialDateField(
+          fieldKey: 'revised-on',
+          label: 'Revised',
+          helperText: 'When the dance was last revised by its author',
+          value: _revisedOn,
+          onChanged: (v) {
+            setState(() => _revisedOn = v);
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+        ),
+        const SizedBox(height: 16),
+        _Label('Tags'),
+        _NamePicker(
+          fieldKey: 'tag',
+          selectedIds: _tagIds,
+          namesById: _tagNames,
+          options: [for (final t in _tags) (id: t.id, name: t.name)],
+          onAdd: (id) {
+            // Reached after an await in the picker's onSelected (create
+            // flow), so the editor may have been disposed meanwhile.
+            if (!mounted) return;
+            setState(() => _tagIds.add(id));
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+          onRemove: (id) {
+            setState(() => _tagIds.remove(id));
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+          onCreate: _createTag,
+        ),
+        const SizedBox(height: 16),
+        _Label('Tunes'),
+        _TuneEditor(
+          tunes: _tunes,
+          controller: _tuneController,
+          onAdd: _addTune,
+          onRemove: (tune) {
+            setState(() => _tunes.remove(tune));
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+        ),
+        const SizedBox(height: 16),
+        _Label('Links'),
+        _LinksEditor(
+          links: _links,
+          onAdd: () {
+            setState(() => _links.add(_LinkDraft.empty()));
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+          onRemove: (draft) {
+            setState(() {
+              _links.remove(draft);
+              draft.dispose();
+            });
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+          onChanged: () {
+            setState(() {});
+            _scheduleUndoPush();
+            _scheduleAutosave();
+          },
+        ),
+        const SizedBox(height: 16),
+        _Label('Published sources'),
+        _SourceCitationsEditor(
+          citations: _sourceCitations,
+          sourcesById: _sourcesById,
+          sourceOptions: _publishedSources,
+          onAttach: _attachSource,
+          onCreate: _createSource,
+          onEditSource: _editSource,
+          onRemove: (draft) {
+            setState(() {
+              _sourceCitations.remove(draft);
+              draft.dispose();
+            });
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+          onChanged: () {
+            _scheduleUndoPush();
+            _scheduleAutosave();
+          },
+        ),
+        const SizedBox(height: 16),
+        _Label('Related dances'),
+        _RelatedDancesEditor(
+          links: _links,
+          danceOptions: _danceOptions,
+          danceNamesById: _danceNamesById,
+          onAdd: () {
+            setState(() => _links.add(_LinkDraft.relatedDance()));
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+          onRemove: (draft) {
+            setState(() {
+              _links.remove(draft);
+              draft.dispose();
+            });
+            _pushUndoNow();
+            _scheduleAutosave();
+          },
+          onChanged: () {
+            setState(() {});
+            _scheduleUndoPush();
+            _scheduleAutosave();
+          },
+        ),
+        if (_fieldDefs.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _Label('Custom fields'),
+          for (final def in _fieldDefs) _buildCustomField(def),
+        ],
+      ],
     );
   }
 
@@ -1418,7 +1451,8 @@ class _RatingField extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, bottom: 4),
             child: Text('Rating', style: theme.textTheme.bodySmall),
           ),
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               for (var star = 1; star <= _max; star++)
                 IconButton(
@@ -1929,8 +1963,6 @@ class _TuneEditor extends StatelessWidget {
 class _LinksEditor extends StatelessWidget {
   const _LinksEditor({
     required this.links,
-    required this.danceOptions,
-    required this.danceNamesById,
     required this.onAdd,
     required this.onRemove,
     required this.onChanged,
@@ -1938,23 +1970,22 @@ class _LinksEditor extends StatelessWidget {
 
   final List<_LinkDraft> links;
 
-  /// Non-deleted dances eligible for relatedDance selection (self excluded).
-  final List<_NameOption> danceOptions;
-
-  /// Title lookup for resolving a [_LinkDraft.targetDanceId] to its display
-  /// name. A missing entry means the target dance was deleted/purged.
-  final Map<String, String> danceNamesById;
-
   final VoidCallback onAdd;
   final ValueChanged<_LinkDraft> onRemove;
   final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
+    // Related dances have their own dedicated subsection; the generic links
+    // list handles only URL-bearing kinds (source/video/other).
+    final urlLinks = [
+      for (final draft in links)
+        if (draft.kind != LinkKind.relatedDance) draft,
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final draft in links)
+        for (final draft in urlLinks)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
@@ -1983,10 +2014,6 @@ class _LinksEditor extends StatelessWidget {
                         value: LinkKind.other,
                         child: Text('Other'),
                       ),
-                      DropdownMenuItem(
-                        value: LinkKind.relatedDance,
-                        child: Text('Related'),
-                      ),
                     ],
                     onChanged: (value) {
                       if (value != null) {
@@ -2000,33 +2027,16 @@ class _LinksEditor extends StatelessWidget {
                 Expanded(
                   child: Column(
                     children: [
-                      if (draft.kind == LinkKind.relatedDance)
-                        _RelatedDancePicker(
-                          key: ValueKey(
-                            'link-dance-picker-${draft.id}-'
-                            '${draft.targetDanceId ?? 'null'}',
-                          ),
-                          initialTitle: draft.targetDanceId == null
-                              ? ''
-                              : (danceNamesById[draft.targetDanceId!] ??
-                                    '(missing dance)'),
-                          danceOptions: danceOptions,
-                          onSelected: (id) {
-                            draft.targetDanceId = id;
-                            onChanged();
-                          },
-                        )
-                      else
-                        TextField(
-                          key: ValueKey('link-url-${draft.id}'),
-                          controller: draft.urlController,
-                          decoration: const InputDecoration(
-                            labelText: 'URL',
-                            isDense: true,
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (_) => onChanged(),
+                      TextField(
+                        key: ValueKey('link-url-${draft.id}'),
+                        controller: draft.urlController,
+                        decoration: const InputDecoration(
+                          labelText: 'URL',
+                          isDense: true,
+                          border: OutlineInputBorder(),
                         ),
+                        onChanged: (_) => onChanged(),
+                      ),
                       const SizedBox(height: 4),
                       TextField(
                         key: ValueKey('link-label-${draft.id}'),
@@ -2057,6 +2067,106 @@ class _LinksEditor extends StatelessWidget {
             onPressed: onAdd,
             icon: const Icon(Icons.add),
             label: const Text('Add link'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Callers-Companion-style "Related dances" subsection. Distinct from the
+/// generic [_LinksEditor]: it lets the user pick another dance from the
+/// collection and attach an optional free-text note.
+///
+/// Operates on the shared `_links` list, filtered to
+/// [LinkKind.relatedDance] drafts, so save/load/undo wiring is unchanged. The
+/// note reuses [DanceLink.label] — no schema change is required.
+class _RelatedDancesEditor extends StatelessWidget {
+  const _RelatedDancesEditor({
+    required this.links,
+    required this.danceOptions,
+    required this.danceNamesById,
+    required this.onAdd,
+    required this.onRemove,
+    required this.onChanged,
+  });
+
+  final List<_LinkDraft> links;
+
+  /// Non-deleted dances eligible for selection (self excluded).
+  final List<_NameOption> danceOptions;
+
+  /// Title lookup for resolving a [_LinkDraft.targetDanceId] to its display
+  /// name. A missing entry means the target dance was deleted/purged.
+  final Map<String, String> danceNamesById;
+
+  final VoidCallback onAdd;
+  final ValueChanged<_LinkDraft> onRemove;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final relatedDrafts = [
+      for (final draft in links)
+        if (draft.kind == LinkKind.relatedDance) draft,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final draft in relatedDrafts)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      _RelatedDancePicker(
+                        key: ValueKey(
+                          'related-dance-picker-${draft.id}-'
+                          '${draft.targetDanceId ?? 'null'}',
+                        ),
+                        initialTitle: draft.targetDanceId == null
+                            ? ''
+                            : (danceNamesById[draft.targetDanceId!] ??
+                                  '(missing dance)'),
+                        danceOptions: danceOptions,
+                        onSelected: (id) {
+                          draft.targetDanceId = id;
+                          onChanged();
+                        },
+                      ),
+                      const SizedBox(height: 4),
+                      TextField(
+                        key: ValueKey('related-dance-note-${draft.id}'),
+                        controller: draft.labelController,
+                        decoration: const InputDecoration(
+                          labelText: 'Note (optional)',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) => onChanged(),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  key: ValueKey('related-dance-remove-${draft.id}'),
+                  tooltip: 'Remove related dance',
+                  icon: const Icon(Icons.close),
+                  onPressed: () => onRemove(draft),
+                ),
+              ],
+            ),
+          ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            key: const ValueKey('related-dance-add'),
+            onPressed: onAdd,
+            icon: const Icon(Icons.add),
+            label: const Text('Add related dance'),
           ),
         ),
       ],
@@ -2148,6 +2258,15 @@ class _LinkDraft {
   factory _LinkDraft.empty() => _LinkDraft(
     id: uuidV4(),
     kind: LinkKind.source,
+    urlController: TextEditingController(),
+    labelController: TextEditingController(),
+  );
+
+  /// A blank relatedDance draft (no target selected yet) for the dedicated
+  /// Related-dances subsection.
+  factory _LinkDraft.relatedDance() => _LinkDraft(
+    id: uuidV4(),
+    kind: LinkKind.relatedDance,
     urlController: TextEditingController(),
     labelController: TextEditingController(),
   );
