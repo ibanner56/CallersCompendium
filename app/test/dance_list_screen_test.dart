@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -47,6 +48,7 @@ Future<void> _pumpScreen(
   WidgetTester tester,
   CompendiumRepositories repos, {
   Dialect? activeDialect,
+  ValueListenable<int>? refreshTrigger,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
@@ -73,7 +75,7 @@ Future<void> _pumpScreen(
           ),
         ),
       ),
-      home: const DanceListScreen(),
+      home: DanceListScreen(refreshTrigger: refreshTrigger),
     ),
   );
 }
@@ -225,6 +227,46 @@ void main() {
     // the hardcoded title default.
     expect(_titles(tester), ['Newer Dance', 'Older Dance']);
   });
+
+  testWidgets(
+    'a refresh does not re-seed over an in-session user sort (ROADMAP G.6a)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultCollectionSortKey,
+        CollectionSort.recentlyAdded.name,
+      );
+      // Titles chosen so title-sort and recency-sort produce opposite orders:
+      // "Aardvark" is older (title-first), "Zephyr" is newer (recency-first).
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Aardvark', createdAt: DateTime.utc(2025)),
+      );
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Zephyr', createdAt: DateTime.utc(2026)),
+      );
+
+      final refreshTrigger = ValueNotifier<int>(0);
+      addTearDown(refreshTrigger.dispose);
+      await _pumpScreen(tester, repos, refreshTrigger: refreshTrigger);
+      await tester.pumpAndSettle();
+
+      // Opens in the seeded default (recently-added ⇒ newest first).
+      expect(_titles(tester), ['Zephyr', 'Aardvark']);
+
+      // User switches to Title in-session (⇒ alphabetical).
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Title').last);
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Aardvark', 'Zephyr']);
+
+      // A refresh re-runs _boot; the user's in-session sort must survive (the
+      // saved default must not re-seed over it).
+      refreshTrigger.value = 1;
+      await tester.pumpAndSettle();
+      expect(_titles(tester), ['Aardvark', 'Zephyr']);
+    },
+  );
 
   testWidgets('sorts by recently-added when selected', (tester) async {
     final repos = openTestRepositories();
