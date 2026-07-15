@@ -53,6 +53,17 @@ Future<void> _pumpDefaults(
   await tester.pumpAndSettle();
 }
 
+/// Scrolls the Defaults content list until [key] is visible. The
+/// Dance-authoring subsection sits below the fold on the test surface.
+Future<void> _scrollTo(WidgetTester tester, Key key) async {
+  await tester.scrollUntilVisible(
+    find.byKey(key),
+    120,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -254,6 +265,169 @@ void main() {
           .controller
           ?.text,
       'The Debuggers',
+    );
+  });
+
+  testWidgets('Dance-authoring subsection renders all four controls', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+
+    await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
+
+    expect(find.text('Dance-authoring defaults'), findsOneWidget);
+    expect(find.byKey(const ValueKey('defaults-dance-form')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('defaults-dance-formation')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('defaults-dance-progression')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('defaults-dance-phrase')), findsOneWidget);
+  });
+
+  testWidgets('Dance-authoring controls show historical defaults when unset', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+
+    await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
+
+    expect(
+      tester
+          .widget<DropdownButton<DanceForm>>(
+            find.byKey(const ValueKey('defaults-dance-form')),
+          )
+          .value,
+      DanceForm.contra,
+    );
+    expect(
+      tester
+          .widget<DropdownButton<FormationShape>>(
+            find.byKey(const ValueKey('defaults-dance-formation')),
+          )
+          .value,
+      FormationShape.dupleImproper,
+    );
+    expect(
+      tester
+          .widget<DropdownButton<Progression>>(
+            find.byKey(const ValueKey('defaults-dance-progression')),
+          )
+          .value,
+      Progression.single,
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('defaults-dance-phrase')),
+          )
+          .controller
+          ?.text,
+      '',
+    );
+  });
+
+  testWidgets('changing each Dance-authoring control persists it', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+
+    await _scrollTo(tester, const ValueKey('defaults-dance-form'));
+    await tester.tap(find.byKey(const ValueKey('defaults-dance-form')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Square').last);
+    await tester.pumpAndSettle();
+
+    await _scrollTo(tester, const ValueKey('defaults-dance-formation'));
+    await tester.tap(find.byKey(const ValueKey('defaults-dance-formation')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Becket (CW)').last);
+    await tester.pumpAndSettle();
+
+    await _scrollTo(tester, const ValueKey('defaults-dance-progression'));
+    await tester.tap(find.byKey(const ValueKey('defaults-dance-progression')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Double').last);
+    await tester.pumpAndSettle();
+
+    await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
+    await tester.enterText(
+      find.byKey(const ValueKey('defaults-dance-phrase')),
+      '6*8*2',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      await repos.settings.get(kDefaultDanceFormKey),
+      DanceForm.square.name,
+    );
+    expect(
+      await repos.settings.get(kDefaultDanceFormationShapeKey),
+      FormationShape.becketCw.name,
+    );
+    expect(
+      await repos.settings.get(kDefaultDanceProgressionKey),
+      Progression.double.name,
+    );
+    expect(await repos.settings.get(kDefaultDancePhraseStructureKey), '6*8*2');
+  });
+
+  testWidgets('saved Dance-authoring defaults reflect on reload', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kDefaultDanceFormKey, DanceForm.ecd.name);
+    await repos.settings.set(
+      kDefaultDanceFormationShapeKey,
+      FormationShape.longways.name,
+    );
+    await repos.settings.set(
+      kDefaultDanceProgressionKey,
+      Progression.none.name,
+    );
+    await repos.settings.set(kDefaultDancePhraseStructureKey, '8*8*1');
+
+    await _pumpDefaults(tester, repos);
+    await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
+
+    expect(
+      tester
+          .widget<DropdownButton<DanceForm>>(
+            find.byKey(const ValueKey('defaults-dance-form')),
+          )
+          .value,
+      DanceForm.ecd,
+    );
+    expect(
+      tester
+          .widget<DropdownButton<FormationShape>>(
+            find.byKey(const ValueKey('defaults-dance-formation')),
+          )
+          .value,
+      FormationShape.longways,
+    );
+    expect(
+      tester
+          .widget<DropdownButton<Progression>>(
+            find.byKey(const ValueKey('defaults-dance-progression')),
+          )
+          .value,
+      Progression.none,
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('defaults-dance-phrase')),
+          )
+          .controller
+          ?.text,
+      '8*8*1',
     );
   });
 }

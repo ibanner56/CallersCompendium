@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../editor/editor_draft_codec.dart';
 import '../editor/editor_snapshot.dart';
@@ -214,6 +215,41 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           _customValues[value.fieldId] = value.value;
         }
         _figureDrafts.addAll(dance.figures.map(FigureDraft.fromFigure));
+      } else {
+        // New dance (ROADMAP DD.1): seed the initial metadata from the saved
+        // dance-authoring defaults. Each read is independently guarded so a
+        // settings failure falls back silently to today's hardcoded default
+        // rather than failing the editor load.
+        try {
+          _form = danceFormFromStored(
+            await _repos.settings.get(kDefaultDanceFormKey),
+          );
+        } catch (_) {
+          /* keep the hardcoded DanceForm.contra default */
+        }
+        try {
+          _formationShape = formationShapeFromStored(
+            await _repos.settings.get(kDefaultDanceFormationShapeKey),
+          );
+        } catch (_) {
+          /* keep the hardcoded FormationShape.dupleImproper default */
+        }
+        try {
+          _progression = progressionFromStored(
+            await _repos.settings.get(kDefaultDanceProgressionKey),
+          );
+        } catch (_) {
+          /* keep the hardcoded Progression.single default */
+        }
+        try {
+          final raw = dancePhraseStructureRawFromStored(
+            await _repos.settings.get(kDefaultDancePhraseStructureKey),
+          );
+          // Empty ⇒ leave the historical standard 4×16 (blank controller).
+          if (raw.isNotEmpty) _phraseController.text = raw;
+        } catch (_) {
+          /* keep the hardcoded standard phrase structure */
+        }
       }
 
       // Seed text controllers for custom text/number fields.

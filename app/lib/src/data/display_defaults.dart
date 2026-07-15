@@ -11,6 +11,8 @@
 /// here too.
 library;
 
+import 'package:compendium_core/compendium_core.dart';
+
 /// Key used to persist the default Collection sort order (ROADMAP G.6a).
 /// Stored as the [CollectionSort] enum's stable `.name`. Absent/invalid ⇒ the
 /// list falls back to its historical default (`title`).
@@ -55,4 +57,73 @@ DanceDetailRendering danceDetailRenderingFromStored(Object? stored) {
     }
   }
   return DanceDetailRendering.activeDialect;
+}
+
+/// Key used to persist the default dance FORM for new dances (ROADMAP DD.1).
+/// Stored as the [DanceForm] enum's stable `.name`. Absent/invalid ⇒
+/// [DanceForm.contra] (the historical new-dance default).
+const String kDefaultDanceFormKey = 'default_dance_form';
+
+/// Key used to persist the default formation SHAPE for new dances (ROADMAP
+/// DD.1). Stored as the [FormationShape] enum's stable `.name`. Absent/invalid
+/// ⇒ [FormationShape.dupleImproper] (the historical new-dance default). DD.1
+/// covers the shape only; the free-text formation detail stays per-dance.
+const String kDefaultDanceFormationShapeKey = 'default_dance_formation_shape';
+
+/// Key used to persist the default PROGRESSION for new dances (ROADMAP DD.1).
+/// Stored as the [Progression] enum's stable `.name`. Absent/invalid ⇒
+/// [Progression.single] (the historical new-dance default).
+const String kDefaultDanceProgressionKey = 'default_dance_progression';
+
+/// Key used to persist the default PHRASE STRUCTURE for new dances (ROADMAP
+/// DD.1). Stored as the compact raw string (`PhraseStructure.raw`); `''` = the
+/// standard 4×16 structure. Absent/non-string ⇒ `''` (standard).
+const String kDefaultDancePhraseStructureKey = 'default_dance_phrase_structure';
+
+/// Resolves a persisted settings value into a [DanceForm].
+///
+/// Returns [DanceForm.contra] for `null`, a non-string, or an unrecognized
+/// name — preserving today's hardcoded new-dance default.
+DanceForm danceFormFromStored(Object? stored) {
+  if (stored is String) {
+    for (final value in DanceForm.values) {
+      if (value.name == stored) return value;
+    }
+  }
+  return DanceForm.contra;
+}
+
+/// Resolves a persisted settings value into a [FormationShape].
+///
+/// Returns [FormationShape.dupleImproper] for `null`, a non-string, or an
+/// unrecognized name — preserving today's hardcoded new-dance default.
+FormationShape formationShapeFromStored(Object? stored) {
+  if (stored is String) {
+    for (final value in FormationShape.values) {
+      if (value.name == stored) return value;
+    }
+  }
+  return FormationShape.dupleImproper;
+}
+
+/// Resolves a persisted settings value into a [Progression].
+///
+/// Returns [Progression.single] for `null`, a non-string, or an unrecognized
+/// name — preserving today's hardcoded new-dance default.
+Progression progressionFromStored(Object? stored) {
+  if (stored is String) {
+    for (final value in Progression.values) {
+      if (value.name == stored) return value;
+    }
+  }
+  return Progression.single;
+}
+
+/// Resolves a persisted settings value into a phrase-structure RAW string.
+///
+/// Returns `''` (the standard 4×16 structure) for `null` or a non-string;
+/// otherwise the stored string verbatim (empty ⇒ standard). Callers seed a
+/// text field with this and let [PhraseStructure.parse] validate.
+String dancePhraseStructureRawFromStored(Object? stored) {
+  return stored is String ? stored : '';
 }
