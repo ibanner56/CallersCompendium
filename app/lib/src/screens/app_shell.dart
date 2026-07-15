@@ -6,16 +6,18 @@ import '../screens/program_editor_screen.dart';
 import '../widgets/command_palette.dart';
 import 'collection_shell.dart';
 import 'programs_shell.dart';
+import 'settings_screen.dart';
 
-/// Top-level navigation between Collection and Programs (`docs/design/ux.md`
-/// information architecture).
+/// Top-level navigation between Collection, Programs, and Settings
+/// (`docs/design/ux.md` information architecture).
 ///
 /// - **Narrow (< 900 px):** bottom [NavigationBar].
 /// - **Wide (≥ 900 px):** left [NavigationRail].
 ///
-/// Both tabs are kept alive in an [IndexedStack] so switching preserves each
-/// screen's state (selection, scroll, in-progress edits). Settings remains
-/// reachable from each screen's app bar.
+/// All destinations are kept alive in an [IndexedStack] so switching preserves
+/// each screen's state (selection, scroll, in-progress edits). Settings is a
+/// first-class destination alongside Collection and Programs rather than a
+/// pushed route.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
@@ -40,9 +42,14 @@ class _AppShellState extends State<AppShell> {
       selectedIcon: Icons.event_note,
       label: 'Programs',
     ),
+    (
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings,
+      label: 'Settings',
+    ),
   ];
 
-  static const _pages = [CollectionShell(), ProgramsShell()];
+  static const _pages = [CollectionShell(), ProgramsShell(), SettingsScreen()];
 
   void _onSelect(int index) => setState(() => _index = index);
 

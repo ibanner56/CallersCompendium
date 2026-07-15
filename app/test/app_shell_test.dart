@@ -5,7 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/custom_themes_controller.dart';
+import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 
 import 'support/test_repositories.dart';
@@ -19,11 +23,32 @@ Future<void> _pump(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final themeNotifier = ValueNotifier<AppThemeSelection>(
+    AppThemeSelection.system,
+  );
+  addTearDown(themeNotifier.dispose);
+  final requirePerformedNotifier = ValueNotifier<bool>(false);
+  addTearDown(requirePerformedNotifier.dispose);
+  final customThemes = CustomThemesController(repos.settings);
+  await customThemes.load();
+  addTearDown(customThemes.dispose);
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: AppThemeScope(
+          notifier: themeNotifier,
+          child: CustomThemesScope(
+            controller: customThemes,
+            child: ActiveDialectScope(
+              notifier: notifier,
+              child: RequirePerformedForHistoryScope(
+                notifier: requirePerformedNotifier,
+                child: child!,
+              ),
+            ),
+          ),
+        ),
       ),
       home: const AppShell(),
     ),
@@ -76,6 +101,30 @@ void main() {
     await tester.tap(find.text('Collection').last);
     await tester.pumpAndSettle();
     expect(find.text('Nav Target Program'), findsNothing);
+  });
+
+  testWidgets('exposes three destinations including Settings', (tester) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, size: const Size(500, 900));
+
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(find.text('Settings'), findsWidgets);
+  });
+
+  testWidgets('selecting Settings shows the settings content inline', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, size: const Size(1200, 900));
+
+    await tester.tap(find.text('Settings').last);
+    await tester.pumpAndSettle();
+
+    // The Settings page renders inline in the IndexedStack: its title shows and
+    // the section sidebar is visible, with no Navigator back affordance.
+    expect(find.text('Settings'), findsWidgets);
+    expect(find.text('Appearance'), findsWidgets);
+    expect(find.byType(BackButton), findsNothing);
   });
 
   testWidgets('Ctrl-K opens the global search palette', (tester) async {
