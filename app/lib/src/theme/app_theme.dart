@@ -28,6 +28,13 @@ class AppTheme {
   static ThemeData get highContrast =>
       _build(AppColorSchemes.highContrast, highContrast: true);
 
+  /// Builds the app [ThemeData] for any [scheme] — used by the UX-6 theme
+  /// gallery, whose palettes each pin a concrete [ColorScheme]
+  /// (`docs/design/ux-modernization.md` §4A). Gallery palettes are standard
+  /// (non-high-contrast) themes; only the built-in "High contrast" selection
+  /// uses the outline-driven variation via [highContrast].
+  static ThemeData fromScheme(ColorScheme scheme) => _build(scheme);
+
   static ThemeData _build(ColorScheme scheme, {bool highContrast = false}) {
     final textTheme = AppTypography.textTheme.apply(
       bodyColor: scheme.onSurface,

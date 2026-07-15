@@ -91,14 +91,25 @@ class _CompendiumAppState extends State<CompendiumApp> {
     return ValueListenableBuilder<AppThemeSelection>(
       valueListenable: _themeNotifier,
       builder: (context, selection, _) {
-        // High-contrast is not a ThemeMode; force it into both light and dark
-        // slots so it applies regardless of the OS brightness.
-        final lightTheme = selection.isHighContrast
-            ? AppTheme.highContrast
-            : AppTheme.light;
-        final darkTheme = selection.isHighContrast
-            ? AppTheme.highContrast
-            : AppTheme.dark;
+        // Three wiring cases (`ux-modernization.md` §4 / §4A):
+        //  • system      — follow the OS via themeMode, Hearth light/dark.
+        //  • highContrast — force the outline-driven HC theme into both slots.
+        //  • pinned       — any other selection (Hearth light/dark or a gallery
+        //                   palette) pins one concrete scheme into both slots;
+        //                   themeMode follows that scheme's brightness.
+        final ThemeData lightTheme;
+        final ThemeData darkTheme;
+        if (selection == AppThemeSelection.system) {
+          lightTheme = AppTheme.light;
+          darkTheme = AppTheme.dark;
+        } else if (selection.isHighContrast) {
+          lightTheme = AppTheme.highContrast;
+          darkTheme = AppTheme.highContrast;
+        } else {
+          final pinned = AppTheme.fromScheme(selection.scheme!);
+          lightTheme = pinned;
+          darkTheme = pinned;
+        }
 
         return MaterialApp(
           title: "Caller's Compendium",

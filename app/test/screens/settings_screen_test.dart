@@ -36,7 +36,7 @@ _pumpSettings(
     initialTheme ?? AppThemeSelection.system,
   );
 
-  await tester.binding.setSurfaceSize(const Size(800, 1200));
+  await tester.binding.setSurfaceSize(const Size(1000, 2600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(notifier.dispose);
   addTearDown(themeNotifier.dispose);
@@ -99,9 +99,9 @@ void main() {
       );
 
       // Tap the Gents/Ladies radio tile.
-      await tester.tap(
-        find.byKey(ValueKey('dialect-${Dialect.gentsLadies.name}')),
-      );
+      final tile = find.byKey(ValueKey('dialect-${Dialect.gentsLadies.name}'));
+      await tester.ensureVisible(tile);
+      await tester.tap(tile);
       await tester.pumpAndSettle();
 
       expect(ctx.notifier.value, equals(Dialect.gentsLadies));
@@ -115,9 +115,9 @@ void main() {
         initialDialect: Dialect.larksRobins,
       );
 
-      await tester.tap(
-        find.byKey(ValueKey('dialect-${Dialect.leadsFollows.name}')),
-      );
+      final tile = find.byKey(ValueKey('dialect-${Dialect.leadsFollows.name}'));
+      await tester.ensureVisible(tile);
+      await tester.tap(tile);
       await tester.pumpAndSettle();
 
       final stored = await ctx.repos.settings.get(kActiveDialectKey) as String?;
@@ -152,32 +152,60 @@ void main() {
   });
 
   group('SettingsScreen — theme selection', () {
-    testWidgets('renders every theme option', (tester) async {
+    testWidgets('renders a preview card for every theme option', (
+      tester,
+    ) async {
       await _pumpSettings(tester);
 
       for (final option in AppThemeSelection.values) {
+        final card = find.byKey(ValueKey('theme-${option.name}'));
         expect(
-          find.byKey(ValueKey('theme-${option.name}')),
+          card,
           findsOneWidget,
-          reason: 'Expected radio tile for ${option.name}',
+          reason: 'Expected preview card for ${option.name}',
         );
-        expect(find.text(option.label), findsOneWidget);
+        // The option's label is shown inside its own card.
+        expect(
+          find.descendant(of: card, matching: find.text(option.label)),
+          findsOneWidget,
+          reason: 'Expected label inside card for ${option.name}',
+        );
       }
     });
 
-    testWidgets('default selection matches the active theme notifier', (
+    testWidgets('the active option shows a non-color-only selected state', (
       tester,
     ) async {
       await _pumpSettings(tester, initialTheme: AppThemeSelection.dark);
 
-      // Assert the actual checked state: the enclosing RadioGroup's
-      // groupValue is what drives which tile renders selected, so this fails
-      // if the default-selection wiring (AppThemeScope -> _themeSelected)
-      // breaks. Asserting the tile's constant `value` would prove nothing.
-      final group = tester.widget<RadioGroup<AppThemeSelection>>(
-        find.byType(RadioGroup<AppThemeSelection>),
+      // Selection must not rely on color alone: the active card also renders a
+      // check icon and a "Selected" label.
+      final selectedCard = find.byKey(
+        ValueKey('theme-${AppThemeSelection.dark.name}'),
       );
-      expect(group.groupValue, equals(AppThemeSelection.dark));
+      expect(
+        find.descendant(
+          of: selectedCard,
+          matching: find.byIcon(Icons.check_circle),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: selectedCard, matching: find.text('Selected')),
+        findsOneWidget,
+      );
+
+      // And an unselected card shows neither.
+      final otherCard = find.byKey(
+        ValueKey('theme-${AppThemeSelection.light.name}'),
+      );
+      expect(
+        find.descendant(
+          of: otherCard,
+          matching: find.byIcon(Icons.check_circle),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('selecting a theme updates the notifier live', (tester) async {
@@ -186,9 +214,11 @@ void main() {
         initialTheme: AppThemeSelection.system,
       );
 
-      await tester.tap(
-        find.byKey(ValueKey('theme-${AppThemeSelection.highContrast.name}')),
+      final card = find.byKey(
+        ValueKey('theme-${AppThemeSelection.highContrast.name}'),
       );
+      await tester.ensureVisible(card);
+      await tester.tap(card);
       await tester.pumpAndSettle();
 
       expect(ctx.themeNotifier.value, equals(AppThemeSelection.highContrast));
@@ -202,9 +232,9 @@ void main() {
         initialTheme: AppThemeSelection.system,
       );
 
-      await tester.tap(
-        find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}')),
-      );
+      final card = find.byKey(ValueKey('theme-${AppThemeSelection.dark.name}'));
+      await tester.ensureVisible(card);
+      await tester.tap(card);
       await tester.pumpAndSettle();
 
       final stored = await ctx.repos.settings.get(kAppThemeKey) as String?;
@@ -245,6 +275,50 @@ void main() {
       expect(AppThemeSelection.highContrast.themeMode, ThemeMode.dark);
       expect(AppThemeSelection.highContrast.isHighContrast, isTrue);
       expect(AppThemeSelection.light.isHighContrast, isFalse);
+      // Gallery palettes follow their pinned scheme's brightness.
+      expect(AppThemeSelection.solarizedLight.themeMode, ThemeMode.light);
+      expect(AppThemeSelection.monokai.themeMode, ThemeMode.dark);
+    });
+
+    test('gallery grouping and brightness resolvers are correct', () {
+      expect(AppThemeSelection.system.group, AppThemeGroup.system);
+      expect(AppThemeSelection.light.group, AppThemeGroup.defaultHearth);
+      expect(AppThemeSelection.highContrast.group, AppThemeGroup.defaultHearth);
+      expect(AppThemeSelection.solarizedLight.group, AppThemeGroup.light);
+      expect(AppThemeSelection.solarizedDark.group, AppThemeGroup.dark);
+      expect(AppThemeSelection.monokai.brightness, Brightness.dark);
+      expect(AppThemeSelection.noctisLux.brightness, Brightness.light);
+    });
+
+    testWidgets('selecting a gallery palette persists and updates live', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(
+        tester,
+        initialTheme: AppThemeSelection.system,
+      );
+
+      final card = find.byKey(
+        ValueKey('theme-${AppThemeSelection.monokai.name}'),
+      );
+      await tester.ensureVisible(card);
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+
+      expect(ctx.themeNotifier.value, equals(AppThemeSelection.monokai));
+      final stored = await ctx.repos.settings.get(kAppThemeKey) as String?;
+      expect(stored, equals(AppThemeSelection.monokai.name));
+    });
+
+    testWidgets('gallery renders labeled group headings', (tester) async {
+      await _pumpSettings(tester);
+      for (final group in AppThemeGroup.values) {
+        expect(
+          find.text(group.label),
+          findsWidgets,
+          reason: 'Expected a "${group.label}" section heading',
+        );
+      }
     });
   });
 }
