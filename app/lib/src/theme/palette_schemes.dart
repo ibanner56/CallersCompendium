@@ -11,8 +11,13 @@ import 'package:flutter/material.dart';
 /// contrast pole until they clear the required ratio. This is verified
 /// exhaustively by `test/theme/palette_contrast_test.dart`.
 ///
-/// Policy (per §4A): *preserve the identity hue, tune the tone.* We only move
-/// lightness (in HSL) — never hue — so Solarized still reads as Solarized.
+/// Policy (per §4A): *preserve the identity hue, tune the tone.* Accent colors
+/// (primary/secondary/tertiary/error and their containers) are adjusted in HSL
+/// by lightness only, so hue is preserved — Solarized still reads as Solarized.
+/// Neutral foregrounds (onSurface/onSurfaceVariant/outline) are instead blended
+/// straight toward the nearest contrast pole (black/white); that can shift a
+/// slightly-tinted grey toward true neutral, which is the desired result for
+/// body text and borders.
 ///
 /// Pure data + math (no widgets); consumed by [AppTheme] via the theme
 /// selection resolvers in `data/app_theme_scope.dart`.

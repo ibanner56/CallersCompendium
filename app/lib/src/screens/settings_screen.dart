@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/app_theme_scope.dart';
 import '../data/repositories_scope.dart';
+import '../theme/color_schemes.dart';
 
 /// Key used to persist and load the active dialect.
 const String kActiveDialectKey = 'active_dialect';
@@ -194,8 +195,14 @@ class _ThemePreviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appTheme = Theme.of(context);
-    // System has no single scheme; preview it with the currently active one.
-    final scheme = option.scheme ?? appTheme.colorScheme;
+    // "System" has no single scheme: preview it with the *default* Hearth
+    // scheme for the current OS brightness (what selecting System actually
+    // does), not whatever palette happens to be active right now.
+    final scheme =
+        option.scheme ??
+        (MediaQuery.platformBrightnessOf(context) == Brightness.dark
+            ? AppColorSchemes.dark
+            : AppColorSchemes.light);
     final fonts = appTheme.textTheme;
 
     final borderColor = selected
