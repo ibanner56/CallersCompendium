@@ -16,33 +16,45 @@ const String kActiveDialectKey = 'active_dialect';
 /// Key used to persist and load the app theme selection.
 const String kAppThemeKey = 'theme_mode';
 
-/// Settings screen.  Currently hosts the active-dialect selection; designed
-/// to accommodate additional settings rows in future phases.
+/// Settings screen: a master–detail layout with a sidebar of sections and a
+/// content pane. On wide viewports the sidebar and the selected section sit
+/// side by side; on narrow viewports the sidebar is a list whose rows push the
+/// section as its own page. Adding a settings page is just a new
+/// [_SettingsSection] value plus its content in [_SettingsScreenState._content].
 ///
-/// Changes take effect immediately (live update via [ActiveDialectScope]).
+/// Changes take effect immediately (live update via the relevant scope).
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  /// Viewport width (logical px) at/above which the sidebar and content sit
+  /// side by side instead of the sidebar pushing a detail page.
+  static const double sideBySideBreakpoint = 720;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  late Dialect _selected;
-  late AppThemeSelection _themeSelected;
+/// The selectable sections in Settings. Declaration order is sidebar order; add
+/// a value (and its content in [_SettingsScreenState._content]) to add a page.
+enum _SettingsSection {
+  appearance('Appearance', Icons.palette_outlined, Icons.palette),
+  dialect('Dialect', Icons.groups_outlined, Icons.groups);
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _selected = ActiveDialectScope.of(context);
-    _themeSelected = AppThemeScope.of(context);
-  }
+  const _SettingsSection(this.label, this.icon, this.selectedIcon);
+
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  _SettingsSection _section = _SettingsSection.appearance;
 
   Future<void> _onDialectChanged(Dialect dialect) async {
-    // Update UI and the live notifier immediately so the selection feels
-    // instant, then persist in the background.
+    // Update the live notifier immediately so the selection feels instant; the
+    // notifier drives every dependent (including a pushed detail route) to
+    // rebuild, then persist in the background.
     ActiveDialectScope.notifierOf(context).value = dialect;
-    setState(() => _selected = dialect);
     // Fire-and-forget: store the selection; if the app crashes between here
     // and storage completing the write, the in-memory notifier was already
     // correct for this session.
@@ -51,71 +63,200 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _onThemeChanged(AppThemeSelection selection) async {
-    // Mirror the dialect pattern: update the live notifier + UI instantly,
-    // then persist in the background. Selecting a built-in theme also clears
-    // any active custom theme (built-in wins the moment it's tapped).
+    // Mirror the dialect pattern: update the live notifier instantly, then
+    // persist in the background. Selecting a built-in theme also clears any
+    // active custom theme (built-in wins the moment it's tapped).
     final customs = CustomThemesScope.controllerOf(context);
     AppThemeScope.notifierOf(context).value = selection;
-    setState(() => _themeSelected = selection);
     final repos = RepositoriesScope.of(context);
     await customs.setActive(null);
     await repos.settings.set(kAppThemeKey, selection.name);
   }
 
+  /// Builds the content pane for [section]. Selection and scope reads use
+  /// [context] (in the side-by-side layout the screen itself; in the narrow
+  /// layout the pushed detail route) via `.of(context)`, which registers that
+  /// context as a dependent so the pane rebuilds live when the active dialect,
+  /// built-in theme, or custom themes change.
+  Widget _content(BuildContext context, _SettingsSection section) {
+    switch (section) {
+      case _SettingsSection.appearance:
+        final themeSelected = AppThemeScope.of(context);
+        final customThemes = CustomThemesScope.of(context);
+        final platformDark =
+            MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+        final seedScheme =
+            customThemes.active?.toScheme() ??
+            themeSelected.scheme ??
+            (platformDark ? AppColorSchemes.dark : AppColorSchemes.light);
+        return _AppearanceView(
+          // When a custom theme is active, no built-in card is selected.
+          themeSelected: customThemes.hasActive ? null : themeSelected,
+          onThemeSelected: _onThemeChanged,
+          customThemes: customThemes,
+          seedScheme: seedScheme,
+        );
+      case _SettingsSection.dialect:
+        return _DialectView(
+          selected: ActiveDialectScope.of(context),
+          onChanged: _onDialectChanged,
+        );
+    }
+  }
+
+  void _openSection(_SettingsSection section) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (routeContext) => Scaffold(
+          appBar: AppBar(title: Text(section.label)),
+          body: _content(routeContext, section),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Reading the controller here registers a rebuild dependency, so the
-    // gallery's selection state and the custom section stay in sync.
-    final customThemes = CustomThemesScope.of(context);
-    final platformDark =
-        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
-    final seedScheme =
-        customThemes.active?.toScheme() ??
-        _themeSelected.scheme ??
-        (platformDark ? AppColorSchemes.dark : AppColorSchemes.light);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final sideBySide =
+            constraints.maxWidth >= SettingsScreen.sideBySideBreakpoint;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: [
-          _SectionHeader(title: 'Appearance'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _ThemeGallery(
-              // When a custom theme is active, no built-in card is selected.
-              selected: customThemes.hasActive ? null : _themeSelected,
-              onSelected: _onThemeChanged,
-            ),
-          ),
-          _SectionHeader(title: 'Custom themes'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _CustomThemesSection(
-              controller: customThemes,
-              seedScheme: seedScheme,
-            ),
-          ),
-          _SectionHeader(title: 'Dialect'),
-          RadioGroup<Dialect>(
-            groupValue: _selected,
-            onChanged: (d) {
-              if (d != null) _onDialectChanged(d);
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+        if (sideBySide) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Settings')),
+            body: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final preset in Dialect.presets)
-                  RadioListTile<Dialect>(
-                    key: ValueKey('dialect-${preset.name}'),
-                    title: Text(preset.name),
-                    subtitle: _dialectSubtitle(preset),
-                    value: preset,
+                SizedBox(
+                  width: 260,
+                  child: _SettingsSidebar(
+                    selected: _section,
+                    onSelect: (s) => setState(() => _section = s),
                   ),
+                ),
+                const VerticalDivider(width: 1, thickness: 1),
+                Expanded(child: _content(context, _section)),
               ],
             ),
+          );
+        }
+
+        return Scaffold(
+          appBar: AppBar(title: const Text('Settings')),
+          body: ListView(
+            children: [
+              for (final s in _SettingsSection.values)
+                ListTile(
+                  key: ValueKey('settings-nav-${s.name}'),
+                  leading: Icon(s.icon),
+                  title: Text(s.label),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _openSection(s),
+                ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
+    );
+  }
+}
+
+/// The sidebar list of settings sections (side-by-side layout). Selection is
+/// conveyed by the highlighted tile plus its filled icon — never color alone.
+class _SettingsSidebar extends StatelessWidget {
+  const _SettingsSidebar({required this.selected, required this.onSelect});
+
+  final _SettingsSection selected;
+  final ValueChanged<_SettingsSection> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        for (final s in _SettingsSection.values)
+          ListTile(
+            key: ValueKey('settings-nav-${s.name}'),
+            leading: Icon(s == selected ? s.selectedIcon : s.icon),
+            title: Text(s.label),
+            selected: s == selected,
+            onTap: () => onSelect(s),
+          ),
+      ],
+    );
+  }
+}
+
+/// The Appearance section: the theme gallery plus locally-saved custom themes.
+class _AppearanceView extends StatelessWidget {
+  const _AppearanceView({
+    required this.themeSelected,
+    required this.onThemeSelected,
+    required this.customThemes,
+    required this.seedScheme,
+  });
+
+  final AppThemeSelection? themeSelected;
+  final ValueChanged<AppThemeSelection> onThemeSelected;
+  final CustomThemesController customThemes;
+  final ColorScheme seedScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        _SectionHeader(title: 'Theme'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _ThemeGallery(
+            selected: themeSelected,
+            onSelected: onThemeSelected,
+          ),
+        ),
+        _SectionHeader(title: 'Custom themes'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          child: _CustomThemesSection(
+            controller: customThemes,
+            seedScheme: seedScheme,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The Dialect section: choose the active caller dialect.
+class _DialectView extends StatelessWidget {
+  const _DialectView({required this.selected, required this.onChanged});
+
+  final Dialect selected;
+  final ValueChanged<Dialect> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        RadioGroup<Dialect>(
+          groupValue: selected,
+          onChanged: (d) {
+            if (d != null) onChanged(d);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final preset in Dialect.presets)
+                RadioListTile<Dialect>(
+                  key: ValueKey('dialect-${preset.name}'),
+                  title: Text(preset.name),
+                  subtitle: _dialectSubtitle(preset),
+                  value: preset,
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

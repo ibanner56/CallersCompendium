@@ -29,6 +29,7 @@ _pumpSettings(
   WidgetTester tester, {
   Dialect? initialDialect,
   AppThemeSelection? initialTheme,
+  Size surfaceSize = const Size(1000, 2600),
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -42,7 +43,7 @@ _pumpSettings(
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
 
-  await tester.binding.setSurfaceSize(const Size(1000, 2600));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(notifier.dispose);
   addTearDown(themeNotifier.dispose);
@@ -82,8 +83,16 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('SettingsScreen — dialect selection', () {
+    // In the side-by-side layout only the selected section's content is shown,
+    // so dialect tests must first select the Dialect section.
+    Future<void> openDialect(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('settings-nav-dialect')));
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('renders all preset names', (tester) async {
       await _pumpSettings(tester);
+      await openDialect(tester);
 
       for (final preset in Dialect.presets) {
         expect(
@@ -99,6 +108,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester, initialDialect: Dialect.larksRobins);
+      await openDialect(tester);
 
       // The Larks/Robins tile should be visible with the right value.
       final radio = tester.widget<RadioListTile<Dialect>>(
@@ -112,6 +122,7 @@ void main() {
         tester,
         initialDialect: Dialect.larksRobins,
       );
+      await openDialect(tester);
 
       // Tap the Gents/Ladies radio tile.
       final tile = find.byKey(ValueKey('dialect-${Dialect.gentsLadies.name}'));
@@ -129,6 +140,7 @@ void main() {
         tester,
         initialDialect: Dialect.larksRobins,
       );
+      await openDialect(tester);
 
       final tile = find.byKey(ValueKey('dialect-${Dialect.leadsFollows.name}'));
       await tester.ensureVisible(tile);
@@ -429,6 +441,83 @@ void main() {
 
       expect(ctx.customThemes.hasActive, isFalse);
       expect(ctx.themeNotifier.value, AppThemeSelection.monokai);
+    });
+  });
+
+  group('SettingsScreen — section navigation', () {
+    testWidgets('sidebar renders a nav item for every section', (tester) async {
+      await _pumpSettings(tester);
+      expect(
+        find.byKey(const ValueKey('settings-nav-appearance')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('settings-nav-dialect')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('appearance is shown by default and dialect is hidden', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      // Appearance content: the theme gallery is present.
+      expect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.system.name}')),
+        findsOneWidget,
+      );
+      // Dialect content is not mounted until its section is selected.
+      expect(
+        find.byKey(ValueKey('dialect-${Dialect.larksRobins.name}')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('selecting Dialect swaps the content pane', (tester) async {
+      await _pumpSettings(tester);
+      await tester.tap(find.byKey(const ValueKey('settings-nav-dialect')));
+      await tester.pumpAndSettle();
+
+      // Now dialect tiles are shown and the theme gallery is gone.
+      expect(
+        find.byKey(ValueKey('dialect-${Dialect.larksRobins.name}')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(ValueKey('theme-${AppThemeSelection.system.name}')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('narrow layout pushes a detail page that updates live', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(
+        tester,
+        initialDialect: Dialect.larksRobins,
+        surfaceSize: const Size(500, 900),
+      );
+
+      // Narrow layout: tapping a nav row pushes the section as its own page.
+      await tester.tap(find.byKey(const ValueKey('settings-nav-dialect')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(ValueKey('dialect-${Dialect.gentsLadies.name}')),
+        findsOneWidget,
+      );
+
+      // Selecting a dialect on the pushed page must update it live (the route
+      // depends on ActiveDialectScope, so the notifier change rebuilds it).
+      await tester.tap(
+        find.byKey(ValueKey('dialect-${Dialect.gentsLadies.name}')),
+      );
+      await tester.pumpAndSettle();
+      expect(ctx.notifier.value, Dialect.gentsLadies);
+
+      final group = tester.widget<RadioGroup<Dialect>>(
+        find.byType(RadioGroup<Dialect>),
+      );
+      expect(group.groupValue, Dialect.gentsLadies);
     });
   });
 }
