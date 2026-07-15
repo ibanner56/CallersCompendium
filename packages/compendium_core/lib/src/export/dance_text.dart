@@ -1,0 +1,102 @@
+import '../dialect/dialect.dart';
+import '../dialect/renderer.dart';
+import '../model/dance.dart';
+import '../model/phrase_structure.dart';
+import '../taxonomy/contra_taxonomy.dart';
+
+/// Renders a single [Dance] as a clean, human-readable plain-text card — the
+/// single-dance analogue of [programToPlainText] and the shareable/copyable
+/// companion to the dance-detail screen (`docs/design/ux.md` §2).
+///
+/// Like the program renderer this lives in `compendium_core` and is
+/// intentionally **pure Dart** (no Flutter/intl): it can be unit-tested and is
+/// reused by the app's share/copy path and by the PDF layout (which mirrors the
+/// same field ordering).
+///
+/// Unlike a program set list, a dance card *is* dance-card territory, so the
+/// figure table is rendered in full and **dialect-aware** using the same core
+/// APIs the detail and Perform screens use ([deriveSections] +
+/// [FigureRenderer.render] for figures, [FigureRenderer.renderFreeText] for
+/// calling notes). Role/move terms therefore match the on-screen output for the
+/// chosen [dialect].
+///
+/// The caller resolves and passes in the display strings that the app owns:
+/// - [authorNames] are the already-resolved choreographer *names* (privacy
+///   precedent, ROADMAP 4b.4: a shared export must never carry a Choreographer
+///   record, so private contact fields like email/location have no path in —
+///   this renderer only ever sees names).
+/// - [formationLabel], [levelLabel] and [statusLabel] are the app's
+///   human-readable facet labels; [levelLabel] is `null` when unspecified and
+///   the Level line is omitted. The Status line is omitted for an active dance.
+///
+/// [renderer] supplies the dialect rendering engine; when omitted a default
+/// `FigureRenderer(contraTaxonomy)` is used (the same taxonomy the app wires).
+///
+/// Layout:
+/// ```
+/// <TITLE>
+/// <author, author>
+/// Formation: <formationLabel>
+/// Level: <levelLabel>
+/// Status: <statusLabel>
+/// Phrase: <phraseStructure notation>
+///
+/// Figures:
+/// A1  <rendered figure> (16 beats) ¶
+///     <optional per-figure note>
+/// ...
+///
+/// Calling notes:
+/// <rendered notes>
+/// ```
+/// Absent parts are omitted. A dance with no figures renders the header (and
+/// notes, if any) only.
+String danceToPlainText(
+  Dance dance, {
+  required Dialect dialect,
+  required List<String> authorNames,
+  required String formationLabel,
+  String? levelLabel,
+  required String statusLabel,
+  FigureRenderer? renderer,
+}) {
+  final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final lines = <String>[];
+
+  lines.add(dance.title.trim());
+
+  final names = authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty);
+  if (names.isNotEmpty) lines.add(names.join(', '));
+
+  if (_has(formationLabel)) lines.add('Formation: ${formationLabel.trim()}');
+  if (_has(levelLabel)) lines.add('Level: ${levelLabel!.trim()}');
+  if (_has(statusLabel)) lines.add('Status: ${statusLabel.trim()}');
+  if (_has(dance.phraseStructure.raw)) {
+    lines.add('Phrase: ${dance.phraseStructure.raw.trim()}');
+  }
+
+  if (dance.figures.isNotEmpty) {
+    lines.add('');
+    lines.add('Figures:');
+    final sectioned = deriveSections(dance.figures, dance.phraseStructure);
+    for (final sf in sectioned) {
+      final text = fig.render(sf.figure, dialect);
+      final beats = sf.figure.beats;
+      final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
+      final marker = sf.figure.progression ? ' ¶' : '';
+      lines.add('${sf.label}  $text ($beatsLabel)$marker');
+      final note = sf.figure.note?.trim();
+      if (note != null && note.isNotEmpty) lines.add('    $note');
+    }
+  }
+
+  if (_has(dance.callingNotes)) {
+    lines.add('');
+    lines.add('Calling notes:');
+    lines.add(fig.renderFreeText(dance.callingNotes.trim(), dialect));
+  }
+
+  return lines.join('\n');
+}
+
+bool _has(String? value) => value != null && value.trim().isNotEmpty;

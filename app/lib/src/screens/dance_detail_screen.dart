@@ -6,6 +6,7 @@ import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../utils/launch_external_url.dart';
+import '../widgets/dance_export_menu.dart';
 import '../widgets/figure_table.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
@@ -159,6 +160,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     setState(() {
       _future = _load();
     });
+  }
+
+  /// Human-readable difficulty label for the export card, combining the
+  /// ordered [Dance.level] with the [Dance.mixedLevel] flag. Returns `null`
+  /// when neither is set so the export omits the Level line.
+  static String? _levelLabel(Dance dance) {
+    final base = dance.level != null ? danceLevelLabel(dance.level!) : null;
+    if (base != null) return dance.mixedLevel ? '$base (mixed)' : base;
+    return dance.mixedLevel ? 'Mixed' : null;
   }
 
   /// Opens the full-screen large-print [PerformDanceScreen] for this dance,
@@ -487,6 +497,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.data == null) return const SizedBox.shrink();
+              final detail = snapshot.data!;
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -494,7 +505,16 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     key: const ValueKey('perform-dance'),
                     tooltip: 'Perform this dance',
                     icon: const Icon(Icons.slideshow),
-                    onPressed: () => _perform(snapshot.data!),
+                    onPressed: () => _perform(detail),
+                  ),
+                  DanceExportMenu(
+                    dance: detail.dance,
+                    dialect: ActiveDialectScope.of(context),
+                    authorNames: detail.authorNames,
+                    formationLabel: formationLabel(detail.dance.formation),
+                    levelLabel: _levelLabel(detail.dance),
+                    statusLabel: danceStatusLabel(detail.dance.status),
+                    renderer: _renderer,
                   ),
                   IconButton(
                     key: const ValueKey('duplicate-dance'),
@@ -506,7 +526,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     key: const ValueKey('add-dance-to-program'),
                     tooltip: 'Add to program',
                     icon: const Icon(Icons.playlist_add),
-                    onPressed: () => _addToProgram(snapshot.data!.dance.title),
+                    onPressed: () => _addToProgram(detail.dance.title),
                   ),
                   TextButton.icon(
                     key: const ValueKey('edit-dance'),

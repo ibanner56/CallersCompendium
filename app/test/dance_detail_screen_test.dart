@@ -88,6 +88,32 @@ void main() {
     expect(find.text('smooth'), findsOneWidget);
   });
 
+  testWidgets('exposes a reachable export/share control on the app bar', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Midwest Folklore'));
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    final menu = find.byKey(const ValueKey('dance-export-menu'));
+    expect(menu, findsOneWidget);
+    // Reachable to assistive tech: labeled button with a tap action (asserted
+    // via the semantics tree, not onPressed != null).
+    final semantics = tester.getSemantics(find.byTooltip('Export'));
+    expect(
+      semantics,
+      isSemantics(tooltip: 'Export', isButton: true, hasTapAction: true),
+    );
+
+    // The menu opens and offers the three print/share actions.
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    expect(find.text('Share dance (text)'), findsOneWidget);
+    expect(find.text('Copy dance'), findsOneWidget);
+    expect(find.text('Export / print PDF'), findsOneWidget);
+  });
+
   testWidgets('figure table groups by section and toggles dialect', (
     tester,
   ) async {
