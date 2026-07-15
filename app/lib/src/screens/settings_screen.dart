@@ -405,11 +405,13 @@ class _CustomThemesSection extends StatelessWidget {
     if (edited != null) await controller.upsert(edited);
   }
 
-  Future<void> _duplicate(CustomTheme theme) => controller.duplicate(
-    name: '${theme.name} (copy)',
-    brightness: theme.brightness,
-    roles: theme.roles,
-  );
+  Future<void> _duplicate(CustomTheme theme) async {
+    await controller.duplicate(
+      name: '${theme.name} (copy)',
+      brightness: theme.brightness,
+      roles: theme.roles,
+    );
+  }
 
   Future<void> _confirmDelete(BuildContext context, CustomTheme theme) async {
     final confirmed = await showDialog<bool>(
@@ -442,7 +444,7 @@ class _CustomThemesSection extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: OutlinedButton.icon(
             key: const ValueKey('new-custom-theme'),
-            onPressed: () => _createNew(context),
+            onPressed: () async => _createNew(context),
             icon: const Icon(Icons.add),
             label: const Text('New custom theme'),
           ),
@@ -470,10 +472,10 @@ class _CustomThemesSection extends StatelessWidget {
                     key: ValueKey('custom-${theme.id}'),
                     theme: theme,
                     selected: controller.activeId == theme.id,
-                    onTap: () => controller.setActive(theme.id),
-                    onEdit: () => _edit(context, theme),
-                    onDuplicate: () => _duplicate(theme),
-                    onDelete: () => _confirmDelete(context, theme),
+                    onTap: () async => controller.setActive(theme.id),
+                    onEdit: () async => _edit(context, theme),
+                    onDuplicate: () async => _duplicate(theme),
+                    onDelete: () async => _confirmDelete(context, theme),
                   ),
               ],
             ),

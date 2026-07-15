@@ -22,13 +22,21 @@ class ThemeEditorScreen extends StatefulWidget {
 
 class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   late CustomTheme _theme;
+  late Map<String, int> _resolved;
   late final TextEditingController _nameController;
 
   @override
   void initState() {
     super.initState();
-    _theme = widget.initial;
+    _setTheme(widget.initial);
     _nameController = TextEditingController(text: _theme.name);
+  }
+
+  /// Updates the edited theme and recomputes the cached resolved role map once,
+  /// rather than rebuilding it on every [_colorOf] lookup during a frame.
+  void _setTheme(CustomTheme theme) {
+    _theme = theme;
+    _resolved = CustomTheme.rolesFromScheme(theme.toScheme());
   }
 
   @override
@@ -38,10 +46,8 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   }
 
   /// Every editable role resolved to a concrete color (defaults fill any gaps),
-  /// keyed by role name — reused for swatches, badges, and the preview.
-  Map<String, int> get _resolved =>
-      CustomTheme.rolesFromScheme(_theme.toScheme());
-
+  /// keyed by role name — cached via [_setTheme] and reused for swatches,
+  /// badges, and the preview.
   Color _colorOf(String key) => Color(_resolved[key]!);
 
   Future<void> _editRole(ColorRole role) async {
@@ -51,7 +57,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
           _ColorEditDialog(title: role.label, initial: _colorOf(role.key)),
     );
     if (picked != null) {
-      setState(() => _theme = _theme.withColor(role.key, picked));
+      setState(() => _setTheme(_theme.withColor(role.key, picked)));
     }
   }
 

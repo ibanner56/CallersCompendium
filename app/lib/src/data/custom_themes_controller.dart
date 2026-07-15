@@ -88,9 +88,10 @@ class CustomThemesController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Creates a copy of [source] under a fresh id and a distinct name, saves it,
-  /// and returns it (without activating it). Used by the "duplicate" action and
-  /// to seed the editor from a built-in scheme.
+  /// Creates a new custom theme from a name, brightness, and role map (copied
+  /// so later edits don't alias the caller's map) under a fresh id and a
+  /// unique name, saves it, and returns it — without activating it. Used by
+  /// the "duplicate" action and to seed a brand-new theme from a scheme.
   Future<CustomTheme> duplicate({
     required String name,
     required Brightness brightness,
@@ -139,7 +140,7 @@ class CustomThemesController extends ChangeNotifier {
   String _newId() => 'custom-${DateTime.now().microsecondsSinceEpoch}';
 
   /// Ensures a copied name doesn't collide with an existing one, appending
-  /// " (copy)", " (copy 2)", … as needed.
+  /// " 2", " 3", … until it's unique (callers pass names like "X (copy)").
   String _uniqueName(String base) {
     final existing = _themes.map((t) => t.name).toSet();
     if (!existing.contains(base)) return base;
