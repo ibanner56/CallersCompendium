@@ -1,11 +1,13 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 
+import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
@@ -606,5 +608,149 @@ void main() {
     expect(find.text('Zesty Contras — Larry Jennings, 1983'), findsOneWidget);
     expect(find.text('p. 12-14, no. A1'), findsOneWidget);
     expect(find.text('https://example.com/zesty'), findsOneWidget);
+  });
+
+  // ── External-link launching ──────────────────────────────────────────────
+
+  testWidgets('tapping a video link launches its URL externally', (
+    tester,
+  ) async {
+    final fake = installFakeUrlLauncher();
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Linked Dance',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.video,
+            url: 'https://youtu.be/abc',
+            label: 'Watch it',
+          ),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+    await tester.tap(find.byKey(const ValueKey('link-row-l1')));
+    await tester.pumpAndSettle();
+
+    expect(fake.lastLaunchedUrl, 'https://youtu.be/abc');
+    expect(fake.launchedModes.single, PreferredLaunchMode.externalApplication);
+  });
+
+  testWidgets('tapping a source-citation URL launches it externally', (
+    tester,
+  ) async {
+    final fake = installFakeUrlLauncher();
+    final repos = openTestRepositories();
+    await repos.publishedSources.upsert(
+      PublishedSource(
+        id: 's1',
+        title: 'Zesty Contras',
+        url: 'https://example.com/zesty',
+      ),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Cited Dance',
+      ).copyWith(sourceCitations: [SourceCitation(sourceId: 's1')]),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+    await tester.tap(find.byKey(const ValueKey('source-citation-s1')));
+    await tester.pumpAndSettle();
+
+    expect(fake.lastLaunchedUrl, 'https://example.com/zesty');
+    expect(fake.launchedModes.single, PreferredLaunchMode.externalApplication);
+  });
+
+  testWidgets('a non-http(s) link URL renders plain text, no launch on tap', (
+    tester,
+  ) async {
+    final fake = installFakeUrlLauncher();
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Linked Dance',
+        links: [
+          DanceLink(id: 'l1', kind: LinkKind.other, url: 'mailto:a@b.com'),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    // Plain-text row: not exposed as a button, and tapping launches nothing.
+    final semantics = tester.getSemantics(
+      find.byKey(const ValueKey('link-row-l1')),
+    );
+    expect(semantics, isNot(isSemantics(isButton: true)));
+
+    await tester.tap(find.byKey(const ValueKey('link-row-l1')));
+    await tester.pumpAndSettle();
+    expect(fake.launchedUrls, isEmpty);
+  });
+
+  testWidgets('a launch failure surfaces a SnackBar and does not crash', (
+    tester,
+  ) async {
+    final fake = installFakeUrlLauncher();
+    fake.launchResult = false;
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Linked Dance',
+        links: [
+          DanceLink(id: 'l1', kind: LinkKind.video, url: 'https://v.example'),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+    await tester.tap(find.byKey(const ValueKey('link-row-l1')));
+    await tester.pump();
+
+    expect(find.text("Couldn't open link"), findsOneWidget);
+  });
+
+  testWidgets('a launchable link exposes a reachable button in the a11y tree', (
+    tester,
+  ) async {
+    installFakeUrlLauncher();
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Linked Dance',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.video,
+            url: 'https://v.example',
+            label: 'A video',
+          ),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    final semantics = tester.getSemantics(
+      find.byKey(const ValueKey('link-row-l1')),
+    );
+    expect(
+      semantics,
+      isSemantics(
+        isButton: true,
+        isFocusable: true,
+        hasTapAction: true,
+        label: 'Open video: A video',
+      ),
+    );
   });
 }

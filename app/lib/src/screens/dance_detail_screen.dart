@@ -5,6 +5,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
+import '../utils/launch_external_url.dart';
 import '../widgets/figure_table.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
@@ -604,6 +605,48 @@ class _LinkRow extends StatelessWidget {
       LinkKind.relatedDance => Icons.link,
       LinkKind.other => Icons.open_in_new,
     };
+
+    // A URL-bearing kind (source/video/other) is launchable only when it
+    // carries a valid http(s) URL. relatedDance keeps its internal-nav [onTap];
+    // an invalid/missing external URL falls back to plain, non-interactive text.
+    final externalUrl = link.kind == LinkKind.relatedDance
+        ? null
+        : (tryParseHttpUrl(link.url) != null ? link.url : null);
+
+    if (externalUrl != null) {
+      final kindNoun = switch (link.kind) {
+        LinkKind.video => 'video',
+        LinkKind.source => 'source link',
+        LinkKind.relatedDance => 'link',
+        LinkKind.other => 'link',
+      };
+      // MergeSemantics + Semantics(button:) collapses the row into a single
+      // focusable button node whose label conveys that it leaves the app; the
+      // icons (kind + open_in_new affordance) are decorative.
+      return MergeSemantics(
+        child: Semantics(
+          button: true,
+          label: 'Open $kindNoun: $display',
+          child: InkWell(
+            onTap: () => launchExternalUrl(context, externalUrl),
+            child: ExcludeSemantics(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    Icon(icon, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(display)),
+                    const Icon(Icons.open_in_new, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     Widget content = Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -651,45 +694,80 @@ class _SourceCitationRow extends StatelessWidget {
     ];
     final loc = locParts.isEmpty ? null : locParts.join(', ');
     final url = source?.url;
+    final launchableUrl = tryParseHttpUrl(url) != null ? url : null;
 
-    final semanticLabel = ['Source: $title', ?bib, ?loc, ?url].join(', ');
-
-    return Semantics(
-      label: semanticLabel,
-      excludeSemantics: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 2),
-              child: Icon(Icons.menu_book_outlined, size: 16),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    bib == null ? title : '$title — $bib',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  if (loc != null) Text(loc, style: theme.textTheme.bodySmall),
-                  if (url != null)
-                    Text(
-                      url,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
+    final infoColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          bib == null ? title : '$title — $bib',
+          style: theme.textTheme.bodyMedium,
+        ),
+        if (loc != null) Text(loc, style: theme.textTheme.bodySmall),
+        if (url != null)
+          launchableUrl != null
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        url,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
                     ),
-                ],
-              ),
-            ),
-          ],
-        ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.open_in_new,
+                      size: 14,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ],
+                )
+              : Text(
+                  url,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+      ],
+    );
+
+    final row = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.menu_book_outlined, size: 16),
+          ),
+          const SizedBox(width: 6),
+          Expanded(child: infoColumn),
+        ],
       ),
     );
+
+    // When the source carries a valid http(s) URL, the whole row becomes a
+    // single launchable button node whose label conveys it opens externally.
+    // Otherwise it stays a read-only announcement (mirroring the plain-text
+    // display for missing/invalid URLs).
+    if (launchableUrl != null) {
+      return MergeSemantics(
+        child: Semantics(
+          button: true,
+          label: 'Open source link: $title',
+          child: InkWell(
+            onTap: () => launchExternalUrl(context, launchableUrl),
+            child: ExcludeSemantics(child: row),
+          ),
+        ),
+      );
+    }
+
+    final semanticLabel = ['Source: $title', ?bib, ?loc, ?url].join(', ');
+    return Semantics(label: semanticLabel, excludeSemantics: true, child: row);
   }
 }
 
