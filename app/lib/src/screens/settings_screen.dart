@@ -6,6 +6,8 @@ import '../data/app_theme_scope.dart';
 import '../data/custom_theme.dart';
 import '../data/custom_themes_controller.dart';
 import '../data/custom_themes_scope.dart';
+import '../data/dialect_library_controller.dart';
+import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
@@ -17,6 +19,7 @@ import '../theme/color_schemes.dart';
 import '../widgets/figure_list_editor.dart';
 import '../widgets/figure_param_editors.dart';
 import '../widgets/move_autocomplete.dart';
+import 'dialect_editor_screen.dart';
 import 'theme_editor_screen.dart';
 
 /// Key used to persist and load the active dialect.
@@ -473,19 +476,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await repos.settings.set(kDefaultDanceDetailRenderingKey, value.name);
   }
 
-  Future<void> _onDialectChanged(Dialect dialect) async {
-    // Update the live notifier immediately so the selection feels instant; the
-    // notifier drives every dependent (including a pushed detail route) to
-    // rebuild, then persist in the background.
-    ActiveDialectScope.notifierOf(context).value = dialect;
-    // Fire-and-forget: store the full dialect (name + role terms + move
-    // substitutions + discouraged terms) so a custom dialect survives restart.
-    // If the app crashes between here and storage completing the write, the
-    // in-memory notifier was already correct for this session.
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kActiveDialectKey, dialect.toJson());
-  }
-
   Future<void> _onThemeChanged(AppThemeSelection selection) async {
     // Mirror the dialect pattern: update the live notifier instantly, then
     // persist in the background. Selecting a built-in theme also clears any
@@ -538,9 +528,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           seedScheme: seedScheme,
         );
       case _SettingsSection.dialect:
-        return _DialectView(
-          selected: ActiveDialectScope.of(context),
-          onChanged: _onDialectChanged,
+        return _DialectLibrarySection(
+          controller: DialectLibraryScope.of(context),
         );
       case _SettingsSection.general:
         _ensureAutoSizeLoaded(context);
@@ -755,747 +744,335 @@ class _AppearanceView extends StatelessWidget {
   }
 }
 
-/// The Dialect section: an editor for the active caller dialect.
+/// The Dialect section: a manager for the user's dialect **library**
+/// (`docs/design/ux.md` §6). Lists the shipped presets (read-only) followed by
+/// the user's custom dialects, with a single active selection (radio
+/// semantics), per-custom actions (edit terms / rename / delete), and buttons
+/// to create a new dialect or duplicate one from any preset/custom.
 ///
-/// Mirrors ContraDB's editable dialect (minus its baked gendered presets):
-/// pick a role-neutral preset as a starting point, then customize the pieces a
-/// dialect can set — role terms (gendered terms live here, not as presets),
-/// per-move substitutions (with the `%S` handedness placeholder), and the
-/// discouraged-terms list flagged by the entry editor. Any edit turns the
-/// active dialect into a "Custom" dialect; storage stays canonical.
-class _DialectView extends StatefulWidget {
-  const _DialectView({required this.selected, required this.onChanged});
+/// Presets can't be edited in place (a custom dialect may not reuse a preset
+/// name); "Edit terms" on a preset offers to duplicate it for customizing.
+/// Mirrors `_CustomThemesSection`'s list + dialog CRUD idiom. Live preview,
+/// collision validation, and dance-card/perform quick-switch are a later PR.
+class _DialectLibrarySection extends StatelessWidget {
+  const _DialectLibrarySection({required this.controller});
 
-  final Dialect selected;
-  final ValueChanged<Dialect> onChanged;
+  final DialectLibraryController controller;
 
-  @override
-  State<_DialectView> createState() => _DialectViewState();
-}
-
-class _DialectViewState extends State<_DialectView> {
-  /// The last dialect this view emitted, so [didUpdateWidget] can tell an
-  /// echo of our own change (keep controllers/cursors) from an external change
-  /// (resync the fields).
-  Dialect? _emitted;
-
-  final _role1Singular = TextEditingController();
-  final _role1Plural = TextEditingController();
-  final _role2Singular = TextEditingController();
-  final _role2Plural = TextEditingController();
-  final _discouragedInput = TextEditingController();
-
-  /// One controller per move that currently has (or is being given) a
-  /// substitution row, keyed by canonical move id.
-  final Map<String, TextEditingController> _moveCtrls = {};
-
-  /// One controller per dancer token that currently has (or is being given) a
-  /// substitution row, keyed by canonical dancer token.
-  final Map<String, TextEditingController> _dancerCtrls = {};
-
-  List<String> _discouraged = const [];
-  bool _showMoves = false;
-  bool _showDancers = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _syncFrom(widget.selected);
-  }
-
-  @override
-  void didUpdateWidget(_DialectView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Resync only for an external change (not the echo of our own emit).
-    if (widget.selected != oldWidget.selected && widget.selected != _emitted) {
-      _syncFrom(widget.selected);
-    }
-  }
-
-  void _syncFrom(Dialect d) {
-    _role1Singular.text = d.roles['role1']?.singular ?? '';
-    _role1Plural.text = d.roles['role1']?.plural ?? '';
-    _role2Singular.text = d.roles['role2']?.singular ?? '';
-    _role2Plural.text = d.roles['role2']?.plural ?? '';
-    // Rebuild the move-substitution controllers to match the dialect.
-    for (final c in _moveCtrls.values) {
-      c.dispose();
-    }
-    _moveCtrls.clear();
-    for (final entry in d.moves.entries) {
-      _moveCtrls[entry.key] = TextEditingController(text: entry.value);
-    }
-    // Rebuild the dancer-substitution controllers to match the dialect.
-    for (final c in _dancerCtrls.values) {
-      c.dispose();
-    }
-    _dancerCtrls.clear();
-    for (final entry in d.dancers.entries) {
-      _dancerCtrls[entry.key] = TextEditingController(text: entry.value);
-    }
-    _discouraged = List.of(d.discouragedTerms);
-  }
-
-  @override
-  void dispose() {
-    _role1Singular.dispose();
-    _role1Plural.dispose();
-    _role2Singular.dispose();
-    _role2Plural.dispose();
-    _discouragedInput.dispose();
-    for (final c in _moveCtrls.values) {
-      c.dispose();
-    }
-    for (final c in _dancerCtrls.values) {
-      c.dispose();
-    }
-    super.dispose();
-  }
-
-  /// Builds a [RoleTerm] from a singular/plural pair, or `null` when the
-  /// singular is blank (the role is then dropped from the dialect).
-  RoleTerm? _roleTerm(
-    TextEditingController singular,
-    TextEditingController plural,
-  ) {
-    final s = singular.text.trim();
-    if (s.isEmpty) return null;
-    final p = plural.text.trim();
-    return RoleTerm(s, plural: p.isEmpty ? null : p);
-  }
-
-  /// Assembles the current editor state into a [Dialect] and emits it. If the
-  /// result matches a shipped preset (by content), the preset's name is kept;
-  /// otherwise it becomes a "Custom" dialect.
-  void _emit() {
-    final roles = <String, RoleTerm>{};
-    final r1 = _roleTerm(_role1Singular, _role1Plural);
-    final r2 = _roleTerm(_role2Singular, _role2Plural);
-    if (r1 != null) roles['role1'] = r1;
-    if (r2 != null) roles['role2'] = r2;
-
-    final moves = <String, String>{};
-    for (final entry in _moveCtrls.entries) {
-      final v = entry.value.text.trim();
-      if (v.isNotEmpty) moves[entry.key] = v;
-    }
-
-    final dancers = <String, String>{};
-    for (final entry in _dancerCtrls.entries) {
-      final v = entry.value.text.trim();
-      if (v.isNotEmpty) dancers[entry.key] = v;
-    }
-
-    final built = Dialect(
-      name: Dialect.customName,
-      roles: roles,
-      moves: moves,
-      dancers: dancers,
-      discouragedTerms: _discouraged,
+  Future<void> _editCustom(BuildContext context, Dialect dialect) async {
+    final edited = await Navigator.of(context).push<Dialect>(
+      MaterialPageRoute(builder: (_) => DialectEditorScreen(initial: dialect)),
     );
-    final dialect = _presetMatching(built) ?? built;
-    _emitted = dialect;
-    widget.onChanged(dialect);
+    if (edited != null) await controller.upsert(edited);
   }
 
-  /// Returns the shipped preset whose content (roles/moves/discouraged terms)
-  /// matches [d], ignoring the name; or `null` when none matches.
-  static Dialect? _presetMatching(Dialect d) {
-    for (final preset in Dialect.presets) {
-      if (preset.copyWith(name: d.name) == d) return preset;
-    }
-    return null;
-  }
-
-  void _applyPreset(Dialect preset) {
-    setState(() => _syncFrom(preset));
-    _emitted = preset;
-    widget.onChanged(preset);
-  }
-
-  void _addDiscouraged() {
-    final term = _discouragedInput.text.trim().toLowerCase();
-    if (term.isEmpty || _discouraged.contains(term)) {
-      _discouragedInput.clear();
-      return;
-    }
-    setState(() {
-      _discouraged = [..._discouraged, term];
-      _discouragedInput.clear();
-    });
-    _emit();
-  }
-
-  void _removeDiscouraged(String term) {
-    setState(
-      () => _discouraged = _discouraged.where((t) => t != term).toList(),
+  Future<void> _createNew(BuildContext context) async {
+    final name = await _promptName(
+      context,
+      title: 'New dialect',
+      confirmLabel: 'Create',
+      initial: 'My dialect',
     );
-    _emit();
+    if (name == null || !context.mounted) return;
+    // Seed a blank dialect and open the editor; only persist on save so a
+    // canceled "New dialect" leaves nothing behind.
+    final edited = await Navigator.of(context).push<Dialect>(
+      MaterialPageRoute(
+        builder: (_) => DialectEditorScreen(initial: Dialect(name: name)),
+      ),
+    );
+    if (edited == null) return;
+    await controller.duplicate(name: edited.name, from: edited);
   }
 
-  void _restoreDiscouragedDefaults() {
-    setState(() => _discouraged = List.of(Dialect.defaultDiscouragedTerms));
-    _emit();
+  Future<void> _duplicateFrom(BuildContext context) async {
+    final source = await showDialog<Dialect>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Duplicate from…'),
+        children: [
+          for (final d in controller.all)
+            SimpleDialogOption(
+              key: ValueKey('dialect-duplicate-source-${d.name}'),
+              onPressed: () => Navigator.of(ctx).pop(d),
+              child: Text(d.name),
+            ),
+        ],
+      ),
+    );
+    if (source == null) return;
+    await controller.duplicate(name: '${source.name} (copy)', from: source);
   }
 
-  void _addMoveSubstitution(String moveId) {
-    setState(() {
-      _moveCtrls[moveId] = TextEditingController();
-      _showMoves = true;
-    });
-    // No emit yet: an empty substitution is excluded until the user types.
+  Future<void> _duplicateToCustomize(
+    BuildContext context,
+    Dialect preset,
+  ) async {
+    final copy = await controller.duplicate(
+      name: '${preset.name} (copy)',
+      from: preset,
+    );
+    if (!context.mounted) return;
+    await _editCustom(context, copy);
   }
 
-  void _removeMoveSubstitution(String moveId) {
-    setState(() {
-      _moveCtrls.remove(moveId)?.dispose();
-    });
-    _emit();
+  Future<void> _rename(BuildContext context, Dialect dialect) async {
+    final name = await _promptName(
+      context,
+      title: 'Rename dialect',
+      confirmLabel: 'Rename',
+      initial: dialect.name,
+    );
+    if (name == null || name == dialect.name) return;
+    await controller.rename(dialect.name, name);
   }
 
-  void _addDancerSubstitution(String token) {
-    setState(() {
-      _dancerCtrls[token] = TextEditingController();
-      _showDancers = true;
-    });
-    // No emit yet: an empty substitution is excluded until the user types.
+  Future<void> _confirmDelete(BuildContext context, Dialect dialect) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete dialect?'),
+        content: Text('“${dialect.name}” will be permanently removed.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await controller.delete(dialect.name);
   }
 
-  void _removeDancerSubstitution(String token) {
-    setState(() {
-      _dancerCtrls.remove(token)?.dispose();
-    });
-    _emit();
+  /// Prompts for a dialect name via a single-field dialog, returning the
+  /// trimmed value or `null` if canceled/blank.
+  Future<String?> _promptName(
+    BuildContext context, {
+    required String title,
+    required String confirmLabel,
+    required String initial,
+  }) async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => _DialectNameDialog(
+        title: title,
+        confirmLabel: confirmLabel,
+        initial: initial,
+      ),
+    );
+    if (name == null || name.isEmpty) return null;
+    return name;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Working dialect assembled from the live editor state, for validation and
-    // preset-selection display.
-    final roles = <String, RoleTerm>{};
-    final r1 = _roleTerm(_role1Singular, _role1Plural);
-    final r2 = _roleTerm(_role2Singular, _role2Plural);
-    if (r1 != null) roles['role1'] = r1;
-    if (r2 != null) roles['role2'] = r2;
-    final moves = <String, String>{
-      for (final e in _moveCtrls.entries)
-        if (e.value.text.trim().isNotEmpty) e.key: e.value.text.trim(),
-    };
-    final dancers = <String, String>{
-      for (final e in _dancerCtrls.entries)
-        if (e.value.text.trim().isNotEmpty) e.key: e.value.text.trim(),
-    };
-    final working = Dialect(
-      name: Dialect.customName,
-      roles: roles,
-      moves: moves,
-      dancers: dancers,
-      discouragedTerms: _discouraged,
-    );
-    final matchingPreset = _presetMatching(working);
-    final issues = working.validate();
-
+    final all = controller.all;
+    // The resolved active dialect's name — falls back to the app default, so a
+    // preset row is selected by default when nothing has been chosen.
+    final activeName = controller.active.name;
     return ListView(
       children: [
-        _SectionHeader(title: 'Preset'),
-        RadioGroup<Dialect>(
-          groupValue: matchingPreset,
-          onChanged: (d) {
-            if (d != null) _applyPreset(d);
+        _SectionHeader(title: 'Dialects'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            children: [
+              OutlinedButton.icon(
+                key: const ValueKey('new-dialect'),
+                onPressed: () async => _createNew(context),
+                icon: const Icon(Icons.add),
+                label: const Text('New dialect'),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('duplicate-dialect'),
+                onPressed: () async => _duplicateFrom(context),
+                icon: const Icon(Icons.copy_all_outlined),
+                label: const Text('Duplicate from…'),
+              ),
+            ],
+          ),
+        ),
+        RadioGroup<String>(
+          groupValue: activeName,
+          onChanged: (name) {
+            if (name != null) controller.setActive(name);
           },
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final preset in Dialect.presets)
-                RadioListTile<Dialect>(
-                  key: ValueKey('dialect-${preset.name}'),
-                  title: Text(preset.name),
-                  subtitle: _dialectSubtitle(preset),
-                  value: preset,
+              for (final dialect in all)
+                _DialectRow(
+                  key: ValueKey('dialect-tile-${dialect.name}'),
+                  dialect: dialect,
+                  isPreset: controller.isPreset(dialect.name),
+                  onEdit: () async => _editCustom(context, dialect),
+                  onRename: () async => _rename(context, dialect),
+                  onDelete: () async => _confirmDelete(context, dialect),
+                  onDuplicateToCustomize: () async =>
+                      _duplicateToCustomize(context, dialect),
                 ),
             ],
           ),
-        ),
-        if (matchingPreset == null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: Text(
-              'Custom dialect',
-              key: const ValueKey('dialect-custom-indicator'),
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
-            ),
-          ),
-        _SectionHeader(title: 'Role terms'),
-        _RoleTermsEditor(
-          role1Singular: _role1Singular,
-          role1Plural: _role1Plural,
-          role2Singular: _role2Singular,
-          role2Plural: _role2Plural,
-          onChanged: _emit,
-        ),
-        if (issues.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: Text(
-              issues.map((i) => i.message).join('\n'),
-              key: const ValueKey('dialect-validation-error'),
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-        _SectionHeader(title: 'Move substitutions'),
-        _MoveSubstitutionsEditor(
-          controllers: _moveCtrls,
-          expanded: _showMoves,
-          onToggle: () => setState(() => _showMoves = !_showMoves),
-          onEdited: _emit,
-          onAdd: _addMoveSubstitution,
-          onRemove: _removeMoveSubstitution,
-        ),
-        _SectionHeader(title: 'Dancer substitutions'),
-        _DancerSubstitutionsEditor(
-          controllers: _dancerCtrls,
-          expanded: _showDancers,
-          onToggle: () => setState(() => _showDancers = !_showDancers),
-          onEdited: _emit,
-          onAdd: _addDancerSubstitution,
-          onRemove: _removeDancerSubstitution,
-        ),
-        _SectionHeader(title: 'Discouraged terms'),
-        _DiscouragedTermsEditor(
-          terms: _discouraged,
-          input: _discouragedInput,
-          onAdd: _addDiscouraged,
-          onRemove: _removeDiscouraged,
-          onRestoreDefaults: _restoreDiscouragedDefaults,
         ),
         const SizedBox(height: 24),
       ],
     );
   }
+}
 
-  static Text? _dialectSubtitle(Dialect preset) {
-    if (preset.roles.isEmpty) return null;
-    final terms = preset.roles.values.map((r) => r.plural).join(' / ');
+/// One row in the dialect library: a radio to make the dialect active, its
+/// name (presets carry a read-only badge), and an actions menu — edit terms /
+/// rename / delete for a custom dialect, or "Duplicate to customize" for a
+/// read-only preset.
+class _DialectRow extends StatelessWidget {
+  const _DialectRow({
+    super.key,
+    required this.dialect,
+    required this.isPreset,
+    required this.onEdit,
+    required this.onRename,
+    required this.onDelete,
+    required this.onDuplicateToCustomize,
+  });
+
+  final Dialect dialect;
+  final bool isPreset;
+  final VoidCallback onEdit;
+  final VoidCallback onRename;
+  final VoidCallback onDelete;
+  final VoidCallback onDuplicateToCustomize;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return RadioListTile<String>(
+      value: dialect.name,
+      title: Row(
+        children: [
+          Flexible(child: Text(dialect.name)),
+          if (isPreset) ...[const SizedBox(width: 8), _presetBadge(theme)],
+        ],
+      ),
+      subtitle: _dialectSubtitle(dialect),
+      secondary: PopupMenuButton<String>(
+        key: ValueKey('dialect-menu-${dialect.name}'),
+        tooltip: 'Dialect actions',
+        onSelected: (value) {
+          switch (value) {
+            case 'edit':
+              onEdit();
+            case 'duplicate-customize':
+              onDuplicateToCustomize();
+            case 'rename':
+              onRename();
+            case 'delete':
+              onDelete();
+          }
+        },
+        itemBuilder: (_) => isPreset
+            ? const [
+                PopupMenuItem(
+                  value: 'duplicate-customize',
+                  child: Text('Duplicate to customize'),
+                ),
+              ]
+            : const [
+                PopupMenuItem(value: 'edit', child: Text('Edit terms')),
+                PopupMenuItem(value: 'rename', child: Text('Rename')),
+                PopupMenuItem(value: 'delete', child: Text('Delete')),
+              ],
+      ),
+    );
+  }
+
+  Widget _presetBadge(ThemeData theme) {
+    return Container(
+      key: ValueKey('dialect-preset-badge-${dialect.name}'),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'Preset',
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSecondaryContainer,
+        ),
+      ),
+    );
+  }
+
+  static Text? _dialectSubtitle(Dialect dialect) {
+    if (dialect.roles.isEmpty) return null;
+    final terms = dialect.roles.values.map((r) => r.plural).join(' / ');
     return Text(terms);
   }
 }
 
-/// Two-role editor: singular + plural for role1 and role2. Blank singular drops
-/// the role (canonical). This is where a user enters gendered terms if wanted.
-class _RoleTermsEditor extends StatelessWidget {
-  const _RoleTermsEditor({
-    required this.role1Singular,
-    required this.role1Plural,
-    required this.role2Singular,
-    required this.role2Plural,
-    required this.onChanged,
+/// A single-field name prompt for creating/renaming a dialect. Owns its
+/// [TextEditingController] so it is disposed only after the dialog's exit
+/// transition completes (disposing it eagerly in the caller triggers a
+/// use-after-dispose during the pop animation).
+class _DialectNameDialog extends StatefulWidget {
+  const _DialectNameDialog({
+    required this.title,
+    required this.confirmLabel,
+    required this.initial,
   });
 
-  final TextEditingController role1Singular;
-  final TextEditingController role1Plural;
-  final TextEditingController role2Singular;
-  final TextEditingController role2Plural;
-  final VoidCallback onChanged;
+  final String title;
+  final String confirmLabel;
+  final String initial;
+
+  @override
+  State<_DialectNameDialog> createState() => _DialectNameDialogState();
+}
+
+class _DialectNameDialogState extends State<_DialectNameDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initial);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(_controller.text.trim());
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _roleRow(
-            context,
-            label: 'Role 1',
-            singularKey: 'dialect-role1-singular',
-            pluralKey: 'dialect-role1-plural',
-            singular: role1Singular,
-            plural: role1Plural,
-          ),
-          const SizedBox(height: 12),
-          _roleRow(
-            context,
-            label: 'Role 2',
-            singularKey: 'dialect-role2-singular',
-            pluralKey: 'dialect-role2-plural',
-            singular: role2Singular,
-            plural: role2Plural,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Leave a role blank to use the canonical term. Plural is derived '
-            'when omitted.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        key: const ValueKey('dialect-name-field'),
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(labelText: 'Name'),
+        onSubmitted: (_) => _submit(),
       ),
-    );
-  }
-
-  Widget _roleRow(
-    BuildContext context, {
-    required String label,
-    required String singularKey,
-    required String pluralKey,
-    required TextEditingController singular,
-    required TextEditingController plural,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 64,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Text(label),
-          ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
         ),
-        Expanded(
-          child: TextField(
-            key: ValueKey(singularKey),
-            controller: singular,
-            decoration: const InputDecoration(labelText: 'Singular'),
-            onChanged: (_) => onChanged(),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: TextField(
-            key: ValueKey(pluralKey),
-            controller: plural,
-            decoration: const InputDecoration(labelText: 'Plural'),
-            onChanged: (_) => onChanged(),
-          ),
+        FilledButton(
+          key: const ValueKey('dialect-name-confirm'),
+          onPressed: _submit,
+          child: Text(widget.confirmLabel),
         ),
       ],
-    );
-  }
-}
-
-/// Collapsible per-move substitution editor. Shows an editable/removable row
-/// for each move that has a substitution, plus a dropdown to add one for any
-/// other move. `%S` in a substitution injects the figure's handedness.
-class _MoveSubstitutionsEditor extends StatelessWidget {
-  const _MoveSubstitutionsEditor({
-    required this.controllers,
-    required this.expanded,
-    required this.onToggle,
-    required this.onEdited,
-    required this.onAdd,
-    required this.onRemove,
-  });
-
-  final Map<String, TextEditingController> controllers;
-  final bool expanded;
-  final VoidCallback onToggle;
-  final VoidCallback onEdited;
-  final ValueChanged<String> onAdd;
-  final ValueChanged<String> onRemove;
-
-  static String _moveLabel(String id) =>
-      contraTaxonomy.moves[id]?.displayName ?? id;
-
-  @override
-  Widget build(BuildContext context) {
-    final overridden = controllers.keys.toList()
-      ..sort(
-        (a, b) =>
-            _moveLabel(a).toLowerCase().compareTo(_moveLabel(b).toLowerCase()),
-      );
-    final available =
-        [
-          for (final m in contraTaxonomy.moves.values)
-            if (m.id != customMoveId && !controllers.containsKey(m.id)) m.id,
-        ]..sort(
-          (a, b) => _moveLabel(
-            a,
-          ).toLowerCase().compareTo(_moveLabel(b).toLowerCase()),
-        );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const ValueKey('dialect-moves-toggle'),
-              onPressed: onToggle,
-              icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
-              label: Text(
-                overridden.isEmpty
-                    ? 'Add move substitutions'
-                    : '${overridden.length} move substitution'
-                          '${overridden.length == 1 ? '' : 's'}',
-              ),
-            ),
-          ),
-          if (expanded) ...[
-            for (final id in overridden)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 140,
-                      child: Text(
-                        _moveLabel(id),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        key: ValueKey('dialect-move-$id'),
-                        controller: controllers[id],
-                        decoration: const InputDecoration(
-                          hintText: 'substitution (use %S for handedness)',
-                        ),
-                        onChanged: (_) => onEdited(),
-                      ),
-                    ),
-                    IconButton(
-                      key: ValueKey('dialect-move-delete-$id'),
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Remove',
-                      onPressed: () => onRemove(id),
-                    ),
-                  ],
-                ),
-              ),
-            if (available.isNotEmpty)
-              DropdownButton<String>(
-                key: const ValueKey('dialect-add-move'),
-                hint: const Text('Add a move…'),
-                value: null,
-                isExpanded: true,
-                items: [
-                  for (final id in available)
-                    DropdownMenuItem<String>(
-                      value: id,
-                      child: Text(_moveLabel(id)),
-                    ),
-                ],
-                onChanged: (id) {
-                  if (id != null) onAdd(id);
-                },
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Editable dancer-substitution list, parallel to [_MoveSubstitutionsEditor].
-/// Enumerates the positional/relational dancer tokens (the role-driven
-/// `role1s`/`role2s` are excluded — they flow through role-term substitution)
-/// and lets the caller override each with preferred wording.
-class _DancerSubstitutionsEditor extends StatelessWidget {
-  const _DancerSubstitutionsEditor({
-    required this.controllers,
-    required this.expanded,
-    required this.onToggle,
-    required this.onEdited,
-    required this.onAdd,
-    required this.onRemove,
-  });
-
-  final Map<String, TextEditingController> controllers;
-  final bool expanded;
-  final VoidCallback onToggle;
-  final VoidCallback onEdited;
-  final ValueChanged<String> onAdd;
-  final ValueChanged<String> onRemove;
-
-  /// The substitutable dancer tokens: the pair/group dancer sets minus the
-  /// role-driven `role1s`/`role2s`, which are handled by role-term
-  /// substitution rather than here.
-  static final List<String> _substitutableTokens = [
-    for (final t in ParamVocab.pairDancerSets)
-      if (t != 'role1s' && t != 'role2s') t,
-  ];
-
-  /// Human-readable label for a camelCase dancer token
-  /// (e.g. `nextNeighbors` -> `next neighbors`).
-  static String _dancerLabel(String token) => token
-      .replaceAllMapped(RegExp(r'(?<=[a-z])(?=[A-Z])'), (_) => ' ')
-      .toLowerCase();
-
-  @override
-  Widget build(BuildContext context) {
-    final overridden = controllers.keys.toList()
-      ..sort(
-        (a, b) => _dancerLabel(
-          a,
-        ).toLowerCase().compareTo(_dancerLabel(b).toLowerCase()),
-      );
-    final available =
-        [
-          for (final token in _substitutableTokens)
-            if (!controllers.containsKey(token)) token,
-        ]..sort(
-          (a, b) => _dancerLabel(
-            a,
-          ).toLowerCase().compareTo(_dancerLabel(b).toLowerCase()),
-        );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const ValueKey('dialect-dancers-toggle'),
-              onPressed: onToggle,
-              icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
-              label: Text(
-                overridden.isEmpty
-                    ? 'Add dancer substitutions'
-                    : '${overridden.length} dancer substitution'
-                          '${overridden.length == 1 ? '' : 's'}',
-              ),
-            ),
-          ),
-          if (expanded) ...[
-            for (final token in overridden)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 140,
-                      child: Text(
-                        _dancerLabel(token),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        key: ValueKey('dialect-dancer-$token'),
-                        controller: controllers[token],
-                        decoration: const InputDecoration(
-                          hintText: 'substitution',
-                        ),
-                        onChanged: (_) => onEdited(),
-                      ),
-                    ),
-                    IconButton(
-                      key: ValueKey('dialect-dancer-delete-$token'),
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Remove',
-                      onPressed: () => onRemove(token),
-                    ),
-                  ],
-                ),
-              ),
-            if (available.isNotEmpty)
-              DropdownButton<String>(
-                key: const ValueKey('dialect-add-dancer'),
-                hint: const Text('Add a dancer term…'),
-                value: null,
-                isExpanded: true,
-                items: [
-                  for (final token in available)
-                    DropdownMenuItem<String>(
-                      value: token,
-                      child: Text(_dancerLabel(token)),
-                    ),
-                ],
-                onChanged: (token) {
-                  if (token != null) onAdd(token);
-                },
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// Editable discouraged-terms list: chips with delete, an add field, and a
-/// "restore defaults" action. Terms are user data (never blocked), lowercased.
-class _DiscouragedTermsEditor extends StatelessWidget {
-  const _DiscouragedTermsEditor({
-    required this.terms,
-    required this.input,
-    required this.onAdd,
-    required this.onRemove,
-    required this.onRestoreDefaults,
-  });
-
-  final List<String> terms;
-  final TextEditingController input;
-  final VoidCallback onAdd;
-  final ValueChanged<String> onRemove;
-  final VoidCallback onRestoreDefaults;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Terms the entry editor flags (struck through) — never blocked.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 8),
-          if (terms.isEmpty)
-            const Text('No discouraged terms.')
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                for (final term in terms)
-                  Chip(
-                    key: ValueKey('dialect-discouraged-chip-$term'),
-                    label: Text(term),
-                    onDeleted: () => onRemove(term),
-                  ),
-              ],
-            ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  key: const ValueKey('dialect-discouraged-add'),
-                  controller: input,
-                  decoration: const InputDecoration(
-                    labelText: 'Add a term',
-                    isDense: true,
-                  ),
-                  onSubmitted: (_) => onAdd(),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                key: const ValueKey('dialect-discouraged-add-button'),
-                icon: const Icon(Icons.add),
-                tooltip: 'Add term',
-                onPressed: onAdd,
-              ),
-            ],
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              key: const ValueKey('dialect-discouraged-restore'),
-              onPressed: onRestoreDefaults,
-              child: const Text('Restore defaults'),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

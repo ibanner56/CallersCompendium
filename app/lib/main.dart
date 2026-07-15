@@ -8,17 +8,15 @@ import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
+import 'src/data/dialect_library_controller.dart';
+import 'src/data/dialect_library_scope.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/settings_screen.dart'
-    show
-        kActiveDialectKey,
-        kAppThemeKey,
-        kRequirePerformedForHistoryKey,
-        kSortIgnoreArticlesKey;
+    show kAppThemeKey, kRequirePerformedForHistoryKey, kSortIgnoreArticlesKey;
 import 'src/theme/app_theme.dart';
 import 'src/widgets/app_bootstrap.dart';
 
@@ -78,13 +76,25 @@ class _CompendiumAppState extends State<CompendiumApp> {
   );
   final ValueNotifier<bool> _sortIgnoreArticlesNotifier = ValueNotifier(true);
   late final CustomThemesController _customThemes;
+  late final DialectLibraryController _dialectLibrary;
 
   @override
   void initState() {
     super.initState();
     _appData = widget.appData;
     _customThemes = CustomThemesController(_appData.repositories.settings);
+    // The dialect library owns dialect state; the active dialect flows out
+    // through [_dialectNotifier] (read by every existing ActiveDialectScope
+    // consumer) via [_syncActiveDialect], so the rest of the app is unchanged.
+    _dialectLibrary = DialectLibraryController(_appData.repositories.settings);
+    _dialectLibrary.addListener(_syncActiveDialect);
     _bootstrap = _startupSequence();
+  }
+
+  /// Mirrors the library's resolved active dialect into [_dialectNotifier] so
+  /// every `ActiveDialectScope` consumer sees changes live.
+  void _syncActiveDialect() {
+    _dialectNotifier.value = _dialectLibrary.active;
   }
 
   Future<void> _startupSequence() async {
@@ -92,12 +102,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
     await _appData.repositories.dances.purgeDeleted(
       now: DateTime.now().toUtc(),
     );
-    // Load the persisted dialect, defaulting to Larks/Robins when unset.
-    // Stored as a full dialect JSON (custom dialects supported); older builds
-    // stored just a preset name, which we still resolve.
-    final stored = await _appData.repositories.settings.get(kActiveDialectKey);
-    final dialect = dialectFromStored(stored);
-    if (dialect != null) _dialectNotifier.value = dialect;
+    // Load the persisted dialect library (custom dialects + active-name ref),
+    // migrating any legacy single-dialect blob one time, then seed the notifier
+    // with the resolved active dialect (defaults to Larks/Robins when unset).
+    await _dialectLibrary.load();
+    _dialectNotifier.value = _dialectLibrary.active;
     // Load the persisted theme selection, defaulting to System when unset.
     final themeName =
         await _appData.repositories.settings.get(kAppThemeKey) as String?;
@@ -130,6 +139,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _requirePerformedForHistoryNotifier.dispose();
     _sortIgnoreArticlesNotifier.dispose();
     _customThemes.dispose();
+    _dialectLibrary.removeListener(_syncActiveDialect);
+    _dialectLibrary.dispose();
     widget.windowService.dispose();
     // dispose() can't be async; explicitly mark the close as fire-and-forget
     // rather than silently dropping an unawaited Future (unawaited_futures).
@@ -194,13 +205,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
               notifier: _themeNotifier,
               child: CustomThemesScope(
                 controller: _customThemes,
-                child: ActiveDialectScope(
-                  notifier: _dialectNotifier,
-                  child: RequirePerformedForHistoryScope(
-                    notifier: _requirePerformedForHistoryNotifier,
-                    child: SortIgnoreArticlesScope(
-                      notifier: _sortIgnoreArticlesNotifier,
-                      child: child!,
+                child: DialectLibraryScope(
+                  controller: _dialectLibrary,
+                  child: ActiveDialectScope(
+                    notifier: _dialectNotifier,
+                    child: RequirePerformedForHistoryScope(
+                      notifier: _requirePerformedForHistoryNotifier,
+                      child: SortIgnoreArticlesScope(
+                        notifier: _sortIgnoreArticlesNotifier,
+                        child: child!,
+                      ),
                     ),
                   ),
                 ),

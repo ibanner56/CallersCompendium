@@ -8,6 +8,8 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/dialect_library_controller.dart';
+import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
@@ -23,6 +25,7 @@ Future<
   ({
     CompendiumRepositories repos,
     ValueNotifier<Dialect> notifier,
+    DialectLibraryController dialectLibrary,
     ValueNotifier<AppThemeSelection> themeNotifier,
     CustomThemesController customThemes,
     ValueNotifier<bool> requirePerformedNotifier,
@@ -40,9 +43,22 @@ _pumpSettings(
   final repos = openTestRepositories();
   await repos.ensureMigrated();
 
-  final notifier = ValueNotifier<Dialect>(
-    initialDialect ?? Dialect.larksRobins,
-  );
+  // The dialect library owns dialect state; the notifier read by
+  // ActiveDialectScope consumers is driven from it (mirroring main.dart).
+  final dialectLibrary = DialectLibraryController(repos.settings);
+  await dialectLibrary.load();
+  if (initialDialect != null) {
+    if (dialectLibrary.isPreset(initialDialect.name)) {
+      await dialectLibrary.setActive(initialDialect.name);
+    } else {
+      await dialectLibrary.upsert(initialDialect);
+      await dialectLibrary.setActive(initialDialect.name);
+    }
+  }
+  final notifier = ValueNotifier<Dialect>(dialectLibrary.active);
+  void syncDialect() => notifier.value = dialectLibrary.active;
+  dialectLibrary.addListener(syncDialect);
+
   final themeNotifier = ValueNotifier<AppThemeSelection>(
     initialTheme ?? AppThemeSelection.system,
   );
@@ -56,6 +72,10 @@ _pumpSettings(
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(notifier.dispose);
+  addTearDown(() {
+    dialectLibrary.removeListener(syncDialect);
+    dialectLibrary.dispose();
+  });
   addTearDown(themeNotifier.dispose);
   addTearDown(customThemes.dispose);
   addTearDown(requirePerformedNotifier.dispose);
@@ -69,13 +89,16 @@ _pumpSettings(
           notifier: themeNotifier,
           child: CustomThemesScope(
             controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: notifier,
-              child: RequirePerformedForHistoryScope(
-                notifier: requirePerformedNotifier,
-                child: SortIgnoreArticlesScope(
-                  notifier: sortIgnoreArticlesNotifier,
-                  child: child!,
+            child: DialectLibraryScope(
+              controller: dialectLibrary,
+              child: ActiveDialectScope(
+                notifier: notifier,
+                child: RequirePerformedForHistoryScope(
+                  notifier: requirePerformedNotifier,
+                  child: SortIgnoreArticlesScope(
+                    notifier: sortIgnoreArticlesNotifier,
+                    child: child!,
+                  ),
                 ),
               ),
             ),
@@ -89,6 +112,7 @@ _pumpSettings(
   return (
     repos: repos,
     notifier: notifier,
+    dialectLibrary: dialectLibrary,
     themeNotifier: themeNotifier,
     customThemes: customThemes,
     requirePerformedNotifier: requirePerformedNotifier,
@@ -236,7 +260,7 @@ void main() {
     });
   });
 
-  group('SettingsScreen — dialect selection', () {
+  group('SettingsScreen — dialect library manager', () {
     // In the side-by-side layout only the selected section's content is shown,
     // so dialect tests must first select the Dialect section.
     Future<void> openDialect(WidgetTester tester) async {
@@ -244,17 +268,23 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('renders all preset names', (tester) async {
+    testWidgets('renders every preset as a read-only row with a badge', (
+      tester,
+    ) async {
       await _pumpSettings(tester);
       await openDialect(tester);
 
       for (final preset in Dialect.presets) {
         expect(
-          find.byKey(ValueKey('dialect-${preset.name}')),
+          find.byKey(ValueKey('dialect-tile-${preset.name}')),
           findsOneWidget,
-          reason: 'Expected radio tile for ${preset.name}',
+          reason: 'Expected a row for ${preset.name}',
         );
-        expect(find.text(preset.name), findsOneWidget);
+        expect(
+          find.byKey(ValueKey('dialect-preset-badge-${preset.name}')),
+          findsOneWidget,
+          reason: 'Expected a preset badge for ${preset.name}',
+        );
       }
     });
 
@@ -271,291 +301,246 @@ void main() {
       expect(find.text('Men/Women'), findsNothing);
     });
 
-    testWidgets('default selection matches active dialect notifier', (
+    testWidgets('default active selection is the app default (Larks/Robins)', (
       tester,
     ) async {
-      await _pumpSettings(tester, initialDialect: Dialect.larksRobins);
+      await _pumpSettings(tester);
       await openDialect(tester);
 
-      final radio = tester.widget<RadioListTile<Dialect>>(
-        find.byKey(ValueKey('dialect-${Dialect.larksRobins.name}')),
+      final group = tester.widget<RadioGroup<String>>(
+        find.byType(RadioGroup<String>),
       );
-      expect(radio.value, equals(Dialect.larksRobins));
-      final group = tester.widget<RadioGroup<Dialect>>(
-        find.byType(RadioGroup<Dialect>),
-      );
-      expect(group.groupValue, equals(Dialect.larksRobins));
+      expect(group.groupValue, equals(Dialect.larksRobins.name));
     });
 
-    testWidgets('selecting a preset updates the notifier live', (tester) async {
-      final ctx = await _pumpSettings(
-        tester,
-        initialDialect: Dialect.larksRobins,
-      );
+    testWidgets('setting a preset active updates the notifier + persists', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
       await openDialect(tester);
 
-      final tile = find.byKey(ValueKey('dialect-${Dialect.leadsFollows.name}'));
+      final tile = find.byKey(
+        ValueKey('dialect-tile-${Dialect.leadsFollows.name}'),
+      );
       await tester.ensureVisible(tile);
       await tester.tap(tile);
       await tester.pumpAndSettle();
 
+      expect(ctx.dialectLibrary.activeName, equals(Dialect.leadsFollows.name));
+      // The bridge mirrors it into the ActiveDialectScope notifier.
       expect(ctx.notifier.value, equals(Dialect.leadsFollows));
+      // Persisted as the active-name ref.
+      expect(
+        await ctx.repos.settings.get(kActiveDialectRefKey),
+        equals(Dialect.leadsFollows.name),
+      );
     });
 
-    testWidgets('selecting a preset persists the full dialect JSON', (
+    testWidgets('New dialect prompts for a name, opens the editor, and saves', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(
-        tester,
-        initialDialect: Dialect.larksRobins,
-      );
+      final ctx = await _pumpSettings(tester);
       await openDialect(tester);
 
-      final tile = find.byKey(ValueKey('dialect-${Dialect.leadsFollows.name}'));
-      await tester.ensureVisible(tile);
-      await tester.tap(tile);
+      await tester.tap(find.byKey(const ValueKey('new-dialect')));
       await tester.pumpAndSettle();
 
-      final stored = await ctx.repos.settings.get(kActiveDialectKey);
-      expect(stored, isA<Map>());
-      expect(
-        Dialect.fromJson((stored! as Map).cast<String, Object?>()),
-        equals(Dialect.leadsFollows),
+      // Name dialog: accept the default name.
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-name-field')),
+        'My dialect',
       );
-    });
-
-    testWidgets('stored full dialect JSON round-trips via dialectFromStored', (
-      tester,
-    ) async {
-      final repos = openTestRepositories();
-      await repos.ensureMigrated();
-      final custom = Dialect(
-        name: Dialect.customName,
-        roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
-        moves: const {'shoulder_round': '%S shoulder round'},
-        discouragedTerms: const ['gypsy'],
-      );
-      await repos.settings.set(kActiveDialectKey, custom.toJson());
-
-      final stored = await repos.settings.get(kActiveDialectKey);
-      expect(dialectFromStored(stored), equals(custom));
-    });
-
-    testWidgets('legacy stored preset-name string still resolves', (
-      tester,
-    ) async {
-      final repos = openTestRepositories();
-      await repos.ensureMigrated();
-      // Older builds stored just the preset name.
-      await repos.settings.set(kActiveDialectKey, Dialect.leadsFollows.name);
-
-      final stored = await repos.settings.get(kActiveDialectKey);
-      expect(dialectFromStored(stored), equals(Dialect.leadsFollows));
-    });
-
-    testWidgets('default-when-unset falls back to larksRobins', (tester) async {
-      final repos = openTestRepositories();
-      await repos.ensureMigrated();
-
-      final stored = await repos.settings.get(kActiveDialectKey);
-      final dialect = dialectFromStored(stored) ?? Dialect.larksRobins;
-      expect(dialect, equals(Dialect.larksRobins));
-    });
-
-    testWidgets('editing role terms produces a custom dialect', (tester) async {
-      final ctx = await _pumpSettings(
-        tester,
-        initialDialect: Dialect.larksRobins,
-      );
-      await openDialect(tester);
-
-      final field = find.byKey(const ValueKey('dialect-role1-singular'));
-      await tester.ensureVisible(field);
-      await tester.enterText(field, 'Gent');
+      await tester.tap(find.byKey(const ValueKey('dialect-name-confirm')));
       await tester.pumpAndSettle();
 
-      expect(ctx.notifier.value.name, equals(Dialect.customName));
-      expect(ctx.notifier.value.roles['role1']!.singular, 'Gent');
-      // No preset is selected once the dialect is customized.
-      final group = tester.widget<RadioGroup<Dialect>>(
-        find.byType(RadioGroup<Dialect>),
-      );
-      expect(group.groupValue, isNull);
+      // Editor route: save immediately.
+      expect(find.byKey(const ValueKey('dialect-editor-save')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customByName('My dialect'), isNotNull);
       expect(
-        find.byKey(const ValueKey('dialect-custom-indicator')),
+        find.byKey(const ValueKey('dialect-tile-My dialect')),
         findsOneWidget,
       );
     });
 
-    testWidgets('adding and removing a discouraged term updates the dialect', (
-      tester,
-    ) async {
-      final ctx = await _pumpSettings(
-        tester,
-        initialDialect: Dialect.larksRobins,
-      );
+    testWidgets('a canceled New dialect leaves nothing behind', (tester) async {
+      final ctx = await _pumpSettings(tester);
       await openDialect(tester);
 
-      final input = find.byKey(const ValueKey('dialect-discouraged-add'));
-      await tester.ensureVisible(input);
-      await tester.enterText(input, 'Sashay');
+      await tester.tap(find.byKey(const ValueKey('new-dialect')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dialect-name-confirm')));
+      await tester.pumpAndSettle();
+
+      // Cancel the editor via the system back button.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customDialects, isEmpty);
+    });
+
+    testWidgets('Duplicate from a preset creates a custom copy', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await openDialect(tester);
+
+      await tester.tap(find.byKey(const ValueKey('duplicate-dialect')));
+      await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const ValueKey('dialect-discouraged-add-button')),
-      );
-      await tester.pumpAndSettle();
-      // Stored lowercased.
-      expect(ctx.notifier.value.discouragedTerms, contains('sashay'));
-
-      final chip = find.byKey(const ValueKey('dialect-discouraged-chip-gypsy'));
-      await tester.ensureVisible(chip);
-      // Chip delete affordance.
-      await tester.tap(find.descendant(of: chip, matching: find.byType(Icon)));
-      await tester.pumpAndSettle();
-      expect(ctx.notifier.value.discouragedTerms, isNot(contains('gypsy')));
-    });
-
-    testWidgets('adding a move substitution updates the dialect', (
-      tester,
-    ) async {
-      final ctx = await _pumpSettings(
-        tester,
-        initialDialect: Dialect.larksRobins,
-      );
-      await openDialect(tester);
-
-      await tester.tap(find.byKey(const ValueKey('dialect-moves-toggle')));
-      await tester.pumpAndSettle();
-
-      final dropdown = find.byKey(const ValueKey('dialect-add-move'));
-      await tester.ensureVisible(dropdown);
-      await tester.tap(dropdown);
-      await tester.pumpAndSettle();
-      // Pick the shoulder_round move from the opened menu.
-      final label = contraTaxonomy.moves['shoulder_round']!.displayName;
-      await tester.tap(find.text(label).last);
-      await tester.pumpAndSettle();
-
-      final field = find.byKey(const ValueKey('dialect-move-shoulder_round'));
-      await tester.ensureVisible(field);
-      await tester.enterText(field, '%S shoulder round');
-      await tester.pumpAndSettle();
-
-      expect(ctx.notifier.value.moves['shoulder_round'], '%S shoulder round');
-      expect(ctx.notifier.value.name, Dialect.customName);
-    });
-
-    testWidgets('adding a dancer substitution updates the dialect', (
-      tester,
-    ) async {
-      final ctx = await _pumpSettings(
-        tester,
-        initialDialect: Dialect.larksRobins,
-      );
-      await openDialect(tester);
-
-      await tester.tap(find.byKey(const ValueKey('dialect-dancers-toggle')));
-      await tester.pumpAndSettle();
-
-      final dropdown = find.byKey(const ValueKey('dialect-add-dancer'));
-      await tester.ensureVisible(dropdown);
-      await tester.tap(dropdown);
-      await tester.pumpAndSettle();
-      // Pick the "neighbors" dancer term from the opened menu.
-      await tester.tap(find.text('neighbors').last);
-      await tester.pumpAndSettle();
-
-      final field = find.byKey(const ValueKey('dialect-dancer-neighbors'));
-      await tester.ensureVisible(field);
-      await tester.enterText(field, 'the others');
-      await tester.pumpAndSettle();
-
-      expect(ctx.notifier.value.dancers['neighbors'], 'the others');
-      expect(ctx.notifier.value.name, Dialect.customName);
-      // Custom indicator appears once the dialect diverges from a preset.
-      expect(
-        find.byKey(const ValueKey('dialect-custom-indicator')),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('role tokens are not offered as dancer substitutions', (
-      tester,
-    ) async {
-      await _pumpSettings(tester, initialDialect: Dialect.larksRobins);
-      await openDialect(tester);
-
-      await tester.tap(find.byKey(const ValueKey('dialect-dancers-toggle')));
-      await tester.pumpAndSettle();
-
-      final dropdown = find.byKey(const ValueKey('dialect-add-dancer'));
-      await tester.ensureVisible(dropdown);
-      await tester.tap(dropdown);
-      await tester.pumpAndSettle();
-      expect(find.text('role1s'), findsNothing);
-      expect(find.text('role2s'), findsNothing);
-      // A positional/relational term is offered.
-      expect(find.text('next neighbors'), findsWidgets);
-    });
-
-    testWidgets('editing then deleting a dancer substitution round-trips', (
-      tester,
-    ) async {
-      final ctx = await _pumpSettings(
-        tester,
-        initialDialect: Dialect.larksRobins.copyWith(
-          dancers: const {'neighbors': 'the others'},
+        find.byKey(
+          ValueKey('dialect-duplicate-source-${Dialect.leadsFollows.name}'),
         ),
       );
-      await openDialect(tester);
-      await tester.tap(find.byKey(const ValueKey('dialect-dancers-toggle')));
       await tester.pumpAndSettle();
 
-      // Edit the existing substitution.
-      final field = find.byKey(const ValueKey('dialect-dancer-neighbors'));
-      await tester.ensureVisible(field);
-      await tester.enterText(field, 'the other couple');
-      await tester.pumpAndSettle();
-      expect(ctx.notifier.value.dancers['neighbors'], 'the other couple');
-
-      // Delete it.
-      final del = find.byKey(const ValueKey('dialect-dancer-delete-neighbors'));
-      await tester.ensureVisible(del);
-      await tester.tap(del);
-      await tester.pumpAndSettle();
-      expect(ctx.notifier.value.dancers, isEmpty);
+      final copyName = '${Dialect.leadsFollows.name} (copy)';
+      expect(ctx.dialectLibrary.customByName(copyName), isNotNull);
+      expect(find.byKey(ValueKey('dialect-tile-$copyName')), findsOneWidget);
+      // A duplicate does not change the active dialect.
+      expect(ctx.dialectLibrary.active, equals(Dialect.larksRobins));
     });
 
-    testWidgets('a dancer substitution persists to SettingsRepository', (
+    testWidgets('presets are not editable in place (offer duplicate instead)', (
       tester,
     ) async {
-      final ctx = await _pumpSettings(
-        tester,
-        initialDialect: Dialect.larksRobins,
-      );
+      await _pumpSettings(tester);
       await openDialect(tester);
-      await tester.tap(find.byKey(const ValueKey('dialect-dancers-toggle')));
-      await tester.pumpAndSettle();
 
-      final dropdown = find.byKey(const ValueKey('dialect-add-dancer'));
-      await tester.ensureVisible(dropdown);
-      await tester.tap(dropdown);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('neighbors').last);
-      await tester.pumpAndSettle();
-
-      final field = find.byKey(const ValueKey('dialect-dancer-neighbors'));
-      await tester.ensureVisible(field);
-      await tester.enterText(field, 'the others');
-      await tester.pumpAndSettle();
-
-      final stored = await ctx.repos.settings.get(kActiveDialectKey);
-      expect(stored, isA<Map>());
-      expect(
-        Dialect.fromJson(
-          (stored! as Map).cast<String, Object?>(),
-        ).dancers['neighbors'],
-        'the others',
+      await tester.tap(
+        find.byKey(ValueKey('dialect-menu-${Dialect.larksRobins.name}')),
       );
+      await tester.pumpAndSettle();
+      expect(find.text('Duplicate to customize'), findsOneWidget);
+      expect(find.text('Edit terms'), findsNothing);
+    });
+
+    testWidgets('renaming a custom dialect updates the list + active pointer', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Old name'));
+      await ctx.dialectLibrary.setActive('Old name');
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Old name')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rename'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-name-field')),
+        'New name',
+      );
+      await tester.tap(find.byKey(const ValueKey('dialect-name-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customByName('Old name'), isNull);
+      expect(ctx.dialectLibrary.customByName('New name'), isNotNull);
+      expect(ctx.dialectLibrary.activeName, equals('New name'));
+      expect(
+        find.byKey(const ValueKey('dialect-tile-New name')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('deleting a custom dialect removes it after confirming', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Doomed'));
+      await ctx.dialectLibrary.setActive('Doomed');
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Doomed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+      // Confirm.
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(ctx.dialectLibrary.customByName('Doomed'), isNull);
+      expect(find.byKey(const ValueKey('dialect-tile-Doomed')), findsNothing);
+      // Active falls back to the app default.
+      expect(ctx.dialectLibrary.active, equals(Dialect.larksRobins));
+    });
+
+    testWidgets('editing a custom dialect terms round-trips through upsert', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Mine')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit terms'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role1-singular')),
+        'Gent',
+      );
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      final saved = ctx.dialectLibrary.customByName('Mine');
+      expect(saved, isNotNull);
+      expect(saved!.roles['role1']!.singular, equals('Gent'));
+      // The name is preserved (edit terms never renames).
+      expect(saved.name, equals('Mine'));
+    });
+
+    testWidgets('saving an invalid dialect surfaces issues and stays open', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Mine')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit terms'));
+      await tester.pumpAndSettle();
+
+      // Two roles mapping to the same term is an ambiguous collision.
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role1-singular')),
+        'Same',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role2-singular')),
+        'Same',
+      );
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      // The editor stays open with the issue surfaced; nothing was saved.
+      expect(
+        find.byKey(const ValueKey('dialect-validation-error')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('dialect-editor-save')), findsOneWidget);
+      expect(ctx.dialectLibrary.customByName('Mine')!.roles, isEmpty);
+
+      // Resolving the collision lets the save go through.
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role2-singular')),
+        'Other',
+      );
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      final saved = ctx.dialectLibrary.customByName('Mine')!;
+      expect(saved.roles['role1']!.singular, equals('Same'));
+      expect(saved.roles['role2']!.singular, equals('Other'));
     });
   });
 
@@ -877,7 +862,7 @@ void main() {
       );
       // Dialect content is not mounted until its section is selected.
       expect(
-        find.byKey(ValueKey('dialect-${Dialect.larksRobins.name}')),
+        find.byKey(ValueKey('dialect-tile-${Dialect.larksRobins.name}')),
         findsNothing,
       );
     });
@@ -889,7 +874,7 @@ void main() {
 
       // Now dialect tiles are shown and the theme gallery is gone.
       expect(
-        find.byKey(ValueKey('dialect-${Dialect.larksRobins.name}')),
+        find.byKey(ValueKey('dialect-tile-${Dialect.larksRobins.name}')),
         findsOneWidget,
       );
       expect(
@@ -911,22 +896,22 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('settings-nav-dialect')));
       await tester.pumpAndSettle();
       expect(
-        find.byKey(ValueKey('dialect-${Dialect.leadsFollows.name}')),
+        find.byKey(ValueKey('dialect-tile-${Dialect.leadsFollows.name}')),
         findsOneWidget,
       );
 
       // Selecting a dialect on the pushed page must update it live (the route
       // depends on ActiveDialectScope, so the notifier change rebuilds it).
       await tester.tap(
-        find.byKey(ValueKey('dialect-${Dialect.leadsFollows.name}')),
+        find.byKey(ValueKey('dialect-tile-${Dialect.leadsFollows.name}')),
       );
       await tester.pumpAndSettle();
       expect(ctx.notifier.value, Dialect.leadsFollows);
 
-      final group = tester.widget<RadioGroup<Dialect>>(
-        find.byType(RadioGroup<Dialect>),
+      final group = tester.widget<RadioGroup<String>>(
+        find.byType(RadioGroup<String>),
       );
-      expect(group.groupValue, Dialect.leadsFollows);
+      expect(group.groupValue, Dialect.leadsFollows.name);
     });
   });
 }

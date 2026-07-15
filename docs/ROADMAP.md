@@ -169,6 +169,16 @@ Design items (each produces a design doc + review):
     `custom_dialects` / `active_dialect_ref`) with CRUD, active-fallback on
     delete, and legacy `active_dialect` blob migration. Fully unit-tested;
     wired into the app + UI in PR2/PR3.
+  - PR2 delivered (branch `isaacbanner-dialect-pr2`): the library is wired into
+    the app — `DialectLibraryController`/`DialectLibraryScope` mounted in
+    `main.dart`, with the controller driving the existing `ActiveDialectScope`
+    notifier (a listener mirrors `controller.active` into it) so every existing
+    consumer is backed by the library with zero changes. Settings → Dialect is
+    now a **library manager**: shipped presets (read-only) + custom dialects,
+    single active selection, new / duplicate-from / rename / delete, and a
+    reusable `DialectEditorScreen` term editor for custom dialects (presets
+    offer "Duplicate to customize"). Live preview, collision validation, and
+    dance-card/perform quick-switch remain **PR3**.
 - (2.4a full taxonomy data is now **complete** — full ContraDB contra move set shipped.
   The only still-open 3.2 follow-up is per-Type taxonomy selection, blocked on multi-form data.)
   - ~~Nested figure groups inside `then`~~: **Resolved in Consolidation PR4**
