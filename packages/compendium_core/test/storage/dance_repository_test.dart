@@ -250,6 +250,36 @@ void main() {
     });
   });
 
+  group('listIdsAndTitles', () {
+    test(
+      'returns id+title pairs ordered by title, excluding soft-deleted',
+      () async {
+        await dances.create(sampleDance(id: 'd2', title: 'Zesty Zephyr'));
+        await dances.create(sampleDance(id: 'd1', title: 'Airplane'));
+        await dances.create(
+          sampleDance(
+            id: 'd3',
+            title: 'Deleted Dance',
+            deletedAt: DateTime.utc(2026, 1, 2),
+          ),
+        );
+
+        final pairs = await dances.listIdsAndTitles();
+        expect(pairs, [
+          (id: 'd1', title: 'Airplane'),
+          (id: 'd2', title: 'Zesty Zephyr'),
+        ]);
+
+        final withDeleted = await dances.listIdsAndTitles(includeDeleted: true);
+        expect(withDeleted.map((p) => p.title), [
+          'Airplane',
+          'Deleted Dance',
+          'Zesty Zephyr',
+        ]);
+      },
+    );
+  });
+
   group('soft delete / restore / purge', () {
     test('soft delete then restore clears deletedAt', () async {
       final dance = sampleDance();

@@ -22,6 +22,7 @@ Dance _dance({
   List<DanceLink> links = const [],
   DanceStatus status = DanceStatus.active,
   String hook = '',
+  String callingNotes = '',
   Provenance? provenance,
 }) => Dance(
   id: id,
@@ -32,6 +33,7 @@ Dance _dance({
   links: links,
   status: status,
   hook: hook,
+  callingNotes: callingNotes,
   provenance: provenance,
   createdAt: _now,
   updatedAt: _now,
@@ -1129,6 +1131,248 @@ void main() {
         reason: 'the row must not announce the scheduled eventDate',
       );
       handle.dispose();
+    });
+  });
+
+  // ── Auto cross-reference links (hook / calling notes) ───────────────────────
+  group('dance cross-reference links', () {
+    testWidgets('a title in calling notes links to that dance and navigates', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'target', title: 'Target Dance', hook: 'target-hook-marker'),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Source Dance',
+          callingNotes: 'Adapted from Target Dance for beginners.',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.bySemanticsLabel('Open dance: Target Dance'), findsOneWidget);
+
+      await tester.tap(find.text('Target Dance'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('target-hook-marker'), findsOneWidget);
+    });
+
+    testWidgets('a title in the hook links and navigates', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'target', title: 'Target Dance', hook: 'target-hook-marker'),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Source Dance',
+          hook: 'A cousin of Target Dance.',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      await tester.tap(find.text('Target Dance'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('target-hook-marker'), findsOneWidget);
+    });
+
+    testWidgets('matching is case-insensitive', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'target', title: 'Target Dance', hook: 'target-hook-marker'),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Source Dance',
+          callingNotes: 'see target dance please',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.bySemanticsLabel('Open dance: target dance'), findsOneWidget);
+      await tester.tap(find.text('target dance'));
+      await tester.pumpAndSettle();
+      expect(find.text('target-hook-marker'), findsOneWidget);
+    });
+
+    testWidgets('a title inside a larger word is not linked (word boundary)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'r1', title: 'Reel'));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Source Dance',
+          callingNotes: 'We were Reeling along the hall.',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.bySemanticsLabel('Open dance: Reel'), findsNothing);
+      expect(find.text('We were Reeling along the hall.'), findsOneWidget);
+    });
+
+    testWidgets('longest overlapping title wins', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'short', title: 'Reel'));
+      await repos.dances.create(
+        _dance(id: 'long', title: 'Reel of Eight', hook: 'long-hook-marker'),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Source Dance',
+          callingNotes: 'Finish with a Reel of Eight at the end.',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.bySemanticsLabel('Open dance: Reel of Eight'),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Open dance: Reel'), findsNothing);
+
+      await tester.tap(find.text('Reel of Eight'));
+      await tester.pumpAndSettle();
+      expect(find.text('long-hook-marker'), findsOneWidget);
+    });
+
+    testWidgets('the current dance never links to itself', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Petronella',
+          callingNotes: 'Petronella is a classic figure.',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.bySemanticsLabel('Open dance: Petronella'), findsNothing);
+    });
+
+    testWidgets('each occurrence of a title links', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'target', title: 'Target Dance'));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Source Dance',
+          callingNotes: 'Target Dance first, then Target Dance again.',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.bySemanticsLabel('Open dance: Target Dance'),
+        findsNWidgets(2),
+      );
+    });
+
+    testWidgets('multiple distinct titles each link', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'a', title: 'Alpha'));
+      await repos.dances.create(_dance(id: 'b', title: 'Beta'));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Source Dance',
+          callingNotes: 'Alpha leads into Beta smoothly.',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.bySemanticsLabel('Open dance: Alpha'), findsOneWidget);
+      expect(find.bySemanticsLabel('Open dance: Beta'), findsOneWidget);
+    });
+
+    testWidgets('notes with no matches render unchanged', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'other', title: 'Zorp'));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Source Dance',
+          callingNotes: 'Plain notes with no references here.',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('Plain notes with no references here.'), findsOneWidget);
+      expect(find.bySemanticsLabel('Open dance: Zorp'), findsNothing);
+    });
+
+    testWidgets('a linked title is one accessible link node', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'target', title: 'Target Dance'));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Source Dance',
+          callingNotes: 'Adapted from Target Dance.',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      final semantics = tester.getSemantics(
+        find.bySemanticsLabel('Open dance: Target Dance'),
+      );
+      expect(
+        semantics,
+        isSemantics(
+          isLink: true,
+          isFocusable: true,
+          hasTapAction: true,
+          label: 'Open dance: Target Dance',
+        ),
+      );
+    });
+
+    testWidgets('titles with special characters are matched and navigate', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'target',
+          title: 'Petronella (Fast)',
+          hook: 'special-hook-marker',
+        ),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Source Dance',
+          callingNotes: 'A variant of Petronella (Fast) works well.',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.bySemanticsLabel('Open dance: Petronella (Fast)'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Petronella (Fast)'));
+      await tester.pumpAndSettle();
+      expect(find.text('special-hook-marker'), findsOneWidget);
     });
   });
 }

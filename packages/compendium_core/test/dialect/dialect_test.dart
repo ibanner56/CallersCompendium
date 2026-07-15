@@ -109,6 +109,43 @@ void main() {
     });
   });
 
+  group('resolveByName', () {
+    final custom = Dialect(
+      name: 'My Dialect',
+      roles: const {'role1': RoleTerm('Jet'), 'role2': RoleTerm('Ruby')},
+    );
+
+    test('finds a custom dialect from the candidates', () {
+      expect(
+        Dialect.resolveByName('My Dialect', candidates: [custom]),
+        same(custom),
+      );
+    });
+
+    test('falls back to a shipped preset when no candidate matches', () {
+      expect(
+        Dialect.resolveByName('Larks/Robins', candidates: [custom]),
+        same(Dialect.larksRobins),
+      );
+    });
+
+    test('a custom dialect wins over a preset of the same name', () {
+      final shadow = Dialect(
+        name: 'Larks/Robins',
+        roles: const {'role1': RoleTerm('Blue'), 'role2': RoleTerm('Green')},
+      );
+      expect(
+        Dialect.resolveByName('Larks/Robins', candidates: [shadow]),
+        same(shadow),
+      );
+    });
+
+    test('returns null for a null or unknown name', () {
+      expect(Dialect.resolveByName(null, candidates: [custom]), isNull);
+      expect(Dialect.resolveByName('Nope', candidates: [custom]), isNull);
+    });
+  });
+
   group('JSON round-trip', () {
     test('RoleTerm writes resolved plural and round-trips', () {
       const term = RoleTerm('Lady');

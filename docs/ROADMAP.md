@@ -93,6 +93,17 @@ Design items (each produces a design doc + review):
 - [x] 3.5 Dance duplication, soft-delete/restore — Duplicate action (app bar + copy title); soft-delete
   with undo snackbar (detail + swipe-to-dismiss on list); Recently Deleted screen (restore, purge
   ETA, permanent delete); startup purge sweep. **Phase 3 complete.**
+- [x] 3.6 Batch tag — Collection multi-select (`docs/design/ux.md` §1). A selection mode on the
+  Collection list (`app/lib/src/screens/dance_list_screen.dart`): entered via an app-bar **Select**
+  button or long-pressing a row; tapping rows toggles a leading checkbox; a "N selected" live-region
+  count and an exit action manage the mode (swipe-to-delete is suspended while selecting). Two batch
+  actions — **Add tags** / **Remove tags** — open a picker (`app/lib/src/widgets/batch_tag_dialog.dart`):
+  Add lists all tags with inline tag creation (`Tag(id: uuidV4())` + `TagRepository.upsert`), Remove
+  lists only tags present on the selected dances. Applying unions (Add) or subtracts (Remove) the
+  chosen tags across every selected dance via per-dance `DanceRepository.update` (dedup, preserving
+  existing order), announces the result to AT (`SemanticsService.sendAnnouncement`), and offers a Snackbar
+  **Undo** that restores each dance's captured prior tag set. Selection/checkbox state is conveyed by
+  a checkmark + row highlight (never color alone) and is keyboard/AT reachable.
 
 ### Deferred from 3.3a (dance editor metadata form) — tracked follow-ups
 
@@ -119,12 +130,22 @@ Design items (each produces a design doc + review):
   empty-state placeholder); `DanceDetailScreen` gains `onDeleted`/`onNavigateTo` so delete
   and duplicate work correctly without a route pop; narrow mode behavior fully unchanged.
   `main.dart` home updated to `CollectionShell`. Selected-row highlight via `ListTile.selected`.
-  All deferred follow-ups from Phase 3/3.2 are now addressed **except**: (a) per-Type
-  taxonomy selection in the figure builder — blocked until ECD/Square taxonomy data
-  exists (see "ECD and Squares support" under Later milestones); and (b) a low-priority
-  performance tweak, `DanceRepository.listIdsAndTitles()`, to avoid the N+1 `getById`
-  lookups currently used to resolve related-dance titles in the detail/editor (fine at
-  present collection sizes; optimize when needed).
+  All deferred follow-ups from Phase 3/3.2 are now addressed **except** per-Type
+  taxonomy selection in the figure builder — blocked until ECD/Square taxonomy
+  data exists (see "ECD and Squares support" under Later milestones).
+  (`DanceRepository.listIdsAndTitles()` — the lightweight id+title query that
+  avoids N+1 `getById` lookups — is now built and used by the auto
+  cross-reference links; see below.)
+- [x] 3.6 Auto-linked dance cross-references — dance titles mentioned in another
+  dance's hook / calling notes render as tappable inline links that open the
+  referenced dance's detail (distinct from the explicit `relatedDance` link).
+  App-side matcher in `app/lib/src/screens/dance_detail_screen.dart`
+  (`_DanceTitleLinker` + `_CrossReferenceText`): case-insensitive, word-boundary
+  (Unicode look-arounds), longest-title-wins, regex-safe title escaping, single
+  compiled matcher over `DanceRepository.listIdsAndTitles()` (new lightweight
+  core query), never self-links. Each link is one accessible node (link role +
+  "Open dance: <title>" label + focusable + tap) and navigates like a
+  `relatedDance` link. Dialect rendering of the notes is preserved.
 - Cross-session / persistent **undo** (3.3d ships in-memory undo/redo only).
 - ~~`revisit-lingo-dialect` — active dialect settings (persisted user-selectable dialect,
   settings screen, threading through detail toggle / lingo line / search).~~
@@ -136,6 +157,17 @@ Design items (each produces a design doc + review):
   gendered terms via custom role-terms input), editable move substitutions and
   discouraged-terms list, `Dialect.toJson`/`fromJson`, and the active dialect
   persisted as full JSON.
+- [ ] **Dialect manager — named dialects + term editor** (`docs/design/ux.md` §6):
+  a library of named, user-created dialects (create / duplicate-from-preset /
+  rename / delete) alongside shipped presets, a term editor with **live
+  preview** + collision validation, and dialect **quick-switch** on the dance
+  card / perform screens. Builds on the existing (single-active) editor above.
+  - PR1 (this branch, `dialect-term-editor`): core `Dialect.resolveByName`
+    (custom-wins-over-preset resolver superseding `forName`); app
+    `DialectLibraryController` + `DialectLibraryScope` (settings keys
+    `custom_dialects` / `active_dialect_ref`) with CRUD, active-fallback on
+    delete, and legacy `active_dialect` blob migration. Fully unit-tested;
+    wired into the app + UI in PR2/PR3.
 - (2.4a full taxonomy data is now **complete** — full ContraDB contra move set shipped.
   The only still-open 3.2 follow-up is per-Type taxonomy selection, blocked on multi-form data.)
   - ~~Nested figure groups inside `then`~~: **Resolved in Consolidation PR4**
@@ -245,7 +277,7 @@ design/domain-model.md "CC parity backfill".*
   dialect quick-toggle as the detail card, and adds an in-view large-print size
   control (A-/A+, large default, no practical upper bound). In-view size state
   only; cross-session persistence to settings is a later follow-up.
-- [ ] 5.2 Program navigation (next/prev, jump), screen-wake lock, high-contrast theme;
+- [x] 5.2 Program navigation (next/prev, jump), screen-wake lock, high-contrast theme;
   optional per-slot / running **program timing** (CC `Set.TimeStart`/`TimeElapsed`,
   `SetItem.Time`) surfaced during an event
   - Program navigation delivered: program-mode Perform view walking `Program.grouped`
@@ -259,8 +291,19 @@ design/domain-model.md "CC parity backfill".*
     with an in-view toggle (keyboard-reachable, on/off state exposed to AT) to
     fall back to the app's inherited theme; in-view only, persistence to
     Settings deferred as a later follow-up (mirrors the 5.1 size-control
-    decision). Remaining sub-item — optional per-slot / running **program
-    timing** — is a separate follow-up PR.
+    decision). Program timing delivered: the program Perform view surfaces a
+    running program clock and a per-slot elapsed timer (the latter resets on
+    every navigation — next/prev/jump/alt-swap) in the bottom status bar, shows a
+    slot's `plannedMinutes` (CC `SetItem.Time`) as "planned N min" with a subtle
+    icon+text over-run cue when elapsed passes it, and offers a pause/resume
+    toggle for interruptions. Timing is in-view-only and read-only toward the
+    model (no `performedAt`/persistence — that is 5.3); timers are driven by a
+    single 1s `Timer` cancelled on exit, and the readouts expose an on-demand
+    (non-live-region) accessible label to avoid per-second AT spam.
+  - Program summary Perform entry point: the wide-screen program summary pane
+    (`_ProgramSummaryPane`) offers a prominent "Perform this program" action
+    (disabled with a tooltip when the program has no slots), so Perform is
+    reachable directly from a program without opening the builder.
 - [ ] 5.3 On-the-fly program adjustments during an event
 - [ ] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
   rendering of figures for assistive tech (distinct from the terse canonical/dialect
@@ -284,6 +327,16 @@ for app-wide preference switches as they accrue.
   either way; turning auto-size off restores the last manual size. The Phase 5
   "user-set size, no upper bound" model remains the manual mode — auto-size is
   an opt-out convenience layer on top.
+
+- [ ] G.2 **Require "mark performed" for calling history** — a General settings
+  toggle (**off by default**) controlling whether a program must have the dance's
+  slot marked performed (`ProgramSlot.performedAt` set) to appear in that dance's
+  calling-history section (per-dance calling history; `docs/design/ux.md` §2).
+  Default (off): a program appears in a dance's history as soon as it contains
+  that dance, regardless of whether the slot was marked performed (i.e. not
+  strictly limited to performed programs as currently described in
+  `docs/design/ux.md` §2). When on: only programs with the dance's slot marked performed appear, matching the
+  (`docs/design/domain-model.md`). Persisted via `SettingsRepository`.
 
 ## Phase 6 — Imports & migration
 
