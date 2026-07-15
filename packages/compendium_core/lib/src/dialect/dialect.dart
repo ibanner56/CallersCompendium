@@ -92,13 +92,13 @@ class Dialect {
   /// out-of-box active dialect.
   static final Dialect larksRobins = Dialect(
     name: 'Larks/Robins',
-    roles: const {'role1': RoleTerm('Lark'), 'role2': RoleTerm('Robin')},
+    roles: const {'role1': RoleTerm('lark'), 'role2': RoleTerm('robin')},
     discouragedTerms: defaultDiscouragedTerms,
   );
 
   static final Dialect leadsFollows = Dialect(
     name: 'Leads/Follows',
-    roles: const {'role1': RoleTerm('Lead'), 'role2': RoleTerm('Follow')},
+    roles: const {'role1': RoleTerm('lead'), 'role2': RoleTerm('follow')},
     discouragedTerms: defaultDiscouragedTerms,
   );
 

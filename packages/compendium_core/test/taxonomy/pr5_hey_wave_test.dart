@@ -279,7 +279,7 @@ void main() {
   group('dialect round-trip unaffected', () {
     test('hey pass1 role token maps under dialect and round-trips', () {
       final display = renderer.render(Figure(move: 'hey'), Dialect.larksRobins);
-      expect(display, 'Robins hey right');
+      expect(display, 'robins hey right');
       expect(
         canonicalizeText(display, Dialect.larksRobins),
         'role2s hey right',

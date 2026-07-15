@@ -82,11 +82,11 @@ void main() {
           Figure(move: 'swing', params: {'who': 'role1s'}),
           larks,
         ),
-        'Larks swing',
+        'larks swing',
       );
       expect(
         renderer.render(Figure(move: 'chain'), larks),
-        'Robins chain across',
+        'robins chain across',
       );
     });
 
@@ -146,7 +146,7 @@ void main() {
           Figure(move: 'swing', params: {'who': 'role1s'}),
           dialect,
         ),
-        'Larks swing',
+        'larks swing',
       );
     });
 
@@ -155,7 +155,7 @@ void main() {
       // neighbors -> dancer substitution; chain's role2s -> role term.
       expect(
         renderer.render(Figure(move: 'chain'), dialect),
-        'Robins chain across',
+        'robins chain across',
       );
       expect(
         renderer.render(
@@ -180,11 +180,18 @@ void main() {
 
   group('free-text rendering', () {
     test('substitutes role terms with case preservation', () {
+      // Mid-sentence lowercase source token stays lowercase (the shipped
+      // default term is lowercase, and case is carried from the source token).
       expect(
         renderer.renderFreeText('the role1s lead', larks),
-        'the Larks lead',
+        'the larks lead',
       );
+      // An UPPER-case source token still uppercases the substitution, and a
+      // Title-case source token still Title-cases it — the case comes from the
+      // matched context, not the stored (lowercase) term. This is what keeps a
+      // sentence-initial role term capitalized when the source carries a capital.
       expect(renderer.renderFreeText('ROLE1S first', larks), 'LARKS first');
+      expect(renderer.renderFreeText('Role1s lead', larks), 'Larks lead');
     });
 
     test('leaves unrelated prose untouched', () {
@@ -283,11 +290,11 @@ void main() {
           Figure(move: 'swing', params: {'who': 'role1s'}),
           larks,
         ),
-        'Larks swing',
+        'larks swing',
       );
       expect(
         renderer.renderVerbose(Figure(move: 'chain'), larks),
-        'Robins chain across',
+        'robins chain across',
       );
     });
 
@@ -346,12 +353,12 @@ void main() {
     });
 
     test('role tokens use role terms under Larks/Robins', () {
-      expect(FigureRenderer.displayToken('role1', dancerSpec, larks), 'Lark');
-      expect(FigureRenderer.displayToken('role2', dancerSpec, larks), 'Robin');
-      expect(FigureRenderer.displayToken('role1s', dancerSpec, larks), 'Larks');
+      expect(FigureRenderer.displayToken('role1', dancerSpec, larks), 'lark');
+      expect(FigureRenderer.displayToken('role2', dancerSpec, larks), 'robin');
+      expect(FigureRenderer.displayToken('role1s', dancerSpec, larks), 'larks');
       expect(
         FigureRenderer.displayToken('role2s', dancerSpec, larks),
-        'Robins',
+        'robins',
       );
     });
 

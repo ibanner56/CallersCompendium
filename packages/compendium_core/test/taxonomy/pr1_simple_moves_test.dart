@@ -75,7 +75,7 @@ void main() {
     test('star_promenade role1s → Larks', () {
       expect(
         renderer.render(Figure(move: 'star_promenade'), Dialect.larksRobins),
-        'Larks star promenade right ½',
+        'larks star promenade right ½',
       );
     });
   });
