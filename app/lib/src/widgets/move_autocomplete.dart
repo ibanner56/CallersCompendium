@@ -16,7 +16,7 @@ class MoveOption {
 /// it via [onSelected]. Factored out of the search query builder so the dance
 /// editor and the "has figure" search row share one move picker
 /// (`docs/design/ux.md` §3).
-class MoveAutocomplete extends StatelessWidget {
+class MoveAutocomplete extends StatefulWidget {
   const MoveAutocomplete({
     super.key,
     required this.taxonomy,
@@ -61,11 +61,32 @@ class MoveAutocomplete extends StatelessWidget {
   final String labelText;
   final bool autofocus;
 
+  @override
+  State<MoveAutocomplete> createState() => _MoveAutocompleteState();
+}
+
+class _MoveAutocompleteState extends State<MoveAutocomplete> {
+  // Fires once per mount to reliably grab focus on a cold start. Relying on
+  // `TextField.autofocus` alone drops the request when the enclosing FocusScope
+  // isn't yet active (a freshly opened editor before any manual focus), so we
+  // explicitly requestFocus after the first frame, which walks up and activates
+  // the ancestor scopes. Because the field remounts on each open (keyed by
+  // figure index), this runs on every open — exactly when we want it.
+  bool _didRequestAutofocus = false;
+
+  void _scheduleAutofocus(FocusNode focusNode) {
+    if (!widget.autofocus || _didRequestAutofocus) return;
+    _didRequestAutofocus = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !focusNode.hasFocus) focusNode.requestFocus();
+    });
+  }
+
   List<MoveOption> _optionsFor(String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return const [];
-    final dialect = this.dialect ?? Dialect.canonical;
-    final renderer = FigureRenderer(taxonomy);
+    final dialect = widget.dialect ?? Dialect.canonical;
+    final renderer = FigureRenderer(widget.taxonomy);
     // Match on canonical name, id, keywords, AND the dialect display term so a
     // user can type a custom substitution (e.g. "buzz" for swing).
     bool matches(
@@ -81,7 +102,7 @@ class MoveAutocomplete extends StatelessWidget {
     }
 
     final options = <MoveOption>[
-      for (final m in taxonomy.moves.values)
+      for (final m in widget.taxonomy.moves.values)
         if (matches(
           m.id,
           m.displayName,
@@ -92,8 +113,8 @@ class MoveAutocomplete extends StatelessWidget {
             id: m.id,
             displayName: renderer.displayMoveName(m.id, dialect),
           ),
-      if (includeAliases)
-        for (final a in taxonomy.aliases.values)
+      if (widget.includeAliases)
+        for (final a in widget.taxonomy.aliases.values)
           if (matches(
             a.id,
             a.displayName,
@@ -111,10 +132,10 @@ class MoveAutocomplete extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Autocomplete<MoveOption>(
-      initialValue: TextEditingValue(text: initialText),
+      initialValue: TextEditingValue(text: widget.initialText),
       displayStringForOption: (o) => o.displayName,
       optionsBuilder: (value) => _optionsFor(value.text),
-      onSelected: onSelected,
+      onSelected: widget.onSelected,
       optionsViewBuilder: (context, onSelected, options) {
         return Align(
           alignment: Alignment.topLeft,
@@ -129,7 +150,7 @@ class MoveAutocomplete extends StatelessWidget {
                   for (final option in options)
                     ListTile(
                       key: ValueKey(
-                        '${fieldKey ?? 'move'}-option-${option.id}',
+                        '${widget.fieldKey ?? 'move'}-option-${option.id}',
                       ),
                       dense: true,
                       title: Text(option.displayName),
@@ -142,27 +163,32 @@ class MoveAutocomplete extends StatelessWidget {
         );
       },
       fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+        // Explicitly grab focus on the first frame this field is built so cold
+        // starts work; TextField.autofocus stays as a belt-and-suspenders.
+        _scheduleAutofocus(focusNode);
         return TextField(
-          key: fieldKey == null ? null : ValueKey('$fieldKey-input'),
+          key: widget.fieldKey == null
+              ? null
+              : ValueKey('${widget.fieldKey}-input'),
           controller: controller,
           focusNode: focusNode,
-          autofocus: autofocus,
+          autofocus: widget.autofocus,
           decoration: InputDecoration(
-            labelText: labelText,
-            hintText: hintText,
+            labelText: widget.labelText,
+            hintText: widget.hintText,
             isDense: true,
             border: const OutlineInputBorder(),
           ),
           onChanged: (text) {
-            if (text.trim().isEmpty) onCleared?.call();
+            if (text.trim().isEmpty) widget.onCleared?.call();
           },
           onSubmitted: (text) {
             final q = text.trim();
             final options = _optionsFor(q);
             if (options.isNotEmpty) {
-              onSelected(options.first);
+              widget.onSelected(options.first);
             } else if (q.isNotEmpty) {
-              onCustomSubmitted?.call(q);
+              widget.onCustomSubmitted?.call(q);
             }
             onSubmit();
           },

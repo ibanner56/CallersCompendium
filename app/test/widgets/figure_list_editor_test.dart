@@ -1536,6 +1536,61 @@ void main() {
     expect(editable.controller.text, 'swing');
   });
 
+  testWidgets(
+    'cold start: add-figure and stand_still-activate both focus the Move '
+    'field without any prior manual focus',
+    (tester) async {
+      // Regression for the PR #140 cold-start gotcha: on a freshly opened
+      // editor where nothing has been focused yet, the enclosing FocusScope is
+      // not the active scope, so a queued `TextField.autofocus` request is
+      // dropped and the Move field opens UNfocused. The bug only healed itself
+      // after the user manually tapped some field once. MoveAutocomplete now
+      // explicitly requestFocus()es its FocusNode after the first frame, which
+      // activates the ancestor scopes and works from a cold start.
+      FocusNode moveFocusNode(int index) => tester
+          .widget<EditableText>(
+            find.descendant(
+              of: find.byKey(ValueKey('figure-$index-move-input')),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .focusNode;
+
+      final drafts = <FigureDraft>[
+        FigureDraft(move: 'stand_still', params: {'beats': 8}),
+      ];
+      await _pump(tester, drafts);
+
+      // Open path 1: activate the existing stand_still chip. The field must be
+      // focused AND cleared, straight from the cold state.
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      expect(moveFocusNode(0).hasFocus, isTrue);
+      expect(
+        tester
+            .widget<EditableText>(
+              find.descendant(
+                of: find.byKey(const ValueKey('figure-0-move-input')),
+                matching: find.byType(EditableText),
+              ),
+            )
+            .controller
+            .text,
+        isEmpty,
+      );
+
+      // Collapse it again so the next open is the Add path.
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+
+      // Open path 2: add a new figure — its Move field auto-focuses too.
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('figure-1-move-input')), findsOneWidget);
+      expect(moveFocusNode(1).hasFocus, isTrue);
+    },
+  );
+
   testWidgets('more than 3 params hide extras behind "More options"', (
     tester,
   ) async {
