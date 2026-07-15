@@ -257,12 +257,19 @@ enum AppThemeSelection {
   light,                // Hearth light   (unchanged)
   dark,                 // Hearth dark    (unchanged)
   highContrast,         // ≥7:1, shared with Perform (unchanged)
-  // — IDE-inspired gallery (net-new) —
-  solarizedLight, solarizedDark,
-  atomOneLight,   atomOneDark,
-  monokai,
-  oneDarkPro, oneDarkProDarker,   // "Darker" = deeper omega variant
-  noctis,     noctisLux,          // dark + light siblings
+  // Gallery palettes (§4A) — light.
+  solarizedLight, atomOneLight, noctisLux, githubLight,
+  catppuccinLatte, gruvboxLight, everforestLight, rosePineDawn,
+  ayuLight, tokyoNightLight, nordLight, kanagawaLotus,
+  materialLight,
+  // Gallery palettes (§4A) — dark.
+  solarizedDark, oneDarkPro, monokai, noctis, dracula, nord,
+  tokyoNight, gruvboxDark, catppuccinMocha, githubDark,
+  everforestDark, rosePine, ayuMirage, cutiePro, pinkAsHeck,
+  zenburn, shadesOfPurple, palenight, synthwave84,
+  // Gallery palettes (§4A) — Noctis family.
+  noctisAzureus, noctisBordo, noctisHibernus, noctisLilac,
+  noctisMinimus, noctisObscuro, noctisSereno, noctisUva, noctisViola,
 }
 ```
 
