@@ -68,21 +68,72 @@ void main() {
     );
   });
 
-  group('hey reduced-but-structured model', () {
-    test('length is restricted to full/half (reduced)', () {
-      expect(
-        tax.validateFigure(Figure(move: 'hey', params: {'length': 'full'})),
-        isEmpty,
-      );
+  group('hey full named-duration length model', () {
+    test('all four named ContraDB length values validate', () {
+      for (final length in [
+        'full',
+        'half',
+        'lessThanHalf',
+        'betweenHalfAndFull',
+      ]) {
+        expect(
+          tax.validateFigure(Figure(move: 'hey', params: {'length': length})),
+          isEmpty,
+          reason: "'$length' should be a valid hey length",
+        );
+      }
+    });
+
+    test('default length is half', () {
+      final defaults = tax.effectiveParams(Figure(move: 'hey'));
+      expect(defaults['length'], 'half');
+    });
+
+    test('out-of-domain length value is rejected', () {
       expect(
         tax
             .validateFigure(
-              Figure(move: 'hey', params: {'length': 'lessThanHalf'}),
+              Figure(move: 'hey', params: {'length': 'threeQuarters'}),
             )
             .any((i) => i.code == 'invalid_param_value'),
         isTrue,
-        reason: 'lessThanHalf/betweenHalfAndFull were deliberately dropped',
+        reason: 'threeQuarters is not a valid hey length',
       );
+    });
+
+    test(
+      'figures_json round-trip preserves lessThanHalf and betweenHalfAndFull',
+      () {
+        for (final length in ['lessThanHalf', 'betweenHalfAndFull']) {
+          final figure = Figure(move: 'hey', params: {'length': length});
+          expect(
+            figureFromJson(figureToJson(figure)),
+            figure,
+            reason: "'$length' must survive encode/decode round-trip",
+          );
+        }
+      },
+    );
+
+    test('length stays structured (not in render template)', () {
+      // length values are not in the hey renderTemplate ('{pass1} {move}
+      // {shoulder}'), so they never appear in canonical text regardless of value.
+      for (final length in [
+        'full',
+        'half',
+        'lessThanHalf',
+        'betweenHalfAndFull',
+      ]) {
+        final canonical = renderer.renderCanonical(
+          Figure(move: 'hey', params: {'length': length}),
+        );
+        expect(
+          canonical,
+          'role2s hey right',
+          reason:
+              "'$length' must not surface in canonical text — length is structured-only",
+        );
+      }
     });
 
     test('pass2 accepts a pair or the unspecified sentinel', () {
