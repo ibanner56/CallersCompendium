@@ -52,13 +52,18 @@ class Taxonomy {
 
   /// Effective parameter values for [figure]: alias pins, then figure
   /// params, then spec defaults for anything still missing.
+  ///
+  /// For moves with a [MoveDef.paramBeats] table, `beats` is derived from the
+  /// effective value of the driver parameter — unless the figure (or its
+  /// alias) pins `beats` explicitly, in which case that pinned value wins. A
+  /// driver value absent from the table leaves the flat spec default in place.
   Map<String, Object?> effectiveParams(Figure figure) {
     final def = resolve(figure.move);
     if (def == null) {
       throw ArgumentError.value(figure.move, 'figure.move', 'unknown move');
     }
     final alias = aliases[figure.move];
-    return {
+    final effective = {
       for (final entry in def.params.entries)
         entry.key: figure.params.containsKey(entry.key)
             ? figure.params[entry.key]
@@ -66,6 +71,14 @@ class Taxonomy {
             ? alias!.pinnedParams[entry.key]
             : entry.value.defaultValue,
     };
+    final paramBeats = def.paramBeats;
+    if (paramBeats != null &&
+        !figure.params.containsKey('beats') &&
+        !(alias?.pinnedParams.containsKey('beats') ?? false)) {
+      final derived = paramBeats.byValue[effective[paramBeats.param]];
+      if (derived != null) effective['beats'] = derived;
+    }
+    return effective;
   }
 
   /// Validates a figure against this taxonomy.

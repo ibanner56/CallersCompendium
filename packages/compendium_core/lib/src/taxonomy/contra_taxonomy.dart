@@ -13,7 +13,13 @@ import 'taxonomy.dart';
 ///     betweenHalfAndFull added; dancer%%N meeting encodings remain out of scope).
 /// v7: swing renders its `prefix` modifier ("balance & swing" / "meltdown
 ///     swing"); `none` still renders to nothing.
-const int contraTaxonomyVersion = 7;
+/// v8: param-value-dependent beat counts — hey `length`, figure_8 `half`,
+///     rory_o_more `balance`, and slice `return` carry structured `paramBeats`
+///     (ContraDB-sourced) so untouched beats re-derive on a param change.
+///     Moves whose ContraDB beats are a range/ratio rather than a discrete
+///     per-value count (poussette, the places family, turn_alone) are left on
+///     their flat default — see the notes at those moves. See MoveDef.paramBeats.
+const int contraTaxonomyVersion = 8;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -521,8 +527,13 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{move} {slice} {by} {return}',
-      // ContraDB: return=="none" -> 4 beats, else 8.
+      // ContraDB sliceGoodBeats/sliceChange: `beats === (return === 'none' ? 4
+      // : 8)` — a returning slice (straight/diagonal) is 8 beats, no return 4.
       goodBeats: [4, 8],
+      paramBeats: ParamBeats(
+        param: 'return',
+        byValue: {'straight': 8, 'diagonal': 8, 'none': 4},
+      ),
     ),
     const MoveDef(
       id: 'contra_corners',
@@ -546,8 +557,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },
       renderTemplate: '{who} {move}',
-      // ContraDB rule is 0 <= beats <= 4 (a range the list-based goodBeats
-      // can't express); left unset so any in-domain count is accepted.
+      // ContraDB turnAlone uses goodBeatsMinMaxFn(0, 4) — a pure 0..4 range
+      // with no driver param and no `change` function, so beats are NOT
+      // param-value-dependent. Left unset (any in-domain count accepted); no
+      // paramBeats (nothing discrete to derive).
     ),
     const MoveDef(
       id: 'figure_8',
@@ -570,8 +583,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {half}',
-      // half -> 8 beats, full -> 16.
+      // ContraDB figure8GoodBeats: `beats === half_or_full * 16` (an exact
+      // equality, and figure8Change auto-sets it on a fraction flip): half
+      // (0.5) -> 8, full (1.0) -> 16.
       goodBeats: [8, 16],
+      paramBeats: ParamBeats(param: 'half', byValue: {'half': 8, 'full': 16}),
     ),
     const MoveDef(
       id: 'poussette',
@@ -584,9 +600,12 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 6),
       },
       renderTemplate: '{who} {move} {whom} {half} {turn}',
-      // No goodBeats: the typical count is param-dependent (half -> 6-8, full ->
-      // 12-16) — two disjoint ranges the list-based goodBeats can't express, so
-      // no atypical-beats warning is emitted for either variant.
+      // ContraDB poussetteGoodBeats is a RANGE, `6 <= beats/(2*half_or_full) <=
+      // 8` (half -> 6-8, full -> 12-16), and — unlike figure_8/hey — poussette
+      // has NO `change` function, so ContraDB never auto-recomputes its beats
+      // on a fraction flip. There is no single canonical per-value count, so no
+      // paramBeats: beats stay on the flat default (6) unless set manually. The
+      // two disjoint ranges also can't be expressed by the list-based goodBeats.
     ),
     const MoveDef(
       id: 'rory_o_more',
@@ -607,8 +626,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{who} {move} {slide}',
       searchKeywords: ['rory o more', 'rory'],
-      // ContraDB: balance -> 8 beats, no balance -> 4.
+      // ContraDB roryOMoreGoodBeats/roryOMoreChange: `beats === (balance ? 8 :
+      // 4)` — a balanced Rory O'More is 8 beats, without the balance 4.
       goodBeats: [4, 8],
+      paramBeats: ParamBeats(param: 'balance', byValue: {true: 8, false: 4}),
     ),
     // --- Roadmap 2.4a: places family (PR4) ---
     // Moves whose travel is measured in "places" around a ring/star
@@ -619,6 +640,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // list model without false warnings; cf. poussette). box_circulate is
     // intentionally NOT here: it carries no places param (ContraDB lists it
     // under moveCaresAboutPlaces only for angle display).
+    //
+    // No paramBeats for the places family: ContraDB derives beats from a
+    // continuous RATIO on the places-as-angle encoding (circleGoodBeats /
+    // starGoodBeats / facingStarGoodBeats: `angle/beats === 45`, i.e. one place
+    // per two beats) plus a special RANGE case (270deg / 3 places accepted at
+    // 6-8 beats), and square_through has its own multi-param expected-beats
+    // formula. That is a ratio/range over an int 1..10 domain, not a discrete
+    // per-value count, so it can't populate a clean paramBeats map — deferred.
     const MoveDef(
       id: 'circle',
       displayName: 'circle',
@@ -735,9 +764,21 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{pass1} {move} {shoulder}',
-      // Typical: half hey 8, full hey 16. The exact meetTimes*8 rule isn't
-      // list-expressible, so we don't encode it (cf. poussette).
+      // ContraDB heyChange/heyGoodBeats: beats = heyLengthMeetTimes(length)*8,
+      // where parseHeyLength maps half/lessThanHalf -> 1 meeting and
+      // full/betweenHalfAndFull -> 2. So the four named lengths collapse into
+      // two beat groups: {lessThanHalf, half} -> 8, {betweenHalfAndFull,
+      // full} -> 16.
       goodBeats: [8, 16],
+      paramBeats: ParamBeats(
+        param: 'length',
+        byValue: {
+          'lessThanHalf': 8,
+          'half': 8,
+          'betweenHalfAndFull': 16,
+          'full': 16,
+        },
+      ),
     ),
     const MoveDef(
       id: 'dolphin_hey',
