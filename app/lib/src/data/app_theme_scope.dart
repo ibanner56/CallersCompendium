@@ -40,6 +40,7 @@ enum AppThemeSelection {
   nordLight,
   kanagawaLotus,
   noctisLilac,
+  materialLight,
   // Gallery palettes (§4A) — dark.
   oneDarkPro,
   monokai,
@@ -55,7 +56,6 @@ enum AppThemeSelection {
   ayuMirage,
   cutiePro,
   pinkAsHeck,
-  materialLight,
   zenburn,
   shadesOfPurple,
   palenight,

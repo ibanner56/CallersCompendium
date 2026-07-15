@@ -251,14 +251,14 @@ reuses `AppColorSchemes`, `AppTheme`, `AppThemeScope`, and the Settings
 
 Grow the existing `AppThemeSelection` (§4) from a 4-value *mode* enum into a
 small **palette registry**. `system` stays special (follows the OS light/dark
-setting using the Hearth family); every other value pins one specific,
+setting using the Blue Hour family); every other value pins one specific,
 contrast-validated `ColorScheme`.
 
 ```dart
 enum AppThemeSelection {
-  system,               // follow OS → Hearth light/dark (unchanged)
-  light,                // Hearth light   (unchanged)
-  dark,                 // Hearth dark    (unchanged)
+  system,               // follow OS → Blue Hour light/dark (unchanged)
+  light,                // Blue Hour light (unchanged)
+  dark,                 // Blue Hour dark  (unchanged)
   highContrast,         // ≥7:1, shared with Perform (unchanged)
   // Gallery palettes (§4A) — light.
   blulocoLight, githubLight,
