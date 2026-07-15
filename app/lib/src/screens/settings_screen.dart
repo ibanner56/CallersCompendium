@@ -311,9 +311,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (!mounted || _defaultMoveParamOverridesUserSet) return;
           setState(() {
             _defaultMoveParamOverrides = moveParamOverridesFromStored(stored);
-            _moveDefaultsShown
-              ..clear()
-              ..addAll(_defaultMoveParamOverrides.keys);
+            // Merge (don't clear): a move the user added before this read
+            // resolves isn't persisted yet, so clearing would make it vanish.
+            for (final moveId in _defaultMoveParamOverrides.keys) {
+              if (!_moveDefaultsShown.contains(moveId)) {
+                _moveDefaultsShown.add(moveId);
+              }
+            }
           });
         })
         .catchError((_) {
