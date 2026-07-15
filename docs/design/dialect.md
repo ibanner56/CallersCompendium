@@ -21,11 +21,14 @@ Storage is always canonical (move IDs, role IDs, canonicalized free text).
 - `discouragedTerms` is **user-editable data with shipped defaults**, not
   hardcoded (ContraDB pitfall #3): the entry editor flags these terms, it
   never blocks.
-- Shipped presets: **Larks/Robins (default)**, Gents/Ladies, Leads/Follows,
-  Ladles/Gentlespoons, plus fully custom. Users may keep multiple named
-  dialects and switch instantly (e.g. per-gig: a gendered-terms community vs a
-  positional-terms community) — this generalizes CC's binary "on the fly
-  gendered↔gender-free switch".
+- Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
+  Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
+  presets — a user who wants them enters them through the custom role-terms
+  editor. Everything a dialect can set is editable in Settings → Dialect:
+  role terms, per-move substitutions, and the discouraged-terms list. Users may
+  keep a custom dialect and switch instantly (e.g. per-gig) — this generalizes
+  CC's binary "on the fly gendered↔gender-free switch". The active dialect
+  (including a full custom one) is persisted as JSON.
 
 ## Rendering pipeline (pure functions, golden-tested)
 

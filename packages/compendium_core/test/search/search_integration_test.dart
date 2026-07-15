@@ -657,7 +657,10 @@ void main() {
       expect(
         await dances.search(
           FigureFilter.leaf('swing', params: const {'who': 'gents'}),
-          dialect: Dialect.gentsLadies,
+          dialect: Dialect(
+            name: 'Gents/Ladies',
+            roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
+          ),
         ),
         ['a'],
       );

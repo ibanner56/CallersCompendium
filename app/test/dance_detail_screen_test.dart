@@ -428,7 +428,15 @@ void main() {
       ),
     );
 
-    await _pumpDetail(tester, repos, 'd1', activeDialect: Dialect.gentsLadies);
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      activeDialect: Dialect(
+        name: 'Gents/Ladies',
+        roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
+      ),
+    );
 
     // role2s → Ladies in Gents/Ladies dialect.
     expect(find.text('Ladies chain across'), findsOneWidget);

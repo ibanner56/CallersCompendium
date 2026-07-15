@@ -27,6 +27,14 @@ void main() {
       expect(Dialect.canonical.roles, isEmpty);
     });
 
+    test('only role-neutral presets are shipped (no gendered presets)', () {
+      final names = Dialect.presets.map((d) => d.name).toSet();
+      expect(names, isNot(contains('Gents/Ladies')));
+      expect(names, isNot(contains('Ladles/Gentlespoons')));
+      expect(names, isNot(contains('Men/Women')));
+      expect(names, isNot(contains('Larks/Ravens')));
+    });
+
     test('discouraged terms are lowercased', () {
       expect(Dialect.larksRobins.discouragedTerms, contains('gypsy'));
       expect(
@@ -68,30 +76,27 @@ void main() {
   });
 
   group('presets list', () {
-    test('contains exactly 5 entries', () {
-      expect(Dialect.presets.length, 5);
+    test('contains exactly 3 entries', () {
+      expect(Dialect.presets.length, 3);
     });
 
     test('first entry is canonical', () {
       expect(Dialect.presets.first, same(Dialect.canonical));
     });
 
-    test(
-      'contains larksRobins, gentsLadies, leadsFollows, ladlesGentlespoons',
-      () {
-        final names = Dialect.presets.map((d) => d.name).toSet();
-        expect(
-          names,
-          containsAll([
-            'Canonical',
-            'Larks/Robins',
-            'Gents/Ladies',
-            'Leads/Follows',
-            'Ladles/Gentlespoons',
-          ]),
-        );
-      },
-    );
+    test('contains canonical, larksRobins, leadsFollows', () {
+      final names = Dialect.presets.map((d) => d.name).toSet();
+      expect(
+        names,
+        containsAll(['Canonical', 'Larks/Robins', 'Leads/Follows']),
+      );
+    });
+
+    test('every preset validates cleanly', () {
+      for (final preset in Dialect.presets) {
+        expect(preset.validate(), isEmpty, reason: preset.name);
+      }
+    });
 
     test('forName returns the matching preset', () {
       for (final preset in Dialect.presets) {
@@ -101,6 +106,69 @@ void main() {
 
     test('forName returns null for an unknown name', () {
       expect(Dialect.forName('NotADialect'), isNull);
+    });
+  });
+
+  group('JSON round-trip', () {
+    test('RoleTerm writes resolved plural and round-trips', () {
+      const term = RoleTerm('Lady');
+      expect(term.toJson(), {'singular': 'Lady', 'plural': 'Ladies'});
+      expect(RoleTerm.fromJson(term.toJson()), term);
+    });
+
+    test('RoleTerm.fromJson tolerates malformed data', () {
+      expect(RoleTerm.fromJson({'singular': 123}), isNull);
+      expect(RoleTerm.fromJson({'singular': ''}), isNull);
+      expect(RoleTerm.fromJson({}), isNull);
+      expect(
+        RoleTerm.fromJson({'singular': 'Lark', 'plural': 42}),
+        const RoleTerm('Lark'),
+      );
+    });
+
+    test('Dialect.fromJson tolerates malformed data', () {
+      final d = Dialect.fromJson({
+        'name': 99,
+        'roles': {
+          'role1': {'singular': 'Lark', 'plural': 'Larks'},
+          'role2': {'singular': 42},
+          'bad': 'not-a-map',
+        },
+        'moves': {'swing': 'swing', 'bad': 7},
+        'discouragedTerms': ['gypsy', 8],
+      });
+      expect(d.name, Dialect.customName);
+      expect(d.roles.keys, ['role1']);
+      expect(d.moves, {'swing': 'swing'});
+      expect(d.discouragedTerms, ['gypsy']);
+    });
+
+    test('a custom dialect round-trips through toJson/fromJson', () {
+      final custom = Dialect(
+        name: 'Custom',
+        roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
+        moves: const {'shoulder_round': '%S shoulder round'},
+        discouragedTerms: const ['gypsy', 'gents'],
+      );
+      expect(Dialect.fromJson(custom.toJson()), custom);
+    });
+
+    test('every shipped preset round-trips', () {
+      for (final preset in Dialect.presets) {
+        expect(Dialect.fromJson(preset.toJson()), preset, reason: preset.name);
+      }
+    });
+
+    test('fromJson tolerates missing sections', () {
+      final d = Dialect.fromJson(const {'name': 'Sparse'});
+      expect(d.name, 'Sparse');
+      expect(d.roles, isEmpty);
+      expect(d.moves, isEmpty);
+      expect(d.discouragedTerms, isEmpty);
+    });
+
+    test('fromJson defaults a missing name to Custom', () {
+      expect(Dialect.fromJson(const {}).name, Dialect.customName);
     });
   });
 
