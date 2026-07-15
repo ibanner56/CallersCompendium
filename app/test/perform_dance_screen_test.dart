@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -36,6 +39,25 @@ Dance _dance({
 
 Figure _chain() =>
     Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16});
+
+/// A [SettingsRepository] whose auto-size read blocks until [gate] completes,
+/// so a test can deterministically drive the "settings load resolves *after*
+/// the user has already acted" race (ROADMAP G.1).
+class _GatedSettings extends SettingsRepository {
+  _GatedSettings(super.db, {required this.gate, required this.persistedValue});
+
+  final Completer<void> gate;
+  final bool persistedValue;
+
+  @override
+  Future<Object?> get(String key) async {
+    if (key == kAutoSizePerformKey) {
+      await gate.future;
+      return persistedValue;
+    }
+    return super.get(key);
+  }
+}
 
 Future<void> _pumpPerform(
   WidgetTester tester, {
@@ -487,5 +509,63 @@ void main() {
       );
       handle.dispose();
     });
+
+    testWidgets(
+      'a toggle before the persisted load resolves wins (no clobber)',
+      (tester) async {
+        final handle = tester.ensureSemantics();
+        await tester.binding.setSurfaceSize(const Size(1400, 2400));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        // Persisted value is ON, but the read is gated so it stays in-flight
+        // while the user acts.
+        final gate = Completer<void>();
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(
+          db,
+          contraTaxonomy,
+          settings: _GatedSettings(db, gate: gate, persistedValue: true),
+        );
+        final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+        addTearDown(notifier.dispose);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => RepositoriesScope(
+              repositories: repos,
+              child: ActiveDialectScope(notifier: notifier, child: child!),
+            ),
+            home: PerformDanceScreen(
+              dance: _dance(figures: [_chain()]),
+              renderer: _renderer,
+            ),
+          ),
+        );
+        // One frame: the screen is up and its settings read is pending on the
+        // gate; auto-size shows its on-by-default state.
+        await tester.pump();
+
+        final toggle = find.byKey(const ValueKey('perform-autosize-toggle'));
+        await tester.tap(toggle);
+        await tester.pump();
+        expect(
+          tester.getSemantics(toggle),
+          isSemantics(isToggled: false),
+          reason: 'user turned auto-size off before the load resolved',
+        );
+
+        // Now let the persisted (on) value arrive late. The guard must keep the
+        // user's off choice rather than clobbering it back on.
+        gate.complete();
+        await tester.pumpAndSettle();
+        expect(
+          tester.getSemantics(toggle),
+          isSemantics(isToggled: false),
+          reason: 'a late persisted load must not override an in-view action',
+        );
+        handle.dispose();
+      },
+    );
   });
 }
