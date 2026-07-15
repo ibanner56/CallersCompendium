@@ -242,6 +242,7 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
       floatingActionButton: (_program != null)
           ? FloatingActionButton.extended(
               key: const ValueKey('open-builder'),
+              heroTag: 'open-builder',
               onPressed: widget.onOpenBuilder,
               icon: const Icon(Icons.edit_note),
               label: const Text('Open builder'),

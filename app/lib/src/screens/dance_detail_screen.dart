@@ -141,7 +141,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   /// Opens the full-screen large-print [PerformDanceScreen] for this dance,
   /// passing the shared [FigureRenderer] and the already-resolved author names.

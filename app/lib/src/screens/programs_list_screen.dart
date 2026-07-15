@@ -228,6 +228,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           ? null
           : FloatingActionButton.extended(
               key: const ValueKey('new-program'),
+              heroTag: 'new-program',
               onPressed: _openNewProgram,
               icon: const Icon(Icons.add),
               label: const Text('New program'),
