@@ -93,6 +93,17 @@ Design items (each produces a design doc + review):
 - [x] 3.5 Dance duplication, soft-delete/restore — Duplicate action (app bar + copy title); soft-delete
   with undo snackbar (detail + swipe-to-dismiss on list); Recently Deleted screen (restore, purge
   ETA, permanent delete); startup purge sweep. **Phase 3 complete.**
+- [x] 3.6 Batch tag — Collection multi-select (`docs/design/ux.md` §1). A selection mode on the
+  Collection list (`app/lib/src/screens/dance_list_screen.dart`): entered via an app-bar **Select**
+  button or long-pressing a row; tapping rows toggles a leading checkbox; a "N selected" live-region
+  count and an exit action manage the mode (swipe-to-delete is suspended while selecting). Two batch
+  actions — **Add tags** / **Remove tags** — open a picker (`app/lib/src/widgets/batch_tag_dialog.dart`):
+  Add lists all tags with inline tag creation (`Tag(id: uuidV4())` + `TagRepository.upsert`), Remove
+  lists only tags present on the selected dances. Applying unions (Add) or subtracts (Remove) the
+  chosen tags across every selected dance via per-dance `DanceRepository.update` (dedup, preserving
+  existing order), announces the result to AT (`SemanticsService.sendAnnouncement`), and offers a Snackbar
+  **Undo** that restores each dance's captured prior tag set. Selection/checkbox state is conveyed by
+  a checkmark + row highlight (never color alone) and is keyboard/AT reachable.
 
 ### Deferred from 3.3a (dance editor metadata form) — tracked follow-ups
 

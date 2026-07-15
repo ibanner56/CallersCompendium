@@ -9,13 +9,28 @@ import '../search/facet_labels.dart';
 /// and `showInList` custom fields (Phase 3.1 rendering). Tapping it opens
 /// [DanceDetailScreen]. Pass an [onTap] to override the default navigation
 /// (e.g. when the caller needs to await a result from the detail route).
+///
+/// When [selectionMode] is true (Collection batch-tag multi-select,
+/// `docs/design/ux.md` §1) the leading avatar is replaced by a [Checkbox]
+/// reflecting [selectedForBatch]; the row is also marked
+/// [ListTile.selected] so the state is conveyed by a checkmark **and** a
+/// highlight (never color alone), and the trailing chevron is hidden. Tapping
+/// the row (via [onTap]) toggles selection; [onLongPress] lets a caller enter
+/// selection mode from a normal (non-selection) row.
 class DanceListTile extends StatelessWidget {
   const DanceListTile({
     super.key,
     required this.entry,
     this.onTap,
+    this.onLongPress,
     this.selected = false,
-  });
+    this.selectionMode = false,
+    this.selectedForBatch = false,
+  }) : assert(
+         !selectionMode || selected == selectedForBatch,
+         'In selection mode the row highlight (selected) must match the '
+         'checkbox state (selectedForBatch) so the state is never ambiguous.',
+       );
 
   final DanceListEntry entry;
 
@@ -23,8 +38,19 @@ class DanceListTile extends StatelessWidget {
   /// (push [DanceDetailScreen] without awaiting a result) is used.
   final VoidCallback? onTap;
 
-  /// Whether this tile is the currently selected row (e.g. in split-pane mode).
+  /// Optional long-press handler (e.g. to enter batch-selection mode).
+  final VoidCallback? onLongPress;
+
+  /// Whether this tile is the currently selected row (e.g. in split-pane mode,
+  /// or the selected-for-batch row while [selectionMode] is active).
   final bool selected;
+
+  /// Whether the list is in batch multi-select mode. When true the leading
+  /// widget is a [Checkbox] and the trailing chevron is hidden.
+  final bool selectionMode;
+
+  /// Whether this row is currently checked in batch multi-select mode.
+  final bool selectedForBatch;
 
   @override
   Widget build(BuildContext context) {
@@ -34,15 +60,25 @@ class DanceListTile extends StatelessWidget {
     return ListTile(
       selected: selected,
       visualDensity: VisualDensity.compact,
-      leading: Tooltip(
-        message: danceFormLabel(dance.form),
-        child: CircleAvatar(
-          radius: 20,
-          backgroundColor: theme.colorScheme.secondaryContainer,
-          foregroundColor: theme.colorScheme.onSecondaryContainer,
-          child: Icon(danceFormIcon(dance.form), size: 20),
-        ),
-      ),
+      onLongPress: onLongPress,
+      leading: selectionMode
+          ? Checkbox(
+              key: ValueKey('batch-checkbox-${dance.id}'),
+              value: selectedForBatch,
+              // Toggled by tapping the row (ListTile.onTap); the checkbox
+              // mirrors that so pointer taps on the box itself also work.
+              onChanged: onTap == null ? null : (_) => onTap!(),
+              semanticLabel: 'Select ${dance.title}',
+            )
+          : Tooltip(
+              message: danceFormLabel(dance.form),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: theme.colorScheme.secondaryContainer,
+                foregroundColor: theme.colorScheme.onSecondaryContainer,
+                child: Icon(danceFormIcon(dance.form), size: 20),
+              ),
+            ),
       title: Text(dance.title, style: theme.textTheme.titleMedium),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
@@ -120,7 +156,7 @@ class DanceListTile extends StatelessWidget {
         ),
       ),
       isThreeLine: false,
-      trailing: const Icon(Icons.chevron_right),
+      trailing: selectionMode ? null : const Icon(Icons.chevron_right),
       onTap:
           onTap ??
           () => Navigator.of(context).push(
