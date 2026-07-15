@@ -631,6 +631,7 @@ class _SourceCitationRow extends StatelessWidget {
 
     return Semantics(
       label: semanticLabel,
+      excludeSemantics: true,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
