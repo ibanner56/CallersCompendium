@@ -1,8 +1,8 @@
 # Contributing to Caller's Compendium
 
-Thanks for helping build a community-maintained tool for dance callers! This
-project is young; the best starting point is the
-[roadmap](docs/ROADMAP.md) and the design docs in [docs/design/](docs/design/).
+Thanks for helping build a community-maintained tool for dance callers! The
+best starting point is the [roadmap](docs/ROADMAP.md) and the design docs in
+[docs/design/](docs/design/).
 
 ## Ground rules
 
@@ -38,12 +38,28 @@ by opening a PR adding a `Proposed` ADR.
 - The figure taxonomy is versioned data — changes to it follow the process in
   [docs/design/figure-taxonomy.md](docs/design/figure-taxonomy.md).
 
-## Getting started (pre-implementation phase)
+## Getting started
 
-The Flutter scaffold lands in Phase 2 (see roadmap). Until then, doc review,
-design feedback, and test-corpus contributions (interesting dances that stress
-the figure model!) are the most valuable contributions. Open an issue or start
-a discussion.
+The app is a Flutter [pub workspace](pubspec.yaml): the `app/` Flutter app plus a
+pure-Dart domain core in `packages/compendium_core/` (which must not import
+Flutter — ADR-001, enforced in CI). Flutter is pinned to the version in
+[`.fvmrc`](.fvmrc) (currently 3.44.6); [FVM](https://fvm.app/) is the easy way to
+match it.
+
+```sh
+flutter pub get                 # resolve the whole workspace
+dart format --output=none --set-exit-if-changed .   # formatting (CI-enforced)
+flutter analyze                 # lint
+(cd packages/compendium_core && dart test)          # core unit tests
+(cd app && flutter test)        # app/widget tests
+(cd app && flutter run)         # run the app on your device/desktop
+```
+
+CI runs all of the above plus a release build matrix across Linux, macOS,
+Windows, Android, and iOS. Getting the roadmap's open items moving — see
+[docs/ROADMAP.md](docs/ROADMAP.md) — plus doc review, design feedback, and
+test-corpus contributions (interesting dances that stress the figure model!)
+are all welcome. Open an issue or start a discussion.
 
 ## Reporting bugs / requesting features
 

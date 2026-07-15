@@ -1,17 +1,25 @@
 # compendium_app
 
-A new Flutter project.
+The Flutter application for [Caller's Compendium](../README.md) — the desktop,
+tablet, and phone UI for the collection, program, and performance-mode features.
+It targets Linux, macOS, Windows, Android, and iOS from this single codebase.
 
-## Getting Started
+All domain logic (the figure taxonomy, dialect engine, storage, and import
+pipeline) lives in the Flutter-free [`compendium_core`](../packages/compendium_core)
+package; this app is the UI layer over it. Local persistence uses drift/SQLite
+on-device via `drift_flutter`.
 
-This project is a starting point for a Flutter application.
+## Running
 
-A few resources to get you started if this is your first Flutter project:
+Flutter is pinned to the version in [`../.fvmrc`](../.fvmrc);
+[FVM](https://fvm.app/) is the easy way to match it. From the repo root:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```sh
+flutter pub get      # resolve the pub workspace (app + core)
+cd app
+flutter run          # run on the connected device / desktop
+flutter test         # widget + unit tests
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+See the repo [CONTRIBUTING guide](../CONTRIBUTING.md) for the full workflow and
+the [roadmap](../docs/ROADMAP.md) for current status and open work.
