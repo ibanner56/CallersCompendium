@@ -94,6 +94,34 @@ needs Visual Studio with the "Desktop development with C++" workload; **macOS**
 and **iOS** need Xcode; **Android** needs the Android SDK/NDK. Run
 `fvm flutter doctor` to see what's missing for the platforms you want to build.
 
+### Emulators & simulators
+
+No physical phone required — you can test the mobile targets on emulated
+devices. `fvm flutter emulators` lists the ones already configured.
+
+**Android emulator** (any host with the Android SDK):
+
+```sh
+fvm flutter emulators                        # list configured emulators
+fvm flutter emulators --launch <emulator-id> # boot one (or start it from Android Studio)
+cd app && fvm flutter run                    # runs on the booted emulator
+```
+
+Create an emulator first with `fvm flutter emulators --create` (or via Android
+Studio's Device Manager) if the list is empty.
+
+**iOS simulator** (macOS host with Xcode only — Apple does not permit the iOS
+simulator on Linux or Windows):
+
+```sh
+open -a Simulator                # boot the iOS Simulator
+cd app && fvm flutter run -d ios # or `-d "iPhone 15"` to target a named simulator
+```
+
+Once a simulator/emulator is booted it shows up in `fvm flutter devices`, so you
+can also select it with `-d <id>` when several targets are attached. Hot reload
+(`r`) and hot restart (`R`) work the same as on physical devices and desktop.
+
 To build release artifacts locally (the same set CI produces across Linux,
 macOS, Windows, Android, and iOS):
 
