@@ -230,6 +230,12 @@ design/domain-model.md "CC parity backfill".*
 - [ ] 5.2 Program navigation (next/prev, jump), screen-wake lock, high-contrast theme;
   optional per-slot / running **program timing** (CC `Set.TimeStart`/`TimeElapsed`,
   `SetItem.Time`) surfaced during an event
+  - Program navigation delivered: program-mode Perform view walking `Program.grouped`
+    groups (next/prev via on-screen buttons, giant edge hit zones, and keyboard
+    arrows/page keys), a jump-to-slot overview, and one-tap ALT swap within a group,
+    reusing the shared large-print `PerformCard`. Remaining sub-items — screen
+    wake-lock, high-contrast / 7:1 dark-stage theme, and program timing — are
+    separate follow-up PRs.
 - [ ] 5.3 On-the-fly program adjustments during an event
 - [ ] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
   rendering of figures for assistive tech (distinct from the terse canonical/dialect
