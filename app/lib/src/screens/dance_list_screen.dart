@@ -657,7 +657,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
       title: Text(
         activeCount == 0 ? 'By phrase' : 'By phrase ($activeCount active)',
       ),
-      subtitle: const Text('Search figures per phrase (A1/A2/B1/B2).'),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       children: [
         ByPhrasePanel(
