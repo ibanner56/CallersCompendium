@@ -8,6 +8,7 @@ import '../data/repositories_scope.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
 import '../widgets/collection_picker.dart';
+import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
 import '../widgets/program_slot_list_editor.dart';
@@ -175,6 +176,47 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   ];
 
   String? _titleForDance(String danceId) => _data?.dancesById[danceId]?.title;
+
+  /// Shared renderer for the large-print Perform view (mirrors the dance
+  /// detail / single-dance Perform screens).
+  static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
+
+  /// The program to hand to the large-print Perform view, assembled from the
+  /// current (possibly unsaved) edits. Falls back to a placeholder title for a
+  /// brand-new, still-untitled program so performing always works when slots
+  /// exist. Returns null when there is nothing to perform.
+  Program? get _programToPerform {
+    if (_slots.isEmpty) return null;
+    final draft = _draftProgram;
+    if (draft != null) return draft;
+    final now = _existing?.createdAt ?? DateTime.now().toUtc();
+    try {
+      return Program(
+        id: _existing?.id ?? 'draft',
+        title: 'Program',
+        slots: _renumber(_slots),
+        createdAt: now,
+        updatedAt: now,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _performProgram() {
+    final data = _data;
+    final program = _programToPerform;
+    if (data == null || program == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PerformProgramScreen(
+          program: program,
+          data: data,
+          renderer: _performRenderer,
+        ),
+      ),
+    );
+  }
 
   // --- Slot mutations -------------------------------------------------------
 
@@ -485,6 +527,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ],
           ),
           actions: [
+            if (_loaded &&
+                _loadError == null &&
+                _data != null &&
+                _slots.isNotEmpty)
+              IconButton(
+                key: const ValueKey('perform-program'),
+                tooltip: 'Perform this program',
+                icon: const Icon(Icons.slideshow),
+                onPressed: _performProgram,
+              ),
             if (_loaded && _loadError == null && _draftProgram != null)
               ProgramExportMenu(
                 program: _draftProgram!,
