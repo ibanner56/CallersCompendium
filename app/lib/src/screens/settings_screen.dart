@@ -43,9 +43,9 @@ class SettingsScreen extends StatefulWidget {
 /// The selectable sections in Settings. Declaration order is sidebar order; add
 /// a value (and its content in [_SettingsScreenState._content]) to add a page.
 enum _SettingsSection {
+  general('General', Icons.tune_outlined, Icons.tune),
   appearance('Appearance', Icons.palette_outlined, Icons.palette),
-  dialect('Dialect', Icons.groups_outlined, Icons.groups),
-  general('General', Icons.tune_outlined, Icons.tune);
+  dialect('Dialect', Icons.groups_outlined, Icons.groups);
 
   const _SettingsSection(this.label, this.icon, this.selectedIcon);
 
