@@ -368,6 +368,61 @@ for app-wide preference switches as they accrue.
   `docs/design/ux.md` §2). When on: only programs with the dance's slot marked performed appear, matching the
   behavior described in `docs/design/domain-model.md`. Persisted via `SettingsRepository`.
 
+- [ ] G.3 **New-dance defaults** — configurable defaults applied when creating a
+  new dance: form/type, formation, progression, phrase structure, and default
+  figure beat count. The domain model currently hardcodes these
+  (`Formation(dupleImproper)`, `Progression.single`, `4×16` phrase structure);
+  this surfaces them as user preferences so a caller who works mostly in one
+  idiom sets them once instead of re-picking on every new dance (mirrors how
+  Caller's Companion callers work from a "home" configuration). App-only: seed
+  the `DanceEditorScreen` initial state from the saved defaults; existing dances
+  are unaffected. Persisted via `SettingsRepository`.
+
+- [ ] G.4 **Default caller & band for new programs** — saved default values used
+  to prefill a new program's event metadata (Phase 4.2): the caller name (the
+  user is usually the caller) and, optionally, a default band. Caller's
+  Companion stores caller/band per set; prefilling saves re-typing at every
+  event. Editable per program; defaults only prefill. Persisted via
+  `SettingsRepository`.
+
+- [ ] G.5 **Soft-delete retention period** — expose the retention window used by
+  the startup purge sweep (`DanceRepository.purgeDeleted`, currently hardcoded
+  to 30 days) as a user setting (e.g. 30 / 90 days / never auto-purge). Callers
+  are protective of their collections; letting them lengthen or disable
+  auto-purge is a low-risk safety preference. Touches core only insofar as the
+  purge call reads the configured window; default remains 30 days. Persisted
+  via `SettingsRepository`.
+
+- [ ] G.6 **Back up / restore all data** — a General settings entry point to
+  export the full collection + programs + custom fields/dialects/themes to a
+  single JSON file and restore from one, plus an optional backup-reminder
+  cadence. Addresses Caller's Companion's biggest pain point (data lock-in /
+  loss with the binary `.USR`). Overlaps the Phase 6.6 generic JSON
+  import/export — this item is the *Settings entry point + backup-reminder
+  preference*; the underlying serialization is shared with 6.6. Persisted
+  (reminder cadence + last-backup timestamp) via `SettingsRepository`.
+
+- [ ] G.7 **Display defaults** — persisted display preferences: (a) the default
+  Collection sort order (title / author / recently-added / last-called), and
+  (b) the default dance-detail rendering (canonical vs active-dialect view) —
+  some callers always want dialect applied. Both are app-only, small, and
+  persist the user's preferred starting state via `SettingsRepository`.
+
+- [ ] G.8 **Accessibility preferences** — app-wide a11y toggles grounded in
+  `research/accessibility-baseline.md`: reduce-motion (dampen non-essential
+  animation), always-verbose figure rendering (always apply the roadmap 5.4
+  screen-reader/verbose figure rendering in the dance view, not only for AT),
+  and confirm-before-delete (an explicit confirm dialog instead of the
+  undo-snackbar delete pattern). Persisted via `SettingsRepository`.
+
+- [ ] G.9 **Localization & regional formats** *(placeholder / later)* — Caller's
+  Companion ships ~12 runtime UI languages; we have no i18n yet ("UI
+  localization / multi-language" under Later milestones). Ahead of full i18n,
+  the cheap, useful pieces are regional: date format and first-day-of-week,
+  which affect program event dates. This item stubs a home for those regional
+  preferences and anticipates a future language selector. Persisted via
+  `SettingsRepository`.
+
 ## Phase 6 — Imports & migration
 
 - [ ] 6.1 Source adapter framework + provenance tracking
