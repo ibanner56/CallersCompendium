@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../data/active_dialect_scope.dart';
 import '../search/collection_data.dart';
 import 'perform_card.dart';
+import 'perform_wakelock.dart';
 
 /// Full-screen, large-print performance view for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
@@ -42,7 +43,8 @@ class PerformProgramScreen extends StatefulWidget {
   State<PerformProgramScreen> createState() => _PerformProgramScreenState();
 }
 
-class _PerformProgramScreenState extends State<PerformProgramScreen> {
+class _PerformProgramScreenState extends State<PerformProgramScreen>
+    with PerformWakelockMixin {
   late final List<ProgramSlotGroup> _groups = widget.program.grouped;
 
   /// Selected member within each group, indexing `[primary, ...alternates]`.

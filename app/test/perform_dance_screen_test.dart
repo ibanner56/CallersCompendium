@@ -8,6 +8,7 @@ import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/perform_dance_screen.dart';
 
 import 'support/test_repositories.dart';
+import 'support/fake_wakelock.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -80,6 +81,8 @@ Future<void> _pumpDetail(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(installFakeWakelock);
 
   testWidgets('renders title, author, and a figure with the active dialect', (
     tester,

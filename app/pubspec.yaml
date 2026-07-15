@@ -19,11 +19,13 @@ dependencies:
   pdf: ^3.11.1
   printing: ^5.13.3
   share_plus: ^10.1.2
+  wakelock_plus: ^1.2.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  wakelock_plus_platform_interface: ^1.5.1
 
 flutter:
   uses-material-design: true
