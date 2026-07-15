@@ -489,11 +489,17 @@ class DanceRepository {
   /// Alphabetizes [ids] by title with a leading article ignored (see
   /// [titleSortKey]). [ids] arrive in SQL title (base) order, kept as a stable
   /// tiebreak for equal keys (e.g. "Rose" vs "The Rose" both key to "rose").
+  ///
+  /// Only the `(id, title)` of the already-filtered [ids] is fetched (via an
+  /// `id IN (...)` restriction), so this scales with the result size rather
+  /// than the whole library.
   Future<List<String>> _sortByTitleIgnoringArticles(List<String> ids) async {
     if (ids.isEmpty) return ids;
-    final rows = await (_db.selectOnly(
-      _db.dances,
-    )..addColumns([_db.dances.id, _db.dances.title])).get();
+    final rows =
+        await (_db.selectOnly(_db.dances)
+              ..addColumns([_db.dances.id, _db.dances.title])
+              ..where(_db.dances.id.isIn(ids)))
+            .get();
     final keys = {
       for (final row in rows)
         row.read(_db.dances.id)!: titleSortKey(row.read(_db.dances.title)!),
