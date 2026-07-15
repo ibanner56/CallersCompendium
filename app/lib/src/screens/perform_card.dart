@@ -326,24 +326,23 @@ class PerformDialectToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Exclude the decorative "Canonical" label from semantics and attach the
-    // accessible name to the Switch itself (merged into one node) so assistive
-    // tech announces a single "Show canonical terms" toggle rather than the
-    // label text and the switch separately.
+    // Icon-only toggle (consistent with PerformAutoSizeToggle and
+    // PerformStageToggle) so the Perform AppBar's action row fits narrow phones
+    // without overflowing — the earlier label+Switch layout was ~2.5x wider than
+    // its sibling actions and pushed the trailing toolbar past the screen edge.
+    // The accessible name stays 'Show canonical terms' and the on/off STATE is
+    // folded into the button's own node via Semantics.toggled, so assistive tech
+    // announces one control carrying role, name, tap action, and toggle state.
     return MergeSemantics(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const ExcludeSemantics(child: Text('Canonical')),
-          Semantics(
-            label: 'Show canonical terms',
-            child: Switch(
-              key: const ValueKey('perform-dialect-toggle'),
-              value: canonical,
-              onChanged: onChanged,
-            ),
-          ),
-        ],
+      child: Semantics(
+        toggled: canonical,
+        child: IconButton(
+          key: const ValueKey('perform-dialect-toggle'),
+          tooltip: 'Show canonical terms',
+          isSelected: canonical,
+          icon: const Icon(Icons.translate),
+          onPressed: () => onChanged(!canonical),
+        ),
       ),
     );
   }

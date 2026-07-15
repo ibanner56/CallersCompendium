@@ -154,6 +154,46 @@ void main() {
     expect(find.text('First Dance'), findsOneWidget);
   });
 
+  testWidgets('AppBar action row fits a narrow phone width without overflowing', (
+    tester,
+  ) async {
+    // Regression: on a ~402pt-wide phone (e.g. iPhone) the trailing AppBar
+    // action row overflowed by ~17px whenever the dialect toggle was visible,
+    // because PerformDialectToggle rendered a wide "Canonical" label + Switch
+    // instead of an icon button like its sibling toggles. See perform_card.dart.
+    await tester.binding.setSurfaceSize(const Size(402, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(notifier.dispose);
+    final repos = openTestRepositories();
+    await repos.settings.set(kAutoSizePerformKey, false);
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
+        home: PerformProgramScreen(
+          program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+          data: data,
+          renderer: _renderer,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // A non-canonical active dialect keeps the toggle visible — the control
+    // that made the row overflow — so this exercises the widest common case.
+    expect(
+      find.byKey(const ValueKey('perform-dialect-toggle')),
+      findsOneWidget,
+    );
+    // No RenderFlex overflow (or any other exception) during layout.
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('keyboard arrows navigate between groups', (tester) async {
     final data = await _dataWith([
       _dance(id: 'd1', title: 'First Dance'),

@@ -337,13 +337,21 @@ void main() {
 
       await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
 
-      // The Switch carries the accessible name and toggle role; the decorative
-      // "Canonical" text is excluded so it isn't announced separately.
+      // The icon button carries the accessible name (via its tooltip — the
+      // standard icon-button pattern) plus the toggle role/state. A redundant
+      // Semantics label would double-announce, so none is set. The decorative
+      // "Canonical" text no longer exists, so nothing is announced separately.
       expect(
         tester.getSemantics(
           find.byKey(const ValueKey('perform-dialect-toggle')),
         ),
-        isSemantics(label: 'Show canonical terms', hasTapAction: true),
+        isSemantics(
+          tooltip: 'Show canonical terms',
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+          hasToggledState: true,
+        ),
       );
       expect(find.bySemanticsLabel('Canonical'), findsNothing);
 
