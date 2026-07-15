@@ -440,7 +440,7 @@ taxonomy are unchanged.
   from a "home" configuration). App-only: seed the `DanceEditorScreen` initial
   metadata from the saved defaults.
 
-- [ ] DD.2 **Default new-dance template (starting figures)** — the figure list a
+- [x] DD.2 **Default new-dance template (starting figures)** — the figure list a
   blank new dance begins with, user-editable. Default matches ContraDB's new-dance
   template for now: a single `stand_still` figure of 8 beats (`stand_still × 8`).
   A caller who always opens with the same skeleton (e.g. a balance or a specific

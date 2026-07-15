@@ -250,6 +250,22 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         } catch (_) {
           /* keep the hardcoded standard phrase structure */
         }
+        // Seed the starting figures from the saved template (ROADMAP DD.2).
+        // Unset ⇒ the default `stand_still × 8`; a read/decode failure also
+        // falls back to the default rather than failing the editor load. This
+        // runs BEFORE the draft-restore check + initial undo snapshot below, so
+        // the first render shows the template, the initial undo entry captures
+        // it, and a restored autosaved draft still overrides it.
+        try {
+          final template = danceFiguresTemplateFromStored(
+            await _repos.settings.get(kDefaultDanceFiguresTemplateKey),
+          );
+          _figureDrafts.addAll(template.map(FigureDraft.fromFigure));
+        } catch (_) {
+          _figureDrafts.addAll(
+            defaultNewDanceFigureTemplate().map(FigureDraft.fromFigure),
+          );
+        }
       }
 
       // Seed text controllers for custom text/number fields.

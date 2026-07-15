@@ -127,3 +127,36 @@ Progression progressionFromStored(Object? stored) {
 String dancePhraseStructureRawFromStored(Object? stored) {
   return stored is String ? stored : '';
 }
+
+/// Key used to persist the default starting-figures TEMPLATE for new dances
+/// (ROADMAP DD.2). Stored as a `figures_json` string (the same shape a dance's
+/// figures use — see [encodeFigures]/[decodeFigures]). Absent/non-string/empty/
+/// invalid ⇒ [defaultNewDanceFigureTemplate] (ContraDB's `stand_still × 8`).
+const String kDefaultDanceFiguresTemplateKey = 'default_dance_figures_template';
+
+/// The default figure list a blank NEW dance begins with when the user hasn't
+/// configured a template (ROADMAP DD.2). Matches ContraDB's new-dance template:
+/// a single `stand_still` figure of 8 beats.
+///
+/// Returns a fresh list on each call so callers can safely map it into mutable
+/// drafts without sharing state.
+List<Figure> defaultNewDanceFigureTemplate() => [
+  Figure(move: 'stand_still', params: const {'beats': 8}),
+];
+
+/// Resolves a persisted settings value into the starting-figures template.
+///
+/// A valid `figures_json` string is decoded verbatim — including `'[]'`, which
+/// yields an intentional EMPTY template. `null`, a non-string, or an
+/// unparseable/garbage string falls back to [defaultNewDanceFigureTemplate],
+/// preserving ContraDB parity for users who never touch the setting.
+List<Figure> danceFiguresTemplateFromStored(Object? stored) {
+  if (stored is String) {
+    try {
+      return decodeFigures(stored);
+    } catch (_) {
+      // Empty / malformed JSON ⇒ fall back to the default template.
+    }
+  }
+  return defaultNewDanceFigureTemplate();
+}

@@ -430,4 +430,76 @@ void main() {
       '8*8*1',
     );
   });
+
+  testWidgets('Starting-figures editor renders with the default template', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Starting figures'), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-add')), findsOneWidget);
+    // The pre-seeded default is a single stand_still figure.
+    expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-1-summary')), findsNothing);
+  });
+
+  testWidgets('editing the template figure persists it', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '16');
+    await tester.pumpAndSettle();
+
+    final stored = danceFiguresTemplateFromStored(
+      await repos.settings.get(kDefaultDanceFiguresTemplateKey),
+    );
+    expect(stored, hasLength(1));
+    expect(stored.single.move, 'stand_still');
+    expect(stored.single.params['beats'], 16);
+  });
+
+  testWidgets('deleting the only template figure persists an empty template', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-delete')));
+    await tester.pumpAndSettle();
+
+    // Persisted as an intentional empty template ('[]'), not the default.
+    expect(await repos.settings.get(kDefaultDanceFiguresTemplateKey), '[]');
+    expect(find.byKey(const ValueKey('figure-0-summary')), findsNothing);
+  });
+
+  testWidgets('a saved multi-figure template reflects on reload', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kDefaultDanceFiguresTemplateKey,
+      encodeFigures([
+        Figure(move: 'balance', params: const {'who': 'neighbors', 'beats': 4}),
+        Figure(move: 'swing', params: const {'who': 'neighbors', 'beats': 12}),
+      ]),
+    );
+    await _pumpDefaults(tester, repos);
+    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-1-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-2-summary')), findsNothing);
+  });
 }
