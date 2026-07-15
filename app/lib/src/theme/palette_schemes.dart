@@ -30,6 +30,17 @@ class GalleryPalettes {
 
   // ---- Light palettes -----------------------------------------------------
 
+  /// Material Light — the Material 3 baseline scheme (default purple seed).
+  static final ColorScheme materialLight = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFFFFBFE),
+    onSurface: const Color(0xFF1C1B1F),
+    primary: const Color(0xFF6750A4),
+    secondary: const Color(0xFF625B71),
+    tertiary: const Color(0xFF7D5260),
+    error: const Color(0xFFB3261E),
+  );
+
   /// Solarized Light (Ethan Schoonover, MIT). Exact base/accent hues.
   static final ColorScheme solarizedLight = _build(
     brightness: Brightness.light,
@@ -50,17 +61,6 @@ class GalleryPalettes {
     secondary: const Color(0xFF50A14F),
     tertiary: const Color(0xFFA626A4),
     error: const Color(0xFFE45649),
-  );
-
-  /// Noctis Lux — inspired, contrast-tuned.
-  static final ColorScheme noctisLux = _build(
-    brightness: Brightness.light,
-    surface: const Color(0xFFF9F6F2),
-    onSurface: const Color(0xFF53606C),
-    primary: const Color(0xFF00A38B),
-    secondary: const Color(0xFF2E8B57),
-    tertiary: const Color(0xFFC7852A),
-    error: const Color(0xFFC5341A),
   );
 
   // ---- Dark palettes ------------------------------------------------------
@@ -109,26 +109,16 @@ class GalleryPalettes {
     error: const Color(0xFFE06C75),
   );
 
-  /// Monokai — inspired, contrast-tuned.
+  /// Monokai — tuned to match One Monokai (azemoh): Monokai's syntax accents
+  /// on One Dark's charcoal canvas, contrast-tuned.
   static final ColorScheme monokai = _build(
     brightness: Brightness.dark,
-    surface: const Color(0xFF272822),
-    onSurface: const Color(0xFFF8F8F2),
-    primary: const Color(0xFFF92672),
-    secondary: const Color(0xFFA6E22E),
-    tertiary: const Color(0xFFFD971F),
-    error: const Color(0xFFFF6188),
-  );
-
-  /// Noctis — inspired, contrast-tuned.
-  static final ColorScheme noctis = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF1B2932),
-    onSurface: const Color(0xFFD6DEEB),
-    primary: const Color(0xFF49E9A6),
-    secondary: const Color(0xFF5DE4C7),
-    tertiary: const Color(0xFFE4B781),
-    error: const Color(0xFFE34E1C),
+    surface: const Color(0xFF282C34),
+    onSurface: const Color(0xFFABB2BF),
+    primary: const Color(0xFFE06C75),
+    secondary: const Color(0xFF98C379),
+    tertiary: const Color(0xFFC678DD),
+    error: const Color(0xFFF44747),
   );
 
   // ---- Community favorites — dark -----------------------------------------
@@ -188,6 +178,28 @@ class GalleryPalettes {
     error: const Color(0xFFF38BA8),
   );
 
+  /// Catppuccin Frappé — inspired, contrast-tuned (the mid-dark flavor).
+  static final ColorScheme catppuccinFrappe = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF303446),
+    onSurface: const Color(0xFFC6D0F5),
+    primary: const Color(0xFFCA9EE6),
+    secondary: const Color(0xFFA6D189),
+    tertiary: const Color(0xFFE5C890),
+    error: const Color(0xFFE78284),
+  );
+
+  /// Catppuccin Macchiato — inspired, contrast-tuned (the darker mid flavor).
+  static final ColorScheme catppuccinMacchiato = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF24273A),
+    onSurface: const Color(0xFFCAD3F5),
+    primary: const Color(0xFFC6A0F6),
+    secondary: const Color(0xFFA6DA95),
+    tertiary: const Color(0xFFEED49F),
+    error: const Color(0xFFED8796),
+  );
+
   /// GitHub Dark — inspired, contrast-tuned (neutral blue).
   static final ColorScheme githubDark = _build(
     brightness: Brightness.dark,
@@ -197,6 +209,137 @@ class GalleryPalettes {
     secondary: const Color(0xFF3FB950),
     tertiary: const Color(0xFFD29922),
     error: const Color(0xFFF85149),
+  );
+
+  /// GitHub Soft Dark — inspired by GitHub's "Dark dimmed" palette, a softer,
+  /// lower-contrast dark on a muted slate canvas. Contrast-tuned.
+  static final ColorScheme githubSoftDark = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF22272E),
+    onSurface: const Color(0xFFADBAC7),
+    primary: const Color(0xFF539BF5),
+    secondary: const Color(0xFF57AB5A),
+    tertiary: const Color(0xFFC69026),
+    error: const Color(0xFFE5534B),
+  );
+
+  /// Cutie Pro — inspired by the "cute af" dark pastel theme (jezzy-star),
+  /// warm charcoal with a pink-magenta lead and teal/coral accents.
+  static final ColorScheme cutiePro = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF181818),
+    onSurface: const Color(0xFFD5D0C9),
+    primary: const Color(0xFFD286B7),
+    secondary: const Color(0xFF42D9C5),
+    tertiary: const Color(0xFFF58669),
+    error: const Color(0xFFF56E7F),
+  );
+
+  /// Cute Pink Dark — inspired by Ingo Steinke's theme: pink on true black,
+  /// with rose and soft-purple accents.
+  static final ColorScheme cutePinkDark = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF000000),
+    onSurface: const Color(0xFFFCEAF1),
+    primary: const Color(0xFFF14874),
+    secondary: const Color(0xFFF4B4CC),
+    tertiary: const Color(0xFFA192AB),
+    error: const Color(0xFFFF5370),
+  );
+
+  /// Pink as Heck — inspired by shoobah's theme: hot pink on a deep berry
+  /// canvas, with a mint-green and amber accent for range.
+  static final ColorScheme pinkAsHeck = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF2B111B),
+    onSurface: const Color(0xFFFF5C8D),
+    primary: const Color(0xFFFF5C8D),
+    secondary: const Color(0xFF37E884),
+    tertiary: const Color(0xFFE5AC40),
+    error: const Color(0xFFF44747),
+  );
+
+  /// One Candy Dark — inspired by angao's One Dark variant: the familiar One
+  /// Dark charcoal with a candy-pink lead plus mint and candy-yellow accents.
+  static final ColorScheme oneCandyDark = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF282C34),
+    onSurface: const Color(0xFFABB2BF),
+    primary: const Color(0xFFFCADE7),
+    secondary: const Color(0xFF79C3A4),
+    tertiary: const Color(0xFFFCDFAD),
+    error: const Color(0xFFE05561),
+  );
+
+  /// Matcha — inspired by Luca Falasco's theme: a matcha-green lead on a slate
+  /// canvas, with teal and warm-cream accents.
+  static final ColorScheme matcha = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF273136),
+    onSurface: const Color(0xFFD1DED3),
+    primary: const Color(0xFFA4B07E),
+    secondary: const Color(0xFF7EB0A3),
+    tertiary: const Color(0xFFC0AE69),
+    error: const Color(0xFFC6A685),
+  );
+
+  /// Material Dark — the Material 3 baseline dark scheme (default purple seed).
+  static final ColorScheme materialDark = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF1C1B1F),
+    onSurface: const Color(0xFFE6E1E5),
+    primary: const Color(0xFFD0BCFF),
+    secondary: const Color(0xFFCCC2DC),
+    tertiary: const Color(0xFFEFB8C8),
+    error: const Color(0xFFF2B8B5),
+  );
+
+  /// Zenburn — inspired by Jani Nurminen's classic low-contrast theme: muted
+  /// olive-green and soft accents on a signature warm grey.
+  static final ColorScheme zenburn = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF3F3F3F),
+    onSurface: const Color(0xFFDCDCCC),
+    primary: const Color(0xFF7F9F7F),
+    secondary: const Color(0xFF8CD0D3),
+    tertiary: const Color(0xFFF0DFAF),
+    error: const Color(0xFFCC9393),
+  );
+
+  /// Shades of Purple — inspired by Ahmad Awais's theme: a bold gold lead on
+  /// deep indigo, with hot-pink and cyan accents.
+  static final ColorScheme shadesOfPurple = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF2D2B55),
+    onSurface: const Color(0xFFE1DEFC),
+    primary: const Color(0xFFFAD000),
+    secondary: const Color(0xFFFF628C),
+    tertiary: const Color(0xFF9EFFFF),
+    error: const Color(0xFFF44747),
+  );
+
+  /// Palenight — inspired by Mattia Astorino's Material Palenight: a purple
+  /// lead on a blue-grey canvas, with blue and warm accents.
+  static final ColorScheme palenight = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF292D3E),
+    onSurface: const Color(0xFFA6ACCD),
+    primary: const Color(0xFFC792EA),
+    secondary: const Color(0xFF82AAFF),
+    tertiary: const Color(0xFFFFCB6B),
+    error: const Color(0xFFFF5370),
+  );
+
+  /// Synthwave '84 — inspired by Robb Owen's theme: glowing neon pink on deep
+  /// retro purple, with cyan and electric-yellow accents.
+  static final ColorScheme synthwave84 = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF262335),
+    onSurface: const Color(0xFFF8F8F2),
+    primary: const Color(0xFFFF7EDB),
+    secondary: const Color(0xFF36F9F6),
+    tertiary: const Color(0xFFFEDE5D),
+    error: const Color(0xFFFE4450),
   );
 
   /// Night Owl — inspired, contrast-tuned (deep teal-blue).
@@ -309,6 +452,135 @@ class GalleryPalettes {
     secondary: const Color(0xFF86B300),
     tertiary: const Color(0xFF399EE6),
     error: const Color(0xFFF07171),
+  );
+
+  // ---- Noctis family (liviuschera/noctis) ---------------------------------
+  //
+  // The full Noctis palette set. Every variant shares Noctis's signature
+  // syntax accents — mint-green strings, warm-pink keywords, gold functions —
+  // over its own canvas, so they read as one coherent family regardless of
+  // light/dark brightness. Accents (green/pink/gold/red) are constant per
+  // brightness; only the surface + foreground change between variants.
+
+  /// Noctis — the original deep teal night.
+  static final ColorScheme noctis = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF052529),
+    onSurface: const Color(0xFFB2CACD),
+    primary: const Color(0xFF49E9A6),
+    secondary: const Color(0xFFDF769B),
+    tertiary: const Color(0xFFD5971A),
+    error: const Color(0xFFE34E1C),
+  );
+
+  /// Noctis Azureus — deep azure-blue night.
+  static final ColorScheme noctisAzureus = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF07273B),
+    onSurface: const Color(0xFFBECFDA),
+    primary: const Color(0xFF49E9A6),
+    secondary: const Color(0xFFDF769B),
+    tertiary: const Color(0xFFD5971A),
+    error: const Color(0xFFE34E1C),
+  );
+
+  /// Noctis Bordo — warm burgundy-brown night.
+  static final ColorScheme noctisBordo = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF322A2D),
+    onSurface: const Color(0xFFCBBEC2),
+    primary: const Color(0xFF49E9A6),
+    secondary: const Color(0xFFDF769B),
+    tertiary: const Color(0xFFD5971A),
+    error: const Color(0xFFE34E1C),
+  );
+
+  /// Noctis Minimus — muted blue-grey night.
+  static final ColorScheme noctisMinimus = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF1B2932),
+    onSurface: const Color(0xFFC5CDD3),
+    primary: const Color(0xFF72C09F),
+    secondary: const Color(0xFFC88DA2),
+    tertiary: const Color(0xFFA88C00),
+    error: const Color(0xFFB96346),
+  );
+
+  /// Noctis Obscuro — the darkest teal night.
+  static final ColorScheme noctisObscuro = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF031417),
+    onSurface: const Color(0xFFB2CACD),
+    primary: const Color(0xFF49E9A6),
+    secondary: const Color(0xFFDF769B),
+    tertiary: const Color(0xFFD5971A),
+    error: const Color(0xFFE34E1C),
+  );
+
+  /// Noctis Sereno — calm mid-teal night.
+  static final ColorScheme noctisSereno = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF062E32),
+    onSurface: const Color(0xFFB2CACD),
+    primary: const Color(0xFF49E9A6),
+    secondary: const Color(0xFFDF769B),
+    tertiary: const Color(0xFFD5971A),
+    error: const Color(0xFFE34E1C),
+  );
+
+  /// Noctis Uva — deep indigo-violet night.
+  static final ColorScheme noctisUva = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF292640),
+    onSurface: const Color(0xFFC5C2D6),
+    primary: const Color(0xFF49E9A6),
+    secondary: const Color(0xFFDF769B),
+    tertiary: const Color(0xFFD5971A),
+    error: const Color(0xFFE34E1C),
+  );
+
+  /// Noctis Viola — rich purple night.
+  static final ColorScheme noctisViola = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF30243D),
+    onSurface: const Color(0xFFCCBFD9),
+    primary: const Color(0xFF49E9A6),
+    secondary: const Color(0xFFDF769B),
+    tertiary: const Color(0xFFD5971A),
+    error: const Color(0xFFE34E1C),
+  );
+
+  /// Noctis Hibernus — cool, crisp daylight.
+  static final ColorScheme noctisHibernus = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFF4F6F6),
+    onSurface: const Color(0xFF005661),
+    primary: const Color(0xFF00B368),
+    secondary: const Color(0xFFFF5792),
+    tertiary: const Color(0xFFA88C00),
+    error: const Color(0xFFFF4000),
+  );
+
+  /// Noctis Lux — soft warm daylight.
+  static final ColorScheme noctisLux = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFFEF8EC),
+    onSurface: const Color(0xFF005661),
+    primary: const Color(0xFF00B368),
+    secondary: const Color(0xFFFF5792),
+    tertiary: const Color(0xFFA88C00),
+    error: const Color(0xFFFF4000),
+  );
+
+  /// Noctis Lilac — gentle lilac daylight.
+  static final ColorScheme noctisLilac = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFF2F1F8),
+    onSurface: const Color(0xFF0C006B),
+    primary: const Color(0xFF00B368),
+    secondary: const Color(0xFFFF5792),
+    tertiary: const Color(0xFFA88C00),
+    error: const Color(0xFFFF4000),
   );
 
   // ---- Derivation ---------------------------------------------------------

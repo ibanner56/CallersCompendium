@@ -42,34 +42,37 @@ class AppColorSchemes {
     inversePrimary: Color(0xFFFFB59B),
   );
 
-  /// Dark "Hearth" scheme (§1a).
+  /// Dark "Hearth" scheme (§1a). Muted-pastel register: the accents are
+  /// desaturated and the canvas lifted into a dustier warm charcoal so the
+  /// palette reads softer than a deeply-saturated night theme, while every
+  /// meaningful pair still clears WCAG AA.
   static const ColorScheme dark = ColorScheme(
     brightness: Brightness.dark,
-    primary: Color(0xFFFFB59B),
+    primary: Color(0xFFEABFB0),
     onPrimary: Color(0xFF5A1B08),
-    primaryContainer: Color(0xFF7C3218),
+    primaryContainer: Color(0xFF723E2C),
     onPrimaryContainer: Color(0xFFFFDBCF),
-    secondary: Color(0xFFB4CCB1),
+    secondary: Color(0xFFB5CBB2),
     onSecondary: Color(0xFF203622),
-    secondaryContainer: Color(0xFF364E37),
+    secondaryContainer: Color(0xFF374D38),
     onSecondaryContainer: Color(0xFFD0E8CF),
-    tertiary: Color(0xFFEFC048),
+    tertiary: Color(0xFFD0BA80),
     onTertiary: Color(0xFF3F2E00),
-    tertiaryContainer: Color(0xFF5B4300),
+    tertiaryContainer: Color(0xFF524318),
     onTertiaryContainer: Color(0xFFFFDF9E),
-    error: Color(0xFFFFB4AB),
+    error: Color(0xFFEEC1BC),
     onError: Color(0xFF690005),
     errorContainer: Color(0xFF93000A),
     onErrorContainer: Color(0xFFFFDAD6),
-    surface: Color(0xFF1A120E),
-    onSurface: Color(0xFFEDE0D9),
-    onSurfaceVariant: Color(0xFFD7C3B8),
-    surfaceContainerHighest: Color(0xFF3B302A),
-    outline: Color(0xFFA08D82),
-    outlineVariant: Color(0xFF52443C),
+    surface: Color(0xFF261F1B),
+    onSurface: Color(0xFFEAE1DC),
+    onSurfaceVariant: Color(0xFFD3C4BC),
+    surfaceContainerHighest: Color(0xFF413833),
+    outline: Color(0xFF9E8D84),
+    outlineVariant: Color(0xFF584C45),
     shadow: Color(0xFF000000),
     scrim: Color(0xFF000000),
-    inverseSurface: Color(0xFFEDE0D9),
+    inverseSurface: Color(0xFFEAE1DC),
     onInverseSurface: Color(0xFF362F2B),
     inversePrimary: Color(0xFF9C4A2F),
   );
