@@ -521,6 +521,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             (_loaded && _loadError == null && _tabController.index == 0)
             ? FloatingActionButton.extended(
                 key: const ValueKey('save-program'),
+                heroTag: 'save-program',
                 onPressed: _saving ? null : _save,
                 icon: const Icon(Icons.save_outlined),
                 label: Text(_dirty ? 'Save *' : 'Save'),

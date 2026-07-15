@@ -302,6 +302,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ? null
           : FloatingActionButton.extended(
               key: const ValueKey('new-dance'),
+              heroTag: 'new-dance',
               onPressed: _openNewDance,
               icon: const Icon(Icons.add),
               label: const Text('New dance'),

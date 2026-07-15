@@ -140,7 +140,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   Future<void> _openEditor() async {
     await Navigator.of(context).push(

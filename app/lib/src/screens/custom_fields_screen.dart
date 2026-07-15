@@ -148,6 +148,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       body: _buildBody(),
       floatingActionButton: FloatingActionButton.extended(
         key: const ValueKey('add-field'),
+        heroTag: 'add-field',
         onPressed: () => _openForm(),
         icon: const Icon(Icons.add),
         label: const Text('New field'),
