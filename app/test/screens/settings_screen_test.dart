@@ -496,6 +496,52 @@ void main() {
       // The name is preserved (edit terms never renames).
       expect(saved.name, equals('Mine'));
     });
+
+    testWidgets('saving an invalid dialect surfaces issues and stays open', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await ctx.dialectLibrary.upsert(Dialect(name: 'Mine'));
+      await openDialect(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dialect-menu-Mine')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit terms'));
+      await tester.pumpAndSettle();
+
+      // Two roles mapping to the same term is an ambiguous collision.
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role1-singular')),
+        'Same',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role2-singular')),
+        'Same',
+      );
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      // The editor stays open with the issue surfaced; nothing was saved.
+      expect(
+        find.byKey(const ValueKey('dialect-validation-error')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('dialect-editor-save')), findsOneWidget);
+      expect(ctx.dialectLibrary.customByName('Mine')!.roles, isEmpty);
+
+      // Resolving the collision lets the save go through.
+      await tester.enterText(
+        find.byKey(const ValueKey('dialect-role2-singular')),
+        'Other',
+      );
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      final saved = ctx.dialectLibrary.customByName('Mine')!;
+      expect(saved.roles['role1']!.singular, equals('Same'));
+      expect(saved.roles['role2']!.singular, equals('Other'));
+    });
   });
 
   group('SettingsScreen — theme selection', () {

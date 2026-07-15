@@ -40,6 +40,11 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   bool _showMoves = false;
   bool _showDancers = false;
 
+  /// Model-level issues from the last save attempt (empty/ambiguous
+  /// substitutions), surfaced inline so a save that would produce an invalid
+  /// dialect keeps the user in the editor rather than silently persisting it.
+  List<ValidationIssue> _issues = const [];
+
   @override
   void initState() {
     super.initState();
@@ -97,7 +102,9 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   }
 
   /// Assembles the current editor state into a [Dialect], preserving the
-  /// original name, and returns it to the caller.
+  /// original name. If the assembled dialect has validation issues (empty or
+  /// ambiguous substitutions), they are surfaced inline and the editor stays
+  /// open; otherwise the edited dialect is returned to the caller.
   void _save() {
     final roles = <String, RoleTerm>{};
     final r1 = _roleTerm(_role1Singular, _role1Plural);
@@ -124,6 +131,11 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       dancers: dancers,
       discouragedTerms: _discouraged,
     );
+    final issues = edited.validate();
+    if (issues.isNotEmpty) {
+      setState(() => _issues = issues);
+      return;
+    }
     Navigator.of(context).pop(edited);
   }
 
@@ -190,6 +202,15 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       ),
       body: ListView(
         children: [
+          if (_issues.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Text(
+                _issues.map((i) => i.message).join('\n'),
+                key: const ValueKey('dialect-validation-error'),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
           const _EditorHeader(title: 'Role terms'),
           _RoleTermsEditor(
             role1Singular: _role1Singular,
