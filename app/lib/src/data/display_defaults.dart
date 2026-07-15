@@ -138,7 +138,7 @@ const String kDefaultDanceFiguresTemplateKey = 'default_dance_figures_template';
 
 /// The default figure list a blank NEW dance begins with when the user hasn't
 /// configured a template (ROADMAP DD.2). Matches ContraDB's new-dance template:
-/// a single `stand_still` figure of 8 beats.
+/// eight `stand_still` figures of 8 beats each.
 ///
 /// Returns a fresh list on each call so callers can safely map it into mutable
 /// drafts without sharing state.

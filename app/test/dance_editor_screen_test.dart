@@ -651,6 +651,8 @@ void main() {
 
     await tester.enterText(find.byKey(const ValueKey('title-field')), 'B');
     await _expandMoreDetails(tester);
+    await tester.ensureVisible(find.byKey(const ValueKey('custom-b1')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('custom-b1')));
     await tester.tap(find.byKey(const ValueKey('save-dance')));
     await tester.pumpAndSettle();
@@ -1643,9 +1645,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final saved = (await repos.dances.listAll()).single;
-      expect(saved.figures, hasLength(1));
-      expect(saved.figures.single.move, 'stand_still');
-      expect(saved.figures.single.params['beats'], 8);
+      expect(saved.figures, hasLength(8));
+      expect(saved.figures.every((f) => f.move == 'stand_still'), isTrue);
+      expect(saved.figures.every((f) => f.params['beats'] == 8), isTrue);
     });
 
     testWidgets('new dance seeds figures from a saved template', (

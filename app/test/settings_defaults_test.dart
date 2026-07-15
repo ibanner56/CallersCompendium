@@ -273,8 +273,11 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-
-    await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
+    // Tall surface so the whole Defaults page renders at once: after #137 the
+    // starting-figures editor seeds 8 rows, and scrolling to the phrase field
+    // would push the Dance-authoring header out of the lazy ListView's cache.
+    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.pumpAndSettle();
 
     expect(find.text('Dance-authoring defaults'), findsOneWidget);
     expect(find.byKey(const ValueKey('defaults-dance-form')), findsOneWidget);
@@ -294,8 +297,8 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
-
-    await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
+    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.pumpAndSettle();
 
     expect(
       tester
@@ -394,7 +397,8 @@ void main() {
     await repos.settings.set(kDefaultDancePhraseStructureKey, '8*8*1');
 
     await _pumpDefaults(tester, repos);
-    await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
+    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.pumpAndSettle();
 
     expect(
       tester
@@ -441,9 +445,10 @@ void main() {
 
     expect(find.text('Starting figures'), findsOneWidget);
     expect(find.byKey(const ValueKey('figure-add')), findsOneWidget);
-    // The pre-seeded default is a single stand_still figure.
+    // The pre-seeded default is eight stand_still figures (#137).
     expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
-    expect(find.byKey(const ValueKey('figure-1-summary')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-7-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-8-summary')), findsNothing);
   });
 
   testWidgets('editing the template figure persists it', (tester) async {
@@ -460,12 +465,15 @@ void main() {
     final stored = danceFiguresTemplateFromStored(
       await repos.settings.get(kDefaultDanceFiguresTemplateKey),
     );
-    expect(stored, hasLength(1));
-    expect(stored.single.move, 'stand_still');
-    expect(stored.single.params['beats'], 16);
+    // Editing figure 0 persists the whole (default 8-figure) template with the
+    // edited beats on the first figure; the rest keep their default of 8.
+    expect(stored, hasLength(8));
+    expect(stored.first.move, 'stand_still');
+    expect(stored.first.params['beats'], 16);
+    expect(stored[1].params['beats'], 8);
   });
 
-  testWidgets('deleting the only template figure persists an empty template', (
+  testWidgets('deleting all template figures persists an empty template', (
     tester,
   ) async {
     final repos = openTestRepositories();
@@ -473,10 +481,17 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 3000));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('figure-0-delete')));
-    await tester.pumpAndSettle();
+    // Delete every figure in the default (8-figure) template; each delete
+    // shifts the next figure up to index 0.
+    while (find
+        .byKey(const ValueKey('figure-0-summary'))
+        .evaluate()
+        .isNotEmpty) {
+      await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-0-delete')));
+      await tester.pumpAndSettle();
+    }
 
     // Persisted as an intentional empty template ('[]'), not the default.
     expect(await repos.settings.get(kDefaultDanceFiguresTemplateKey), '[]');

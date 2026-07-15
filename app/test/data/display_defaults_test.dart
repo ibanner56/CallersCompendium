@@ -107,11 +107,11 @@ void main() {
   });
 
   group('dance figures template (DD.2)', () {
-    test('the default template is a single stand_still x8', () {
+    test('the default template is eight stand_still x8 figures', () {
       final template = defaultNewDanceFigureTemplate();
-      expect(template, hasLength(1));
-      expect(template.single.move, 'stand_still');
-      expect(template.single.params['beats'], 8);
+      expect(template, hasLength(8));
+      expect(template.every((f) => f.move == 'stand_still'), isTrue);
+      expect(template.every((f) => f.params['beats'] == 8), isTrue);
     });
 
     test('round-trips a real encodeFigures string', () {
@@ -134,9 +134,9 @@ void main() {
     test('falls back to the default for null, non-string, empty, garbage', () {
       for (final stored in [null, 7, '', 'not json', '{"move":"x"}']) {
         final template = danceFiguresTemplateFromStored(stored);
-        expect(template, hasLength(1));
-        expect(template.single.move, 'stand_still');
-        expect(template.single.params['beats'], 8);
+        expect(template, hasLength(8));
+        expect(template.every((f) => f.move == 'stand_still'), isTrue);
+        expect(template.every((f) => f.params['beats'] == 8), isTrue);
       }
     });
   });
