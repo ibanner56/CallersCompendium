@@ -317,7 +317,24 @@ design/domain-model.md "CC parity backfill".*
   clipboard, print/save PDF via `printing`) on the detail app bar. Preserves the
   4b.4 privacy invariant — authors render by name only, so choreographer contact
   fields never enter a shared export (regression-tested).
-- [ ] 5.3 On-the-fly program adjustments during an event
+- [x] 5.3 On-the-fly program adjustments during an event
+  - Delivered: a non-destructive **"adjust" sheet** on the program Perform view
+    (`docs/design/ux.md` §5) that never disturbs the reading view underneath.
+    From it the caller can **reorder the remaining slots** (drag handle **plus** a
+    non-drag move up/down alternative, WCAG 2.5.7 — the current group and every
+    later group are reorderable, already-passed groups stay fixed), **insert a
+    dance from quick-search** (reusing the builder's `CollectionPicker` stack) and
+    **add an ad-hoc note slot**, both landing right after the current slot ("play
+    this next"), and **mark the current slot performed** — the 5.2-deferred
+    `performedAt` WRITE path (a toggle; `ProgramSlot.copyWith` gains a pure
+    `clearPerformedAt` flag). Edits apply to the live view (grouping / navigation
+    recompute, keeping the reading position on the same dance by slot id) and
+    **persist** through `ProgramRepository.update` (bumping `updatedAt`) via an
+    `onProgramChanged` callback — the saved-program summary persists immediately
+    and reloads; the editor's still-unsaved draft folds edits back into its
+    working slots to save through the normal flow. Every adjustment is **undoable**
+    via the app-wide SnackBar pattern, and the adjust controls are keyboard/AT
+    reachable with button role, name and (for mark-performed) toggled state.
 - [x] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
   rendering of figures for assistive tech (distinct from the terse canonical/dialect
   display text), per the accessibility baseline ([research/accessibility-baseline.md](research/accessibility-baseline.md)) and

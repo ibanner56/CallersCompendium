@@ -256,6 +256,19 @@ void main() {
       },
     );
 
+    test('ProgramSlot.copyWith sets and clears performedAt via flag', () {
+      final now = DateTime.utc(2026, 5, 1, 20, 30);
+      final s = ProgramSlot(id: 's1', position: 0, danceId: 'd1');
+      final marked = s.copyWith(performedAt: now);
+      expect(marked.performedAt, now);
+      expect(marked.copyWith(clearPerformedAt: true).performedAt, isNull);
+      // A set clear flag wins over any value passed for the same field.
+      expect(
+        marked.copyWith(performedAt: now, clearPerformedAt: true).performedAt,
+        isNull,
+      );
+    });
+
     test('duplicate carries the new fields through', () {
       final original = Program(
         id: 'p1',

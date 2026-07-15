@@ -74,6 +74,7 @@ class ProgramSlot {
     DateTime? performedAt,
     bool clearGuestCaller = false,
     bool clearPlannedMinutes = false,
+    bool clearPerformedAt = false,
   }) => ProgramSlot(
     id: id,
     position: position ?? this.position,
@@ -84,7 +85,7 @@ class ProgramSlot {
     plannedMinutes: clearPlannedMinutes
         ? null
         : (plannedMinutes ?? this.plannedMinutes),
-    performedAt: performedAt ?? this.performedAt,
+    performedAt: clearPerformedAt ? null : (performedAt ?? this.performedAt),
   );
 
   @override

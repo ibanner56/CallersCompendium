@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../search/collection_data.dart';
+import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
 
@@ -32,6 +33,7 @@ class PerformProgramScreen extends StatefulWidget {
     required this.data,
     required this.renderer,
     this.initialGroup = 0,
+    this.onProgramChanged,
   });
 
   final Program program;
@@ -41,16 +43,34 @@ class PerformProgramScreen extends StatefulWidget {
   /// Group index to open at (defaults to the first group).
   final int initialGroup;
 
+  /// Persists an in-event adjustment (`docs/design/ux.md` §5). Called with the
+  /// new [Program] — a fresh `updatedAt` — after every reorder / insert / note /
+  /// mark-performed edit made from the "adjust" sheet. When null (e.g. an
+  /// unsaved draft with no owner to persist through), adjustments stay in-view
+  /// only. The screen always updates its own live state first, so the reading
+  /// view reflects the change regardless.
+  final Future<void> Function(Program updated)? onProgramChanged;
+
   @override
   State<PerformProgramScreen> createState() => _PerformProgramScreenState();
 }
 
 class _PerformProgramScreenState extends State<PerformProgramScreen>
     with PerformWakelockMixin {
-  late final List<ProgramSlotGroup> _groups = widget.program.grouped;
+  /// The live working copy of the program. In-event adjustments mutate this and
+  /// persist through [PerformProgramScreen.onProgramChanged]; navigation and
+  /// grouping recompute from it so the reading view reflects edits immediately.
+  late Program _program = widget.program;
+
+  /// Cached navigable groups. [Program.grouped] walks the whole slot list and
+  /// allocates a fresh unmodifiable list on every call, and the build/helpers
+  /// read the groups several times per frame — so we recompute this only when
+  /// [_program] actually changes (in [_applyProgram]) rather than on each read.
+  late List<ProgramSlotGroup> _groups = _program.grouped;
 
   /// Selected member within each group, indexing `[primary, ...alternates]`.
-  late final List<int> _selectedMember = List<int>.filled(_groups.length, 0);
+  /// Rebuilt to match the group count whenever [_program] changes structurally.
+  late List<int> _selectedMember = List<int>.filled(_groups.length, 0);
 
   final FocusNode _focusNode = FocusNode(debugLabel: 'perform-program');
 
@@ -241,6 +261,108 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     }
   }
 
+  /// The slot currently on screen (the selected member of the current group).
+  ProgramSlot get _currentSlot {
+    final members = _membersOf(_groups[_groupIndex]);
+    return members[_selectedMember[_groupIndex].clamp(0, members.length - 1)];
+  }
+
+  /// Swaps in an edited [updated] program: recomputes grouping, keeps the view
+  /// on the exact slot that was on screen (by id — the selected alternate too,
+  /// not just its primary) so the caller keeps reading the same dance after a
+  /// reorder/insert, and persists via [PerformProgramScreen.onProgramChanged].
+  ///
+  /// The per-slot timer keeps running while that slot is still on screen; it
+  /// only resets when the previously visible slot is gone (e.g. removed), so
+  /// timing (a 5.2 feature) is undisturbed by edits that leave it in place.
+  void _applyProgram(Program updated, {String? announce}) {
+    final prevSlotId = _groups.isEmpty ? null : _currentSlot.id;
+    setState(() {
+      _program = updated;
+      _groups = _program.grouped;
+      _selectedMember = List<int>.filled(_groups.length, 0);
+      final maxIndex = _groups.isEmpty ? 0 : _groups.length - 1;
+      var located = false;
+      if (prevSlotId != null) {
+        for (var gi = 0; gi < _groups.length; gi++) {
+          final members = _membersOf(_groups[gi]);
+          final mi = members.indexWhere((s) => s.id == prevSlotId);
+          if (mi >= 0) {
+            _groupIndex = gi;
+            _selectedMember[gi] = mi;
+            located = true;
+            break;
+          }
+        }
+      }
+      if (!located) {
+        _groupIndex = _groupIndex.clamp(0, maxIndex);
+        _resetSlotTimer();
+      }
+    });
+    if (announce != null && mounted) {
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        announce,
+        TextDirection.ltr,
+      );
+    }
+    final onChanged = widget.onProgramChanged;
+    if (onChanged != null) unawaited(onChanged(updated));
+  }
+
+  /// Applies [updated] and offers a one-tap SnackBar undo restoring the
+  /// pre-edit program (the app-wide undo pattern), persisting either way.
+  void _applyWithUndo(
+    Program updated, {
+    required String message,
+    required String announce,
+  }) {
+    final previous = _program;
+    _applyProgram(updated, announce: announce);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () =>
+                _applyProgram(previous, announce: 'Adjustment undone'),
+          ),
+        ),
+      );
+  }
+
+  /// Opens the non-destructive "adjust" sheet (`docs/design/ux.md` §5) over the
+  /// reading view. The sheet edits a working copy (reorder remaining slots,
+  /// insert a dance from quick-search, add an ad-hoc note, mark the current slot
+  /// performed) and returns the edited program on close; we then apply it live
+  /// with undo. Returning null (no change / dismissed) is a no-op.
+  Future<void> _openAdjustSheet() async {
+    final edited = await showModalBottomSheet<Program>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => PerformAdjustSheet(
+        program: _program,
+        currentGroupIndex: _groupIndex,
+        currentSlotId: _currentSlot.id,
+        data: widget.data,
+        dialect: _canonicalView
+            ? Dialect.canonical
+            : ActiveDialectScope.of(context),
+      ),
+    );
+    if (edited == null || !mounted) return;
+    _applyWithUndo(
+      edited,
+      message: 'Program adjusted.',
+      announce: 'Program adjusted',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeDialect = ActiveDialectScope.of(context);
@@ -290,6 +412,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           ),
           title: Text(widget.program.title),
           actions: [
+            IconButton(
+              key: const ValueKey('perform-adjust'),
+              tooltip: 'Adjust program',
+              icon: const Icon(Icons.tune),
+              onPressed: _openAdjustSheet,
+            ),
             IconButton(
               key: const ValueKey('perform-jump'),
               tooltip: 'Jump to slot',
