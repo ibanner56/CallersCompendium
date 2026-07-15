@@ -461,8 +461,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
   void _openDraft(String id) {
     setState(() => _openDraftId = id);
     // Focus lands on the Move field via MoveAutocomplete.autofocus when the
-    // editor mounts.
-    _ensureVisibleSoon(id);
+    // editor mounts. We intentionally do NOT scroll the list into view on
+    // expand: the tapped/activated row is already visible, and an animated
+    // viewport jump on every open is disorienting. (The Add flow still scrolls
+    // its freshly-appended figure into view via _ensureVisibleSoon.)
     final i = widget.drafts.indexWhere((d) => d.id == id);
     if (i != -1) {
       final name = _figureDisplayName(widget.drafts[i], widget.taxonomy);

@@ -1233,6 +1233,21 @@ void main() {
     expect(find.textContaining('beats'), findsNothing);
   });
 
+  testWidgets('collapsed summary renders the swing balance prefix', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: 'swing',
+        params: {'who': 'partners', 'prefix': 'balance', 'beats': 16},
+      ),
+    ];
+    await _pump(tester, drafts);
+
+    // The collapse-to-sentence row surfaces the prefix via FigureRenderer.
+    expect(find.textContaining('balance & swing'), findsOneWidget);
+  });
+
   testWidgets('collapsed row exposes button semantics with composite label', (
     tester,
   ) async {
@@ -1292,6 +1307,60 @@ void main() {
       ),
     );
     expect(editable.focusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('opening a figure does not scroll the list viewport', (
+    tester,
+  ) async {
+    // Regression guard: expanding a figure must NOT animate the list to a new
+    // scroll offset (the old behavior scrolled the row to alignment 0.1, which
+    // felt like the viewport "jumping" on every open).
+    await tester.binding.setSurfaceSize(const Size(900, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final drafts = List<FigureDraft>.generate(
+      14,
+      (_) =>
+          FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+    );
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            controller: controller,
+            child: FigureListEditor(
+              drafts: drafts,
+              taxonomy: contraTaxonomy,
+              phraseStructure: PhraseStructure.standard,
+              onChanged: () {},
+              onAdd: () {},
+              onDelete: (_) {},
+              onReorder: (_, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Scroll partway down so an upper-middle figure is visible with room to
+    // scroll in either direction — the old ensureVisible(alignment: 0.1) would
+    // have changed the offset here.
+    controller.jumpTo(150);
+    await tester.pumpAndSettle();
+    final before = controller.offset;
+
+    final summary = find.byKey(const ValueKey('figure-3-summary'));
+    expect(summary, findsOneWidget);
+    await tester.tap(summary);
+    await tester.pumpAndSettle();
+
+    // Editor is open (Move field mounted) but the viewport did not move.
+    expect(find.byKey(const ValueKey('figure-3-move-input')), findsOneWidget);
+    expect(controller.offset, before);
   });
 
   testWidgets('add auto-opens the new figure and focuses its Move field', (

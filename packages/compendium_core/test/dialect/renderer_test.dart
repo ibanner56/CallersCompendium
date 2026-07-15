@@ -60,6 +60,80 @@ void main() {
     });
   });
 
+  group('swing prefix modifier', () {
+    Figure swing(String prefix) =>
+        Figure(move: 'swing', params: {'who': 'neighbors', 'prefix': prefix});
+
+    test('none renders no prefix word', () {
+      expect(
+        renderer.render(swing('none'), Dialect.canonical),
+        'neighbors swing',
+      );
+      expect(
+        renderer.renderVerbose(swing('none'), Dialect.canonical),
+        'neighbors swing',
+      );
+    });
+
+    test('balance renders "balance & swing" / verbose "balance and swing"', () {
+      expect(
+        renderer.render(swing('balance'), Dialect.canonical),
+        'neighbors balance & swing',
+      );
+      expect(
+        renderer.renderVerbose(swing('balance'), Dialect.canonical),
+        'neighbors balance and swing',
+      );
+    });
+
+    test('meltdown renders "meltdown swing" (visual and verbose)', () {
+      expect(
+        renderer.render(swing('meltdown'), Dialect.canonical),
+        'neighbors meltdown swing',
+      );
+      expect(
+        renderer.renderVerbose(swing('meltdown'), Dialect.canonical),
+        'neighbors meltdown swing',
+      );
+    });
+
+    test('default swing (prefix omitted → none) is unchanged', () {
+      expect(
+        renderer.render(
+          Figure(move: 'swing', params: {'who': 'partners'}),
+          Dialect.canonical,
+        ),
+        'partners swing',
+      );
+    });
+
+    test('meltdown_swing alias does not double the prefix word', () {
+      // The alias display name already conveys the prefix; the pinned param
+      // must not render a second time.
+      expect(
+        renderer.render(Figure(move: 'meltdown_swing'), Dialect.canonical),
+        'partners meltdown swing',
+      );
+      expect(
+        renderer.renderVerbose(
+          Figure(move: 'meltdown_swing'),
+          Dialect.canonical,
+        ),
+        'partners meltdown swing',
+      );
+    });
+
+    test('prefix coexists with dialect role substitution', () {
+      expect(
+        renderer.render(
+          Figure(move: 'swing', params: {'who': 'role1s', 'prefix': 'balance'}),
+          larks,
+        ),
+        'larks balance & swing',
+      );
+    });
+  });
+
   group('custom figures', () {
     test('render their (dialect-processed) free text', () {
       expect(
