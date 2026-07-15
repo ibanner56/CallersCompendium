@@ -173,14 +173,19 @@ Design items (each produces a design doc + review):
   matrix stays BOOLEAN presence to match CC's checklist semantics; adding
   counts would diverge from CC parity, so it is not planned.
 
-- [x] 4.5 Per-dance calling history — dance detail shows the programs in which
-  the dance was actually called (derived query over performed `ProgramSlot`s;
-  `ux.md` §2 / wireframe `2-dance-detail` "History"). Read-only, tappable to
-  open each program. Backed by a focused Flutter-free core query
-  (`ProgramRepository.callingHistoryForDance`, mirroring `lastCalledByDance`),
-  most-recent first. Note: rows populate once the separate "mark performed"
-  write path stamps `performedAt` — until then the section shows a discoverable
-  empty state ("Not yet called in any program.").
+- [x] 4.5 Per-dance calling history — dance detail shows the programs that
+  **include** the dance (a slot referencing it), a derived query over
+  `ProgramSlot`s (`ux.md` §2 / wireframe `2-dance-detail` "History"). Read-only,
+  tappable to open each program, most-recent first (ordered by the slot's
+  `performedAt` when set, else the program's `eventDate`, else `updatedAt`).
+  Backed by a focused Flutter-free core query
+  (`ProgramRepository.callingHistoryForDance`, mirroring `lastCalledByDance`).
+  By **default** a program appears as soon as it contains the dance, whether or
+  not the slot was marked performed; the query takes an optional `performedOnly`
+  flag (default `false`) as the hook for **G.2** (General settings, off by
+  default — see below), which will optionally restrict history to
+  actually-performed slots. G.2 and the "mark performed" write path remain
+  separate, unbuilt items.
 
 ## Phase 4b — Caller's Companion parity backfill (dance & metadata model)
 

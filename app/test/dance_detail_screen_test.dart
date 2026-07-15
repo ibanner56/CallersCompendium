@@ -944,7 +944,9 @@ void main() {
       updatedAt: _now,
     );
 
-    testWidgets('renders the programs the dance was called in', (tester) async {
+    testWidgets('renders the programs the dance is included in', (
+      tester,
+    ) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
       await repos.programs.create(
@@ -967,28 +969,73 @@ void main() {
       await _pumpDetail(tester, repos, 'd1');
 
       expect(find.text('Calling history'), findsOneWidget);
-      expect(
-        find.byKey(
-          ValueKey(
-            'calling-history-p1-${DateTime.utc(2026, 10, 3, 20).toIso8601String()}',
-          ),
-        ),
-        findsOneWidget,
-      );
+      expect(find.byKey(const ValueKey('calling-history-s1')), findsOneWidget);
       expect(find.text('Autumn Ball'), findsOneWidget);
       expect(find.textContaining('Grange Hall'), findsOneWidget);
       expect(find.byKey(const ValueKey('calling-history-empty')), findsNothing);
     });
 
-    testWidgets('shows the empty state when never called', (tester) async {
+    testWidgets(
+      'by default lists a program even when the slot is not marked performed',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+        // Slot references the dance but performedAt is null — it must STILL
+        // appear under the default (non-performed) behavior.
+        await repos.programs.create(
+          program(
+            id: 'p1',
+            title: 'Autumn Ball',
+            eventDate: DateTime.utc(2026, 10, 3),
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+        );
+
+        await _pumpDetail(tester, repos, 'd1');
+
+        expect(
+          find.byKey(const ValueKey('calling-history-s1')),
+          findsOneWidget,
+        );
+        expect(find.text('Autumn Ball'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('calling-history-empty')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets('falls back to the event date when the slot is not performed', (
+      tester,
+    ) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
-      // A program that references the dance but has NOT been performed must
-      // not appear in the history (performedAt is null).
       await repos.programs.create(
         program(
           id: 'p1',
+          title: 'Autumn Ball',
+          eventDate: DateTime.utc(2026, 10, 3),
           slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      final expectedDate = MaterialLocalizations.of(
+        tester.element(find.byKey(const ValueKey('calling-history-s1'))),
+      ).formatMediumDate(DateTime.utc(2026, 10, 3));
+      expect(find.textContaining(expectedDate), findsWidgets);
+    });
+
+    testWidgets('shows the empty state when in no program', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      // A program that does NOT include this dance must not populate history.
+      await repos.dances.create(_dance(id: 'other', title: 'Other'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'other')],
         ),
       );
 
@@ -999,7 +1046,7 @@ void main() {
         find.byKey(const ValueKey('calling-history-empty')),
         findsOneWidget,
       );
-      expect(find.text('Not yet called in any program.'), findsOneWidget);
+      expect(find.text('Not yet included in any program.'), findsOneWidget);
     });
 
     testWidgets('tapping a history row opens the program', (tester) async {
@@ -1022,13 +1069,7 @@ void main() {
 
       await _pumpDetail(tester, repos, 'd1');
 
-      await tester.tap(
-        find.byKey(
-          ValueKey(
-            'calling-history-p1-${DateTime.utc(2026, 10, 3, 20).toIso8601String()}',
-          ),
-        ),
-      );
+      await tester.tap(find.byKey(const ValueKey('calling-history-s1')));
       await tester.pumpAndSettle();
 
       expect(find.byType(ProgramEditorScreen), findsOneWidget);
@@ -1060,11 +1101,7 @@ void main() {
 
       await _pumpDetail(tester, repos, 'd1');
 
-      final rowFinder = find.byKey(
-        ValueKey(
-          'calling-history-p1-${DateTime.utc(2026, 10, 3, 20).toIso8601String()}',
-        ),
-      );
+      final rowFinder = find.byKey(const ValueKey('calling-history-s1'));
       expect(
         tester.getSemantics(rowFinder),
         isSemantics(isButton: true, isFocusable: true, hasTapAction: true),

@@ -5,31 +5,44 @@ import '../../model/program.dart';
 import '../database.dart';
 import '../utc_datetime.dart';
 
-/// One entry in a dance's calling history: a program in which the dance was
-/// actually called (a slot referencing the dance with a non-null
-/// `performedAt`), produced by [ProgramRepository.callingHistoryForDance].
+/// One entry in a dance's calling history: a program that includes the dance
+/// (a slot referencing it), produced by
+/// [ProgramRepository.callingHistoryForDance].
 ///
-/// Calling history is a **derived query** over performed [ProgramSlot]s, never
-/// stored on the dance (see `docs/design/domain-model.md`). There is one record
-/// per performed slot, so a dance called more than once in the same program
-/// yields multiple records.
+/// Calling history is a **derived query** over [ProgramSlot]s, never stored on
+/// the dance (see `docs/design/domain-model.md`). By default a program appears
+/// as soon as it *contains* the dance — [performedAt] may be null (the "mark
+/// performed" write path is a separate feature; see ROADMAP G.2). There is one
+/// record per matching slot, so a dance appearing more than once in the same
+/// program yields multiple records.
 @immutable
 class DanceCallingRecord {
   const DanceCallingRecord({
+    required this.slotId,
     required this.programId,
     required this.programTitle,
-    required this.performedAt,
+    required this.programUpdatedAt,
+    this.performedAt,
     this.eventDate,
     this.venue,
   });
 
-  /// The program the dance was called in.
+  /// The slot that references the dance. Unique per record — used as a stable
+  /// key so two rows for the same program don't collide.
+  final String slotId;
+
+  /// The program the dance appears in.
   final String programId;
   final String programTitle;
 
-  /// When the slot was actually called (always non-null — the query only
-  /// returns performed slots). UTC.
-  final DateTime performedAt;
+  /// The program's last-updated timestamp (always present). UTC. Used as the
+  /// final ordering/display fallback when neither [performedAt] nor [eventDate]
+  /// is set.
+  final DateTime programUpdatedAt;
+
+  /// When the slot was actually called, if the "mark performed" path has
+  /// stamped it — otherwise null. UTC.
+  final DateTime? performedAt;
 
   /// The program's scheduled event date, if any. UTC.
   final DateTime? eventDate;
@@ -37,18 +50,32 @@ class DanceCallingRecord {
   /// The program's venue, if any.
   final String? venue;
 
+  /// The date used for ordering and display: the actual performance time when
+  /// set, else the program's scheduled event date, else its last-updated time.
+  /// Always non-null so ordering never depends on [performedAt] being present.
+  DateTime get effectiveDate => performedAt ?? eventDate ?? programUpdatedAt;
+
   @override
   bool operator ==(Object other) =>
       other is DanceCallingRecord &&
+      other.slotId == slotId &&
       other.programId == programId &&
       other.programTitle == programTitle &&
+      other.programUpdatedAt == programUpdatedAt &&
       other.performedAt == performedAt &&
       other.eventDate == eventDate &&
       other.venue == venue;
 
   @override
-  int get hashCode =>
-      Object.hash(programId, programTitle, performedAt, eventDate, venue);
+  int get hashCode => Object.hash(
+    slotId,
+    programId,
+    programTitle,
+    programUpdatedAt,
+    performedAt,
+    eventDate,
+    venue,
+  );
 }
 
 /// CRUD for [Program]s and their [ProgramSlot]s.
@@ -183,39 +210,53 @@ class ProgramRepository {
     };
   }
 
-  /// The calling history for the dance identified by [danceId]: every program
-  /// in which the dance was actually called — i.e. a slot referencing this
-  /// dance whose `performed_at` is non-null, on a non-deleted program — most
-  /// recently performed first.
+  /// The calling history for the dance identified by [danceId]: the programs
+  /// that include the dance (a slot referencing it) on a non-deleted program,
+  /// ordered most-recent first.
   ///
-  /// Calling history is a derived query over performed [ProgramSlot]s, never
-  /// stored (see `docs/design/domain-model.md`; `docs/design/ux.md` §2 / the
-  /// dance-detail wireframe "History"). One record per performed slot, so a
-  /// dance called twice in the same program appears twice. Feeds the
-  /// dance-detail "Calling history" section.
+  /// By DEFAULT a program appears as soon as it *contains* the dance —
+  /// regardless of whether the slot was marked performed ([performedAt] may be
+  /// null). Pass [performedOnly] `true` to restrict the history to slots that
+  /// were actually called (`performed_at IS NOT NULL`); this is the hook for
+  /// the future "Require mark-performed for calling history" General setting
+  /// (ROADMAP G.2, off by default).
+  ///
+  /// Calling history is a derived query, never stored (see
+  /// `docs/design/domain-model.md`; `docs/design/ux.md` §2 / the dance-detail
+  /// wireframe "History"). One record per matching slot, ordered by each
+  /// record's effective date (performed_at, else event_date, else updated_at)
+  /// descending — the ordering never depends on `performed_at` being present.
+  /// Feeds the dance-detail "Calling history" section.
   Future<List<DanceCallingRecord>> callingHistoryForDance(
-    String danceId,
-  ) async {
+    String danceId, {
+    bool performedOnly = false,
+  }) async {
     final rows = await _db
         .customSelect(
-          'SELECT programs.id AS program_id, programs.title AS program_title, '
+          'SELECT program_slots.id AS slot_id, programs.id AS program_id, '
+          'programs.title AS program_title, '
           'programs.event_date AS event_date, programs.venue AS venue, '
+          'programs.updated_at AS updated_at, '
           'program_slots.performed_at AS performed_at '
           'FROM program_slots '
           'JOIN programs ON programs.id = program_slots.program_id '
           'WHERE program_slots.dance_id = ? '
-          'AND program_slots.performed_at IS NOT NULL '
+          '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
           'AND programs.deleted_at IS NULL '
-          'ORDER BY program_slots.performed_at DESC',
+          'ORDER BY COALESCE('
+          'program_slots.performed_at, programs.event_date, programs.updated_at'
+          ') DESC, programs.id',
           variables: [Variable<String>(danceId)],
         )
         .get();
     return [
       for (final row in rows)
         DanceCallingRecord(
+          slotId: row.read<String>('slot_id'),
           programId: row.read<String>('program_id'),
           programTitle: row.read<String>('program_title'),
-          performedAt: asUtc(row.read<DateTime>('performed_at')),
+          programUpdatedAt: asUtc(row.read<DateTime>('updated_at')),
+          performedAt: asUtcOrNull(row.read<DateTime?>('performed_at')),
           eventDate: asUtcOrNull(row.read<DateTime?>('event_date')),
           venue: row.read<String?>('venue'),
         ),

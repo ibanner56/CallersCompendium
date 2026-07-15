@@ -679,7 +679,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             key: const ValueKey('calling-history-empty'),
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Text(
-              'Not yet called in any program.',
+              'Not yet included in any program.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -688,10 +688,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         else
           for (final record in detail.callingHistory)
             _CallingHistoryRow(
-              key: ValueKey(
-                'calling-history-${record.programId}'
-                '-${record.performedAt.toIso8601String()}',
-              ),
+              key: ValueKey('calling-history-${record.slotId}'),
               record: record,
               onTap: () => _openProgram(record.programId),
             ),
@@ -916,12 +913,12 @@ class _LinkRow extends StatelessWidget {
   }
 }
 
-/// One entry in the dance's calling history: a program the dance was actually
-/// called in. A single merged-semantics button exposing the program title, a
-/// date (the slot's `performedAt`, falling back to the program's `eventDate`),
-/// and the venue if present; tapping opens the program. Mirrors the
-/// row-as-button a11y pattern used by [_LinkRow] and the set-list rows in
-/// `programs_shell.dart`.
+/// One entry in the dance's calling history: a program the dance is included
+/// in. A single merged-semantics button exposing the program title, its
+/// effective date (the slot's `performedAt` when set, else the program's
+/// `eventDate`, else its last-updated time), and the venue if present; tapping
+/// opens the program. Mirrors the row-as-button a11y pattern used by [_LinkRow]
+/// and the set-list rows in `programs_shell.dart`.
 class _CallingHistoryRow extends StatelessWidget {
   const _CallingHistoryRow({super.key, required this.record, this.onTap});
 
@@ -932,13 +929,11 @@ class _CallingHistoryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final localizations = MaterialLocalizations.of(context);
-    // Show the date the dance was actually called (`performedAt`), per
-    // `docs/design/ux.md` §2 — not the program's scheduled `eventDate`, which
-    // can differ. `performedAt` is always present here (the query only returns
-    // performed slots). It is a real UTC instant, so render its date directly
-    // without a local-timezone conversion (matching how other date labels in
-    // this screen format stored UTC dates).
-    final date = localizations.formatMediumDate(record.performedAt);
+    // Programs appear as soon as they include the dance, so `performedAt` is
+    // often null; `effectiveDate` falls back to the program's event date, then
+    // its last-updated time, so a date always shows. These are stored UTC
+    // values rendered directly (matching the other date labels on this screen).
+    final date = localizations.formatMediumDate(record.effectiveDate);
     final venue = record.venue?.trim();
     final subtitleParts = <String>[
       date,
