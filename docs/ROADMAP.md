@@ -335,7 +335,7 @@ design/domain-model.md "CC parity backfill".*
     working slots to save through the normal flow. Every adjustment is **undoable**
     via the app-wide SnackBar pattern, and the adjust controls are keyboard/AT
     reachable with button role, name and (for mark-performed) toggled state.
-- [ ] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
+- [x] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
   rendering of figures for assistive tech (distinct from the terse canonical/dialect
   display text), per the accessibility baseline ([research/accessibility-baseline.md](research/accessibility-baseline.md)) and
   the [figure-taxonomy.md](design/figure-taxonomy.md) "verbose rendering still TODO" note. Applies to the dance
@@ -358,7 +358,7 @@ for app-wide preference switches as they accrue.
   "user-set size, no upper bound" model remains the manual mode — auto-size is
   an opt-out convenience layer on top.
 
-- [ ] G.2 **Require "mark performed" for calling history** — a General settings
+- [x] G.2 **Require "mark performed" for calling history** — a General settings
   toggle (**off by default**) controlling whether a program must have the dance's
   slot marked performed (`ProgramSlot.performedAt` set) to appear in that dance's
   calling-history section (per-dance calling history; `docs/design/ux.md` §2).

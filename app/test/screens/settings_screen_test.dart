@@ -9,6 +9,7 @@ import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
 import '../support/test_repositories.dart';
@@ -23,12 +24,14 @@ Future<
     ValueNotifier<Dialect> notifier,
     ValueNotifier<AppThemeSelection> themeNotifier,
     CustomThemesController customThemes,
+    ValueNotifier<bool> requirePerformedNotifier,
   })
 >
 _pumpSettings(
   WidgetTester tester, {
   Dialect? initialDialect,
   AppThemeSelection? initialTheme,
+  bool initialRequirePerformed = false,
   Size surfaceSize = const Size(1000, 2600),
 }) async {
   final repos = openTestRepositories();
@@ -42,12 +45,14 @@ _pumpSettings(
   );
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
+  final requirePerformedNotifier = ValueNotifier<bool>(initialRequirePerformed);
 
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(notifier.dispose);
   addTearDown(themeNotifier.dispose);
   addTearDown(customThemes.dispose);
+  addTearDown(requirePerformedNotifier.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -57,7 +62,13 @@ _pumpSettings(
           notifier: themeNotifier,
           child: CustomThemesScope(
             controller: customThemes,
-            child: ActiveDialectScope(notifier: notifier, child: child!),
+            child: ActiveDialectScope(
+              notifier: notifier,
+              child: RequirePerformedForHistoryScope(
+                notifier: requirePerformedNotifier,
+                child: child!,
+              ),
+            ),
           ),
         ),
       ),
@@ -70,6 +81,7 @@ _pumpSettings(
     notifier: notifier,
     themeNotifier: themeNotifier,
     customThemes: customThemes,
+    requirePerformedNotifier: requirePerformedNotifier,
   );
 }
 
@@ -81,6 +93,99 @@ void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('SettingsScreen — General settings (G.2)', () {
+    // The General section content only shows once its sidebar entry is picked
+    // (side-by-side layout shows only the selected section).
+    Future<void> openGeneral(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+      await tester.pumpAndSettle();
+    }
+
+    const toggleKey = ValueKey('general-require-performed-for-history');
+
+    testWidgets('require-performed toggle is present and off by default', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      await openGeneral(tester);
+
+      expect(find.byKey(toggleKey), findsOneWidget);
+      final toggle = tester.widget<SwitchListTile>(find.byKey(toggleKey));
+      expect(toggle.value, isFalse);
+    });
+
+    testWidgets('reflects the initial setting value', (tester) async {
+      await _pumpSettings(tester, initialRequirePerformed: true);
+      await openGeneral(tester);
+
+      final toggle = tester.widget<SwitchListTile>(find.byKey(toggleKey));
+      expect(toggle.value, isTrue);
+    });
+
+    testWidgets('turning it on updates the notifier and persists the setting', (
+      tester,
+    ) async {
+      final harness = await _pumpSettings(tester);
+      await openGeneral(tester);
+
+      await tester.tap(find.byKey(toggleKey));
+      await tester.pumpAndSettle();
+
+      expect(harness.requirePerformedNotifier.value, isTrue);
+      expect(
+        await harness.repos.settings.get(kRequirePerformedForHistoryKey),
+        isTrue,
+      );
+      final toggle = tester.widget<SwitchListTile>(find.byKey(toggleKey));
+      expect(toggle.value, isTrue);
+    });
+
+    testWidgets(
+      'turning it off updates the notifier and persists the setting',
+      (tester) async {
+        final harness = await _pumpSettings(
+          tester,
+          initialRequirePerformed: true,
+        );
+        await openGeneral(tester);
+
+        await tester.tap(find.byKey(toggleKey));
+        await tester.pumpAndSettle();
+
+        expect(harness.requirePerformedNotifier.value, isFalse);
+        expect(
+          await harness.repos.settings.get(kRequirePerformedForHistoryKey),
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets('the toggle exposes accessible switch semantics', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      await openGeneral(tester);
+
+      final handle = tester.ensureSemantics();
+      expect(
+        tester.getSemantics(
+          find.descendant(
+            of: find.byKey(toggleKey),
+            matching: find.byType(Switch),
+          ),
+        ),
+        isSemantics(
+          hasToggledState: true,
+          isToggled: false,
+          hasTapAction: true,
+          hasEnabledState: true,
+          isEnabled: true,
+        ),
+      );
+      handle.dispose();
+    });
+  });
 
   group('SettingsScreen — dialect selection', () {
     // In the side-by-side layout only the selected section's content is shown,

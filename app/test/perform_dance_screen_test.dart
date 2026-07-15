@@ -103,6 +103,38 @@ void main() {
     expect(find.text('Robins chain across'), findsOneWidget);
   });
 
+  testWidgets('figure line announces the verbose form to assistive tech', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await _pumpPerform(
+      tester,
+      dance: _dance(
+        figures: [
+          Figure(
+            move: 'allemande',
+            params: {'hand': 'left', 'turn': 1.5, 'beats': 8},
+          ),
+        ],
+      ),
+    );
+
+    // The large-print card keeps the terse, glyph-bearing text on screen.
+    expect(find.text('neighbors allemande left 1½'), findsOneWidget);
+
+    // Assistive tech hears the spoken-friendly expansion, glyph-free, as the
+    // figure line's single merged semantics label.
+    final semantics = tester.getSemantics(
+      find.bySemanticsLabel(RegExp('one and a half times')),
+    );
+    expect(
+      semantics.label,
+      contains('neighbors allemande left one and a half times, 8 beats'),
+    );
+    expect(semantics.label, isNot(contains('1½')));
+    handle.dispose();
+  });
+
   testWidgets('canonical toggle flips the rendered figure text', (
     tester,
   ) async {
