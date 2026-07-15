@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
+import '../data/require_performed_for_history_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../utils/launch_external_url.dart';
@@ -63,6 +64,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   late CompendiumRepositories _repos;
   Future<_DanceDetail?>? _future;
 
+  /// The last-seen value of the "require mark-performed for calling history"
+  /// setting (ROADMAP G.2). Tracked so [didChangeDependencies] can reload the
+  /// calling history when the setting is toggled while this screen is open.
+  bool _requirePerformedForHistory = false;
+
   /// When `false` the figure table renders in the user's active dialect;
   /// when `true` it renders canonical role/move tokens.  The toggle is hidden
   /// when the active dialect is already [Dialect.canonical] (toggling would
@@ -74,11 +80,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Only load once: didChangeDependencies also fires for unrelated ancestor
-    // changes (Theme/MediaQuery/Localizations).
+    final requirePerformed = RequirePerformedForHistoryScope.of(context);
+    // Only load once, but reload if the calling-history setting changed: this
+    // callback also fires for unrelated ancestor changes (Theme/MediaQuery/
+    // Localizations), so guard on the setting actually differing.
     if (_future == null) {
       _repos = RepositoriesScope.of(context);
+      _requirePerformedForHistory = requirePerformed;
       _future = _load();
+    } else if (requirePerformed != _requirePerformedForHistory) {
+      _requirePerformedForHistory = requirePerformed;
+      _reload();
     }
   }
 
@@ -151,6 +163,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       sourcesById: sourcesById,
       callingHistory: await _repos.programs.callingHistoryForDance(
         widget.danceId,
+        performedOnly: _requirePerformedForHistory,
       ),
       crossRefLinker: crossRefLinker,
     );

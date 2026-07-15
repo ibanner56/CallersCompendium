@@ -5,6 +5,7 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 
@@ -39,26 +40,38 @@ Dance _dance({
   updatedAt: _now,
 );
 
-Future<void> _pumpDetail(
+Future<ValueNotifier<bool>> _pumpDetail(
   WidgetTester tester,
   CompendiumRepositories repos,
   String danceId, {
   Dialect? activeDialect,
+  bool requirePerformedForHistory = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final requirePerformedNotifier = ValueNotifier<bool>(
+    requirePerformedForHistory,
+  );
+  addTearDown(requirePerformedNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: ActiveDialectScope(
+          notifier: notifier,
+          child: RequirePerformedForHistoryScope(
+            notifier: requirePerformedNotifier,
+            child: child!,
+          ),
+        ),
       ),
       home: DanceDetailScreen(danceId: danceId),
     ),
   );
   await tester.pumpAndSettle();
+  return requirePerformedNotifier;
 }
 
 void main() {
@@ -1067,6 +1080,88 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'when the require-performed setting is on, a non-performed slot is hidden',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+        // Non-performed slot for d1: hidden when the setting is on.
+        await repos.programs.create(
+          program(
+            id: 'p1',
+            title: 'Autumn Ball',
+            eventDate: DateTime.utc(2026, 10, 3),
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+        );
+        // Performed slot for d1 on another program: stays visible.
+        await repos.programs.create(
+          program(
+            id: 'p2',
+            title: 'Winter Feast',
+            eventDate: DateTime.utc(2026, 12, 3),
+            slots: [
+              ProgramSlot(
+                id: 's2',
+                position: 0,
+                danceId: 'd1',
+                performedAt: DateTime.utc(2026, 12, 3, 20),
+              ),
+            ],
+          ),
+        );
+
+        await _pumpDetail(
+          tester,
+          repos,
+          'd1',
+          requirePerformedForHistory: true,
+        );
+
+        expect(find.byKey(const ValueKey('calling-history-s1')), findsNothing);
+        expect(find.text('Autumn Ball'), findsNothing);
+        expect(
+          find.byKey(const ValueKey('calling-history-s2')),
+          findsOneWidget,
+        );
+        expect(find.text('Winter Feast'), findsOneWidget);
+      },
+    );
+
+    testWidgets('toggling the setting live re-runs the calling-history query', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          eventDate: DateTime.utc(2026, 10, 3),
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+
+      final requirePerformed = await _pumpDetail(tester, repos, 'd1');
+
+      // Off (default): the non-performed program is listed.
+      expect(find.byKey(const ValueKey('calling-history-s1')), findsOneWidget);
+
+      // Turning the setting on must hide it without re-pumping the widget.
+      requirePerformed.value = true;
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('calling-history-s1')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('calling-history-empty')),
+        findsOneWidget,
+      );
+
+      // Turning it back off restores the program.
+      requirePerformed.value = false;
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('calling-history-s1')), findsOneWidget);
+    });
 
     testWidgets('falls back to the event date when the slot is not performed', (
       tester,
