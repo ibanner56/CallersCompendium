@@ -15,6 +15,8 @@ import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
 import '../theme/color_schemes.dart';
 import '../widgets/figure_list_editor.dart';
+import '../widgets/figure_param_editors.dart';
+import '../widgets/move_autocomplete.dart';
 import 'theme_editor_screen.dart';
 
 /// Key used to persist and load the active dialect.
@@ -163,6 +165,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ];
   bool _defaultDanceFiguresUserSet = false;
 
+  /// Per-move insert-time parameter overrides (ROADMAP DD.3), keyed by move id
+  /// then param key, holding only the params the user overrode (diffs vs the
+  /// taxonomy defaults). `_ensureDefaultsLoaded` seeds it from storage unless
+  /// the user has already edited it (guard below).
+  Map<String, Map<String, Object?>> _defaultMoveParamOverrides = {};
+
+  /// Move ids currently shown in the Move-defaults editor, in view order. Seeded
+  /// from the loaded override keys, plus any move the user just added (which has
+  /// no diffs yet and therefore persists nothing until a param is changed). Lets
+  /// a freshly-added move stay visible before its first override is recorded.
+  final List<String> _moveDefaultsShown = [];
+  bool _defaultMoveParamOverridesUserSet = false;
+
   /// Lazily loads the persisted Display defaults the first time the Defaults
   /// section is built. Mirrors [_ensureAutoSizeLoaded]: a late read must not
   /// clobber a selection the user made before it resolved (per-setting guards).
@@ -290,6 +305,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
         .catchError((_) {
           /* keep the pre-seeded default `stand_still × 8` template */
         });
+    repos.settings
+        .get(kDefaultMoveParamOverridesKey)
+        .then((stored) {
+          if (!mounted || _defaultMoveParamOverridesUserSet) return;
+          setState(() {
+            _defaultMoveParamOverrides = moveParamOverridesFromStored(stored);
+            // Merge (don't clear): a move the user added before this read
+            // resolves isn't persisted yet, so clearing would make it vanish.
+            for (final moveId in _defaultMoveParamOverrides.keys) {
+              if (!_moveDefaultsShown.contains(moveId)) {
+                _moveDefaultsShown.add(moveId);
+              }
+            }
+          });
+        })
+        .catchError((_) {
+          /* keep the empty override map (pure taxonomy defaults) */
+        });
   }
 
   Future<void> _onDefaultProgramCallerChanged(String value) async {
@@ -353,6 +386,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
       kDefaultDanceFiguresTemplateKey,
       encodeFigures(figures),
     );
+  }
+
+  /// Persists the current per-move param overrides as a JSON string (ROADMAP
+  /// DD.3), dropping empty inner maps. Marks the setting user-set so a late
+  /// storage read can't clobber the in-progress edit.
+  Future<void> _persistMoveParamOverrides() async {
+    _defaultMoveParamOverridesUserSet = true;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(
+      kDefaultMoveParamOverridesKey,
+      encodeMoveParamOverrides(_defaultMoveParamOverrides),
+    );
+  }
+
+  /// Adds a move to the Move-defaults editor (ROADMAP DD.3). The move starts
+  /// with no diffs (nothing persisted yet); it becomes visible so the user can
+  /// tweak its params. A no-op if the move is already shown.
+  void _onAddMoveDefault(String moveId) {
+    if (_moveDefaultsShown.contains(moveId)) return;
+    setState(() => _moveDefaultsShown.add(moveId));
+  }
+
+  /// Removes a move's overrides entirely (ROADMAP DD.3) and hides it, then
+  /// persists.
+  void _onRemoveMoveDefault(String moveId) {
+    setState(() {
+      _moveDefaultsShown.remove(moveId);
+      _defaultMoveParamOverrides.remove(moveId);
+    });
+    _persistMoveParamOverrides();
+  }
+
+  /// Records a per-move param override (ROADMAP DD.3). Diff-based: if [value]
+  /// equals the taxonomy default for that param, the key is dropped (falling
+  /// back to the taxonomy default); otherwise it is recorded. Persists on
+  /// change. The move stays shown even when its last diff is dropped.
+  void _onMoveParamOverrideChanged(
+    String moveId,
+    String paramKey,
+    Object? value,
+  ) {
+    final taxonomyDefault = contraTaxonomy.effectiveParams(
+      Figure(move: moveId),
+    )[paramKey];
+    setState(() {
+      final inner = _defaultMoveParamOverrides.putIfAbsent(
+        moveId,
+        () => <String, Object?>{},
+      );
+      if (value == taxonomyDefault) {
+        inner.remove(paramKey);
+        if (inner.isEmpty) _defaultMoveParamOverrides.remove(moveId);
+      } else {
+        inner[paramKey] = value;
+      }
+    });
+    _persistMoveParamOverrides();
   }
 
   @override
@@ -527,6 +617,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             });
             _persistDanceFiguresTemplate();
           },
+          moveParamOverrides: _defaultMoveParamOverrides,
+          shownMoveDefaults: _moveDefaultsShown,
+          onAddMoveDefault: _onAddMoveDefault,
+          onRemoveMoveDefault: _onRemoveMoveDefault,
+          onMoveParamOverrideChanged: _onMoveParamOverrideChanged,
         );
     }
   }
@@ -1525,6 +1620,11 @@ class _DefaultsView extends StatelessWidget {
     required this.onDanceFigureTemplateDelete,
     required this.onDanceFigureTemplateDuplicate,
     required this.onDanceFigureTemplateReorder,
+    required this.moveParamOverrides,
+    required this.shownMoveDefaults,
+    required this.onAddMoveDefault,
+    required this.onRemoveMoveDefault,
+    required this.onMoveParamOverrideChanged,
   });
 
   final TextEditingController programCallerController;
@@ -1553,6 +1653,24 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<FigureDraft> onDanceFigureTemplateDelete;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDuplicate;
   final void Function(int oldIndex, int newIndex) onDanceFigureTemplateReorder;
+
+  /// The per-move param overrides (ROADMAP DD.3), keyed by move id then param
+  /// key. Owned by [_SettingsScreenState]; read-only here.
+  final Map<String, Map<String, Object?>> moveParamOverrides;
+
+  /// Move ids currently shown in the Move-defaults editor, in view order.
+  final List<String> shownMoveDefaults;
+
+  /// Adds a move to the Move-defaults editor (no diffs yet).
+  final ValueChanged<String> onAddMoveDefault;
+
+  /// Removes a move's overrides entirely and hides it.
+  final ValueChanged<String> onRemoveMoveDefault;
+
+  /// Records a per-move param change; the screen diffs it against the taxonomy
+  /// default (equal ⇒ dropped, else recorded) and persists.
+  final void Function(String moveId, String paramKey, Object? value)
+  onMoveParamOverrideChanged;
 
   /// The Collection sort orders offered as a default. Excludes
   /// [CollectionSort.relevance], which is only meaningful for a bare full-text
@@ -1744,12 +1862,202 @@ class _DefaultsView extends StatelessWidget {
             onReorder: onDanceFigureTemplateReorder,
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Move defaults',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Preferred parameter values applied when you insert a move '
+                'while entering a dance. These override that move\'s built-in '
+                'defaults; you can still change any parameter on the figure '
+                'afterward. Unset moves and parameters use the built-in '
+                'defaults.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _MoveDefaultsEditor(
+            overrides: moveParamOverrides,
+            shownMoveIds: shownMoveDefaults,
+            onAddMoveDefault: onAddMoveDefault,
+            onRemoveMoveDefault: onRemoveMoveDefault,
+            onMoveParamOverrideChanged: onMoveParamOverrideChanged,
+          ),
+        ),
       ],
     );
   }
 }
 
-/// The UX-6 theme gallery (`docs/design/ux-modernization.md` §4A): a grouped
+/// The Move-defaults editor (ROADMAP DD.3): a list of configured per-move
+/// parameter overrides, each with its move name, a remove control, and the
+/// move's parameters rendered via [FigureParamEditor] (seeded from the current
+/// override else the taxonomy default). An "Add move default" affordance opens
+/// a [MoveAutocomplete] picker. Recording/dropping diffs and persistence are
+/// handled by the owning [_SettingsScreenState] via the callbacks; this widget
+/// only renders and reports edits (the add-move dialog is its only local UI
+/// state, shown transiently via [showDialog]).
+class _MoveDefaultsEditor extends StatelessWidget {
+  const _MoveDefaultsEditor({
+    required this.overrides,
+    required this.shownMoveIds,
+    required this.onAddMoveDefault,
+    required this.onRemoveMoveDefault,
+    required this.onMoveParamOverrideChanged,
+  });
+
+  final Map<String, Map<String, Object?>> overrides;
+  final List<String> shownMoveIds;
+  final ValueChanged<String> onAddMoveDefault;
+  final ValueChanged<String> onRemoveMoveDefault;
+  final void Function(String moveId, String paramKey, Object? value)
+  onMoveParamOverrideChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final dialect = ActiveDialectScope.of(context);
+    final renderer = FigureRenderer(contraTaxonomy);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final moveId in shownMoveIds)
+          _buildMoveCard(context, moveId, dialect, renderer),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: OutlinedButton.icon(
+              key: const ValueKey('move-defaults-add'),
+              icon: const Icon(Icons.add),
+              label: const Text('Add move default'),
+              onPressed: () => _openAddMoveDialog(context, dialect),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMoveCard(
+    BuildContext context,
+    String moveId,
+    Dialect dialect,
+    FigureRenderer renderer,
+  ) {
+    final def = contraTaxonomy.resolve(moveId);
+    final displayName = def == null
+        ? moveId
+        : renderer.displayMoveName(moveId, dialect);
+    // Effective params include the taxonomy defaults; overlay any saved
+    // override so the editor shows the value the user will actually get.
+    final effective = def == null
+        ? const <String, Object?>{}
+        : contraTaxonomy.effectiveParams(Figure(move: moveId));
+    final moveOverrides = overrides[moveId] ?? const <String, Object?>{};
+    return Card(
+      key: ValueKey('move-default-card-$moveId'),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    displayName,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                IconButton(
+                  key: ValueKey('move-default-remove-$moveId'),
+                  tooltip: 'Remove',
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => onRemoveMoveDefault(moveId),
+                ),
+              ],
+            ),
+            if (def == null)
+              Text(
+                'This move is no longer in the taxonomy.',
+                style: Theme.of(context).textTheme.bodySmall,
+              )
+            else if (def.params.isEmpty)
+              Text(
+                'This move has no parameters to default.',
+                style: Theme.of(context).textTheme.bodySmall,
+              )
+            else
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  for (final entry in def.params.entries)
+                    FigureParamEditor(
+                      key: ValueKey('move-default-$moveId-${entry.key}'),
+                      keyPrefix: 'move-default-$moveId',
+                      paramKey: entry.key,
+                      spec: entry.value,
+                      value: moveOverrides.containsKey(entry.key)
+                          ? moveOverrides[entry.key]
+                          : effective[entry.key],
+                      onChanged: (v) =>
+                          onMoveParamOverrideChanged(moveId, entry.key, v),
+                      dialect: dialect,
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAddMoveDialog(BuildContext context, Dialect dialect) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Add move default'),
+          content: SizedBox(
+            width: 320,
+            child: MoveAutocomplete(
+              key: const ValueKey('move-defaults-add-picker'),
+              fieldKey: 'move-defaults-add-picker',
+              taxonomy: contraTaxonomy,
+              dialect: dialect,
+              initialText: '',
+              includeAliases: false,
+              autofocus: true,
+              onSelected: (option) {
+                onAddMoveDefault(option.id);
+                Navigator.of(dialogContext).pop();
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 /// wrap of live preview cards that replaces the old four-item radio list.
 ///
 /// Selection keeps single-choice (radio) semantics via [Semantics] on each

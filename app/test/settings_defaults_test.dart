@@ -502,4 +502,119 @@ void main() {
     expect(find.byKey(const ValueKey('figure-1-summary')), findsOneWidget);
     expect(find.byKey(const ValueKey('figure-2-summary')), findsNothing);
   });
+
+  group('Move defaults (DD.3)', () {
+    testWidgets('editor renders with an add affordance', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Move defaults'), findsOneWidget);
+      expect(find.byKey(const ValueKey('move-defaults-add')), findsOneWidget);
+    });
+
+    testWidgets('adding a move and setting a param persists an override', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('move-defaults-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('move-defaults-add-picker-input')),
+        'circle',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('move-defaults-add-picker-option-circle')),
+      );
+      await tester.pumpAndSettle();
+
+      // The move card renders; change its beats away from the default (8).
+      expect(
+        find.byKey(const ValueKey('move-default-card-circle')),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('move-default-circle-beats')),
+        '12',
+      );
+      await tester.pumpAndSettle();
+
+      final stored = moveParamOverridesFromStored(
+        await repos.settings.get(kDefaultMoveParamOverridesKey),
+      );
+      expect(stored, {
+        'circle': {'beats': 12},
+      });
+    });
+
+    testWidgets('resetting a param to its default drops it from storage', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'circle': {'beats': 12},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      // The saved override renders its card on reload; reset beats to 8.
+      expect(
+        find.byKey(const ValueKey('move-default-card-circle')),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('move-default-circle-beats')),
+        '8',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        isEmpty,
+      );
+    });
+
+    testWidgets('removing a move override persists and hides its card', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'circle': {'beats': 12},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('move-default-remove-circle')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('move-default-card-circle')),
+        findsNothing,
+      );
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        isEmpty,
+      );
+    });
+  });
 }
