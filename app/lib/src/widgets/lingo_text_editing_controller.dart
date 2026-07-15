@@ -26,14 +26,17 @@ class LingoTextEditingController extends TextEditingController {
 
   /// Replaces the active dialect and redraws the styled spans.
   void updateDialect(Dialect newDialect) {
-    if (dialect == newDialect) return;
+    // `Dialect` implements deep (map/list) equality, so guard the potentially
+    // expensive `==` with an identity fast-path for the common same-instance
+    // case.
+    if (identical(dialect, newDialect) || dialect == newDialect) return;
     dialect = newDialect;
     notifyListeners();
   }
 
   /// Replaces the active taxonomy and redraws the styled spans.
   void updateTaxonomy(Taxonomy? newTaxonomy) {
-    if (taxonomy == newTaxonomy) return;
+    if (identical(taxonomy, newTaxonomy) || taxonomy == newTaxonomy) return;
     taxonomy = newTaxonomy;
     notifyListeners();
   }

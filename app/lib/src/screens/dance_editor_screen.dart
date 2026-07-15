@@ -180,10 +180,17 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     super.didChangeDependencies();
     // Keep the prose fields' lingo styling live: when the active dialect
     // changes, ActiveDialectScope (an InheritedNotifier) re-runs this, so we
-    // push the new dialect into every prose controller.
-    _activeDialect = ActiveDialectScope.of(context);
-    for (final c in _proseLingoControllers) {
-      c.updateDialect(_activeDialect);
+    // push the new dialect into every prose controller. `Dialect` has deep
+    // equality, so only walk the controllers when the dialect actually
+    // changed (identity fast-path first) to avoid needless O(n) comparisons
+    // and listener churn.
+    final newDialect = ActiveDialectScope.of(context);
+    if (!identical(newDialect, _activeDialect) &&
+        newDialect != _activeDialect) {
+      _activeDialect = newDialect;
+      for (final c in _proseLingoControllers) {
+        c.updateDialect(newDialect);
+      }
     }
     // Guard against `didChangeDependencies` firing again before the first
     // `_load()` future completes: `_load()` appends into mutable collections
