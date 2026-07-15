@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/custom_themes_controller.dart';
+import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
@@ -55,13 +57,19 @@ Future<void> _pumpScreen(
     AppThemeSelection.system,
   );
   addTearDown(themeNotifier.dispose);
+  final customThemes = CustomThemesController(repos.settings);
+  await customThemes.load();
+  addTearDown(customThemes.dispose);
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(
           notifier: themeNotifier,
-          child: ActiveDialectScope(notifier: notifier, child: child!),
+          child: CustomThemesScope(
+            controller: customThemes,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
         ),
       ),
       home: const DanceListScreen(),

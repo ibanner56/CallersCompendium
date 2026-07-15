@@ -399,9 +399,44 @@ Appearance body with a **grouped swatch gallery**:
   UX-2→UX-5 component work, but benefits from UX-2's shared component sub-themes
   so the preview cards render faithfully.
 
-## 5. Component direction — before → after
+## 4B. Custom themes — copy, edit & save locally (net-new; extends §4A)
 
-Grounded in the real widgets, with code-verified notes.
+Beyond the built-in gallery, users can **copy any theme, tune every color, and
+save it on-device**. Custom themes are personal to the install; nothing syncs.
+
+### 4B.1 Model & precedence
+
+- `CustomTheme` (`data/custom_theme.dart`) — `{id, name, brightness, Map<String,int> roles}`.
+  Rather than mirror the ~30 `ColorScheme` getters, it stores an editable
+  **role key → packed ARGB int** map and builds a full scheme via
+  `toScheme()` = `ColorScheme.{light,dark}().copyWith(...)`, so any untouched
+  role keeps a valid default. JSON uses `Color.toARGB32()` / `Color(int)`.
+- A single source of truth (`CustomThemeRoles`) lists every editable role, how
+  they group in the editor, and which foreground/background **contrast pairs**
+  get a live badge — keeping the model, editor UI, and tests in lockstep.
+- `CustomThemesController` (`ChangeNotifier`, backed by `SettingsRepository`
+  keys `custom_themes` + `active_custom_theme`) owns the saved list and the
+  active id. **Precedence is custom-wins:** a custom theme is active iff
+  `activeId != null`. Selecting a built-in clears it; selecting/saving a custom
+  sets it.
+- `main.dart` resolves the custom theme first (pin its scheme into both slots,
+  mode from its brightness), then falls back to the §4/§4A built-in logic.
+
+### 4B.2 Editing & the AA contract
+
+- The editor (`screens/theme_editor_screen.dart`) exposes **all major roles**
+  (primary/secondary/tertiary/error + their containers, surfaces & containers,
+  outline & effects) via a dependency-free color dialog (hex field + R/G/B
+  sliders) and a live preview.
+- WCAG contrast is surfaced with per-pair **pass/fail badges** (`theme/wcag.dart`),
+  but is **warn-but-allow-save** — the user may intentionally ship a
+  low-contrast palette; the editor flags it rather than blocking. (This is the
+  one place the otherwise non-negotiable §4A.4 AA guarantee is advisory, and
+  only for user-authored themes.)
+- Surfaces as a **Custom themes** section in Settings: copy from the current
+  theme, then edit / duplicate / delete each saved card.
+
+## 5. Component direction — before → after
 
 ### 5.1 Collection — `collection_shell` / `dance_list_screen` / `dance_list_tile` / `facet_panel`
 

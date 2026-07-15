@@ -5,6 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/custom_theme.dart';
+import 'package:compendium_app/src/data/custom_themes_controller.dart';
+import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
@@ -19,6 +22,7 @@ Future<
     CompendiumRepositories repos,
     ValueNotifier<Dialect> notifier,
     ValueNotifier<AppThemeSelection> themeNotifier,
+    CustomThemesController customThemes,
   })
 >
 _pumpSettings(
@@ -35,11 +39,14 @@ _pumpSettings(
   final themeNotifier = ValueNotifier<AppThemeSelection>(
     initialTheme ?? AppThemeSelection.system,
   );
+  final customThemes = CustomThemesController(repos.settings);
+  await customThemes.load();
 
   await tester.binding.setSurfaceSize(const Size(1000, 2600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(notifier.dispose);
   addTearDown(themeNotifier.dispose);
+  addTearDown(customThemes.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -47,14 +54,22 @@ _pumpSettings(
         repositories: repos,
         child: AppThemeScope(
           notifier: themeNotifier,
-          child: ActiveDialectScope(notifier: notifier, child: child!),
+          child: CustomThemesScope(
+            controller: customThemes,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
         ),
       ),
       home: const SettingsScreen(),
     ),
   );
   await tester.pumpAndSettle();
-  return (repos: repos, notifier: notifier, themeNotifier: themeNotifier);
+  return (
+    repos: repos,
+    notifier: notifier,
+    themeNotifier: themeNotifier,
+    customThemes: customThemes,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -341,6 +356,79 @@ void main() {
           reason: 'Expected a "${group.label}" section heading',
         );
       }
+    });
+  });
+
+  group('SettingsScreen — custom themes', () {
+    testWidgets('shows an empty-state hint and a New custom theme button', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      expect(find.byKey(const ValueKey('new-custom-theme')), findsOneWidget);
+      expect(find.textContaining('saved on this device'), findsOneWidget);
+    });
+
+    testWidgets('renders a card for each saved custom theme', (tester) async {
+      final ctx = await _pumpSettings(tester);
+      final created = await ctx.customThemes.duplicate(
+        name: 'Test Theme',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(ValueKey('custom-${created.id}')), findsOneWidget);
+      expect(find.text('Test Theme'), findsOneWidget);
+    });
+
+    testWidgets('selecting a custom card activates it and clears built-in', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(
+        tester,
+        initialTheme: AppThemeSelection.monokai,
+      );
+      final created = await ctx.customThemes.duplicate(
+        name: 'Test Theme',
+        brightness: Brightness.light,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.light()),
+      );
+      await tester.pumpAndSettle();
+
+      final card = find.byKey(ValueKey('custom-${created.id}'));
+      await tester.ensureVisible(card);
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.hasActive, isTrue);
+      expect(ctx.customThemes.activeId, created.id);
+      final storedActive =
+          await ctx.repos.settings.get('active_custom_theme') as String?;
+      expect(storedActive, created.id);
+    });
+
+    testWidgets('selecting a built-in theme clears the active custom theme', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      final created = await ctx.customThemes.duplicate(
+        name: 'Test Theme',
+        brightness: Brightness.dark,
+        roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
+      );
+      await ctx.customThemes.setActive(created.id);
+      await tester.pumpAndSettle();
+      expect(ctx.customThemes.hasActive, isTrue);
+
+      final builtIn = find.byKey(
+        ValueKey('theme-${AppThemeSelection.monokai.name}'),
+      );
+      await tester.ensureVisible(builtIn);
+      await tester.tap(builtIn);
+      await tester.pumpAndSettle();
+
+      expect(ctx.customThemes.hasActive, isFalse);
+      expect(ctx.themeNotifier.value, AppThemeSelection.monokai);
     });
   });
 }
