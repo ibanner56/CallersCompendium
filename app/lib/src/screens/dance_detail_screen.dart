@@ -7,6 +7,7 @@ import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../widgets/figure_table.dart';
 import 'dance_editor_screen.dart';
+import 'perform_dance_screen.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
 /// formation, hook, tags, status banner, provenance line), a figure table
@@ -142,6 +143,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   void _reload() => setState(() => _future = _load());
 
+  /// Opens the full-screen large-print [PerformDanceScreen] for this dance,
+  /// passing the shared [FigureRenderer] and the already-resolved author names.
+  Future<void> _perform(_DanceDetail detail) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PerformDanceScreen(
+          dance: detail.dance,
+          renderer: _renderer,
+          authorNames: detail.authorNames,
+        ),
+      ),
+    );
+  }
+
   Future<void> _openEditor() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -241,6 +256,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  IconButton(
+                    key: const ValueKey('perform-dance'),
+                    tooltip: 'Perform this dance',
+                    icon: const Icon(Icons.slideshow),
+                    onPressed: () => _perform(snapshot.data!),
+                  ),
                   IconButton(
                     key: const ValueKey('duplicate-dance'),
                     tooltip: 'Duplicate dance',

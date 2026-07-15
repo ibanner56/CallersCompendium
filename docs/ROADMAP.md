@@ -219,7 +219,14 @@ design/domain-model.md "CC parity backfill".*
 
 ## Phase 5 — Performance mode
 
-- [ ] 5.1 Large-print dance card view with dialect applied
+- [x] 5.1 Large-print dance card view with dialect applied — full-screen Perform
+  card for a single dance (`PerformDanceScreen`), entered from the dance detail
+  screen and exiting back to it. Renders the header (title/authors/formation/
+  level/status) and section-grouped figures reusing the core `deriveSections` +
+  `FigureRenderer` path, applies the active dialect with the same canonical ⇄
+  dialect quick-toggle as the detail card, and adds an in-view large-print size
+  control (A-/A+, large default, no practical upper bound). In-view size state
+  only; cross-session persistence to settings is a later follow-up.
 - [ ] 5.2 Program navigation (next/prev, jump), screen-wake lock, high-contrast theme;
   optional per-slot / running **program timing** (CC `Set.TimeStart`/`TimeElapsed`,
   `SetItem.Time`) surfaced during an event
