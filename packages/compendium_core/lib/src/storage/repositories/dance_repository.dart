@@ -356,6 +356,29 @@ class DanceRepository {
     });
   }
 
+  /// Immediately and permanently removes the dances identified by [ids]
+  /// (bypassing the soft-delete/retention path). Cascades to child rows
+  /// (authors, tags, links, custom values, provenance, derived figures) via
+  /// FK, and clears each dance's `dance_fts` row (that virtual table is not
+  /// FK-linked). Any `program_slots.dance_id` pointing at a removed dance is
+  /// set to `NULL` (the slot's `text`, if any, survives as a tombstone
+  /// caption). Unknown ids are ignored. Runs in a single transaction.
+  ///
+  /// Intended for reverting a just-committed import batch (import-session
+  /// undo); ordinary user deletes should go through [softDelete].
+  Future<void> hardDelete(Iterable<String> ids) {
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value();
+    return _db.transaction(() async {
+      for (final id in list) {
+        await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
+          id,
+        ]);
+      }
+      await (_db.delete(_db.dances)..where((t) => t.id.isIn(list))).go();
+    });
+  }
+
   /// Duplicates the dance identified by [id] under [newId] via
   /// [Dance.duplicate] (fresh identity, no provenance) and persists it.
   Future<Dance> duplicate({

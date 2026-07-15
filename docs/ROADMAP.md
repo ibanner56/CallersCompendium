@@ -370,7 +370,7 @@ for app-wide preference switches as they accrue.
 
 ## Phase 6 — Imports & migration
 
-- [ ] 6.1 Source adapter framework + provenance tracking
+- [x] 6.1 Source adapter framework + provenance tracking — pure-Dart import pipeline in `packages/compendium_core/lib/src/imports/`: `SourceAdapter` (discover/fetch/parse), `RawRecord` (verbatim payload → provenance), `StructuredDraft`+`ParseQuality` (structured-vs-custom score; parse-never-fails custom fallback), structured `ImportError`s with source context + partial-batch tolerance, dedupe primitives (exact `(source, externalId)` re-import + fuzzy title/author → link/duplicate/skip), and `ImportPipeline` (transactional commit writing provenance) with a session-scoped in-memory undo log (`ImportSession`; no schema bump — provenance persists via the existing v9 table, `DanceRepository.hardDelete` supports undo). Exercised end-to-end by an in-memory fake adapter (test-only). Real source adapters remain 6.2–6.6; review-queue UI is 6.3.
 - [ ] 6.2 CallersBox sanitization pipeline (separate tool) + hosted snapshot
 - [ ] 6.3 CallersBox snapshot import in-app
 - [ ] 6.4 ContraDB import
