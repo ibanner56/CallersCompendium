@@ -393,7 +393,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     SemanticsService.sendAnnouncement(
       View.of(context),
       message,
-      TextDirection.ltr,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
   }
 

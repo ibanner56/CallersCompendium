@@ -45,6 +45,7 @@ class _HostState extends State<_Host> {
                         params: Map<String, Object?>.of(d.params),
                         note: d.note,
                         progression: d.progression,
+                        schemaVersion: d.schemaVersion,
                       ),
                     );
                   })
