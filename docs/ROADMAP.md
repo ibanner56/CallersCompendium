@@ -158,7 +158,7 @@ Design items (each produces a design doc + review):
   gendered terms via custom role-terms input), editable move substitutions and
   discouraged-terms list, `Dialect.toJson`/`fromJson`, and the active dialect
   persisted as full JSON.
-- [ ] **Dialect manager — named dialects + term editor** (`docs/design/ux.md` §6):
+- [x] **Dialect manager — named dialects + term editor** (`docs/design/ux.md` §6):
   a library of named, user-created dialects (create / duplicate-from-preset /
   rename / delete) alongside shipped presets, a term editor with **live
   preview** + collision validation, and dialect **quick-switch** on the dance
@@ -179,6 +179,22 @@ Design items (each produces a design doc + review):
     reusable `DialectEditorScreen` term editor for custom dialects (presets
     offer "Duplicate to customize"). Live preview, collision validation, and
     dance-card/perform quick-switch remain **PR3**.
+  - PR3 delivered (branch `isaacbanner-dialect-pr3`): completes the manager. The
+    `DialectEditorScreen` now reassembles the working dialect on every edit and
+    runs core `Dialect.validate()` live — collision (two terms → one word) and
+    empty-substitution issues surface inline via the existing
+    `dialect-validation-error` surface as the user types, not only on Save (the
+    Save guard is unchanged; detection is core `validate()`, not new logic). A
+    labeled **Preview** section renders representative sample figures through the
+    working dialect via `FigureRenderer` — `allemande` with `role1s` (role-term
+    plural), `swing` with `partners` and `do si do` with `neighbors` (dancer
+    term + move substitution), plus a free-text line exercising role-term prose
+    substitution — updating live. A reusable
+    `DialectQuickSwitch` (`app/lib/src/widgets/dialect_quick_switch.dart`,
+    `PopupMenuButton` listing `DialectLibraryScope.all` with the active one
+    checked → `setActive`) is placed in the app bars of the dance-detail and
+    both perform screens for per-gig quick switching; the whole app re-renders
+    live through the existing `ActiveDialectScope` bridge.
 - (2.4a full taxonomy data is now **complete** — full ContraDB contra move set shipped.
   The only still-open 3.2 follow-up is per-Type taxonomy selection, blocked on multi-form data.)
   - ~~Nested figure groups inside `then`~~: **Resolved in Consolidation PR4**
