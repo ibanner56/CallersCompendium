@@ -414,7 +414,7 @@ taxonomy are unchanged.
 
 **Program defaults**
 
-- [ ] G.3 **Default caller & band for new programs** — saved default values used
+- [x] G.3 **Default caller & band for new programs** — saved default values used
   to prefill a new program's event metadata (Phase 4.2): the caller name (the
   user is usually the caller) and, optionally, a default band. Caller's
   Companion stores caller/band per set; prefilling saves re-typing at every

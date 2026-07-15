@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import 'package:printing/printing.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
@@ -134,6 +135,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _callerController.text = program.caller ?? '';
         _levelController.text = program.dancerLevel ?? '';
         _notesController.text = program.notes;
+      } else if (widget.isNew) {
+        // ROADMAP G.3: prefill a new program's caller/band from saved defaults.
+        // Only seeds a still-blank field, never overrides; a settings read
+        // failure falls back silently to a blank field.
+        await _prefillNewProgramDefaults();
       }
       setState(() {
         _data = data;
@@ -150,6 +156,36 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           _loaded = true;
         });
       }
+    }
+  }
+
+  /// Seeds the caller/band controllers for a NEW program from the saved G.3
+  /// defaults, only when the controller is still blank. Each key is read
+  /// independently so a failure (or corrupt value) reading one never blocks the
+  /// other, and a settings read failure is swallowed so the editor still opens
+  /// (with that field blank).
+  Future<void> _prefillNewProgramDefaults() async {
+    await _prefillControllerFromDefault(
+      _callerController,
+      kDefaultProgramCallerKey,
+    );
+    await _prefillControllerFromDefault(
+      _bandController,
+      kDefaultProgramBandKey,
+    );
+  }
+
+  Future<void> _prefillControllerFromDefault(
+    TextEditingController controller,
+    String key,
+  ) async {
+    if (controller.text.isNotEmpty) return;
+    try {
+      final stored = await _repos.settings.get(key);
+      final value = stored is String ? stored.trim() : '';
+      if (value.isNotEmpty) controller.text = value;
+    } catch (_) {
+      // Leave the field blank if this default can't be read.
     }
   }
 

@@ -193,4 +193,67 @@ void main() {
       isTrue,
     );
   });
+
+  testWidgets('Program-defaults subsection renders both fields', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+
+    expect(find.text('Program defaults'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('defaults-program-caller')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('defaults-program-band')), findsOneWidget);
+  });
+
+  testWidgets('editing the default caller and band persists them', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('defaults-program-caller')),
+      'Ada Lovelace',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('defaults-program-band')),
+      'The Syncopators',
+    );
+    await tester.pumpAndSettle();
+
+    expect(await repos.settings.get(kDefaultProgramCallerKey), 'Ada Lovelace');
+    expect(await repos.settings.get(kDefaultProgramBandKey), 'The Syncopators');
+  });
+
+  testWidgets('saved caller and band defaults reflect on reload', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kDefaultProgramCallerKey, 'Grace Hopper');
+    await repos.settings.set(kDefaultProgramBandKey, 'The Debuggers');
+
+    await _pumpDefaults(tester, repos);
+
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('defaults-program-caller')),
+          )
+          .controller
+          ?.text,
+      'Grace Hopper',
+    );
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('defaults-program-band')),
+          )
+          .controller
+          ?.text,
+      'The Debuggers',
+    );
+  });
 }

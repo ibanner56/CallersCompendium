@@ -5,6 +5,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 
@@ -94,6 +95,8 @@ Program _program({
   String title = 'Existing',
   DateTime? eventDate,
   String? venue,
+  String? band,
+  String? caller,
   String notes = '',
   ProgramStatus status = ProgramStatus.draft,
   List<ProgramSlot> slots = const [],
@@ -102,6 +105,8 @@ Program _program({
   title: title,
   eventDate: eventDate,
   venue: venue,
+  band: band,
+  caller: caller,
   notes: notes,
   status: status,
   slots: slots,
@@ -717,5 +722,86 @@ void main() {
     final control = find.byKey(const ValueKey('program-matrix-export-pdf'));
     expect(control, findsOneWidget);
     expect(tester.widget<IconButton>(control).onPressed, isNull);
+  });
+
+  testWidgets('G.3: new program prefills caller/band from saved defaults', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kDefaultProgramCallerKey, 'Ada Lovelace');
+    await repos.settings.set(kDefaultProgramBandKey, 'The Syncopators');
+
+    await _pump(tester, repos);
+
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('program-caller')))
+          .controller
+          ?.text,
+      'Ada Lovelace',
+    );
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('program-band')))
+          .controller
+          ?.text,
+      'The Syncopators',
+    );
+  });
+
+  testWidgets('G.3: existing program is not overridden by saved defaults', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kDefaultProgramCallerKey, 'Ada Lovelace');
+    await repos.settings.set(kDefaultProgramBandKey, 'The Syncopators');
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        caller: 'Grace Hopper',
+        band: 'The Debuggers',
+      ),
+    );
+
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('program-caller')))
+          .controller
+          ?.text,
+      'Grace Hopper',
+    );
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('program-band')))
+          .controller
+          ?.text,
+      'The Debuggers',
+    );
+  });
+
+  testWidgets('G.3: new program opens blank when no defaults are saved', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+
+    await _pump(tester, repos);
+
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('program-caller')))
+          .controller
+          ?.text,
+      isEmpty,
+    );
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('program-band')))
+          .controller
+          ?.text,
+      isEmpty,
+    );
   });
 }
