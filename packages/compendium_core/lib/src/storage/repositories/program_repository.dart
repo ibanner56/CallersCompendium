@@ -1,8 +1,55 @@
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 
 import '../../model/program.dart';
 import '../database.dart';
 import '../utc_datetime.dart';
+
+/// One entry in a dance's calling history: a program in which the dance was
+/// actually called (a slot referencing the dance with a non-null
+/// `performedAt`), produced by [ProgramRepository.callingHistoryForDance].
+///
+/// Calling history is a **derived query** over performed [ProgramSlot]s, never
+/// stored on the dance (see `docs/design/domain-model.md`). There is one record
+/// per performed slot, so a dance called more than once in the same program
+/// yields multiple records.
+@immutable
+class DanceCallingRecord {
+  const DanceCallingRecord({
+    required this.programId,
+    required this.programTitle,
+    required this.performedAt,
+    this.eventDate,
+    this.venue,
+  });
+
+  /// The program the dance was called in.
+  final String programId;
+  final String programTitle;
+
+  /// When the slot was actually called (always non-null — the query only
+  /// returns performed slots). UTC.
+  final DateTime performedAt;
+
+  /// The program's scheduled event date, if any. UTC.
+  final DateTime? eventDate;
+
+  /// The program's venue, if any.
+  final String? venue;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DanceCallingRecord &&
+      other.programId == programId &&
+      other.programTitle == programTitle &&
+      other.performedAt == performedAt &&
+      other.eventDate == eventDate &&
+      other.venue == venue;
+
+  @override
+  int get hashCode =>
+      Object.hash(programId, programTitle, performedAt, eventDate, venue);
+}
 
 /// CRUD for [Program]s and their [ProgramSlot]s.
 ///
@@ -134,6 +181,45 @@ class ProgramRepository {
       for (final row in rows)
         row.read<String>('dance_id'): asUtc(row.read<DateTime>('last_called')),
     };
+  }
+
+  /// The calling history for the dance identified by [danceId]: every program
+  /// in which the dance was actually called — i.e. a slot referencing this
+  /// dance whose `performed_at` is non-null, on a non-deleted program — most
+  /// recently performed first.
+  ///
+  /// Calling history is a derived query over performed [ProgramSlot]s, never
+  /// stored (see `docs/design/domain-model.md`; `docs/design/ux.md` §2 / the
+  /// dance-detail wireframe "History"). One record per performed slot, so a
+  /// dance called twice in the same program appears twice. Feeds the
+  /// dance-detail "Calling history" section.
+  Future<List<DanceCallingRecord>> callingHistoryForDance(
+    String danceId,
+  ) async {
+    final rows = await _db
+        .customSelect(
+          'SELECT programs.id AS program_id, programs.title AS program_title, '
+          'programs.event_date AS event_date, programs.venue AS venue, '
+          'program_slots.performed_at AS performed_at '
+          'FROM program_slots '
+          'JOIN programs ON programs.id = program_slots.program_id '
+          'WHERE program_slots.dance_id = ? '
+          'AND program_slots.performed_at IS NOT NULL '
+          'AND programs.deleted_at IS NULL '
+          'ORDER BY program_slots.performed_at DESC',
+          variables: [Variable<String>(danceId)],
+        )
+        .get();
+    return [
+      for (final row in rows)
+        DanceCallingRecord(
+          programId: row.read<String>('program_id'),
+          programTitle: row.read<String>('program_title'),
+          performedAt: asUtc(row.read<DateTime>('performed_at')),
+          eventDate: asUtcOrNull(row.read<DateTime?>('event_date')),
+          venue: row.read<String?>('venue'),
+        ),
+    ];
   }
 
   /// Duplicates the program identified by [id] under [newId] via

@@ -6,6 +6,7 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/screens/program_editor_screen.dart';
 
 import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
@@ -924,5 +925,153 @@ void main() {
         label: 'Open video: A video',
       ),
     );
+  });
+
+  group('calling history', () {
+    Program program({
+      required String id,
+      String title = 'Autumn Ball',
+      DateTime? eventDate,
+      String? venue,
+      List<ProgramSlot> slots = const [],
+    }) => Program(
+      id: id,
+      title: title,
+      eventDate: eventDate,
+      venue: venue,
+      slots: slots,
+      createdAt: _now,
+      updatedAt: _now,
+    );
+
+    testWidgets('renders the programs the dance was called in', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          eventDate: DateTime.utc(2026, 10, 3),
+          venue: 'Grange Hall',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 10, 3, 20),
+            ),
+          ],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('Calling history'), findsOneWidget);
+      expect(
+        find.byKey(
+          ValueKey(
+            'calling-history-p1-${DateTime.utc(2026, 10, 3, 20).toIso8601String()}',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Autumn Ball'), findsOneWidget);
+      expect(find.textContaining('Grange Hall'), findsOneWidget);
+      expect(find.byKey(const ValueKey('calling-history-empty')), findsNothing);
+    });
+
+    testWidgets('shows the empty state when never called', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      // A program that references the dance but has NOT been performed must
+      // not appear in the history (performedAt is null).
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('Calling history'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('calling-history-empty')),
+        findsOneWidget,
+      );
+      expect(find.text('Not yet called in any program.'), findsOneWidget);
+    });
+
+    testWidgets('tapping a history row opens the program', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 10, 3, 20),
+            ),
+          ],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      await tester.tap(
+        find.byKey(
+          ValueKey(
+            'calling-history-p1-${DateTime.utc(2026, 10, 3, 20).toIso8601String()}',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProgramEditorScreen), findsOneWidget);
+    });
+
+    testWidgets('a history row is a11y-reachable', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          venue: 'Grange Hall',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 10, 3, 20),
+            ),
+          ],
+        ),
+      );
+      final handle = tester.ensureSemantics();
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      final rowFinder = find.byKey(
+        ValueKey(
+          'calling-history-p1-${DateTime.utc(2026, 10, 3, 20).toIso8601String()}',
+        ),
+      );
+      expect(
+        tester.getSemantics(rowFinder),
+        isSemantics(isButton: true, isFocusable: true, hasTapAction: true),
+        reason: 'each history row must be a focusable, tappable button',
+      );
+      expect(
+        tester.getSemantics(rowFinder).label,
+        contains('Open program: Autumn Ball'),
+        reason: 'the row label must name the program it opens',
+      );
+      handle.dispose();
+    });
   });
 }
