@@ -908,7 +908,8 @@ void main() {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'target', title: 'Target Dance'));
       // A dance that already has BOTH a relatedDance link (with a note) and a
-      // generic source link, exactly like data written before this PR.
+      // generic source link, exactly like data written before the editor reorg
+      // (PR #108) that split related dances into their own subsection.
       await repos.dances.create(
         _dance(
           id: 'd1',
