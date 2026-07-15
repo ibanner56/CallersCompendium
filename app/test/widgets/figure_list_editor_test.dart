@@ -124,6 +124,21 @@ Future<void> _selectMove(
   await tester.pumpAndSettle();
 }
 
+/// Opens the dropdown param editor keyed [fieldKey] (e.g. `figure-0-prefix`)
+/// and taps the menu item whose (humanized) label matches [optionLabel].
+Future<void> _selectDropdownOption(
+  WidgetTester tester,
+  String fieldKey,
+  String optionLabel,
+) async {
+  // The MoveAutocomplete options overlay can occlude taps; drop focus first.
+  await _dismissAutocomplete(tester);
+  await tester.tap(find.byKey(ValueKey(fieldKey)));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(optionLabel).last);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('empty list shows a placeholder and an add button', (
     tester,
@@ -155,6 +170,70 @@ void main() {
     expect(drafts.single.move, 'swing');
     expect(drafts.single.params['who'], 'partners');
     expect(drafts.single.params['beats'], 8);
+  });
+
+  testWidgets('changing the move resets beats to the new default', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+
+    await _selectMove(tester, 0, 'sw', 'swing');
+    expect(drafts.single.beats, 8);
+    expect(drafts.single.beatsTouched, isFalse);
+
+    // A genuine move change adopts the new move's canonical default.
+    await _selectMove(tester, 0, 'ba', 'balance');
+    expect(drafts.single.move, 'balance');
+    expect(drafts.single.beats, 4);
+    expect(drafts.single.beatsTouched, isFalse);
+  });
+
+  testWidgets('a manually-set beats value survives a non-move param change', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'sw', 'swing');
+    expect(drafts.single.beats, 8);
+    expect(drafts.single.beatsTouched, isFalse);
+
+    // Editing the beats field directly takes ownership of the value.
+    await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '16');
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 16);
+    expect(drafts.single.beatsTouched, isTrue);
+
+    // Changing a non-beats param must not disturb the manual override.
+    await _selectDropdownOption(tester, 'figure-0-prefix', 'meltdown');
+    expect(drafts.single.params['prefix'], 'meltdown');
+    expect(drafts.single.beats, 16);
+  });
+
+  testWidgets('a loaded figure preserves its beats through a non-beats edit', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft.fromFigure(
+        Figure(move: 'swing', params: const {'who': 'partners', 'beats': 12}),
+      ),
+    ];
+    // A loaded dance's authored beats are treated as user-owned.
+    expect(drafts.single.beatsTouched, isTrue);
+
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    await _selectDropdownOption(tester, 'figure-0-prefix', 'meltdown');
+    expect(drafts.single.params['prefix'], 'meltdown');
+    expect(drafts.single.beats, 12);
+  });
+
+  test('taxonomy beats defaults match canonical values', () {
+    int beatsFor(String move) =>
+        contraTaxonomy.effectiveParams(Figure(move: move))['beats'] as int;
+    expect(beatsFor('swing'), 8);
+    expect(beatsFor('balance'), 4);
   });
 
   testWidgets('selecting an alias keeps the alias identity and pins', (

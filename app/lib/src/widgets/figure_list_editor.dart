@@ -224,16 +224,22 @@ class FigureDraft {
     this.note = '',
     this.progression = false,
     this.schemaVersion = figureSchemaVersion,
+    this.beatsTouched = false,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
 
   /// Seeds a draft from an existing figure, keeping its params/note/flags.
+  ///
+  /// A loaded figure already carries an authored beat count, so [beatsTouched]
+  /// is set — the editor treats that value as user-owned and never silently
+  /// auto-fills over it (see [beatsTouched]).
   factory FigureDraft.fromFigure(Figure figure) => FigureDraft(
     move: figure.move,
     params: Map<String, Object?>.of(figure.params),
     note: figure.note ?? '',
     progression: figure.progression,
     schemaVersion: figure.schemaVersion,
+    beatsTouched: true,
   );
 
   /// Stable identity for widget keys across reorders/rebuilds.
@@ -245,6 +251,15 @@ class FigureDraft {
   String note;
   bool progression;
   final int schemaVersion;
+
+  /// Whether the user has explicitly taken ownership of the `beats` value.
+  ///
+  /// Beats are auto-filled from the taxonomy: picking a move seeds the move's
+  /// canonical default and clears this flag. Once the user edits the beats
+  /// field directly (or the draft is seeded from a loaded figure via
+  /// [FigureDraft.fromFigure]), this becomes `true` and the editor stops
+  /// auto-filling beats so a manual override is never silently overwritten.
+  bool beatsTouched;
 
   int get beats => (params['beats'] as int?) ?? 0;
 
@@ -895,6 +910,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.draft.params
       ..clear()
       ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
+    // A fresh move brings a fresh canonical beat default; that default is
+    // authoritative until the user overrides it again.
+    widget.draft.beatsTouched = false;
     _showMoreOptions = false;
     widget.onChanged();
   }
@@ -909,6 +927,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       ..clear()
       ..addAll(widget.taxonomy.effectiveParams(Figure(move: customMove)))
       ..['text'] = trimmed;
+    widget.draft.beatsTouched = false;
     _showMoreOptions = false;
     widget.onChanged();
   }
@@ -917,8 +936,35 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     if (widget.draft.move == null) return;
     widget.draft.move = null;
     widget.draft.params.clear();
+    widget.draft.beatsTouched = false;
     _showMoreOptions = false;
     widget.onChanged();
+  }
+
+  /// Re-fills the auto-filled `beats` value from the current move's canonical
+  /// default, unless the user has taken ownership of beats
+  /// ([FigureDraft.beatsTouched]).
+  ///
+  /// Today's taxonomy exposes a single beat default per move, so with an
+  /// untouched draft this is effectively a no-op (beats already equals that
+  /// default). It exists as the override-respecting extension point for future
+  /// param-value-dependent durations (e.g. a half vs. full hey): when such
+  /// data lands, a non-beats param change can re-derive beats here without ever
+  /// clobbering a manual override. Null-safe against an unset/unknown move or a
+  /// move with no beats spec (e.g. a custom figure).
+  void _resyncBeatsIfUntouched() {
+    final draft = widget.draft;
+    if (draft.beatsTouched) return;
+    final move = draft.move;
+    if (move == null) return;
+    final def = widget.taxonomy.resolve(move);
+    if (def == null || !def.params.containsKey('beats')) return;
+    final canonical = widget.taxonomy.effectiveParams(
+      Figure(move: move),
+    )['beats'];
+    if (canonical is int) {
+      draft.params['beats'] = canonical;
+    }
   }
 
   void _toggleProgression() {
@@ -1310,6 +1356,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                     value: (draft.params['text'] as String?) ?? '',
                     onChanged: (v) {
                       draft.params['text'] = v;
+                      // 'text' only exists on the custom move; a custom figure
+                      // has no canonical beat rule, so this respects any manual
+                      // beats while staying a no-op otherwise.
+                      _resyncBeatsIfUntouched();
                       widget.onChanged();
                     },
                   )
@@ -1352,6 +1402,15 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               draft.params[entry.key] = v;
+              if (entry.key == 'beats') {
+                // The user edited beats directly: lock the value so nothing
+                // auto-fills over it.
+                draft.beatsTouched = true;
+              } else {
+                // A non-beats edit may imply a different canonical duration in
+                // the future; re-derive it unless the user owns beats.
+                _resyncBeatsIfUntouched();
+              }
               widget.onChanged();
             },
           ),
