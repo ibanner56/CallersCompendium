@@ -437,6 +437,39 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     }
   }
 
+  /// Soft-deletes the dance being edited and pops back (with no result) so the
+  /// caller (dance detail / list) can reload. Mirrors [DanceDetailScreen]'s
+  /// delete: an "Undo" snackbar restores the dance if tapped. Only reachable
+  /// for an existing dance (the action is hidden while `widget.isNew`).
+  Future<void> _delete() async {
+    final id = widget.danceId;
+    if (id == null) return;
+    final title = _original?.title ?? 'Dance';
+    final now = DateTime.now().toUtc();
+    await _repos.dances.softDelete(id, at: now);
+    if (!mounted) return;
+    // Drop the autosave draft so it can't resurface for a deleted dance.
+    await _clearDraft();
+    if (!mounted) return;
+    // Capture the messenger before popping so the snackbar is enqueued while
+    // this Scaffold is still registered with it.
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('deleted-snackbar'),
+        content: Text('"$title" deleted.'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () =>
+              _repos.dances.restore(id, at: DateTime.now().toUtc()),
+        ),
+      ),
+    );
+    // Pop without a result: the editor's routes are typed `<void>`/`<String>`
+    // and every caller reloads independently, so navigating back is enough.
+    Navigator.of(context).pop();
+  }
+
   // -------------------------------------------------------------------------
   // Undo / redo helpers
   // -------------------------------------------------------------------------
@@ -790,21 +823,37 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                         onPressed: _undoStack.canRedo ? _redo : null,
                       ),
                     ),
-                    TextButton(
+                    if (!widget.isNew)
+                      IconButton(
+                        key: const ValueKey('delete-dance'),
+                        tooltip: 'Delete dance',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: _delete,
+                      ),
+                  ],
+                ],
+              ),
+              body: _buildBody(),
+              // Save mirrors the program builder: a bottom-right extended FAB
+              // (`docs/design/ux.md` §3) rather than an AppBar action, so the
+              // primary commit affordance is consistent across editors. Undo /
+              // redo stay in the AppBar. The `_saving` disabled state and inline
+              // spinner are preserved.
+              floatingActionButton: _loaded
+                  ? FloatingActionButton.extended(
                       key: const ValueKey('save-dance'),
+                      heroTag: 'save-dance',
                       onPressed: _saving ? null : _save,
-                      child: _saving
+                      icon: _saving
                           ? const SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Save'),
-                    ),
-                  ],
-                ],
-              ),
-              body: _buildBody(),
+                          : const Icon(Icons.save_outlined),
+                      label: const Text('Save'),
+                    )
+                  : null,
             ),
           ),
         ),

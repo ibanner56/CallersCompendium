@@ -573,12 +573,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     icon: const Icon(Icons.playlist_add),
                     onPressed: () => _addToProgram(detail.dance.title),
                   ),
-                  TextButton.icon(
-                    key: const ValueKey('edit-dance'),
-                    onPressed: _openEditor,
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit'),
-                  ),
                   IconButton(
                     key: const ValueKey('delete-dance'),
                     tooltip: 'Delete dance',
@@ -602,6 +596,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             return const Center(child: Text('Dance not found.'));
           }
           return _buildBody(detail);
+        },
+      ),
+      // Edit mirrors the program preview's builder affordance: a bottom-right
+      // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
+      // so opening the editor is consistent across the dance and program views.
+      floatingActionButton: FutureBuilder<_DanceDetail?>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.data == null) return const SizedBox.shrink();
+          return FloatingActionButton.extended(
+            key: const ValueKey('edit-dance'),
+            heroTag: 'edit-dance',
+            onPressed: _openEditor,
+            icon: const Icon(Icons.edit_note),
+            label: const Text('Edit'),
+          );
         },
       ),
     );

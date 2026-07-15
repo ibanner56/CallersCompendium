@@ -1784,4 +1784,86 @@ void main() {
       expect(figure.params['beats'], 8);
     });
   });
+
+  group('Save FAB + delete (UI consistency pass)', () {
+    testWidgets(
+      'Save is a bottom-right FAB that shows a spinner while saving',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpEditor(tester, repos);
+
+        // The Save affordance is a FloatingActionButton (matching the program
+        // builder), not an AppBar text button.
+        final fab = find.byKey(const ValueKey('save-dance'));
+        expect(fab, findsOneWidget);
+        expect(tester.widget(fab), isA<FloatingActionButton>());
+
+        await tester.enterText(
+          find.byKey(const ValueKey('title-field')),
+          'Spinner Dance',
+        );
+        await tester.tap(fab);
+        // One frame after tapping: `_saving` is true, so the FAB renders a
+        // spinner in place of the save icon (disabled while in flight).
+        await tester.pump();
+        expect(
+          find.descendant(
+            of: fab,
+            matching: find.byType(CircularProgressIndicator),
+          ),
+          findsOneWidget,
+        );
+
+        await tester.pumpAndSettle();
+        // Save completed and popped back to the launcher route.
+        expect(find.byType(DanceEditorScreen), findsNothing);
+        expect((await repos.dances.listAll()).single.title, 'Spinner Dance');
+      },
+    );
+
+    testWidgets(
+      'Delete soft-deletes the dance, pops, and shows an undo snackbar',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Doomed Dance'));
+        await _pumpEditor(tester, repos, danceId: 'd1');
+
+        expect(find.byKey(const ValueKey('delete-dance')), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('delete-dance')));
+        await tester.pumpAndSettle();
+
+        // Navigated back to the launcher route.
+        expect(find.byType(DanceEditorScreen), findsNothing);
+        expect(find.text('open'), findsOneWidget);
+
+        // Undo snackbar names the deleted dance.
+        expect(find.byKey(const ValueKey('deleted-snackbar')), findsOneWidget);
+        expect(find.text('"Doomed Dance" deleted.'), findsOneWidget);
+
+        // Soft-deleted (not hard-deleted): excluded from listAll, restorable.
+        expect(
+          (await repos.dances.listAll()).where((d) => d.id == 'd1'),
+          isEmpty,
+        );
+        final deleted = await repos.dances.getById('d1', includeDeleted: true);
+        expect(deleted, isNotNull);
+        expect(deleted!.deletedAt, isNotNull);
+
+        // Undo restores it.
+        await tester.tap(find.text('Undo'));
+        await tester.pumpAndSettle();
+        final restored = await repos.dances.getById('d1');
+        expect(restored, isNotNull);
+        expect(restored!.deletedAt, isNull);
+      },
+    );
+
+    testWidgets('Delete is hidden for a new (unsaved) dance', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpEditor(tester, repos);
+      // Save is always available; delete only appears for a saved dance.
+      expect(find.byKey(const ValueKey('save-dance')), findsOneWidget);
+      expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
+    });
+  });
 }
