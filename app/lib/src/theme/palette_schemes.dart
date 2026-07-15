@@ -131,6 +131,186 @@ class GalleryPalettes {
     error: const Color(0xFFE34E1C),
   );
 
+  // ---- Community favorites — dark -----------------------------------------
+
+  /// Dracula — inspired, contrast-tuned (purple / pink).
+  static final ColorScheme dracula = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF282A36),
+    onSurface: const Color(0xFFF8F8F2),
+    primary: const Color(0xFFBD93F9),
+    secondary: const Color(0xFF50FA7B),
+    tertiary: const Color(0xFFFFB86C),
+    error: const Color(0xFFFF5555),
+  );
+
+  /// Nord — inspired, contrast-tuned (arctic blue).
+  static final ColorScheme nord = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF2E3440),
+    onSurface: const Color(0xFFD8DEE9),
+    primary: const Color(0xFF88C0D0),
+    secondary: const Color(0xFFA3BE8C),
+    tertiary: const Color(0xFFEBCB8B),
+    error: const Color(0xFFBF616A),
+  );
+
+  /// Tokyo Night — inspired, contrast-tuned (indigo).
+  static final ColorScheme tokyoNight = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF1A1B26),
+    onSurface: const Color(0xFFA9B1D6),
+    primary: const Color(0xFF7AA2F7),
+    secondary: const Color(0xFF9ECE6A),
+    tertiary: const Color(0xFFE0AF68),
+    error: const Color(0xFFF7768E),
+  );
+
+  /// Gruvbox Dark — inspired, contrast-tuned (warm retro amber).
+  static final ColorScheme gruvboxDark = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF282828),
+    onSurface: const Color(0xFFEBDBB2),
+    primary: const Color(0xFFFE8019),
+    secondary: const Color(0xFFB8BB26),
+    tertiary: const Color(0xFFFABD2F),
+    error: const Color(0xFFFB4934),
+  );
+
+  /// Catppuccin Mocha — inspired, contrast-tuned (pastel mauve).
+  static final ColorScheme catppuccinMocha = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF1E1E2E),
+    onSurface: const Color(0xFFCDD6F4),
+    primary: const Color(0xFFCBA6F7),
+    secondary: const Color(0xFFA6E3A1),
+    tertiary: const Color(0xFFF9E2AF),
+    error: const Color(0xFFF38BA8),
+  );
+
+  /// GitHub Dark — inspired, contrast-tuned (neutral blue).
+  static final ColorScheme githubDark = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF0D1117),
+    onSurface: const Color(0xFFC9D1D9),
+    primary: const Color(0xFF58A6FF),
+    secondary: const Color(0xFF3FB950),
+    tertiary: const Color(0xFFD29922),
+    error: const Color(0xFFF85149),
+  );
+
+  /// Night Owl — inspired, contrast-tuned (deep teal-blue).
+  static final ColorScheme nightOwl = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF011627),
+    onSurface: const Color(0xFFD6DEEB),
+    primary: const Color(0xFF82AAFF),
+    secondary: const Color(0xFF22DA6E),
+    tertiary: const Color(0xFFECC48D),
+    error: const Color(0xFFEF5350),
+  );
+
+  /// Everforest Dark — inspired, contrast-tuned (soft green).
+  static final ColorScheme everforestDark = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF2D353B),
+    onSurface: const Color(0xFFD3C6AA),
+    primary: const Color(0xFFA7C080),
+    secondary: const Color(0xFF7FBBB3),
+    tertiary: const Color(0xFFDBBC7F),
+    error: const Color(0xFFE67E80),
+  );
+
+  /// Rosé Pine — inspired, contrast-tuned (muted rose / iris).
+  static final ColorScheme rosePine = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF191724),
+    onSurface: const Color(0xFFE0DEF4),
+    primary: const Color(0xFFC4A7E7),
+    secondary: const Color(0xFF9CCFD8),
+    tertiary: const Color(0xFFEBBCBA),
+    error: const Color(0xFFEB6F92),
+  );
+
+  /// Ayu Mirage — inspired, contrast-tuned (amber / orange).
+  static final ColorScheme ayuMirage = _build(
+    brightness: Brightness.dark,
+    surface: const Color(0xFF1F2430),
+    onSurface: const Color(0xFFCBCCC6),
+    primary: const Color(0xFFFFCC66),
+    secondary: const Color(0xFFBAE67E),
+    tertiary: const Color(0xFF73D0FF),
+    error: const Color(0xFFFF6666),
+  );
+
+  // ---- Community favorites — light ----------------------------------------
+
+  /// GitHub Light — inspired, contrast-tuned (neutral).
+  static final ColorScheme githubLight = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFFFFFFF),
+    onSurface: const Color(0xFF24292F),
+    primary: const Color(0xFF0969DA),
+    secondary: const Color(0xFF1A7F37),
+    tertiary: const Color(0xFF9A6700),
+    error: const Color(0xFFCF222E),
+  );
+
+  /// Catppuccin Latte — inspired, contrast-tuned (pastel light).
+  static final ColorScheme catppuccinLatte = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFEFF1F5),
+    onSurface: const Color(0xFF4C4F69),
+    primary: const Color(0xFF8839EF),
+    secondary: const Color(0xFF40A02B),
+    tertiary: const Color(0xFFDF8E1D),
+    error: const Color(0xFFD20F39),
+  );
+
+  /// Gruvbox Light — inspired, contrast-tuned (warm cream).
+  static final ColorScheme gruvboxLight = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFFBF1C7),
+    onSurface: const Color(0xFF3C3836),
+    primary: const Color(0xFFAF3A03),
+    secondary: const Color(0xFF79740E),
+    tertiary: const Color(0xFFB57614),
+    error: const Color(0xFF9D0006),
+  );
+
+  /// Everforest Light — inspired, contrast-tuned (soft green).
+  static final ColorScheme everforestLight = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFFDF6E3),
+    onSurface: const Color(0xFF5C6A72),
+    primary: const Color(0xFF8DA101),
+    secondary: const Color(0xFF35A77C),
+    tertiary: const Color(0xFFDFA000),
+    error: const Color(0xFFF85552),
+  );
+
+  /// Rosé Pine Dawn — inspired, contrast-tuned (light rose / iris).
+  static final ColorScheme rosePineDawn = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFFAF4ED),
+    onSurface: const Color(0xFF575279),
+    primary: const Color(0xFF907AA9),
+    secondary: const Color(0xFF56949F),
+    tertiary: const Color(0xFFD7827E),
+    error: const Color(0xFFB4637A),
+  );
+
+  /// Ayu Light — inspired, contrast-tuned (bright amber).
+  static final ColorScheme ayuLight = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFFAFAFA),
+    onSurface: const Color(0xFF5C6166),
+    primary: const Color(0xFFFA8D3E),
+    secondary: const Color(0xFF86B300),
+    tertiary: const Color(0xFF399EE6),
+    error: const Color(0xFFF07171),
+  );
+
   // ---- Derivation ---------------------------------------------------------
 
   /// Builds a full 30-role [ColorScheme] from a palette's identity colors,

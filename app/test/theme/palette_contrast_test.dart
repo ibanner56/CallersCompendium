@@ -29,6 +29,22 @@ final Map<String, ColorScheme> _galleryPalettes = {
   'oneDarkProDarker': GalleryPalettes.oneDarkProDarker,
   'monokai': GalleryPalettes.monokai,
   'noctis': GalleryPalettes.noctis,
+  'githubLight': GalleryPalettes.githubLight,
+  'catppuccinLatte': GalleryPalettes.catppuccinLatte,
+  'gruvboxLight': GalleryPalettes.gruvboxLight,
+  'everforestLight': GalleryPalettes.everforestLight,
+  'rosePineDawn': GalleryPalettes.rosePineDawn,
+  'ayuLight': GalleryPalettes.ayuLight,
+  'dracula': GalleryPalettes.dracula,
+  'nord': GalleryPalettes.nord,
+  'tokyoNight': GalleryPalettes.tokyoNight,
+  'gruvboxDark': GalleryPalettes.gruvboxDark,
+  'catppuccinMocha': GalleryPalettes.catppuccinMocha,
+  'githubDark': GalleryPalettes.githubDark,
+  'nightOwl': GalleryPalettes.nightOwl,
+  'everforestDark': GalleryPalettes.everforestDark,
+  'rosePine': GalleryPalettes.rosePine,
+  'ayuMirage': GalleryPalettes.ayuMirage,
 };
 
 void main() {

@@ -32,13 +32,29 @@ enum AppThemeSelection {
   solarizedLight,
   atomOneLight,
   noctisLux,
+  githubLight,
+  catppuccinLatte,
+  gruvboxLight,
+  everforestLight,
+  rosePineDawn,
+  ayuLight,
   // Gallery palettes (§4A) — dark.
   solarizedDark,
   atomOneDark,
   oneDarkPro,
   oneDarkProDarker,
   monokai,
-  noctis;
+  noctis,
+  dracula,
+  nord,
+  tokyoNight,
+  gruvboxDark,
+  catppuccinMocha,
+  githubDark,
+  nightOwl,
+  everforestDark,
+  rosePine,
+  ayuMirage;
 
   bool get isHighContrast => this == AppThemeSelection.highContrast;
 
@@ -56,12 +72,28 @@ enum AppThemeSelection {
     AppThemeSelection.solarizedLight => GalleryPalettes.solarizedLight,
     AppThemeSelection.atomOneLight => GalleryPalettes.atomOneLight,
     AppThemeSelection.noctisLux => GalleryPalettes.noctisLux,
+    AppThemeSelection.githubLight => GalleryPalettes.githubLight,
+    AppThemeSelection.catppuccinLatte => GalleryPalettes.catppuccinLatte,
+    AppThemeSelection.gruvboxLight => GalleryPalettes.gruvboxLight,
+    AppThemeSelection.everforestLight => GalleryPalettes.everforestLight,
+    AppThemeSelection.rosePineDawn => GalleryPalettes.rosePineDawn,
+    AppThemeSelection.ayuLight => GalleryPalettes.ayuLight,
     AppThemeSelection.solarizedDark => GalleryPalettes.solarizedDark,
     AppThemeSelection.atomOneDark => GalleryPalettes.atomOneDark,
     AppThemeSelection.oneDarkPro => GalleryPalettes.oneDarkPro,
     AppThemeSelection.oneDarkProDarker => GalleryPalettes.oneDarkProDarker,
     AppThemeSelection.monokai => GalleryPalettes.monokai,
     AppThemeSelection.noctis => GalleryPalettes.noctis,
+    AppThemeSelection.dracula => GalleryPalettes.dracula,
+    AppThemeSelection.nord => GalleryPalettes.nord,
+    AppThemeSelection.tokyoNight => GalleryPalettes.tokyoNight,
+    AppThemeSelection.gruvboxDark => GalleryPalettes.gruvboxDark,
+    AppThemeSelection.catppuccinMocha => GalleryPalettes.catppuccinMocha,
+    AppThemeSelection.githubDark => GalleryPalettes.githubDark,
+    AppThemeSelection.nightOwl => GalleryPalettes.nightOwl,
+    AppThemeSelection.everforestDark => GalleryPalettes.everforestDark,
+    AppThemeSelection.rosePine => GalleryPalettes.rosePine,
+    AppThemeSelection.ayuMirage => GalleryPalettes.ayuMirage,
   };
 
   /// Brightness of a pinned selection (defaults to light for [system], which
@@ -76,7 +108,13 @@ enum AppThemeSelection {
     AppThemeSelection.highContrast => AppThemeGroup.defaultHearth,
     AppThemeSelection.solarizedLight ||
     AppThemeSelection.atomOneLight ||
-    AppThemeSelection.noctisLux => AppThemeGroup.light,
+    AppThemeSelection.noctisLux ||
+    AppThemeSelection.githubLight ||
+    AppThemeSelection.catppuccinLatte ||
+    AppThemeSelection.gruvboxLight ||
+    AppThemeSelection.everforestLight ||
+    AppThemeSelection.rosePineDawn ||
+    AppThemeSelection.ayuLight => AppThemeGroup.light,
     _ => AppThemeGroup.dark,
   };
 
@@ -105,6 +143,22 @@ enum AppThemeSelection {
     AppThemeSelection.oneDarkProDarker => 'One Dark Pro Darker',
     AppThemeSelection.monokai => 'Monokai',
     AppThemeSelection.noctis => 'Noctis',
+    AppThemeSelection.githubLight => 'GitHub Light',
+    AppThemeSelection.catppuccinLatte => 'Catppuccin Latte',
+    AppThemeSelection.gruvboxLight => 'Gruvbox Light',
+    AppThemeSelection.everforestLight => 'Everforest Light',
+    AppThemeSelection.rosePineDawn => 'Rosé Pine Dawn',
+    AppThemeSelection.ayuLight => 'Ayu Light',
+    AppThemeSelection.dracula => 'Dracula',
+    AppThemeSelection.nord => 'Nord',
+    AppThemeSelection.tokyoNight => 'Tokyo Night',
+    AppThemeSelection.gruvboxDark => 'Gruvbox Dark',
+    AppThemeSelection.catppuccinMocha => 'Catppuccin Mocha',
+    AppThemeSelection.githubDark => 'GitHub Dark',
+    AppThemeSelection.nightOwl => 'Night Owl',
+    AppThemeSelection.everforestDark => 'Everforest Dark',
+    AppThemeSelection.rosePine => 'Rosé Pine',
+    AppThemeSelection.ayuMirage => 'Ayu Mirage',
   };
 
   /// One-line description shown under each option.
@@ -123,6 +177,23 @@ enum AppThemeSelection {
     AppThemeSelection.oneDarkProDarker => 'One Dark Pro on a deeper surface',
     AppThemeSelection.monokai => 'Vivid Monokai on charcoal',
     AppThemeSelection.noctis => 'Deep blue night with mint accents',
+    AppThemeSelection.githubLight => 'GitHub’s clean neutral light',
+    AppThemeSelection.catppuccinLatte =>
+      'Soft pastel light, community favorite',
+    AppThemeSelection.gruvboxLight => 'Warm retro cream and earth tones',
+    AppThemeSelection.everforestLight => 'Gentle green, easy on the eyes',
+    AppThemeSelection.rosePineDawn => 'Muted rose and iris on warm paper',
+    AppThemeSelection.ayuLight => 'Bright, minimal light with amber accents',
+    AppThemeSelection.dracula => 'The classic purple-on-charcoal favorite',
+    AppThemeSelection.nord => 'Cool arctic blues, understated',
+    AppThemeSelection.tokyoNight => 'Neon indigo city-at-night palette',
+    AppThemeSelection.gruvboxDark => 'Warm retro amber on charcoal',
+    AppThemeSelection.catppuccinMocha => 'Cozy pastel dark, community favorite',
+    AppThemeSelection.githubDark => 'GitHub’s neutral dark',
+    AppThemeSelection.nightOwl => 'Deep blue tuned for late-night work',
+    AppThemeSelection.everforestDark => 'Soft forest green, low fatigue',
+    AppThemeSelection.rosePine => 'Muted rose and iris in the dark',
+    AppThemeSelection.ayuMirage => 'Smooth slate with amber accents',
   };
 
   /// Resolves a persisted name back to a selection, or `null` if unknown.
