@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -60,14 +62,62 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   double _textScale = kPerformDefaultScale;
   bool _canonicalView = false;
 
+  /// Ephemeral, in-view timing state (`docs/ROADMAP.md` §5.2). Timing is a
+  /// display-only aid for the caller during an event: never persisted and never
+  /// written back to the program (that is 5.3 territory).
+  ///
+  /// A single [Timer.periodic] (1s) drives both the running program clock and
+  /// the per-slot elapsed. We accumulate whole seconds in [_elapsedSeconds]
+  /// rather than diffing wall-clock time so the readouts advance deterministically
+  /// under `tester.pump(Duration(...))`. The timer is independent of
+  /// [PerformWakelockMixin] (which only toggles the wake-lock in initState/
+  /// dispose), so the two do not interfere.
+  Timer? _timer;
+  int _elapsedSeconds = 0;
+
+  /// Value of [_elapsedSeconds] when the current group was entered; the per-slot
+  /// elapsed is the difference. Reset to "now" on every navigation.
+  int _slotStartSeconds = 0;
+  bool _paused = false;
+
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5). In
   /// view only; persistence to Settings is a documented later follow-up.
   bool _stageMode = true;
 
   @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_paused || !mounted) return;
+      setState(() => _elapsedSeconds++);
+    });
+  }
+
+  @override
   void dispose() {
+    _timer?.cancel();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
+  void _resetSlotTimer() => _slotStartSeconds = _elapsedSeconds;
+
+  void _togglePause() => setState(() => _paused = !_paused);
+
+  int get _slotElapsedSeconds => _elapsedSeconds - _slotStartSeconds;
+
+  /// `H:MM:SS` once past an hour, otherwise `MM:SS`.
+  static String _formatDuration(int totalSeconds) {
+    final seconds = totalSeconds % 60;
+    final minutes = (totalSeconds ~/ 60) % 60;
+    final hours = totalSeconds ~/ 3600;
+    final ss = seconds.toString().padLeft(2, '0');
+    if (hours > 0) {
+      final mm = minutes.toString().padLeft(2, '0');
+      return '$hours:$mm:$ss';
+    }
+    return '$minutes:$ss';
   }
 
   void _decreaseTextSize() {
@@ -88,13 +138,19 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   void _goPrev() {
     if (!_hasPrev) return;
-    setState(() => _groupIndex--);
+    setState(() {
+      _groupIndex--;
+      _resetSlotTimer();
+    });
     _announcePosition();
   }
 
   void _goNext() {
     if (!_hasNext) return;
-    setState(() => _groupIndex++);
+    setState(() {
+      _groupIndex++;
+      _resetSlotTimer();
+    });
     _announcePosition();
   }
 
@@ -118,6 +174,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     setState(() {
       _selectedMember[_groupIndex] =
           (_selectedMember[_groupIndex] + 1) % members.length;
+      _resetSlotTimer();
     });
     final slot = members[_selectedMember[_groupIndex]];
     SemanticsService.sendAnnouncement(
@@ -176,7 +233,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       },
     );
     if (target != null && mounted) {
-      setState(() => _groupIndex = target);
+      setState(() {
+        _groupIndex = target;
+        _resetSlotTimer();
+      });
       _announcePosition();
     }
   }
@@ -313,6 +373,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         bottomNavigationBar: BottomAppBar(
           child: Row(
             children: [
+              _buildPauseButton(),
               IconButton(
                 key: const ValueKey('perform-prev'),
                 tooltip: 'Previous slot',
@@ -323,15 +384,25 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 child: Center(
                   child: Builder(
                     // Resolve the text style from a context *below*
-                    // [PerformStageTheme] so the position label picks up the
-                    // stage theme's on-surface color (readable on the dark
+                    // [PerformStageTheme] so the labels pick up the stage
+                    // theme's on-surface color (readable on the dark
                     // BottomAppBar) when stage mode is on, rather than the
                     // outer ambient theme.
-                    builder: (context) => Text(
-                      'Slot ${_groupIndex + 1} of ${_groups.length}',
-                      key: const ValueKey('perform-position'),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                    builder: (context) {
+                      final textTheme = Theme.of(context).textTheme;
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Slot ${_groupIndex + 1} of ${_groups.length}',
+                            key: const ValueKey('perform-position'),
+                            style: textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 2),
+                          _buildTimingLine(slot, textTheme),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -343,6 +414,91 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Pause/resume for the ephemeral timers. A single AT node carrying button
+  /// role, name, tap action, and toggled (paused) state — same pattern as the
+  /// stage toggle — so a caller who gets interrupted can freeze the clock.
+  Widget _buildPauseButton() {
+    final tooltip = _paused ? 'Resume timers' : 'Pause timers';
+    return MergeSemantics(
+      child: Semantics(
+        toggled: _paused,
+        child: IconButton(
+          key: const ValueKey('perform-timer-pause'),
+          tooltip: tooltip,
+          isSelected: _paused,
+          icon: const Icon(Icons.pause),
+          selectedIcon: const Icon(Icons.play_arrow),
+          onPressed: _togglePause,
+        ),
+      ),
+    );
+  }
+
+  /// The running program clock, per-slot elapsed, and (when present) the
+  /// planned slot length with a subtle over-run cue.
+  ///
+  /// AT reading is deliberately *on demand*: the whole line is one
+  /// [Semantics] node with a composed [label] that a screen reader voices when
+  /// focused, wrapping [ExcludeSemantics] visuals. A per-second live region
+  /// would spam AT, so the value is read at focus time instead of on every tick.
+  Widget _buildTimingLine(ProgramSlot slot, TextTheme textTheme) {
+    final planned = slot.plannedMinutes;
+    final slotElapsed = _slotElapsedSeconds;
+    final isOver = planned != null && slotElapsed > planned * 60;
+    final style = textTheme.bodyMedium;
+
+    final label = StringBuffer(
+      'Program time ${_formatDuration(_elapsedSeconds)}, '
+      'slot time ${_formatDuration(slotElapsed)}',
+    );
+    if (planned != null) {
+      label.write(', planned $planned ${planned == 1 ? 'minute' : 'minutes'}');
+      if (isOver) label.write(', over planned');
+    }
+    if (_paused) label.write(', paused');
+
+    return Semantics(
+      label: label.toString(),
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.timer_outlined, size: 16),
+            const SizedBox(width: 4),
+            Text(
+              _formatDuration(_elapsedSeconds),
+              key: const ValueKey('perform-clock'),
+              style: style,
+            ),
+            Text('  ·  ', style: style),
+            Text(
+              _formatDuration(slotElapsed),
+              key: const ValueKey('perform-slot-elapsed'),
+              style: style,
+            ),
+            if (planned != null) ...[
+              Text('  ·  ', style: style),
+              Text(
+                'planned $planned min',
+                key: const ValueKey('perform-planned'),
+                style: style,
+              ),
+              if (isOver) ...[
+                const SizedBox(width: 4),
+                const Icon(Icons.timelapse, size: 16),
+                Text(
+                  ' over',
+                  key: const ValueKey('perform-over'),
+                  style: style,
+                ),
+              ],
+            ],
+          ],
         ),
       ),
     );

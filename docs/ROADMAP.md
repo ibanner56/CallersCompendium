@@ -231,7 +231,7 @@ design/domain-model.md "CC parity backfill".*
   dialect quick-toggle as the detail card, and adds an in-view large-print size
   control (A-/A+, large default, no practical upper bound). In-view size state
   only; cross-session persistence to settings is a later follow-up.
-- [ ] 5.2 Program navigation (next/prev, jump), screen-wake lock, high-contrast theme;
+- [x] 5.2 Program navigation (next/prev, jump), screen-wake lock, high-contrast theme;
   optional per-slot / running **program timing** (CC `Set.TimeStart`/`TimeElapsed`,
   `SetItem.Time`) surfaced during an event
   - Program navigation delivered: program-mode Perform view walking `Program.grouped`
@@ -245,8 +245,15 @@ design/domain-model.md "CC parity backfill".*
     with an in-view toggle (keyboard-reachable, on/off state exposed to AT) to
     fall back to the app's inherited theme; in-view only, persistence to
     Settings deferred as a later follow-up (mirrors the 5.1 size-control
-    decision). Remaining sub-item — optional per-slot / running **program
-    timing** — is a separate follow-up PR.
+    decision). Program timing delivered: the program Perform view surfaces a
+    running program clock and a per-slot elapsed timer (the latter resets on
+    every navigation — next/prev/jump/alt-swap) in the bottom status bar, shows a
+    slot's `plannedMinutes` (CC `SetItem.Time`) as "planned N min" with a subtle
+    icon+text over-run cue when elapsed passes it, and offers a pause/resume
+    toggle for interruptions. Timing is in-view-only and read-only toward the
+    model (no `performedAt`/persistence — that is 5.3); timers are driven by a
+    single 1s `Timer` cancelled on exit, and the readouts expose an on-demand
+    (non-live-region) accessible label to avoid per-second AT spam.
 - [ ] 5.3 On-the-fly program adjustments during an event
 - [ ] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
   rendering of figures for assistive tech (distinct from the terse canonical/dialect

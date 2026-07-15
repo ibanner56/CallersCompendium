@@ -35,12 +35,14 @@ ProgramSlot _slot({
   String? danceId,
   String? text,
   bool isAlt = false,
+  int? plannedMinutes,
 }) => ProgramSlot(
   id: id,
   position: position,
   danceId: danceId,
   text: text,
   isAlt: isAlt,
+  plannedMinutes: plannedMinutes,
 );
 
 Program _program(List<ProgramSlot> slots, {String title = 'Spring Dance'}) =>
@@ -86,6 +88,30 @@ Future<void> _pumpProgram(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+/// Reads the current text of a keyed [Text] widget (e.g. the running clock or
+/// per-slot elapsed readout), which live inside an [ExcludeSemantics] wrapper
+/// but are still present in the widget tree.
+String _textOf(WidgetTester tester, String key) =>
+    tester.widget<Text>(find.byKey(ValueKey(key))).data!;
+
+/// Parses a `MM:SS` / `H:MM:SS` readout back into whole seconds.
+int _seconds(String display) {
+  final parts = display.split(':').map(int.parse).toList();
+  return parts.length == 3
+      ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+      : parts[0] * 60 + parts[1];
+}
+
+/// Mirrors the screen's `H:MM:SS` / `MM:SS` formatting for assertions.
+String _fmt(int totalSeconds) {
+  final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
+  final minutes = (totalSeconds ~/ 60) % 60;
+  final hours = totalSeconds ~/ 3600;
+  return hours > 0
+      ? '$hours:${minutes.toString().padLeft(2, '0')}:$seconds'
+      : '$minutes:$seconds';
 }
 
 void main() {
@@ -476,6 +502,215 @@ void main() {
         isFocusable: true,
         hasTapAction: true,
       ),
+    );
+
+    handle.dispose();
+  });
+
+  testWidgets('the running program clock advances with wall time', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+    );
+
+    final baseline = _seconds(_textOf(tester, 'perform-clock'));
+
+    await tester.pump(const Duration(seconds: 65));
+    expect(_textOf(tester, 'perform-clock'), _fmt(baseline + 65));
+
+    // Past an hour it switches to the H:MM:SS form.
+    await tester.pump(const Duration(seconds: 3600));
+    final past = _textOf(tester, 'perform-clock');
+    expect(past, _fmt(baseline + 3665));
+    expect(past.split(':').length, 3);
+  });
+
+  testWidgets('per-slot elapsed advances and resets on navigation', (
+    tester,
+  ) async {
+    final data = await _dataWith([
+      _dance(id: 'd1', title: 'First Dance'),
+      _dance(id: 'd2', title: 'Second Dance'),
+      _dance(id: 'd3', title: 'Third Dance'),
+    ]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1'),
+        _slot(id: 's2', position: 1, danceId: 'd2'),
+        _slot(id: 's3', position: 2, danceId: 'd3'),
+      ]),
+    );
+
+    // Next resets the per-slot timer (to an exact zero) but keeps the program
+    // clock running.
+    await tester.tap(find.byKey(const ValueKey('perform-next')));
+    await tester.pump();
+    expect(_textOf(tester, 'perform-slot-elapsed'), '0:00');
+
+    final clockAfterReset = _seconds(_textOf(tester, 'perform-clock'));
+    await tester.pump(const Duration(seconds: 2));
+    expect(_textOf(tester, 'perform-slot-elapsed'), '0:02');
+    expect(_seconds(_textOf(tester, 'perform-clock')), clockAfterReset + 2);
+
+    // Prev also resets.
+    await tester.tap(find.byKey(const ValueKey('perform-prev')));
+    await tester.pump();
+    expect(_textOf(tester, 'perform-slot-elapsed'), '0:00');
+
+    await tester.pump(const Duration(seconds: 3));
+    expect(_textOf(tester, 'perform-slot-elapsed'), '0:03');
+
+    // Jump resets. (pumpAndSettle advances the clock slightly after the reset,
+    // so assert the per-slot timer dropped rather than an exact zero.)
+    await tester.tap(find.byKey(const ValueKey('perform-jump')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-jump-slot-2')));
+    await tester.pumpAndSettle();
+    expect(_seconds(_textOf(tester, 'perform-slot-elapsed')), lessThan(3));
+  });
+
+  testWidgets('alt-swap resets the per-slot elapsed', (tester) async {
+    final data = await _dataWith([
+      _dance(id: 'd1', title: 'Primary Dance'),
+      _dance(id: 'd2', title: 'Alternate Dance'),
+    ]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1'),
+        _slot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+      ]),
+    );
+
+    await tester.pump(const Duration(seconds: 5));
+    expect(
+      _seconds(_textOf(tester, 'perform-slot-elapsed')),
+      greaterThanOrEqualTo(5),
+    );
+    final clockBefore = _seconds(_textOf(tester, 'perform-clock'));
+
+    await tester.tap(find.byKey(const ValueKey('perform-alt-swap')));
+    await tester.pump();
+    expect(_textOf(tester, 'perform-slot-elapsed'), '0:00');
+    // Program clock keeps running across the swap.
+    expect(_seconds(_textOf(tester, 'perform-clock')), clockBefore);
+  });
+
+  testWidgets('planned minutes render when present and are absent when null', (
+    tester,
+  ) async {
+    final data = await _dataWith([
+      _dance(id: 'd1', title: 'Timed Dance'),
+      _dance(id: 'd2', title: 'Untimed Dance'),
+    ]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1', plannedMinutes: 8),
+        _slot(id: 's2', position: 1, danceId: 'd2'),
+      ]),
+    );
+
+    expect(find.byKey(const ValueKey('perform-planned')), findsOneWidget);
+    expect(find.text('planned 8 min'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('perform-next')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-planned')), findsNothing);
+  });
+
+  testWidgets('an over-run cue appears once elapsed passes planned', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1', plannedMinutes: 1),
+      ]),
+    );
+
+    expect(find.byKey(const ValueKey('perform-over')), findsNothing);
+    // Push past the 1-minute plan.
+    await tester.pump(const Duration(seconds: 61));
+    expect(find.byKey(const ValueKey('perform-over')), findsOneWidget);
+  });
+
+  testWidgets('pause stops the timers and resume continues them', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+    );
+
+    final start = _seconds(_textOf(tester, 'perform-clock'));
+    await tester.pump(const Duration(seconds: 2));
+    expect(_seconds(_textOf(tester, 'perform-clock')), start + 2);
+
+    await tester.tap(find.byKey(const ValueKey('perform-timer-pause')));
+    await tester.pump();
+    final frozenClock = _textOf(tester, 'perform-clock');
+    final frozenSlot = _textOf(tester, 'perform-slot-elapsed');
+    await tester.pump(const Duration(seconds: 5));
+    // Frozen while paused.
+    expect(_textOf(tester, 'perform-clock'), frozenClock);
+    expect(_textOf(tester, 'perform-slot-elapsed'), frozenSlot);
+
+    await tester.tap(find.byKey(const ValueKey('perform-timer-pause')));
+    await tester.pump();
+    final resumed = _seconds(_textOf(tester, 'perform-clock'));
+    await tester.pump(const Duration(seconds: 3));
+    expect(_seconds(_textOf(tester, 'perform-clock')), resumed + 3);
+  });
+
+  testWidgets('pause/resume toggle is keyboard/AT-reachable with state', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+    );
+
+    final pause = find.byKey(const ValueKey('perform-timer-pause'));
+    expect(
+      tester.getSemantics(pause),
+      isSemantics(
+        isButton: true,
+        isFocusable: true,
+        hasTapAction: true,
+        hasToggledState: true,
+        isToggled: false,
+      ),
+      reason: 'pause toggle starts in the running (un-paused) state',
+    );
+
+    await tester.tap(pause);
+    await tester.pump();
+    expect(
+      tester.getSemantics(pause),
+      isSemantics(
+        isButton: true,
+        isFocusable: true,
+        hasTapAction: true,
+        hasToggledState: true,
+        isToggled: true,
+      ),
+      reason: 'pause toggle announces its paused state after tapping',
     );
 
     handle.dispose();
