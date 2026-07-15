@@ -230,16 +230,18 @@ class FigureDraft {
 
   /// Seeds a draft from an existing figure, keeping its params/note/flags.
   ///
-  /// A loaded figure already carries an authored beat count, so [beatsTouched]
-  /// is set — the editor treats that value as user-owned and never silently
-  /// auto-fills over it (see [beatsTouched]).
+  /// [beatsTouched] is set only when the loaded figure carries an explicit
+  /// `beats` value — that authored count is user-owned and never auto-filled
+  /// over (see [beatsTouched]). A figure with no `beats` (older/partial data)
+  /// stays untouched so it can still adopt the taxonomy default on the next
+  /// resync rather than remaining stuck at 0.
   factory FigureDraft.fromFigure(Figure figure) => FigureDraft(
     move: figure.move,
     params: Map<String, Object?>.of(figure.params),
     note: figure.note ?? '',
     progression: figure.progression,
     schemaVersion: figure.schemaVersion,
-    beatsTouched: true,
+    beatsTouched: figure.params.containsKey('beats'),
   );
 
   /// Stable identity for widget keys across reorders/rebuilds.
@@ -256,9 +258,10 @@ class FigureDraft {
   ///
   /// Beats are auto-filled from the taxonomy: picking a move seeds the move's
   /// canonical default and clears this flag. Once the user edits the beats
-  /// field directly (or the draft is seeded from a loaded figure via
-  /// [FigureDraft.fromFigure]), this becomes `true` and the editor stops
-  /// auto-filling beats so a manual override is never silently overwritten.
+  /// field directly (or the draft is seeded from a loaded figure that already
+  /// carries an explicit `beats` via [FigureDraft.fromFigure]), this becomes
+  /// `true` and the editor stops auto-filling beats so a manual override is
+  /// never silently overwritten.
   bool beatsTouched;
 
   int get beats => (params['beats'] as int?) ?? 0;
@@ -959,8 +962,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     if (move == null) return;
     final def = widget.taxonomy.resolve(move);
     if (def == null || !def.params.containsKey('beats')) return;
+    // Probe with the draft's current non-beats params so the resync reflects
+    // the draft's actual state if/when taxonomy beat defaults become sensitive
+    // to other params. `beats` is dropped so we recompute the canonical value
+    // rather than echoing whatever beats is already set.
+    final probeParams = Map<String, Object?>.of(draft.params)..remove('beats');
     final canonical = widget.taxonomy.effectiveParams(
-      Figure(move: move),
+      Figure(move: move, params: probeParams),
     )['beats'];
     if (canonical is int) {
       draft.params['beats'] = canonical;

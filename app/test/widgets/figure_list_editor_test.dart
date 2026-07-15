@@ -229,6 +229,26 @@ void main() {
     expect(drafts.single.beats, 12);
   });
 
+  testWidgets('a loaded figure without beats adopts the canonical default', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft.fromFigure(
+        Figure(move: 'swing', params: const {'who': 'partners'}),
+      ),
+    ];
+    // No explicit beats were loaded, so the value is not treated as user-owned.
+    expect(drafts.single.beatsTouched, isFalse);
+
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    // A non-beats edit resyncs beats to the move's canonical default rather
+    // than leaving it stuck at 0.
+    await _selectDropdownOption(tester, 'figure-0-prefix', 'meltdown');
+    expect(drafts.single.beats, 8);
+  });
+
   test('taxonomy beats defaults match canonical values', () {
     int beatsFor(String move) =>
         contraTaxonomy.effectiveParams(Figure(move: move))['beats'] as int;
