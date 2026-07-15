@@ -65,6 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// defaults on until loaded. `null` = not yet loaded.
   bool? _autoSizePerform;
   bool _autoSizeRequested = false;
+  bool _autoSizeUserSet = false;
 
   /// Lazily loads the persisted auto-size preference the first time the General
   /// section is built (avoids reading settings in `initState`, where the
@@ -74,14 +75,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (_autoSizeRequested) return;
     _autoSizeRequested = true;
     final repos = RepositoriesScope.of(context);
-    repos.settings.get(kAutoSizePerformKey).then((value) {
-      if (!mounted) return;
-      setState(() => _autoSizePerform = value is bool ? value : true);
-    });
+    repos.settings
+        .get(kAutoSizePerformKey)
+        .then((value) {
+          // Don't overwrite a selection the user made before the read resolved.
+          if (!mounted || _autoSizeUserSet) return;
+          setState(() => _autoSizePerform = value is bool ? value : true);
+        })
+        .catchError((_) {
+          if (!mounted || _autoSizeUserSet) return;
+          setState(() => _autoSizePerform = true);
+        });
   }
 
   Future<void> _onAutoSizeChanged(bool value) async {
-    setState(() => _autoSizePerform = value);
+    setState(() {
+      _autoSizeUserSet = true;
+      _autoSizePerform = value;
+    });
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kAutoSizePerformKey, value);
   }

@@ -90,6 +90,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   bool _autoSize = true;
   bool _autoSizeLoaded = false;
 
+  /// Set once the user changes auto-size in-view (toggle or A-/A+). Guards the
+  /// async settings load from overwriting an in-session choice if the read
+  /// completes after the user has already acted.
+  bool _autoSizeUserSet = false;
+
   /// Ephemeral, in-view timing state (`docs/ROADMAP.md` §5.2). Timing is a
   /// display-only aid for the caller during an event: never persisted and never
   /// written back to the program (that is 5.3 territory).
@@ -133,11 +138,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     super.didChangeDependencies();
     if (_autoSizeLoaded) return;
     _autoSizeLoaded = true;
-    RepositoriesScope.of(context).settings.get(kAutoSizePerformKey).then((v) {
-      if (!mounted) return;
-      final enabled = v is bool ? v : true;
-      if (enabled != _autoSize) setState(() => _autoSize = enabled);
-    });
+    RepositoriesScope.of(context).settings
+        .get(kAutoSizePerformKey)
+        .then((v) {
+          // Don't clobber an in-view choice the user made before the read resolved.
+          if (!mounted || _autoSizeUserSet) return;
+          final enabled = v is bool ? v : true;
+          if (enabled != _autoSize) setState(() => _autoSize = enabled);
+        })
+        .catchError((_) {
+          // Read failure: keep the on-by-default value; nothing to restore.
+        });
   }
 
   /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
@@ -163,6 +174,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   void _decreaseTextSize() {
     setState(() {
       // Using A-/A+ hands control back to the manual size (ROADMAP G.1).
+      _autoSizeUserSet = true;
       _autoSize = false;
       _textScale = (_textScale - kPerformScaleStep).clamp(
         kPerformMinScale,
@@ -173,6 +185,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   void _increaseTextSize() {
     setState(() {
+      _autoSizeUserSet = true;
       _autoSize = false;
       _textScale += kPerformScaleStep;
     });
@@ -463,7 +476,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
             ),
             PerformAutoSizeToggle(
               autoSizeOn: _autoSize,
-              onChanged: (value) => setState(() => _autoSize = value),
+              onChanged: (value) => setState(() {
+                _autoSizeUserSet = true;
+                _autoSize = value;
+              }),
             ),
             if (!isCanonicalDialect)
               PerformDialectToggle(

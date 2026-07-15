@@ -48,6 +48,12 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   bool _autoSize = true;
   bool _autoSizeLoaded = false;
 
+  /// Set once the user changes auto-size in-view (toggle or A-/A+). Guards the
+  /// async settings load from overwriting an in-session choice if the read
+  /// completes after the user has already acted (a real race on slow first DB
+  /// opens).
+  bool _autoSizeUserSet = false;
+
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5). In
   /// view only; persistence to Settings is a documented later follow-up.
   bool _stageMode = true;
@@ -62,16 +68,23 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     super.didChangeDependencies();
     if (_autoSizeLoaded) return;
     _autoSizeLoaded = true;
-    RepositoriesScope.of(context).settings.get(kAutoSizePerformKey).then((v) {
-      if (!mounted) return;
-      final enabled = v is bool ? v : true;
-      if (enabled != _autoSize) setState(() => _autoSize = enabled);
-    });
+    RepositoriesScope.of(context).settings
+        .get(kAutoSizePerformKey)
+        .then((v) {
+          // Don't clobber an in-view choice the user made before the read resolved.
+          if (!mounted || _autoSizeUserSet) return;
+          final enabled = v is bool ? v : true;
+          if (enabled != _autoSize) setState(() => _autoSize = enabled);
+        })
+        .catchError((_) {
+          // Read failure: keep the on-by-default value; nothing to restore.
+        });
   }
 
   void _decreaseTextSize() {
     setState(() {
       // Using A-/A+ hands control back to the manual size (ROADMAP G.1).
+      _autoSizeUserSet = true;
       _autoSize = false;
       _textScale = (_textScale - kPerformScaleStep).clamp(
         kPerformMinScale,
@@ -82,6 +95,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   void _increaseTextSize() {
     setState(() {
+      _autoSizeUserSet = true;
       _autoSize = false;
       _textScale += kPerformScaleStep;
     });
@@ -114,7 +128,10 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
             ),
             PerformAutoSizeToggle(
               autoSizeOn: _autoSize,
-              onChanged: (value) => setState(() => _autoSize = value),
+              onChanged: (value) => setState(() {
+                _autoSizeUserSet = true;
+                _autoSize = value;
+              }),
             ),
             if (!isCanonicalDialect)
               PerformDialectToggle(
