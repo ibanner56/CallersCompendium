@@ -348,6 +348,9 @@ Cross-cutting application preferences, persisted across sessions via
 §6). Distinct from in-the-moment, per-view toggles — this section is the home
 for app-wide preference switches as they accrue.
 
+Note: default-value preferences (new-program, display, and dance-authoring
+defaults) live in the **Defaults** pane section below.
+
 - [x] G.1 **Auto-size performance cards to fit the screen** — a General settings
   toggle (**on by default**) that auto-scales each Perform card so the current
   dance/slot's full text fits the visible viewport without scrolling,
@@ -368,13 +371,6 @@ for app-wide preference switches as they accrue.
   `docs/design/ux.md` §2). When on: only programs with the dance's slot marked performed appear, matching the
   behavior described in `docs/design/domain-model.md`. Persisted via `SettingsRepository`.
 
-- [ ] G.3 **Default caller & band for new programs** — saved default values used
-  to prefill a new program's event metadata (Phase 4.2): the caller name (the
-  user is usually the caller) and, optionally, a default band. Caller's
-  Companion stores caller/band per set; prefilling saves re-typing at every
-  event. Editable per program; defaults only prefill. Persisted via
-  `SettingsRepository`.
-
 - [ ] G.4 **Soft-delete retention period** — expose the retention window used by
   the startup purge sweep (`DanceRepository.purgeDeleted`, currently hardcoded
   to 30 days) as a user setting (e.g. 30 / 90 days / never auto-purge). Callers
@@ -392,12 +388,6 @@ for app-wide preference switches as they accrue.
   preference*; the underlying serialization is shared with 6.6. Persisted
   (reminder cadence + last-backup timestamp) via `SettingsRepository`.
 
-- [ ] G.6 **Display defaults** — persisted display preferences: (a) the default
-  Collection sort order (title / author / recently-added / last-called), and
-  (b) the default dance-detail rendering (canonical vs active-dialect view) —
-  some callers always want dialect applied. Both are app-only, small, and
-  persist the user's preferred starting state via `SettingsRepository`.
-
 - [ ] G.7 **Accessibility preferences** — app-wide a11y toggles grounded in
   `research/accessibility-baseline.md`: reduce-motion (dampen non-essential
   animation), always-verbose figure rendering (always apply the roadmap 5.4
@@ -413,12 +403,33 @@ for app-wide preference switches as they accrue.
   preferences and anticipates a future language selector. Persisted via
   `SettingsRepository`.
 
-## Dance defaults (settings pane)
+## Defaults (settings pane)
 
-A dedicated Settings pane (sibling to General / Appearance / Dialect) for the
-defaults applied when authoring dances. Persisted via `SettingsRepository`;
-all are local preferences that only affect NEW entry — existing dances and the
-canonical taxonomy are unchanged. Grouped into three concerns:
+A dedicated Settings pane (sibling to General / Appearance / Dialect) for
+app-wide default values — the defaults applied when creating new content
+(programs and dances) and the default display/starting-view preferences.
+Persisted via `SettingsRepository`; all are local preferences that only affect
+NEW entry or the starting display state — existing data and the canonical
+taxonomy are unchanged.
+
+**Program defaults**
+
+- [ ] G.3 **Default caller & band for new programs** — saved default values used
+  to prefill a new program's event metadata (Phase 4.2): the caller name (the
+  user is usually the caller) and, optionally, a default band. Caller's
+  Companion stores caller/band per set; prefilling saves re-typing at every
+  event. Editable per program; defaults only prefill. Persisted via
+  `SettingsRepository`.
+
+**Display defaults**
+
+- [ ] G.6 **Display defaults** — persisted display preferences: (a) the default
+  Collection sort order (title / author / recently-added / last-called), and
+  (b) the default dance-detail rendering (canonical vs active-dialect view) —
+  some callers always want dialect applied. Both are app-only, small, and
+  persist the user's preferred starting state via `SettingsRepository`.
+
+**Dance-authoring defaults**
 
 - [ ] DD.1 **New-dance metadata defaults** — configurable defaults applied when
   creating a new dance: form/type, formation, progression, and phrase
