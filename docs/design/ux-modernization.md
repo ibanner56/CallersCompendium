@@ -313,6 +313,30 @@ per-role hex against each source palette is an implementation deliverable.
 | Noctis | dark | `#1B2932` teal blue-black | `#D6DEEB` | teal/green forward | Noctis (Liviu Schera) |
 | Noctis Lux | light | `#F9F6F2` | `#53606C` | teal/green forward | Noctis Lux |
 
+**Expanded gallery (UX-7).** Following UX-6, the gallery was widened with the
+most-requested industry/hobbyist favorites, spanning the hue spectrum in both
+modes. Each is derived + AA-validated by the same `buildScheme` process, so
+adding one is just "identity colors + one enum entry":
+
+| Palette | Mode | Background | Signature hue | Inspired by |
+|---|---|---|---|---|
+| GitHub Light | light | `#FFFFFF` | neutral blue | GitHub |
+| Catppuccin Latte | light | `#EFF1F5` | pastel mauve | Catppuccin |
+| Gruvbox Light | light | `#FBF1C7` | warm amber | Gruvbox |
+| Everforest Light | light | `#FDF6E3` | soft green | Everforest |
+| Rosé Pine Dawn | light | `#FAF4ED` | rose / iris | Rosé Pine |
+| Ayu Light | light | `#FAFAFA` | bright amber | Ayu |
+| Dracula | dark | `#282A36` | purple / pink | Dracula |
+| Nord | dark | `#2E3440` | arctic blue | Nord |
+| Tokyo Night | dark | `#1A1B26` | neon indigo | Tokyo Night |
+| Gruvbox Dark | dark | `#282828` | warm amber | Gruvbox |
+| Catppuccin Mocha | dark | `#1E1E2E` | pastel mauve | Catppuccin |
+| GitHub Dark | dark | `#0D1117` | neutral blue | GitHub |
+| Night Owl | dark | `#011627` | teal-blue | Night Owl |
+| Everforest Dark | dark | `#2D353B` | soft green | Everforest |
+| Rosé Pine | dark | `#191724` | rose / iris | Rosé Pine |
+| Ayu Mirage | dark | `#1F2430` | amber / slate | Ayu |
+
 The set deliberately spans the **omega spectrum** — paper-white → cool-white →
 warm-charcoal → blue-grey → near-black → deep-saturated-teal — so users get real
 variety, not ten shades of the same dark. A true-black AMOLED entry can be added
