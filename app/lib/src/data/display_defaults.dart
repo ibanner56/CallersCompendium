@@ -11,6 +11,8 @@
 /// here too.
 library;
 
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 
 /// Key used to persist the default Collection sort order (ROADMAP G.6a).
@@ -159,4 +161,52 @@ List<Figure> danceFiguresTemplateFromStored(Object? stored) {
     }
   }
   return defaultNewDanceFigureTemplate();
+}
+
+/// Key used to persist the per-move figure-entry parameter overrides (ROADMAP
+/// DD.3). Stored as `jsonEncode(Map<moveId, Map<paramKey, value>>)` holding
+/// ONLY the params the user overrode (diffs vs the taxonomy's `MoveDef`
+/// defaults), so taxonomy default changes still flow through for params the
+/// user didn't touch. Absent/invalid ⇒ no overrides (pure taxonomy defaults).
+const String kDefaultMoveParamOverridesKey = 'default_move_param_overrides';
+
+/// Resolves a persisted settings value into the per-move param-override map
+/// (ROADMAP DD.3).
+///
+/// Returns an empty (mutable) map for `null`, a non-string, or an
+/// unparseable/garbage string — preserving today's pure-taxonomy-default
+/// behavior for users who never touch the setting. Parses defensively: only
+/// top-level entries whose value is itself a JSON object are kept, and any
+/// empty inner map is dropped (an empty inner map means the move has no
+/// overrides, i.e. it is absent). Returned inner maps are mutable so callers
+/// can edit them in place.
+Map<String, Map<String, Object?>> moveParamOverridesFromStored(Object? stored) {
+  final result = <String, Map<String, Object?>>{};
+  if (stored is! String || stored.isEmpty) return result;
+  Object? decoded;
+  try {
+    decoded = jsonDecode(stored);
+  } catch (_) {
+    return result;
+  }
+  if (decoded is! Map) return result;
+  decoded.forEach((moveId, value) {
+    if (moveId is! String || value is! Map) return;
+    final inner = <String, Object?>{};
+    value.forEach((paramKey, paramValue) {
+      if (paramKey is String) inner[paramKey] = paramValue;
+    });
+    if (inner.isNotEmpty) result[moveId] = inner;
+  });
+  return result;
+}
+
+/// Encodes the per-move param-override map to a `jsonEncode` string for storage
+/// (ROADMAP DD.3). Empty inner maps are dropped before encoding so a move with
+/// no diffs is never persisted (an empty inner map means the move is absent).
+String encodeMoveParamOverrides(Map<String, Map<String, Object?>> overrides) {
+  return jsonEncode({
+    for (final entry in overrides.entries)
+      if (entry.value.isNotEmpty) entry.key: entry.value,
+  });
 }

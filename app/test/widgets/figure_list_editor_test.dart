@@ -11,11 +11,13 @@ class _Host extends StatefulWidget {
     required this.drafts,
     this.phrase = PhraseStructure.standard,
     this.wireDuplicate = true,
+    this.moveParamDefaults,
   });
 
   final List<FigureDraft> drafts;
   final PhraseStructure phrase;
   final bool wireDuplicate;
+  final Map<String, Map<String, Object?>>? moveParamDefaults;
 
   @override
   State<_Host> createState() => _HostState();
@@ -31,6 +33,7 @@ class _HostState extends State<_Host> {
             drafts: widget.drafts,
             taxonomy: contraTaxonomy,
             phraseStructure: widget.phrase,
+            moveParamDefaults: widget.moveParamDefaults,
             onChanged: () => setState(() {}),
             onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
             onDelete: (d) => setState(() => widget.drafts.remove(d)),
@@ -66,11 +69,17 @@ Future<void> _pump(
   List<FigureDraft> drafts, {
   PhraseStructure phrase = PhraseStructure.standard,
   bool wireDuplicate = true,
+  Map<String, Map<String, Object?>>? moveParamDefaults,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
-    _Host(drafts: drafts, phrase: phrase, wireDuplicate: wireDuplicate),
+    _Host(
+      drafts: drafts,
+      phrase: phrase,
+      wireDuplicate: wireDuplicate,
+      moveParamDefaults: moveParamDefaults,
+    ),
   );
   await tester.pumpAndSettle();
 }
@@ -155,6 +164,74 @@ void main() {
     expect(drafts.single.move, 'swing');
     expect(drafts.single.params['who'], 'partners');
     expect(drafts.single.params['beats'], 8);
+  });
+
+  group('per-move insert defaults (DD.3)', () {
+    testWidgets('overlay overrides the taxonomy default on select', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'circle': {'turn': 'right'},
+        },
+      );
+      await _selectMove(tester, 0, 'circle', 'circle');
+
+      expect(drafts.single.move, 'circle');
+      // Overridden param takes the configured value...
+      expect(drafts.single.params['turn'], 'right');
+      // ...while non-overridden params keep their taxonomy defaults.
+      expect(drafts.single.params['places'], 4);
+      expect(drafts.single.params['beats'], 8);
+    });
+
+    testWidgets('no override for the move uses pure taxonomy defaults', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'star': {'places': 2},
+        },
+      );
+      await _selectMove(tester, 0, 'circle', 'circle');
+
+      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.params['places'], 4);
+    });
+
+    testWidgets('stale override key not in the move schema is ignored', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'circle': {'turn': 'right', 'not_a_param': 'x'},
+        },
+      );
+      await _selectMove(tester, 0, 'circle', 'circle');
+
+      expect(drafts.single.params['turn'], 'right');
+      expect(drafts.single.params.containsKey('not_a_param'), isFalse);
+    });
+
+    testWidgets('null moveParamDefaults leaves behavior unchanged', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'circle', 'circle');
+
+      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.params['places'], 4);
+    });
   });
 
   testWidgets('selecting an alias keeps the alias identity and pins', (

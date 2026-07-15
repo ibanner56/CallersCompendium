@@ -289,6 +289,7 @@ class FigureListEditor extends StatefulWidget {
     required this.onReorder,
     this.onDuplicate,
     this.dialect,
+    this.moveParamDefaults,
   });
 
   final List<FigureDraft> drafts;
@@ -299,6 +300,14 @@ class FigureListEditor extends StatefulWidget {
   /// Defaults to [Dialect.larksRobins] when `null` (has the standard
   /// discouraged-term list).
   final Dialect? dialect;
+
+  /// Per-move parameter overrides applied when INSERTING a move (ROADMAP DD.3),
+  /// keyed by move id then param key. When a move is selected (or a custom
+  /// figure created), any override values for params present in that move's
+  /// schema are overlaid on top of the taxonomy's `MoveDef` defaults — the user
+  /// can still edit the row afterward. `null` (the default) or an absent
+  /// move/param falls through to the pure taxonomy defaults (today's behavior).
+  final Map<String, Map<String, Object?>>? moveParamDefaults;
 
   /// Called after any in-place edit to a draft (parent re-renders + revalidates).
   final VoidCallback onChanged;
@@ -606,6 +615,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         showLabel: sectionStart[draft.id] ?? false,
         taxonomy: widget.taxonomy,
         dialect: dialect,
+        moveParamDefaults: widget.moveParamDefaults,
         isCut: isCutCard,
         draggable: draggable,
         isOpen: _openDraftId == draft.id,
@@ -799,6 +809,7 @@ class _FigureDraftCard extends StatefulWidget {
     required this.showLabel,
     required this.taxonomy,
     required this.dialect,
+    this.moveParamDefaults,
     required this.isCut,
     required this.draggable,
     required this.isOpen,
@@ -828,6 +839,11 @@ class _FigureDraftCard extends StatefulWidget {
 
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// Per-move insert-time param overrides (ROADMAP DD.3); see
+  /// [FigureListEditor.moveParamDefaults]. Null = pure taxonomy defaults.
+  final Map<String, Map<String, Object?>>? moveParamDefaults;
+
   final bool isCut;
 
   /// Whether to show the drag-handle widget. False during cut/paste mode
@@ -895,6 +911,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.draft.params
       ..clear()
       ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
+    _applyMoveParamDefaults(moveId);
     _showMoreOptions = false;
     widget.onChanged();
   }
@@ -907,10 +924,28 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.draft.move = customMove;
     widget.draft.params
       ..clear()
-      ..addAll(widget.taxonomy.effectiveParams(Figure(move: customMove)))
-      ..['text'] = trimmed;
+      ..addAll(widget.taxonomy.effectiveParams(Figure(move: customMove)));
+    _applyMoveParamDefaults(customMove);
+    widget.draft.params['text'] = trimmed;
     _showMoreOptions = false;
     widget.onChanged();
+  }
+
+  /// Overlays the user's saved per-move param defaults (ROADMAP DD.3) on top of
+  /// the taxonomy defaults just seeded into [widget.draft.params]. Only keys
+  /// present in the move's schema are applied, so stale/unknown override keys
+  /// are ignored. A null map or an absent move/param leaves the taxonomy
+  /// defaults untouched (today's behavior).
+  void _applyMoveParamDefaults(String moveId) {
+    final overrides = widget.moveParamDefaults?[moveId];
+    if (overrides == null || overrides.isEmpty) return;
+    final schema = widget.taxonomy.resolve(moveId)?.params;
+    if (schema == null) return;
+    for (final entry in overrides.entries) {
+      if (schema.containsKey(entry.key)) {
+        widget.draft.params[entry.key] = entry.value;
+      }
+    }
   }
 
   void _clearMove() {

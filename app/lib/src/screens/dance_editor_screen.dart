@@ -42,6 +42,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   static final Taxonomy _taxonomy = contraTaxonomy;
 
+  /// Per-move insert-time parameter overrides (ROADMAP DD.3), loaded once in
+  /// [_load] from the saved Defaults. Empty until loaded (and on any read
+  /// failure), so the editor falls back to pure taxonomy defaults rather than
+  /// failing. Applies whenever the user inserts a move — for any dance.
+  Map<String, Map<String, Object?>> _moveParamDefaults = {};
+
   final _titleController = TextEditingController();
   final _hookController = TextEditingController();
   final _notesController = TextEditingController();
@@ -266,6 +272,18 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             defaultNewDanceFigureTemplate().map(FigureDraft.fromFigure),
           );
         }
+      }
+
+      // Load the per-move insert-time param overrides (ROADMAP DD.3). Applies
+      // to ANY dance (new or existing) — per-move defaults are about inserting
+      // a move, not new-vs-existing. A read/parse failure falls back to an
+      // empty map rather than failing the editor load.
+      try {
+        _moveParamDefaults = moveParamOverridesFromStored(
+          await _repos.settings.get(kDefaultMoveParamOverridesKey),
+        );
+      } catch (_) {
+        _moveParamDefaults = {};
       }
 
       // Seed text controllers for custom text/number fields.
@@ -952,6 +970,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             taxonomy: _taxonomy,
             phraseStructure: _phraseStructure,
             dialect: ActiveDialectScope.of(context),
+            moveParamDefaults: _moveParamDefaults,
             onChanged: () {
               setState(_recomputeWarnings);
               _scheduleUndoPush();

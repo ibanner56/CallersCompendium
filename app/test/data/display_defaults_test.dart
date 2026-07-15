@@ -140,4 +140,62 @@ void main() {
       }
     });
   });
+
+  group('move param overrides (DD.3)', () {
+    test('key uses its stable stored string', () {
+      expect(kDefaultMoveParamOverridesKey, 'default_move_param_overrides');
+    });
+
+    test('encode/decode round-trips a realistic diff map', () {
+      final map = <String, Map<String, Object?>>{
+        'circle': {'turn': 'right', 'places': 3},
+        'hey': {'length': 'half'},
+        'swing': {'beats': 16},
+      };
+      final restored = moveParamOverridesFromStored(
+        encodeMoveParamOverrides(map),
+      );
+      expect(restored, map);
+    });
+
+    test('null / empty / non-string / garbage decode to an empty map', () {
+      for (final stored in [null, '', 7, 'not json', '[1,2,3]', '"str"']) {
+        expect(moveParamOverridesFromStored(stored), isEmpty);
+      }
+    });
+
+    test('drops top-level entries whose value is not a JSON object', () {
+      final restored = moveParamOverridesFromStored(
+        '{"circle":{"turn":"right"},"bad":5,"also_bad":[1]}',
+      );
+      expect(restored.keys, ['circle']);
+      expect(restored['circle'], {'turn': 'right'});
+    });
+
+    test('treats an empty inner map as absent (drops it on decode)', () {
+      final restored = moveParamOverridesFromStored(
+        '{"circle":{},"swing":{"beats":16}}',
+      );
+      expect(restored.keys, ['swing']);
+    });
+
+    test('drops empty inner maps on encode', () {
+      final encoded = encodeMoveParamOverrides({
+        'circle': {},
+        'swing': {'beats': 16},
+      });
+      expect(moveParamOverridesFromStored(encoded), {
+        'swing': {'beats': 16},
+      });
+    });
+
+    test('returns mutable maps callers can edit in place', () {
+      final restored = moveParamOverridesFromStored(
+        '{"circle":{"turn":"right"}}',
+      );
+      restored['circle']!['places'] = 3;
+      restored['swing'] = {'beats': 16};
+      expect(restored['circle'], {'turn': 'right', 'places': 3});
+    });
+  });
 }
