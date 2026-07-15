@@ -652,12 +652,12 @@ void main() {
           reason: '${group.label} group should be alphabetical',
         );
       }
-      // Sanity: the Default group orders as Dark, High contrast, Light.
+      // Sanity: the Default group orders as Dark, High contrast, Light, Soft Dark.
       expect(
         AppThemeSelection.inGroup(
           AppThemeGroup.defaultHearth,
         ).map((s) => s.label),
-        equals(['Dark', 'High contrast', 'Light']),
+        equals(['Dark', 'High contrast', 'Light', 'Soft Dark']),
       );
     });
 

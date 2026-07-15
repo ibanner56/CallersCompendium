@@ -78,6 +78,21 @@ one identity.
 | surfaceContainerHighest | `#253241` | (on surface) | 10.96 |
 | outline (borders, ≥3:1) | `#7B8896` | — | 4.84 |
 
+**Soft Dark** *(Default group — a dimmed sibling of Dark for lit rooms)*
+
+Same warm lantern-amber accents and content colors as Dark, on a lighter,
+softer petrol-slate canvas — the same relationship GitHub Dark has to its
+dimmed variant. Only the surface band and outline-on-surface shift; every
+accent/container pair is inherited from Dark and unchanged. All pairs clear AA.
+
+| Role | Hex | On-color / vs | Ratio |
+|---|---|---|---|
+| surface / onSurface | `#1E2A38` | `#E7ECF1` | 12.24 |
+| onSurfaceVariant | `#B4C1CE` | (on surface) | 7.94 |
+| surfaceContainerHighest | `#303D4C` | (on surface) | — |
+| outline (borders, ≥3:1) | `#7B8896` | (on surface) | 4.02 |
+| primary (focus ring, ≥3:1) | `#FFB784` | (on surface) | 8.56 |
+
 ### 1b. High-contrast / Perform tokens (shared, dark-based, target ≥7:1)
 
 High-contrast defeats tonal/elevation cues, so components in this theme are
@@ -259,6 +274,7 @@ enum AppThemeSelection {
   system,               // follow OS → Blue Hour light/dark (unchanged)
   light,                // Blue Hour light (unchanged)
   dark,                 // Blue Hour dark  (unchanged)
+  softDark,             // Blue Hour dark on a softer, lighter canvas (Default group)
   highContrast,         // ≥7:1, shared with Perform (unchanged)
   // Gallery palettes (§4A) — light.
   blulocoLight, githubLight,

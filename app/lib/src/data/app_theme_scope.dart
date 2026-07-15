@@ -27,6 +27,7 @@ enum AppThemeSelection {
   system,
   light,
   dark,
+  softDark,
   highContrast,
   // Gallery palettes (§4A) — light.
   blulocoLight,
@@ -73,6 +74,7 @@ enum AppThemeSelection {
     AppThemeSelection.system => null,
     AppThemeSelection.light => AppColorSchemes.light,
     AppThemeSelection.dark => AppColorSchemes.dark,
+    AppThemeSelection.softDark => AppColorSchemes.softDark,
     AppThemeSelection.highContrast => AppColorSchemes.highContrast,
     AppThemeSelection.blulocoLight => GalleryPalettes.blulocoLight,
     AppThemeSelection.githubLight => GalleryPalettes.githubLight,
@@ -115,6 +117,7 @@ enum AppThemeSelection {
     AppThemeSelection.system => AppThemeGroup.system,
     AppThemeSelection.light ||
     AppThemeSelection.dark ||
+    AppThemeSelection.softDark ||
     AppThemeSelection.highContrast => AppThemeGroup.defaultHearth,
     AppThemeSelection.blulocoLight ||
     AppThemeSelection.githubLight ||
@@ -146,6 +149,7 @@ enum AppThemeSelection {
     AppThemeSelection.system => 'System',
     AppThemeSelection.light => 'Light',
     AppThemeSelection.dark => 'Dark',
+    AppThemeSelection.softDark => 'Soft Dark',
     AppThemeSelection.highContrast => 'High contrast',
     AppThemeSelection.blulocoLight => 'Bluloco Light',
     AppThemeSelection.oneDarkPro => 'One Dark Pro',
@@ -184,6 +188,7 @@ enum AppThemeSelection {
     AppThemeSelection.system => 'Match the device light/dark setting',
     AppThemeSelection.light => 'Warm light palette',
     AppThemeSelection.dark => 'Warm dark palette',
+    AppThemeSelection.softDark => 'Warm dark on a softer, lighter canvas',
     AppThemeSelection.highContrast =>
       'Maximum contrast for dim rooms and low vision',
     AppThemeSelection.blulocoLight =>
