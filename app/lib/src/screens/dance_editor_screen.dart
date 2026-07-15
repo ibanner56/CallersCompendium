@@ -14,6 +14,7 @@ import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../widgets/choreographer_details_dialog.dart';
 import '../widgets/figure_list_editor.dart';
+import '../widgets/lingo_text_editing_controller.dart';
 import '../widgets/published_source_details_dialog.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
@@ -48,15 +49,54 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// failing. Applies whenever the user inserts a move — for any dance.
   Map<String, Map<String, Object?>> _moveParamDefaults = {};
 
-  final _titleController = TextEditingController();
-  final _hookController = TextEditingController();
-  final _notesController = TextEditingController();
-  final _phraseController = TextEditingController();
-  final _formationDetailController = TextEditingController();
-  final _tuneController = TextEditingController();
+  /// Active dialect for lingo-line styling (discouraged strike-through + role
+  /// underline) on the free-text prose fields. Seeded with the default and
+  /// kept in sync with [ActiveDialectScope] in [didChangeDependencies], so the
+  /// prose fields restyle live when the caller switches dialects — mirroring
+  /// the figure/move field.
+  Dialect _activeDialect = Dialect.larksRobins;
 
-  // Custom text/number field editors, keyed by field id.
-  final Map<String, TextEditingController> _customTextControllers = {};
+  /// Prose (free-text) fields use [LingoTextEditingController] so discouraged
+  /// terms are struck through as the user types, consistent with the figure
+  /// move field. Non-prose inputs (year/month/day, URL, related-dance, level)
+  /// keep plain controllers. Move-keyword dotting is intentionally left off
+  /// here (`taxonomy: null`): these metadata fields describe the dance, not its
+  /// choreography, so only the discouraged-strike + role-underline cues apply.
+  final _titleController = LingoTextEditingController(
+    dialect: Dialect.larksRobins,
+  );
+  final _hookController = LingoTextEditingController(
+    dialect: Dialect.larksRobins,
+  );
+  final _notesController = LingoTextEditingController(
+    dialect: Dialect.larksRobins,
+  );
+  final _phraseController = LingoTextEditingController(
+    dialect: Dialect.larksRobins,
+  );
+  final _formationDetailController = LingoTextEditingController(
+    dialect: Dialect.larksRobins,
+  );
+  final _tuneController = LingoTextEditingController(
+    dialect: Dialect.larksRobins,
+  );
+
+  // Custom text/number field editors, keyed by field id. Text fields get lingo
+  // styling; number fields carry the same controller type but never match a
+  // discouraged/role term, so they render as plain text.
+  final Map<String, LingoTextEditingController> _customTextControllers = {};
+
+  /// Every lingo-styled prose controller, including the per-custom-field ones,
+  /// so a dialect change can restyle them all in one pass.
+  Iterable<LingoTextEditingController> get _proseLingoControllers => [
+    _titleController,
+    _hookController,
+    _notesController,
+    _phraseController,
+    _formationDetailController,
+    _tuneController,
+    ..._customTextControllers.values,
+  ];
 
   bool _loaded = false;
   bool _loadStarted = false;
@@ -138,6 +178,13 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Keep the prose fields' lingo styling live: when the active dialect
+    // changes, ActiveDialectScope (an InheritedNotifier) re-runs this, so we
+    // push the new dialect into every prose controller.
+    _activeDialect = ActiveDialectScope.of(context);
+    for (final c in _proseLingoControllers) {
+      c.updateDialect(_activeDialect);
+    }
     // Guard against `didChangeDependencies` firing again before the first
     // `_load()` future completes: `_load()` appends into mutable collections
     // (drafts, link controllers), so a second run would duplicate state and
@@ -290,8 +337,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       for (final def in fieldDefs) {
         if (def.type == CustomFieldType.text ||
             def.type == CustomFieldType.number) {
-          _customTextControllers[def.id] = TextEditingController(
+          _customTextControllers[def.id] = LingoTextEditingController(
             text: _customValues[def.id]?.toString() ?? '',
+            dialect: _activeDialect,
           );
         }
       }
@@ -868,6 +916,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     if (!_loaded) {
       return const Center(child: CircularProgressIndicator());
     }
+    // Registers a dependency so the whole editor rebuilds (and prose fields
+    // restyle) when the active dialect changes; also passed down to the lingo
+    // hints so they reflect the current dialect's discouraged terms.
+    final dialect = ActiveDialectScope.of(context);
     return Form(
       key: _formKey,
       child: ListView(
@@ -889,6 +941,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             validator: (value) => (value == null || value.trim().isEmpty)
                 ? 'Title is required'
                 : null,
+          ),
+          _LingoDiscouragedHint(
+            controller: _titleController,
+            dialect: dialect,
+            fieldKey: 'title',
           ),
           const SizedBox(height: 16),
           _Label('Authors'),
@@ -940,6 +997,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           ),
           const SizedBox(height: 8),
           TextFormField(
+            key: const ValueKey('formation-detail-field'),
             controller: _formationDetailController,
             decoration: const InputDecoration(
               labelText: 'Formation detail (optional)',
@@ -949,6 +1007,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               _scheduleUndoPush();
               _scheduleAutosave();
             },
+          ),
+          _LingoDiscouragedHint(
+            controller: _formationDetailController,
+            dialect: dialect,
+            fieldKey: 'formation-detail',
           ),
           const SizedBox(height: 16),
           // Progression and Rating share one line.
@@ -1005,6 +1068,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               }
             },
           ),
+          _LingoDiscouragedHint(
+            controller: _phraseController,
+            dialect: dialect,
+            fieldKey: 'phrase',
+          ),
           const SizedBox(height: 24),
           Text('Figures', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 4),
@@ -1018,7 +1086,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             drafts: _figureDrafts,
             taxonomy: _taxonomy,
             phraseStructure: _phraseStructure,
-            dialect: ActiveDialectScope.of(context),
+            dialect: dialect,
             moveParamDefaults: _moveParamDefaults,
             onChanged: () {
               setState(_recomputeWarnings);
@@ -1075,6 +1143,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           ],
           const SizedBox(height: 16),
           TextFormField(
+            key: const ValueKey('notes-field'),
             controller: _notesController,
             minLines: 2,
             maxLines: 6,
@@ -1088,8 +1157,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               _scheduleAutosave();
             },
           ),
+          _LingoDiscouragedHint(
+            controller: _notesController,
+            dialect: dialect,
+            fieldKey: 'notes',
+          ),
           const SizedBox(height: 16),
           TextFormField(
+            key: const ValueKey('hook-field'),
             controller: _hookController,
             decoration: const InputDecoration(
               labelText: 'Hook',
@@ -1101,8 +1176,13 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               _scheduleAutosave();
             },
           ),
+          _LingoDiscouragedHint(
+            controller: _hookController,
+            dialect: dialect,
+            fieldKey: 'hook',
+          ),
           const SizedBox(height: 24),
-          _buildMoreDetails(),
+          _buildMoreDetails(dialect),
           const SizedBox(height: 32),
         ],
       ),
@@ -1116,7 +1196,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// every value lives in the parent [State] — text controllers, [_links],
   /// [_customValues], and the enum/date fields — and is re-seeded into the
   /// child widgets when the section is expanded again.
-  Widget _buildMoreDetails() {
+  Widget _buildMoreDetails(Dialect dialect) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final sectionShape = RoundedRectangleBorder(
@@ -1233,6 +1313,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _scheduleAutosave();
           },
         ),
+        _LingoDiscouragedHint(
+          controller: _tuneController,
+          dialect: dialect,
+          fieldKey: 'tune',
+        ),
         const SizedBox(height: 16),
         _Label('Links'),
         _LinksEditor(
@@ -1306,28 +1391,40 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         if (_fieldDefs.isNotEmpty) ...[
           const SizedBox(height: 16),
           _Label('Custom fields'),
-          for (final def in _fieldDefs) _buildCustomField(def),
+          for (final def in _fieldDefs) _buildCustomField(def, dialect),
         ],
       ],
     );
   }
 
-  Widget _buildCustomField(CustomFieldDef def) {
+  Widget _buildCustomField(CustomFieldDef def, Dialect dialect) {
     switch (def.type) {
       case CustomFieldType.text:
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
-          child: TextFormField(
-            key: ValueKey('custom-${def.id}'),
-            controller: _customTextControllers[def.id],
-            decoration: InputDecoration(
-              labelText: def.label,
-              border: const OutlineInputBorder(),
-            ),
-            onChanged: (_) {
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                key: ValueKey('custom-${def.id}'),
+                controller: _customTextControllers[def.id],
+                decoration: InputDecoration(
+                  labelText: def.label,
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (_) {
+                  _scheduleUndoPush();
+                  _scheduleAutosave();
+                },
+              ),
+              if (_customTextControllers[def.id] != null)
+                _LingoDiscouragedHint(
+                  controller: _customTextControllers[def.id]!,
+                  dialect: dialect,
+                  fieldKey: 'custom-${def.id}',
+                ),
+            ],
           ),
         );
       case CustomFieldType.number:
@@ -2053,6 +2150,58 @@ class _PickerChoice {
   /// two same-named entities (dedup is deferred) don't collide; the sole
   /// "create" row is keyed by its typed name.
   String get optionKey => isCreate ? 'create:$name' : id!;
+}
+
+/// Live, accessible "Discouraged: `<terms>`" affordance shown beneath a lingo
+/// prose field. The visual strikethrough drawn by [LingoTextEditingController]
+/// is a color/decoration-only cue, so this text (and its [Semantics] label)
+/// gives an equivalent non-visual signal — mirroring the figure editor's note
+/// field. Renders nothing when the active dialect flags no terms. Rebuilds on
+/// each keystroke via the controller and on dialect change via its parent.
+class _LingoDiscouragedHint extends StatelessWidget {
+  const _LingoDiscouragedHint({
+    required this.controller,
+    required this.dialect,
+    required this.fieldKey,
+  });
+
+  final LingoTextEditingController controller;
+  final Dialect dialect;
+  final String fieldKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final discouraged = canonicalize(controller.text, dialect).discouraged;
+        if (discouraged.isEmpty) return const SizedBox.shrink();
+        final hint = discouraged.map((s) => s.text).toSet().join(', ');
+        final scheme = Theme.of(context).colorScheme;
+        return Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Row(
+            children: [
+              Icon(Icons.warning_outlined, size: 13, color: scheme.error),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Semantics(
+                  label: 'Discouraged term: $hint',
+                  child: Text(
+                    'Discouraged: $hint',
+                    key: ValueKey('$fieldKey-lingo-hint'),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: scheme.error),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _TuneEditor extends StatelessWidget {
