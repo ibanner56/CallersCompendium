@@ -6,6 +6,7 @@ import '../storage/repositories/choreographer_repository.dart';
 import '../storage/repositories/dance_repository.dart';
 import 'dedupe.dart';
 import 'import_error.dart';
+import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
 
