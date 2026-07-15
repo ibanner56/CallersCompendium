@@ -29,6 +29,14 @@ class DialectLibraryScope extends InheritedNotifier<DialectLibraryController> {
     return scope.notifier!;
   }
 
+  /// Like [of], but returns `null` instead of throwing when there is no
+  /// [DialectLibraryScope] ancestor. Registers a rebuild dependency when one is
+  /// present. Used by optional affordances (e.g. the dialect quick-switch) that
+  /// should simply not render outside a library-scoped tree.
+  static DialectLibraryController? maybeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<DialectLibraryScope>()
+      ?.notifier;
+
   /// The controller for read-and-mutate use, without a rebuild dependency.
   static DialectLibraryController controllerOf(BuildContext context) {
     final scope = context.getInheritedWidgetOfExactType<DialectLibraryScope>();
