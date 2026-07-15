@@ -322,4 +322,115 @@ void main() {
       );
     });
   });
+
+  group('displayToken (editor single-token display)', () {
+    final custom = Dialect(
+      name: 'Custom',
+      roles: const {
+        'role1': RoleTerm('Jet'),
+        'role2': RoleTerm('Ruby', plural: 'Rubies'),
+      },
+      dancers: const {'neighbors': 'countras'},
+    );
+    const dancerSpec = ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s');
+    const pairSpec = ParamSpec(ParamKind.dancerPair, defaultValue: 'role1s');
+    const shoulderSpec = ParamSpec(ParamKind.shoulder, defaultValue: 'right');
+
+    test('role tokens stay canonical under the canonical dialect', () {
+      for (final token in ['role1', 'role2', 'role1s', 'role2s']) {
+        expect(
+          FigureRenderer.displayToken(token, dancerSpec, Dialect.canonical),
+          token,
+        );
+      }
+    });
+
+    test('role tokens use role terms under Larks/Robins', () {
+      expect(FigureRenderer.displayToken('role1', dancerSpec, larks), 'Lark');
+      expect(FigureRenderer.displayToken('role2', dancerSpec, larks), 'Robin');
+      expect(FigureRenderer.displayToken('role1s', dancerSpec, larks), 'Larks');
+      expect(
+        FigureRenderer.displayToken('role2s', dancerSpec, larks),
+        'Robins',
+      );
+    });
+
+    test('role tokens use custom role terms (incl. explicit plural)', () {
+      expect(FigureRenderer.displayToken('role1s', dancerSpec, custom), 'Jets');
+      expect(FigureRenderer.displayToken('role2s', pairSpec, custom), 'Rubies');
+    });
+
+    test('dancer tokens use dialect.dancers, else humanized', () {
+      // Substituted under a dialect that maps the token.
+      expect(
+        FigureRenderer.displayToken('neighbors', dancerSpec, custom),
+        'countras',
+      );
+      // Humanized when unmapped or under canonical.
+      expect(
+        FigureRenderer.displayToken('neighbors', dancerSpec, Dialect.canonical),
+        'neighbors',
+      );
+      expect(
+        FigureRenderer.displayToken('nextNeighbors', dancerSpec, custom),
+        'next neighbors',
+      );
+    });
+
+    test('structural / non-dialect tokens stay humanized', () {
+      expect(
+        FigureRenderer.displayToken('rightDiagonal', shoulderSpec, larks),
+        'right diagonal',
+      );
+      // No spec at all -> humanized (canonical behavior preserved).
+      expect(
+        FigureRenderer.displayToken('threeQuarter', null, larks),
+        'three quarter',
+      );
+      // A dancer-set token is NOT role/dancer-substituted through a non-dancer
+      // spec, so it humanizes.
+      expect(
+        FigureRenderer.displayToken('neighbors', shoulderSpec, custom),
+        'neighbors',
+      );
+    });
+  });
+
+  group('displayMoveName (editor move display)', () {
+    test('plain taxonomy display name under canonical', () {
+      expect(
+        renderer.displayMoveName('do_si_do', Dialect.canonical),
+        'do si do',
+      );
+      expect(renderer.displayMoveName('swing', Dialect.canonical), 'swing');
+    });
+
+    test('applies dialect move substitutions', () {
+      final custom = Dialect(name: 'Custom', moves: const {'swing': 'buzz'});
+      expect(renderer.displayMoveName('swing', custom), 'buzz');
+      // Unmapped moves fall back to the taxonomy display name.
+      expect(renderer.displayMoveName('do_si_do', custom), 'do si do');
+    });
+
+    test('injects %S from the figure shoulder/hand param', () {
+      final custom = Dialect(
+        name: 'Custom',
+        moves: const {'allemande': '%S hand turn'},
+      );
+      expect(
+        renderer.displayMoveName('allemande', custom, params: {'hand': 'left'}),
+        'left hand turn',
+      );
+      // No side present -> %S collapses to empty and the result is trimmed, so
+      // the editor's move field never shows a stray leading space.
+      expect(renderer.displayMoveName('allemande', custom), 'hand turn');
+    });
+
+    test('unknown move id falls back to the raw id', () {
+      expect(
+        renderer.displayMoveName('mystery_move', Dialect.canonical),
+        'mystery_move',
+      );
+    });
+  });
 }

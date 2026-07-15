@@ -16,6 +16,7 @@ class FigureParamEditor extends StatelessWidget {
     required this.spec,
     required this.value,
     required this.onChanged,
+    required this.dialect,
   });
 
   /// Stem for the child widget's [ValueKey] (e.g. `figure-0`); the editor
@@ -25,6 +26,10 @@ class FigureParamEditor extends StatelessWidget {
   final ParamSpec spec;
   final Object? value;
   final ValueChanged<Object?> onChanged;
+
+  /// Active dialect used to label role/dancer choices (display-only; the stored
+  /// value stays canonical). Structural params ignore it.
+  final Dialect dialect;
 
   String get _key => '$keyPrefix-$paramKey';
 
@@ -90,6 +95,15 @@ class FigureParamEditor extends StatelessWidget {
   }
 
   Widget _dropdown(List<String> choices) {
+    // Dancer sets/pairs are dialect vocabulary: label them via the active
+    // dialect (e.g. `role1s` -> "Larks"). All other dropdowns are structural
+    // vocabulary and stay humanized. The stored value is always the canonical
+    // token regardless of the label shown.
+    final isDancerKind =
+        spec.kind == ParamKind.dancerSet || spec.kind == ParamKind.dancerPair;
+    String label(String choice) => isDancerKind
+        ? FigureRenderer.displayToken(choice, spec, dialect)
+        : humanizeToken(choice);
     // Reconcile the displayed selection with the model: prefer the current
     // value when valid, else the spec default (if a valid choice), else the
     // first choice. When we fall back, push that value back to the draft after
@@ -117,7 +131,7 @@ class FigureParamEditor extends StatelessWidget {
         ),
         items: [
           for (final choice in choices)
-            DropdownMenuItem(value: choice, child: Text(humanizeToken(choice))),
+            DropdownMenuItem(value: choice, child: Text(label(choice))),
         ],
         onChanged: (v) {
           if (v != null) onChanged(v);

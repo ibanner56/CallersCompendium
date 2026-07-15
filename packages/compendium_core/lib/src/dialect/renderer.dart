@@ -76,8 +76,58 @@ class FigureRenderer {
     String displayName,
     Map<String, Object?> params,
     Dialect dialect,
+  ) => _applyMoveSubstitution(dialect.moves[moveId], displayName, params);
+
+  /// Display name for [moveId] under [dialect] for the dance editor / figure
+  /// rows: applies [Dialect.moves] substitution (with `%S` shoulder/hand
+  /// injection from [params]) when present, otherwise the taxonomy display name
+  /// (alias-aware). Under [Dialect.canonical] this is the plain display name.
+  ///
+  /// Companion to [displayToken]; both are the display-only, single-item core
+  /// API the editor uses so the editor never shows canonical vocabulary unless
+  /// the active dialect is canonical. Storage stays canonical regardless.
+  String displayMoveName(
+    String moveId,
+    Dialect dialect, {
+    Map<String, Object?> params = const {},
+  }) {
+    final def = taxonomy.resolve(moveId);
+    final alias = taxonomy.aliases[moveId];
+    final displayName = alias?.displayName ?? def?.displayName ?? moveId;
+    // Move substitutions are keyed by the canonical move id.
+    final canonicalId = def?.id ?? moveId;
+    // Trimmed so a %S substitution with a missing side word never surfaces a
+    // stray leading/trailing space in the editor's move field.
+    return _applyMoveSubstitution(
+      dialect.moves[canonicalId],
+      displayName,
+      params,
+    ).trim();
+  }
+
+  /// Display string for a single vocabulary [token] under [dialect], for use in
+  /// the dance editor's param choices/labels. Role tokens render as the
+  /// dialect's role term (canonical token when unmapped); [ParamKind.dancerSet]
+  /// / [ParamKind.dancerPair] tokens use [Dialect.dancers] (else humanized);
+  /// every other token (structural params such as `shoulder`, `direction`) is
+  /// humanized. Under [Dialect.canonical] the result equals the plain humanized
+  /// / canonical form.
+  static String displayToken(String token, ParamSpec? spec, Dialect dialect) {
+    if (roleTokens.contains(token)) return _roleTerm(token, dialect);
+    if (spec != null &&
+        (spec.kind == ParamKind.dancerSet ||
+            spec.kind == ParamKind.dancerPair)) {
+      final substitution = dialect.dancers[token];
+      if (substitution != null) return substitution;
+    }
+    return _humanize(token);
+  }
+
+  static String _applyMoveSubstitution(
+    String? substitution,
+    String displayName,
+    Map<String, Object?> params,
   ) {
-    final substitution = dialect.moves[moveId];
     if (substitution == null) return displayName;
     if (!substitution.contains('%S')) return substitution;
     // %S injects the figure's shoulder/hand side word.
@@ -116,7 +166,7 @@ class FigureRenderer {
     return _humanize(value.toString());
   }
 
-  String _roleTerm(String token, Dialect dialect) {
+  static String _roleTerm(String token, Dialect dialect) {
     final plural = token.endsWith('s');
     final baseId = plural ? token.substring(0, token.length - 1) : token;
     final term = dialect.roles[baseId];
