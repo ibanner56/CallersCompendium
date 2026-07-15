@@ -1156,6 +1156,21 @@ void main() {
     expect(find.textContaining('beats'), findsNothing);
   });
 
+  testWidgets('collapsed summary renders the swing balance prefix', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: 'swing',
+        params: {'who': 'partners', 'prefix': 'balance', 'beats': 16},
+      ),
+    ];
+    await _pump(tester, drafts);
+
+    // The collapse-to-sentence row surfaces the prefix via FigureRenderer.
+    expect(find.textContaining('balance & swing'), findsOneWidget);
+  });
+
   testWidgets('collapsed row exposes button semantics with composite label', (
     tester,
   ) async {

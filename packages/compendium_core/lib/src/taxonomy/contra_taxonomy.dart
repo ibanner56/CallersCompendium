@@ -11,7 +11,9 @@ import 'taxonomy.dart';
 /// v5: roadmap 2.4a PR5 (hey/wave family) — completes the 2.4a move set.
 /// v6: full set of ContraDB named hey-length durations (lessThanHalf /
 ///     betweenHalfAndFull added; dancer%%N meeting encodings remain out of scope).
-const int contraTaxonomyVersion = 6;
+/// v7: swing renders its `prefix` modifier ("balance & swing" / "meltdown
+///     swing"); `none` still renders to nothing.
+const int contraTaxonomyVersion = 7;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -69,7 +71,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       progressionCapable: true,
-      renderTemplate: '{who} {move}',
+      renderTemplate: '{who} {prefix} {move}',
       goodBeats: [8, 16],
     ),
     const MoveDef(
@@ -421,9 +423,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // single-dancer `lead` — are structured params but NOT render-template
     // tokens: the terse canonical line carries the identifying phrase, while
     // these are surfaced by the verbose/dialect renderer (design-doc TODO) and
-    // structural search. This mirrors swing.prefix (a choice that is not
-    // templated) and keeps canonical text free of literal sentinel words like
-    // "none" (several of these choices include a "none"/unspecified value).
+    // structural search. Swing's `prefix` follows the same "no literal sentinel
+    // words" rule (its `none` renders to nothing) even though it is now a
+    // render-template token (see the swing MoveDef); several of the choices
+    // below likewise include a "none"/unspecified value.
     const MoveDef(
       id: 'down_the_hall',
       displayName: 'down the hall',
