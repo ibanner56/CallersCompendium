@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
+import 'package:compendium_app/src/theme/color_schemes.dart';
 import 'package:compendium_app/src/theme/palette_schemes.dart';
 
 /// WCAG 2.x relative-luminance contrast ratio (mirrors the derivation helper
@@ -18,8 +19,10 @@ double _contrast(Color a, Color b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/// The gallery palettes under test, keyed by their selection name.
+/// The gallery palettes under test, keyed by their selection name. Includes
+/// the Default-group "Soft Dark" so its dimmed canvas is held to the same AA bar.
 final Map<String, ColorScheme> _galleryPalettes = {
+  'softDark': AppColorSchemes.softDark,
   'blulocoLight': GalleryPalettes.blulocoLight,
   'oneDarkPro': GalleryPalettes.oneDarkPro,
   'monokai': GalleryPalettes.monokai,

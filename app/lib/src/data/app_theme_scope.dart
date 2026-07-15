@@ -21,12 +21,16 @@ enum AppThemeGroup {
 /// The user's theme choice. High-contrast is not a [ThemeMode] value, and the
 /// gallery palettes each pin a concrete scheme, so we model explicit selections
 /// rather than reusing [ThemeMode] directly (`docs/design/ux-modernization.md`
-/// §4 / §4A). Persistence stores the enum [name]; new values append to the end
-/// so previously persisted names keep resolving.
+/// §4 / §4A). Persistence stores the enum [name] and [forName] resolves it, so
+/// backward compatibility relies on *name stability*, not enum ordering — new
+/// values can be declared wherever they read best (built-in defaults are kept
+/// grouped together) without affecting persisted selections or the gallery,
+/// which orders sections explicitly via [inGroup].
 enum AppThemeSelection {
   system,
   light,
   dark,
+  softDark,
   highContrast,
   // Gallery palettes (§4A) — light.
   blulocoLight,
@@ -73,6 +77,7 @@ enum AppThemeSelection {
     AppThemeSelection.system => null,
     AppThemeSelection.light => AppColorSchemes.light,
     AppThemeSelection.dark => AppColorSchemes.dark,
+    AppThemeSelection.softDark => AppColorSchemes.softDark,
     AppThemeSelection.highContrast => AppColorSchemes.highContrast,
     AppThemeSelection.blulocoLight => GalleryPalettes.blulocoLight,
     AppThemeSelection.githubLight => GalleryPalettes.githubLight,
@@ -115,6 +120,7 @@ enum AppThemeSelection {
     AppThemeSelection.system => AppThemeGroup.system,
     AppThemeSelection.light ||
     AppThemeSelection.dark ||
+    AppThemeSelection.softDark ||
     AppThemeSelection.highContrast => AppThemeGroup.defaultHearth,
     AppThemeSelection.blulocoLight ||
     AppThemeSelection.githubLight ||
@@ -146,6 +152,7 @@ enum AppThemeSelection {
     AppThemeSelection.system => 'System',
     AppThemeSelection.light => 'Light',
     AppThemeSelection.dark => 'Dark',
+    AppThemeSelection.softDark => 'Soft Dark',
     AppThemeSelection.highContrast => 'High contrast',
     AppThemeSelection.blulocoLight => 'Bluloco Light',
     AppThemeSelection.oneDarkPro => 'One Dark Pro',
@@ -184,6 +191,7 @@ enum AppThemeSelection {
     AppThemeSelection.system => 'Match the device light/dark setting',
     AppThemeSelection.light => 'Warm light palette',
     AppThemeSelection.dark => 'Warm dark palette',
+    AppThemeSelection.softDark => 'Warm dark on a softer, lighter canvas',
     AppThemeSelection.highContrast =>
       'Maximum contrast for dim rooms and low vision',
     AppThemeSelection.blulocoLight =>
@@ -229,11 +237,36 @@ enum AppThemeSelection {
     return null;
   }
 
-  /// The selections belonging to [group], sorted alphabetically by [label]
-  /// (case-insensitive) so the Settings gallery lists built-in themes A→Z
-  /// within each section.
+  /// A curated display order for the Default group. Unlike the gallery
+  /// sections (sorted A→Z), the built-in Default themes read more intuitively
+  /// grouped by canvas darkness — Dark, its dimmed Soft Dark sibling, then the
+  /// high-contrast and light options — rather than alphabetically.
+  static const List<AppThemeSelection> _defaultGroupOrder = [
+    AppThemeSelection.dark,
+    AppThemeSelection.softDark,
+    AppThemeSelection.highContrast,
+    AppThemeSelection.light,
+  ];
+
+  /// The selections belonging to [group].
+  ///
+  /// Gallery sections (Light/Dark) are sorted alphabetically by [label]
+  /// (case-insensitive) so built-in palettes list A→Z. The Default group uses
+  /// the curated [_defaultGroupOrder] instead, which reads more naturally in
+  /// the Settings pane than alphabetical ordering.
   static List<AppThemeSelection> inGroup(AppThemeGroup group) {
-    return AppThemeSelection.values.where((s) => s.group == group).toList()
+    final members = AppThemeSelection.values
+        .where((s) => s.group == group)
+        .toList();
+    if (group == AppThemeGroup.defaultHearth) {
+      members.sort(
+        (a, b) => _defaultGroupOrder
+            .indexOf(a)
+            .compareTo(_defaultGroupOrder.indexOf(b)),
+      );
+      return members;
+    }
+    return members
       ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
   }
 }
