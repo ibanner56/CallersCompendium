@@ -978,12 +978,26 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// [_customValues], and the enum/date fields — and is re-seeded into the
   /// child widgets when the section is expanded again.
   Widget _buildMoreDetails() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final sectionShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: BorderSide(color: colorScheme.outlineVariant),
+    );
     return ExpansionTile(
       key: const ValueKey('more-details-tile'),
-      title: const Text('More details'),
+      leading: Icon(Icons.tune, color: colorScheme.primary),
+      title: Text(
+        'More details',
+        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
       initiallyExpanded: false,
-      tilePadding: EdgeInsets.zero,
-      childrenPadding: const EdgeInsets.only(top: 8),
+      backgroundColor: colorScheme.surfaceContainerHighest,
+      collapsedBackgroundColor: colorScheme.surfaceContainerHighest,
+      shape: sectionShape,
+      collapsedShape: sectionShape,
+      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+      childrenPadding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _EnumDropdown<DanceStatus>(

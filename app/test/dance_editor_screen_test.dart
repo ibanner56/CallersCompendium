@@ -1283,6 +1283,16 @@ void main() {
       expect(find.byKey(const ValueKey('mixed-level-field')), findsNothing);
       expect(find.text('More details'), findsOneWidget);
 
+      // The collapsed header renders its leading "additional details" icon so
+      // it reads as a distinct, tappable section header.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('more-details-tile')),
+          matching: find.byIcon(Icons.tune),
+        ),
+        findsOneWidget,
+      );
+
       // Expand → Tier-2 fields become visible.
       await _expandMoreDetails(tester);
       expect(find.byKey(const ValueKey('mixed-level-field')), findsOneWidget);
