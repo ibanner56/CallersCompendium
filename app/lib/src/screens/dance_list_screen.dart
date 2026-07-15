@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
@@ -10,6 +11,7 @@ import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
 import '../widgets/advanced_query_builder.dart';
+import '../widgets/batch_tag_dialog.dart';
 import '../widgets/by_phrase_panel.dart';
 import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
@@ -86,6 +88,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
   bool _searching = false;
   Object? _searchError;
   int _searchSeq = 0;
+
+  /// Batch multi-select (Collection batch-tag, `docs/design/ux.md` §1).
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = {};
 
   Timer? _debounceTimer;
 
@@ -257,59 +263,139 @@ class _DanceListScreenState extends State<DanceListScreen> {
       !_byPhrase.isEmpty ||
       (_advancedEnabled && _advancedRoot.toFilter() != null);
 
+  void _enterSelectionMode([String? initialId]) {
+    setState(() {
+      _selectionMode = true;
+      if (initialId != null) _selectedIds.add(initialId);
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSelected(String danceId) {
+    setState(() {
+      if (!_selectedIds.remove(danceId)) _selectedIds.add(danceId);
+    });
+  }
+
+  /// Applies a batch tag [mode] to the selected dances. Opens the tag picker,
+  /// then for each affected dance persists the new tag set via
+  /// [DanceRepository.update], announces the result to AT, and offers Undo.
+  Future<void> _batchTag(BatchTagMode mode) async {
+    final data = _data;
+    if (data == null || _selectedIds.isEmpty) return;
+
+    final selectedIds = Set<String>.of(_selectedIds);
+    // Tags currently present on the selected dances (drives the Remove picker).
+    final presentTagIds = <String>{
+      for (final id in selectedIds)
+        if (data.dancesById[id] case final dance?) ...dance.tagIds,
+    };
+
+    // Add lists all tags (even unused ones); Remove is narrowed by the dialog
+    // to only the tags present on the selection.
+    final allTags = await _repos.tags.listAll();
+    if (!mounted) return;
+    final chosen = await showBatchTagDialog(
+      context,
+      mode: mode,
+      tags: allTags,
+      presentTagIds: presentTagIds,
+    );
+    if (chosen == null || chosen.isEmpty || !mounted) return;
+
+    // Capture prior tag sets so Undo can restore them.
+    final priorTags = <String, List<String>>{};
+    for (final id in selectedIds) {
+      final dance = await _repos.dances.getById(id);
+      if (dance == null) continue;
+      final current = dance.tagIds;
+      final List<String> next;
+      if (mode == BatchTagMode.add) {
+        next = [
+          ...current,
+          for (final tagId in chosen)
+            if (!current.contains(tagId)) tagId,
+        ];
+      } else {
+        next = [
+          for (final tagId in current)
+            if (!chosen.contains(tagId)) tagId,
+        ];
+      }
+      // Skip dances whose tags did not actually change. Because `next` is
+      // built append-only (add) or subtract-only (remove) from `current`, an
+      // equal length means the set is unchanged.
+      if (next.length == current.length) continue;
+      priorTags[id] = current.toList();
+      await _repos.dances.update(
+        dance.copyWith(tagIds: next, updatedAt: DateTime.now().toUtc()),
+      );
+    }
+
+    if (!mounted) return;
+    final count = priorTags.length;
+    final message = count == 0
+        ? 'No changes'
+        : '${mode == BatchTagMode.add ? 'Tagged' : 'Removed tags from'} '
+              '$count ${count == 1 ? 'dance' : 'dances'}';
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      Directionality.of(context),
+    );
+
+    _exitSelectionMode();
+    await _boot();
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    if (count == 0) {
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('batch-tag-snackbar'),
+          content: Text(message),
+        ),
+      );
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('batch-tag-snackbar'),
+        content: Text(message),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => _undoBatchTag(priorTags),
+        ),
+      ),
+    );
+  }
+
+  /// Restores the captured [priorTags] for each affected dance (app-side undo;
+  /// the repository has no batch-undo primitive).
+  Future<void> _undoBatchTag(Map<String, List<String>> priorTags) async {
+    for (final entry in priorTags.entries) {
+      final dance = await _repos.dances.getById(entry.key);
+      if (dance == null) continue;
+      await _repos.dances.update(
+        dance.copyWith(tagIds: entry.value, updatedAt: DateTime.now().toUtc()),
+      );
+    }
+    if (mounted) await _boot();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Collection'),
-        actions: [
-          if (_data != null) ...[
-            IconButton(
-              key: const ValueKey('manage-custom-fields'),
-              tooltip: 'Manage custom fields',
-              icon: const Icon(Icons.list_alt_outlined),
-              onPressed: _openCustomFields,
-            ),
-            IconButton(
-              key: const ValueKey('recently-deleted'),
-              tooltip: 'Recently deleted',
-              icon: const Icon(Icons.restore_from_trash_outlined),
-              onPressed: _openRecentlyDeleted,
-            ),
-            IconButton(
-              key: const ValueKey('settings'),
-              tooltip: 'Settings',
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: _openSettings,
-            ),
-            PopupMenuButton<CollectionSort>(
-              tooltip: 'Sort by',
-              initialValue: _sort,
-              onSelected: (value) {
-                setState(() => _sort = value);
-                _runSearch();
-              },
-              itemBuilder: (context) => [
-                for (final option in _availableSorts)
-                  PopupMenuItem(value: option, child: Text(option.label)),
-              ],
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.sort),
-                    const SizedBox(width: 4),
-                    Text('Sort: ${_sort.label}'),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
+      appBar: _selectionMode ? _buildSelectionAppBar() : _buildDefaultAppBar(),
       body: _buildBody(),
-      floatingActionButton: _data == null
+      floatingActionButton: _data == null || _selectionMode
           ? null
           : FloatingActionButton.extended(
               key: const ValueKey('new-dance'),
@@ -318,6 +404,81 @@ class _DanceListScreenState extends State<DanceListScreen> {
               icon: const Icon(Icons.add),
               label: const Text('New dance'),
             ),
+    );
+  }
+
+  PreferredSizeWidget _buildDefaultAppBar() {
+    return AppBar(
+      title: const Text('Collection'),
+      actions: [
+        if (_data != null) ...[
+          IconButton(
+            key: const ValueKey('batch-select'),
+            tooltip: 'Select dances',
+            icon: const Icon(Icons.checklist),
+            onPressed: _results.isEmpty ? null : () => _enterSelectionMode(),
+          ),
+          IconButton(
+            key: const ValueKey('manage-custom-fields'),
+            tooltip: 'Manage custom fields',
+            icon: const Icon(Icons.list_alt_outlined),
+            onPressed: _openCustomFields,
+          ),
+          IconButton(
+            key: const ValueKey('recently-deleted'),
+            tooltip: 'Recently deleted',
+            icon: const Icon(Icons.restore_from_trash_outlined),
+            onPressed: _openRecentlyDeleted,
+          ),
+          IconButton(
+            key: const ValueKey('settings'),
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: _openSettings,
+          ),
+          PopupMenuButton<CollectionSort>(
+            tooltip: 'Sort by (${_sort.label})',
+            initialValue: _sort,
+            icon: const Icon(Icons.sort),
+            onSelected: (value) {
+              setState(() => _sort = value);
+              _runSearch();
+            },
+            itemBuilder: (context) => [
+              for (final option in _availableSorts)
+                PopupMenuItem(value: option, child: Text(option.label)),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  PreferredSizeWidget _buildSelectionAppBar() {
+    final count = _selectedIds.length;
+    final hasSelection = count > 0;
+    return AppBar(
+      leading: IconButton(
+        key: const ValueKey('batch-exit'),
+        tooltip: 'Exit selection',
+        icon: const Icon(Icons.close),
+        onPressed: _exitSelectionMode,
+      ),
+      title: Semantics(liveRegion: true, child: Text('$count selected')),
+      actions: [
+        IconButton(
+          key: const ValueKey('batch-add-tags'),
+          tooltip: 'Add tags',
+          icon: const Icon(Icons.new_label_outlined),
+          onPressed: hasSelection ? () => _batchTag(BatchTagMode.add) : null,
+        ),
+        IconButton(
+          key: const ValueKey('batch-remove-tags'),
+          tooltip: 'Remove tags',
+          icon: const Icon(Icons.label_off_outlined),
+          onPressed: hasSelection ? () => _batchTag(BatchTagMode.remove) : null,
+        ),
+      ],
     );
   }
 
@@ -606,6 +767,52 @@ class _DanceListScreenState extends State<DanceListScreen> {
       itemCount: _results.length,
       itemBuilder: (context, index) {
         final entry = _results[index];
+        final tile = DanceListTile(
+          entry: entry,
+          selectionMode: _selectionMode,
+          selectedForBatch: _selectedIds.contains(entry.dance.id),
+          onLongPress: _selectionMode
+              ? null
+              : () => _enterSelectionMode(entry.dance.id),
+          // In selection mode a tap toggles the row's checkbox. Highlight
+          // reflects batch selection (paired with the checkbox, never color
+          // alone); outside selection mode it reflects the split-pane
+          // selection as before.
+          selected: _selectionMode
+              ? _selectedIds.contains(entry.dance.id)
+              : (widget.onSelectDance != null &&
+                    widget.selectedDanceId == entry.dance.id),
+          onTap: _selectionMode
+              ? () => _toggleSelected(entry.dance.id)
+              : widget.onSelectDance != null
+              ? () => widget.onSelectDance!(entry.dance.id)
+              : () async {
+                  // DanceDetailScreen pops with true when a dance is deleted
+                  // so the Collection can reload and remove the stale row.
+                  // onRestored is called if the user taps Undo, so the
+                  // restored dance reappears in the list without a manual
+                  // reload.
+                  final deleted = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) => DanceDetailScreen(
+                        danceId: entry.dance.id,
+                        onRestored: () {
+                          if (mounted) _boot();
+                        },
+                      ),
+                    ),
+                  );
+                  if (mounted && deleted == true) await _boot();
+                },
+        );
+        // Swipe-to-delete is disabled while selecting to avoid gesture
+        // conflicts with tap-to-toggle.
+        if (_selectionMode) {
+          return KeyedSubtree(
+            key: ValueKey('row-${entry.dance.id}'),
+            child: tile,
+          );
+        }
         return Dismissible(
           key: ValueKey('dismissible-${entry.dance.id}'),
           direction: DismissDirection.endToStart,
@@ -620,35 +827,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
               color: Theme.of(context).colorScheme.onErrorContainer,
             ),
           ),
-          child: DanceListTile(
-            entry: entry,
-            // Only highlight the selected row when in split-pane mode
-            // (onSelectDance != null). In routed mode selectedDanceId has
-            // no visual effect, keeping the API contract consistent.
-            selected:
-                widget.onSelectDance != null &&
-                widget.selectedDanceId == entry.dance.id,
-            onTap: widget.onSelectDance != null
-                ? () => widget.onSelectDance!(entry.dance.id)
-                : () async {
-                    // DanceDetailScreen pops with true when a dance is deleted
-                    // so the Collection can reload and remove the stale row.
-                    // onRestored is called if the user taps Undo, so the
-                    // restored dance reappears in the list without a manual
-                    // reload.
-                    final deleted = await Navigator.of(context).push<bool>(
-                      MaterialPageRoute(
-                        builder: (_) => DanceDetailScreen(
-                          danceId: entry.dance.id,
-                          onRestored: () {
-                            if (mounted) _boot();
-                          },
-                        ),
-                      ),
-                    );
-                    if (mounted && deleted == true) await _boot();
-                  },
-          ),
+          child: tile,
         );
       },
     );
