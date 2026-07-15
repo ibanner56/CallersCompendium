@@ -10,14 +10,23 @@ import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
+import 'src/data/window_service.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/settings_screen.dart'
     show kActiveDialectKey, kAppThemeKey, kRequirePerformedForHistoryKey;
 import 'src/theme/app_theme.dart';
 import 'src/widgets/app_bootstrap.dart';
 
-void main() {
-  runApp(const CompendiumApp());
+Future<void> main() async {
+  // The DB must be open before [runApp] so the desktop window service can read
+  // the persisted frame; [AppData] is opened once here and handed to
+  // [CompendiumApp] (which owns disposal) so we never open the database twice.
+  WidgetsFlutterBinding.ensureInitialized();
+  final appData = AppData(openAppDatabase());
+  // Restore the last-known desktop window size/position (no-op off desktop).
+  final windowService = WindowService(appData.repositories.settings);
+  await windowService.initialize();
+  runApp(CompendiumApp(appData: appData, windowService: windowService));
 }
 
 /// Root widget. Opens the on-device database once, runs any pending schema
@@ -32,7 +41,19 @@ void main() {
 /// loading screen until both complete so no screen reads stale data (an error
 /// screen with retry is shown if either fails).
 class CompendiumApp extends StatefulWidget {
-  const CompendiumApp({super.key});
+  const CompendiumApp({
+    super.key,
+    required this.appData,
+    required this.windowService,
+  });
+
+  /// The already-opened database + repositories facade. Injected from [main]
+  /// so the desktop window frame can be read before `runApp`; the app owns its
+  /// disposal.
+  final AppData appData;
+
+  /// The desktop window service to tear down on dispose (no-op off desktop).
+  final WindowService windowService;
 
   @override
   State<CompendiumApp> createState() => _CompendiumAppState();
@@ -55,7 +76,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   @override
   void initState() {
     super.initState();
-    _appData = AppData(openAppDatabase());
+    _appData = widget.appData;
     _customThemes = CustomThemesController(_appData.repositories.settings);
     _bootstrap = _startupSequence();
   }
@@ -94,6 +115,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
     _customThemes.dispose();
+    widget.windowService.dispose();
     // dispose() can't be async; explicitly mark the close as fire-and-forget
     // rather than silently dropping an unawaited Future (unawaited_futures).
     unawaited(_appData.close());
