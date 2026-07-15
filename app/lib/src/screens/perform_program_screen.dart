@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../search/collection_data.dart';
+import '../widgets/dialect_quick_switch.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
@@ -450,6 +451,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           ),
           title: Text(widget.program.title),
           actions: [
+            const DialectQuickSwitch(),
             IconButton(
               key: const ValueKey('perform-adjust'),
               tooltip: 'Adjust program',
