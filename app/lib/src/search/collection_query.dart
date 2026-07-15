@@ -108,6 +108,36 @@ class FacetSelections {
   }
 }
 
+/// The user's "By phrase" selections — a Caller's Box-style per-phrase figure
+/// search. For each canonical section label (the standard 4 phrases A1/A2/B1/B2,
+/// but keyed generically so any [PhraseStructure] works) the caller lists moves
+/// that MUST occur in that phrase ([match]) and moves that must NOT ([exclude]).
+///
+/// Semantics (folded in [buildCollectionFilter]):
+/// - within one phrase, every [match] move must be present (AND);
+/// - within one phrase, no [exclude] move may be present (each negated);
+/// - across phrases, all constraints AND together;
+/// - an empty phrase imposes no constraint.
+///
+/// Moves are stored as canonical move ids (the same ids the Advanced builder's
+/// "has figure" rows use), so they compile straight to [FigureLeaf]s.
+class ByPhraseSelections {
+  /// Section label → moves that MUST occur in that phrase.
+  final Map<String, List<String>> match = {};
+
+  /// Section label → moves that must NOT occur in that phrase.
+  final Map<String, List<String>> exclude = {};
+
+  bool get isEmpty =>
+      match.values.every((m) => m.isEmpty) &&
+      exclude.values.every((m) => m.isEmpty);
+
+  void clear() {
+    match.clear();
+    exclude.clear();
+  }
+}
+
 /// Immutable state for a text custom-field facet filter.
 class TextFacetState {
   const TextFacetState({required this.op, required this.value});
@@ -162,6 +192,7 @@ DanceFilter buildCollectionFilter({
   required String ftsText,
   required FacetSelections facets,
   required List<CustomFieldDef> defs,
+  ByPhraseSelections? byPhrase,
   BuilderGroup? advancedRoot,
 }) {
   final branches = <DanceFilter>[];
@@ -222,6 +253,30 @@ DanceFilter buildCollectionFilter({
   final advanced = advancedRoot?.toFilter();
   if (advanced != null) branches.add(advanced);
 
+  // By-phrase constraints (Caller's Box style): each "match" move must occur in
+  // its phrase (a positive sectioned FigureFilter); each "do not match" move
+  // must be absent (the same sectioned leaf, negated). Empty phrases add
+  // nothing. All fold into the top-level AND alongside every other facet.
+  if (byPhrase != null) {
+    void addFigure(String section, String move, {required bool negate}) {
+      final id = move.trim();
+      if (id.isEmpty) return;
+      final DanceFilter leaf = FigureFilter(FigureLeaf(id, section: section));
+      branches.add(negate ? NotFilter(leaf) : leaf);
+    }
+
+    byPhrase.match.forEach((section, moves) {
+      for (final move in moves) {
+        addFigure(section, move, negate: false);
+      }
+    });
+    byPhrase.exclude.forEach((section, moves) {
+      for (final move in moves) {
+        addFigure(section, move, negate: true);
+      }
+    });
+  }
+
   if (branches.isEmpty) return const AndFilter([]);
   if (branches.length == 1) {
     final only = branches.single;
@@ -238,10 +293,12 @@ DanceFilter buildCollectionFilter({
 bool isBareFullText({
   required String ftsText,
   required FacetSelections facets,
+  ByPhraseSelections? byPhrase,
   BuilderGroup? advancedRoot,
 }) =>
     ftsText.trim().isNotEmpty &&
     facets.isEmpty &&
+    (byPhrase == null || byPhrase.isEmpty) &&
     (advancedRoot == null || advancedRoot.toFilter() == null);
 
 // ---------------------------------------------------------------------------
