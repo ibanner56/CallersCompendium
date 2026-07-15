@@ -150,7 +150,7 @@ List<Figure> defaultNewDanceFigureTemplate() => [
   Figure(move: 'stand_still', params: const {'beats': 8}),
   Figure(move: 'stand_still', params: const {'beats': 8}),
   Figure(move: 'stand_still', params: const {'beats': 8}),
-  Figure(move: 'stand_still', params: const {'beats': 8})
+  Figure(move: 'stand_still', params: const {'beats': 8}),
 ];
 
 /// Resolves a persisted settings value into the starting-figures template.
