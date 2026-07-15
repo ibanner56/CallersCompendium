@@ -76,32 +76,10 @@ class GalleryPalettes {
     error: const Color(0xFFDC322F),
   );
 
-  /// Atom One Dark — inspired, contrast-tuned.
-  static final ColorScheme atomOneDark = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF282C34),
-    onSurface: const Color(0xFFABB2BF),
-    primary: const Color(0xFF61AFEF),
-    secondary: const Color(0xFF98C379),
-    tertiary: const Color(0xFFC678DD),
-    error: const Color(0xFFE06C75),
-  );
-
   /// One Dark Pro — inspired, contrast-tuned.
   static final ColorScheme oneDarkPro = _build(
     brightness: Brightness.dark,
     surface: const Color(0xFF282C34),
-    onSurface: const Color(0xFFABB2BF),
-    primary: const Color(0xFF61AFEF),
-    secondary: const Color(0xFF98C379),
-    tertiary: const Color(0xFFE5C07B),
-    error: const Color(0xFFE06C75),
-  );
-
-  /// One Dark Pro Darker — inspired, contrast-tuned.
-  static final ColorScheme oneDarkProDarker = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF21252B),
     onSurface: const Color(0xFFABB2BF),
     primary: const Color(0xFF61AFEF),
     secondary: const Color(0xFF98C379),
@@ -178,28 +156,6 @@ class GalleryPalettes {
     error: const Color(0xFFF38BA8),
   );
 
-  /// Catppuccin Frappé — inspired, contrast-tuned (the mid-dark flavor).
-  static final ColorScheme catppuccinFrappe = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF303446),
-    onSurface: const Color(0xFFC6D0F5),
-    primary: const Color(0xFFCA9EE6),
-    secondary: const Color(0xFFA6D189),
-    tertiary: const Color(0xFFE5C890),
-    error: const Color(0xFFE78284),
-  );
-
-  /// Catppuccin Macchiato — inspired, contrast-tuned (the darker mid flavor).
-  static final ColorScheme catppuccinMacchiato = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF24273A),
-    onSurface: const Color(0xFFCAD3F5),
-    primary: const Color(0xFFC6A0F6),
-    secondary: const Color(0xFFA6DA95),
-    tertiary: const Color(0xFFEED49F),
-    error: const Color(0xFFED8796),
-  );
-
   /// GitHub Dark — inspired, contrast-tuned (neutral blue).
   static final ColorScheme githubDark = _build(
     brightness: Brightness.dark,
@@ -209,18 +165,6 @@ class GalleryPalettes {
     secondary: const Color(0xFF3FB950),
     tertiary: const Color(0xFFD29922),
     error: const Color(0xFFF85149),
-  );
-
-  /// GitHub Soft Dark — inspired by GitHub's "Dark dimmed" palette, a softer,
-  /// lower-contrast dark on a muted slate canvas. Contrast-tuned.
-  static final ColorScheme githubSoftDark = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF22272E),
-    onSurface: const Color(0xFFADBAC7),
-    primary: const Color(0xFF539BF5),
-    secondary: const Color(0xFF57AB5A),
-    tertiary: const Color(0xFFC69026),
-    error: const Color(0xFFE5534B),
   );
 
   /// Cutie Pro — inspired by the "cute af" dark pastel theme (jezzy-star),
@@ -235,18 +179,6 @@ class GalleryPalettes {
     error: const Color(0xFFF56E7F),
   );
 
-  /// Cute Pink Dark — inspired by Ingo Steinke's theme: pink on true black,
-  /// with rose and soft-purple accents.
-  static final ColorScheme cutePinkDark = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF000000),
-    onSurface: const Color(0xFFFCEAF1),
-    primary: const Color(0xFFF14874),
-    secondary: const Color(0xFFF4B4CC),
-    tertiary: const Color(0xFFA192AB),
-    error: const Color(0xFFFF5370),
-  );
-
   /// Pink as Heck — inspired by shoobah's theme: hot pink on a deep berry
   /// canvas, with a mint-green and amber accent for range.
   static final ColorScheme pinkAsHeck = _build(
@@ -257,41 +189,6 @@ class GalleryPalettes {
     secondary: const Color(0xFF37E884),
     tertiary: const Color(0xFFE5AC40),
     error: const Color(0xFFF44747),
-  );
-
-  /// One Candy Dark — inspired by angao's One Dark variant: the familiar One
-  /// Dark charcoal with a candy-pink lead plus mint and candy-yellow accents.
-  static final ColorScheme oneCandyDark = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF282C34),
-    onSurface: const Color(0xFFABB2BF),
-    primary: const Color(0xFFFCADE7),
-    secondary: const Color(0xFF79C3A4),
-    tertiary: const Color(0xFFFCDFAD),
-    error: const Color(0xFFE05561),
-  );
-
-  /// Matcha — inspired by Luca Falasco's theme: a matcha-green lead on a slate
-  /// canvas, with teal and warm-cream accents.
-  static final ColorScheme matcha = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF273136),
-    onSurface: const Color(0xFFD1DED3),
-    primary: const Color(0xFFA4B07E),
-    secondary: const Color(0xFF7EB0A3),
-    tertiary: const Color(0xFFC0AE69),
-    error: const Color(0xFFC6A685),
-  );
-
-  /// Material Dark — the Material 3 baseline dark scheme (default purple seed).
-  static final ColorScheme materialDark = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF1C1B1F),
-    onSurface: const Color(0xFFE6E1E5),
-    primary: const Color(0xFFD0BCFF),
-    secondary: const Color(0xFFCCC2DC),
-    tertiary: const Color(0xFFEFB8C8),
-    error: const Color(0xFFF2B8B5),
   );
 
   /// Zenburn — inspired by Jani Nurminen's classic low-contrast theme: muted
@@ -340,17 +237,6 @@ class GalleryPalettes {
     secondary: const Color(0xFF36F9F6),
     tertiary: const Color(0xFFFEDE5D),
     error: const Color(0xFFFE4450),
-  );
-
-  /// Night Owl — inspired, contrast-tuned (deep teal-blue).
-  static final ColorScheme nightOwl = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF011627),
-    onSurface: const Color(0xFFD6DEEB),
-    primary: const Color(0xFF82AAFF),
-    secondary: const Color(0xFF22DA6E),
-    tertiary: const Color(0xFFECC48D),
-    error: const Color(0xFFEF5350),
   );
 
   /// Everforest Dark — inspired, contrast-tuned (soft green).
@@ -452,6 +338,39 @@ class GalleryPalettes {
     secondary: const Color(0xFF86B300),
     tertiary: const Color(0xFF399EE6),
     error: const Color(0xFFF07171),
+  );
+
+  /// Tokyo Night Light (Day) — inspired, contrast-tuned (crisp indigo).
+  static final ColorScheme tokyoNightLight = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFE1E2E7),
+    onSurface: const Color(0xFF343B58),
+    primary: const Color(0xFF2E7DE9),
+    secondary: const Color(0xFF587539),
+    tertiary: const Color(0xFF9854F1),
+    error: const Color(0xFFF52A65),
+  );
+
+  /// Nord Light (Snow Storm) — inspired, contrast-tuned (cool arctic).
+  static final ColorScheme nordLight = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFECEFF4),
+    onSurface: const Color(0xFF2E3440),
+    primary: const Color(0xFF5E81AC),
+    secondary: const Color(0xFFA3BE8C),
+    tertiary: const Color(0xFFB48EAD),
+    error: const Color(0xFFBF616A),
+  );
+
+  /// Kanagawa Lotus — inspired, contrast-tuned (warm sumi-e paper).
+  static final ColorScheme kanagawaLotus = _build(
+    brightness: Brightness.light,
+    surface: const Color(0xFFF2ECBC),
+    onSurface: const Color(0xFF545464),
+    primary: const Color(0xFF4D699B),
+    secondary: const Color(0xFF6F894E),
+    tertiary: const Color(0xFFCC6D00),
+    error: const Color(0xFFC84053),
   );
 
   // ---- Noctis family (liviuschera/noctis) ---------------------------------
