@@ -10,7 +10,11 @@ Storage is always canonical (move IDs, role IDs, canonicalized free text).
 
 ```json
 {
-  "roles":  {"role1": "Larks", "role2": "Robins"},
+  "name": "Custom",
+  "roles":  {
+    "role1": {"singular": "Lark", "plural": "Larks"},
+    "role2": {"singular": "Robin", "plural": "Robins"}
+  },
   "moves":  {"shoulder_round": "%S shoulder round", "do_si_do": "dosido"},
   "dancers": {"neighbors": "the others", "nextNeighbors": "the next couple"},
   "discouragedTerms": ["gypsy", "gents", "ladies", "..."]
