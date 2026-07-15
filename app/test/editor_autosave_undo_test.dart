@@ -483,7 +483,9 @@ void main() {
       );
       await _pumpEditor(tester, repos, danceId: 'd1');
 
-      // Delete the figure.
+      // Delete the figure (via the ⋮ overflow menu).
+      await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('figure-0-delete')));
       await tester.pumpAndSettle();
       expect(find.text('No figures yet.'), findsOneWidget);

@@ -918,6 +918,25 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               _pushUndoNow();
               _scheduleAutosave();
             },
+            onDuplicate: (draft) {
+              setState(() {
+                final index = _figureDrafts.indexOf(draft);
+                if (index == -1) return;
+                // Clone with a fresh id (stable-identity contract) but copied
+                // move/params/note/progression, inserted right after source.
+                final clone = FigureDraft(
+                  move: draft.move,
+                  params: Map<String, Object?>.of(draft.params),
+                  note: draft.note,
+                  progression: draft.progression,
+                  schemaVersion: draft.schemaVersion,
+                );
+                _figureDrafts.insert(index + 1, clone);
+                _recomputeWarnings();
+              });
+              _pushUndoNow();
+              _scheduleAutosave();
+            },
             onReorder: (oldIndex, newIndex) {
               setState(() {
                 // onReorder uses pre-adjusted (onReorderItem) semantics —
