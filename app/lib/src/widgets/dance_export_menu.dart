@@ -55,7 +55,9 @@ class DanceExportMenu extends StatelessWidget {
   );
 
   Future<void> _shareText() async {
-    await Share.share(_plainText(), subject: dance.title);
+    await SharePlus.instance.share(
+      ShareParams(text: _plainText(), subject: dance.title),
+    );
   }
 
   Future<void> _copyText(BuildContext context) async {

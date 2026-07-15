@@ -14,8 +14,8 @@ environment:
 dependencies:
   meta: ^1.16.0
   collection: ^1.19.0
-  drift: ^2.34.1
-  sqlite3: ^3.3.4
+  drift: ^2.34.2
+  sqlite3: ^3.4.0
   path: ^1.9.1
 
 dev_dependencies:
