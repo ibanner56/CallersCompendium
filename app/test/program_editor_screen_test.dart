@@ -263,6 +263,25 @@ void main() {
     expect(saved.slots.single.position, 0);
   });
 
+  testWidgets('two-pane layout splits editor and picker evenly', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    const surface = Size(1200, 2000);
+    await _pumpBuilder(tester, repos, programId: 'p1', size: surface);
+
+    final pickerFinder = find.byKey(const ValueKey('inline-picker'));
+    expect(pickerFinder, findsOneWidget);
+
+    final pickerWidth = tester.getSize(pickerFinder).width;
+    final dividerWidth = tester.getSize(find.byType(VerticalDivider)).width;
+    // Two equal-flex Expanded panes share the surface minus the divider.
+    final expectedPaneWidth = (surface.width - dividerWidth) / 2;
+    expect(pickerWidth, closeTo(expectedPaneWidth, 2));
+  });
+
   testWidgets('adds a free-text slot', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(_program(id: 'p1', title: 'Night'));

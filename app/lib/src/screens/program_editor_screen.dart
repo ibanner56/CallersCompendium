@@ -616,8 +616,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             Expanded(child: left),
             const VerticalDivider(width: 1, thickness: 1),
             if (data != null)
-              SizedBox(
-                width: 380,
+              Expanded(
                 child: CollectionPicker(
                   key: const ValueKey('inline-picker'),
                   data: data,
