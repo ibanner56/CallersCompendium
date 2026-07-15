@@ -1,9 +1,11 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:printing/printing.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
+import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/program_export_menu.dart';
@@ -626,13 +628,67 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
     final matrix = buildProgramMatrix(rows, taxonomy: data.taxonomy);
 
-    return ProgramMatrixTable(
-      key: const ValueKey('program-matrix-table'),
-      matrix: matrix,
-      taxonomy: data.taxonomy,
-      dialect: _dialect,
-      omittedFreeTextCount: omittedFreeText,
-      altDanceIds: altDanceIds,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Semantics(
+                label: 'Export or print matrix as PDF',
+                button: true,
+                child: IconButton(
+                  key: const ValueKey('program-matrix-export-pdf'),
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  tooltip: 'Export / print matrix PDF',
+                  onPressed: matrix.isEmpty
+                      ? null
+                      : () => _exportMatrixPdf(
+                          matrix,
+                          data.taxonomy,
+                          omittedFreeText,
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ProgramMatrixTable(
+            key: const ValueKey('program-matrix-table'),
+            matrix: matrix,
+            taxonomy: data.taxonomy,
+            dialect: _dialect,
+            omittedFreeTextCount: omittedFreeText,
+            altDanceIds: altDanceIds,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _exportMatrixPdf(
+    ProgramMatrix matrix,
+    Taxonomy taxonomy,
+    int omittedFreeTextCount,
+  ) async {
+    final localizations = MaterialLocalizations.of(context);
+    final title = _titleController.text.trim();
+    final venue = _venueController.text.trim();
+    await Printing.layoutPdf(
+      name: title.isEmpty ? 'Programming matrix' : title,
+      onLayout: (format) => buildProgramMatrixPdf(
+        matrix,
+        taxonomy: taxonomy,
+        dialect: _dialect,
+        programTitle: title,
+        eventDate: _eventDate,
+        venue: venue.isEmpty ? null : venue,
+        omittedFreeTextCount: omittedFreeTextCount,
+        formatDate: localizations.formatMediumDate,
+      ),
     );
   }
 

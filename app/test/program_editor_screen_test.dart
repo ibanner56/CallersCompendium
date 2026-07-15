@@ -616,4 +616,59 @@ void main() {
     // The save FAB hides on the read-only Matrix tab.
     expect(find.byKey(const ValueKey('save-program')), findsNothing);
   });
+
+  testWidgets('Matrix tab exposes an enabled export/print PDF control', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Matrix Dance',
+        figures: [
+          Figure(move: 'swing'),
+          Figure(move: 'balance'),
+        ],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+
+    final control = find.byKey(const ValueKey('program-matrix-export-pdf'));
+    expect(control, findsOneWidget);
+    expect(find.byTooltip('Export / print matrix PDF'), findsOneWidget);
+    // Keyboard-reachable and actionable: the button has an onPressed callback.
+    expect(tester.widget<IconButton>(control).onPressed, isNotNull);
+  });
+
+  testWidgets('Matrix export control is disabled for an empty matrix', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'No Figures Dance'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+
+    final control = find.byKey(const ValueKey('program-matrix-export-pdf'));
+    expect(control, findsOneWidget);
+    expect(tester.widget<IconButton>(control).onPressed, isNull);
+  });
 }
