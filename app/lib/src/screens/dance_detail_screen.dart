@@ -9,6 +9,7 @@ import '../utils/launch_external_url.dart';
 import '../widgets/figure_table.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
+import 'program_editor_screen.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
 /// formation, hook, tags, status banner, provenance line), a figure table
@@ -147,6 +148,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       ],
       relatedDanceTitles: relatedDanceTitles,
       sourcesById: sourcesById,
+      callingHistory: await _repos.programs.callingHistoryForDance(
+        widget.danceId,
+      ),
       crossRefLinker: crossRefLinker,
     );
   }
@@ -694,8 +698,41 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               child: Text('${field.label}: ${field.value}'),
             ),
         ],
+        const SizedBox(height: 24),
+        Text('Calling history', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
+        if (detail.callingHistory.isEmpty)
+          Padding(
+            key: const ValueKey('calling-history-empty'),
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Text(
+              'Not yet included in any program.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          )
+        else
+          for (final record in detail.callingHistory)
+            _CallingHistoryRow(
+              key: ValueKey('calling-history-${record.slotId}'),
+              record: record,
+              onTap: () => _openProgram(record.programId),
+            ),
       ],
     );
+  }
+
+  /// Opens the full-screen [ProgramEditorScreen] for [programId] (the same
+  /// route used from the programs list), then reloads so any change to the
+  /// program's performance history is reflected on return.
+  Future<void> _openProgram(String programId) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProgramEditorScreen(programId: programId),
+      ),
+    );
+    if (mounted) _reload();
   }
 }
 
@@ -900,6 +937,77 @@ class _LinkRow extends StatelessWidget {
       content = InkWell(onTap: onTap, child: content);
     }
     return content;
+  }
+}
+
+/// One entry in the dance's calling history: a program the dance is included
+/// in. A single merged-semantics button exposing the program title, its
+/// effective date (the slot's `performedAt` when set, else the program's
+/// `eventDate`, else its last-updated time), and the venue if present; tapping
+/// opens the program. Mirrors the row-as-button a11y pattern used by [_LinkRow]
+/// and the set-list rows in `programs_shell.dart`.
+class _CallingHistoryRow extends StatelessWidget {
+  const _CallingHistoryRow({super.key, required this.record, this.onTap});
+
+  final DanceCallingRecord record;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final localizations = MaterialLocalizations.of(context);
+    // Programs appear as soon as they include the dance, so `performedAt` is
+    // often null; `effectiveDate` falls back to the program's event date, then
+    // its last-updated time, so a date always shows. These are stored UTC
+    // values rendered directly (matching the other date labels on this screen).
+    final date = localizations.formatMediumDate(record.effectiveDate);
+    final venue = record.venue?.trim();
+    final subtitleParts = <String>[
+      date,
+      if (venue != null && venue.isNotEmpty) venue,
+    ];
+    final subtitle = subtitleParts.join(' · ');
+
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        label:
+            'Open program: ${record.programTitle}, ${subtitleParts.join(', ')}',
+        child: InkWell(
+          onTap: onTap,
+          child: ExcludeSemantics(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.event_note_outlined, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          record.programTitle,
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                        if (subtitle.isNotEmpty)
+                          Text(
+                            subtitle,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, size: 16),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1181,6 +1289,7 @@ class _DanceDetail {
     required this.customFields,
     required this.relatedDanceTitles,
     required this.sourcesById,
+    required this.callingHistory,
     required this.crossRefLinker,
   });
 
@@ -1196,6 +1305,11 @@ class _DanceDetail {
   /// Maps sourceId → the cited [PublishedSource] for each of the dance's
   /// [SourceCitation]s (missing entries indicate a purged source).
   final Map<String, PublishedSource> sourcesById;
+
+  /// Programs that include this dance (derived query over program slots),
+  /// most-recent first. Populated as soon as a program contains the dance;
+  /// `performedAt` may be null until the separate "mark performed" path lands.
+  final List<DanceCallingRecord> callingHistory;
 
   /// Matches other dances' titles inside this dance's free text (hook /
   /// calling notes) so they can render as tappable cross-reference links.

@@ -292,6 +292,223 @@ void main() {
     });
   });
 
+  group('callingHistoryForDance', () {
+    Future<void> makeDance(String id) => dances.create(
+      Dance(
+        id: id,
+        title: 'Dance $id',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+
+    test('is empty when the dance is in no program', () async {
+      await makeDance('d1');
+      await repo.create(sampleProgram());
+      expect(await repo.callingHistoryForDance('d1'), isEmpty);
+    });
+
+    test('by default includes a program with a non-performed slot', () async {
+      await makeDance('d1');
+      await repo.create(
+        sampleProgram(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final history = await repo.callingHistoryForDance('d1');
+      expect(history, hasLength(1));
+      expect(history.single.programId, 'p1');
+      expect(history.single.slotId, 's1');
+      expect(history.single.performedAt, isNull);
+    });
+
+    test(
+      'performedOnly:true restricts to slots that were actually called',
+      () async {
+        await makeDance('d1');
+        await repo.create(
+          sampleProgram(
+            slots: [
+              ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+              ProgramSlot(
+                id: 's2',
+                position: 1,
+                danceId: 'd1',
+                performedAt: DateTime.utc(2026, 3, 1),
+              ),
+            ],
+          ),
+        );
+        final defaulted = await repo.callingHistoryForDance('d1');
+        expect(defaulted, hasLength(2));
+        final performed = await repo.callingHistoryForDance(
+          'd1',
+          performedOnly: true,
+        );
+        expect(performed, hasLength(1));
+        expect(performed.single.slotId, 's2');
+        expect(performed.single.performedAt, DateTime.utc(2026, 3, 1));
+      },
+    );
+
+    test('returns programs most-recent first, with metadata', () async {
+      await makeDance('d1');
+      await repo.create(
+        Program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          eventDate: DateTime.utc(2026, 1, 10),
+          venue: 'Grange Hall',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repo.create(
+        Program(
+          id: 'p2',
+          title: 'Spring Fling',
+          eventDate: DateTime.utc(2026, 3, 20),
+          venue: 'Town Hall',
+          slots: [
+            ProgramSlot(
+              id: 's2',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 3, 1),
+            ),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+
+      final history = await repo.callingHistoryForDance('d1');
+      expect(history.map((r) => r.programId), ['p2', 'p1']);
+      expect(history.first.programTitle, 'Spring Fling');
+      expect(history.first.performedAt, DateTime.utc(2026, 3, 1));
+      expect(history.first.eventDate, DateTime.utc(2026, 3, 20));
+      expect(history.first.venue, 'Town Hall');
+      expect(history.last.programId, 'p1');
+    });
+
+    test('orders by effective date (eventDate / updatedAt) when performedAt is '
+        'null', () async {
+      await makeDance('d1');
+      // p-early: no performedAt, older event date.
+      await repo.create(
+        Program(
+          id: 'p-early',
+          title: 'Early',
+          eventDate: DateTime.utc(2026, 1, 1),
+          slots: [ProgramSlot(id: 's-early', position: 0, danceId: 'd1')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      // p-late: no performedAt, newer event date.
+      await repo.create(
+        Program(
+          id: 'p-late',
+          title: 'Late',
+          eventDate: DateTime.utc(2026, 6, 1),
+          slots: [ProgramSlot(id: 's-late', position: 0, danceId: 'd1')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      // p-updated: no performedAt, no event date — falls back to updatedAt,
+      // the most recent of all, so it should sort first.
+      await repo.create(
+        Program(
+          id: 'p-updated',
+          title: 'Recently updated',
+          slots: [ProgramSlot(id: 's-updated', position: 0, danceId: 'd1')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026, 12, 1),
+        ),
+      );
+
+      final history = await repo.callingHistoryForDance('d1');
+      expect(history.map((r) => r.programId), [
+        'p-updated',
+        'p-late',
+        'p-early',
+      ]);
+      expect(history.map((r) => r.effectiveDate), [
+        DateTime.utc(2026, 12, 1),
+        DateTime.utc(2026, 6, 1),
+        DateTime.utc(2026, 1, 1),
+      ]);
+    });
+
+    test('excludes slots on soft-deleted programs', () async {
+      await makeDance('d1');
+      await repo.create(
+        sampleProgram(
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        ),
+      );
+      await repo.softDelete('p1', at: DateTime.utc(2026, 2, 1));
+      expect(await repo.callingHistoryForDance('d1'), isEmpty);
+    });
+
+    test('returns every program the dance appears in', () async {
+      await makeDance('d1');
+      for (final (i, date) in [
+        DateTime.utc(2026, 1, 1),
+        DateTime.utc(2026, 2, 1),
+        DateTime.utc(2026, 3, 1),
+      ].indexed) {
+        await repo.create(
+          sampleProgram(
+            id: 'p$i',
+            slots: [
+              ProgramSlot(
+                id: 's$i',
+                position: 0,
+                danceId: 'd1',
+                performedAt: date,
+              ),
+            ],
+          ),
+        );
+      }
+      final history = await repo.callingHistoryForDance('d1');
+      expect(history, hasLength(3));
+      expect(history.map((r) => r.performedAt), [
+        DateTime.utc(2026, 3, 1),
+        DateTime.utc(2026, 2, 1),
+        DateTime.utc(2026, 1, 1),
+      ]);
+    });
+
+    test('ignores slots referencing a different dance', () async {
+      await makeDance('d1');
+      await makeDance('d2');
+      await repo.create(
+        sampleProgram(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd2')],
+        ),
+      );
+      expect(await repo.callingHistoryForDance('d1'), isEmpty);
+    });
+  });
+
   group('duplicate', () {
     test('mints fresh ids, resets to draft, and persists the copy', () async {
       await dances.create(

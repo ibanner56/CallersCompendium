@@ -6,6 +6,7 @@ import 'package:url_launcher_platform_interface/url_launcher_platform_interface.
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/screens/program_editor_screen.dart';
 
 import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
@@ -926,6 +927,211 @@ void main() {
         label: 'Open video: A video',
       ),
     );
+  });
+
+  group('calling history', () {
+    Program program({
+      required String id,
+      String title = 'Autumn Ball',
+      DateTime? eventDate,
+      String? venue,
+      List<ProgramSlot> slots = const [],
+    }) => Program(
+      id: id,
+      title: title,
+      eventDate: eventDate,
+      venue: venue,
+      slots: slots,
+      createdAt: _now,
+      updatedAt: _now,
+    );
+
+    testWidgets('renders the programs the dance is included in', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          eventDate: DateTime.utc(2026, 10, 3),
+          venue: 'Grange Hall',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 10, 3, 20),
+            ),
+          ],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('Calling history'), findsOneWidget);
+      expect(find.byKey(const ValueKey('calling-history-s1')), findsOneWidget);
+      expect(find.text('Autumn Ball'), findsOneWidget);
+      expect(find.textContaining('Grange Hall'), findsOneWidget);
+      expect(find.byKey(const ValueKey('calling-history-empty')), findsNothing);
+    });
+
+    testWidgets(
+      'by default lists a program even when the slot is not marked performed',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+        // Slot references the dance but performedAt is null — it must STILL
+        // appear under the default (non-performed) behavior.
+        await repos.programs.create(
+          program(
+            id: 'p1',
+            title: 'Autumn Ball',
+            eventDate: DateTime.utc(2026, 10, 3),
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+        );
+
+        await _pumpDetail(tester, repos, 'd1');
+
+        expect(
+          find.byKey(const ValueKey('calling-history-s1')),
+          findsOneWidget,
+        );
+        expect(find.text('Autumn Ball'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('calling-history-empty')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets('falls back to the event date when the slot is not performed', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          eventDate: DateTime.utc(2026, 10, 3),
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      final expectedDate = MaterialLocalizations.of(
+        tester.element(find.byKey(const ValueKey('calling-history-s1'))),
+      ).formatMediumDate(DateTime.utc(2026, 10, 3));
+      expect(find.textContaining(expectedDate), findsWidgets);
+    });
+
+    testWidgets('shows the empty state when in no program', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      // A program that does NOT include this dance must not populate history.
+      await repos.dances.create(_dance(id: 'other', title: 'Other'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'other')],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('Calling history'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('calling-history-empty')),
+        findsOneWidget,
+      );
+      expect(find.text('Not yet included in any program.'), findsOneWidget);
+    });
+
+    testWidgets('tapping a history row opens the program', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 10, 3, 20),
+            ),
+          ],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      await tester.tap(find.byKey(const ValueKey('calling-history-s1')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProgramEditorScreen), findsOneWidget);
+    });
+
+    testWidgets('a history row is a11y-reachable', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          title: 'Autumn Ball',
+          // A scheduled event date in a DIFFERENT year from performedAt, so the
+          // assertions below fail if the UI ever prefers eventDate over the
+          // actual performance date.
+          eventDate: DateTime.utc(2025, 1, 15),
+          venue: 'Grange Hall',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 10, 3, 20),
+            ),
+          ],
+        ),
+      );
+      final handle = tester.ensureSemantics();
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      final rowFinder = find.byKey(const ValueKey('calling-history-s1'));
+      expect(
+        tester.getSemantics(rowFinder),
+        isSemantics(isButton: true, isFocusable: true, hasTapAction: true),
+        reason: 'each history row must be a focusable, tappable button',
+      );
+      final label = tester.getSemantics(rowFinder).label;
+      expect(
+        label,
+        contains('Open program: Autumn Ball'),
+        reason: 'the row label must name the program it opens',
+      );
+      // The announced date must come from performedAt (2026), not the program's
+      // scheduled eventDate (2025).
+      final performedDate = MaterialLocalizations.of(
+        tester.element(rowFinder),
+      ).formatMediumDate(DateTime.utc(2026, 10, 3, 20));
+      expect(
+        label,
+        contains(performedDate),
+        reason: 'the row label must announce the performedAt date',
+      );
+      expect(
+        label,
+        isNot(contains('2025')),
+        reason: 'the row must not announce the scheduled eventDate',
+      );
+      handle.dispose();
+    });
   });
 
   // ── Auto cross-reference links (hook / calling notes) ───────────────────────
