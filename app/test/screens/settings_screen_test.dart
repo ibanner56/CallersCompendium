@@ -29,6 +29,7 @@ _pumpSettings(
   WidgetTester tester, {
   Dialect? initialDialect,
   AppThemeSelection? initialTheme,
+  Size surfaceSize = const Size(1000, 2600),
 }) async {
   final repos = openTestRepositories();
   await repos.ensureMigrated();
@@ -42,7 +43,7 @@ _pumpSettings(
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
 
-  await tester.binding.setSurfaceSize(const Size(1000, 2600));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   addTearDown(notifier.dispose);
   addTearDown(themeNotifier.dispose);
@@ -486,6 +487,37 @@ void main() {
         find.byKey(ValueKey('theme-${AppThemeSelection.system.name}')),
         findsNothing,
       );
+    });
+
+    testWidgets('narrow layout pushes a detail page that updates live', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(
+        tester,
+        initialDialect: Dialect.larksRobins,
+        surfaceSize: const Size(500, 900),
+      );
+
+      // Narrow layout: tapping a nav row pushes the section as its own page.
+      await tester.tap(find.byKey(const ValueKey('settings-nav-dialect')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(ValueKey('dialect-${Dialect.gentsLadies.name}')),
+        findsOneWidget,
+      );
+
+      // Selecting a dialect on the pushed page must update it live (the route
+      // depends on ActiveDialectScope, so the notifier change rebuilds it).
+      await tester.tap(
+        find.byKey(ValueKey('dialect-${Dialect.gentsLadies.name}')),
+      );
+      await tester.pumpAndSettle();
+      expect(ctx.notifier.value, Dialect.gentsLadies);
+
+      final group = tester.widget<RadioGroup<Dialect>>(
+        find.byType(RadioGroup<Dialect>),
+      );
+      expect(group.groupValue, Dialect.gentsLadies);
     });
   });
 }

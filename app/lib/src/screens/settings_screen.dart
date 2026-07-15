@@ -48,22 +48,13 @@ enum _SettingsSection {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late Dialect _selected;
-  late AppThemeSelection _themeSelected;
   _SettingsSection _section = _SettingsSection.appearance;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _selected = ActiveDialectScope.of(context);
-    _themeSelected = AppThemeScope.of(context);
-  }
-
   Future<void> _onDialectChanged(Dialect dialect) async {
-    // Update UI and the live notifier immediately so the selection feels
-    // instant, then persist in the background.
+    // Update the live notifier immediately so the selection feels instant; the
+    // notifier drives every dependent (including a pushed detail route) to
+    // rebuild, then persist in the background.
     ActiveDialectScope.notifierOf(context).value = dialect;
-    setState(() => _selected = dialect);
     // Fire-and-forget: store the selection; if the app crashes between here
     // and storage completing the write, the in-memory notifier was already
     // correct for this session.
@@ -72,39 +63,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _onThemeChanged(AppThemeSelection selection) async {
-    // Mirror the dialect pattern: update the live notifier + UI instantly,
-    // then persist in the background. Selecting a built-in theme also clears
-    // any active custom theme (built-in wins the moment it's tapped).
+    // Mirror the dialect pattern: update the live notifier instantly, then
+    // persist in the background. Selecting a built-in theme also clears any
+    // active custom theme (built-in wins the moment it's tapped).
     final customs = CustomThemesScope.controllerOf(context);
     AppThemeScope.notifierOf(context).value = selection;
-    setState(() => _themeSelected = selection);
     final repos = RepositoriesScope.of(context);
     await customs.setActive(null);
     await repos.settings.set(kAppThemeKey, selection.name);
   }
 
-  /// Builds the content pane for [section]. Scope reads use [context] (which in
-  /// the side-by-side layout is the screen itself and in the narrow layout is
-  /// the pushed detail route) so the pane rebuilds live when themes change.
+  /// Builds the content pane for [section]. Selection and scope reads use
+  /// [context] (in the side-by-side layout the screen itself; in the narrow
+  /// layout the pushed detail route) via `.of(context)`, which registers that
+  /// context as a dependent so the pane rebuilds live when the active dialect,
+  /// built-in theme, or custom themes change.
   Widget _content(BuildContext context, _SettingsSection section) {
     switch (section) {
       case _SettingsSection.appearance:
+        final themeSelected = AppThemeScope.of(context);
         final customThemes = CustomThemesScope.of(context);
         final platformDark =
             MediaQuery.platformBrightnessOf(context) == Brightness.dark;
         final seedScheme =
             customThemes.active?.toScheme() ??
-            _themeSelected.scheme ??
+            themeSelected.scheme ??
             (platformDark ? AppColorSchemes.dark : AppColorSchemes.light);
         return _AppearanceView(
           // When a custom theme is active, no built-in card is selected.
-          themeSelected: customThemes.hasActive ? null : _themeSelected,
+          themeSelected: customThemes.hasActive ? null : themeSelected,
           onThemeSelected: _onThemeChanged,
           customThemes: customThemes,
           seedScheme: seedScheme,
         );
       case _SettingsSection.dialect:
-        return _DialectView(selected: _selected, onChanged: _onDialectChanged);
+        return _DialectView(
+          selected: ActiveDialectScope.of(context),
+          onChanged: _onDialectChanged,
+        );
     }
   }
 
