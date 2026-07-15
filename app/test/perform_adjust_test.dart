@@ -309,4 +309,39 @@ void main() {
     // Live view updated (2 slots now) even without a persistence callback.
     expect(find.text('Slot 1 of 2'), findsOneWidget);
   });
+
+  testWidgets('adjustments keep the view on the selected alternate', (
+    tester,
+  ) async {
+    final persisted = await _pumpAdjustable(
+      tester,
+      dances: [
+        _dance(id: 'd1', title: 'Primary Dance'),
+        _dance(id: 'd2', title: 'Alternate Dance'),
+      ],
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1'),
+        _slot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+      ]),
+    );
+
+    // Swap to the alternate, then make an unrelated adjustment.
+    await tester.tap(find.byKey(const ValueKey('perform-alt-swap')));
+    await tester.pumpAndSettle();
+    expect(find.text('Alternate Dance'), findsOneWidget);
+
+    await _openAdjust(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('adjust-note-field')),
+      'Break',
+    );
+    await tester.tap(find.byKey(const ValueKey('adjust-add-note')));
+    await tester.pumpAndSettle();
+    await _tapDone(tester);
+
+    // The reading view stays on the selected alternate, not its primary.
+    expect(find.text('Alternate Dance'), findsOneWidget);
+    expect(find.text('Primary Dance'), findsNothing);
+    expect(persisted, hasLength(1));
+  });
 }

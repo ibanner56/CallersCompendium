@@ -62,9 +62,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// grouping recompute from it so the reading view reflects edits immediately.
   late Program _program = widget.program;
 
-  /// Ordered navigable groups, recomputed from [_program] so an edit (reorder /
-  /// insert / note) is reflected live without a stale snapshot.
-  List<ProgramSlotGroup> get _groups => _program.grouped;
+  /// Cached navigable groups. [Program.grouped] walks the whole slot list and
+  /// allocates a fresh unmodifiable list on every call, and the build/helpers
+  /// read the groups several times per frame — so we recompute this only when
+  /// [_program] actually changes (in [_applyProgram]) rather than on each read.
+  late List<ProgramSlotGroup> _groups = _program.grouped;
 
   /// Selected member within each group, indexing `[primary, ...alternates]`.
   /// Rebuilt to match the group count whenever [_program] changes structurally.
@@ -266,34 +268,37 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   /// Swaps in an edited [updated] program: recomputes grouping, keeps the view
-  /// on the same primary slot by id where possible (so the caller keeps reading
-  /// the same dance after a reorder/insert), resizes alt-selection tracking, and
-  /// persists via [PerformProgramScreen.onProgramChanged].
+  /// on the exact slot that was on screen (by id — the selected alternate too,
+  /// not just its primary) so the caller keeps reading the same dance after a
+  /// reorder/insert, and persists via [PerformProgramScreen.onProgramChanged].
   ///
-  /// The per-slot timer keeps running unless the current primary slot actually
-  /// changed, so timing (a 5.2 feature) is undisturbed by edits that leave the
-  /// current slot in place.
+  /// The per-slot timer keeps running while that slot is still on screen; it
+  /// only resets when the previously visible slot is gone (e.g. removed), so
+  /// timing (a 5.2 feature) is undisturbed by edits that leave it in place.
   void _applyProgram(Program updated, {String? announce}) {
-    final prevPrimaryId = _groups.isEmpty
-        ? null
-        : _groups[_groupIndex].primary.id;
+    final prevSlotId = _groups.isEmpty ? null : _currentSlot.id;
     setState(() {
       _program = updated;
-      final groups = _program.grouped;
-      _selectedMember = List<int>.filled(groups.length, 0);
-      final maxIndex = groups.isEmpty ? 0 : groups.length - 1;
-      final relocated = prevPrimaryId == null
-          ? -1
-          : groups.indexWhere((g) => g.primary.id == prevPrimaryId);
-      final newIndex = (relocated >= 0 ? relocated : _groupIndex).clamp(
-        0,
-        maxIndex,
-      );
-      final currentPrimaryId = groups.isEmpty
-          ? null
-          : groups[newIndex].primary.id;
-      _groupIndex = newIndex;
-      if (currentPrimaryId != prevPrimaryId) _resetSlotTimer();
+      _groups = _program.grouped;
+      _selectedMember = List<int>.filled(_groups.length, 0);
+      final maxIndex = _groups.isEmpty ? 0 : _groups.length - 1;
+      var located = false;
+      if (prevSlotId != null) {
+        for (var gi = 0; gi < _groups.length; gi++) {
+          final members = _membersOf(_groups[gi]);
+          final mi = members.indexWhere((s) => s.id == prevSlotId);
+          if (mi >= 0) {
+            _groupIndex = gi;
+            _selectedMember[gi] = mi;
+            located = true;
+            break;
+          }
+        }
+      }
+      if (!located) {
+        _groupIndex = _groupIndex.clamp(0, maxIndex);
+        _resetSlotTimer();
+      }
     });
     if (announce != null && mounted) {
       SemanticsService.sendAnnouncement(
