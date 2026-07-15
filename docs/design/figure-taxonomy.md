@@ -142,9 +142,9 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   `pass_by`, `hey`, `dolphin_hey`, `form_long_waves`, `form_a_long_wave`,
   `form_an_ocean_wave`. `hey` uses the approved structured model:
   `pass1`/`pass2` (pass2 defaults to a hey-scoped `unspecified` sentinel),
-  `shoulder`, `length` (all four ContraDB named durations: `full`, `half`,
-  `lessThanHalf`, `betweenHalfAndFull`; the dynamic `dancer%%N` meeting encodings
-  remain out of scope), `dir`, four ricochet flags (`rico1`–`rico4`), and `beats`.
+  `shoulder`, `length` (`full`/`half` as shipped in PR5; expanded to the full
+  set of ContraDB named durations in v6 — see below), `dir`, four ricochet
+  flags (`rico1`–`rico4`), and `beats`.
   `dolphin_hey.whom` uses the single-dancer tokens. Wave formations carry their
   in/out/balance/pass-through flags and ocean-wave hands as structured params;
   ContraDB's editor-only auto-beat recomputation is out of scope (explicit beats

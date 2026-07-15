@@ -720,7 +720,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'length': ParamSpec(
           ParamKind.choice,
           defaultValue: 'half',
-          choices: ['full', 'half', 'lessThanHalf', 'betweenHalfAndFull'],
+          choices: ['lessThanHalf', 'half', 'betweenHalfAndFull', 'full'],
         ),
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         // Four ricochet flags: (1st/2nd meeting) x (center/ends dancers).
