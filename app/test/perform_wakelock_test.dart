@@ -25,10 +25,10 @@ Dance _dance({String id = 'd1', String title = 'Test Dance'}) => Dance(
   updatedAt: _now,
 );
 
-/// Pumps [child] behind a launcher button that pushes it onto a real
+/// Pumps [screen] behind a launcher button that pushes it onto a real
 /// [Navigator], so the Perform screen's close button can pop it just like in
 /// the app. Returns after the push settles.
-Future<void> _pushPerform(WidgetTester tester, Widget child) async {
+Future<void> _pushPerform(WidgetTester tester, Widget screen) async {
   await tester.binding.setSurfaceSize(const Size(1400, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
@@ -45,7 +45,7 @@ Future<void> _pushPerform(WidgetTester tester, Widget child) async {
               key: const ValueKey('launch-perform'),
               onPressed: () => Navigator.of(
                 context,
-              ).push(MaterialPageRoute<void>(builder: (_) => child)),
+              ).push(MaterialPageRoute<void>(builder: (_) => screen)),
               child: const Text('Perform'),
             ),
           ),
