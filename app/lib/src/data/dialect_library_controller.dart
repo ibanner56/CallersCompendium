@@ -82,6 +82,9 @@ class DialectLibraryController extends ChangeNotifier {
 
     if (!hasLibrary) {
       await _migrateLegacyActive();
+      // Mark the library as initialized so this one-time migration doesn't
+      // re-run (and re-write settings) on every future startup.
+      await _persistDialects();
     }
     notifyListeners();
   }
@@ -103,14 +106,23 @@ class DialectLibraryController extends ChangeNotifier {
     final matchesPreset = preset != null && preset == dialect;
     if (!matchesPreset && Dialect.forName(dialect.name) == null) {
       _customDialects.add(dialect);
-      await _persistDialects();
     }
     _activeName = dialect.name;
     await _persistActive();
   }
 
-  /// Adds a new custom dialect, or replaces the one with the same name.
+  /// Adds a new custom dialect, or replaces the one with the same name. A
+  /// custom dialect may not take a shipped preset's name (that would create a
+  /// duplicate name in [all] and shadow the preset); callers should uniquify
+  /// first (see [duplicate]/[rename]).
   Future<void> upsert(Dialect dialect) async {
+    if (Dialect.forName(dialect.name) != null) {
+      throw ArgumentError.value(
+        dialect.name,
+        'dialect.name',
+        'cannot reuse a shipped preset name for a custom dialect',
+      );
+    }
     final index = _customByNameIndex(dialect.name);
     if (index >= 0) {
       _customDialects[index] = dialect;

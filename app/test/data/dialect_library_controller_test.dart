@@ -41,6 +41,22 @@ void main() {
       expect(c.customByName('Mine')!.roles['role1']!.singular, 'Cat');
     });
 
+    test('upsert rejects a shipped preset name', () async {
+      final (c, _) = await _controller();
+      expect(() => c.upsert(_custom('Larks/Robins')), throwsArgumentError);
+      expect(c.customDialects, isEmpty);
+    });
+
+    test('load marks the library initialized so migration runs once', () async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final first = DialectLibraryController(repos.settings);
+      await first.load();
+      // Even with no legacy data, the library key is now present, so a second
+      // load won't re-run migration / re-write settings.
+      expect(await repos.settings.contains(kCustomDialectsKey), isTrue);
+    });
+
     test('duplicate seeds from a preset under a unique name', () async {
       final (c, _) = await _controller();
       final a = await c.duplicate(name: 'Copy', from: Dialect.larksRobins);
