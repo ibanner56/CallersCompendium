@@ -9,7 +9,9 @@ import 'taxonomy.dart';
 /// v3: roadmap 2.4a PR3 (choice-enum moves + `centers`/single-dancer vocab).
 /// v4: roadmap 2.4a PR4 (places family + `ParamKind.places`).
 /// v5: roadmap 2.4a PR5 (hey/wave family) — completes the 2.4a move set.
-const int contraTaxonomyVersion = 5;
+/// v6: full set of ContraDB named hey-length durations (lessThanHalf /
+///     betweenHalfAndFull added; dancer%%N meeting encodings remain out of scope).
+const int contraTaxonomyVersion = 6;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -713,12 +715,12 @@ final Taxonomy contraTaxonomy = Taxonomy(
           choices: _heyPass2Choices,
         ),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
-        // Reduced hey length: full/half only (ContraDB's lessThanHalf /
-        // betweenHalfAndFull and dancer%%N meeting encodings are out of scope).
+        // Full set of ContraDB named hey-length durations. The dynamic
+        // dancer%%N meeting encodings remain out of scope.
         'length': ParamSpec(
           ParamKind.choice,
           defaultValue: 'half',
-          choices: ['full', 'half'],
+          choices: ['lessThanHalf', 'half', 'betweenHalfAndFull', 'full'],
         ),
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         // Four ricochet flags: (1st/2nd meeting) x (center/ends dancers).
