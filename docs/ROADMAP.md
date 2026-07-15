@@ -305,6 +305,18 @@ design/domain-model.md "CC parity backfill".*
     (`_ProgramSummaryPane`) offers a prominent "Perform this program" action
     (disabled with a tooltip when the program has no slots), so Perform is
     reachable directly from a program without opening the builder.
+- [x] 5.2a Dance print/share — export a single dance card as PDF + shareable/
+  copyable plain text, dialect-aware, from the dance detail app bar (ux.md §2
+  dance-detail actions). Mirrors the Phase 4.3 program-export stack: a
+  Flutter-free core renderer (`danceToPlainText`, `compendium_core`) laying out
+  title/authors/formation/level/status/phrase then the figure table grouped by
+  derived section and the calling notes, rendered dialect-aware via the shared
+  `deriveSections` + `FigureRenderer` path so the export matches the on-screen
+  card; an app PDF (`buildDancePdf`) reusing the bundled-font PDF theme; and a
+  keyboard/AT-reachable `DanceExportMenu` (share via `share_plus`, copy to
+  clipboard, print/save PDF via `printing`) on the detail app bar. Preserves the
+  4b.4 privacy invariant — authors render by name only, so choreographer contact
+  fields never enter a shared export (regression-tested).
 - [ ] 5.3 On-the-fly program adjustments during an event
 - [ ] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
   rendering of figures for assistive tech (distinct from the terse canonical/dialect
