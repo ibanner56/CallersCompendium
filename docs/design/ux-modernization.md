@@ -315,7 +315,8 @@ per-role hex against each source palette is an implementation deliverable.
 
 **Expanded gallery (UX-7).** Following UX-6, the gallery was widened with the
 most-requested industry/hobbyist favorites, spanning the hue spectrum in both
-modes. Each is derived + AA-validated by the same `buildScheme` process, so
+modes. Each is derived + AA-validated by the same `GalleryPalettes._build`
+process (`app/lib/src/theme/palette_schemes.dart`), so
 adding one is just "identity colors + one enum entry":
 
 | Palette | Mode | Background | Signature hue | Inspired by |

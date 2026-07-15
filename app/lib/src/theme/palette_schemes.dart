@@ -296,7 +296,7 @@ class GalleryPalettes {
     onSurface: const Color(0xFF575279),
     primary: const Color(0xFF907AA9),
     secondary: const Color(0xFF56949F),
-    tertiary: const Color(0xFFB4637A),
+    tertiary: const Color(0xFFD7827E),
     error: const Color(0xFFB4637A),
   );
 
