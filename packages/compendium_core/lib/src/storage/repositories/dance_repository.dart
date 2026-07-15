@@ -292,6 +292,30 @@ class DanceRepository {
     return [for (final row in rows) await _toModel(row)];
   }
 
+  /// Lightweight `(id, title)` listing that reads only the two columns it
+  /// needs — avoiding the per-row [_toModel] hydration (figure decoding, child
+  /// queries) that [listAll] performs. Ordered by title; soft-deleted dances
+  /// are excluded unless [includeDeleted] is set. Used by callers that only
+  /// need to resolve or scan dance titles (e.g. auto cross-reference links).
+  Future<List<({String id, String title})>> listIdsAndTitles({
+    bool includeDeleted = false,
+  }) async {
+    final query = _db.selectOnly(_db.dances)
+      ..addColumns([_db.dances.id, _db.dances.title])
+      ..orderBy([
+        OrderingTerm(expression: _db.dances.title),
+        OrderingTerm(expression: _db.dances.id),
+      ]);
+    if (!includeDeleted) {
+      query.where(_db.dances.deletedAt.isNull());
+    }
+    final rows = await query.get();
+    return [
+      for (final row in rows)
+        (id: row.read(_db.dances.id)!, title: row.read(_db.dances.title)!),
+    ];
+  }
+
   Future<void> softDelete(String id, {required DateTime at}) {
     assertUtc(at, 'at');
     return (_db.update(_db.dances)..where((t) => t.id.equals(id))).write(
