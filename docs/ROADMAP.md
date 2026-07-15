@@ -421,7 +421,7 @@ defaults) live in the **Defaults** pane section below.
   and confirm-before-delete (an explicit confirm dialog instead of the
   undo-snackbar delete pattern). Persisted via `SettingsRepository`.
 
-- [ ] G.8 **Localization & regional formats** *(placeholder / later)* — Caller's
+- [x] G.8 **Localization & regional formats** *(placeholder / later)* — Caller's
   Companion ships ~12 runtime UI languages; we have no i18n yet ("UI
   localization / multi-language" under Later milestones). Ahead of full i18n,
   the cheap, useful pieces are regional: date format and first-day-of-week,

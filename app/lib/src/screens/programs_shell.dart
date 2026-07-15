@@ -2,6 +2,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
+import '../data/date_format_scope.dart';
+import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
@@ -329,9 +331,11 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
     final slotCount = program.slots.length;
     final dateLabel = program.eventDate == null
         ? null
-        : MaterialLocalizations.of(
-            context,
-          ).formatMediumDate(program.eventDate!);
+        : formatEventDate(
+            program.eventDate!,
+            DateFormatScope.of(context),
+            MaterialLocalizations.of(context),
+          );
 
     return ListView(
       padding: const EdgeInsets.all(24),
