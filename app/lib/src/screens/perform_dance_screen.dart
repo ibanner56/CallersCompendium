@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
 import 'perform_card.dart';
+import 'perform_wakelock.dart';
 
 /// Full-screen, large-print performance view for a single [Dance]
 /// (`docs/design/ux.md` §5; ROADMAP 5.1). Entered explicitly from the dance
@@ -34,7 +35,8 @@ class PerformDanceScreen extends StatefulWidget {
   State<PerformDanceScreen> createState() => _PerformDanceScreenState();
 }
 
-class _PerformDanceScreenState extends State<PerformDanceScreen> {
+class _PerformDanceScreenState extends State<PerformDanceScreen>
+    with PerformWakelockMixin {
   double _textScale = kPerformDefaultScale;
 
   /// When `true` figures render canonical role/move tokens; otherwise the

@@ -233,9 +233,11 @@ design/domain-model.md "CC parity backfill".*
   - Program navigation delivered: program-mode Perform view walking `Program.grouped`
     groups (next/prev via on-screen buttons, giant edge hit zones, and keyboard
     arrows/page keys), a jump-to-slot overview, and one-tap ALT swap within a group,
-    reusing the shared large-print `PerformCard`. Remaining sub-items — screen
-    wake-lock, high-contrast / 7:1 dark-stage theme, and program timing — are
-    separate follow-up PRs.
+    reusing the shared large-print `PerformCard`. Screen wake-lock delivered:
+    both Perform views (single-dance and program) hold a `wakelock_plus`
+    wake-lock while open and release it on exit, so a propped tablet does not
+    auto-sleep. Remaining sub-items — high-contrast / 7:1 dark-stage theme, and
+    program timing — are separate follow-up PRs.
 - [ ] 5.3 On-the-fly program adjustments during an event
 - [ ] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
   rendering of figures for assistive tech (distinct from the terse canonical/dialect

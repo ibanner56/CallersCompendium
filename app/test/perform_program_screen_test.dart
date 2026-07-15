@@ -12,6 +12,7 @@ import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/search/collection_data.dart';
 
 import 'support/test_repositories.dart';
+import 'support/fake_wakelock.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 final _renderer = FigureRenderer(contraTaxonomy);
@@ -89,6 +90,8 @@ Future<void> _pumpProgram(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+  setUp(installFakeWakelock);
 
   testWidgets('next/prev moves between groups', (tester) async {
     final data = await _dataWith([
