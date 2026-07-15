@@ -20,7 +20,10 @@ Program _program({required String id, required String title}) => Program(
   updatedAt: _now,
 );
 
-Future<void> _pumpWide(WidgetTester tester, CompendiumRepositories repos) async {
+Future<void> _pumpWide(
+  WidgetTester tester,
+  CompendiumRepositories repos,
+) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(() {
