@@ -321,10 +321,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               ),
               Expanded(
                 child: Center(
-                  child: Text(
-                    'Slot ${_groupIndex + 1} of ${_groups.length}',
-                    key: const ValueKey('perform-position'),
-                    style: Theme.of(context).textTheme.titleMedium,
+                  child: Builder(
+                    // Resolve the text style from a context *below*
+                    // [PerformStageTheme] so the position label picks up the
+                    // stage theme's on-surface color (readable on the dark
+                    // BottomAppBar) when stage mode is on, rather than the
+                    // outer ambient theme.
+                    builder: (context) => Text(
+                      'Slot ${_groupIndex + 1} of ${_groups.length}',
+                      key: const ValueKey('perform-position'),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ),
                 ),
               ),

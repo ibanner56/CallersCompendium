@@ -330,6 +330,25 @@ void main() {
     expect(scheme.surface, AppColorSchemes.highContrast.surface);
   });
 
+  testWidgets('position label resolves under the stage theme when on', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+    );
+
+    // The BottomAppBar position label must read its text style from a context
+    // below PerformStageTheme, so on the dark stage BottomAppBar it uses the
+    // stage theme's on-surface color rather than the ambient (light) theme.
+    final positionContext = tester.element(
+      find.byKey(const ValueKey('perform-position')),
+    );
+    expect(Theme.of(positionContext).colorScheme, AppColorSchemes.highContrast);
+  });
+
   testWidgets('stage toggle falls back to the ambient theme and back', (
     tester,
   ) async {
