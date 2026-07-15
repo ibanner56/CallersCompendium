@@ -184,6 +184,27 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets(
+    'dialect toggle exposes a single named toggle (no double-announce)',
+    (tester) async {
+      final handle = tester.ensureSemantics();
+
+      await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
+
+      // The Switch carries the accessible name and toggle role; the decorative
+      // "Canonical" text is excluded so it isn't announced separately.
+      expect(
+        tester.getSemantics(
+          find.byKey(const ValueKey('perform-dialect-toggle')),
+        ),
+        isSemantics(label: 'Show canonical terms', hasTapAction: true),
+      );
+      expect(find.bySemanticsLabel('Canonical'), findsNothing);
+
+      handle.dispose();
+    },
+  );
+
   testWidgets('detail "Perform this dance" action navigates to the view', (
     tester,
   ) async {

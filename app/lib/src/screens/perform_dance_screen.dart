@@ -75,6 +75,13 @@ class _PerformDanceScreenState extends State<PerformDanceScreen> {
 
     final canDecrease = _textScale - _scaleStep >= _minScale - 1e-9;
 
+    // Apply the in-view large-print scale *on top of* the user's existing
+    // system / accessibility text scaling rather than replacing it, so we
+    // never shrink text below what the user's device preference asks for.
+    final mediaQuery = MediaQuery.of(context);
+    final systemScale = mediaQuery.textScaler.scale(1);
+    final effectiveScaler = TextScaler.linear(systemScale * _textScale);
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -106,9 +113,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen> {
         ],
       ),
       body: MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(_textScale)),
+        data: mediaQuery.copyWith(textScaler: effectiveScaler),
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -381,17 +386,22 @@ class _DialectToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Show canonical terms',
-      toggled: canonical,
+    // Exclude the decorative "Canonical" label from semantics and attach the
+    // accessible name to the Switch itself (merged into one node) so assistive
+    // tech announces a single "Show canonical terms" toggle rather than the
+    // label text and the switch separately.
+    return MergeSemantics(
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Canonical'),
-          Switch(
-            key: const ValueKey('perform-dialect-toggle'),
-            value: canonical,
-            onChanged: onChanged,
+          const ExcludeSemantics(child: Text('Canonical')),
+          Semantics(
+            label: 'Show canonical terms',
+            child: Switch(
+              key: const ValueKey('perform-dialect-toggle'),
+              value: canonical,
+              onChanged: onChanged,
+            ),
           ),
         ],
       ),
