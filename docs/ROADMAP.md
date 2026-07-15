@@ -160,10 +160,14 @@ Design items (each produces a design doc + review):
   figures; first-figure highlight) — CC's Elements matrix without the manual
   checklist. See design/ux.md §4. Derivation is a pure, Flutter-free core
   (`buildProgramMatrix`); UI is a Matrix tab on the Program builder with pinned
-  headers and full table semantics. **Deferred** (additive follow-ons): a
-  print/report version of the matrix (CC parity — a separate print layout, does
-  not fall out of 4.3 text/PDF export); and per-cell within-dance repeat
-  **counts** (presence is boolean for now, matching CC's checklist semantics).
+  headers and full table semantics. **Delivered follow-on**: a print/report
+  version of the matrix — a dedicated LANDSCAPE PDF (`buildProgramMatrixPdf`,
+  reusing the bundled-font PDF theme) rendering the moves × dances table with
+  shape/text markers (★ first figure, ✓ present) plus a legend, wired to a
+  keyboard-reachable export/print control on the Matrix tab. **Intentional
+  design decision (won't-do)**: per-cell within-dance repeat **counts** — the
+  matrix stays BOOLEAN presence to match CC's checklist semantics; adding
+  counts would diverge from CC parity, so it is not planned.
 
 ## Phase 4b — Caller's Companion parity backfill (dance & metadata model)
 
@@ -180,11 +184,16 @@ design/domain-model.md "CC parity backfill".*
   filter and program by level constantly. Add to the domain model, the schema
   (+ back-fillable index), the editor metadata form, the Collection list/facet,
   and search (`Level` filter leaf in design/search.md).
-  - Deferred (4b.1b): the **Advanced query-builder `Level` lte/gte UI row**. The
-    search engine landed in 4b.1b — `LevelFilter` supports all three ops
-    (`eq`/`lte`/`gte`) and is fully tested — but the Advanced-builder UI entry
-    point for the ordered comparisons is not yet wired; the Collection facet
-    currently exercises `eq` (exact multi-select) only.
+  - Resolved (4b.1b): the **Advanced query-builder `Level` lte/gte UI row** is
+    CLOSED as an unneeded convenience. The Advanced builder is
+    figure-query-specific, so `Level` never belonged there. Because `DanceLevel`
+    is a small ORDERED enum, the Collection Level facet's exact multi-select
+    ALREADY lets users express any ordered range by ticking a contiguous set
+    (e.g. "≤ intermediate" = beginner + … + intermediate). The ordered
+    `lte`/`gte` capability is therefore fully covered in the UI via multi-select;
+    a dedicated ≤/≥ operator control adds no reach. The engine ops
+    (`LevelFilter` `eq`/`lte`/`gte`) remain available and tested for
+    programmatic/query use.
 - [x] 4b.2 **Composed / revised dates** — optional `composedOn` / `revisedOn`
   (CC keeps partial y/m/d); distinct from record `createdAt`/`updatedAt`. Editor
   field + optional sort. Delivered: pure-Dart `PartialDate` (partial-precision,

@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -615,5 +616,68 @@ void main() {
     expect(find.text('balance'), findsOneWidget);
     // The save FAB hides on the read-only Matrix tab.
     expect(find.byKey(const ValueKey('save-program')), findsNothing);
+  });
+
+  testWidgets('Matrix tab exposes an enabled export/print PDF control', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Matrix Dance',
+        figures: [
+          Figure(move: 'swing'),
+          Figure(move: 'balance'),
+        ],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+
+    final control = find.byKey(const ValueKey('program-matrix-export-pdf'));
+    expect(control, findsOneWidget);
+    expect(find.byTooltip('Export or print matrix as PDF'), findsOneWidget);
+    // Actionable: the button has an onPressed callback.
+    expect(tester.widget<IconButton>(control).onPressed, isNotNull);
+    // Reachable by keyboard/assistive tech: the control exposes an enabled,
+    // labelled button with a tap action in the semantics tree (not colour/icon
+    // alone).
+    final handle = tester.ensureSemantics();
+    final data = tester.getSemantics(control).getSemanticsData();
+    expect(data.hasAction(SemanticsAction.tap), isTrue);
+    expect(data.tooltip, 'Export or print matrix as PDF');
+    handle.dispose();
+  });
+
+  testWidgets('Matrix export control is disabled for an empty matrix', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'No Figures Dance'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+
+    final control = find.byKey(const ValueKey('program-matrix-export-pdf'));
+    expect(control, findsOneWidget);
+    expect(tester.widget<IconButton>(control).onPressed, isNull);
   });
 }
