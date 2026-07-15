@@ -26,7 +26,11 @@ class DanceListTile extends StatelessWidget {
     this.selected = false,
     this.selectionMode = false,
     this.selectedForBatch = false,
-  });
+  }) : assert(
+         !selectionMode || selected == selectedForBatch,
+         'In selection mode the row highlight (selected) must match the '
+         'checkbox state (selectedForBatch) so the state is never ambiguous.',
+       );
 
   final DanceListEntry entry;
 

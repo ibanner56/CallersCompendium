@@ -329,12 +329,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
     if (!mounted) return;
     final count = priorTags.length;
-    final verb = mode == BatchTagMode.add ? 'Tagged' : 'Removed tags from';
-    final message = '$verb $count ${count == 1 ? 'dance' : 'dances'}';
+    final message = count == 0
+        ? 'No changes'
+        : '${mode == BatchTagMode.add ? 'Tagged' : 'Removed tags from'} '
+              '$count ${count == 1 ? 'dance' : 'dances'}';
     SemanticsService.sendAnnouncement(
       View.of(context),
       message,
-      TextDirection.ltr,
+      Directionality.of(context),
     );
 
     _exitSelectionMode();
@@ -345,9 +347,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
     messenger.clearSnackBars();
     if (count == 0) {
       messenger.showSnackBar(
-        const SnackBar(
-          key: ValueKey('batch-tag-snackbar'),
-          content: Text('No changes'),
+        SnackBar(
+          key: const ValueKey('batch-tag-snackbar'),
+          content: Text(message),
         ),
       );
       return;

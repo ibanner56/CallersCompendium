@@ -92,9 +92,19 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
       return;
     }
     setState(() => _creating = true);
+    final messenger = ScaffoldMessenger.of(context);
     final repos = RepositoriesScope.of(context);
     final tag = Tag(id: uuidV4(), name: name);
-    await repos.tags.upsert(tag);
+    try {
+      await repos.tags.upsert(tag);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _creating = false);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not create tag. Try again.')),
+      );
+      return;
+    }
     if (!mounted) return;
     setState(() {
       _tags = [..._tags, tag]

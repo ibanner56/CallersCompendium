@@ -101,7 +101,7 @@ Design items (each produces a design doc + review):
   Add lists all tags with inline tag creation (`Tag(id: uuidV4())` + `TagRepository.upsert`), Remove
   lists only tags present on the selected dances. Applying unions (Add) or subtracts (Remove) the
   chosen tags across every selected dance via per-dance `DanceRepository.update` (dedup, preserving
-  existing order), announces the result to AT (`SemanticsService.announce`), and offers a Snackbar
+  existing order), announces the result to AT (`SemanticsService.sendAnnouncement`), and offers a Snackbar
   **Undo** that restores each dance's captured prior tag set. Selection/checkbox state is conveyed by
   a checkmark + row highlight (never color alone) and is keyboard/AT reachable.
 
