@@ -421,8 +421,9 @@ void main() {
         renderer.displayMoveName('allemande', custom, params: {'hand': 'left'}),
         'left hand turn',
       );
-      // No side present -> %S collapses to empty (trim happens at render time).
-      expect(renderer.displayMoveName('allemande', custom), ' hand turn');
+      // No side present -> %S collapses to empty and the result is trimmed, so
+      // the editor's move field never shows a stray leading space.
+      expect(renderer.displayMoveName('allemande', custom), 'hand turn');
     });
 
     test('unknown move id falls back to the raw id', () {

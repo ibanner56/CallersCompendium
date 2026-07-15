@@ -96,11 +96,13 @@ class FigureRenderer {
     final displayName = alias?.displayName ?? def?.displayName ?? moveId;
     // Move substitutions are keyed by the canonical move id.
     final canonicalId = def?.id ?? moveId;
+    // Trimmed so a %S substitution with a missing side word never surfaces a
+    // stray leading/trailing space in the editor's move field.
     return _applyMoveSubstitution(
       dialect.moves[canonicalId],
       displayName,
       params,
-    );
+    ).trim();
   }
 
   /// Display string for a single vocabulary [token] under [dialect], for use in

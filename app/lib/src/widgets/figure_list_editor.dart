@@ -701,6 +701,7 @@ class _FigureDraftCard extends StatelessWidget {
                       key: ValueKey('figure-$index-move-$move-$moveText'),
                       fieldKey: 'figure-$index-move',
                       taxonomy: taxonomy,
+                      dialect: dialect,
                       initialText: moveText,
                       onSelected: (option) => _selectMove(option.id),
                       onCustomSubmitted: _createCustom,

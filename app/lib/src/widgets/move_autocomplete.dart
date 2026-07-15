@@ -22,6 +22,7 @@ class MoveAutocomplete extends StatelessWidget {
     required this.taxonomy,
     required this.initialText,
     required this.onSelected,
+    this.dialect,
     this.fieldKey,
     this.onCleared,
     this.onCustomSubmitted,
@@ -32,6 +33,12 @@ class MoveAutocomplete extends StatelessWidget {
   });
 
   final Taxonomy taxonomy;
+
+  /// Active dialect. When non-null (and non-canonical), option labels and the
+  /// resting field text render via the dialect's move substitutions and typing
+  /// matches those dialect terms too (e.g. a custom "buzz" for `swing` both
+  /// displays and is searchable). Null falls back to canonical taxonomy names.
+  final Dialect? dialect;
 
   /// Text shown initially in the field (e.g. the current move's display name).
   final String initialText;
@@ -57,20 +64,46 @@ class MoveAutocomplete extends StatelessWidget {
   List<MoveOption> _optionsFor(String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return const [];
-    bool matches(String id, String displayName, List<String> keywords) {
+    final dialect = this.dialect ?? Dialect.canonical;
+    final renderer = FigureRenderer(taxonomy);
+    // Match on canonical name, id, keywords, AND the dialect display term so a
+    // user can type a custom substitution (e.g. "buzz" for swing).
+    bool matches(
+      String id,
+      String displayName,
+      String dialectName,
+      List<String> keywords,
+    ) {
       return displayName.toLowerCase().contains(q) ||
+          dialectName.toLowerCase().contains(q) ||
           id.toLowerCase().contains(q) ||
           keywords.any((k) => k.toLowerCase().contains(q));
     }
 
     final options = <MoveOption>[
       for (final m in taxonomy.moves.values)
-        if (matches(m.id, m.displayName, m.searchKeywords))
-          MoveOption(id: m.id, displayName: m.displayName),
+        if (matches(
+          m.id,
+          m.displayName,
+          renderer.displayMoveName(m.id, dialect),
+          m.searchKeywords,
+        ))
+          MoveOption(
+            id: m.id,
+            displayName: renderer.displayMoveName(m.id, dialect),
+          ),
       if (includeAliases)
         for (final a in taxonomy.aliases.values)
-          if (matches(a.id, a.displayName, a.searchKeywords))
-            MoveOption(id: a.id, displayName: a.displayName),
+          if (matches(
+            a.id,
+            a.displayName,
+            renderer.displayMoveName(a.id, dialect),
+            a.searchKeywords,
+          ))
+            MoveOption(
+              id: a.id,
+              displayName: renderer.displayMoveName(a.id, dialect),
+            ),
     ];
     return options.take(8).toList();
   }
