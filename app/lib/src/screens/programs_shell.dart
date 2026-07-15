@@ -391,10 +391,10 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
     );
 
     // Secondary metadata line (guest caller / planned minutes), shared by all
-    // slot types when present.
+    // slot types when present. Trimmed for display, matching the builder UI.
     final extras = <String>[
       if (slot.guestCaller != null && slot.guestCaller!.trim().isNotEmpty)
-        'Guest: ${slot.guestCaller}',
+        'Guest: ${slot.guestCaller!.trim()}',
       if (slot.plannedMinutes != null) '${slot.plannedMinutes} min',
     ];
 
@@ -461,6 +461,10 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
       final secondaryParts = <String>[
         if (dance != null) formationLabel(dance.formation),
         if (dance?.level != null) danceLevelLabel(dance!.level!),
+        // A dance slot may also carry a per-slot caller note (per ProgramSlot
+        // docs); surface it like the builder UI does.
+        if (slot.text != null && slot.text!.trim().isNotEmpty)
+          'Note: ${slot.text!.trim()}',
         ...extras,
       ];
       final secondary = secondaryParts.join(' · ');
@@ -522,7 +526,7 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
     }
 
     // Free-text slot (break / waltz / announcement): non-interactive text.
-    final text = slot.text ?? '';
+    final text = (slot.text ?? '').trim();
     return Padding(
       padding: EdgeInsets.only(left: indented ? 32 : 0, top: 6, bottom: 6),
       child: Row(
