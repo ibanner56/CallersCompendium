@@ -304,6 +304,115 @@ void main() {
     });
   });
 
+  group('buildCollectionFilter — By phrase', () {
+    test('empty selections add no branch', () {
+      final f = buildCollectionFilter(
+        ftsText: '',
+        facets: FacetSelections(),
+        defs: defs,
+        byPhrase: ByPhraseSelections(),
+      );
+      expect(f, isA<AndFilter>());
+      expect((f as AndFilter).children, isEmpty);
+    });
+
+    test('a single "match" move yields a sectioned FigureFilter leaf', () {
+      final bp = ByPhraseSelections();
+      bp.match['A1'] = ['petronella'];
+      final f = buildCollectionFilter(
+        ftsText: '',
+        facets: FacetSelections(),
+        defs: defs,
+        byPhrase: bp,
+      );
+      expect(f, isA<FigureFilter>());
+      final leaf = (f as FigureFilter).query as FigureLeaf;
+      expect(leaf.move, 'petronella');
+      expect(leaf.section, 'A1');
+    });
+
+    test('a single "do not match" move yields NotFilter(FigureFilter)', () {
+      final bp = ByPhraseSelections();
+      bp.exclude['B1'] = ['balance'];
+      final f = buildCollectionFilter(
+        ftsText: '',
+        facets: FacetSelections(),
+        defs: defs,
+        byPhrase: bp,
+      );
+      expect(f, isA<NotFilter>());
+      final inner = (f as NotFilter).child as FigureFilter;
+      final leaf = inner.query as FigureLeaf;
+      expect(leaf.move, 'balance');
+      expect(leaf.section, 'B1');
+    });
+
+    test('multiple "match" moves in one phrase AND (each a positive leaf)', () {
+      final bp = ByPhraseSelections();
+      bp.match['A1'] = ['petronella', 'balance'];
+      final f = buildCollectionFilter(
+        ftsText: '',
+        facets: FacetSelections(),
+        defs: defs,
+        byPhrase: bp,
+      );
+      expect(f, isA<AndFilter>());
+      final figs = (f as AndFilter).children.whereType<FigureFilter>().toList();
+      expect(figs, hasLength(2));
+      expect(
+        figs.every((x) => (x.query as FigureLeaf).section == 'A1'),
+        isTrue,
+      );
+    });
+
+    test('match + exclude across phrases all AND together', () {
+      final bp = ByPhraseSelections();
+      bp.match['A1'] = ['petronella'];
+      bp.exclude['B1'] = ['balance'];
+      final f = buildCollectionFilter(
+        ftsText: '',
+        facets: FacetSelections(),
+        defs: defs,
+        byPhrase: bp,
+      );
+      expect(f, isA<AndFilter>());
+      final children = (f as AndFilter).children;
+      expect(children.whereType<FigureFilter>(), hasLength(1));
+      expect(children.whereType<NotFilter>(), hasLength(1));
+    });
+
+    test('by-phrase composes with a facet and full text', () {
+      final facets = FacetSelections()..forms.add(DanceForm.contra);
+      final bp = ByPhraseSelections();
+      bp.match['A1'] = ['petronella'];
+      final f = buildCollectionFilter(
+        ftsText: 'reel',
+        facets: facets,
+        defs: defs,
+        byPhrase: bp,
+      );
+      expect(f, isA<AndFilter>());
+      final children = (f as AndFilter).children;
+      expect(children.whereType<FullTextFilter>(), hasLength(1));
+      expect(children.whereType<FormFilter>(), hasLength(1));
+      expect(children.whereType<FigureFilter>(), hasLength(1));
+    });
+
+    test('blank move ids are skipped', () {
+      final bp = ByPhraseSelections();
+      bp.match['A1'] = ['   '];
+      bp.exclude['B1'] = [''];
+      final f = buildCollectionFilter(
+        ftsText: '',
+        facets: FacetSelections(),
+        defs: defs,
+        byPhrase: bp,
+      );
+      expect(f, isA<AndFilter>());
+      expect((f as AndFilter).children, isEmpty);
+    });
+  });
+
   group('isBareFullText', () {
     test('true for text with no facets/advanced', () {
       expect(
@@ -331,6 +440,19 @@ void main() {
           ftsText: 'swing',
           facets: FacetSelections(),
           advancedRoot: root,
+        ),
+        isFalse,
+      );
+    });
+
+    test('false when a by-phrase constraint is present', () {
+      final bp = ByPhraseSelections();
+      bp.match['A1'] = ['petronella'];
+      expect(
+        isBareFullText(
+          ftsText: 'swing',
+          facets: FacetSelections(),
+          byPhrase: bp,
         ),
         isFalse,
       );

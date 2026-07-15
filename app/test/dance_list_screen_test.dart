@@ -96,6 +96,25 @@ List<String> _titles(WidgetTester tester) => tester
     .map((t) => t.entry.title)
     .toList();
 
+/// Types [text] into the keyed By-Phrase move input and picks the [option]
+/// from the type-ahead overlay.
+Future<void> _addPhraseMove(
+  WidgetTester tester,
+  String inputKey,
+  String text,
+  String option,
+) async {
+  final field = find.descendant(
+    of: find.byKey(ValueKey(inputKey)),
+    matching: find.byType(TextField),
+  );
+  await tester.ensureVisible(field);
+  await tester.enterText(field, text);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(option).last);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -460,6 +479,182 @@ void main() {
     expect(find.text('then'), findsOneWidget);
     expect(find.text('First'), findsOneWidget);
     expect(find.text('Later'), findsOneWidget);
+  });
+
+  testWidgets('by phrase: match figure in A1 returns only dances with that '
+      'figure in A1', (tester) async {
+    final repos = openTestRepositories();
+    // petronella in A1 (first 16-beat figure).
+    await repos.dances.create(
+      _dance(
+        id: 'a',
+        title: 'A1 Petronella',
+        figures: [
+          Figure(move: 'petronella', params: const {'beats': 16}), // A1
+          Figure(move: 'swing', params: const {'beats': 16}), // A2
+          Figure(move: 'balance', params: const {'beats': 16}), // B1
+          Figure(move: 'long_lines', params: const {'beats': 16}), // B2
+        ],
+      ),
+    );
+    // petronella in B1, not A1.
+    await repos.dances.create(
+      _dance(
+        id: 'b',
+        title: 'B1 Petronella',
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 16}), // A1
+          Figure(move: 'swing', params: const {'beats': 16}), // A2
+          Figure(move: 'petronella', params: const {'beats': 16}), // B1
+          Figure(move: 'long_lines', params: const {'beats': 16}), // B2
+        ],
+      ),
+    );
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('by-phrase-panel')));
+    await _addPhraseMove(tester, 'match-A1-input-0', 'petro', 'petronella');
+
+    expect(_titles(tester), ['A1 Petronella']);
+  });
+
+  testWidgets('by phrase: do not match figure in B1 excludes dances with that '
+      'figure in B1', (tester) async {
+    final repos = openTestRepositories();
+    // balance in B1 → should be excluded.
+    await repos.dances.create(
+      _dance(
+        id: 'a',
+        title: 'B1 Balance',
+        figures: [
+          Figure(move: 'petronella', params: const {'beats': 16}), // A1
+          Figure(move: 'swing', params: const {'beats': 16}), // A2
+          Figure(move: 'balance', params: const {'beats': 16}), // B1
+          Figure(move: 'long_lines', params: const {'beats': 16}), // B2
+        ],
+      ),
+    );
+    // balance in A1 (not B1) → survives the B1 exclusion.
+    await repos.dances.create(
+      _dance(
+        id: 'b',
+        title: 'A1 Balance',
+        figures: [
+          Figure(move: 'balance', params: const {'beats': 16}), // A1
+          Figure(move: 'swing', params: const {'beats': 16}), // A2
+          Figure(move: 'petronella', params: const {'beats': 16}), // B1
+          Figure(move: 'long_lines', params: const {'beats': 16}), // B2
+        ],
+      ),
+    );
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('by-phrase-panel')));
+    await _addPhraseMove(tester, 'exclude-B1-input-0', 'balance', 'balance');
+
+    expect(_titles(tester), ['A1 Balance']);
+  });
+
+  testWidgets('by phrase: composes with a full-text query', (tester) async {
+    final repos = openTestRepositories();
+    for (final (id, title) in [('a', 'Reel Alpha'), ('b', 'Jig Beta')]) {
+      await repos.dances.create(
+        _dance(
+          id: id,
+          title: title,
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 16}), // A1
+            Figure(move: 'swing', params: const {'beats': 16}), // A2
+            Figure(move: 'balance', params: const {'beats': 16}), // B1
+            Figure(move: 'long_lines', params: const {'beats': 16}), // B2
+          ],
+        ),
+      );
+    }
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await _search(tester, 'Reel');
+    await _tapVisible(tester, find.byKey(const ValueKey('by-phrase-panel')));
+    await _addPhraseMove(tester, 'match-A1-input-0', 'petro', 'petronella');
+
+    // Both have petronella in A1, but only "Reel Alpha" matches the text.
+    expect(_titles(tester), ['Reel Alpha']);
+  });
+
+  testWidgets('by phrase: clear resets the by-phrase constraint', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'a',
+        title: 'A1 Petronella',
+        figures: [
+          Figure(move: 'petronella', params: const {'beats': 16}), // A1
+          Figure(move: 'swing', params: const {'beats': 16}), // A2
+        ],
+      ),
+    );
+    await repos.dances.create(_dance(id: 'b', title: 'No Figures'));
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('by-phrase-panel')));
+    await _addPhraseMove(tester, 'match-A1-input-0', 'petro', 'petronella');
+    expect(_titles(tester), ['A1 Petronella']);
+
+    await _tapVisible(tester, find.byTooltip('Clear search and filters'));
+
+    expect(_titles(tester)..sort(), ['A1 Petronella', 'No Figures']);
+    // The chip is gone after clearing.
+    expect(
+      find.byKey(const ValueKey('match-A1-chip-petronella')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('by phrase: inputs are labeled and reachable for AT', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'a', title: 'A'));
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byKey(const ValueKey('by-phrase-panel')));
+
+    final matchField = find.descendant(
+      of: find.byKey(const ValueKey('match-A1-input-0')),
+      matching: find.byType(TextField),
+    );
+    final excludeField = find.descendant(
+      of: find.byKey(const ValueKey('exclude-A1-input-0')),
+      matching: find.byType(TextField),
+    );
+    await tester.ensureVisible(matchField);
+
+    expect(
+      tester.getSemantics(matchField),
+      isSemantics(
+        label: 'first phrase (usually A1), figures match',
+        isTextField: true,
+      ),
+    );
+    expect(
+      tester.getSemantics(excludeField),
+      isSemantics(
+        label: 'first phrase (usually A1), but do not match',
+        isTextField: true,
+      ),
+    );
   });
 
   testWidgets('shows a no-match message when nothing matches', (tester) async {

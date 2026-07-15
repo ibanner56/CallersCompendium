@@ -456,6 +456,112 @@ void main() {
     );
   });
 
+  group('by-phrase composition (sectioned match / dance-level negation)', () {
+    // These mirror exactly what the app's By-Phrase panel compiles to:
+    //   match      -> FigureFilter(FigureLeaf(move, section))
+    //   do-not-match -> NotFilter(FigureFilter(FigureLeaf(move, section)))
+    // all AND-ed together at the dance level. Under the standard 4x16 structure
+    // _dance() lays petronella@A1, swing@A2, balance@B1, long_lines@B2.
+
+    test('sectioned positive match includes only dances with move in that '
+        'phrase', () async {
+      await dances.create(_dance(id: 'a', title: 'A')); // balance in B1
+      await dances.create(
+        _dance(
+          id: 'b',
+          title: 'B',
+          figures: [
+            Figure(move: 'balance', params: const {'beats': 16}), // A1
+            Figure(
+              move: 'swing',
+              params: const {'who': 'partners', 'beats': 16},
+            ),
+            Figure(move: 'petronella', params: const {'beats': 16}), // B1
+            Figure(move: 'long_lines', params: const {'beats': 16}), // B2
+          ],
+        ),
+      );
+      // balance in B1: only 'a' qualifies.
+      expect(
+        await dances.search(FigureFilter(FigureLeaf('balance', section: 'B1'))),
+        ['a'],
+      );
+      // balance in A1: only 'b' qualifies.
+      expect(
+        await dances.search(FigureFilter(FigureLeaf('balance', section: 'A1'))),
+        ['b'],
+      );
+    });
+
+    test('dance-level NotFilter over a sectioned leaf excludes dances with '
+        'that move in that phrase', () async {
+      await dances.create(_dance(id: 'a', title: 'A')); // balance in B1
+      await dances.create(
+        _dance(
+          id: 'b',
+          title: 'B',
+          figures: [
+            Figure(move: 'balance', params: const {'beats': 16}), // A1
+            Figure(
+              move: 'swing',
+              params: const {'who': 'partners', 'beats': 16},
+            ),
+            Figure(move: 'petronella', params: const {'beats': 16}), // B1
+            Figure(move: 'long_lines', params: const {'beats': 16}), // B2
+          ],
+        ),
+      );
+      // "do not match balance in B1": 'a' has balance in B1 and is excluded,
+      // 'b' has balance in A1 (not B1) so it survives.
+      expect(
+        await dances.search(
+          NotFilter(FigureFilter(FigureLeaf('balance', section: 'B1'))),
+        ),
+        ['b'],
+      );
+      // "do not match balance in A1": excludes 'b', keeps 'a'.
+      expect(
+        await dances.search(
+          NotFilter(FigureFilter(FigureLeaf('balance', section: 'A1'))),
+        ),
+        ['a'],
+      );
+    });
+
+    test('combined match + negation across phrases ANDs correctly', () async {
+      await dances.create(_dance(id: 'a', title: 'A'));
+      await dances.create(
+        _dance(
+          id: 'b',
+          title: 'B',
+          figures: [
+            Figure(move: 'petronella', params: const {'beats': 16}), // A1
+            Figure(
+              move: 'swing',
+              params: const {'who': 'partners', 'beats': 16},
+            ),
+            Figure(
+              move: 'swing',
+              params: const {'who': 'partners', 'beats': 16},
+            ), // B1
+            Figure(move: 'long_lines', params: const {'beats': 16}), // B2
+          ],
+        ),
+      );
+      // "petronella in A1 AND NOT balance in B1": 'a' has balance in B1 (out),
+      // 'b' has petronella in A1 and no balance in B1 (in).
+      expect(
+        await dances.search(
+          AndFilter([
+            FigureFilter(FigureLeaf('petronella', section: 'A1')),
+            NotFilter(FigureFilter(FigureLeaf('balance', section: 'B1'))),
+          ]),
+        ),
+        ['b'],
+      );
+    });
+  });
+
   group('sequence: Then', () {
     test('positive: before occurs earlier than after', () async {
       await dances.create(_dance(id: 'a', title: 'A'));
