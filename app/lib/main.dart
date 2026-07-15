@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
+import 'src/data/custom_themes_controller.dart';
+import 'src/data/custom_themes_scope.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/settings_screen.dart' show kActiveDialectKey, kAppThemeKey;
@@ -43,11 +45,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<AppThemeSelection> _themeNotifier = ValueNotifier(
     AppThemeSelection.system,
   );
+  late final CustomThemesController _customThemes;
 
   @override
   void initState() {
     super.initState();
     _appData = AppData(openAppDatabase());
+    _customThemes = CustomThemesController(_appData.repositories.settings);
     _bootstrap = _startupSequence();
   }
 
@@ -68,12 +72,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
         await _appData.repositories.settings.get(kAppThemeKey) as String?;
     final selection = AppThemeSelection.forName(themeName);
     if (selection != null) _themeNotifier.value = selection;
+    // Load any locally-saved custom themes and the active one (if set).
+    await _customThemes.load();
   }
 
   @override
   void dispose() {
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
+    _customThemes.dispose();
     // dispose() can't be async; explicitly mark the close as fire-and-forget
     // rather than silently dropping an unawaited Future (unawaited_futures).
     unawaited(_appData.close());
@@ -86,29 +93,42 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   @override
   Widget build(BuildContext context) {
-    // The theme selection is a MaterialApp property (not just inherited state),
-    // so the MaterialApp itself must rebuild when it changes.
-    return ValueListenableBuilder<AppThemeSelection>(
-      valueListenable: _themeNotifier,
-      builder: (context, selection, _) {
-        // Three wiring cases (`ux-modernization.md` §4 / §4A):
-        //  • system      — follow the OS via themeMode, Hearth light/dark.
-        //  • highContrast — force the outline-driven HC theme into both slots.
-        //  • pinned       — any other selection (Hearth light/dark or a gallery
-        //                   palette) pins one concrete scheme into both slots;
-        //                   themeMode follows that scheme's brightness.
+    // The theme depends on two sources — the built-in selection and the active
+    // custom theme — and both are MaterialApp properties, so the MaterialApp
+    // must rebuild when either changes.
+    return ListenableBuilder(
+      listenable: Listenable.merge([_themeNotifier, _customThemes]),
+      builder: (context, _) {
+        final selection = _themeNotifier.value;
+        final activeCustom = _customThemes.active;
+        // Wiring cases (`ux-modernization.md` §4 / §4A / §4B):
+        //  • custom active — a locally-saved custom theme wins over the
+        //                    built-in selection; pin its scheme into both slots.
+        //  • system        — follow the OS via themeMode, Hearth light/dark.
+        //  • highContrast  — force the outline-driven HC theme into both slots.
+        //  • pinned        — any other built-in selection pins one concrete
+        //                    scheme into both slots.
         final ThemeData lightTheme;
         final ThemeData darkTheme;
-        if (selection == AppThemeSelection.system) {
-          lightTheme = AppTheme.light;
-          darkTheme = AppTheme.dark;
-        } else if (selection.isHighContrast) {
-          lightTheme = AppTheme.highContrast;
-          darkTheme = AppTheme.highContrast;
-        } else {
-          final pinned = AppTheme.fromScheme(selection.scheme!);
+        final ThemeMode themeMode;
+        if (activeCustom != null) {
+          final pinned = AppTheme.fromScheme(activeCustom.toScheme());
           lightTheme = pinned;
           darkTheme = pinned;
+          themeMode = activeCustom.themeMode;
+        } else {
+          themeMode = selection.themeMode;
+          if (selection == AppThemeSelection.system) {
+            lightTheme = AppTheme.light;
+            darkTheme = AppTheme.dark;
+          } else if (selection.isHighContrast) {
+            lightTheme = AppTheme.highContrast;
+            darkTheme = AppTheme.highContrast;
+          } else {
+            final pinned = AppTheme.fromScheme(selection.scheme!);
+            lightTheme = pinned;
+            darkTheme = pinned;
+          }
         }
 
         return MaterialApp(
@@ -117,14 +137,17 @@ class _CompendiumAppState extends State<CompendiumApp> {
           darkTheme: darkTheme,
           highContrastTheme: AppTheme.highContrast,
           highContrastDarkTheme: AppTheme.highContrast,
-          themeMode: selection.themeMode,
+          themeMode: themeMode,
           builder: (context, child) => RepositoriesScope(
             repositories: _appData.repositories,
             child: AppThemeScope(
               notifier: _themeNotifier,
-              child: ActiveDialectScope(
-                notifier: _dialectNotifier,
-                child: child!,
+              child: CustomThemesScope(
+                controller: _customThemes,
+                child: ActiveDialectScope(
+                  notifier: _dialectNotifier,
+                  child: child!,
+                ),
               ),
             ),
           ),
