@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Palette "Hearth" — terracotta / pine / ochre. Full [ColorScheme]s (not a
-/// single seed) so the high-contrast theme can reliably hit the 7:1 Perform
+/// Palette "Blue Hour" — cool daylight/petrol canvas with warm lantern-amber
+/// accents (evolved from the original warm "Hearth"). Full [ColorScheme]s (not
+/// a single seed) so the high-contrast theme can reliably hit the 7:1 Perform
 /// target defined in `docs/research/accessibility-baseline.md`. Hex values and
 /// their WCAG contrast ratios are documented in
 /// `docs/design/ux-modernization.md` §1a/§1b.
@@ -10,71 +11,73 @@ import 'package:flutter/material.dart';
 class AppColorSchemes {
   const AppColorSchemes._();
 
-  /// Light "Hearth" scheme (§1a).
+  /// Light "Blue Hour" scheme (§1a). Cool daylight canvas paired with the same
+  /// warm lantern-amber accent family as the dark scheme, so toggling light↔dark
+  /// keeps one identity. Every meaningful pair clears WCAG AA.
   static const ColorScheme light = ColorScheme(
     brightness: Brightness.light,
-    primary: Color(0xFF9C4A2F),
+    primary: Color(0xFF9A5312),
     onPrimary: Color(0xFFFFFFFF),
-    primaryContainer: Color(0xFFFFDBCF),
-    onPrimaryContainer: Color(0xFF3A0B00),
-    secondary: Color(0xFF4E6B4F),
+    primaryContainer: Color(0xFFFFDCC2),
+    onPrimaryContainer: Color(0xFF331200),
+    secondary: Color(0xFF8C4A43),
     onSecondary: Color(0xFFFFFFFF),
-    secondaryContainer: Color(0xFFD0E8CF),
-    onSecondaryContainer: Color(0xFF0B2010),
-    tertiary: Color(0xFF7A5900),
+    secondaryContainer: Color(0xFFFFDAD3),
+    onSecondaryContainer: Color(0xFF3A0906),
+    tertiary: Color(0xFF6E5A16),
     onTertiary: Color(0xFFFFFFFF),
-    tertiaryContainer: Color(0xFFFFDF9E),
-    onTertiaryContainer: Color(0xFF261A00),
+    tertiaryContainer: Color(0xFFF5E7A8),
+    onTertiaryContainer: Color(0xFF221B00),
     error: Color(0xFFBA1A1A),
     onError: Color(0xFFFFFFFF),
     errorContainer: Color(0xFFFFDAD6),
     onErrorContainer: Color(0xFF410002),
-    surface: Color(0xFFFBF7F2),
-    onSurface: Color(0xFF201A17),
-    onSurfaceVariant: Color(0xFF52443C),
-    surfaceContainerHighest: Color(0xFFF0E4DC),
-    outline: Color(0xFF857066),
-    outlineVariant: Color(0xFFD8C2B7),
+    surface: Color(0xFFF4F6FA),
+    onSurface: Color(0xFF1A222C),
+    onSurfaceVariant: Color(0xFF48515C),
+    surfaceContainerHighest: Color(0xFFE3E8EF),
+    outline: Color(0xFF727C87),
+    outlineVariant: Color(0xFFC7CDD6),
     shadow: Color(0xFF000000),
     scrim: Color(0xFF000000),
-    inverseSurface: Color(0xFF362F2B),
-    onInverseSurface: Color(0xFFFBEDE6),
-    inversePrimary: Color(0xFFFFB59B),
+    inverseSurface: Color(0xFF2F3742),
+    onInverseSurface: Color(0xFFF0F2F6),
+    inversePrimary: Color(0xFFFFB784),
   );
 
-  /// Dark "Hearth" scheme (§1a). Muted-pastel register: the accents are
-  /// desaturated and the canvas lifted into a dustier warm charcoal so the
-  /// palette reads softer than a deeply-saturated night theme, while every
-  /// meaningful pair still clears WCAG AA.
+  /// Dark "Blue Hour" scheme (§1a). Deep petrol-indigo canvas with warm
+  /// lantern-amber accents: cool surface makes the warm primary/secondary
+  /// glow in a dark hall, while every meaningful pair clears WCAG AA (most
+  /// clear the 7:1 Perform target too).
   static const ColorScheme dark = ColorScheme(
     brightness: Brightness.dark,
-    primary: Color(0xFFEABFB0),
-    onPrimary: Color(0xFF5A1B08),
-    primaryContainer: Color(0xFF723E2C),
-    onPrimaryContainer: Color(0xFFFFDBCF),
-    secondary: Color(0xFFB5CBB2),
-    onSecondary: Color(0xFF203622),
-    secondaryContainer: Color(0xFF374D38),
-    onSecondaryContainer: Color(0xFFD0E8CF),
-    tertiary: Color(0xFFD0BA80),
-    onTertiary: Color(0xFF3F2E00),
-    tertiaryContainer: Color(0xFF524318),
-    onTertiaryContainer: Color(0xFFFFDF9E),
-    error: Color(0xFFEEC1BC),
+    primary: Color(0xFFFFB784),
+    onPrimary: Color(0xFF4A2400),
+    primaryContainer: Color(0xFF6B3D12),
+    onPrimaryContainer: Color(0xFFFFDCC2),
+    secondary: Color(0xFFE4A9A0),
+    onSecondary: Color(0xFF45201C),
+    secondaryContainer: Color(0xFF5E332E),
+    onSecondaryContainer: Color(0xFFFFDAD3),
+    tertiary: Color(0xFFD8C98A),
+    onTertiary: Color(0xFF382F09),
+    tertiaryContainer: Color(0xFF4F461F),
+    onTertiaryContainer: Color(0xFFF5E7A8),
+    error: Color(0xFFFFB4AB),
     onError: Color(0xFF690005),
     errorContainer: Color(0xFF93000A),
     onErrorContainer: Color(0xFFFFDAD6),
-    surface: Color(0xFF261F1B),
-    onSurface: Color(0xFFEAE1DC),
-    onSurfaceVariant: Color(0xFFD3C4BC),
-    surfaceContainerHighest: Color(0xFF413833),
-    outline: Color(0xFF9E8D84),
-    outlineVariant: Color(0xFF584C45),
+    surface: Color(0xFF121A24),
+    onSurface: Color(0xFFE7ECF1),
+    onSurfaceVariant: Color(0xFFB4C1CE),
+    surfaceContainerHighest: Color(0xFF253241),
+    outline: Color(0xFF7B8896),
+    outlineVariant: Color(0xFF384654),
     shadow: Color(0xFF000000),
     scrim: Color(0xFF000000),
-    inverseSurface: Color(0xFFEAE1DC),
-    onInverseSurface: Color(0xFF362F2B),
-    inversePrimary: Color(0xFF9C4A2F),
+    inverseSurface: Color(0xFFE7ECF1),
+    onInverseSurface: Color(0xFF1B242E),
+    inversePrimary: Color(0xFF8A5000),
   );
 
   /// Shared dark-based high-contrast scheme (§1b), co-owned with Phase 5

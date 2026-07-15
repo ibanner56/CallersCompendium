@@ -20,10 +20,7 @@ double _contrast(Color a, Color b) {
 
 /// The gallery palettes under test, keyed by their selection name.
 final Map<String, ColorScheme> _galleryPalettes = {
-  'solarizedLight': GalleryPalettes.solarizedLight,
-  'atomOneLight': GalleryPalettes.atomOneLight,
-  'noctisLux': GalleryPalettes.noctisLux,
-  'solarizedDark': GalleryPalettes.solarizedDark,
+  'blulocoLight': GalleryPalettes.blulocoLight,
   'oneDarkPro': GalleryPalettes.oneDarkPro,
   'monokai': GalleryPalettes.monokai,
   'noctis': GalleryPalettes.noctis,
@@ -52,15 +49,7 @@ final Map<String, ColorScheme> _galleryPalettes = {
   'shadesOfPurple': GalleryPalettes.shadesOfPurple,
   'palenight': GalleryPalettes.palenight,
   'synthwave84': GalleryPalettes.synthwave84,
-  'noctisAzureus': GalleryPalettes.noctisAzureus,
-  'noctisBordo': GalleryPalettes.noctisBordo,
-  'noctisHibernus': GalleryPalettes.noctisHibernus,
   'noctisLilac': GalleryPalettes.noctisLilac,
-  'noctisMinimus': GalleryPalettes.noctisMinimus,
-  'noctisObscuro': GalleryPalettes.noctisObscuro,
-  'noctisSereno': GalleryPalettes.noctisSereno,
-  'noctisUva': GalleryPalettes.noctisUva,
-  'noctisViola': GalleryPalettes.noctisViola,
 };
 
 void main() {

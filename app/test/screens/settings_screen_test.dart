@@ -303,7 +303,7 @@ void main() {
       expect(AppThemeSelection.highContrast.isHighContrast, isTrue);
       expect(AppThemeSelection.light.isHighContrast, isFalse);
       // Gallery palettes follow their pinned scheme's brightness.
-      expect(AppThemeSelection.solarizedLight.themeMode, ThemeMode.light);
+      expect(AppThemeSelection.blulocoLight.themeMode, ThemeMode.light);
       expect(AppThemeSelection.monokai.themeMode, ThemeMode.dark);
     });
 
@@ -333,10 +333,10 @@ void main() {
       expect(AppThemeSelection.system.group, AppThemeGroup.system);
       expect(AppThemeSelection.light.group, AppThemeGroup.defaultHearth);
       expect(AppThemeSelection.highContrast.group, AppThemeGroup.defaultHearth);
-      expect(AppThemeSelection.solarizedLight.group, AppThemeGroup.light);
-      expect(AppThemeSelection.solarizedDark.group, AppThemeGroup.dark);
+      expect(AppThemeSelection.blulocoLight.group, AppThemeGroup.light);
+      expect(AppThemeSelection.noctis.group, AppThemeGroup.dark);
       expect(AppThemeSelection.monokai.brightness, Brightness.dark);
-      expect(AppThemeSelection.noctisLux.brightness, Brightness.light);
+      expect(AppThemeSelection.noctisLilac.brightness, Brightness.light);
     });
 
     testWidgets('selecting a gallery palette persists and updates live', (

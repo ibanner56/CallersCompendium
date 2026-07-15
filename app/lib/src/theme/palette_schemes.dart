@@ -41,40 +41,20 @@ class GalleryPalettes {
     error: const Color(0xFFB3261E),
   );
 
-  /// Solarized Light (Ethan Schoonover, MIT). Exact base/accent hues.
-  static final ColorScheme solarizedLight = _build(
+  /// Bluloco Light (uloco.bluloco-light) — crisp cool-neutral canvas with vivid
+  /// jewel-tone accents; the high-saturation counterpoint to the pastel-heavy
+  /// light set.
+  static final ColorScheme blulocoLight = _build(
     brightness: Brightness.light,
-    surface: const Color(0xFFFDF6E3),
-    onSurface: const Color(0xFF657B83),
-    primary: const Color(0xFF268BD2),
-    secondary: const Color(0xFF859900),
-    tertiary: const Color(0xFFB58900),
-    error: const Color(0xFFDC322F),
-  );
-
-  /// Atom One Light — inspired, contrast-tuned.
-  static final ColorScheme atomOneLight = _build(
-    brightness: Brightness.light,
-    surface: const Color(0xFFFAFAFA),
+    surface: const Color(0xFFF9F9F9),
     onSurface: const Color(0xFF383A42),
-    primary: const Color(0xFF4078F2),
-    secondary: const Color(0xFF50A14F),
-    tertiary: const Color(0xFFA626A4),
-    error: const Color(0xFFE45649),
+    primary: const Color(0xFF275FE4),
+    secondary: const Color(0xFF23974A),
+    tertiary: const Color(0xFF823FF1),
+    error: const Color(0xFFD52753),
   );
 
   // ---- Dark palettes ------------------------------------------------------
-
-  /// Solarized Dark (Ethan Schoonover, MIT). Exact base/accent hues.
-  static final ColorScheme solarizedDark = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF002B36),
-    onSurface: const Color(0xFF839496),
-    primary: const Color(0xFF268BD2),
-    secondary: const Color(0xFF859900),
-    tertiary: const Color(0xFFB58900),
-    error: const Color(0xFFDC322F),
-  );
 
   /// One Dark Pro — inspired, contrast-tuned.
   static final ColorScheme oneDarkPro = _build(
@@ -373,13 +353,12 @@ class GalleryPalettes {
     error: const Color(0xFFC84053),
   );
 
-  // ---- Noctis family (liviuschera/noctis) ---------------------------------
+  // ---- Noctis (liviuschera/noctis) ----------------------------------------
   //
-  // The full Noctis palette set. Every variant shares Noctis's signature
-  // syntax accents — mint-green strings, warm-pink keywords, gold functions —
-  // over its own canvas, so they read as one coherent family regardless of
-  // light/dark brightness. Accents (green/pink/gold/red) are constant per
-  // brightness; only the surface + foreground change between variants.
+  // Two representatives of the Noctis family — its signature accents (mint-green
+  // strings, warm-pink keywords, gold functions) over a deep-teal night and a
+  // pale-lilac day. Grouped with Dark / Light in the gallery, not a section of
+  // their own.
 
   /// Noctis — the original deep teal night.
   static final ColorScheme noctis = _build(
@@ -390,105 +369,6 @@ class GalleryPalettes {
     secondary: const Color(0xFFDF769B),
     tertiary: const Color(0xFFD5971A),
     error: const Color(0xFFE34E1C),
-  );
-
-  /// Noctis Azureus — deep azure-blue night.
-  static final ColorScheme noctisAzureus = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF07273B),
-    onSurface: const Color(0xFFBECFDA),
-    primary: const Color(0xFF49E9A6),
-    secondary: const Color(0xFFDF769B),
-    tertiary: const Color(0xFFD5971A),
-    error: const Color(0xFFE34E1C),
-  );
-
-  /// Noctis Bordo — warm burgundy-brown night.
-  static final ColorScheme noctisBordo = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF322A2D),
-    onSurface: const Color(0xFFCBBEC2),
-    primary: const Color(0xFF49E9A6),
-    secondary: const Color(0xFFDF769B),
-    tertiary: const Color(0xFFD5971A),
-    error: const Color(0xFFE34E1C),
-  );
-
-  /// Noctis Minimus — muted blue-grey night.
-  static final ColorScheme noctisMinimus = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF1B2932),
-    onSurface: const Color(0xFFC5CDD3),
-    primary: const Color(0xFF72C09F),
-    secondary: const Color(0xFFC88DA2),
-    tertiary: const Color(0xFFA88C00),
-    error: const Color(0xFFB96346),
-  );
-
-  /// Noctis Obscuro — the darkest teal night.
-  static final ColorScheme noctisObscuro = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF031417),
-    onSurface: const Color(0xFFB2CACD),
-    primary: const Color(0xFF49E9A6),
-    secondary: const Color(0xFFDF769B),
-    tertiary: const Color(0xFFD5971A),
-    error: const Color(0xFFE34E1C),
-  );
-
-  /// Noctis Sereno — calm mid-teal night.
-  static final ColorScheme noctisSereno = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF062E32),
-    onSurface: const Color(0xFFB2CACD),
-    primary: const Color(0xFF49E9A6),
-    secondary: const Color(0xFFDF769B),
-    tertiary: const Color(0xFFD5971A),
-    error: const Color(0xFFE34E1C),
-  );
-
-  /// Noctis Uva — deep indigo-violet night.
-  static final ColorScheme noctisUva = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF292640),
-    onSurface: const Color(0xFFC5C2D6),
-    primary: const Color(0xFF49E9A6),
-    secondary: const Color(0xFFDF769B),
-    tertiary: const Color(0xFFD5971A),
-    error: const Color(0xFFE34E1C),
-  );
-
-  /// Noctis Viola — rich purple night.
-  static final ColorScheme noctisViola = _build(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF30243D),
-    onSurface: const Color(0xFFCCBFD9),
-    primary: const Color(0xFF49E9A6),
-    secondary: const Color(0xFFDF769B),
-    tertiary: const Color(0xFFD5971A),
-    error: const Color(0xFFE34E1C),
-  );
-
-  /// Noctis Hibernus — cool, crisp daylight.
-  static final ColorScheme noctisHibernus = _build(
-    brightness: Brightness.light,
-    surface: const Color(0xFFF4F6F6),
-    onSurface: const Color(0xFF005661),
-    primary: const Color(0xFF00B368),
-    secondary: const Color(0xFFFF5792),
-    tertiary: const Color(0xFFA88C00),
-    error: const Color(0xFFFF4000),
-  );
-
-  /// Noctis Lux — soft warm daylight.
-  static final ColorScheme noctisLux = _build(
-    brightness: Brightness.light,
-    surface: const Color(0xFFFEF8EC),
-    onSurface: const Color(0xFF005661),
-    primary: const Color(0xFF00B368),
-    secondary: const Color(0xFFFF5792),
-    tertiary: const Color(0xFFA88C00),
-    error: const Color(0xFFFF4000),
   );
 
   /// Noctis Lilac — gentle lilac daylight.
