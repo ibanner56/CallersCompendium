@@ -47,7 +47,7 @@ final Map<String, ColorScheme> _galleryPalettes = {
   'vitesseLight': GalleryPalettes.vitesseLight,
   'zenburn': GalleryPalettes.zenburn,
   'shadesOfPurple': GalleryPalettes.shadesOfPurple,
-  'palenight': GalleryPalettes.palenight,
+  'catppuccinFrappe': GalleryPalettes.catppuccinFrappe,
   'synthwave84': GalleryPalettes.synthwave84,
   'noctisLilac': GalleryPalettes.noctisLilac,
 };

@@ -269,7 +269,7 @@ enum AppThemeSelection {
   oneDarkPro, monokai, noctis, dracula, nord,
   tokyoNight, gruvboxDark, catppuccinMocha, githubDark,
   everforestDark, rosePine, ayuMirage, cutiePro, pinkAsHeck,
-  zenburn, shadesOfPurple, palenight, synthwave84,
+  zenburn, shadesOfPurple, catppuccinFrappe, synthwave84,
 }
 ```
 
@@ -347,7 +347,7 @@ adding one is just "identity colors + one enum entry":
 | Vitesse Light | light | `#FFFFFF` | muted sage / teal | Vitesse (antfu) |
 | Zenburn | dark | `#3F3F3F` | low-contrast warm grey | Zenburn |
 | Shades of Purple | dark | `#2D2B55` | gold on indigo | Shades of Purple |
-| Palenight | dark | `#292D3E` | purple / blue-grey | Material Palenight |
+| Catppuccin Frappé | dark | `#303446` | pastel mauve / blue-gray | Catppuccin |
 | Synthwave '84 | dark | `#262335` | neon on retro purple | Synthwave '84 |
 
 **Gallery curation.** After the UX-7 expansion the dark set grew redundant, so
@@ -370,7 +370,8 @@ both light and dark slots (§1a). Alongside it the gallery was re-curated: the
 (the distinctive lilac light, folded into the Light section) — since the other
 nine differed only by canvas while sharing identical accents. To hold the gallery
 at 12 light / 18 dark: **Solarized Dark** was dropped as the second teal-canvas
-dark (Palenight kept), which orphaned **Solarized Light**; and **Atom One Light**
+dark (Palenight kept at the time; later swapped for Catppuccin Frappé — see
+below), which orphaned **Solarized Light**; and **Atom One Light**
 was orphaned when Atom One Dark was cut earlier. Both orphaned lights were removed
 and replaced by **Noctis Lilac** (lilac/lavender gap) and **Bluloco Light** (a
 vivid high-saturation light the pastel-heavy set lacked).
@@ -381,6 +382,15 @@ left as an orphaned M3 baseline whose lilac/mauve character is now covered by
 Noctis Lilac + Catppuccin Latte. It was replaced by **Vitesse Light** (antfu) —
 a popular modern-minimal light with muted sage-green / teal / dusty-rose accents
 that fills a crisp cool-light niche. The light gallery holds at 12.
+
+**Palenight → Catppuccin Frappé.** The lavender-primary dark group still carried
+four near-neighbours (Catppuccin Mocha, Dracula, Rosé Pine, Palenight). **Palenight**
+was the least distinct: a blue-grey canvas with a purple lead whose niche is fully
+covered by **Catppuccin Frappé** — the lighter blue-gray Catppuccin (`#303446`) that
+had been dropped in the original trim. Re-adding Frappé restores a lighter-canvas
+pastel dark and reunites it with **Mocha** (deeper `#1E1E2E`) as a two-brightness
+Catppuccin pair, while **Dracula** (iconic high-saturation) and **Rosé Pine**
+(rose / iris) keep their distinct identities. The dark gallery holds at 18.
 
 **Light additions.** To balance the trimmed dark set, three popular light
 palettes joined the gallery: **Tokyo Night Light** (Day) mirrors the dark Tokyo

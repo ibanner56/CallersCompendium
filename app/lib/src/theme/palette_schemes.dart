@@ -196,16 +196,16 @@ class GalleryPalettes {
     error: const Color(0xFFF44747),
   );
 
-  /// Palenight — inspired by Mattia Astorino's Material Palenight: a purple
-  /// lead on a blue-grey canvas, with blue and warm accents.
-  static final ColorScheme palenight = _build(
+  /// Catppuccin Frappé — the lighter blue-gray member of the Catppuccin family:
+  /// a mauve lead on a soft blue-gray base, with green and warm-yellow accents.
+  static final ColorScheme catppuccinFrappe = _build(
     brightness: Brightness.dark,
-    surface: const Color(0xFF292D3E),
-    onSurface: const Color(0xFFA6ACCD),
-    primary: const Color(0xFFC792EA),
-    secondary: const Color(0xFF82AAFF),
-    tertiary: const Color(0xFFFFCB6B),
-    error: const Color(0xFFFF5370),
+    surface: const Color(0xFF303446),
+    onSurface: const Color(0xFFC6D0F5),
+    primary: const Color(0xFFCA9EE6),
+    secondary: const Color(0xFFA6D189),
+    tertiary: const Color(0xFFE5C890),
+    error: const Color(0xFFE78284),
   );
 
   /// Synthwave '84 — inspired by Robb Owen's theme: glowing neon pink on deep

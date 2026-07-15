@@ -58,7 +58,7 @@ enum AppThemeSelection {
   pinkAsHeck,
   zenburn,
   shadesOfPurple,
-  palenight,
+  catppuccinFrappe,
   synthwave84;
 
   bool get isHighContrast => this == AppThemeSelection.highContrast;
@@ -102,7 +102,7 @@ enum AppThemeSelection {
     AppThemeSelection.vitesseLight => GalleryPalettes.vitesseLight,
     AppThemeSelection.zenburn => GalleryPalettes.zenburn,
     AppThemeSelection.shadesOfPurple => GalleryPalettes.shadesOfPurple,
-    AppThemeSelection.palenight => GalleryPalettes.palenight,
+    AppThemeSelection.catppuccinFrappe => GalleryPalettes.catppuccinFrappe,
     AppThemeSelection.synthwave84 => GalleryPalettes.synthwave84,
   };
 
@@ -174,7 +174,7 @@ enum AppThemeSelection {
     AppThemeSelection.vitesseLight => 'Vitesse Light',
     AppThemeSelection.zenburn => 'Zenburn',
     AppThemeSelection.shadesOfPurple => 'Shades of Purple',
-    AppThemeSelection.palenight => 'Palenight',
+    AppThemeSelection.catppuccinFrappe => 'Catppuccin Frappé',
     AppThemeSelection.synthwave84 => 'Synthwave ’84',
     AppThemeSelection.noctisLilac => 'Noctis Lilac',
   };
@@ -216,7 +216,7 @@ enum AppThemeSelection {
     AppThemeSelection.vitesseLight => 'Modern muted sage, teal and rose',
     AppThemeSelection.zenburn => 'The classic low-contrast warm grey',
     AppThemeSelection.shadesOfPurple => 'Bold gold on deep indigo',
-    AppThemeSelection.palenight => 'Purple-leaning Material on blue-grey',
+    AppThemeSelection.catppuccinFrappe => 'Lighter blue-gray pastel Catppuccin',
     AppThemeSelection.synthwave84 => 'Glowing neon on retro purple',
     AppThemeSelection.noctisLilac => 'Gentle lilac Noctis daylight',
   };
