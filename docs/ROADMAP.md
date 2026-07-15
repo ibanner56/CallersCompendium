@@ -137,7 +137,7 @@ Design items (each produces a design doc + review):
   (`DanceRepository.listIdsAndTitles()` — the lightweight id+title query that
   avoids N+1 `getById` lookups — is now built and used by the auto
   cross-reference links; see below.)
-- [x] 3.6 Auto-linked dance cross-references — dance titles mentioned in another
+- [x] 3.7 Auto-linked dance cross-references — dance titles mentioned in another
   dance's hook / calling notes render as tappable inline links that open the
   referenced dance's detail (distinct from the explicit `relatedDance` link).
   App-side matcher in `app/lib/src/screens/dance_detail_screen.dart`
@@ -366,7 +366,7 @@ for app-wide preference switches as they accrue.
   that dance, regardless of whether the slot was marked performed (i.e. not
   strictly limited to performed programs as currently described in
   `docs/design/ux.md` §2). When on: only programs with the dance's slot marked performed appear, matching the
-  (`docs/design/domain-model.md`). Persisted via `SettingsRepository`.
+  behavior described in `docs/design/domain-model.md`. Persisted via `SettingsRepository`.
 
 ## Phase 6 — Imports & migration
 
