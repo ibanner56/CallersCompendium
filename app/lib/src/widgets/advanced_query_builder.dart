@@ -601,8 +601,58 @@ class _MoveField extends StatelessWidget {
     final current = figure.move == null
         ? ''
         : (taxonomy.resolve(figure.move!)?.displayName ?? figure.move!);
+    return MoveTypeAheadField(
+      initialText: current,
+      taxonomy: taxonomy,
+      onSelected: (m) {
+        if (figure.move != m.id) {
+          figure.move = m.id;
+          figure.params.clear();
+          onChanged();
+        }
+      },
+      onCleared: () {
+        if (figure.move != null) {
+          figure.move = null;
+          figure.params.clear();
+          onChanged();
+        }
+      },
+    );
+  }
+}
+
+/// A reusable move type-ahead: an [Autocomplete] over the [Taxonomy]'s moves
+/// (matching display name, id, or search keywords), rendered as a dense
+/// outlined [TextField]. Shared by the Advanced builder's "has figure" rows and
+/// the By-Phrase panel so both search moves identically.
+///
+/// [onSelected] fires when the user picks a move; [onCleared] (optional) fires
+/// when the field is emptied. [clearOnSubmit] empties the field after a
+/// selection is committed — used by multi-select callers that show chosen moves
+/// as chips and want the input ready for the next entry.
+class MoveTypeAheadField extends StatelessWidget {
+  const MoveTypeAheadField({
+    super.key,
+    required this.taxonomy,
+    required this.onSelected,
+    this.initialText = '',
+    this.onCleared,
+    this.labelText = 'Move',
+    this.hintText = 'e.g. swing',
+  });
+
+  final Taxonomy taxonomy;
+  final ValueChanged<MoveDef> onSelected;
+  final String initialText;
+  final VoidCallback? onCleared;
+  final String labelText;
+  final String hintText;
+
+  @override
+  Widget build(BuildContext context) {
     return Autocomplete<MoveDef>(
-      initialValue: TextEditingValue(text: current),
+      initialValue: TextEditingValue(text: initialText),
       displayStringForOption: (m) => m.displayName,
       optionsBuilder: (value) {
         final q = value.text.trim().toLowerCase();
@@ -616,29 +666,21 @@ class _MoveField extends StatelessWidget {
             .take(8);
       },
       onSelected: (m) {
-        if (figure.move != m.id) {
-          figure.move = m.id;
-          figure.params.clear();
-          onChanged();
-        }
+        onSelected(m);
       },
       fieldViewBuilder: (context, controller, focusNode, onSubmit) {
         return TextField(
           controller: controller,
           focusNode: focusNode,
-          decoration: const InputDecoration(
-            labelText: 'Move',
-            hintText: 'e.g. swing',
+          decoration: InputDecoration(
+            labelText: labelText,
+            hintText: hintText,
             isDense: true,
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
           ),
           onChanged: (text) {
             // Clearing the field clears the move.
-            if (text.trim().isEmpty && figure.move != null) {
-              figure.move = null;
-              figure.params.clear();
-              onChanged();
-            }
+            if (text.trim().isEmpty) onCleared?.call();
           },
           onSubmitted: (_) => onSubmit(),
         );

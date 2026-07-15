@@ -10,6 +10,7 @@ import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
 import '../widgets/advanced_query_builder.dart';
+import '../widgets/by_phrase_panel.dart';
 import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
 import '../screens/custom_fields_screen.dart';
@@ -69,6 +70,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   final _ftsController = TextEditingController();
   final _facets = FacetSelections();
+  final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
   bool _advancedEnabled = false;
 
@@ -154,6 +156,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   bool get _isBareFullText => isBareFullText(
     ftsText: _ftsController.text,
     facets: _facets,
+    byPhrase: _byPhrase,
     advancedRoot: _advancedEnabled ? _advancedRoot : null,
   );
 
@@ -186,6 +189,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ftsText: _ftsController.text,
         facets: _facets,
         defs: data.customFieldDefs,
+        byPhrase: _byPhrase,
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
       );
       final ids = await _repos.dances.search(
@@ -230,10 +234,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
     _runSearch();
   }
 
+  void _onByPhraseChanged() {
+    setState(() {});
+    _runSearch();
+  }
+
   void _clearAll() {
     setState(() {
       _ftsController.clear();
       _facets.clear();
+      _byPhrase.clear();
       _advancedRoot.children.clear();
       _advancedRoot.kind = GroupKind.all;
       _advancedEnabled = false;
@@ -244,6 +254,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   bool get _hasActiveQuery =>
       _ftsController.text.trim().isNotEmpty ||
       !_facets.isEmpty ||
+      !_byPhrase.isEmpty ||
       (_advancedEnabled && _advancedRoot.toFilter() != null);
 
   @override
@@ -431,6 +442,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
               SliverList(
                 delegate: SliverChildListDelegate([
                   _buildFiltersPanel(data),
+                  _buildByPhrasePanel(data),
                   _buildAdvancedPanel(data),
                   _buildResultCount(),
                   const Divider(height: 1),
@@ -474,6 +486,38 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildByPhrasePanel(CollectionData data) {
+    final activeCount = _byPhraseActiveCount();
+    return ExpansionTile(
+      key: const ValueKey('by-phrase-panel'),
+      leading: const Icon(Icons.grid_view_outlined),
+      title: Text(
+        activeCount == 0 ? 'By phrase' : 'By phrase ($activeCount active)',
+      ),
+      subtitle: const Text('Search figures per phrase (A1/A2/B1/B2).'),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      children: [
+        ByPhrasePanel(
+          selections: _byPhrase,
+          taxonomy: data.taxonomy,
+          sectionLabels: data.sectionLabels,
+          onChanged: _onByPhraseChanged,
+        ),
+      ],
+    );
+  }
+
+  int _byPhraseActiveCount() {
+    var count = 0;
+    for (final moves in _byPhrase.match.values) {
+      count += moves.length;
+    }
+    for (final moves in _byPhrase.exclude.values) {
+      count += moves.length;
+    }
+    return count;
   }
 
   Widget _buildAdvancedPanel(CollectionData data) {
