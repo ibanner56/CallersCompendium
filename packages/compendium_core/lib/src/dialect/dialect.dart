@@ -130,6 +130,24 @@ class Dialect {
     return null;
   }
 
+  /// Resolves [name] to a [Dialect], searching user-defined [candidates] first
+  /// (so a custom dialect wins over a shipped preset with the same name), then
+  /// the shipped [presets] via [forName]. Returns `null` when [name] is `null`
+  /// or matches nothing — callers fall back to a default.
+  ///
+  /// Supersedes [forName] for callers that also have a library of custom,
+  /// user-created dialects to search.
+  static Dialect? resolveByName(
+    String? name, {
+    Iterable<Dialect> candidates = const [],
+  }) {
+    if (name == null) return null;
+    for (final d in candidates) {
+      if (d.name == name) return d;
+    }
+    return forName(name);
+  }
+
   /// Shipped default for the discouraged-terms list (editable by users).
   static const List<String> defaultDiscouragedTerms = [
     'gypsy',

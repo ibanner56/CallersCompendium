@@ -146,6 +146,17 @@ Design items (each produces a design doc + review):
   gendered terms via custom role-terms input), editable move substitutions and
   discouraged-terms list, `Dialect.toJson`/`fromJson`, and the active dialect
   persisted as full JSON.
+- [ ] **Dialect manager — named dialects + term editor** (`docs/design/ux.md` §6):
+  a library of named, user-created dialects (create / duplicate-from-preset /
+  rename / delete) alongside shipped presets, a term editor with **live
+  preview** + collision validation, and dialect **quick-switch** on the dance
+  card / perform screens. Builds on the existing (single-active) editor above.
+  - PR1 (this branch, `dialect-term-editor`): core `Dialect.resolveByName`
+    (custom-wins-over-preset resolver superseding `forName`); app
+    `DialectLibraryController` + `DialectLibraryScope` (settings keys
+    `custom_dialects` / `active_dialect_ref`) with CRUD, active-fallback on
+    delete, and legacy `active_dialect` blob migration. Fully unit-tested;
+    wired into the app + UI in PR2/PR3.
 - (2.4a full taxonomy data is now **complete** — full ContraDB contra move set shipped.
   The only still-open 3.2 follow-up is per-Type taxonomy selection, blocked on multi-form data.)
   - ~~Nested figure groups inside `then`~~: **Resolved in Consolidation PR4**
