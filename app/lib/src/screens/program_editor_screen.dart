@@ -160,24 +160,32 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   /// Seeds the caller/band controllers for a NEW program from the saved G.3
-  /// defaults, only when the controller is still blank. A settings read failure
-  /// is swallowed so the editor still opens (with blank fields).
+  /// defaults, only when the controller is still blank. Each key is read
+  /// independently so a failure (or corrupt value) reading one never blocks the
+  /// other, and a settings read failure is swallowed so the editor still opens
+  /// (with that field blank).
   Future<void> _prefillNewProgramDefaults() async {
+    await _prefillControllerFromDefault(
+      _callerController,
+      kDefaultProgramCallerKey,
+    );
+    await _prefillControllerFromDefault(
+      _bandController,
+      kDefaultProgramBandKey,
+    );
+  }
+
+  Future<void> _prefillControllerFromDefault(
+    TextEditingController controller,
+    String key,
+  ) async {
+    if (controller.text.isNotEmpty) return;
     try {
-      if (_callerController.text.isEmpty) {
-        final caller = await _repos.settings.get(kDefaultProgramCallerKey);
-        if (caller is String && caller.isNotEmpty) {
-          _callerController.text = caller;
-        }
-      }
-      if (_bandController.text.isEmpty) {
-        final band = await _repos.settings.get(kDefaultProgramBandKey);
-        if (band is String && band.isNotEmpty) {
-          _bandController.text = band;
-        }
-      }
+      final stored = await _repos.settings.get(key);
+      final value = stored is String ? stored.trim() : '';
+      if (value.isNotEmpty) controller.text = value;
     } catch (_) {
-      // Leave the fields blank if defaults can't be read.
+      // Leave the field blank if this default can't be read.
     }
   }
 

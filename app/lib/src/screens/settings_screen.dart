@@ -171,8 +171,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         .get(kDefaultProgramCallerKey)
         .then((stored) {
           if (!mounted || _defaultCallerUserSet) return;
-          if (stored is String && stored.isNotEmpty) {
-            _defaultProgramCaller.text = stored;
+          final value = stored is String ? stored.trim() : '';
+          if (value.isNotEmpty) {
+            _defaultProgramCaller.text = value;
           }
         })
         .catchError((_) {
@@ -182,8 +183,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         .get(kDefaultProgramBandKey)
         .then((stored) {
           if (!mounted || _defaultBandUserSet) return;
-          if (stored is String && stored.isNotEmpty) {
-            _defaultProgramBand.text = stored;
+          final value = stored is String ? stored.trim() : '';
+          if (value.isNotEmpty) {
+            _defaultProgramBand.text = value;
           }
         })
         .catchError((_) {
@@ -194,13 +196,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _onDefaultProgramCallerChanged(String value) async {
     _defaultCallerUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultProgramCallerKey, value);
+    await repos.settings.set(kDefaultProgramCallerKey, value.trim());
   }
 
   Future<void> _onDefaultProgramBandChanged(String value) async {
     _defaultBandUserSet = true;
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultProgramBandKey, value);
+    await repos.settings.set(kDefaultProgramBandKey, value.trim());
   }
 
   @override
@@ -1267,12 +1269,12 @@ class _SectionHeader extends StatelessWidget {
 }
 
 /// The Defaults section: app-wide default values, grouped to mirror the
-/// ROADMAP's "Defaults (settings pane)" structure. This PR populates only the
-/// **Display defaults** subsection (ROADMAP G.6). Later PRs add sibling
-/// subsections here — **Program defaults** (G.3, above Display defaults) and
-/// **Dance-authoring defaults** (DD.1–DD.3, below) — each introduced by its own
-/// [_SectionHeader], so extending this is a drop-in, not a rewrite. No empty
-/// subsection is stubbed until it is wired.
+/// ROADMAP's "Defaults (settings pane)" structure. It now populates the
+/// **Program defaults** subsection (ROADMAP G.3) and the **Display defaults**
+/// subsection (ROADMAP G.6). A later PR adds the sibling **Dance-authoring
+/// defaults** subsection (DD.1–DD.3, below Display defaults), introduced by its
+/// own [_SectionHeader], so extending this is a drop-in, not a rewrite. No
+/// empty subsection is stubbed until it is wired.
 class _DefaultsView extends StatelessWidget {
   const _DefaultsView({
     required this.programCallerController,
