@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
+import '../widgets/dialect_quick_switch.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
 import 'settings_screen.dart' show kAutoSizePerformKey;
@@ -121,6 +122,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
           ),
           title: const Text('Perform'),
           actions: [
+            const DialectQuickSwitch(),
             PerformSizeControls(
               canDecrease: canDecrease,
               onDecrease: _decreaseTextSize,

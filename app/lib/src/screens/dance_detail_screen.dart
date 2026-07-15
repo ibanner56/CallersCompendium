@@ -9,6 +9,7 @@ import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../utils/launch_external_url.dart';
 import '../widgets/dance_export_menu.dart';
+import '../widgets/dialect_quick_switch.dart';
 import '../widgets/figure_table.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
@@ -536,6 +537,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       appBar: AppBar(
         title: const Text('Dance'),
         actions: [
+          const DialectQuickSwitch(),
           FutureBuilder<_DanceDetail?>(
             future: _future,
             builder: (context, snapshot) {
