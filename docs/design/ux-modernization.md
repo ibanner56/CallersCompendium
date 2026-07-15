@@ -23,7 +23,7 @@ lead:
 | Decision | Choice |
 |---|---|
 | Visual approach | Refined Material 3, native, no third-party UI kit |
-| Brand palette | **"Hearth"** — terracotta / pine / ochre (off default indigo) |
+| Brand palette | **"Blue Hour"** — cool daylight/petrol canvas with warm lantern-amber accents (evolved from the original warm "Hearth") |
 | Typography | **Fraunces** (display/headings) + **Atkinson Hyperlegible** (body/UI/Perform) |
 | Fonts delivery | Bundled offline as `pubspec.yaml` assets — **no `google_fonts`** runtime fetch (local-first) |
 | High-contrast | One dark-based HC theme, **shared with Phase 5 Perform mode** |
@@ -37,43 +37,46 @@ green free to mean "ready/valid".
 
 ## 1. Design-system foundation
 
-### 1a. Color tokens — palette "Hearth"
+### 1a. Color tokens — palette "Blue Hour" *(default)*
 
 Full `ColorScheme`s (not just a seed — a seed cannot reliably hit the 7:1 Perform
 target). Every pairing below was validated with WCAG contrast math; ratios are
-targets to re-confirm in a contrast test during UX-0.
+targets to re-confirm in a contrast test during UX-0. The default evolved from
+the original warm "Hearth" palette to **"Blue Hour"**: a cool daylight/petrol
+canvas with a shared warm lantern-amber accent family, so light and dark read as
+one identity.
 
-**Light**
+**Light** *(cool daylight canvas, warm amber accents)*
 
 | Role | Hex | On-color | Ratio |
 |---|---|---|---|
-| primary | `#9C4A2F` (terracotta) | `#FFFFFF` | 6.12 |
-| primaryContainer | `#FFDBCF` | `#3A0B00` | 13.26 |
-| secondary | `#4E6B4F` (pine) | `#FFFFFF` | 5.93 |
-| secondaryContainer | `#D0E8CF` | `#0B2010` | 13.13 |
-| tertiary | `#7A5900` (ochre) | `#FFFFFF` | 6.45 |
-| tertiaryContainer | `#FFDF9E` | `#261A00` | 13.25 |
+| primary | `#9A5312` (amber) | `#FFFFFF` | 5.80 |
+| primaryContainer | `#FFDCC2` | `#331200` | 13.26 |
+| secondary | `#8C4A43` (dusty rose) | `#FFFFFF` | 6.61 |
+| secondaryContainer | `#FFDAD3` | `#3A0906` | 13.28 |
+| tertiary | `#6E5A16` (wheat-gold) | `#FFFFFF` | 6.69 |
+| tertiaryContainer | `#F5E7A8` | `#221B00` | 13.78 |
 | error | `#BA1A1A` | `#FFFFFF` | 6.46 |
-| surface / onSurface | `#FBF7F2` | `#201A17` | 16.12 |
-| onSurfaceVariant | `#52443C` | (on surface) | 8.75 |
-| surfaceContainerHighest | `#F0E4DC` | (on surface) | 13.78 |
-| outline (borders, ≥3:1) | `#857066` | — | 4.37 |
+| surface / onSurface | `#F4F6FA` | `#1A222C` | 14.83 |
+| onSurfaceVariant | `#48515C` | (on surface) | 7.44 |
+| surfaceContainerHighest | `#E3E8EF` | (on surface) | 13.03 |
+| outline (borders, ≥3:1) | `#727C87` | — | 3.92 |
 
-**Dark** *(muted-pastel register — desaturated accents on a dustier warm charcoal canvas)*
+**Dark** *(default "Blue Hour" — deep petrol-indigo canvas with warm lantern-amber accents)*
 
 | Role | Hex | On-color | Ratio |
 |---|---|---|---|
-| primary | `#EABFB0` | `#5A1B08` | 7.89 |
-| primaryContainer | `#723E2C` | `#FFDBCF` | 6.67 |
-| secondary | `#B5CBB2` | `#203622` | 7.54 |
-| secondaryContainer | `#374D38` | `#D0E8CF` | 7.07 |
-| tertiary | `#D0BA80` | `#3F2E00` | 6.88 |
-| tertiaryContainer | `#524318` | `#FFDF9E` | 7.50 |
-| error | `#EEC1BC` | `#690005` | 8.10 |
-| surface / onSurface | `#261F1B` | `#EAE1DC` | 12.60 |
-| onSurfaceVariant | `#D3C4BC` | (on surface) | 9.57 |
-| surfaceContainerHighest | `#413833` | (on surface) | 8.87 |
-| outline (borders, ≥3:1) | `#9E8D84` | — | 5.10 |
+| primary | `#FFB784` | `#4A2400` | 8.01 |
+| primaryContainer | `#6B3D12` | `#FFDCC2` | 7.07 |
+| secondary | `#E4A9A0` | `#45201C` | 7.10 |
+| secondaryContainer | `#5E332E` | `#FFDAD3` | 8.16 |
+| tertiary | `#D8C98A` | `#382F09` | 8.01 |
+| tertiaryContainer | `#4F461F` | `#F5E7A8` | 7.57 |
+| error | `#FFB4AB` | `#690005` | 7.72 |
+| surface / onSurface | `#121A24` | `#E7ECF1` | 14.73 |
+| onSurfaceVariant | `#B4C1CE` | (on surface) | 9.56 |
+| surfaceContainerHighest | `#253241` | (on surface) | 10.96 |
+| outline (borders, ≥3:1) | `#7B8896` | — | 4.84 |
 
 ### 1b. High-contrast / Perform tokens (shared, dark-based, target ≥7:1)
 
