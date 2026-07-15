@@ -12,12 +12,19 @@ Storage is always canonical (move IDs, role IDs, canonicalized free text).
 {
   "roles":  {"role1": "Larks", "role2": "Robins"},
   "moves":  {"shoulder_round": "%S shoulder round", "do_si_do": "dosido"},
+  "dancers": {"neighbors": "the others", "nextNeighbors": "the next couple"},
   "discouragedTerms": ["gypsy", "gents", "ladies", "..."]
 }
 ```
 
 - `%S` placeholder injects direction/handedness into a move substitution
   (renders "right shoulder round" / "left shoulder round").
+- `dancers` substitutes the positional/relational dancer tokens (ContraDB's
+  parallel `dancers` map) — e.g. `neighbors`, `ones`, `partners`,
+  `nextNeighbors`, `centers`. The role-driven tokens `role1s`/`role2s` are
+  **excluded**: they flow through role-term substitution (`roles`) instead, so
+  they are never listed here. Like `moves`, presets ship an **empty** `dancers`
+  map — no gendered or house-specific dancer terms are baked in.
 - `discouragedTerms` is **user-editable data with shipped defaults**, not
   hardcoded (ContraDB pitfall #3): the entry editor flags these terms, it
   never blocks.
@@ -25,7 +32,8 @@ Storage is always canonical (move IDs, role IDs, canonicalized free text).
   Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
   presets — a user who wants them enters them through the custom role-terms
   editor. Everything a dialect can set is editable in Settings → Dialect:
-  role terms, per-move substitutions, and the discouraged-terms list. Users may
+  role terms, per-move substitutions, dancer-term substitutions, and the
+  discouraged-terms list. Users may
   keep a custom dialect and switch instantly (e.g. per-gig) — this generalizes
   CC's binary "on the fly gendered↔gender-free switch". The active dialect
   (including a full custom one) is persisted as JSON.
@@ -37,9 +45,9 @@ Figure ──renderTemplate──▶ canonical text ──dialect subst──▶
 free text (notes/custom) ──term regex (case-preserving)──▶ display text
 ```
 
-- Substitution covers: role terms, move display names, and terms inside free
-  text (notes, hooks, custom figures) via compiled word-boundary regex with
-  case preservation.
+- Substitution covers: role terms, move display names, positional/relational
+  dancer terms, and terms inside free text (notes, hooks, custom figures) via
+  compiled word-boundary regex with case preservation.
 - Search always runs against canonical text/structures → dialect never affects
   results (dialect-agnostic search for free).
 - Print/export lets the user choose canonical or active dialect; exports embed

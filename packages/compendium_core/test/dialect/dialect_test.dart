@@ -135,11 +135,13 @@ void main() {
           'bad': 'not-a-map',
         },
         'moves': {'swing': 'swing', 'bad': 7},
+        'dancers': {'neighbors': 'others', 'bad': 7},
         'discouragedTerms': ['gypsy', 8],
       });
       expect(d.name, Dialect.customName);
       expect(d.roles.keys, ['role1']);
       expect(d.moves, {'swing': 'swing'});
+      expect(d.dancers, {'neighbors': 'others'});
       expect(d.discouragedTerms, ['gypsy']);
     });
 
@@ -164,6 +166,7 @@ void main() {
       expect(d.name, 'Sparse');
       expect(d.roles, isEmpty);
       expect(d.moves, isEmpty);
+      expect(d.dancers, isEmpty);
       expect(d.discouragedTerms, isEmpty);
     });
 
@@ -184,6 +187,100 @@ void main() {
         Dialect(name: 'x', roles: const {'role1': RoleTerm('A')}),
         isNot(Dialect(name: 'x', roles: const {'role1': RoleTerm('B')})),
       );
+    });
+    test('differing dancers compare unequal', () {
+      expect(
+        Dialect(name: 'x', dancers: const {'neighbors': 'partners'}),
+        isNot(Dialect(name: 'x', dancers: const {'neighbors': 'others'})),
+      );
+    });
+    test('equal dancers compare equal (and hash equally)', () {
+      final a = Dialect(name: 'x', dancers: const {'neighbors': 'the others'});
+      final b = Dialect(name: 'x', dancers: const {'neighbors': 'the others'});
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+    });
+  });
+
+  group('dancer substitutions', () {
+    test(
+      'presets ship an empty dancers map (no gendered/positional presets)',
+      () {
+        for (final preset in Dialect.presets) {
+          expect(preset.dancers, isEmpty, reason: preset.name);
+        }
+      },
+    );
+
+    test('dancers default to empty and are unmodifiable', () {
+      final d = Dialect(name: 'x');
+      expect(d.dancers, isEmpty);
+      expect(() => d.dancers['neighbors'] = 'x', throwsUnsupportedError);
+    });
+
+    test('copyWith replaces dancers', () {
+      final base = Dialect(name: 'x', dancers: const {'neighbors': 'others'});
+      final updated = base.copyWith(dancers: const {'ones': 'actives'});
+      expect(updated.dancers, {'ones': 'actives'});
+      expect(base.dancers, {'neighbors': 'others'});
+    });
+
+    test('dancers round-trip through toJson/fromJson', () {
+      final custom = Dialect(
+        name: 'Custom',
+        dancers: const {
+          'neighbors': 'the others',
+          'nextNeighbors': 'the next couple',
+        },
+      );
+      expect(custom.toJson()['dancers'], {
+        'neighbors': 'the others',
+        'nextNeighbors': 'the next couple',
+      });
+      expect(Dialect.fromJson(custom.toJson()), custom);
+    });
+
+    test('fromJson keeps only String dancer values', () {
+      final d = Dialect.fromJson({
+        'name': 'x',
+        'dancers': {'neighbors': 'others', 'bad': 7, 'alsoBad': null},
+      });
+      expect(d.dancers, {'neighbors': 'others'});
+    });
+
+    test('fromJson tolerates a non-map dancers section', () {
+      final d = Dialect.fromJson({'name': 'x', 'dancers': 'nope'});
+      expect(d.dancers, isEmpty);
+    });
+
+    test('validate rejects an empty dancer substitution', () {
+      final d = Dialect(name: 'bad', dancers: const {'neighbors': '  '});
+      expect(d.validate().single.code, 'empty_substitution');
+    });
+
+    test('validate rejects two dancer tokens mapping to the same word', () {
+      final d = Dialect(
+        name: 'bad',
+        dancers: const {'neighbors': 'others', 'shadows': 'others'},
+      );
+      expect(d.validate().single.code, 'dialect_collision');
+    });
+
+    test('validate flags collisions across moves and dancers', () {
+      final d = Dialect(
+        name: 'bad',
+        moves: const {'swing': 'twirl'},
+        dancers: const {'neighbors': 'twirl'},
+      );
+      expect(d.validate().single.code, 'dialect_collision');
+    });
+
+    test('a clean dancers map validates', () {
+      final d = Dialect(
+        name: 'ok',
+        dancers: const {'neighbors': 'the others', 'ones': 'the actives'},
+      );
+      expect(d.validate(), isEmpty);
     });
   });
 }

@@ -289,6 +289,120 @@ void main() {
       expect(ctx.notifier.value.moves['shoulder_round'], '%S shoulder round');
       expect(ctx.notifier.value.name, Dialect.customName);
     });
+
+    testWidgets('adding a dancer substitution updates the dialect', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(
+        tester,
+        initialDialect: Dialect.larksRobins,
+      );
+      await openDialect(tester);
+
+      await tester.tap(find.byKey(const ValueKey('dialect-dancers-toggle')));
+      await tester.pumpAndSettle();
+
+      final dropdown = find.byKey(const ValueKey('dialect-add-dancer'));
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      // Pick the "neighbors" dancer term from the opened menu.
+      await tester.tap(find.text('neighbors').last);
+      await tester.pumpAndSettle();
+
+      final field = find.byKey(const ValueKey('dialect-dancer-neighbors'));
+      await tester.ensureVisible(field);
+      await tester.enterText(field, 'the others');
+      await tester.pumpAndSettle();
+
+      expect(ctx.notifier.value.dancers['neighbors'], 'the others');
+      expect(ctx.notifier.value.name, Dialect.customName);
+      // Custom indicator appears once the dialect diverges from a preset.
+      expect(
+        find.byKey(const ValueKey('dialect-custom-indicator')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('role tokens are not offered as dancer substitutions', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, initialDialect: Dialect.larksRobins);
+      await openDialect(tester);
+
+      await tester.tap(find.byKey(const ValueKey('dialect-dancers-toggle')));
+      await tester.pumpAndSettle();
+
+      final dropdown = find.byKey(const ValueKey('dialect-add-dancer'));
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      expect(find.text('role1s'), findsNothing);
+      expect(find.text('role2s'), findsNothing);
+      // A positional/relational term is offered.
+      expect(find.text('next neighbors'), findsWidgets);
+    });
+
+    testWidgets('editing then deleting a dancer substitution round-trips', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(
+        tester,
+        initialDialect: Dialect.larksRobins.copyWith(
+          dancers: const {'neighbors': 'the others'},
+        ),
+      );
+      await openDialect(tester);
+      await tester.tap(find.byKey(const ValueKey('dialect-dancers-toggle')));
+      await tester.pumpAndSettle();
+
+      // Edit the existing substitution.
+      final field = find.byKey(const ValueKey('dialect-dancer-neighbors'));
+      await tester.ensureVisible(field);
+      await tester.enterText(field, 'the other couple');
+      await tester.pumpAndSettle();
+      expect(ctx.notifier.value.dancers['neighbors'], 'the other couple');
+
+      // Delete it.
+      final del = find.byKey(const ValueKey('dialect-dancer-delete-neighbors'));
+      await tester.ensureVisible(del);
+      await tester.tap(del);
+      await tester.pumpAndSettle();
+      expect(ctx.notifier.value.dancers, isEmpty);
+    });
+
+    testWidgets('a dancer substitution persists to SettingsRepository', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(
+        tester,
+        initialDialect: Dialect.larksRobins,
+      );
+      await openDialect(tester);
+      await tester.tap(find.byKey(const ValueKey('dialect-dancers-toggle')));
+      await tester.pumpAndSettle();
+
+      final dropdown = find.byKey(const ValueKey('dialect-add-dancer'));
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('neighbors').last);
+      await tester.pumpAndSettle();
+
+      final field = find.byKey(const ValueKey('dialect-dancer-neighbors'));
+      await tester.ensureVisible(field);
+      await tester.enterText(field, 'the others');
+      await tester.pumpAndSettle();
+
+      final stored = await ctx.repos.settings.get(kActiveDialectKey);
+      expect(stored, isA<Map>());
+      expect(
+        Dialect.fromJson(
+          (stored! as Map).cast<String, Object?>(),
+        ).dancers['neighbors'],
+        'the others',
+      );
+    });
   });
 
   group('SettingsScreen — theme selection', () {

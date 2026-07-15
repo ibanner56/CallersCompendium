@@ -125,6 +125,57 @@ void main() {
         'role2s swing',
       );
     });
+
+    test('a dancer token renders its substitution', () {
+      final dialect = larks.copyWith(dancers: {'partners': 'sweethearts'});
+      expect(
+        renderer.render(
+          Figure(move: 'swing', params: {'who': 'partners'}),
+          dialect,
+        ),
+        'sweethearts swing',
+      );
+    });
+
+    test('dancer substitution does not touch role tokens', () {
+      // role1s flows through role-term substitution, not dancer substitution,
+      // even when a dancers entry for it is (incorrectly) present.
+      final dialect = larks.copyWith(dancers: {'role1s': 'SHOULD_NOT_SHOW'});
+      expect(
+        renderer.render(
+          Figure(move: 'swing', params: {'who': 'role1s'}),
+          dialect,
+        ),
+        'Larks swing',
+      );
+    });
+
+    test('dancer substitution and role substitution coexist', () {
+      final dialect = larks.copyWith(dancers: {'neighbors': 'the others'});
+      // neighbors -> dancer substitution; chain's role2s -> role term.
+      expect(
+        renderer.render(Figure(move: 'chain'), dialect),
+        'Robins chain across',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'swing', params: {'who': 'neighbors'}),
+          dialect,
+        ),
+        'the others swing',
+      );
+    });
+
+    test('an unmapped dancer token falls back to humanized text', () {
+      final dialect = larks.copyWith(dancers: {'neighbors': 'the others'});
+      expect(
+        renderer.render(
+          Figure(move: 'swing', params: {'who': 'nextNeighbors'}),
+          dialect,
+        ),
+        'next neighbors swing',
+      );
+    });
   });
 
   group('free-text rendering', () {

@@ -16,8 +16,9 @@ Squares) callers — on desktop, tablet, and phone.
   the choreography itself.
 - **Performance mode** — a large-print, high-contrast, stage-ready calling
   view with wake-lock and one-handed navigation.
-- **Dialect** — your terms, your phrasing: role names, move substitutions, and
-  discouraged-term flags are fully editable presentation settings applied over a
+- **Dialect** — your terms, your phrasing: role names, move substitutions,
+  dancer-term substitutions, and discouraged-term flags are fully editable
+  presentation settings applied over a
   standardized canonical vocabulary, so search always works and data stays
   portable. Ships role-neutral presets (Larks/Robins by default, Leads/Follows);
   gendered or house-specific terms are entered via the custom role-terms editor.
