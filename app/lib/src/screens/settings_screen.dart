@@ -621,11 +621,19 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final overridden = controllers.keys.toList()
-      ..sort((a, b) => _moveLabel(a).compareTo(_moveLabel(b)));
-    final available = [
-      for (final m in contraTaxonomy.moves.values)
-        if (m.id != customMoveId && !controllers.containsKey(m.id)) m.id,
-    ]..sort((a, b) => _moveLabel(a).compareTo(_moveLabel(b)));
+      ..sort(
+        (a, b) =>
+            _moveLabel(a).toLowerCase().compareTo(_moveLabel(b).toLowerCase()),
+      );
+    final available =
+        [
+          for (final m in contraTaxonomy.moves.values)
+            if (m.id != customMoveId && !controllers.containsKey(m.id)) m.id,
+        ]..sort(
+          (a, b) => _moveLabel(
+            a,
+          ).toLowerCase().compareTo(_moveLabel(b).toLowerCase()),
+        );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),

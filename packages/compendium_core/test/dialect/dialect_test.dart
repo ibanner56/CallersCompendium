@@ -116,6 +116,33 @@ void main() {
       expect(RoleTerm.fromJson(term.toJson()), term);
     });
 
+    test('RoleTerm.fromJson tolerates malformed data', () {
+      expect(RoleTerm.fromJson({'singular': 123}), isNull);
+      expect(RoleTerm.fromJson({'singular': ''}), isNull);
+      expect(RoleTerm.fromJson({}), isNull);
+      expect(
+        RoleTerm.fromJson({'singular': 'Lark', 'plural': 42}),
+        const RoleTerm('Lark'),
+      );
+    });
+
+    test('Dialect.fromJson tolerates malformed data', () {
+      final d = Dialect.fromJson({
+        'name': 99,
+        'roles': {
+          'role1': {'singular': 'Lark', 'plural': 'Larks'},
+          'role2': {'singular': 42},
+          'bad': 'not-a-map',
+        },
+        'moves': {'swing': 'swing', 'bad': 7},
+        'discouragedTerms': ['gypsy', 8],
+      });
+      expect(d.name, Dialect.customName);
+      expect(d.roles.keys, ['role1']);
+      expect(d.moves, {'swing': 'swing'});
+      expect(d.discouragedTerms, ['gypsy']);
+    });
+
     test('a custom dialect round-trips through toJson/fromJson', () {
       final custom = Dialect(
         name: 'Custom',

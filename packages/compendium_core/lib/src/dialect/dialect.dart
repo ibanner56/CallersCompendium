@@ -24,15 +24,18 @@ class RoleTerm {
   /// pluralization round-trips (independent of the derivation rule).
   Map<String, Object?> toJson() => {'singular': singular, 'plural': plural};
 
-  /// Parses a [RoleTerm] from [toJson] output. A missing/blank `plural`
-  /// falls back to the derived plural.
-  static RoleTerm fromJson(Map<String, Object?> json) {
-    final singular = (json['singular'] as String?) ?? '';
-    final plural = json['plural'] as String?;
-    return RoleTerm(
-      singular,
-      plural: (plural != null && plural.isNotEmpty) ? plural : null,
-    );
+  /// Parses a [RoleTerm] from [toJson] output, tolerating malformed persisted
+  /// data. Returns `null` when the entry is unusable (missing/blank/non-string
+  /// `singular`). A missing/blank/non-string `plural` falls back to the derived
+  /// plural.
+  static RoleTerm? fromJson(Map<String, Object?> json) {
+    final rawSingular = json['singular'];
+    if (rawSingular is! String || rawSingular.isEmpty) return null;
+    final rawPlural = json['plural'];
+    final plural = (rawPlural is String && rawPlural.isNotEmpty)
+        ? rawPlural
+        : null;
+    return RoleTerm(rawSingular, plural: plural);
   }
 
   @override
@@ -163,9 +166,8 @@ class Dialect {
       for (final entry in rolesJson.entries) {
         final value = entry.value;
         if (value is Map) {
-          roles[entry.key.toString()] = RoleTerm.fromJson(
-            value.cast<String, Object?>(),
-          );
+          final term = RoleTerm.fromJson(value.cast<String, Object?>());
+          if (term != null) roles[entry.key.toString()] = term;
         }
       }
     }
@@ -184,8 +186,9 @@ class Dialect {
         if (t is String) discouraged.add(t);
       }
     }
+    final rawName = json['name'];
     return Dialect(
-      name: (json['name'] as String?) ?? customName,
+      name: rawName is String ? rawName : customName,
       roles: roles,
       moves: moves,
       discouragedTerms: discouraged,
