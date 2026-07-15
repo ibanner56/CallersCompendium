@@ -9,8 +9,11 @@ import 'package:flutter/material.dart';
 ///
 /// The dialect's [Dialect.name] is preserved unchanged; renaming is a separate
 /// action in the dialect library so it can uniquify against presets/customs.
-/// Live preview + collision validation are intentionally out of scope here (a
-/// later PR); this editor just assembles and returns the edited dialect.
+///
+/// A live [_DialectPreview] renders representative sample figures through the
+/// working dialect, and [Dialect.validate] runs on every edit so collision /
+/// empty-substitution issues surface inline as the user types (the same check
+/// still guards Save so an invalid dialect is never returned).
 class DialectEditorScreen extends StatefulWidget {
   const DialectEditorScreen({super.key, required this.initial});
 
@@ -40,15 +43,22 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   bool _showMoves = false;
   bool _showDancers = false;
 
-  /// Model-level issues from the last save attempt (empty/ambiguous
-  /// substitutions), surfaced inline so a save that would produce an invalid
-  /// dialect keeps the user in the editor rather than silently persisting it.
+  /// Model-level issues (empty/ambiguous substitutions) recomputed live on every
+  /// edit via [Dialect.validate], surfaced inline so collisions show as the user
+  /// types; the same check still guards Save so an invalid dialect is never
+  /// returned.
   List<ValidationIssue> _issues = const [];
+
+  /// The dialect assembled from the current editor state, kept in sync on every
+  /// edit so the live preview and validation both read from it.
+  late Dialect _working;
 
   @override
   void initState() {
     super.initState();
     _syncFrom(widget.initial);
+    _working = _assemble();
+    _issues = _working.validate();
   }
 
   void _syncFrom(Dialect d) {
@@ -102,10 +112,9 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   }
 
   /// Assembles the current editor state into a [Dialect], preserving the
-  /// original name. If the assembled dialect has validation issues (empty or
-  /// ambiguous substitutions), they are surfaced inline and the editor stays
-  /// open; otherwise the edited dialect is returned to the caller.
-  void _save() {
+  /// original name. Pure — no side effects — so it can feed both the live
+  /// preview/validation ([_onEdited]) and the Save guard ([_save]).
+  Dialect _assemble() {
     final roles = <String, RoleTerm>{};
     final r1 = _roleTerm(_role1Singular, _role1Plural);
     final r2 = _roleTerm(_role2Singular, _role2Plural);
@@ -124,16 +133,36 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       if (v.isNotEmpty) dancers[entry.key] = v;
     }
 
-    final edited = Dialect(
+    return Dialect(
       name: widget.initial.name,
       roles: roles,
       moves: moves,
       dancers: dancers,
       discouragedTerms: _discouraged,
     );
+  }
+
+  /// Re-assembles the working dialect and recomputes validation issues on every
+  /// edit, so the live preview and the inline collision/empty-substitution
+  /// warnings update as the user types.
+  void _onEdited() {
+    setState(() {
+      _working = _assemble();
+      _issues = _working.validate();
+    });
+  }
+
+  /// Returns the edited dialect to the caller. If the assembled dialect has
+  /// validation issues (empty or ambiguous substitutions), they are surfaced
+  /// inline and the editor stays open.
+  void _save() {
+    final edited = _assemble();
     final issues = edited.validate();
     if (issues.isNotEmpty) {
-      setState(() => _issues = issues);
+      setState(() {
+        _working = edited;
+        _issues = issues;
+      });
       return;
     }
     Navigator.of(context).pop(edited);
@@ -169,9 +198,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   }
 
   void _removeMoveSubstitution(String moveId) {
-    setState(() {
-      _moveCtrls.remove(moveId)?.dispose();
-    });
+    _moveCtrls.remove(moveId)?.dispose();
+    _onEdited();
   }
 
   void _addDancerSubstitution(String token) {
@@ -182,9 +210,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   }
 
   void _removeDancerSubstitution(String token) {
-    setState(() {
-      _dancerCtrls.remove(token)?.dispose();
-    });
+    _dancerCtrls.remove(token)?.dispose();
+    _onEdited();
   }
 
   @override
@@ -217,14 +244,14 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             role1Plural: _role1Plural,
             role2Singular: _role2Singular,
             role2Plural: _role2Plural,
-            onChanged: () {},
+            onChanged: _onEdited,
           ),
           const _EditorHeader(title: 'Move substitutions'),
           _MoveSubstitutionsEditor(
             controllers: _moveCtrls,
             expanded: _showMoves,
             onToggle: () => setState(() => _showMoves = !_showMoves),
-            onEdited: () {},
+            onEdited: _onEdited,
             onAdd: _addMoveSubstitution,
             onRemove: _removeMoveSubstitution,
           ),
@@ -233,7 +260,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             controllers: _dancerCtrls,
             expanded: _showDancers,
             onToggle: () => setState(() => _showDancers = !_showDancers),
-            onEdited: () {},
+            onEdited: _onEdited,
             onAdd: _addDancerSubstitution,
             onRemove: _removeDancerSubstitution,
           ),
@@ -245,6 +272,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             onRemove: _removeDiscouraged,
             onRestoreDefaults: _restoreDiscouragedDefaults,
           ),
+          const _EditorHeader(title: 'Preview'),
+          _DialectPreview(dialect: _working),
           const SizedBox(height: 24),
         ],
       ),
@@ -682,6 +711,70 @@ class _DiscouragedTermsEditor extends StatelessWidget {
               key: const ValueKey('dialect-discouraged-restore'),
               onPressed: onRestoreDefaults,
               child: const Text('Restore defaults'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Live, read-only preview of a small fixed set of representative sample
+/// figures rendered through the working [dialect] via [FigureRenderer]. Chosen
+/// to exercise the substitutions this editor controls — a role-term plural
+/// ([allemande] with `role1s`), a dancer term + move substitution ([swing] with
+/// `partners`, [do_si_do] with `neighbors`), and a role term inside free-text
+/// prose — so edits visibly update as the user types. Deterministic and
+/// dialect-only; nothing is persisted.
+class _DialectPreview extends StatelessWidget {
+  const _DialectPreview({required this.dialect});
+
+  final Dialect dialect;
+
+  static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
+
+  static final List<Figure> _sampleFigures = [
+    Figure(
+      move: 'allemande',
+      params: const {'who': 'role1s', 'hand': 'left', 'turn': 1.5},
+    ),
+    Figure(move: 'swing', params: const {'who': 'partners'}),
+    Figure(move: 'do_si_do', params: const {'who': 'neighbors'}),
+  ];
+
+  static const String _sampleFreeText = 'role1s scoop up their role2 and swing';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final lines = <String>[
+      for (final figure in _sampleFigures) _renderer.render(figure, dialect),
+      _renderer.renderFreeText(_sampleFreeText, dialect),
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sample figures rendered with this dialect. Updates as you edit.',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                key: const ValueKey('dialect-preview'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final line in lines)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(line, style: theme.textTheme.bodyMedium),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
