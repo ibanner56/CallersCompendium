@@ -22,6 +22,10 @@ const String kAppThemeKey = 'theme_mode';
 /// so a dance's calling history shows every program that contains it.
 const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 
+/// Key used to persist and load the "auto-size Perform cards" preference
+/// (ROADMAP G.1). Defaults to `true` (on) when unset.
+const String kAutoSizePerformKey = 'auto_size_perform_cards';
+
 /// Settings screen: a master–detail layout with a sidebar of sections and a
 /// content pane. On wide viewports the sidebar and the selected section sit
 /// side by side; on narrow viewports the sidebar is a list whose rows push the
@@ -56,6 +60,31 @@ enum _SettingsSection {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   _SettingsSection _section = _SettingsSection.appearance;
+
+  /// Auto-size Perform cards (ROADMAP G.1). Loaded from settings on first build;
+  /// defaults on until loaded. `null` = not yet loaded.
+  bool? _autoSizePerform;
+  bool _autoSizeRequested = false;
+
+  /// Lazily loads the persisted auto-size preference the first time the General
+  /// section is built (avoids reading settings in `initState`, where the
+  /// [RepositoriesScope] context is available but this keeps the pattern with
+  /// the scope-driven appearance/dialect reads).
+  void _ensureAutoSizeLoaded(BuildContext context) {
+    if (_autoSizeRequested) return;
+    _autoSizeRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings.get(kAutoSizePerformKey).then((value) {
+      if (!mounted) return;
+      setState(() => _autoSizePerform = value is bool ? value : true);
+    });
+  }
+
+  Future<void> _onAutoSizeChanged(bool value) async {
+    setState(() => _autoSizePerform = value);
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kAutoSizePerformKey, value);
+  }
 
   Future<void> _onDialectChanged(Dialect dialect) async {
     // Update the live notifier immediately so the selection feels instant; the
@@ -119,12 +148,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onChanged: _onDialectChanged,
         );
       case _SettingsSection.general:
+        _ensureAutoSizeLoaded(context);
         return _GeneralView(
           requirePerformedForHistory: RequirePerformedForHistoryScope.of(
             context,
           ),
           onRequirePerformedForHistoryChanged:
               _onRequirePerformedForHistoryChanged,
+          autoSizePerform: _autoSizePerform ?? true,
+          onAutoSizeChanged: _onAutoSizeChanged,
         );
     }
   }
@@ -999,22 +1031,38 @@ class _DiscouragedTermsEditor extends StatelessWidget {
 
 /// The General section: app-wide preference switches (ROADMAP G).
 ///
-/// Currently hosts the "Require mark-performed for calling history" toggle
-/// (ROADMAP G.2, off by default). New app-wide switches are added here as
-/// additional [SwitchListTile]s.
+/// Hosts the "Require mark-performed for calling history" toggle (ROADMAP G.2,
+/// off by default) and the "Auto-size Perform cards" toggle (ROADMAP G.1, on by
+/// default). New app-wide switches are added here as additional
+/// [SwitchListTile]s.
 class _GeneralView extends StatelessWidget {
   const _GeneralView({
     required this.requirePerformedForHistory,
     required this.onRequirePerformedForHistoryChanged,
+    required this.autoSizePerform,
+    required this.onAutoSizeChanged,
   });
 
   final bool requirePerformedForHistory;
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
+  final bool autoSizePerform;
+  final ValueChanged<bool> onAutoSizeChanged;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       children: [
+        _SectionHeader(title: 'Performance'),
+        SwitchListTile(
+          key: const ValueKey('settings-auto-size-perform'),
+          title: const Text('Auto-size Perform cards'),
+          subtitle: const Text(
+            'Scale each card so the full dance or slot fits the screen without '
+            'scrolling. Turn off to set the size yourself with A- / A+.',
+          ),
+          value: autoSizePerform,
+          onChanged: onAutoSizeChanged,
+        ),
         _SectionHeader(title: 'Calling history'),
         SwitchListTile(
           key: const ValueKey('general-require-performed-for-history'),

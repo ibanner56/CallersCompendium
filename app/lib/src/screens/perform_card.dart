@@ -20,6 +20,13 @@ const double kPerformDefaultScale = 1.8;
 /// intent is lost). There is deliberately no practical upper bound.
 const double kPerformMinScale = 1.0;
 
+/// Upper bound for the *auto-size* fit search only (ROADMAP G.1). Manual mode
+/// keeps its "no practical upper bound" behaviour; auto-size is naturally
+/// bounded by what fits the viewport, but the binary search needs a finite
+/// ceiling. This is generous enough that short slots ("break", a title-only
+/// card) grow to fill the screen.
+const double kPerformMaxAutoScale = 12.0;
+
 /// Step for the A-/A+ size control.
 const double kPerformScaleStep = 0.2;
 
@@ -43,6 +50,7 @@ class PerformCard extends StatelessWidget {
     required this.renderer,
     required this.dialect,
     required this.textScale,
+    this.autoSize = false,
     this.authorNames = const [],
   });
 
@@ -51,17 +59,22 @@ class PerformCard extends StatelessWidget {
   final Dialect dialect;
   final double textScale;
 
+  /// When `true`, ignore [textScale] and auto-scale so the full card fits the
+  /// viewport without scrolling (ROADMAP G.1). When `false`, use [textScale]
+  /// (the manual A-/A+ size, Phase 5.1).
+  final bool autoSize;
+
   /// Resolved author display names, rendered under the title when non-empty.
   final List<String> authorNames;
 
-  @override
-  Widget build(BuildContext context) {
+  /// The padded card content at [scale], composed on top of the system text
+  /// scaling. Produced without its own scroll view so [_FitToHeight] can
+  /// measure its natural height; the manual path wraps it in a scroll view.
+  Widget _body(BuildContext context, double scale) {
     final mediaQuery = MediaQuery.of(context);
     return MediaQuery(
-      data: mediaQuery.copyWith(
-        textScaler: _effectiveScaler(context, textScale),
-      ),
-      child: SingleChildScrollView(
+      data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
+      child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,6 +101,19 @@ class PerformCard extends StatelessWidget {
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    if (autoSize) {
+      return _FitToHeight(
+        minScale: kPerformMinScale,
+        maxScale: kPerformMaxAutoScale,
+        resetToken: Object.hash(dance.id, dialect),
+        builder: _body,
+      );
+    }
+    return SingleChildScrollView(child: _body(context, textScale));
+  }
 }
 
 /// Large-print card body for a free-text-only program slot (a break, waltz,
@@ -98,20 +124,21 @@ class PerformTextCard extends StatelessWidget {
     super.key,
     required this.text,
     required this.textScale,
+    this.autoSize = false,
   });
 
   final String text;
   final double textScale;
 
-  @override
-  Widget build(BuildContext context) {
+  /// See [PerformCard.autoSize].
+  final bool autoSize;
+
+  Widget _body(BuildContext context, double scale) {
     final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
     return MediaQuery(
-      data: mediaQuery.copyWith(
-        textScaler: _effectiveScaler(context, textScale),
-      ),
-      child: SingleChildScrollView(
+      data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
+      child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,6 +153,125 @@ class PerformTextCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (autoSize) {
+      return _FitToHeight(
+        minScale: kPerformMinScale,
+        maxScale: kPerformMaxAutoScale,
+        resetToken: text,
+        builder: _body,
+      );
+    }
+    return SingleChildScrollView(child: _body(context, textScale));
+  }
+}
+
+/// Auto-scales [builder]'s content to the largest text scale in
+/// `[minScale, maxScale]` whose full natural height fits the available viewport
+/// without scrolling (ROADMAP G.1).
+///
+/// Uses a [LayoutBuilder] for the viewport and a post-frame measurement of the
+/// content's natural (unbounded) height via a [GlobalKey], binary-searching the
+/// scale across frames until it converges on the largest fitting value. The
+/// content stays wrapped in a [SingleChildScrollView] so that even when the
+/// smallest scale still overflows (a very long dance on a tiny screen) the text
+/// is scrollable rather than clipped — content is never hidden.
+///
+/// The search resets when the viewport size changes (orientation / window
+/// resize) or when [resetToken] changes (dance/slot or dialect change), so the
+/// fit recomputes on exactly the events the roadmap calls for.
+class _FitToHeight extends StatefulWidget {
+  const _FitToHeight({
+    required this.minScale,
+    required this.maxScale,
+    required this.resetToken,
+    required this.builder,
+  });
+
+  final double minScale;
+  final double maxScale;
+  final Object? resetToken;
+  final Widget Function(BuildContext context, double scale) builder;
+
+  @override
+  State<_FitToHeight> createState() => _FitToHeightState();
+}
+
+class _FitToHeightState extends State<_FitToHeight> {
+  static const double _scaleEpsilon = 0.02;
+  static const double _heightEpsilon = 0.5;
+
+  final GlobalKey _contentKey = GlobalKey();
+
+  late double _lo = widget.minScale;
+  late double _hi = widget.maxScale;
+  late double _scale = widget.minScale;
+
+  Size? _lastViewport;
+  Object? _lastToken;
+  bool _converged = false;
+
+  void _resetSearch() {
+    _lo = widget.minScale;
+    _hi = widget.maxScale;
+    _scale = widget.minScale;
+    _converged = false;
+  }
+
+  void _measureAndStep(double viewportHeight) {
+    if (!mounted || _converged) return;
+    final box = _contentKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+    final contentHeight = box.size.height;
+
+    final fits = contentHeight <= viewportHeight + _heightEpsilon;
+    if (fits) {
+      _lo = _scale;
+    } else {
+      _hi = _scale;
+    }
+
+    if (_hi - _lo <= _scaleEpsilon) {
+      // Settle on the largest scale known to fit.
+      final settled = _lo.clamp(widget.minScale, widget.maxScale);
+      _converged = true;
+      if ((settled - _scale).abs() > _scaleEpsilon / 2) {
+        setState(() => _scale = settled);
+      }
+      return;
+    }
+
+    final next = (_lo + _hi) / 2;
+    setState(() => _scale = next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewport = Size(constraints.maxWidth, constraints.maxHeight);
+        if (_lastViewport != viewport || _lastToken != widget.resetToken) {
+          _lastViewport = viewport;
+          _lastToken = widget.resetToken;
+          _resetSearch();
+        }
+        final viewportHeight = constraints.maxHeight;
+        if (viewportHeight.isFinite) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _measureAndStep(viewportHeight);
+          });
+        }
+        return SingleChildScrollView(
+          child: KeyedSubtree(
+            key: _contentKey,
+            child: widget.builder(context, _scale),
+          ),
+        );
+      },
     );
   }
 }
@@ -225,6 +371,45 @@ class PerformStageTheme extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!enabled) return child;
     return Theme(data: AppTheme.highContrast, child: child);
+  }
+}
+
+/// In-view toggle for auto-sizing the Perform card to fit the viewport
+/// (ROADMAP G.1), shared by both Perform views as an AppBar action. Initialised
+/// from the General setting (on by default). When on, the card auto-scales; the
+/// A-/A+ controls remain available and, when used, hand control back to the
+/// manual size. This toggle lets a caller flip auto-fit back on within a
+/// session. Pairs an icon with a state-dependent tooltip (never color-only) and
+/// exposes its on/off STATE to assistive tech via [Semantics.toggled], matching
+/// [PerformStageToggle].
+class PerformAutoSizeToggle extends StatelessWidget {
+  const PerformAutoSizeToggle({
+    super.key,
+    required this.autoSizeOn,
+    required this.onChanged,
+  });
+
+  final bool autoSizeOn;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tooltip = autoSizeOn
+        ? 'Auto-size on — tap for manual text size'
+        : 'Auto-size off — tap to fit text to screen';
+    return MergeSemantics(
+      child: Semantics(
+        toggled: autoSizeOn,
+        child: IconButton(
+          key: const ValueKey('perform-autosize-toggle'),
+          tooltip: tooltip,
+          isSelected: autoSizeOn,
+          icon: const Icon(Icons.fit_screen_outlined),
+          selectedIcon: const Icon(Icons.fit_screen),
+          onPressed: () => onChanged(!autoSizeOn),
+        ),
+      ),
+    );
   }
 }
 

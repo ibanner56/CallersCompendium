@@ -348,7 +348,7 @@ Cross-cutting application preferences, persisted across sessions via
 §6). Distinct from in-the-moment, per-view toggles — this section is the home
 for app-wide preference switches as they accrue.
 
-- [ ] G.1 **Auto-size performance cards to fit the screen** — a General settings
+- [x] G.1 **Auto-size performance cards to fit the screen** — a General settings
   toggle (**on by default**) that auto-scales each Perform card so the current
   dance/slot's full text fits the visible viewport without scrolling,
   recomputing on dance/slot change, orientation change, and window resize.

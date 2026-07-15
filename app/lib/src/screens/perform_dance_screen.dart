@@ -2,8 +2,10 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/repositories_scope.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
+import 'settings_screen.dart' show kAutoSizePerformKey;
 
 /// Full-screen, large-print performance view for a single [Dance]
 /// (`docs/design/ux.md` §5; ROADMAP 5.1). Entered explicitly from the dance
@@ -39,6 +41,13 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     with PerformWakelockMixin {
   double _textScale = kPerformDefaultScale;
 
+  /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the
+  /// General setting (on by default) in [didChangeDependencies]; mutable in-view
+  /// via the auto-fit toggle and the A-/A+ controls without writing back to the
+  /// global setting.
+  bool _autoSize = true;
+  bool _autoSizeLoaded = false;
+
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5). In
   /// view only; persistence to Settings is a documented later follow-up.
   bool _stageMode = true;
@@ -48,8 +57,22 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// already canonical (toggling would be a no-op).
   bool _canonicalView = false;
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_autoSizeLoaded) return;
+    _autoSizeLoaded = true;
+    RepositoriesScope.of(context).settings.get(kAutoSizePerformKey).then((v) {
+      if (!mounted) return;
+      final enabled = v is bool ? v : true;
+      if (enabled != _autoSize) setState(() => _autoSize = enabled);
+    });
+  }
+
   void _decreaseTextSize() {
     setState(() {
+      // Using A-/A+ hands control back to the manual size (ROADMAP G.1).
+      _autoSize = false;
       _textScale = (_textScale - kPerformScaleStep).clamp(
         kPerformMinScale,
         double.infinity,
@@ -58,7 +81,10 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   }
 
   void _increaseTextSize() {
-    setState(() => _textScale += kPerformScaleStep);
+    setState(() {
+      _autoSize = false;
+      _textScale += kPerformScaleStep;
+    });
   }
 
   @override
@@ -86,6 +112,10 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
               onDecrease: _decreaseTextSize,
               onIncrease: _increaseTextSize,
             ),
+            PerformAutoSizeToggle(
+              autoSizeOn: _autoSize,
+              onChanged: (value) => setState(() => _autoSize = value),
+            ),
             if (!isCanonicalDialect)
               PerformDialectToggle(
                 canonical: _canonicalView,
@@ -104,6 +134,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
             renderer: widget.renderer,
             dialect: dialect,
             textScale: _textScale,
+            autoSize: _autoSize,
             authorNames: widget.authorNames,
           ),
         ),
