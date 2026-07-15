@@ -174,9 +174,43 @@ class ImportPipeline {
     final records = <ImportRecordPlan>[];
     final errors = <ImportError>[];
     for (final record in discovered) {
+      RawRecord raw;
       try {
-        final raw = await adapter.fetch(record);
-        final draft = adapter.parse(raw);
+        raw = await adapter.fetch(record);
+      } on ImportError catch (e) {
+        errors.add(e);
+        continue;
+      } catch (e) {
+        errors.add(
+          fetchError(
+            adapter.source,
+            'Failed to fetch record: $e',
+            externalId: record.externalId,
+            cause: e,
+          ),
+        );
+        continue;
+      }
+
+      final StructuredDraft draft;
+      try {
+        draft = adapter.parse(raw);
+      } on ImportError catch (e) {
+        errors.add(e);
+        continue;
+      } catch (e) {
+        errors.add(
+          parseError(
+            adapter.source,
+            'Failed to parse record: $e',
+            externalId: raw.externalId ?? record.externalId,
+            cause: e,
+          ),
+        );
+        continue;
+      }
+
+      try {
         final verdict = dedupe.verdictFor(
           source: raw.source,
           externalId: raw.externalId,
@@ -189,10 +223,11 @@ class ImportPipeline {
         errors.add(e);
       } catch (e) {
         errors.add(
-          parseError(
-            adapter.source,
-            'Failed to import record: $e',
-            externalId: record.externalId,
+          ImportError(
+            stage: ImportStage.dedupe,
+            source: adapter.source,
+            message: 'Failed to dedupe record: $e',
+            externalId: raw.externalId ?? record.externalId,
             cause: e,
           ),
         );
