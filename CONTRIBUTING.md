@@ -43,23 +43,73 @@ by opening a PR adding a `Proposed` ADR.
 The app is a Flutter [pub workspace](pubspec.yaml): the `app/` Flutter app plus a
 pure-Dart domain core in `packages/compendium_core/` (which must not import
 Flutter — ADR-001, enforced in CI). Flutter is pinned to the version in
-[`.fvmrc`](.fvmrc) (currently 3.44.6); [FVM](https://fvm.app/) is the easy way to
-match it.
+[`.fvmrc`](.fvmrc) (currently 3.44.6); [FVM](https://fvm.app/) is the way we keep
+everyone on that exact version. Install FVM, then from the repo root:
 
 ```sh
-flutter pub get                 # resolve the whole workspace
-dart format --output=none --set-exit-if-changed .   # formatting (CI-enforced)
-flutter analyze                 # lint
-(cd packages/compendium_core && dart test)          # core unit tests
-(cd app && flutter test)        # app/widget tests
-(cd app && flutter run)         # run the app on your device/desktop
+fvm install                     # fetch the pinned Flutter version (.fvmrc)
+fvm flutter pub get             # resolve the whole workspace
 ```
 
-CI runs all of the above plus a release build matrix across Linux, macOS,
-Windows, Android, and iOS. Getting the roadmap's open items moving — see
-[docs/ROADMAP.md](docs/ROADMAP.md) — plus doc review, design feedback, and
-test-corpus contributions (interesting dances that stress the figure model!)
-are all welcome. Open an issue or start a discussion.
+All commands below use `fvm flutter` / `fvm dart` so they run against the pinned
+SDK. (If you'd rather not prefix every command, `fvm use` sets up a `.fvm/`
+symlink you can point your editor/PATH at — see the FVM docs.)
+
+## Making a change
+
+1. Branch from `main` (`kebab-case-description`).
+2. Make your change. Domain logic (taxonomy, dialect, storage, imports) belongs
+   in `packages/compendium_core/` and must stay Flutter-free; the UI lives in
+   `app/`.
+3. Run the checks CI enforces, from the repo root:
+
+   ```sh
+   fvm dart format .                                   # format (CI fails on diffs)
+   fvm flutter analyze                                 # lint
+   (cd packages/compendium_core && fvm dart test)      # core unit tests
+   (cd app && fvm flutter test)                        # app / widget tests
+   ```
+
+4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
+
+## Running & viewing locally
+
+Run the app with hot reload against a connected device, emulator, or your
+desktop. `fvm flutter devices` lists what's available; `-d <id>` picks one.
+
+```sh
+cd app
+fvm flutter run                 # default device (prompts if several)
+fvm flutter run -d macos        # macOS desktop
+fvm flutter run -d windows      # Windows desktop
+fvm flutter run -d linux        # Linux desktop
+fvm flutter run -d chrome       # quick web preview (not a shipping target)
+fvm flutter run -d <android-id> # Android device/emulator (see `flutter devices`)
+fvm flutter run -d <ios-id>     # iOS simulator/device (macOS host only)
+```
+
+Desktop targets have host prerequisites: **Linux** needs
+`ninja-build` + `libgtk-3-dev` (and `clang`/`cmake`/`pkg-config`); **Windows**
+needs Visual Studio with the "Desktop development with C++" workload; **macOS**
+and **iOS** need Xcode; **Android** needs the Android SDK/NDK. Run
+`fvm flutter doctor` to see what's missing for the platforms you want to build.
+
+To build release artifacts locally (the same set CI produces across Linux,
+macOS, Windows, Android, and iOS):
+
+```sh
+cd app
+fvm flutter build linux --release
+fvm flutter build macos --release
+fvm flutter build windows --release
+fvm flutter build apk --release          # or: appbundle
+fvm flutter build ios --release --no-codesign
+```
+
+Getting the roadmap's open items moving — see [docs/ROADMAP.md](docs/ROADMAP.md)
+— plus doc review, design feedback, and test-corpus contributions (interesting
+dances that stress the figure model!) are all welcome. Open an issue or start a
+discussion.
 
 ## Reporting bugs / requesting features
 
