@@ -14,6 +14,7 @@ import '../../search/search_sort.dart';
 import '../../search/title_sort_key.dart';
 import '../../search/filter.dart';
 import '../../search/filter_compiler.dart';
+import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
@@ -404,7 +405,7 @@ class DanceRepository {
         .customSelect(
           'SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ? '
           'ORDER BY bm25(dance_fts)',
-          variables: [Variable.withString(query)],
+          variables: [Variable.withString(toFtsMatchQuery(query))],
         )
         .get();
     return [for (final r in rows) r.read<String>('dance_id')];
