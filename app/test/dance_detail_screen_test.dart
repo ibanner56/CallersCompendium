@@ -607,4 +607,163 @@ void main() {
     expect(find.text('p. 12-14, no. A1'), findsOneWidget);
     expect(find.text('https://example.com/zesty'), findsOneWidget);
   });
+
+  group('add to program', () {
+    Program program({
+      required String id,
+      String title = 'Friday Night',
+      DateTime? eventDate,
+      List<ProgramSlot> slots = const [],
+      DateTime? updatedAt,
+    }) => Program(
+      id: id,
+      title: title,
+      eventDate: eventDate,
+      slots: slots,
+      createdAt: _now,
+      updatedAt: updatedAt ?? _now,
+    );
+
+    testWidgets('action is present and a11y-reachable', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Broken Sixpence'));
+      final handle = tester.ensureSemantics();
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      final action = find.byKey(const ValueKey('add-dance-to-program'));
+      expect(action, findsOneWidget);
+      expect(
+        tester.getSemantics(action),
+        isSemantics(
+          tooltip: 'Add to program',
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+        ),
+        reason: 'add-to-program action must be labelled, focusable, tappable',
+      );
+      handle.dispose();
+    });
+
+    testWidgets('tapping opens a picker listing existing programs', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1'));
+      await repos.programs.create(program(id: 'p1', title: 'Barn Dance'));
+      await repos.programs.create(program(id: 'p2', title: 'Contra Jam'));
+
+      await _pumpDetail(tester, repos, 'd1');
+      await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('program-pick-p1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('program-pick-p2')), findsOneWidget);
+      expect(find.text('Barn Dance'), findsOneWidget);
+      expect(find.text('Contra Jam'), findsOneWidget);
+    });
+
+    testWidgets('a program row is a11y-reachable', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1'));
+      await repos.programs.create(program(id: 'p1', title: 'Barn Dance'));
+      final handle = tester.ensureSemantics();
+
+      await _pumpDetail(tester, repos, 'd1');
+      await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSemantics(find.byKey(const ValueKey('program-pick-p1'))),
+        isSemantics(isButton: true, isFocusable: true, hasTapAction: true),
+        reason: 'each program row must be a labelled, focusable button',
+      );
+      handle.dispose();
+    });
+
+    testWidgets('selecting a program appends this dance and confirms', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Zesty'));
+      await repos.dances.create(_dance(id: 'other', title: 'Other Dance'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'other')],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+      await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-pick-p1')));
+      await tester.pumpAndSettle();
+
+      final updated = await repos.programs.getById('p1');
+      expect(updated!.slots, hasLength(2));
+      expect(updated.slots.last.danceId, 'd1');
+      expect(updated.slots.last.position, 1);
+      expect(
+        find.byKey(const ValueKey('added-to-program-snackbar')),
+        findsOneWidget,
+      );
+      expect(find.text('Added "Zesty" to Friday Night.'), findsOneWidget);
+    });
+
+    testWidgets('undo removes the appended slot', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Zesty'));
+      await repos.dances.create(_dance(id: 'other', title: 'Other Dance'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'other')],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+      await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-pick-p1')));
+      await tester.pumpAndSettle();
+
+      expect((await repos.programs.getById('p1'))!.slots, hasLength(2));
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      final restored = await repos.programs.getById('p1');
+      expect(restored!.slots, hasLength(1));
+      expect(restored.slots.single.danceId, 'other');
+    });
+
+    testWidgets('empty program list shows teaching state and can create', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Zesty'));
+
+      await _pumpDetail(tester, repos, 'd1');
+      await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('add-to-program-empty')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('add-to-program-create')));
+      await tester.pumpAndSettle();
+
+      final programs = await repos.programs.listAll();
+      expect(programs, hasLength(1));
+      expect(programs.single.slots.single.danceId, 'd1');
+      expect(
+        find.byKey(const ValueKey('created-program-snackbar')),
+        findsOneWidget,
+      );
+    });
+  });
 }
