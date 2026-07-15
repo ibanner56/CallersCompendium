@@ -59,21 +59,21 @@ targets to re-confirm in a contrast test during UX-0.
 | surfaceContainerHighest | `#F0E4DC` | (on surface) | 13.78 |
 | outline (borders, ≥3:1) | `#857066` | — | 4.37 |
 
-**Dark**
+**Dark** *(muted-pastel register — desaturated accents on a dustier warm charcoal canvas)*
 
 | Role | Hex | On-color | Ratio |
 |---|---|---|---|
-| primary | `#FFB59B` | `#5A1B08` | 7.73 |
-| primaryContainer | `#7C3218` | `#FFDBCF` | 7.00 |
-| secondary | `#B4CCB1` | `#203622` | 7.58 |
-| secondaryContainer | `#364E37` | `#D0E8CF` | 7.01 |
-| tertiary | `#EFC048` | `#3F2E00` | 7.68 |
-| tertiaryContainer | `#5B4300` | `#FFDF9E` | 7.25 |
-| error | `#FFB4AB` | `#690005` | 7.72 |
-| surface / onSurface | `#1A120E` | `#EDE0D9` | 14.31 |
-| onSurfaceVariant | `#D7C3B8` | (on surface) | 10.90 |
-| surfaceContainerHighest | `#3B302A` | (on surface) | 9.90 |
-| outline (borders, ≥3:1) | `#A08D82` | — | 5.83 |
+| primary | `#EABFB0` | `#5A1B08` | 7.89 |
+| primaryContainer | `#723E2C` | `#FFDBCF` | 6.67 |
+| secondary | `#B5CBB2` | `#203622` | 7.54 |
+| secondaryContainer | `#374D38` | `#D0E8CF` | 7.07 |
+| tertiary | `#D0BA80` | `#3F2E00` | 6.88 |
+| tertiaryContainer | `#524318` | `#FFDF9E` | 7.50 |
+| error | `#EEC1BC` | `#690005` | 8.10 |
+| surface / onSurface | `#261F1B` | `#EAE1DC` | 12.60 |
+| onSurfaceVariant | `#D3C4BC` | (on surface) | 9.57 |
+| surfaceContainerHighest | `#413833` | (on surface) | 8.87 |
+| outline (borders, ≥3:1) | `#9E8D84` | — | 5.10 |
 
 ### 1b. High-contrast / Perform tokens (shared, dark-based, target ≥7:1)
 
@@ -302,16 +302,16 @@ per-role hex against each source palette is an implementation deliverable.
 
 | Palette | Mode | Background — "omega" | Foreground | Signature accents | Inspired by |
 |---|---|---|---|---|---|
-| **Hearth** *(default, ships in UX-0)* | light+dark+HC | `#FBF7F2` / `#1A120E` | `#201A17` / `#EDE0D9` | terracotta `#9C4A2F` · pine `#4E6B4F` · ochre `#7A5900` | house palette (§1a/§1b) |
+| **Hearth** *(default, ships in UX-0)* | light+dark+HC | `#FBF7F2` / `#261F1B` | `#201A17` / `#EAE1DC` | terracotta `#9C4A2F` · pine `#4E6B4F` · ochre `#7A5900` | house palette (§1a/§1b) |
 | Solarized Light | light | `#FDF6E3` warm paper | `#657B83` | `#268BD2` `#859900` `#B58900` `#DC322F` `#6C71C4` `#2AA198` | Solarized (Ethan Schoonover, MIT) |
 | Solarized Dark | dark | `#002B36` deep teal | `#839496` | *(same accent set)* | Solarized (MIT) |
 | Atom One Light | light | `#FAFAFA` cool white | `#383A42` | `#4078F2` `#50A14F` `#E45649` `#A626A4` `#0184BC` | Atom One Light |
 | Atom One Dark | dark | `#282C34` blue-grey | `#ABB2BF` | `#61AFEF` `#98C379` `#E06C75` `#C678DD` `#56B6C2` `#E5C07B` | Atom One Dark |
 | One Dark Pro | dark | `#282C34` blue-grey | `#ABB2BF` | *(refined One Dark accents)* | One Dark Pro |
 | One Dark Pro Darker | dark | `#21252B` near-black | `#ABB2BF` | *(as above)* | One Dark Pro "Darker" (deeper omega) |
-| Monokai | dark | `#272822` warm charcoal | `#F8F8F2` | `#F92672` `#A6E22E` `#E6DB74` `#FD971F` `#AE81FF` `#66D9EF` | Monokai (Wimer Hazenberg / Sublime) |
-| Noctis | dark | `#1B2932` teal blue-black | `#D6DEEB` | teal/green forward | Noctis (Liviu Schera) |
-| Noctis Lux | light | `#F9F6F2` | `#53606C` | teal/green forward | Noctis Lux |
+| Monokai | dark | `#282C34` charcoal | `#ABB2BF` | `#E06C75` `#98C379` `#C678DD` `#F44747` | One Monokai (azemoh) — Monokai syntax on One Dark's canvas |
+
+*(The Noctis family — 11 variants — now has its own gallery section; see "Noctis family" below.)*
 
 **Expanded gallery (UX-7).** Following UX-6, the gallery was widened with the
 most-requested industry/hobbyist favorites, spanning the hue spectrum in both
@@ -337,6 +337,46 @@ adding one is just "identity colors + one enum entry":
 | Everforest Dark | dark | `#2D353B` | soft green | Everforest |
 | Rosé Pine | dark | `#191724` | rose / iris | Rosé Pine |
 | Ayu Mirage | dark | `#1F2430` | amber / slate | Ayu |
+| GitHub Soft Dark | dark | `#22272E` | dimmed blue | GitHub "Dark dimmed" |
+| Cutie Pro | dark | `#231F20` | pink pastel | Cutie Pro |
+| Cute Pink Dark | dark | `#000000` | pink on black | Cute Pink Dark |
+| Pink as Heck | dark | `#2D1E2F` | hot pink | Pink as Heck |
+| Catppuccin Frappé | dark | `#303446` | pastel mauve | Catppuccin |
+| Catppuccin Macchiato | dark | `#24273A` | pastel mauve | Catppuccin |
+| One Candy Dark | dark | `#282C34` | candy pink | One Candy (Zed) |
+| Matcha | dark | `#2A2A2A` | matcha green | Matcha |
+| Material Light | light | `#FFFBFE` | Material purple | Material 3 baseline |
+| Material Dark | dark | `#1C1B1F` | Material purple | Material 3 baseline |
+| Zenburn | dark | `#3F3F3F` | low-contrast warm grey | Zenburn |
+| Shades of Purple | dark | `#2D2B55` | gold on indigo | Shades of Purple |
+| Palenight | dark | `#292D3E` | purple / blue-grey | Material Palenight |
+| Synthwave '84 | dark | `#262335` | neon on retro purple | Synthwave '84 |
+
+**Noctis family.** The full [Noctis](https://github.com/liviuschera/noctis)
+palette set (11 variants) lives in its own **Noctis** gallery section, below
+Dark. Every variant shares Noctis's signature syntax accents — mint-green
+strings, warm-pink keywords, gold functions — over its own canvas, so they read
+as one coherent family regardless of light/dark brightness. Accents are constant
+per brightness; only surface + foreground change between variants.
+
+| Variant | Mode | Background | Foreground |
+|---|---|---|---|
+| Noctis | dark | `#052529` deep teal | `#B2CACD` |
+| Noctis Azureus | dark | `#07273B` azure-blue | `#BECFDA` |
+| Noctis Bordo | dark | `#322A2D` burgundy-brown | `#CBBEC2` |
+| Noctis Minimus | dark | `#1B2932` blue-grey | `#C5CDD3` |
+| Noctis Obscuro | dark | `#031417` near-black teal | `#B2CACD` |
+| Noctis Sereno | dark | `#062E32` mid-teal | `#B2CACD` |
+| Noctis Uva | dark | `#292640` indigo-violet | `#C5C2D6` |
+| Noctis Viola | dark | `#30243D` purple | `#CCBFD9` |
+| Noctis Hibernus | light | `#F4F6F6` cool white | `#005661` |
+| Noctis Lux | light | `#FEF8EC` warm paper | `#005661` |
+| Noctis Lilac | light | `#F2F1F8` lilac | `#0C006B` |
+
+Shared accents: mint-green `#49E9A6` (light `#00B368`) · warm-pink `#DF769B`
+(light `#FF5792`) · gold `#D5971A` (light `#A88C00`) · red `#E34E1C`
+(light `#FF4000`). Minimus uses its own softer set (`#72C09F` `#C88DA2`
+`#A88C00` `#B96346`).
 
 The set deliberately spans the **omega spectrum** — paper-white → cool-white →
 warm-charcoal → blue-grey → near-black → deep-saturated-teal — so users get real

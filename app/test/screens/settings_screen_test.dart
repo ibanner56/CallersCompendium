@@ -372,10 +372,28 @@ void main() {
   });
 
   group('SettingsScreen — custom themes', () {
+    // The Appearance list scrolls (the theme gallery grew), so the custom
+    // themes section can sit below the fold. Scroll the content list — located
+    // via the always-built gallery — until [target] is on screen.
+    Future<void> revealInAppearance(WidgetTester tester, Finder target) async {
+      final scrollable = find
+          .ancestor(
+            of: find.byKey(ValueKey('theme-${AppThemeSelection.system.name}')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(target, 300, scrollable: scrollable);
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('shows an empty-state hint and a New custom theme button', (
       tester,
     ) async {
       await _pumpSettings(tester);
+      await revealInAppearance(
+        tester,
+        find.byKey(const ValueKey('new-custom-theme')),
+      );
       expect(find.byKey(const ValueKey('new-custom-theme')), findsOneWidget);
       expect(find.textContaining('saved on this device'), findsOneWidget);
     });
@@ -388,6 +406,10 @@ void main() {
         roles: CustomTheme.rolesFromScheme(const ColorScheme.dark()),
       );
       await tester.pumpAndSettle();
+      await revealInAppearance(
+        tester,
+        find.byKey(ValueKey('custom-${created.id}')),
+      );
 
       expect(find.byKey(ValueKey('custom-${created.id}')), findsOneWidget);
       expect(find.text('Test Theme'), findsOneWidget);
@@ -408,7 +430,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final card = find.byKey(ValueKey('custom-${created.id}'));
-      await tester.ensureVisible(card);
+      await revealInAppearance(tester, card);
       await tester.tap(card);
       await tester.pumpAndSettle();
 

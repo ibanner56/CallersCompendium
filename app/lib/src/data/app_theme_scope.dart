@@ -10,7 +10,8 @@ enum AppThemeGroup {
   system('System'),
   defaultHearth('Default'),
   light('Light'),
-  dark('Dark');
+  dark('Dark'),
+  noctis('Noctis');
 
   const AppThemeGroup(this.label);
 
@@ -54,7 +55,31 @@ enum AppThemeSelection {
   nightOwl,
   everforestDark,
   rosePine,
-  ayuMirage;
+  ayuMirage,
+  githubSoftDark,
+  cutiePro,
+  cutePinkDark,
+  pinkAsHeck,
+  catppuccinFrappe,
+  catppuccinMacchiato,
+  oneCandyDark,
+  matcha,
+  materialLight,
+  materialDark,
+  zenburn,
+  shadesOfPurple,
+  palenight,
+  synthwave84,
+  // Gallery palettes (§4A) — Noctis family.
+  noctisAzureus,
+  noctisBordo,
+  noctisHibernus,
+  noctisLilac,
+  noctisMinimus,
+  noctisObscuro,
+  noctisSereno,
+  noctisUva,
+  noctisViola;
 
   bool get isHighContrast => this == AppThemeSelection.highContrast;
 
@@ -94,6 +119,30 @@ enum AppThemeSelection {
     AppThemeSelection.everforestDark => GalleryPalettes.everforestDark,
     AppThemeSelection.rosePine => GalleryPalettes.rosePine,
     AppThemeSelection.ayuMirage => GalleryPalettes.ayuMirage,
+    AppThemeSelection.githubSoftDark => GalleryPalettes.githubSoftDark,
+    AppThemeSelection.cutiePro => GalleryPalettes.cutiePro,
+    AppThemeSelection.cutePinkDark => GalleryPalettes.cutePinkDark,
+    AppThemeSelection.pinkAsHeck => GalleryPalettes.pinkAsHeck,
+    AppThemeSelection.catppuccinFrappe => GalleryPalettes.catppuccinFrappe,
+    AppThemeSelection.catppuccinMacchiato =>
+      GalleryPalettes.catppuccinMacchiato,
+    AppThemeSelection.oneCandyDark => GalleryPalettes.oneCandyDark,
+    AppThemeSelection.matcha => GalleryPalettes.matcha,
+    AppThemeSelection.materialLight => GalleryPalettes.materialLight,
+    AppThemeSelection.materialDark => GalleryPalettes.materialDark,
+    AppThemeSelection.zenburn => GalleryPalettes.zenburn,
+    AppThemeSelection.shadesOfPurple => GalleryPalettes.shadesOfPurple,
+    AppThemeSelection.palenight => GalleryPalettes.palenight,
+    AppThemeSelection.synthwave84 => GalleryPalettes.synthwave84,
+    AppThemeSelection.noctisAzureus => GalleryPalettes.noctisAzureus,
+    AppThemeSelection.noctisBordo => GalleryPalettes.noctisBordo,
+    AppThemeSelection.noctisHibernus => GalleryPalettes.noctisHibernus,
+    AppThemeSelection.noctisLilac => GalleryPalettes.noctisLilac,
+    AppThemeSelection.noctisMinimus => GalleryPalettes.noctisMinimus,
+    AppThemeSelection.noctisObscuro => GalleryPalettes.noctisObscuro,
+    AppThemeSelection.noctisSereno => GalleryPalettes.noctisSereno,
+    AppThemeSelection.noctisUva => GalleryPalettes.noctisUva,
+    AppThemeSelection.noctisViola => GalleryPalettes.noctisViola,
   };
 
   /// Brightness of a pinned selection (defaults to light for [system], which
@@ -108,13 +157,24 @@ enum AppThemeSelection {
     AppThemeSelection.highContrast => AppThemeGroup.defaultHearth,
     AppThemeSelection.solarizedLight ||
     AppThemeSelection.atomOneLight ||
-    AppThemeSelection.noctisLux ||
     AppThemeSelection.githubLight ||
     AppThemeSelection.catppuccinLatte ||
     AppThemeSelection.gruvboxLight ||
     AppThemeSelection.everforestLight ||
     AppThemeSelection.rosePineDawn ||
+    AppThemeSelection.materialLight ||
     AppThemeSelection.ayuLight => AppThemeGroup.light,
+    AppThemeSelection.noctis ||
+    AppThemeSelection.noctisLux ||
+    AppThemeSelection.noctisAzureus ||
+    AppThemeSelection.noctisBordo ||
+    AppThemeSelection.noctisHibernus ||
+    AppThemeSelection.noctisLilac ||
+    AppThemeSelection.noctisMinimus ||
+    AppThemeSelection.noctisObscuro ||
+    AppThemeSelection.noctisSereno ||
+    AppThemeSelection.noctisUva ||
+    AppThemeSelection.noctisViola => AppThemeGroup.noctis,
     _ => AppThemeGroup.dark,
   };
 
@@ -159,6 +219,29 @@ enum AppThemeSelection {
     AppThemeSelection.everforestDark => 'Everforest Dark',
     AppThemeSelection.rosePine => 'Rosé Pine',
     AppThemeSelection.ayuMirage => 'Ayu Mirage',
+    AppThemeSelection.githubSoftDark => 'GitHub Soft Dark',
+    AppThemeSelection.cutiePro => 'Cutie Pro',
+    AppThemeSelection.cutePinkDark => 'Cute Pink Dark',
+    AppThemeSelection.pinkAsHeck => 'Pink as Heck',
+    AppThemeSelection.catppuccinFrappe => 'Catppuccin Frappé',
+    AppThemeSelection.catppuccinMacchiato => 'Catppuccin Macchiato',
+    AppThemeSelection.oneCandyDark => 'One Candy Dark',
+    AppThemeSelection.matcha => 'Matcha',
+    AppThemeSelection.materialLight => 'Material Light',
+    AppThemeSelection.materialDark => 'Material Dark',
+    AppThemeSelection.zenburn => 'Zenburn',
+    AppThemeSelection.shadesOfPurple => 'Shades of Purple',
+    AppThemeSelection.palenight => 'Palenight',
+    AppThemeSelection.synthwave84 => 'Synthwave ’84',
+    AppThemeSelection.noctisAzureus => 'Noctis Azureus',
+    AppThemeSelection.noctisBordo => 'Noctis Bordo',
+    AppThemeSelection.noctisHibernus => 'Noctis Hibernus',
+    AppThemeSelection.noctisLilac => 'Noctis Lilac',
+    AppThemeSelection.noctisMinimus => 'Noctis Minimus',
+    AppThemeSelection.noctisObscuro => 'Noctis Obscuro',
+    AppThemeSelection.noctisSereno => 'Noctis Sereno',
+    AppThemeSelection.noctisUva => 'Noctis Uva',
+    AppThemeSelection.noctisViola => 'Noctis Viola',
   };
 
   /// One-line description shown under each option.
@@ -170,13 +253,13 @@ enum AppThemeSelection {
       'Maximum contrast for dim rooms and low vision',
     AppThemeSelection.solarizedLight => 'Ethan Schoonover’s low-glare classic',
     AppThemeSelection.atomOneLight => 'Crisp editor light, inspired by Atom',
-    AppThemeSelection.noctisLux => 'Soft warm light with teal accents',
+    AppThemeSelection.noctisLux => 'Soft warm Noctis daylight',
     AppThemeSelection.solarizedDark => 'The Solarized base tuned for the dark',
     AppThemeSelection.atomOneDark => 'The familiar Atom / VS Code dark',
     AppThemeSelection.oneDarkPro => 'One Dark Pro, the popular editor theme',
     AppThemeSelection.oneDarkProDarker => 'One Dark Pro on a deeper surface',
-    AppThemeSelection.monokai => 'Vivid Monokai on charcoal',
-    AppThemeSelection.noctis => 'Deep blue night with mint accents',
+    AppThemeSelection.monokai => 'One Monokai — Monokai syntax on charcoal',
+    AppThemeSelection.noctis => 'The original deep teal Noctis night',
     AppThemeSelection.githubLight => 'GitHub’s clean neutral light',
     AppThemeSelection.catppuccinLatte =>
       'Soft pastel light, community favorite',
@@ -194,6 +277,29 @@ enum AppThemeSelection {
     AppThemeSelection.everforestDark => 'Soft forest green, low fatigue',
     AppThemeSelection.rosePine => 'Muted rose and iris in the dark',
     AppThemeSelection.ayuMirage => 'Smooth slate with amber accents',
+    AppThemeSelection.githubSoftDark => 'GitHub’s softer, dimmed dark',
+    AppThemeSelection.cutiePro => 'Cute af dark pastel, pink-forward',
+    AppThemeSelection.cutePinkDark => 'Pink on true black, soft and sweet',
+    AppThemeSelection.pinkAsHeck => 'Unapologetic hot pink on berry',
+    AppThemeSelection.catppuccinFrappe => 'Catppuccin’s cozy mid-dark flavor',
+    AppThemeSelection.catppuccinMacchiato => 'Catppuccin’s deeper mid flavor',
+    AppThemeSelection.oneCandyDark => 'One Dark with a candy-pink twist',
+    AppThemeSelection.matcha => 'Earthy matcha green on slate',
+    AppThemeSelection.materialLight => 'The Material 3 baseline, light',
+    AppThemeSelection.materialDark => 'The Material 3 baseline, dark',
+    AppThemeSelection.zenburn => 'The classic low-contrast warm grey',
+    AppThemeSelection.shadesOfPurple => 'Bold gold on deep indigo',
+    AppThemeSelection.palenight => 'Purple-leaning Material on blue-grey',
+    AppThemeSelection.synthwave84 => 'Glowing neon on retro purple',
+    AppThemeSelection.noctisAzureus => 'Deep azure-blue Noctis night',
+    AppThemeSelection.noctisBordo => 'Warm burgundy-brown Noctis night',
+    AppThemeSelection.noctisHibernus => 'Cool, crisp Noctis daylight',
+    AppThemeSelection.noctisLilac => 'Gentle lilac Noctis daylight',
+    AppThemeSelection.noctisMinimus => 'Muted blue-grey Noctis night',
+    AppThemeSelection.noctisObscuro => 'The darkest Noctis teal night',
+    AppThemeSelection.noctisSereno => 'Calm mid-teal Noctis night',
+    AppThemeSelection.noctisUva => 'Deep indigo-violet Noctis night',
+    AppThemeSelection.noctisViola => 'Rich purple Noctis night',
   };
 
   /// Resolves a persisted name back to a selection, or `null` if unknown.
