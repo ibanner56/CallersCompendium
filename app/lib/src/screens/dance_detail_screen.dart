@@ -7,6 +7,7 @@ import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
+import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
 import '../widgets/dance_export_menu.dart';
 import '../widgets/dialect_quick_switch.dart';
@@ -292,6 +293,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// appears in the detail pane rather than being lost on unmount.
   Future<void> _delete() async {
     final title = (await _future)?.dance.title ?? 'Dance';
+    if (!mounted) return;
+    // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
+    if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+    if (!mounted) return;
     final now = DateTime.now().toUtc();
     await _repos.dances.softDelete(widget.danceId, at: now);
     if (!mounted) return;

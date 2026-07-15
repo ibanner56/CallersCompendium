@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../data/repositories_scope.dart';
+import '../utils/confirm_delete.dart';
 import '../widgets/program_list_tile.dart';
 import 'program_editor_screen.dart';
 import 'programs_recently_deleted_screen.dart';
@@ -317,6 +318,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               return Dismissible(
                 key: ValueKey('dismissible-${program.id}'),
                 direction: DismissDirection.endToStart,
+                confirmDismiss: (_) =>
+                    confirmDeleteIfEnabled(context, itemLabel: program.title),
                 onDismissed: (_) => _softDelete(program),
                 background: Container(
                   alignment: Alignment.centerRight,

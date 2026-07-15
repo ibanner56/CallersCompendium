@@ -8,6 +8,7 @@ import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
+import '../utils/confirm_delete.dart';
 import '../widgets/collection_picker.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
@@ -499,6 +500,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final source = _existing;
     if (source == null) return;
     final title = source.title;
+    // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
+    if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+    if (!mounted) return;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);

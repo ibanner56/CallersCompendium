@@ -3,16 +3,19 @@ import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/app_theme_scope.dart';
+import '../data/confirm_before_delete_scope.dart';
 import '../data/custom_theme.dart';
 import '../data/custom_themes_controller.dart';
 import '../data/custom_themes_scope.dart';
 import '../data/dialect_library_controller.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/reduce_motion_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/soft_delete_retention.dart';
 import '../data/sort_ignore_articles_scope.dart';
+import '../data/verbose_figure_rendering_scope.dart';
 import '../models/dance_list_entry.dart' show formationShapeLabel;
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
@@ -559,6 +562,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await repos.settings.set(kSortIgnoreArticlesKey, value);
   }
 
+  Future<void> _onReduceMotionChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern (ROADMAP G.7): flip the live
+    // notifier so animation-gated widgets rebuild immediately, then persist.
+    ReduceMotionScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kReduceMotionKey, value);
+  }
+
+  Future<void> _onVerboseFigureRenderingChanged(bool value) async {
+    VerboseFigureRenderingScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kVerboseFigureRenderingKey, value);
+  }
+
+  Future<void> _onConfirmBeforeDeleteChanged(bool value) async {
+    ConfirmBeforeDeleteScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kConfirmBeforeDeleteKey, value);
+  }
+
   /// Builds the content pane for [section]. Selection and scope reads use
   /// [context] (in the side-by-side layout the screen itself; in the narrow
   /// layout the pushed detail route) via `.of(context)`, which registers that
@@ -597,6 +620,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _onRequirePerformedForHistoryChanged,
           sortIgnoreArticles: SortIgnoreArticlesScope.of(context),
           onSortIgnoreArticlesChanged: _onSortIgnoreArticlesChanged,
+          reduceMotion: ReduceMotionScope.of(context),
+          onReduceMotionChanged: _onReduceMotionChanged,
+          verboseFigureRendering: VerboseFigureRenderingScope.of(context),
+          onVerboseFigureRenderingChanged: _onVerboseFigureRenderingChanged,
+          confirmBeforeDelete: ConfirmBeforeDeleteScope.of(context),
+          onConfirmBeforeDeleteChanged: _onConfirmBeforeDeleteChanged,
           autoSizePerform: _autoSizePerform ?? true,
           onAutoSizeChanged: _onAutoSizeChanged,
           softDeleteRetentionDays:
@@ -1148,6 +1177,12 @@ class _GeneralView extends StatelessWidget {
     required this.onRequirePerformedForHistoryChanged,
     required this.sortIgnoreArticles,
     required this.onSortIgnoreArticlesChanged,
+    required this.reduceMotion,
+    required this.onReduceMotionChanged,
+    required this.verboseFigureRendering,
+    required this.onVerboseFigureRenderingChanged,
+    required this.confirmBeforeDelete,
+    required this.onConfirmBeforeDeleteChanged,
     required this.autoSizePerform,
     required this.onAutoSizeChanged,
     required this.softDeleteRetentionDays,
@@ -1158,6 +1193,12 @@ class _GeneralView extends StatelessWidget {
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
   final bool sortIgnoreArticles;
   final ValueChanged<bool> onSortIgnoreArticlesChanged;
+  final bool reduceMotion;
+  final ValueChanged<bool> onReduceMotionChanged;
+  final bool verboseFigureRendering;
+  final ValueChanged<bool> onVerboseFigureRenderingChanged;
+  final bool confirmBeforeDelete;
+  final ValueChanged<bool> onConfirmBeforeDeleteChanged;
   final bool autoSizePerform;
   final ValueChanged<bool> onAutoSizeChanged;
 
@@ -1204,6 +1245,40 @@ class _GeneralView extends StatelessWidget {
             'When on, a dance’s calling history lists only programs whose slot '
             'for that dance was marked performed. When off, a program appears '
             'as soon as it contains the dance.',
+          ),
+          isThreeLine: true,
+        ),
+        _SectionHeader(title: 'Accessibility'),
+        SwitchListTile(
+          key: const ValueKey('general-reduce-motion'),
+          value: reduceMotion,
+          onChanged: onReduceMotionChanged,
+          title: const Text('Reduce motion'),
+          subtitle: const Text(
+            'Dampen or skip non-essential animations, such as animated '
+            'scrolling when moving between search results or figures.',
+          ),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-verbose-figures'),
+          value: verboseFigureRendering,
+          onChanged: onVerboseFigureRenderingChanged,
+          title: const Text('Always show verbose figure text'),
+          subtitle: const Text(
+            'Show the full spoken-style figure wording on screen in the dance '
+            'view, not only to screen readers. Turn off for the terse notation.',
+          ),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-confirm-before-delete'),
+          value: confirmBeforeDelete,
+          onChanged: onConfirmBeforeDeleteChanged,
+          title: const Text('Confirm before delete'),
+          subtitle: const Text(
+            'Ask for confirmation before deleting a dance or program. Deletes '
+            'can still be undone; this just adds an explicit prompt first.',
           ),
           isThreeLine: true,
         ),

@@ -6,14 +6,17 @@ import 'package:flutter/material.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
+import 'src/data/confirm_before_delete_scope.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
+import 'src/data/reduce_motion_scope.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
 import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
+import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/settings_screen.dart'
@@ -78,6 +81,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
     false,
   );
   final ValueNotifier<bool> _sortIgnoreArticlesNotifier = ValueNotifier(true);
+  final ValueNotifier<bool> _reduceMotionNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _verboseFigureRenderingNotifier = ValueNotifier(
+    false,
+  );
+  final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
   late final CustomThemesController _customThemes;
   late final DialectLibraryController _dialectLibrary;
 
@@ -140,6 +148,25 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (sortIgnoreArticles is bool) {
       _sortIgnoreArticlesNotifier.value = sortIgnoreArticles;
     }
+    // Load the three accessibility toggles (ROADMAP G.7), each defaulting to
+    // off (false) when unset. Defensive: a read failure falls back to false so
+    // startup never blocks on a settings hiccup.
+    final reduceMotion = await _appData.repositories.settings
+        .get(kReduceMotionKey)
+        .catchError((_) => null);
+    if (reduceMotion is bool) _reduceMotionNotifier.value = reduceMotion;
+    final verboseFigures = await _appData.repositories.settings
+        .get(kVerboseFigureRenderingKey)
+        .catchError((_) => null);
+    if (verboseFigures is bool) {
+      _verboseFigureRenderingNotifier.value = verboseFigures;
+    }
+    final confirmBeforeDelete = await _appData.repositories.settings
+        .get(kConfirmBeforeDeleteKey)
+        .catchError((_) => null);
+    if (confirmBeforeDelete is bool) {
+      _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
+    }
     // Load any locally-saved custom themes and the active one (if set).
     await _customThemes.load();
   }
@@ -150,6 +177,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
     _sortIgnoreArticlesNotifier.dispose();
+    _reduceMotionNotifier.dispose();
+    _verboseFigureRenderingNotifier.dispose();
+    _confirmBeforeDeleteNotifier.dispose();
     _customThemes.dispose();
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
@@ -225,7 +255,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
                       notifier: _requirePerformedForHistoryNotifier,
                       child: SortIgnoreArticlesScope(
                         notifier: _sortIgnoreArticlesNotifier,
-                        child: child!,
+                        child: ReduceMotionScope(
+                          notifier: _reduceMotionNotifier,
+                          child: VerboseFigureRenderingScope(
+                            notifier: _verboseFigureRenderingNotifier,
+                            child: ConfirmBeforeDeleteScope(
+                              notifier: _confirmBeforeDeleteNotifier,
+                              child: child!,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),

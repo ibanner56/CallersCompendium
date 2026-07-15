@@ -6,6 +6,7 @@ import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart';
+import '../utils/confirm_delete.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
@@ -248,6 +249,9 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
   Future<void> _delete() async {
     final source = _program;
     if (source == null) return;
+    // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
+    if (!await confirmDeleteIfEnabled(context, itemLabel: source.title)) return;
+    if (!mounted) return;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

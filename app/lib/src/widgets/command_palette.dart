@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/reduce_motion_scope.dart';
 import '../data/repositories_scope.dart';
 import '../search/facet_labels.dart';
 
@@ -164,6 +165,8 @@ class _CommandPaletteState extends State<CommandPalette> {
   void _ensureHighlightedVisible() {
     // Scroll the highlighted row into view via its element, so the maths is
     // robust to variable row heights (group headers differ from result rows).
+    // Respect "Reduce motion" (ROADMAP G.7): jump instantly when it's on.
+    final reduceMotion = ReduceMotionScope.of(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_highlighted < 0 || _highlighted >= _rowKeys.length) return;
       final context = _rowKeys[_highlighted].currentContext;
@@ -171,7 +174,9 @@ class _CommandPaletteState extends State<CommandPalette> {
       Scrollable.ensureVisible(
         context,
         alignment: 0.5,
-        duration: const Duration(milliseconds: 120),
+        duration: reduceMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 120),
         curve: Curves.easeOut,
       );
     });

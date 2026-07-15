@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../data/verbose_figure_rendering_scope.dart';
+
 /// Read-only figure table grouped by derived phrase section (`docs/design/ux.md`
 /// §2). Each section (A1, A2, …) heads a group; rows show the rendered figure
 /// text (under [dialect]), a progression ¶ marker, and the beat count.
@@ -33,6 +35,9 @@ class FigureTable extends StatelessWidget {
     }
 
     final sectioned = deriveSections(figures, phraseStructure);
+    // ROADMAP G.7: when "always verbose" is on, the visible row text uses the
+    // spoken-style verbose rendering instead of the terse notation.
+    final verbose = VerboseFigureRenderingScope.of(context);
     final rows = <Widget>[];
     String? lastLabel;
     var isFirstRowInSection = true;
@@ -49,6 +54,7 @@ class FigureTable extends StatelessWidget {
         _FigureRow(
           text: renderer.render(sf.figure, dialect),
           verboseText: renderer.renderVerbose(sf.figure, dialect),
+          showVerbose: verbose,
           beats: sf.figure.beats,
           progression: sf.figure.progression,
           note: sf.figure.note,
@@ -89,17 +95,23 @@ class _FigureRow extends StatelessWidget {
   const _FigureRow({
     required this.text,
     required this.verboseText,
+    required this.showVerbose,
     required this.beats,
     required this.progression,
     required this.note,
   });
 
-  /// Terse, dialect-applied text shown on screen.
+  /// Terse, dialect-applied text shown on screen (unless [showVerbose]).
   final String text;
 
   /// Verbose, spoken-friendly rendering announced to assistive tech in place of
-  /// the terse [text] (figure-taxonomy.md §5.4 / accessibility baseline).
+  /// the terse [text] (figure-taxonomy.md §5.4 / accessibility baseline). When
+  /// [showVerbose] is true it is also used as the visible text (ROADMAP G.7).
   final String verboseText;
+
+  /// When true, the visible row text is [verboseText] rather than [text]
+  /// ("always show verbose figure text" — ROADMAP G.7).
+  final bool showVerbose;
   final int beats;
   final bool progression;
   final String? note;
@@ -140,7 +152,10 @@ class _FigureRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(text, style: theme.textTheme.bodyLarge),
+                  Text(
+                    showVerbose ? verboseText : text,
+                    style: theme.textTheme.bodyLarge,
+                  ),
                   if (note != null && note!.trim().isNotEmpty)
                     Text(
                       note!.trim(),

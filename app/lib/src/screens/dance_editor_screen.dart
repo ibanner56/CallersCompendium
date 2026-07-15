@@ -12,6 +12,7 @@ import '../editor/editor_snapshot.dart';
 import '../editor/editor_undo_stack.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
+import '../utils/confirm_delete.dart';
 import '../widgets/choreographer_details_dialog.dart';
 import '../widgets/figure_list_editor.dart';
 import '../widgets/published_source_details_dialog.dart';
@@ -445,6 +446,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     final id = widget.danceId;
     if (id == null) return;
     final title = _original?.title ?? 'Dance';
+    // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
+    if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
+    if (!mounted) return;
     final now = DateTime.now().toUtc();
     await _repos.dances.softDelete(id, at: now);
     if (!mounted) return;
