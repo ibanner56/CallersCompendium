@@ -195,18 +195,17 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
         return;
       }
       final data = await CollectionData.load(_repos);
+      final titles = <String, String>{};
       final dances = <String, Dance>{};
-      if (program != null) {
-        final ids = {
-          for (final s in program.slots)
-            if (s.danceId != null) s.danceId!,
-        };
-        final loaded = await Future.wait(ids.map(_repos.dances.getById));
-        for (final dance in loaded) {
-          if (dance != null) {
-            titles[dance.id] = dance.title;
-            dances[dance.id] = dance;
-          }
+      final ids = {
+        for (final s in program.slots)
+          if (s.danceId != null) s.danceId!,
+      };
+      final loaded = await Future.wait(ids.map(_repos.dances.getById));
+      for (final dance in loaded) {
+        if (dance != null) {
+          titles[dance.id] = dance.title;
+          dances[dance.id] = dance;
         }
       }
       if (!mounted) return;
