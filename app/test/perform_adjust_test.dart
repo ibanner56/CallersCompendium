@@ -113,7 +113,7 @@ void main() {
 
     expect(
       tester.getSemantics(find.byKey(const ValueKey('perform-adjust'))),
-      containsSemantics(
+      isSemantics(
         isButton: true,
         isEnabled: true,
         hasEnabledState: true,
@@ -138,7 +138,7 @@ void main() {
     final markFinder = find.byKey(const ValueKey('adjust-mark-performed'));
     expect(
       tester.getSemantics(markFinder),
-      containsSemantics(
+      isSemantics(
         isButton: true,
         isEnabled: true,
         hasEnabledState: true,
@@ -193,7 +193,7 @@ void main() {
     final moveDown = find.byKey(const ValueKey('adjust-move-down-0'));
     expect(
       tester.getSemantics(moveDown),
-      containsSemantics(
+      isSemantics(
         isButton: true,
         isEnabled: true,
         hasEnabledState: true,
