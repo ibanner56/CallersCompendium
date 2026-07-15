@@ -82,6 +82,20 @@ void main() {
       expect(text, isNot(contains('Level:')));
     });
 
+    test('omits the Status line for an active dance', () {
+      // Mirrors the detail card, which only banners a non-active status.
+      final text = render(dance(status: DanceStatus.active));
+      expect(text, isNot(contains('Status:')));
+    });
+
+    test('includes the Status line for a non-active dance', () {
+      final text = render(
+        dance(status: DanceStatus.deprecated),
+        statusLabel: 'Deprecated',
+      );
+      expect(text, contains('Status: Deprecated'));
+    });
+
     test('renders the non-standard phrase structure notation', () {
       final text = render(dance(phraseStructure: '6*8*2'));
       expect(text, contains('Phrase: 6*8*2'));

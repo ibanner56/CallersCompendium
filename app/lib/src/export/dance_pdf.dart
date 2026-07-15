@@ -46,7 +46,10 @@ Future<Uint8List> buildDancePdf(
   final metaLines = <String>[
     if (_has(formationLabel)) 'Formation: ${formationLabel.trim()}',
     if (_has(levelLabel)) 'Level: ${levelLabel!.trim()}',
-    if (_has(statusLabel)) 'Status: ${statusLabel.trim()}',
+    // Mirror the on-screen card / text export: only a non-active dance shows
+    // a Status line; an active dance omits it.
+    if (dance.status != DanceStatus.active && _has(statusLabel))
+      'Status: ${statusLabel.trim()}',
     if (_has(dance.phraseStructure.raw))
       'Phrase: ${dance.phraseStructure.raw.trim()}',
   ];

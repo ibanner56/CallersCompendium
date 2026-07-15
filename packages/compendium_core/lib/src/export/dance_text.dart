@@ -1,6 +1,7 @@
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
+import '../model/enums.dart';
 import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 
@@ -70,7 +71,11 @@ String danceToPlainText(
 
   if (_has(formationLabel)) lines.add('Formation: ${formationLabel.trim()}');
   if (_has(levelLabel)) lines.add('Level: ${levelLabel!.trim()}');
-  if (_has(statusLabel)) lines.add('Status: ${statusLabel.trim()}');
+  // Mirror the on-screen card, which only surfaces a status banner for a
+  // non-active dance; an active dance omits the Status line entirely.
+  if (dance.status != DanceStatus.active && _has(statusLabel)) {
+    lines.add('Status: ${statusLabel.trim()}');
+  }
   if (_has(dance.phraseStructure.raw)) {
     lines.add('Phrase: ${dance.phraseStructure.raw.trim()}');
   }
