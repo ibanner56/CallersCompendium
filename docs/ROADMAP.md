@@ -423,7 +423,7 @@ taxonomy are unchanged.
 
 **Display defaults**
 
-- [ ] G.6 **Display defaults** — persisted display preferences: (a) the default
+- [x] G.6 **Display defaults** — persisted display preferences: (a) the default
   Collection sort order (title / author / recently-added / last-called), and
   (b) the default dance-detail rendering (canonical vs active-dialect view) —
   some callers always want dialect applied. Both are app-only, small, and

@@ -25,6 +25,21 @@ extension CollectionSortX on CollectionSort {
   };
 }
 
+/// Resolves a persisted settings value (the [CollectionSort] `.name`) into a
+/// [CollectionSort] usable as the Collection list's default sort (ROADMAP G.6a).
+///
+/// Returns `null` — so callers fall back to their historical default (`title`)
+/// — for `null`, a non-string, an unrecognized name, or [CollectionSort.relevance]
+/// (relevance is only meaningful for a bare full-text query, never as a saved
+/// default; see `docs/design/search.md` decision 6).
+CollectionSort? collectionSortFromName(Object? stored) {
+  if (stored is! String) return null;
+  for (final sort in CollectionSort.values) {
+    if (sort.name == stored && sort != CollectionSort.relevance) return sort;
+  }
+  return null;
+}
+
 /// The user's one-tap facet selections. Every facet is multi-select: within a
 /// single facet the selected leaves are OR-ed ("has any of these tags"), and
 /// distinct facets are AND-ed ("this form AND one of these tags") — the

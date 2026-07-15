@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
@@ -77,6 +78,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   CollectionSort _sort = CollectionSort.title;
 
+  /// Whether the user has explicitly chosen a sort this session. Once set, the
+  /// saved default (ROADMAP G.6a) no longer seeds `_sort` — protecting an
+  /// in-session choice from a late async read and from a [refreshTrigger]
+  /// reload (which re-runs [_boot]).
+  bool _sortUserSet = false;
+
+  /// Whether the saved-default sort seed has run (it runs at most once, on the
+  /// first [_boot]).
+  bool _defaultSortSeeded = false;
+
   late CompendiumRepositories _repos;
   bool _started = false;
 
@@ -142,9 +153,33 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _data = data;
         _loadError = null;
       });
+      await _seedDefaultSort();
       await _runSearch();
     } catch (error) {
       if (mounted) setState(() => _loadError = error);
+    }
+  }
+
+  /// Seeds `_sort` from the saved default Collection sort order (ROADMAP G.6a),
+  /// at most once and only if the user hasn't already chosen a sort this
+  /// session. A `null`/invalid stored value leaves the historical default
+  /// (`title`) in place. Called before the first search so the list opens in
+  /// the default sort; a no-op on subsequent [_boot]s (e.g. a refresh).
+  Future<void> _seedDefaultSort() async {
+    if (_defaultSortSeeded || _sortUserSet) return;
+    _defaultSortSeeded = true;
+    // A settings read/decode failure must not fail the whole Collection load:
+    // fall back silently to the historical default (`title`).
+    Object? stored;
+    try {
+      stored = await _repos.settings.get(kDefaultCollectionSortKey);
+    } catch (_) {
+      return;
+    }
+    if (!mounted || _sortUserSet) return;
+    final sort = collectionSortFromName(stored);
+    if (sort != null && sort != _sort) {
+      setState(() => _sort = sort);
     }
   }
 
@@ -434,7 +469,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
             initialValue: _sort,
             icon: const Icon(Icons.sort),
             onSelected: (value) {
-              setState(() => _sort = value);
+              setState(() {
+                _sortUserSet = true;
+                _sort = value;
+              });
               _runSearch();
             },
             itemBuilder: (context) => [

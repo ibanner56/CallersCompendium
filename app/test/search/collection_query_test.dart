@@ -32,6 +32,25 @@ void main() {
   );
   final defs = [tagField, flagField, noteField, levelField];
 
+  group('collectionSortFromName', () {
+    test('round-trips every persistable sort via .name', () {
+      for (final sort in CollectionSort.values) {
+        if (sort == CollectionSort.relevance) continue;
+        expect(collectionSortFromName(sort.name), sort);
+      }
+    });
+
+    test('maps relevance to null (never a saved default)', () {
+      expect(collectionSortFromName(CollectionSort.relevance.name), isNull);
+    });
+
+    test('returns null for null, non-strings, and unknown names', () {
+      expect(collectionSortFromName(null), isNull);
+      expect(collectionSortFromName(3), isNull);
+      expect(collectionSortFromName('not-a-sort'), isNull);
+    });
+  });
+
   group('buildCollectionFilter', () {
     test('empty query matches everything (AndFilter([]))', () {
       final f = buildCollectionFilter(

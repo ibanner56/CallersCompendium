@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
@@ -200,6 +201,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_titles(tester), ['Autumn Waltz', 'Zesty Reel']);
+  });
+
+  testWidgets('opens in the saved default sort order (ROADMAP G.6a)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kDefaultCollectionSortKey,
+      CollectionSort.recentlyAdded.name,
+    );
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Older Dance', createdAt: DateTime.utc(2025)),
+    );
+    await repos.dances.create(
+      _dance(id: 'd2', title: 'Newer Dance', createdAt: DateTime.utc(2026)),
+    );
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    // No user interaction: the list opens already sorted recently-added, not
+    // the hardcoded title default.
+    expect(_titles(tester), ['Newer Dance', 'Older Dance']);
   });
 
   testWidgets('sorts by recently-added when selected', (tester) async {
