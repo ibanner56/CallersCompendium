@@ -10,6 +10,7 @@ import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/search/collection_data.dart';
+import 'package:compendium_app/src/theme/color_schemes.dart';
 
 import 'support/test_repositories.dart';
 import 'support/fake_wakelock.dart';
@@ -309,6 +310,114 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('perform-program')), findsNothing);
+  });
+
+  testWidgets('opens in the dark-stage high-contrast theme by default', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+    );
+
+    final scheme = Theme.of(
+      tester.element(find.byType(PerformCard)),
+    ).colorScheme;
+    expect(scheme, AppColorSchemes.highContrast);
+    expect(scheme.brightness, Brightness.dark);
+    expect(scheme.surface, AppColorSchemes.highContrast.surface);
+  });
+
+  testWidgets('position label resolves under the stage theme when on', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+    );
+
+    // The BottomAppBar position label must read its text style from a context
+    // below PerformStageTheme, so on the dark stage BottomAppBar it uses the
+    // stage theme's on-surface color rather than the ambient (light) theme.
+    final positionContext = tester.element(
+      find.byKey(const ValueKey('perform-position')),
+    );
+    expect(Theme.of(positionContext).colorScheme, AppColorSchemes.highContrast);
+  });
+
+  testWidgets('stage toggle falls back to the ambient theme and back', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+    );
+
+    expect(
+      Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+      AppColorSchemes.highContrast,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+      isNot(AppColorSchemes.highContrast),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+      AppColorSchemes.highContrast,
+    );
+  });
+
+  testWidgets('stage toggle is keyboard/AT-reachable with on/off state', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+    await _pumpProgram(
+      tester,
+      data: data,
+      program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+    );
+
+    final toggle = find.byKey(const ValueKey('perform-stage-toggle'));
+    expect(
+      tester.getSemantics(toggle),
+      isSemantics(
+        isButton: true,
+        isFocusable: true,
+        hasTapAction: true,
+        hasToggledState: true,
+        isToggled: true,
+      ),
+      reason: 'stage toggle must announce its on state',
+    );
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSemantics(toggle),
+      isSemantics(
+        isButton: true,
+        isFocusable: true,
+        hasTapAction: true,
+        hasToggledState: true,
+        isToggled: false,
+      ),
+      reason: 'stage toggle must announce its off state after tapping',
+    );
+
+    handle.dispose();
   });
 
   testWidgets('new Perform controls are keyboard- and AT-reachable', (

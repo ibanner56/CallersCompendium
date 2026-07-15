@@ -236,8 +236,13 @@ design/domain-model.md "CC parity backfill".*
     reusing the shared large-print `PerformCard`. Screen wake-lock delivered:
     both Perform views (single-dance and program) hold a `wakelock_plus`
     wake-lock while open and release it on exit, so a propped tablet does not
-    auto-sleep. Remaining sub-items — high-contrast / 7:1 dark-stage theme, and
-    program timing — are separate follow-up PRs.
+    auto-sleep. High-contrast / 7:1 dark-stage theme delivered: both Perform
+    views open in the outline-driven `AppTheme.highContrast` scheme by default
+    with an in-view toggle (keyboard-reachable, on/off state exposed to AT) to
+    fall back to the app's inherited theme; in-view only, persistence to
+    Settings deferred as a later follow-up (mirrors the 5.1 size-control
+    decision). Remaining sub-item — optional per-slot / running **program
+    timing** — is a separate follow-up PR.
 - [ ] 5.3 On-the-fly program adjustments during an event
 - [ ] 5.4 **Verbose / screen-reader figure rendering** — an expanded, spoken-friendly
   rendering of figures for assistive tech (distinct from the terse canonical/dialect
