@@ -10,9 +10,14 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 /// and disabled in [dispose], so navigating away (pop back to detail/editor)
 /// reliably releases it.
 ///
-/// The wake-lock is a best-effort enhancement. All [WakelockPlus] calls are
-/// guarded so a `MissingPluginException` or an unsupported platform is a silent
-/// no-op rather than an error surfaced in the reading view.
+/// The wake-lock is a best-effort enhancement. [WakelockPlus] calls are guarded
+/// so a `MissingPluginException` or an unsupported platform is a silent no-op
+/// rather than an error surfaced in the reading view. Only [Exception]s are
+/// swallowed — a Dart [Error] (a programming mistake) is left to surface.
+///
+/// The [T] type parameter is required so the `on State<T>` constraint binds to
+/// each concrete `State<ConcreteScreen>`; dropping it (`on State`) resolves to
+/// `State<StatefulWidget>`, which the concrete states do not implement.
 mixin PerformWakelockMixin<T extends StatefulWidget> on State<T> {
   @override
   void initState() {
@@ -29,8 +34,9 @@ mixin PerformWakelockMixin<T extends StatefulWidget> on State<T> {
   Future<void> _setWakelock(bool enable) async {
     try {
       await WakelockPlus.toggle(enable: enable);
-    } catch (_) {
-      // Best-effort only: never let a platform failure crash the Perform view.
+    } on Exception catch (_) {
+      // Best-effort only: never let a plugin/platform *exception* crash the
+      // Perform view. Dart `Error`s are intentionally not swallowed.
     }
   }
 }
