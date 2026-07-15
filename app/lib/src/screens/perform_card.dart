@@ -335,7 +335,6 @@ class PerformDialectToggle extends StatelessWidget {
     // announces one control carrying role, name, tap action, and toggle state.
     return MergeSemantics(
       child: Semantics(
-        label: 'Show canonical terms',
         toggled: canonical,
         child: IconButton(
           key: const ValueKey('perform-dialect-toggle'),
