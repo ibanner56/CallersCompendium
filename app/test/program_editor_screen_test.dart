@@ -636,7 +636,9 @@ void main() {
 
     expect(find.byKey(const ValueKey('program-matrix-table')), findsOneWidget);
     expect(find.text('Matrix Dance'), findsOneWidget);
-    expect(find.text('swing'), findsOneWidget);
+    // Swing splits into per-role columns; the partner baseline carries the
+    // no-`who` swing.
+    expect(find.text('partner swing'), findsOneWidget);
     expect(find.text('balance'), findsOneWidget);
     // The save FAB hides on the read-only Matrix tab.
     expect(find.byKey(const ValueKey('save-program')), findsNothing);
@@ -706,12 +708,13 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'No Figures Dance'));
+    // A dances-free program (only a free-text slot) yields an empty matrix:
+    // no dance rows means no columns at all, not even the swing baseline.
     await repos.programs.create(
       _program(
         id: 'p1',
         title: 'Night',
-        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        slots: [ProgramSlot(id: 's1', position: 0, text: 'Welcome & notes')],
       ),
     );
     await _pumpBuilder(tester, repos, programId: 'p1');

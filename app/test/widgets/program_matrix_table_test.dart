@@ -15,6 +15,9 @@ void main() {
   );
 
   Figure move(String id) => Figure(move: id);
+  Figure swing([String? who]) => Figure(move: 'swing', params: {'who': ?who});
+  Figure hey([String? length]) =>
+      Figure(move: 'hey', params: {'length': ?length});
 
   Future<void> pump(
     WidgetTester tester, {
@@ -23,7 +26,7 @@ void main() {
     Set<String> altDanceIds = const {},
     Dialect? dialect,
   }) async {
-    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    await tester.binding.setSurfaceSize(const Size(1400, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
@@ -47,17 +50,40 @@ void main() {
     await pump(
       tester,
       dances: [
-        dance('d1', 'Butterfly', [move('swing'), move('balance')]),
-        dance('d2', 'Broken Sixpence', [move('swing')]),
+        dance('d1', 'Butterfly', [swing(), move('balance')]),
+        dance('d2', 'Broken Sixpence', [swing()]),
       ],
     );
 
     // Row headers (dance titles).
     expect(find.text('Butterfly'), findsOneWidget);
     expect(find.text('Broken Sixpence'), findsOneWidget);
-    // Column headers (move labels): swing appears once (shared column).
-    expect(find.text('swing'), findsOneWidget);
+    // Swing is split by role: a partner-swing column (shared) plus the
+    // always-present neighbor-swing baseline.
+    expect(find.text('partner swing'), findsOneWidget);
+    expect(find.text('neighbor swing'), findsOneWidget);
     expect(find.text('balance'), findsOneWidget);
+  });
+
+  testWidgets('renders split swing and hey headers present in the program', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      dances: [
+        dance('d1', 'A', [swing('role1s'), hey('full')]),
+      ],
+      dialect: Dialect.larksRobins,
+    );
+
+    // Baseline swing columns always render...
+    expect(find.text('partner swing'), findsOneWidget);
+    expect(find.text('neighbor swing'), findsOneWidget);
+    // ...the present role split renders (dialect-aware role term)...
+    expect(find.text('lark swing'), findsOneWidget);
+    // ...and the present hey length renders (full only — no half baseline).
+    expect(find.text('full hey'), findsOneWidget);
+    expect(find.text('half hey'), findsNothing);
   });
 
   testWidgets('presence marks use an icon + semantics, not colour alone', (
@@ -66,47 +92,54 @@ void main() {
     await pump(
       tester,
       dances: [
-        dance('d1', 'A', [move('balance'), move('swing')]),
+        dance('d1', 'A', [move('balance'), swing()]),
       ],
     );
 
-    // balance is the first figure (star); swing is present but not first
-    // (check). Both are shapes, so presence never relies on colour alone.
+    // balance is the first figure (star); the partner swing is present but not
+    // first (check). Both are shapes, so presence never relies on colour alone.
     expect(find.byIcon(Icons.check), findsWidgets);
     expect(find.byIcon(Icons.star), findsWidgets);
 
     // Cell semantics announce dance × move × state.
-    expect(find.bySemanticsLabel('A, swing: present'), findsOneWidget);
+    expect(find.bySemanticsLabel('A, partner swing: present'), findsOneWidget);
     expect(find.bySemanticsLabel('A, balance: first figure'), findsOneWidget);
   });
 
-  testWidgets('first-figure indicator has icon + text (not colour only)', (
+  testWidgets('first-figure highlight lands on the correct split column', (
     tester,
   ) async {
     await pump(
       tester,
       dances: [
-        dance('d1', 'A', [move('swing')]),
+        dance('d1', 'A', [swing('neighbors')]),
       ],
     );
 
     // The legend spells out the meaning of each shape in text.
     expect(find.text('First figure'), findsOneWidget);
     expect(find.text('Present'), findsOneWidget);
-    // The first figure of the only dance is a star.
-    expect(find.byIcon(Icons.star), findsWidgets);
-    expect(find.bySemanticsLabel('A, swing: first figure'), findsOneWidget);
+    // A opens with a neighbor swing → the neighbor split column is the first
+    // figure; the partner baseline is not present for this dance.
+    expect(
+      find.bySemanticsLabel('A, neighbor swing: first figure'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('A, partner swing: not present'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('header cells are flagged as semantic headers', (tester) async {
     await pump(
       tester,
       dances: [
-        dance('d1', 'A', [move('swing')]),
+        dance('d1', 'A', [swing()]),
       ],
     );
 
-    expect(find.bySemanticsLabel('Move: swing'), findsOneWidget);
+    expect(find.bySemanticsLabel('Move: partner swing'), findsOneWidget);
     expect(find.bySemanticsLabel('Dance: A'), findsOneWidget);
   });
 
@@ -114,17 +147,23 @@ void main() {
     await pump(
       tester,
       dances: [
-        dance('d1', 'A', [move('swing')]),
+        dance('d1', 'A', [swing()]),
         dance('d2', 'B', [move('balance')]),
       ],
     );
-    // A has no balance; B has no swing.
+    // A has no balance; B has no swing (so the baseline partner-swing column is
+    // absent for B).
     expect(find.bySemanticsLabel('A, balance: not present'), findsOneWidget);
-    expect(find.bySemanticsLabel('B, swing: not present'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('B, partner swing: not present'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('empty matrix shows the auto-fill empty state', (tester) async {
-    await pump(tester, dances: [dance('d1', 'Stub', const [])]);
+  testWidgets('empty matrix (no dances) shows the auto-fill empty state', (
+    tester,
+  ) async {
+    await pump(tester, dances: const []);
     expect(find.text('No structured figures yet'), findsOneWidget);
     expect(find.byIcon(Icons.check), findsNothing);
   });
@@ -132,11 +171,7 @@ void main() {
   testWidgets('empty matrix still notes omitted free-text slots', (
     tester,
   ) async {
-    await pump(
-      tester,
-      dances: [dance('d1', 'Stub', const [])],
-      omittedFreeTextCount: 3,
-    );
+    await pump(tester, dances: const [], omittedFreeTextCount: 3);
     expect(find.text('No structured figures yet'), findsOneWidget);
     expect(find.textContaining('3 free-text slots'), findsOneWidget);
   });
@@ -145,7 +180,7 @@ void main() {
     await pump(
       tester,
       dances: [
-        dance('d1', 'A', [move('swing')]),
+        dance('d1', 'A', [swing()]),
       ],
       omittedFreeTextCount: 2,
     );
@@ -156,7 +191,7 @@ void main() {
     await pump(
       tester,
       dances: [
-        dance('d1', 'A', [move('swing')]),
+        dance('d1', 'A', [swing()]),
         dance('d2', 'Alt Dance', [move('balance')]),
       ],
       altDanceIds: {'d2'},
@@ -169,11 +204,12 @@ void main() {
     await pump(
       tester,
       dances: [
-        dance('d1', 'A', [move('swing')]),
+        dance('d1', 'A', [swing()]),
       ],
       dialect: Dialect(name: 'Test', moves: const {'swing': 'twirl'}),
     );
-    expect(find.text('twirl'), findsOneWidget);
-    expect(find.text('swing'), findsNothing);
+    expect(find.text('partner twirl'), findsOneWidget);
+    expect(find.text('neighbor twirl'), findsOneWidget);
+    expect(find.text('partner swing'), findsNothing);
   });
 }
