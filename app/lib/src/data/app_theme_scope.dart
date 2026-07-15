@@ -203,6 +203,14 @@ enum AppThemeSelection {
     }
     return null;
   }
+
+  /// The selections belonging to [group], sorted alphabetically by [label]
+  /// (case-insensitive) so the Settings gallery lists built-in themes A→Z
+  /// within each section.
+  static List<AppThemeSelection> inGroup(AppThemeGroup group) {
+    return AppThemeSelection.values.where((s) => s.group == group).toList()
+      ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+  }
 }
 
 /// Exposes the user's active [AppThemeSelection] as a live [ValueNotifier] to

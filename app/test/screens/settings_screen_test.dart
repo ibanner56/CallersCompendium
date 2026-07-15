@@ -280,6 +280,28 @@ void main() {
       expect(AppThemeSelection.monokai.themeMode, ThemeMode.dark);
     });
 
+    test('inGroup lists each group alphabetically by label', () {
+      for (final group in AppThemeGroup.values) {
+        final labels = AppThemeSelection.inGroup(
+          group,
+        ).map((s) => s.label).toList();
+        final sorted = [...labels]
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+        expect(
+          labels,
+          equals(sorted),
+          reason: '${group.label} group should be alphabetical',
+        );
+      }
+      // Sanity: the Default group orders as Dark, High contrast, Light.
+      expect(
+        AppThemeSelection.inGroup(
+          AppThemeGroup.defaultHearth,
+        ).map((s) => s.label),
+        equals(['Dark', 'High contrast', 'Light']),
+      );
+    });
+
     test('gallery grouping and brightness resolvers are correct', () {
       expect(AppThemeSelection.system.group, AppThemeGroup.system);
       expect(AppThemeSelection.light.group, AppThemeGroup.defaultHearth);
