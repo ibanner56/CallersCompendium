@@ -6,6 +6,14 @@ import 'package:flutter/services.dart';
 import 'figure_param_editors.dart';
 import 'move_autocomplete.dart';
 
+/// Move id of the placeholder "stand still" figure that seeds new dances (see
+/// `defaultNewDanceFigureTemplate`). Activating such a figure opens its editor
+/// with the Move field cleared so the caller can type over the placeholder
+/// immediately, without first deleting the "stand still" text. Only the
+/// editing field is blanked — the stored draft keeps its move/params until a
+/// real move is chosen, so nothing is lost if the editor is collapsed as-is.
+const String _standStillMove = 'stand_still';
+
 // ---------------------------------------------------------------------------
 // Lingo-line text editing controller
 // ---------------------------------------------------------------------------
@@ -1362,7 +1370,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final draft = widget.draft;
     final move = draft.move;
     final def = move == null ? null : widget.taxonomy.resolve(move);
-    final moveText = move == null
+    // Open the Move field EMPTY for an unset draft or the placeholder
+    // `stand_still` figure so the caller can type over it immediately. Because
+    // the editor (and its MoveAutocomplete) remounts on every open, this blanks
+    // the field on each activation without ever mutating the stored draft — a
+    // real move still shows its display text as before.
+    final moveText = (move == null || move == _standStillMove)
         ? ''
         : FigureRenderer(
             widget.taxonomy,
