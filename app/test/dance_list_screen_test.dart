@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
@@ -49,6 +50,7 @@ Future<void> _pumpScreen(
   CompendiumRepositories repos, {
   Dialect? activeDialect,
   ValueListenable<int>? refreshTrigger,
+  bool sortIgnoreArticles = true,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
@@ -63,6 +65,8 @@ Future<void> _pumpScreen(
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
   addTearDown(customThemes.dispose);
+  final sortIgnoreArticlesNotifier = ValueNotifier<bool>(sortIgnoreArticles);
+  addTearDown(sortIgnoreArticlesNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => RepositoriesScope(
@@ -71,7 +75,13 @@ Future<void> _pumpScreen(
           notifier: themeNotifier,
           child: CustomThemesScope(
             controller: customThemes,
-            child: ActiveDialectScope(notifier: notifier, child: child!),
+            child: ActiveDialectScope(
+              notifier: notifier,
+              child: SortIgnoreArticlesScope(
+                notifier: sortIgnoreArticlesNotifier,
+                child: child!,
+              ),
+            ),
           ),
         ),
       ),
@@ -267,6 +277,42 @@ void main() {
       expect(_titles(tester), ['Aardvark', 'Zephyr']);
     },
   );
+
+  testWidgets('title sort ignores leading articles by default', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'The Zesty Reel'));
+    await repos.dances.create(_dance(id: 'd2', title: 'A Nice Combination'));
+    await repos.dances.create(_dance(id: 'd3', title: 'Midtown Swing'));
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    // Keys: 'midtown swing', 'nice combination', 'zesty reel'.
+    expect(_titles(tester), [
+      'Midtown Swing',
+      'A Nice Combination',
+      'The Zesty Reel',
+    ]);
+  });
+
+  testWidgets('title sort respects the literal text when the setting is off', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'The Zesty Reel'));
+    await repos.dances.create(_dance(id: 'd2', title: 'A Nice Combination'));
+    await repos.dances.create(_dance(id: 'd3', title: 'Midtown Swing'));
+
+    await _pumpScreen(tester, repos, sortIgnoreArticles: false);
+    await tester.pumpAndSettle();
+
+    // Literal: 'A Nice Combination' < 'Midtown Swing' < 'The Zesty Reel'.
+    expect(_titles(tester), [
+      'A Nice Combination',
+      'Midtown Swing',
+      'The Zesty Reel',
+    ]);
+  });
 
   testWidgets('sorts by recently-added when selected', (tester) async {
     final repos = openTestRepositories();

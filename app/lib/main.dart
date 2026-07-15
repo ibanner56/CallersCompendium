@@ -10,10 +10,15 @@ import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
+import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/settings_screen.dart'
-    show kActiveDialectKey, kAppThemeKey, kRequirePerformedForHistoryKey;
+    show
+        kActiveDialectKey,
+        kAppThemeKey,
+        kRequirePerformedForHistoryKey,
+        kSortIgnoreArticlesKey;
 import 'src/theme/app_theme.dart';
 import 'src/widgets/app_bootstrap.dart';
 
@@ -71,6 +76,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool> _requirePerformedForHistoryNotifier = ValueNotifier(
     false,
   );
+  final ValueNotifier<bool> _sortIgnoreArticlesNotifier = ValueNotifier(true);
   late final CustomThemesController _customThemes;
 
   @override
@@ -105,6 +111,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (requirePerformed is bool) {
       _requirePerformedForHistoryNotifier.value = requirePerformed;
     }
+    // Load the "ignore leading articles when sorting" setting, defaulting to
+    // on (true) when unset.
+    final sortIgnoreArticles = await _appData.repositories.settings.get(
+      kSortIgnoreArticlesKey,
+    );
+    if (sortIgnoreArticles is bool) {
+      _sortIgnoreArticlesNotifier.value = sortIgnoreArticles;
+    }
     // Load any locally-saved custom themes and the active one (if set).
     await _customThemes.load();
   }
@@ -114,6 +128,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
+    _sortIgnoreArticlesNotifier.dispose();
     _customThemes.dispose();
     widget.windowService.dispose();
     // dispose() can't be async; explicitly mark the close as fire-and-forget
@@ -183,7 +198,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
                   notifier: _dialectNotifier,
                   child: RequirePerformedForHistoryScope(
                     notifier: _requirePerformedForHistoryNotifier,
-                    child: child!,
+                    child: SortIgnoreArticlesScope(
+                      notifier: _sortIgnoreArticlesNotifier,
+                      child: child!,
+                    ),
                   ),
                 ),
               ),

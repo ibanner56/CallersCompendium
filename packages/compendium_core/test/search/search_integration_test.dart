@@ -907,6 +907,61 @@ void main() {
       expect(result, containsAll(['strong', 'weak']));
       expect(result.first, 'strong');
     });
+
+    test(
+      'title ignoring leading articles files under first real word',
+      () async {
+        await dances.create(_dance(id: 'nice', title: 'The Nice Combination'));
+        await dances.create(_dance(id: 'apple', title: 'Apple Blossom'));
+        await dances.create(_dance(id: 'zesty', title: 'A Zesty Reel'));
+        await dances.create(_dance(id: 'mid', title: 'Midtown'));
+        expect(
+          await dances.search(
+            const AndFilter([]),
+            sort: SearchSort.title,
+            ignoreLeadingArticles: true,
+          ),
+          // Keys: apple blossom, midtown, nice combination, zesty reel.
+          ['apple', 'mid', 'nice', 'zesty'],
+        );
+      },
+    );
+
+    test('title without the flag sorts by literal text', () async {
+      await dances.create(_dance(id: 'apple', title: 'The Apple'));
+      await dances.create(_dance(id: 'banana', title: 'Banana'));
+      // Literal: 'Banana' (B) < 'The Apple' (T).
+      expect(await dances.search(const AndFilter([]), sort: SearchSort.title), [
+        'banana',
+        'apple',
+      ]);
+      // Ignoring articles: 'apple' < 'banana'.
+      expect(
+        await dances.search(
+          const AndFilter([]),
+          sort: SearchSort.title,
+          ignoreLeadingArticles: true,
+        ),
+        ['apple', 'banana'],
+      );
+    });
+
+    test(
+      'article-ignoring title sort breaks ties by base title order',
+      () async {
+        await dances.create(_dance(id: 'the', title: 'The Rose'));
+        await dances.create(_dance(id: 'bare', title: 'Rose'));
+        // Both key to 'rose'; base (literal) title order is 'Rose' < 'The Rose'.
+        expect(
+          await dances.search(
+            const AndFilter([]),
+            sort: SearchSort.title,
+            ignoreLeadingArticles: true,
+          ),
+          ['bare', 'the'],
+        );
+      },
+    );
   });
 
   group('soft-delete exclusion', () {
