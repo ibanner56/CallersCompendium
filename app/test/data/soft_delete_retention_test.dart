@@ -12,13 +12,18 @@ void main() {
       expect(softDeleteRetentionFromStored(90), const Duration(days: 90));
     });
 
-    test('resolves any positive day count to a Duration', () {
-      expect(softDeleteRetentionFromStored(7), const Duration(days: 7));
-    });
-
     test('returns null (never auto-purge) for the 0 sentinel', () {
       expect(softDeleteRetentionFromStored(kSoftDeleteRetentionNever), isNull);
       expect(softDeleteRetentionFromStored(0), isNull);
+    });
+
+    test('falls back to 30 days for unsupported / out-of-range day counts', () {
+      // Only the values the UI can produce (30 / 90 / 0) are honored; anything
+      // else — including a small corrupted value — resolves to the safe default
+      // rather than silently shortening retention.
+      expect(softDeleteRetentionFromStored(1), const Duration(days: 30));
+      expect(softDeleteRetentionFromStored(45), const Duration(days: 30));
+      expect(softDeleteRetentionFromStored(365), const Duration(days: 30));
     });
 
     test('falls back to 30 days for garbage: negatives, non-ints, strings', () {

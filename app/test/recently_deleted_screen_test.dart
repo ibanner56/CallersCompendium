@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/soft_delete_retention.dart';
 import 'package:compendium_app/src/screens/recently_deleted_screen.dart';
 
 import 'support/test_repositories.dart';
@@ -76,6 +77,59 @@ void main() {
 
     expect(find.textContaining('Auto-deleted in'), findsOneWidget);
     expect(find.textContaining('days'), findsOneWidget);
+  });
+
+  testWidgets('purge ETA reflects the configured 90-day retention (G.4)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kSoftDeleteRetentionKey, 90);
+    await repos.dances.create(_dance(id: 'd1', title: 'Kept Longer'));
+    // Deleted 20.5 days ago: a 30-day window would leave ~9 days, but the
+    // 90-day window leaves ~69 — proving the screen reads the configured value.
+    // The half-day offset keeps the countdown mid-integer, away from an inDays
+    // boundary that a few ms of test execution could tip.
+    final deletedAt = DateTime.now().toUtc().subtract(
+      const Duration(days: 20, hours: 12),
+    );
+    await repos.dances.softDelete('d1', at: deletedAt);
+
+    await _pumpScreen(tester, repos);
+
+    expect(find.textContaining('Auto-deleted in 69 days'), findsOneWidget);
+  });
+
+  testWidgets('never-auto-purge hides the countdown (G.4)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kSoftDeleteRetentionKey,
+      kSoftDeleteRetentionNever,
+    );
+    await repos.dances.create(_dance(id: 'd1', title: 'Kept Forever'));
+    await repos.dances.softDelete('d1', at: _now);
+
+    await _pumpScreen(tester, repos);
+
+    expect(find.textContaining('Auto-deleted in'), findsNothing);
+    expect(find.text('Kept until you delete it'), findsOneWidget);
+  });
+
+  testWidgets('empty-state copy reflects never-auto-purge (G.4)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kSoftDeleteRetentionKey,
+      kSoftDeleteRetentionNever,
+    );
+
+    await _pumpScreen(tester, repos);
+
+    expect(find.byKey(const ValueKey('empty-state')), findsOneWidget);
+    expect(
+      find.textContaining('kept here until you remove them'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Restore button moves the dance back to the active collection', (

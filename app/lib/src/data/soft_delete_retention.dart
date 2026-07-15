@@ -35,17 +35,20 @@ const List<int> kSoftDeleteRetentionDayOptions = <int>[30, 90];
 /// auto-purge (in which case the caller should SKIP the purge entirely).
 ///
 /// Rules:
-/// - a positive `int` number of days ⇒ `Duration(days: stored)`;
+/// - a supported day-count option ([kSoftDeleteRetentionDayOptions]) ⇒
+///   `Duration(days: stored)`;
 /// - the [kSoftDeleteRetentionNever] sentinel (`0`) ⇒ `null` (never);
-/// - `null`, a negative int, or any non-int/garbage value ⇒ the historical
-///   default of [kSoftDeleteRetentionDefaultDays] (30 days).
+/// - `null`, or any other value (an unsupported/out-of-range int, non-int, or
+///   garbage) ⇒ the historical default of [kSoftDeleteRetentionDefaultDays]
+///   (30 days).
 ///
-/// Defensive by design: an unrecognized stored value can never widen or disable
-/// auto-purge — it falls back to the safe 30-day default.
+/// Defensive by design: only the values the UI can produce are honored, so a
+/// corrupted or out-of-range stored value can never silently shorten, widen, or
+/// disable auto-purge — it falls back to the safe 30-day default.
 Duration? softDeleteRetentionFromStored(Object? stored) {
-  if (stored is int) {
-    if (stored == kSoftDeleteRetentionNever) return null;
-    if (stored > 0) return Duration(days: stored);
+  if (stored == kSoftDeleteRetentionNever) return null;
+  if (stored is int && kSoftDeleteRetentionDayOptions.contains(stored)) {
+    return Duration(days: stored);
   }
   return const Duration(days: kSoftDeleteRetentionDefaultDays);
 }
