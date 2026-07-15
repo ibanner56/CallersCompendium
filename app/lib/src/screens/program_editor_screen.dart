@@ -636,21 +636,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Semantics(
-                label: 'Export or print matrix as PDF',
-                button: true,
-                child: IconButton(
-                  key: const ValueKey('program-matrix-export-pdf'),
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  tooltip: 'Export / print matrix PDF',
-                  onPressed: matrix.isEmpty
-                      ? null
-                      : () => _exportMatrixPdf(
-                          matrix,
-                          data.taxonomy,
-                          omittedFreeText,
-                        ),
-                ),
+              IconButton(
+                key: const ValueKey('program-matrix-export-pdf'),
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                tooltip: 'Export or print matrix as PDF',
+                onPressed: matrix.isEmpty
+                    ? null
+                    : () => _exportMatrixPdf(
+                        matrix,
+                        data.taxonomy,
+                        omittedFreeText,
+                      ),
               ),
             ],
           ),

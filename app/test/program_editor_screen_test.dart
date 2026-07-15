@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -645,9 +646,17 @@ void main() {
 
     final control = find.byKey(const ValueKey('program-matrix-export-pdf'));
     expect(control, findsOneWidget);
-    expect(find.byTooltip('Export / print matrix PDF'), findsOneWidget);
-    // Keyboard-reachable and actionable: the button has an onPressed callback.
+    expect(find.byTooltip('Export or print matrix as PDF'), findsOneWidget);
+    // Actionable: the button has an onPressed callback.
     expect(tester.widget<IconButton>(control).onPressed, isNotNull);
+    // Reachable by keyboard/assistive tech: the control exposes an enabled,
+    // labelled button with a tap action in the semantics tree (not colour/icon
+    // alone).
+    final handle = tester.ensureSemantics();
+    final data = tester.getSemantics(control).getSemanticsData();
+    expect(data.hasAction(SemanticsAction.tap), isTrue);
+    expect(data.tooltip, 'Export or print matrix as PDF');
+    handle.dispose();
   });
 
   testWidgets('Matrix export control is disabled for an empty matrix', (
