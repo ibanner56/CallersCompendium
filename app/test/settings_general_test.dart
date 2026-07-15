@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/soft_delete_retention.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
 import 'support/test_repositories.dart';
@@ -104,5 +105,72 @@ void main() {
       isFalse,
     );
     expect(await repos.settings.get(kAutoSizePerformKey), isFalse);
+  });
+
+  testWidgets('soft-delete retention defaults to 30 days and is reachable', (
+    tester,
+  ) async {
+    final repos = _openRepos();
+
+    await _pumpGeneral(tester, repos);
+
+    final dropdown = find.byKey(
+      const ValueKey('general-soft-delete-retention'),
+    );
+    expect(dropdown, findsOneWidget);
+    expect(
+      tester.widget<DropdownButton<int>>(dropdown).value,
+      kSoftDeleteRetentionDefaultDays,
+      reason: 'retention defaults to 30 days when unset (ROADMAP G.4)',
+    );
+  });
+
+  testWidgets('changing retention to Never persists the sentinel', (
+    tester,
+  ) async {
+    final repos = _openRepos();
+
+    await _pumpGeneral(tester, repos);
+
+    await tester.tap(
+      find.byKey(const ValueKey('general-soft-delete-retention')),
+    );
+    await tester.pumpAndSettle();
+    // The dropdown menu overlays duplicate item labels; tap the last "Never".
+    await tester.tap(find.text('Never').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<DropdownButton<int>>(
+            find.byKey(const ValueKey('general-soft-delete-retention')),
+          )
+          .value,
+      kSoftDeleteRetentionNever,
+    );
+    expect(
+      await repos.settings.get(kSoftDeleteRetentionKey),
+      kSoftDeleteRetentionNever,
+    );
+  });
+
+  testWidgets('retention reflects the persisted value on reload', (
+    tester,
+  ) async {
+    final repos = _openRepos();
+    await repos.settings.set(kSoftDeleteRetentionKey, 90);
+
+    await _pumpGeneral(tester, repos);
+    // Let the lazy one-time read resolve.
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<DropdownButton<int>>(
+            find.byKey(const ValueKey('general-soft-delete-retention')),
+          )
+          .value,
+      90,
+    );
   });
 }

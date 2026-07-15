@@ -397,7 +397,7 @@ defaults) live in the **Defaults** pane section below.
   `docs/design/ux.md` §2). When on: only programs with the dance's slot marked performed appear, matching the
   behavior described in `docs/design/domain-model.md`. Persisted via `SettingsRepository`.
 
-- [ ] G.4 **Soft-delete retention period** — expose the retention window used by
+- [x] G.4 **Soft-delete retention period** — expose the retention window used by
   the startup purge sweep (`DanceRepository.purgeDeleted`, currently hardcoded
   to 30 days) as a user setting (e.g. 30 / 90 days / never auto-purge). Callers
   are protective of their collections; letting them lengthen or disable
