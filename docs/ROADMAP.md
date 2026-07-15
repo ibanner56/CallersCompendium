@@ -254,6 +254,23 @@ design/domain-model.md "CC parity backfill".*
   the [figure-taxonomy.md](design/figure-taxonomy.md) "verbose rendering still TODO" note. Applies to the dance
   detail card and the Phase 5 large-print performance view.
 
+## General settings
+
+Cross-cutting application preferences, persisted across sessions via
+`SettingsRepository` and surfaced in the Settings screen (`docs/design/ux.md`
+§6). Distinct from in-the-moment, per-view toggles — this section is the home
+for app-wide preference switches as they accrue.
+
+- [ ] G.1 **Auto-size performance cards to fit the screen** — a General settings
+  toggle (**on by default**) that auto-scales each Perform card so the current
+  dance/slot's full text fits the visible viewport without scrolling,
+  recomputing on dance/slot change, orientation change, and window resize.
+  When off, Perform uses the manual large-print A-/A+ control (Phase 5.1) with
+  its large default and no upper bound. The A-/A+ controls stay available
+  either way; turning auto-size off restores the last manual size. The Phase 5
+  "user-set size, no upper bound" model remains the manual mode — auto-size is
+  an opt-out convenience layer on top.
+
 ## Phase 6 — Imports & migration
 
 - [ ] 6.1 Source adapter framework + provenance tracking
