@@ -9,6 +9,7 @@ import '../data/custom_themes_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
+import '../data/sort_ignore_articles_scope.dart';
 import '../search/collection_query.dart';
 import '../theme/color_schemes.dart';
 import 'theme_editor_screen.dart';
@@ -27,6 +28,11 @@ const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 /// Key used to persist and load the "auto-size Perform cards" preference
 /// (ROADMAP G.1). Defaults to `true` (on) when unset.
 const String kAutoSizePerformKey = 'auto_size_perform_cards';
+
+/// Key used to persist the "Ignore leading articles when sorting" General
+/// setting. Stored as a bool; absent/unset means on (`true`), so the dance
+/// list alphabetizes titles with a leading article ("the"/"a"/"an") ignored.
+const String kSortIgnoreArticlesKey = 'sort_ignore_articles';
 
 /// Settings screen: a master–detail layout with a sidebar of sections and a
 /// content pane. On wide viewports the sidebar and the selected section sit
@@ -214,6 +220,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await repos.settings.set(kRequirePerformedForHistoryKey, value);
   }
 
+  Future<void> _onSortIgnoreArticlesChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern: flip the live notifier so the
+    // dance list re-sorts immediately, then persist in the background.
+    SortIgnoreArticlesScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kSortIgnoreArticlesKey, value);
+  }
+
   /// Builds the content pane for [section]. Selection and scope reads use
   /// [context] (in the side-by-side layout the screen itself; in the narrow
   /// layout the pushed detail route) via `.of(context)`, which registers that
@@ -250,6 +264,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           onRequirePerformedForHistoryChanged:
               _onRequirePerformedForHistoryChanged,
+          sortIgnoreArticles: SortIgnoreArticlesScope.of(context),
+          onSortIgnoreArticlesChanged: _onSortIgnoreArticlesChanged,
           autoSizePerform: _autoSizePerform ?? true,
           onAutoSizeChanged: _onAutoSizeChanged,
         );
@@ -1151,12 +1167,16 @@ class _GeneralView extends StatelessWidget {
   const _GeneralView({
     required this.requirePerformedForHistory,
     required this.onRequirePerformedForHistoryChanged,
+    required this.sortIgnoreArticles,
+    required this.onSortIgnoreArticlesChanged,
     required this.autoSizePerform,
     required this.onAutoSizeChanged,
   });
 
   final bool requirePerformedForHistory;
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
+  final bool sortIgnoreArticles;
+  final ValueChanged<bool> onSortIgnoreArticlesChanged;
   final bool autoSizePerform;
   final ValueChanged<bool> onAutoSizeChanged;
 
@@ -1164,6 +1184,19 @@ class _GeneralView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       children: [
+        _SectionHeader(title: 'Library'),
+        SwitchListTile(
+          key: const ValueKey('general-sort-ignore-articles'),
+          value: sortIgnoreArticles,
+          onChanged: onSortIgnoreArticlesChanged,
+          title: const Text('Ignore leading articles when sorting'),
+          subtitle: const Text(
+            'When on, the dance list alphabetizes titles ignoring a leading '
+            '“the”, “a”, or “an” — so “The Nice Combination” files under N. '
+            'Turn off to sort by the literal title.',
+          ),
+          isThreeLine: true,
+        ),
         _SectionHeader(title: 'Performance'),
         SwitchListTile(
           key: const ValueKey('settings-auto-size-perform'),

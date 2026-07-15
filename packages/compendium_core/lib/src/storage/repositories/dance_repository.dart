@@ -11,6 +11,7 @@ import '../../model/partial_date.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/source_citation.dart';
 import '../../search/search_sort.dart';
+import '../../search/title_sort_key.dart';
 import '../../search/filter.dart';
 import '../../search/filter_compiler.dart';
 import '../../serialization/figure_codec.dart';
@@ -427,10 +428,16 @@ class DanceRepository {
   /// they can't be an SQL `ORDER BY` here and are computed as a post-fetch
   /// step. The post-sort is stable, preserving the SQL title base order for
   /// ties.
+  ///
+  /// When [ignoreLeadingArticles] is `true`, [SearchSort.title] alphabetizes
+  /// with a leading article ("the"/"a"/"an") ignored (see [titleSortKey]) —
+  /// e.g. "The Nice Combination" files under **N**. This is applied as a stable
+  /// Dart post-sort over the SQL base order; other sorts are unaffected.
   Future<List<String>> search(
     DanceFilter filter, {
     SearchSort sort = SearchSort.title,
     Dialect? dialect,
+    bool ignoreLeadingArticles = false,
   }) async {
     final compiled = FilterCompiler(dialect).compile(filter, sort: sort);
     final rows = await _db
@@ -446,6 +453,7 @@ class DanceRepository {
       case SearchSort.lastCalled:
         return _sortByLastCalled(ids);
       case SearchSort.title:
+        return ignoreLeadingArticles ? _sortByTitleIgnoringArticles(ids) : ids;
       case SearchSort.recentlyAdded:
       case SearchSort.recentlyEdited:
       case SearchSort.composedOn:
@@ -462,14 +470,47 @@ class DanceRepository {
     DanceFilter filter, {
     SearchSort sort = SearchSort.title,
     Dialect? dialect,
+    bool ignoreLeadingArticles = false,
   }) async {
-    final ids = await search(filter, sort: sort, dialect: dialect);
+    final ids = await search(
+      filter,
+      sort: sort,
+      dialect: dialect,
+      ignoreLeadingArticles: ignoreLeadingArticles,
+    );
     final result = <Dance>[];
     for (final id in ids) {
       final dance = await getById(id);
       if (dance != null) result.add(dance);
     }
     return result;
+  }
+
+  /// Alphabetizes [ids] by title with a leading article ignored (see
+  /// [titleSortKey]). [ids] arrive in SQL title (base) order, kept as a stable
+  /// tiebreak for equal keys (e.g. "Rose" vs "The Rose" both key to "rose").
+  ///
+  /// Only the `(id, title)` of the already-filtered [ids] is fetched (via an
+  /// `id IN (...)` restriction), so this scales with the result size rather
+  /// than the whole library.
+  Future<List<String>> _sortByTitleIgnoringArticles(List<String> ids) async {
+    if (ids.isEmpty) return ids;
+    final rows =
+        await (_db.selectOnly(_db.dances)
+              ..addColumns([_db.dances.id, _db.dances.title])
+              ..where(_db.dances.id.isIn(ids)))
+            .get();
+    final keys = {
+      for (final row in rows)
+        row.read(_db.dances.id)!: titleSortKey(row.read(_db.dances.title)!),
+    };
+    final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
+    final sorted = [...ids]
+      ..sort((a, b) {
+        final cmp = (keys[a] ?? '').compareTo(keys[b] ?? '');
+        return cmp != 0 ? cmp : baseOrder[a]!.compareTo(baseOrder[b]!);
+      });
+    return sorted;
   }
 
   Future<List<String>> _sortByAuthor(List<String> ids) async {
