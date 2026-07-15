@@ -10,7 +10,9 @@ import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
+import '../models/dance_list_entry.dart' show formationShapeLabel;
 import '../search/collection_query.dart';
+import '../search/facet_labels.dart';
 import '../theme/color_schemes.dart';
 import 'theme_editor_screen.dart';
 
@@ -136,6 +138,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _defaultCallerUserSet = false;
   bool _defaultBandUserSet = false;
 
+  /// Dance-authoring defaults for NEW dances (ROADMAP DD.1). `null` = not yet
+  /// loaded; the view shows today's hardcoded default until the read resolves.
+  /// Each has its own user-set guard so a late read can't clobber an in-view
+  /// change and one control's change can't suppress seeding the others.
+  DanceForm? _defaultDanceForm;
+  FormationShape? _defaultDanceFormationShape;
+  Progression? _defaultDanceProgression;
+  final TextEditingController _defaultDancePhrase = TextEditingController();
+  bool _defaultDanceFormUserSet = false;
+  bool _defaultDanceFormationShapeUserSet = false;
+  bool _defaultDanceProgressionUserSet = false;
+  bool _defaultDancePhraseUserSet = false;
+
   /// Lazily loads the persisted Display defaults the first time the Defaults
   /// section is built. Mirrors [_ensureAutoSizeLoaded]: a late read must not
   /// clobber a selection the user made before it resolved (per-setting guards).
@@ -197,6 +212,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
         .catchError((_) {
           /* fall back to a blank band field */
         });
+    repos.settings
+        .get(kDefaultDanceFormKey)
+        .then((stored) {
+          if (!mounted || _defaultDanceFormUserSet) return;
+          setState(() => _defaultDanceForm = danceFormFromStored(stored));
+        })
+        .catchError((_) {
+          if (!mounted || _defaultDanceFormUserSet) return;
+          setState(() => _defaultDanceForm = DanceForm.contra);
+        });
+    repos.settings
+        .get(kDefaultDanceFormationShapeKey)
+        .then((stored) {
+          if (!mounted || _defaultDanceFormationShapeUserSet) return;
+          setState(
+            () =>
+                _defaultDanceFormationShape = formationShapeFromStored(stored),
+          );
+        })
+        .catchError((_) {
+          if (!mounted || _defaultDanceFormationShapeUserSet) return;
+          setState(
+            () => _defaultDanceFormationShape = FormationShape.dupleImproper,
+          );
+        });
+    repos.settings
+        .get(kDefaultDanceProgressionKey)
+        .then((stored) {
+          if (!mounted || _defaultDanceProgressionUserSet) return;
+          setState(
+            () => _defaultDanceProgression = progressionFromStored(stored),
+          );
+        })
+        .catchError((_) {
+          if (!mounted || _defaultDanceProgressionUserSet) return;
+          setState(() => _defaultDanceProgression = Progression.single);
+        });
+    repos.settings
+        .get(kDefaultDancePhraseStructureKey)
+        .then((stored) {
+          if (!mounted || _defaultDancePhraseUserSet) return;
+          final raw = dancePhraseStructureRawFromStored(stored);
+          if (raw.isNotEmpty) {
+            _defaultDancePhrase.text = raw;
+          }
+        })
+        .catchError((_) {
+          /* fall back to a blank (standard) phrase field */
+        });
   }
 
   Future<void> _onDefaultProgramCallerChanged(String value) async {
@@ -211,10 +275,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await repos.settings.set(kDefaultProgramBandKey, value.trim());
   }
 
+  Future<void> _onDefaultDanceFormChanged(DanceForm value) async {
+    setState(() {
+      _defaultDanceFormUserSet = true;
+      _defaultDanceForm = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kDefaultDanceFormKey, value.name);
+  }
+
+  Future<void> _onDefaultDanceFormationShapeChanged(
+    FormationShape value,
+  ) async {
+    setState(() {
+      _defaultDanceFormationShapeUserSet = true;
+      _defaultDanceFormationShape = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kDefaultDanceFormationShapeKey, value.name);
+  }
+
+  Future<void> _onDefaultDanceProgressionChanged(Progression value) async {
+    setState(() {
+      _defaultDanceProgressionUserSet = true;
+      _defaultDanceProgression = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kDefaultDanceProgressionKey, value.name);
+  }
+
+  Future<void> _onDefaultDancePhraseChanged(String value) async {
+    _defaultDancePhraseUserSet = true;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kDefaultDancePhraseStructureKey, value.trim());
+  }
+
   @override
   void dispose() {
     _defaultProgramCaller.dispose();
     _defaultProgramBand.dispose();
+    _defaultDancePhrase.dispose();
     super.dispose();
   }
 
@@ -334,6 +434,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               DanceDetailRendering.activeDialect,
           onDefaultDanceDetailRenderingChanged:
               _onDefaultDanceDetailRenderingChanged,
+          defaultDanceForm: _defaultDanceForm ?? DanceForm.contra,
+          onDefaultDanceFormChanged: _onDefaultDanceFormChanged,
+          defaultDanceFormationShape:
+              _defaultDanceFormationShape ?? FormationShape.dupleImproper,
+          onDefaultDanceFormationShapeChanged:
+              _onDefaultDanceFormationShapeChanged,
+          defaultDanceProgression:
+              _defaultDanceProgression ?? Progression.single,
+          onDefaultDanceProgressionChanged: _onDefaultDanceProgressionChanged,
+          dancePhraseController: _defaultDancePhrase,
+          onDefaultDancePhraseChanged: _onDefaultDancePhraseChanged,
         );
     }
   }
@@ -1318,6 +1429,14 @@ class _DefaultsView extends StatelessWidget {
     required this.onDefaultCollectionSortChanged,
     required this.defaultDanceDetailRendering,
     required this.onDefaultDanceDetailRenderingChanged,
+    required this.defaultDanceForm,
+    required this.onDefaultDanceFormChanged,
+    required this.defaultDanceFormationShape,
+    required this.onDefaultDanceFormationShapeChanged,
+    required this.defaultDanceProgression,
+    required this.onDefaultDanceProgressionChanged,
+    required this.dancePhraseController,
+    required this.onDefaultDancePhraseChanged,
   });
 
   final TextEditingController programCallerController;
@@ -1328,6 +1447,14 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<CollectionSort> onDefaultCollectionSortChanged;
   final DanceDetailRendering defaultDanceDetailRendering;
   final ValueChanged<DanceDetailRendering> onDefaultDanceDetailRenderingChanged;
+  final DanceForm defaultDanceForm;
+  final ValueChanged<DanceForm> onDefaultDanceFormChanged;
+  final FormationShape defaultDanceFormationShape;
+  final ValueChanged<FormationShape> onDefaultDanceFormationShapeChanged;
+  final Progression defaultDanceProgression;
+  final ValueChanged<Progression> onDefaultDanceProgressionChanged;
+  final TextEditingController dancePhraseController;
+  final ValueChanged<String> onDefaultDancePhraseChanged;
 
   /// The Collection sort orders offered as a default. Excludes
   /// [CollectionSort.relevance], which is only meaningful for a bare full-text
@@ -1406,6 +1533,85 @@ class _DefaultsView extends StatelessWidget {
             'dance while it is open.',
           ),
           isThreeLine: true,
+        ),
+        _SectionHeader(title: 'Dance-authoring defaults'),
+        ListTile(
+          title: const Text('Form'),
+          subtitle: const Text(
+            'The dance form a new dance starts as. You can still change it per '
+            'dance.',
+          ),
+          trailing: DropdownButton<DanceForm>(
+            key: const ValueKey('defaults-dance-form'),
+            value: defaultDanceForm,
+            onChanged: (value) {
+              if (value != null) onDefaultDanceFormChanged(value);
+            },
+            items: [
+              for (final form in DanceForm.values)
+                DropdownMenuItem(
+                  value: form,
+                  child: Text(danceFormLabel(form)),
+                ),
+            ],
+          ),
+        ),
+        ListTile(
+          title: const Text('Formation'),
+          subtitle: const Text(
+            'The formation a new dance starts in. You can still change it per '
+            'dance.',
+          ),
+          trailing: DropdownButton<FormationShape>(
+            key: const ValueKey('defaults-dance-formation'),
+            value: defaultDanceFormationShape,
+            onChanged: (value) {
+              if (value != null) onDefaultDanceFormationShapeChanged(value);
+            },
+            items: [
+              for (final shape in FormationShape.values)
+                DropdownMenuItem(
+                  value: shape,
+                  child: Text(formationShapeLabel(shape)),
+                ),
+            ],
+          ),
+        ),
+        ListTile(
+          title: const Text('Progression'),
+          subtitle: const Text(
+            'The progression a new dance starts with. You can still change it '
+            'per dance.',
+          ),
+          trailing: DropdownButton<Progression>(
+            key: const ValueKey('defaults-dance-progression'),
+            value: defaultDanceProgression,
+            onChanged: (value) {
+              if (value != null) onDefaultDanceProgressionChanged(value);
+            },
+            items: [
+              for (final progression in Progression.values)
+                DropdownMenuItem(
+                  value: progression,
+                  child: Text(progressionLabel(progression)),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: TextField(
+            key: const ValueKey('defaults-dance-phrase'),
+            controller: dancePhraseController,
+            onChanged: onDefaultDancePhraseChanged,
+            decoration: const InputDecoration(
+              labelText: 'Default phrase structure',
+              helperText:
+                  'Seeded into new dances. Blank = standard 4×16 (A1 A2 B1 B2); '
+                  'else e.g. 6*8*2.',
+              border: OutlineInputBorder(),
+            ),
+          ),
         ),
       ],
     );

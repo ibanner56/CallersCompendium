@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/editor/editor_draft_codec.dart';
+import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 
@@ -1426,5 +1429,189 @@ void main() {
         expect(saved.form, DanceForm.ecd);
       },
     );
+  });
+
+  group('DD.1 new-dance metadata defaults', () {
+    testWidgets('new dance seeds form/formation/progression/phrase from '
+        'saved defaults', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultDanceFormKey, DanceForm.square.name);
+      await repos.settings.set(
+        kDefaultDanceFormationShapeKey,
+        FormationShape.longways.name,
+      );
+      await repos.settings.set(
+        kDefaultDanceProgressionKey,
+        Progression.triple.name,
+      );
+      await repos.settings.set(kDefaultDancePhraseStructureKey, '6*8*2');
+
+      await _pumpEditor(tester, repos);
+
+      // The seeded phrase shows in the phrase field before any edit.
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('phrase-field')))
+            .controller
+            ?.text,
+        '6*8*2',
+      );
+      // The seeded formation shows in the formation dropdown.
+      expect(
+        find.byKey(ValueKey('formation-field-${FormationShape.longways.name}')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Seeded Dance',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.listAll()).single;
+      expect(saved.form, DanceForm.square);
+      expect(saved.formation.shape, FormationShape.longways);
+      expect(saved.progression, Progression.triple);
+      expect(saved.phraseStructure.raw, '6*8*2');
+    });
+
+    testWidgets('new dance with no saved defaults keeps hardcoded defaults', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpEditor(tester, repos);
+
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('phrase-field')))
+            .controller
+            ?.text,
+        '',
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Plain Dance',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.listAll()).single;
+      expect(saved.form, DanceForm.contra);
+      expect(saved.formation.shape, FormationShape.dupleImproper);
+      expect(saved.progression, Progression.single);
+      expect(saved.phraseStructure, PhraseStructure.standard);
+    });
+
+    testWidgets('existing dance ignores the defaults (its stored values win)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // Saved defaults differ from the existing dance's stored metadata.
+      await repos.settings.set(kDefaultDanceFormKey, DanceForm.square.name);
+      await repos.settings.set(
+        kDefaultDanceFormationShapeKey,
+        FormationShape.grid.name,
+      );
+      await repos.settings.set(
+        kDefaultDanceProgressionKey,
+        Progression.quadruple.name,
+      );
+      await repos.settings.set(kDefaultDancePhraseStructureKey, '6*8*2');
+
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Existing',
+          form: DanceForm.ecd,
+          formation: const Formation(FormationShape.circleMixer),
+          progression: Progression.none,
+          phraseStructure: '8*8*1',
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // The existing dance's phrase and formation are shown, not the defaults.
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('phrase-field')))
+            .controller
+            ?.text,
+        '8*8*1',
+      );
+      expect(
+        find.byKey(
+          ValueKey('formation-field-${FormationShape.circleMixer.name}'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.form, DanceForm.ecd);
+      expect(saved.formation.shape, FormationShape.circleMixer);
+      expect(saved.progression, Progression.none);
+      expect(saved.phraseStructure.raw, '8*8*1');
+    });
+
+    testWidgets('a restored draft overrides the seeded defaults', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kDefaultDanceFormKey, DanceForm.square.name);
+      await repos.settings.set(
+        kDefaultDanceFormationShapeKey,
+        FormationShape.longways.name,
+      );
+      await repos.settings.set(
+        kDefaultDanceProgressionKey,
+        Progression.triple.name,
+      );
+      await repos.settings.set(kDefaultDancePhraseStructureKey, '6*8*2');
+
+      // A previously-autosaved draft for a NEW dance, with its own metadata.
+      const draft = EditorSnapshot(
+        title: 'Drafted Dance',
+        hook: '',
+        notes: '',
+        phrase: '2*8*4',
+        formationDetail: '',
+        form: DanceForm.ecd,
+        formationShape: FormationShape.becketCw,
+        progression: Progression.double,
+        status: DanceStatus.active,
+        authorIds: [],
+        tagIds: [],
+        tunes: [],
+        links: [],
+        sourceCitations: [],
+        customValues: {},
+        figureDrafts: [],
+      );
+      await repos.settings.set('editor_draft:new', encodeDraft(draft));
+
+      await _pumpEditor(tester, repos);
+
+      // Restore dialog appears; choose to restore the draft.
+      await tester.tap(find.byKey(const ValueKey('draft-restore')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.listAll()).single;
+      // The restored draft's metadata wins over the seeded defaults.
+      expect(saved.title, 'Drafted Dance');
+      expect(saved.form, DanceForm.ecd);
+      expect(saved.formation.shape, FormationShape.becketCw);
+      expect(saved.progression, Progression.double);
+      expect(saved.phraseStructure.raw, '2*8*4');
+    });
   });
 }

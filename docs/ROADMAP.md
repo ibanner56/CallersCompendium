@@ -431,7 +431,7 @@ taxonomy are unchanged.
 
 **Dance-authoring defaults**
 
-- [ ] DD.1 **New-dance metadata defaults** — configurable defaults applied when
+- [x] DD.1 **New-dance metadata defaults** — configurable defaults applied when
   creating a new dance: form/type, formation, progression, and phrase
   structure. The domain model currently hardcodes these (`Formation(dupleImproper)`,
   `Progression.single`, `4×16` phrase structure); this surfaces them as user
