@@ -316,10 +316,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     // Displayed labels use the dialect's role terms, not the canonical tokens.
-    expect(find.text('Larks'), findsOneWidget);
+    expect(find.text('larks'), findsOneWidget);
     expect(find.text('role1s'), findsNothing);
     // Selecting still stores the canonical token (storage stays canonical).
-    await _selectFromDropdown(tester, 'p-who', 'Robins');
+    await _selectFromDropdown(tester, 'p-who', 'robins');
     expect(read(), 'role2s');
   });
 
@@ -339,7 +339,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('role1s'), findsOneWidget);
-    expect(find.text('Larks'), findsNothing);
+    expect(find.text('larks'), findsNothing);
   });
 
   testWidgets('dancerSet dropdown applies dialect dancer substitutions', (

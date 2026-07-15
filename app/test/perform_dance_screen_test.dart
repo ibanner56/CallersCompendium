@@ -129,8 +129,8 @@ void main() {
     expect(find.text('Gene Hubert'), findsOneWidget);
     // Section header derived from the phrase structure.
     expect(find.text('A1'), findsOneWidget);
-    // Larks/Robins preset: role2s -> Robins.
-    expect(find.text('Robins chain across'), findsOneWidget);
+    // Larks/Robins preset: role2s -> robins.
+    expect(find.text('robins chain across'), findsOneWidget);
   });
 
   testWidgets('figure line announces the verbose form to assistive tech', (
@@ -170,7 +170,7 @@ void main() {
   ) async {
     await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
 
-    expect(find.text('Robins chain across'), findsOneWidget);
+    expect(find.text('robins chain across'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('perform-dialect-toggle')));
     await tester.pumpAndSettle();

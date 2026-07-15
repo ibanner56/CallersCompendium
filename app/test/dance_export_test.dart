@@ -158,7 +158,7 @@ void main() {
       expect(clipboardText, contains('Rory O\'More'));
       expect(clipboardText, contains('Ted Sannella'));
       // Dialect is applied to the copied card (role token substituted).
-      expect(clipboardText, contains('Larks swing'));
+      expect(clipboardText, contains('larks swing'));
       expect(find.text('Dance copied to clipboard.'), findsOneWidget);
     });
 

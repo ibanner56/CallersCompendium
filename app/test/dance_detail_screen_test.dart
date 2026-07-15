@@ -144,8 +144,8 @@ void main() {
 
     // Section header A1 is derived (figure starts at beat 0).
     expect(find.text('A1'), findsOneWidget);
-    // Default view applies the Larks/Robins preset: role2s -> Robins.
-    expect(find.text('Robins chain across'), findsOneWidget);
+    // Default view applies the Larks/Robins preset: role2s -> robins.
+    expect(find.text('robins chain across'), findsOneWidget);
 
     // Toggle to canonical: role tokens are shown verbatim.
     await tester.tap(find.byKey(const ValueKey('dialect-toggle')));
@@ -483,8 +483,8 @@ void main() {
 
     await _pumpDetail(tester, repos, 'd1', activeDialect: Dialect.larksRobins);
 
-    // Active dialect = Larks/Robins: role2s → Robins.
-    expect(find.text('Robins chain across'), findsOneWidget);
+    // Active dialect = Larks/Robins: role2s → robins.
+    expect(find.text('robins chain across'), findsOneWidget);
     // Toggle is visible because active dialect is not canonical.
     expect(find.byKey(const ValueKey('dialect-toggle')), findsOneWidget);
 

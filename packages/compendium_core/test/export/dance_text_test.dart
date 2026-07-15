@@ -161,15 +161,15 @@ void main() {
 
       // Canonical keeps the role token; the dialect substitutes it.
       expect(canonical, contains('role1s swing'));
-      expect(canonical, isNot(contains('Larks swing')));
-      expect(dialectal, contains('Larks swing'));
+      expect(canonical, isNot(contains('larks swing')));
+      expect(dialectal, contains('larks swing'));
       expect(dialectal, isNot(contains('role1s swing')));
     });
 
     test('applies the dialect to calling notes free text', () {
       final d = dance(callingNotes: 'The role1s lead out.');
       expect(render(d, dialect: Dialect.canonical), contains('role1s lead'));
-      expect(render(d, dialect: larks), contains('Larks lead'));
+      expect(render(d, dialect: larks), contains('larks lead'));
     });
 
     test('includes a Calling notes section when notes are present', () {

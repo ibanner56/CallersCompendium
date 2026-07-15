@@ -71,7 +71,7 @@ void main() {
   group('dialect rendering + canonicalize round-trip', () {
     test('give_and_take role token maps to Larks and round-trips', () {
       final display = renderer.render(Figure(move: 'give_and_take'), larks);
-      expect(display, 'Larks give & take partners');
+      expect(display, 'larks give & take partners');
       // The role token survives the render→canonicalize round-trip.
       expect(canonicalizeText(display, larks), contains('role1s'));
     });

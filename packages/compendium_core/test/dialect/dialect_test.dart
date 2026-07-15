@@ -19,8 +19,8 @@ void main() {
 
   group('shipped presets', () {
     test('larksRobins maps the two roles', () {
-      expect(Dialect.larksRobins.roles['role1']!.singular, 'Lark');
-      expect(Dialect.larksRobins.roles['role2']!.plural, 'Robins');
+      expect(Dialect.larksRobins.roles['role1']!.singular, 'lark');
+      expect(Dialect.larksRobins.roles['role2']!.plural, 'robins');
     });
 
     test('canonical has no role mappings', () {
