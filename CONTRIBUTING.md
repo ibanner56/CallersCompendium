@@ -43,7 +43,7 @@ by opening a PR adding a `Proposed` ADR.
 The app is a Flutter [pub workspace](pubspec.yaml): the `app/` Flutter app plus a
 pure-Dart domain core in `packages/compendium_core/` (which must not import
 Flutter — ADR-001, enforced in CI). Flutter is pinned to the version in
-[`.fvmrc`](.fvmrc) (currently 3.44.6); [FVM](https://fvm.app/) is the way we keep
+[`.fvmrc`](.fvmrc); [FVM](https://fvm.app/) is the way we keep
 everyone on that exact version. Install FVM, then from the repo root:
 
 ```sh

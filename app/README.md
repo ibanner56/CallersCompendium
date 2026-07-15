@@ -12,13 +12,14 @@ on-device via `drift_flutter`.
 ## Running
 
 Flutter is pinned to the version in [`../.fvmrc`](../.fvmrc);
-[FVM](https://fvm.app/) is the easy way to match it. From the repo root:
+[FVM](https://fvm.app/) is the way we match it, so commands are prefixed with
+`fvm`. From the repo root:
 
 ```sh
-flutter pub get      # resolve the pub workspace (app + core)
+fvm flutter pub get      # resolve the pub workspace (app + core)
 cd app
-flutter run          # run on the connected device / desktop
-flutter test         # widget + unit tests
+fvm flutter run          # run on the connected device / desktop
+fvm flutter test         # widget + unit tests
 ```
 
 See the repo [CONTRIBUTING guide](../CONTRIBUTING.md) for the full workflow and
