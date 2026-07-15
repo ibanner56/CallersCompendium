@@ -901,6 +901,67 @@ void main() {
     expect(created.links.single.label, 'same author');
   });
 
+  testWidgets(
+    'relatedDance: a loaded link surfaces in the related-dances editor '
+    '(note pre-filled) and never leaks into the generic links list',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'target', title: 'Target Dance'));
+      // A dance that already has BOTH a relatedDance link (with a note) and a
+      // generic source link, exactly like data written before this PR.
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Has related',
+          links: [
+            DanceLink(
+              id: 'l1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'target',
+              label: 'kindred spirit',
+            ),
+            DanceLink(
+              id: 'l2',
+              kind: LinkKind.source,
+              url: 'https://example.com',
+              label: 'the source',
+            ),
+          ],
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      // The pre-existing relatedDance link surfaces in the dedicated editor
+      // with its note pre-filled from the link label.
+      final noteField = find.byKey(const ValueKey('related-dance-note-l1'));
+      expect(noteField, findsOneWidget);
+      expect(
+        tester.widget<TextField>(noteField).controller?.text,
+        'kindred spirit',
+      );
+
+      // The relatedDance link must NOT appear in the generic links editor…
+      expect(find.byKey(const ValueKey('link-kind-l1')), findsNothing);
+      expect(find.byKey(const ValueKey('link-url-l1')), findsNothing);
+      // …while the genuine source link still does.
+      expect(find.byKey(const ValueKey('link-url-l2')), findsOneWidget);
+
+      // Saving without touching the links strands neither link.
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      final related = saved!.links.firstWhere(
+        (l) => l.kind == LinkKind.relatedDance,
+      );
+      expect(related.targetDanceId, 'target');
+      expect(related.label, 'kindred spirit');
+      final source = saved.links.firstWhere((l) => l.kind == LinkKind.source);
+      expect(source.url, 'https://example.com');
+    },
+  );
+
   testWidgets('relatedDance: remove removes it on save', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'target', title: 'Target'));
