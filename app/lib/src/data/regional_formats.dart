@@ -12,7 +12,6 @@ library;
 
 import 'package:flutter/material.dart' show MaterialLocalizations;
 
-
 /// Key used to persist the program-event-date format preference (ROADMAP G.8).
 ///
 /// Stored as a stable string token: one of `system` (the default),
