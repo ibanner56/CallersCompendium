@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
 import '../support/test_repositories.dart';
@@ -25,6 +26,7 @@ Future<
     ValueNotifier<AppThemeSelection> themeNotifier,
     CustomThemesController customThemes,
     ValueNotifier<bool> requirePerformedNotifier,
+    ValueNotifier<bool> sortIgnoreArticlesNotifier,
   })
 >
 _pumpSettings(
@@ -32,6 +34,7 @@ _pumpSettings(
   Dialect? initialDialect,
   AppThemeSelection? initialTheme,
   bool initialRequirePerformed = false,
+  bool initialSortIgnoreArticles = true,
   Size surfaceSize = const Size(1000, 2600),
 }) async {
   final repos = openTestRepositories();
@@ -46,6 +49,9 @@ _pumpSettings(
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
   final requirePerformedNotifier = ValueNotifier<bool>(initialRequirePerformed);
+  final sortIgnoreArticlesNotifier = ValueNotifier<bool>(
+    initialSortIgnoreArticles,
+  );
 
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -53,6 +59,7 @@ _pumpSettings(
   addTearDown(themeNotifier.dispose);
   addTearDown(customThemes.dispose);
   addTearDown(requirePerformedNotifier.dispose);
+  addTearDown(sortIgnoreArticlesNotifier.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -66,7 +73,10 @@ _pumpSettings(
               notifier: notifier,
               child: RequirePerformedForHistoryScope(
                 notifier: requirePerformedNotifier,
-                child: child!,
+                child: SortIgnoreArticlesScope(
+                  notifier: sortIgnoreArticlesNotifier,
+                  child: child!,
+                ),
               ),
             ),
           ),
@@ -82,6 +92,7 @@ _pumpSettings(
     themeNotifier: themeNotifier,
     customThemes: customThemes,
     requirePerformedNotifier: requirePerformedNotifier,
+    sortIgnoreArticlesNotifier: sortIgnoreArticlesNotifier,
   );
 }
 
@@ -184,6 +195,44 @@ void main() {
         ),
       );
       handle.dispose();
+    });
+
+    const sortToggleKey = ValueKey('general-sort-ignore-articles');
+
+    testWidgets('sort-ignore-articles toggle is present and on by default', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      await openGeneral(tester);
+
+      expect(find.byKey(sortToggleKey), findsOneWidget);
+      final toggle = tester.widget<SwitchListTile>(find.byKey(sortToggleKey));
+      expect(toggle.value, isTrue);
+    });
+
+    testWidgets('reflects the initial sort-ignore-articles value', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, initialSortIgnoreArticles: false);
+      await openGeneral(tester);
+
+      final toggle = tester.widget<SwitchListTile>(find.byKey(sortToggleKey));
+      expect(toggle.value, isFalse);
+    });
+
+    testWidgets('turning it off updates the notifier and persists', (
+      tester,
+    ) async {
+      final harness = await _pumpSettings(tester);
+      await openGeneral(tester);
+
+      await tester.tap(find.byKey(sortToggleKey));
+      await tester.pumpAndSettle();
+
+      expect(harness.sortIgnoreArticlesNotifier.value, isFalse);
+      expect(await harness.repos.settings.get(kSortIgnoreArticlesKey), isFalse);
+      final toggle = tester.widget<SwitchListTile>(find.byKey(sortToggleKey));
+      expect(toggle.value, isFalse);
     });
   });
 

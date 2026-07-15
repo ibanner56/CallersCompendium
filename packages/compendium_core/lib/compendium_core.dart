@@ -33,6 +33,7 @@ export 'src/model/published_source.dart';
 export 'src/model/source_citation.dart';
 export 'src/model/tag.dart';
 export 'src/search/search_sort.dart';
+export 'src/search/title_sort_key.dart';
 export 'src/search/filter.dart';
 export 'src/search/filter_compiler.dart';
 export 'src/serialization/figure_codec.dart';

@@ -8,6 +8,7 @@ import 'package:flutter/semantics.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
+import '../data/sort_ignore_articles_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
@@ -68,6 +69,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// in [didChangeDependencies] and updated live when the user changes it.
   Dialect _dialect = Dialect.larksRobins;
 
+  /// Whether the title sort ignores a leading article — read from
+  /// [SortIgnoreArticlesScope] in [didChangeDependencies] and updated live when
+  /// the user toggles the General setting.
+  bool _sortIgnoreArticles = true;
+
   static const Duration _debounce = Duration(milliseconds: 250);
 
   final _ftsController = TextEditingController();
@@ -114,12 +120,19 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final dialectChanged = _started && newDialect != _dialect;
     _dialect = newDialect;
 
+    // Read the sort-ignore-articles setting (registers a rebuild dependency so
+    // this fires again when the user toggles it).
+    final newIgnoreArticles = SortIgnoreArticlesScope.of(context);
+    final ignoreArticlesChanged =
+        _started && newIgnoreArticles != _sortIgnoreArticles;
+    _sortIgnoreArticles = newIgnoreArticles;
+
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
       widget.refreshTrigger?.addListener(_onRefreshTriggered);
       _boot();
-    } else if (dialectChanged) {
+    } else if (dialectChanged || ignoreArticlesChanged) {
       _runSearch();
     }
   }
@@ -236,6 +249,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         filter,
         sort: _sort.searchSort,
         dialect: _dialect,
+        ignoreLeadingArticles: _sortIgnoreArticles,
       );
       if (!mounted || seq != _searchSeq) return;
       setState(() {
