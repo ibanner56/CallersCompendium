@@ -89,7 +89,7 @@ accent/container pair is inherited from Dark and unchanged. All pairs clear AA.
 |---|---|---|---|
 | surface / onSurface | `#1E2A38` | `#E7ECF1` | 12.24 |
 | onSurfaceVariant | `#B4C1CE` | (on surface) | 7.94 |
-| surfaceContainerHighest | `#303D4C` | (on surface) | — |
+| surfaceContainerHighest | `#303D4C` | (on surface) | 9.31 |
 | outline (borders, ≥3:1) | `#7B8896` | (on surface) | 4.02 |
 | primary (focus ring, ≥3:1) | `#FFB784` | (on surface) | 8.56 |
 

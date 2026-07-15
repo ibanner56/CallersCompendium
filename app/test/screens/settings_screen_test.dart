@@ -639,27 +639,33 @@ void main() {
       expect(AppThemeSelection.monokai.themeMode, ThemeMode.dark);
     });
 
-    test('inGroup lists each group alphabetically by label', () {
-      for (final group in AppThemeGroup.values) {
-        final labels = AppThemeSelection.inGroup(
-          group,
-        ).map((s) => s.label).toList();
-        final sorted = [...labels]
-          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    test(
+      'inGroup orders gallery sections A→Z and the Default group by canvas',
+      () {
+        // Gallery sections (Light/Dark) list alphabetically by label.
+        for (final group in [AppThemeGroup.light, AppThemeGroup.dark]) {
+          final labels = AppThemeSelection.inGroup(
+            group,
+          ).map((s) => s.label).toList();
+          final sorted = [...labels]
+            ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+          expect(
+            labels,
+            equals(sorted),
+            reason: '${group.label} gallery section should be alphabetical',
+          );
+        }
+        // The Default group uses a curated order (Dark, Soft Dark, High
+        // contrast, Light) rather than alphabetical, which reads more
+        // intuitively in the Settings pane.
         expect(
-          labels,
-          equals(sorted),
-          reason: '${group.label} group should be alphabetical',
+          AppThemeSelection.inGroup(
+            AppThemeGroup.defaultHearth,
+          ).map((s) => s.label),
+          equals(['Dark', 'Soft Dark', 'High contrast', 'Light']),
         );
-      }
-      // Sanity: the Default group orders as Dark, High contrast, Light, Soft Dark.
-      expect(
-        AppThemeSelection.inGroup(
-          AppThemeGroup.defaultHearth,
-        ).map((s) => s.label),
-        equals(['Dark', 'High contrast', 'Light', 'Soft Dark']),
-      );
-    });
+      },
+    );
 
     test('gallery grouping and brightness resolvers are correct', () {
       expect(AppThemeSelection.system.group, AppThemeGroup.system);
