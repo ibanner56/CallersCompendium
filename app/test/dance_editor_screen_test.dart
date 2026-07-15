@@ -75,12 +75,36 @@ Future<void> _pumpEditor(
 
 /// Types [typed] into figure [index]'s move field and taps the [optionId]
 /// suggestion, mirroring the keyboard-first move picker.
+/// Expands the accordion editor for the figure at [index] (no-op if the editor
+/// is already open). Figures render as collapsed summary rows at rest.
+Future<void> _openFigure(WidgetTester tester, int index) async {
+  if (find.byKey(ValueKey('figure-$index-move-input')).evaluate().isNotEmpty) {
+    return;
+  }
+  await tester.tap(find.byKey(ValueKey('figure-$index-summary')));
+  await tester.pumpAndSettle();
+}
+
+/// Opens the ⋮ overflow menu for figure [index] and taps its [suffix] item
+/// (e.g. 'delete', 'cut', 'move-up').
+Future<void> _tapFigureMenuItem(
+  WidgetTester tester,
+  int index,
+  String suffix,
+) async {
+  await tester.tap(find.byKey(ValueKey('figure-$index-menu')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey('figure-$index-$suffix')));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _selectMoveInEditor(
   WidgetTester tester,
   int index,
   String typed,
   String optionId,
 ) async {
+  await _openFigure(tester, index);
   await tester.enterText(
     find.byKey(ValueKey('figure-$index-move-input')),
     typed,
@@ -727,6 +751,9 @@ void main() {
     // Progression + note round-trip alongside the params.
     await tester.tap(find.byKey(const ValueKey('figure-0-progression')));
     await tester.pumpAndSettle();
+    // The note field is on-demand — reveal it before typing.
+    await tester.tap(find.byKey(const ValueKey('figure-0-add-note')));
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('figure-0-note')),
       'big swing',
@@ -781,7 +808,8 @@ void main() {
     );
     await _pumpEditor(tester, repos, danceId: 'd1');
 
-    // The existing figure loads into an editable row.
+    // The existing figure loads as a collapsed summary; open it to edit.
+    await _openFigure(tester, 0);
     expect(find.byKey(const ValueKey('figure-0-beats')), findsOneWidget);
     await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '16');
     await tester.pumpAndSettle();
@@ -806,8 +834,7 @@ void main() {
     );
     await _pumpEditor(tester, repos, danceId: 'd1');
 
-    await tester.tap(find.byKey(const ValueKey('figure-0-delete')));
-    await tester.pumpAndSettle();
+    await _tapFigureMenuItem(tester, 0, 'delete');
     await tester.tap(find.byKey(const ValueKey('save-dance')));
     await tester.pumpAndSettle();
 

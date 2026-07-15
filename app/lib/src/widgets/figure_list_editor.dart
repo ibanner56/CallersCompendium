@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 
 import 'figure_param_editors.dart';
 import 'move_autocomplete.dart';
@@ -262,13 +264,18 @@ class FigureDraft {
 }
 
 /// Editable, keyboard-first figure list for the dance editor (`docs/design/
-/// ux.md` §3, roadmap 3.3b + 3.3c). Each row is a type-ahead move picker plus
-/// per-parameter editors, a progression toggle, and a note with live lingo-line
-/// styling (discouraged terms struck through, role terms underlined).
+/// ux.md` §3, roadmap 3.3b + 3.3c). Adopts a collapse-to-sentence accordion:
+/// each figure rests as a single glanceable summary row (rendered sentence +
+/// beats + section label + progression marker); tapping (or Enter/Space on a
+/// focused row) reveals the heavy editor inline beneath it — a type-ahead move
+/// picker plus per-parameter editors, a compact progression toggle, and an
+/// on-demand note with live lingo-line styling. At most one figure is expanded
+/// at a time (opening another commits + collapses the previous one).
 ///
-/// Reordering is supported via three affordances (WCAG 2.5.7):
+/// Reordering is supported via four affordances (WCAG 2.5.7):
 ///  - drag handle (pointer/touch),
-///  - move-up / move-down buttons (keyboard/AT),
+///  - move-up / move-down in the per-row overflow (`⋮`) menu (keyboard/AT),
+///  - Alt+ArrowUp / Alt+ArrowDown on a focused collapsed row (keyboard/AT),
 ///  - cut and paste (keyboard/AT, multi-step).
 class FigureListEditor extends StatefulWidget {
   const FigureListEditor({
@@ -280,6 +287,7 @@ class FigureListEditor extends StatefulWidget {
     required this.onAdd,
     required this.onDelete,
     required this.onReorder,
+    this.onDuplicate,
     this.dialect,
   });
 
@@ -296,6 +304,11 @@ class FigureListEditor extends StatefulWidget {
   final VoidCallback onChanged;
   final VoidCallback onAdd;
   final ValueChanged<FigureDraft> onDelete;
+
+  /// Optional: duplicate [draft], inserting a clone (fresh id, copied
+  /// move/params/note/progression) right after it. When `null` the Duplicate
+  /// overflow-menu item is hidden, so existing callers stay source-compatible.
+  final ValueChanged<FigureDraft>? onDuplicate;
 
   /// Called when the user reorders figures. Uses pre-adjusted indices matching
   /// Flutter's [ReorderableListView.onReorderItem] semantics:
@@ -314,8 +327,90 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// `null` when no cut is in progress.
   String? _cutDraftId;
 
+  /// Id of the currently expanded (editing) draft, or `null` when every figure
+  /// is collapsed. Tracked by id — never index — so reorders and deletions
+  /// can't misroute the open editor to the wrong figure.
+  String? _openDraftId;
+
+  /// Set when the Add flow needs the freshly-appended figure to auto-expand +
+  /// focus its Move field after the parent rebuilds with the new draft.
+  bool _openLastAfterAdd = false;
+
+  /// Per-row focus nodes (keyed by draft id) so the collapsed summary is
+  /// keyboard-focusable, can receive Enter/Space/Alt+Arrow, and can be
+  /// re-focused after collapse/delete/reorder.
+  final Map<String, FocusNode> _rowFocusNodes = {};
+
+  /// Focus target of last resort after deleting the final figure.
+  final FocusNode _addButtonFocusNode = FocusNode(debugLabel: 'figure-add');
+
   Dialect get _dialect => widget.dialect ?? Dialect.larksRobins;
 
+  FocusNode _rowFocusNode(String id) => _rowFocusNodes.putIfAbsent(
+    id,
+    () => FocusNode(debugLabel: 'figure-row-$id'),
+  );
+
+  @override
+  void didUpdateWidget(FigureListEditor old) {
+    super.didUpdateWidget(old);
+    final ids = widget.drafts.map((d) => d.id).toSet();
+
+    // Auto-open + focus the figure the Add flow just appended.
+    if (_openLastAfterAdd) {
+      _openLastAfterAdd = false;
+      if (widget.drafts.isNotEmpty) {
+        final newId = widget.drafts.last.id;
+        _openDraftId = newId;
+        _ensureVisibleSoon(newId);
+        _announce('Added figure ${widget.drafts.length}. Choose a move.');
+      }
+    }
+
+    // Collapse the editor if its draft was removed externally.
+    if (_openDraftId != null && !ids.contains(_openDraftId)) {
+      _openDraftId = null;
+    }
+
+    // Drop focus nodes for drafts that no longer exist.
+    final stale = _rowFocusNodes.keys.where((k) => !ids.contains(k)).toList();
+    for (final k in stale) {
+      _rowFocusNodes.remove(k)?.dispose();
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final node in _rowFocusNodes.values) {
+      node.dispose();
+    }
+    _addButtonFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _announce(String message) {
+    if (!mounted) return;
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
+  }
+
+  void _ensureVisibleSoon(String id) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _rowFocusNodes[id]?.context;
+      if (ctx != null && ctx.mounted) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 200),
+          alignment: 0.1,
+        );
+      }
+    });
+  }
+
+  // --- Cut / paste ----------------------------------------------------------
   void _startCut(String draftId) => setState(() => _cutDraftId = draftId);
   void _cancelCut() => setState(() => _cutDraftId = null);
 
@@ -334,6 +429,97 @@ class _FigureListEditorState extends State<FigureListEditor> {
     // beforeIndex is after the cut item.
     final finalPos = beforeIndex > cutIndex ? beforeIndex - 1 : beforeIndex;
     widget.onReorder(cutIndex, finalPos);
+    _announce('Figure pasted at position ${finalPos + 1}.');
+  }
+
+  // --- Reorder --------------------------------------------------------------
+  /// Reorders using pre-adjusted (`onReorderItem`) semantics and announces the
+  /// new position. When [refocus] is set the moved row regains focus so
+  /// keyboard users can chain Alt+Arrow / menu moves.
+  void _reorder(int oldIndex, int newIndex, {bool refocus = false}) {
+    if (oldIndex < 0 || oldIndex >= widget.drafts.length) return;
+    final movedId = widget.drafts[oldIndex].id;
+    widget.onReorder(oldIndex, newIndex);
+    _announce('Moved to position ${newIndex + 1} of ${widget.drafts.length}.');
+    if (refocus) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _rowFocusNode(movedId).requestFocus(),
+      );
+    }
+  }
+
+  // --- Accordion ------------------------------------------------------------
+  void _openDraft(String id) {
+    setState(() => _openDraftId = id);
+    // Focus lands on the Move field via MoveAutocomplete.autofocus when the
+    // editor mounts.
+    _ensureVisibleSoon(id);
+    final i = widget.drafts.indexWhere((d) => d.id == id);
+    if (i != -1) {
+      final name = _figureDisplayName(widget.drafts[i], widget.taxonomy);
+      _announce('Editing figure ${i + 1}, $name.');
+    }
+  }
+
+  void _closeDraft(String id) {
+    final i = widget.drafts.indexWhere((d) => d.id == id);
+    if (_openDraftId == id) setState(() => _openDraftId = null);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _rowFocusNode(id).requestFocus(),
+    );
+    if (i != -1) _announce('Collapsed figure ${i + 1}.');
+  }
+
+  void _toggleDraft(String id) =>
+      _openDraftId == id ? _closeDraft(id) : _openDraft(id);
+
+  /// Ctrl/Cmd+Enter: commit the current editor (edits are already live) and
+  /// open the next figure's editor — or add a new figure when at the end.
+  void _commitAndOpenNext(String id) {
+    final i = widget.drafts.indexWhere((d) => d.id == id);
+    if (i == -1) return;
+    if (i < widget.drafts.length - 1) {
+      _openDraft(widget.drafts[i + 1].id);
+    } else {
+      _addFigure();
+    }
+  }
+
+  void _addFigure() {
+    _openLastAfterAdd = true;
+    widget.onAdd();
+  }
+
+  void _deleteDraft(int index) {
+    final drafts = widget.drafts;
+    if (index < 0 || index >= drafts.length) return;
+    final deleted = drafts[index];
+    // Resolve the post-delete focus target BEFORE the list mutates: the next
+    // row, else the previous, else the Add button when the list empties.
+    String? focusTargetId;
+    if (drafts.length > 1) {
+      focusTargetId = index < drafts.length - 1
+          ? drafts[index + 1].id
+          : drafts[index - 1].id;
+    }
+    if (_openDraftId == deleted.id) _openDraftId = null;
+    widget.onDelete(deleted);
+    _announce('Deleted figure ${index + 1}. Undo available.');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (focusTargetId != null) {
+        _rowFocusNode(focusTargetId).requestFocus();
+      } else {
+        _addButtonFocusNode.requestFocus();
+      }
+    });
+  }
+
+  void _duplicate(int index) {
+    final onDuplicate = widget.onDuplicate;
+    if (onDuplicate == null) return;
+    if (index < 0 || index >= widget.drafts.length) return;
+    onDuplicate(widget.drafts[index]);
+    _announce('Duplicated figure ${index + 1}.');
   }
 
   @override
@@ -347,18 +533,52 @@ class _FigureListEditorState extends State<FigureListEditor> {
       _cutDraftId = null;
     }
 
+    if (drafts.isEmpty) {
+      // Teaching empty state: placeholder text paired with a primary action
+      // that behaves exactly like Add (and keeps the `figure-add` key).
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text('No figures yet.', style: theme.textTheme.bodyMedium),
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.icon(
+              key: const ValueKey('figure-add'),
+              focusNode: _addButtonFocusNode,
+              onPressed: _addFigure,
+              icon: const Icon(Icons.add),
+              label: const Text('Add first figure'),
+            ),
+          ),
+        ],
+      );
+    }
+
     // Derive a phrase label per drafted (move-bearing) figure by walking the
     // cumulative beats, mirroring deriveSections but keeping the draft↔row map.
+    // `sectionStart` marks the first figure of each section so the label gutter
+    // only prints at section boundaries (like figure_table.dart's headers),
+    // while the keyed label widget stays present on every row.
     final labels = <String, String?>{};
+    final sectionStart = <String, bool>{};
     var beat = 0;
     var totalBeats = 0;
     var placedCount = 0;
+    String? lastLabel;
     for (final draft in drafts) {
       if (draft.move == null) {
         labels[draft.id] = null;
+        sectionStart[draft.id] = false;
         continue;
       }
-      labels[draft.id] = widget.phraseStructure.labelAtBeat(beat);
+      final label = widget.phraseStructure.labelAtBeat(beat);
+      labels[draft.id] = label;
+      sectionStart[draft.id] = label != lastLabel;
+      lastLabel = label;
       beat += draft.beats;
       totalBeats += draft.beats;
       placedCount++;
@@ -373,6 +593,36 @@ class _FigureListEditorState extends State<FigureListEditor> {
             ),
             widget.taxonomy,
           );
+
+    _FigureDraftCard buildCard(int i, {required bool draggable}) {
+      final draft = drafts[i];
+      final isCutCard = draft.id == _cutDraftId;
+      return _FigureDraftCard(
+        key: ValueKey('figure-card-${draft.id}'),
+        index: i,
+        totalCount: drafts.length,
+        draft: draft,
+        label: labels[draft.id],
+        showLabel: sectionStart[draft.id] ?? false,
+        taxonomy: widget.taxonomy,
+        dialect: dialect,
+        isCut: isCutCard,
+        draggable: draggable,
+        isOpen: _openDraftId == draft.id,
+        rowFocusNode: _rowFocusNode(draft.id),
+        onChanged: widget.onChanged,
+        onActivate: () => _toggleDraft(draft.id),
+        onClose: () => _closeDraft(draft.id),
+        onCommitNext: () => _commitAndOpenNext(draft.id),
+        onDelete: () => _deleteDraft(i),
+        onDuplicate: widget.onDuplicate == null ? null : () => _duplicate(i),
+        onMoveUp: i == 0 ? null : () => _reorder(i, i - 1, refocus: true),
+        onMoveDown: i == drafts.length - 1
+            ? null
+            : () => _reorder(i, i + 1, refocus: true),
+        onCut: isCutCard ? null : () => _startCut(draft.id),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -406,11 +656,6 @@ class _FigureListEditorState extends State<FigureListEditor> {
               ],
             ),
           ),
-        if (drafts.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text('No figures yet.', style: theme.textTheme.bodyMedium),
-          ),
         // -------------------------------------------------------------------
         // Figure list.  Two modes:
         //
@@ -428,27 +673,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             buildDefaultDragHandles: false,
-            onReorderItem: widget.onReorder,
+            onReorderItem: (oldIndex, newIndex) => _reorder(oldIndex, newIndex),
             children: [
               for (var i = 0; i < drafts.length; i++)
-                _FigureDraftCard(
-                  key: ValueKey('figure-card-${drafts[i].id}'),
-                  index: i,
-                  totalCount: drafts.length,
-                  draft: drafts[i],
-                  label: labels[drafts[i].id],
-                  taxonomy: widget.taxonomy,
-                  dialect: dialect,
-                  isCut: false,
-                  draggable: true,
-                  onChanged: widget.onChanged,
-                  onDelete: () => widget.onDelete(drafts[i]),
-                  onMoveUp: i == 0 ? null : () => widget.onReorder(i, i - 1),
-                  onMoveDown: i == drafts.length - 1
-                      ? null
-                      : () => widget.onReorder(i, i + 1),
-                  onCut: () => _startCut(drafts[i].id),
-                ),
+                buildCard(i, draggable: true),
             ],
           )
         else
@@ -463,27 +691,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
                   onPaste: () => _paste(0),
                 ),
               for (var i = 0; i < drafts.length; i++) ...[
-                _FigureDraftCard(
-                  key: ValueKey('figure-card-${drafts[i].id}'),
-                  index: i,
-                  totalCount: drafts.length,
-                  draft: drafts[i],
-                  label: labels[drafts[i].id],
-                  taxonomy: widget.taxonomy,
-                  dialect: dialect,
-                  isCut: drafts[i].id == _cutDraftId,
-                  draggable: false,
-                  onChanged: widget.onChanged,
-                  onDelete: () => widget.onDelete(drafts[i]),
-                  // Move-up/down still available during cut mode.
-                  onMoveUp: i == 0 ? null : () => widget.onReorder(i, i - 1),
-                  onMoveDown: i == drafts.length - 1
-                      ? null
-                      : () => widget.onReorder(i, i + 1),
-                  onCut: drafts[i].id == _cutDraftId
-                      ? null
-                      : () => _startCut(drafts[i].id),
-                ),
+                buildCard(i, draggable: false),
                 // Paste-after-this-card affordance (skip for the cut figure
                 // itself — pasting adjacent to the source is a no-op).
                 if (drafts[i].id != _cutDraftId)
@@ -502,7 +710,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
           children: [
             TextButton.icon(
               key: const ValueKey('figure-add'),
-              onPressed: widget.onAdd,
+              focusNode: _addButtonFocusNode,
+              onPressed: _addFigure,
               icon: const Icon(Icons.add),
               label: const Text('Add figure'),
             ),
@@ -574,19 +783,32 @@ class _PasteButton extends StatelessWidget {
 // _FigureDraftCard
 // ---------------------------------------------------------------------------
 
-class _FigureDraftCard extends StatelessWidget {
+/// One figure in the list. At rest it is a single glanceable summary row
+/// (rendered sentence + beats + section label + progression marker + a ⋮
+/// overflow menu). Tapping/activating the row expands a full inline editor
+/// beneath the summary (the accordion is coordinated by the parent so only one
+/// card is open at a time). Live edits are applied immediately via [onChanged],
+/// so collapsing is a commit — never a discard.
+class _FigureDraftCard extends StatefulWidget {
   const _FigureDraftCard({
     super.key,
     required this.index,
     required this.totalCount,
     required this.draft,
     required this.label,
+    required this.showLabel,
     required this.taxonomy,
     required this.dialect,
     required this.isCut,
     required this.draggable,
+    required this.isOpen,
+    required this.rowFocusNode,
     required this.onChanged,
+    required this.onActivate,
+    required this.onClose,
+    required this.onCommitNext,
     required this.onDelete,
+    this.onDuplicate,
     this.onMoveUp,
     this.onMoveDown,
     this.onCut,
@@ -595,7 +817,15 @@ class _FigureDraftCard extends StatelessWidget {
   final int index;
   final int totalCount;
   final FigureDraft draft;
+
+  /// Phrase label (A1/A2/…) for this figure, or null for an empty draft.
   final String? label;
+
+  /// Whether this row starts a new section — the label gutter only prints text
+  /// on section boundaries, but the keyed `figure-$index-label` widget is
+  /// present on every row.
+  final bool showLabel;
+
   final Taxonomy taxonomy;
   final Dialect dialect;
   final bool isCut;
@@ -604,8 +834,27 @@ class _FigureDraftCard extends StatelessWidget {
   /// because drag indices would be misaligned with the plain-Column layout.
   final bool draggable;
 
+  /// Whether the inline editor is expanded for this figure.
+  final bool isOpen;
+
+  /// Focus node for the collapsed summary row (keyboard focus + focus ring).
+  final FocusNode rowFocusNode;
+
   final VoidCallback onChanged;
+
+  /// Toggles the accordion open/closed for this figure.
+  final VoidCallback onActivate;
+
+  /// Commits + collapses this figure (Escape / Done).
+  final VoidCallback onClose;
+
+  /// Ctrl/Cmd+Enter: commit + open the next figure (or add one at the end).
+  final VoidCallback onCommitNext;
+
   final VoidCallback onDelete;
+
+  /// Null hides the Duplicate menu item (parent didn't wire onDuplicate).
+  final VoidCallback? onDuplicate;
 
   /// Null when this figure is already at the top.
   final VoidCallback? onMoveUp;
@@ -616,13 +865,38 @@ class _FigureDraftCard extends StatelessWidget {
   /// Null when this figure is already the cut figure.
   final VoidCallback? onCut;
 
+  @override
+  State<_FigureDraftCard> createState() => _FigureDraftCardState();
+}
+
+class _FigureDraftCardState extends State<_FigureDraftCard> {
+  /// Whether the on-demand note field is revealed. Existing notes are always
+  /// shown (never hide existing content); an empty note starts hidden behind
+  /// the "+ Add note" button.
+  bool _showNote = false;
+
+  /// Whether the ">3 params" overflow disclosure is expanded.
+  bool _showMoreOptions = false;
+
+  /// One-shot flag so the note field autofocuses the first frame after the
+  /// user taps "+ Add note".
+  bool _justRevealedNote = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _showNote = widget.draft.note.trim().isNotEmpty;
+  }
+
+  // --- Move mutations (live) ------------------------------------------------
   void _selectMove(String moveId) {
-    if (draft.move == moveId) return;
-    draft.move = moveId;
-    draft.params
+    if (widget.draft.move == moveId) return;
+    widget.draft.move = moveId;
+    widget.draft.params
       ..clear()
-      ..addAll(taxonomy.effectiveParams(Figure(move: moveId)));
-    onChanged();
+      ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
+    _showMoreOptions = false;
+    widget.onChanged();
   }
 
   void _createCustom(String text) {
@@ -630,205 +904,566 @@ class _FigureDraftCard extends StatelessWidget {
     // Ignore an all-whitespace submission rather than creating an empty
     // custom figure.
     if (trimmed.isEmpty) return;
-    draft.move = customMove;
-    draft.params
+    widget.draft.move = customMove;
+    widget.draft.params
       ..clear()
-      ..addAll(taxonomy.effectiveParams(Figure(move: customMove)))
+      ..addAll(widget.taxonomy.effectiveParams(Figure(move: customMove)))
       ..['text'] = trimmed;
-    onChanged();
+    _showMoreOptions = false;
+    widget.onChanged();
   }
 
   void _clearMove() {
-    if (draft.move == null) return;
-    draft.move = null;
-    draft.params.clear();
-    onChanged();
+    if (widget.draft.move == null) return;
+    widget.draft.move = null;
+    widget.draft.params.clear();
+    _showMoreOptions = false;
+    widget.onChanged();
+  }
+
+  void _toggleProgression() {
+    widget.draft.progression = !widget.draft.progression;
+    widget.onChanged();
+  }
+
+  // --- Keyboard -------------------------------------------------------------
+  KeyEventResult _handleRowKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    final isAlt = HardwareKeyboard.instance.isAltPressed;
+    if (isAlt && key == LogicalKeyboardKey.arrowUp) {
+      final cb = widget.onMoveUp;
+      if (cb == null) return KeyEventResult.ignored;
+      cb();
+      return KeyEventResult.handled;
+    }
+    if (isAlt && key == LogicalKeyboardKey.arrowDown) {
+      final cb = widget.onMoveDown;
+      if (cb == null) return KeyEventResult.ignored;
+      cb();
+      return KeyEventResult.handled;
+    }
+    if (!isAlt &&
+        (key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.numpadEnter ||
+            key == LogicalKeyboardKey.space)) {
+      widget.onActivate();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleEditorKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.escape) {
+      widget.onClose();
+      return KeyEventResult.handled;
+    }
+    final ctrlOrMeta =
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed;
+    if (ctrlOrMeta &&
+        (key == LogicalKeyboardKey.enter ||
+            key == LogicalKeyboardKey.numpadEnter)) {
+      widget.onCommitNext();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final move = draft.move;
-    final def = move == null ? null : taxonomy.resolve(move);
-    final moveText = move == null
-        ? ''
-        : FigureRenderer(
-            taxonomy,
-          ).displayMoveName(move, dialect, params: draft.params);
-    final figureName = _figureDisplayName(draft, taxonomy);
-
     return Opacity(
       // Dim the card while it is in the "cut" state.
-      opacity: isCut ? 0.45 : 1.0,
+      opacity: widget.isCut ? 0.45 : 1.0,
       child: Card(
         margin: const EdgeInsets.symmetric(vertical: 4),
         child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSummary(context),
+              if (widget.isOpen) _buildEditor(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- Collapsed summary row ------------------------------------------------
+  Widget _buildSummary(BuildContext context) {
+    final theme = Theme.of(context);
+    final draft = widget.draft;
+    final figure = draft.toFigure();
+    final hasMove = figure != null;
+    final renderer = FigureRenderer(widget.taxonomy);
+    final sentence = hasMove
+        ? renderer.render(figure, widget.dialect)
+        : '(empty — choose a move)';
+    final spoken = hasMove
+        ? renderer.renderVerbose(figure, widget.dialect)
+        : 'empty figure, choose a move';
+    final note = draft.note.trim();
+    final hasNote = note.isNotEmpty;
+    final noteDiscouraged =
+        hasNote && canonicalize(note, widget.dialect).discouraged.isNotEmpty;
+    final beatsLabel = '${draft.beats} ${draft.beats == 1 ? 'beat' : 'beats'}';
+    final labelText = (widget.showLabel && widget.label != null)
+        ? widget.label!
+        : '';
+
+    // Screen-reader composite: "A1, neighbors balance and swing, progression,
+    // 16 beats, note: smooth swing. Figure 3 of 12."
+    final parts = <String>[
+      if (labelText.isNotEmpty) labelText,
+      spoken,
+      if (draft.progression) 'progression',
+      if (hasMove) beatsLabel,
+      if (hasNote) 'note: $note',
+    ];
+    final composite =
+        '${parts.join(', ')}. Figure ${widget.index + 1} of ${widget.totalCount}.';
+
+    final summaryContent = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Semantics(
+            button: true,
+            label: composite,
+            hint: 'Activate to edit',
+            excludeSemantics: true,
+            child: InkWell(
+              key: ValueKey('figure-${widget.index}-summary'),
+              canRequestFocus: false,
+              onTap: widget.onActivate,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDragHandle(context),
+                    const SizedBox(width: 4),
+                    // Section-label gutter — text only on section boundaries,
+                    // but keyed on every row so `figure-$index-label` resolves.
+                    SizedBox(
+                      width: 30,
+                      child: Text(
+                        labelText,
+                        key: ValueKey('figure-${widget.index}-label'),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    // Progression marker (glyph + tooltip; never colour alone).
+                    SizedBox(
+                      width: 16,
+                      child: draft.progression
+                          ? Tooltip(
+                              message: 'Progression',
+                              child: Text(
+                                '¶',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sentence,
+                            style: hasMove
+                                ? theme.textTheme.bodyLarge
+                                : theme.textTheme.bodyLarge?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                          ),
+                          if (hasNote)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (noteDiscouraged) ...[
+                                    Icon(
+                                      Icons.warning_amber,
+                                      size: 13,
+                                      color: theme.colorScheme.error,
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Expanded(
+                                    child: Text(
+                                      note,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            fontStyle: FontStyle.italic,
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (hasMove) ...[
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          beatsLabel,
+                          textAlign: TextAlign.end,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Overflow (⋮) menu — kept OUTSIDE the excludeSemantics summary so it
+        // stays independently accessible to screen readers.
+        _buildMenu(context),
+      ],
+    );
+
+    // Focusable wrapper: 2px primary focus ring + Enter/Space/Alt+Arrow keys.
+    return Focus(
+      focusNode: widget.rowFocusNode,
+      onKeyEvent: _handleRowKey,
+      child: AnimatedBuilder(
+        animation: widget.rowFocusNode,
+        child: summaryContent,
+        builder: (context, child) {
+          final focused = widget.rowFocusNode.hasFocus;
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: focused ? theme.colorScheme.primary : Colors.transparent,
+                width: 2,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDragHandle(BuildContext context) {
+    if (!widget.draggable) {
+      // Keep the horizontal footprint stable so rows don't jump between
+      // reorderable and cut/paste modes.
+      return const Icon(Icons.drag_handle, size: 20, color: Colors.transparent);
+    }
+    final figureName = _figureDisplayName(widget.draft, widget.taxonomy);
+    return ReorderableDragStartListener(
+      index: widget.index,
+      child: Semantics(
+        label: 'Drag to reorder $figureName',
+        child: const Icon(Icons.drag_handle, size: 20),
+      ),
+    );
+  }
+
+  Widget _buildMenu(BuildContext context) {
+    final theme = Theme.of(context);
+    final draft = widget.draft;
+    final figureName = _figureDisplayName(draft, widget.taxonomy);
+    return MenuAnchor(
+      builder: (context, controller, child) => IconButton(
+        key: ValueKey('figure-${widget.index}-menu'),
+        icon: const Icon(Icons.more_vert),
+        tooltip: 'Actions for $figureName',
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
+      ),
+      menuChildren: [
+        MenuItemButton(
+          key: ValueKey('figure-${widget.index}-move-up'),
+          onPressed: widget.onMoveUp,
+          leadingIcon: const Icon(Icons.arrow_upward, size: 18),
+          child: const Text('Move up'),
+        ),
+        MenuItemButton(
+          key: ValueKey('figure-${widget.index}-move-down'),
+          onPressed: widget.onMoveDown,
+          leadingIcon: const Icon(Icons.arrow_downward, size: 18),
+          child: const Text('Move down'),
+        ),
+        MenuItemButton(
+          key: ValueKey('figure-${widget.index}-cut'),
+          onPressed: widget.onCut,
+          leadingIcon: const Icon(Icons.content_cut, size: 18),
+          child: const Text('Cut'),
+        ),
+        if (widget.onDuplicate != null)
+          MenuItemButton(
+            key: ValueKey('figure-${widget.index}-duplicate'),
+            onPressed: widget.onDuplicate,
+            leadingIcon: const Icon(Icons.copy, size: 18),
+            child: const Text('Duplicate'),
+          ),
+        MenuItemButton(
+          key: ValueKey('figure-${widget.index}-toggle-progression'),
+          onPressed: _toggleProgression,
+          leadingIcon: Icon(
+            draft.progression ? Icons.flag : Icons.outlined_flag,
+            size: 18,
+          ),
+          child: Text(
+            draft.progression ? 'Clear progression' : 'Mark progression',
+          ),
+        ),
+        MenuItemButton(
+          key: ValueKey('figure-${widget.index}-delete'),
+          onPressed: widget.onDelete,
+          leadingIcon: Icon(
+            Icons.delete_outline,
+            size: 18,
+            color: theme.colorScheme.error,
+          ),
+          style: MenuItemButton.styleFrom(
+            foregroundColor: theme.colorScheme.error,
+          ),
+          child: const Text('Delete'),
+        ),
+      ],
+    );
+  }
+
+  // --- Expanded editor ------------------------------------------------------
+  Widget _buildEditor(BuildContext context) {
+    final theme = Theme.of(context);
+    final draft = widget.draft;
+    final move = draft.move;
+    final def = move == null ? null : widget.taxonomy.resolve(move);
+    final moveText = move == null
+        ? ''
+        : FigureRenderer(
+            widget.taxonomy,
+          ).displayMoveName(move, widget.dialect, params: draft.params);
+
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: _handleEditorKey,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(8),
+            color: theme.colorScheme.surfaceContainerLow,
+          ),
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Drag handle — only shown when inside a ReorderableListView.
-                  if (draggable)
-                    ReorderableDragStartListener(
-                      index: index,
-                      child: Semantics(
-                        label: 'Drag to reorder $figureName',
-                        child: const Icon(Icons.drag_handle),
-                      ),
-                    )
-                  else
-                    const Icon(Icons.drag_handle, color: Colors.transparent),
-                  const SizedBox(width: 4),
-                  SizedBox(
-                    width: 34,
-                    child: Text(
-                      label ?? '—',
-                      key: ValueKey('figure-$index-label'),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    // Rebuild the picker when the move changes so it shows the
-                    // new display name.
-                    child: MoveAutocomplete(
-                      key: ValueKey('figure-$index-move-$move-$moveText'),
-                      fieldKey: 'figure-$index-move',
-                      taxonomy: taxonomy,
-                      dialect: dialect,
-                      initialText: moveText,
-                      onSelected: (option) => _selectMove(option.id),
-                      onCustomSubmitted: _createCustom,
-                      onCleared: _clearMove,
-                    ),
-                  ),
-                  // Move-up button (disabled at the top).
-                  IconButton(
-                    key: ValueKey('figure-$index-move-up'),
-                    tooltip: 'Move $figureName up',
-                    icon: const Icon(Icons.arrow_upward, size: 18),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onMoveUp,
-                  ),
-                  // Move-down button (disabled at the bottom).
-                  IconButton(
-                    key: ValueKey('figure-$index-move-down'),
-                    tooltip: 'Move $figureName down',
-                    icon: const Icon(Icons.arrow_downward, size: 18),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onMoveDown,
-                  ),
-                  // Cut button (disabled while this figure is already cut).
-                  IconButton(
-                    key: ValueKey('figure-$index-cut'),
-                    tooltip: 'Cut $figureName',
-                    icon: const Icon(Icons.content_cut, size: 18),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onCut,
-                  ),
-                  IconButton(
-                    key: ValueKey('figure-$index-delete'),
-                    tooltip: 'Delete figure',
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: onDelete,
-                  ),
-                ],
+              // Move picker FIRST, full width, autofocused on open. Keyed by
+              // index only (not move text) so selecting a move doesn't remount
+              // the field and re-pop the options overlay over the editor.
+              MoveAutocomplete(
+                key: ValueKey('figure-${widget.index}-move'),
+                fieldKey: 'figure-${widget.index}-move',
+                taxonomy: widget.taxonomy,
+                dialect: widget.dialect,
+                initialText: moveText,
+                autofocus: true,
+                onSelected: (option) => _selectMove(option.id),
+                onCustomSubmitted: _createCustom,
+                onCleared: _clearMove,
               ),
               if (def != null) ...[
-                // Custom figures: lingo-styled text field instead of param editors.
+                const SizedBox(height: 12),
+                // Custom figures: lingo text field in place of param editors.
                 if (draft.move == customMove)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: _LingoCustomTextField(
-                      key: ValueKey('figure-$index-text-${draft.id}'),
-                      fieldKey: 'figure-$index-text',
-                      dialect: dialect,
-                      taxonomy: taxonomy,
-                      value: (draft.params['text'] as String?) ?? '',
-                      onChanged: (v) {
-                        draft.params['text'] = v;
-                        onChanged();
-                      },
-                    ),
+                  _LingoCustomTextField(
+                    key: ValueKey('figure-${widget.index}-text-${draft.id}'),
+                    fieldKey: 'figure-${widget.index}-text',
+                    dialect: widget.dialect,
+                    taxonomy: widget.taxonomy,
+                    value: (draft.params['text'] as String?) ?? '',
+                    onChanged: (v) {
+                      draft.params['text'] = v;
+                      widget.onChanged();
+                    },
                   )
                 else if (def.params.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        for (final entry in def.params.entries)
-                          FigureParamEditor(
-                            keyPrefix: 'figure-$index',
-                            paramKey: entry.key,
-                            spec: entry.value,
-                            dialect: dialect,
-                            value:
-                                draft.params[entry.key] ??
-                                entry.value.defaultValue,
-                            onChanged: (v) {
-                              draft.params[entry.key] = v;
-                              onChanged();
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Row(
-                    children: [
-                      Semantics(
-                        label: 'Progression',
-                        child: Switch(
-                          key: ValueKey('figure-$index-progression'),
-                          value: draft.progression,
-                          onChanged: (v) {
-                            draft.progression = v;
-                            onChanged();
-                          },
-                        ),
-                      ),
-                      Text('Progression', style: theme.textTheme.bodyMedium),
-                      if (def.progressionCapable && !draft.progression)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4),
-                          child: Icon(
-                            Icons.info_outline,
-                            size: 14,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: _NoteField(
-                    key: ValueKey('figure-$index-note-${draft.id}'),
-                    fieldKey: 'figure-$index-note',
-                    dialect: dialect,
-                    taxonomy: taxonomy,
-                    value: draft.note,
-                    onChanged: (text) {
-                      draft.note = text;
-                      onChanged();
-                    },
-                  ),
-                ),
+                  _buildParams(context, def),
+                const SizedBox(height: 12),
+                _buildProgressionToggle(context, def),
+                const SizedBox(height: 8),
+                _buildNote(context),
               ],
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildParams(BuildContext context, MoveDef def) {
+    final draft = widget.draft;
+    final entries = def.params.entries.toList();
+    // Progressive disclosure: >3 params → first 3 inline, rest behind a
+    // collapsed "More options" disclosure. ≤3 params → all inline, no toggle.
+    final hasMore = entries.length > 3;
+    final inline = hasMore ? entries.take(3).toList() : entries;
+    final extra = hasMore
+        ? entries.sublist(3)
+        : const <MapEntry<String, ParamSpec>>[];
+
+    Widget paramWrap(List<MapEntry<String, ParamSpec>> items) => Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final entry in items)
+          FigureParamEditor(
+            keyPrefix: 'figure-${widget.index}',
+            paramKey: entry.key,
+            spec: entry.value,
+            dialect: widget.dialect,
+            value: draft.params[entry.key] ?? entry.value.defaultValue,
+            onChanged: (v) {
+              draft.params[entry.key] = v;
+              widget.onChanged();
+            },
+          ),
+      ],
+    );
+
+    if (!hasMore) return paramWrap(inline);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        paramWrap(inline),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            key: ValueKey('figure-${widget.index}-more-options'),
+            onPressed: () =>
+                setState(() => _showMoreOptions = !_showMoreOptions),
+            icon: Icon(
+              _showMoreOptions ? Icons.expand_less : Icons.expand_more,
+              size: 18,
+            ),
+            label: Text(
+              _showMoreOptions
+                  ? 'Fewer options'
+                  : 'More options (${extra.length})',
+            ),
+            style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+          ),
+        ),
+        if (_showMoreOptions)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: paramWrap(extra),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildProgressionToggle(BuildContext context, MoveDef def) {
+    final theme = Theme.of(context);
+    final draft = widget.draft;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          label: 'Progression',
+          child: Switch(
+            key: ValueKey('figure-${widget.index}-progression'),
+            value: draft.progression,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            onChanged: (v) {
+              draft.progression = v;
+              widget.onChanged();
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text('Progression', style: theme.textTheme.bodyMedium),
+        if (def.progressionCapable && !draft.progression)
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Tooltip(
+              message: 'This move can carry the progression.',
+              child: Icon(
+                Icons.info_outline,
+                size: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildNote(BuildContext context) {
+    final draft = widget.draft;
+    final showField = _showNote || draft.note.trim().isNotEmpty;
+    if (!showField) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: ValueKey('figure-${widget.index}-add-note'),
+          onPressed: () => setState(() {
+            _showNote = true;
+            _justRevealedNote = true;
+          }),
+          icon: const Icon(Icons.note_add_outlined, size: 18),
+          label: const Text('Add note'),
+          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+        ),
+      );
+    }
+    final autofocus = _justRevealedNote;
+    if (_justRevealedNote) {
+      // Reset after this build so re-renders don't keep stealing focus.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _justRevealedNote = false;
+      });
+    }
+    return _NoteField(
+      key: ValueKey('figure-${widget.index}-note-${draft.id}'),
+      fieldKey: 'figure-${widget.index}-note',
+      dialect: widget.dialect,
+      taxonomy: widget.taxonomy,
+      value: draft.note,
+      autofocus: autofocus,
+      onChanged: (text) {
+        draft.note = text;
+        widget.onChanged();
+      },
     );
   }
 }
@@ -967,6 +1602,7 @@ class _NoteField extends StatefulWidget {
     required this.taxonomy,
     required this.value,
     required this.onChanged,
+    this.autofocus = false,
   });
 
   final String fieldKey;
@@ -974,6 +1610,7 @@ class _NoteField extends StatefulWidget {
   final Taxonomy taxonomy;
   final String value;
   final ValueChanged<String> onChanged;
+  final bool autofocus;
 
   @override
   State<_NoteField> createState() => _NoteFieldState();
@@ -1019,6 +1656,7 @@ class _NoteFieldState extends State<_NoteField> {
     return TextField(
       key: ValueKey(widget.fieldKey),
       controller: _controller,
+      autofocus: widget.autofocus,
       decoration: const InputDecoration(
         labelText: 'Note (optional)',
         isDense: true,

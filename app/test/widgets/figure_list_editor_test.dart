@@ -1,15 +1,21 @@
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Host that owns a mutable draft list so the editor's in-place edits and
 /// add/delete callbacks drive real rebuilds, mirroring the dance editor screen.
 class _Host extends StatefulWidget {
-  const _Host({required this.drafts, this.phrase = PhraseStructure.standard});
+  const _Host({
+    required this.drafts,
+    this.phrase = PhraseStructure.standard,
+    this.wireDuplicate = true,
+  });
 
   final List<FigureDraft> drafts;
   final PhraseStructure phrase;
+  final bool wireDuplicate;
 
   @override
   State<_Host> createState() => _HostState();
@@ -28,6 +34,22 @@ class _HostState extends State<_Host> {
             onChanged: () => setState(() {}),
             onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
             onDelete: (d) => setState(() => widget.drafts.remove(d)),
+            onDuplicate: widget.wireDuplicate
+                ? (d) => setState(() {
+                    final i = widget.drafts.indexOf(d);
+                    if (i == -1) return;
+                    widget.drafts.insert(
+                      i + 1,
+                      FigureDraft(
+                        move: d.move,
+                        params: Map<String, Object?>.of(d.params),
+                        note: d.note,
+                        progression: d.progression,
+                        schemaVersion: d.schemaVersion,
+                      ),
+                    );
+                  })
+                : null,
             onReorder: (oldIndex, newIndex) => setState(() {
               final draft = widget.drafts.removeAt(oldIndex);
               widget.drafts.insert(newIndex, draft);
@@ -43,10 +65,45 @@ Future<void> _pump(
   WidgetTester tester,
   List<FigureDraft> drafts, {
   PhraseStructure phrase = PhraseStructure.standard,
+  bool wireDuplicate = true,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  await tester.pumpWidget(_Host(drafts: drafts, phrase: phrase));
+  await tester.pumpWidget(
+    _Host(drafts: drafts, phrase: phrase, wireDuplicate: wireDuplicate),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Expands the accordion editor for the figure at [index] by tapping its
+/// collapsed summary row. No-op if the editor is already open.
+Future<void> _openFigure(WidgetTester tester, int index) async {
+  if (find.byKey(ValueKey('figure-$index-move-input')).evaluate().isNotEmpty) {
+    return;
+  }
+  await tester.tap(find.byKey(ValueKey('figure-$index-summary')));
+  await tester.pumpAndSettle();
+}
+
+/// Opens the ⋮ overflow menu for the figure at [index].
+Future<void> _openMenu(WidgetTester tester, int index) async {
+  await tester.tap(find.byKey(ValueKey('figure-$index-menu')));
+  await tester.pumpAndSettle();
+}
+
+/// Dismisses the MoveAutocomplete options overlay (shown while its field is
+/// focused) so widgets beneath the field become hittable in a test.
+Future<void> _dismissAutocomplete(WidgetTester tester) async {
+  tester.binding.focusManager.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
+}
+
+/// Opens the ⋮ menu for [index] and taps the item with the given [suffix]
+/// (e.g. 'move-up', 'move-down', 'cut', 'delete', 'duplicate',
+/// 'toggle-progression').
+Future<void> _tapMenuItem(WidgetTester tester, int index, String suffix) async {
+  await _openMenu(tester, index);
+  await tester.tap(find.byKey(ValueKey('figure-$index-$suffix')));
   await tester.pumpAndSettle();
 }
 
@@ -56,6 +113,8 @@ Future<void> _selectMove(
   String typed,
   String optionId,
 ) async {
+  // The Move field only mounts when the figure's editor is expanded.
+  await _openFigure(tester, index);
   await tester.enterText(
     find.byKey(ValueKey('figure-$index-move-input')),
     typed,
@@ -113,6 +172,7 @@ void main() {
   testWidgets('unmatched text creates a custom figure', (tester) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
+    await _openFigure(tester, 0);
 
     await tester.enterText(
       find.byKey(const ValueKey('figure-0-move-input')),
@@ -132,6 +192,7 @@ void main() {
   ) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
+    await _openFigure(tester, 0);
 
     await tester.enterText(
       find.byKey(const ValueKey('figure-0-move-input')),
@@ -147,6 +208,7 @@ void main() {
   testWidgets('custom figure text is trimmed', (tester) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
+    await _openFigure(tester, 0);
 
     await tester.enterText(
       find.byKey(const ValueKey('figure-0-move-input')),
@@ -220,6 +282,10 @@ void main() {
     await _pump(tester, drafts);
     await _selectMove(tester, 0, 'sw', 'swing');
 
+    // The note field is on-demand — reveal it via the "+ Add note" button.
+    await tester.tap(find.byKey(const ValueKey('figure-0-add-note')));
+    await tester.pumpAndSettle();
+
     await tester.enterText(
       find.byKey(const ValueKey('figure-0-note')),
       'big and smooth',
@@ -234,10 +300,11 @@ void main() {
       FigureDraft(move: 'balance', params: {'beats': 4}),
     ];
     await _pump(tester, drafts);
-    expect(find.byKey(const ValueKey('figure-1-move-input')), findsOneWidget);
+    // Two collapsed summary rows at rest.
+    expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-1-summary')), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('figure-0-delete')));
-    await tester.pumpAndSettle();
+    await _tapMenuItem(tester, 0, 'delete');
 
     expect(drafts, hasLength(1));
     expect(drafts.single.move, 'balance');
@@ -251,6 +318,7 @@ void main() {
       ),
     ];
     await _pump(tester, drafts);
+    await _openFigure(tester, 0);
 
     expect(find.byKey(const ValueKey('figure-0-hand')), findsOneWidget);
     expect(find.byKey(const ValueKey('figure-0-turn-value')), findsOneWidget);
@@ -519,8 +587,7 @@ void main() {
       ];
       await _pump(tester, drafts);
 
-      await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
-      await tester.pumpAndSettle();
+      await _tapMenuItem(tester, 0, 'cut');
 
       // Banner text should be '"my custom step" is cut …' — one pair of quotes.
       final bannerFinder = find.byKey(const ValueKey('cut-banner'));
@@ -546,8 +613,7 @@ void main() {
     // Confirm drag-start listeners exist in normal mode.
     expect(find.byType(ReorderableDragStartListener), findsWidgets);
 
-    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
-    await tester.pumpAndSettle();
+    await _tapMenuItem(tester, 0, 'cut');
 
     // In cut mode — no drag handles (plain Column is used instead).
     expect(find.byType(ReorderableDragStartListener), findsNothing);
@@ -567,6 +633,7 @@ void main() {
         ),
       ];
       await _pump(tester, drafts);
+      await _openFigure(tester, 0);
 
       // The accessible lingo hint should be visible.
       expect(
@@ -587,6 +654,7 @@ void main() {
         ),
       ];
       await _pump(tester, drafts);
+      await _openFigure(tester, 0);
 
       expect(
         find.byKey(const ValueKey('figure-0-text-lingo-hint')),
@@ -600,6 +668,7 @@ void main() {
   ) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);
+    await _openFigure(tester, 0);
 
     // Create a custom figure by typing text with a discouraged term.
     await tester.enterText(
@@ -636,7 +705,7 @@ void main() {
   // Reordering tests
   // -------------------------------------------------------------------------
 
-  testWidgets('move-up button is disabled for the first figure', (
+  testWidgets('move-up menu item is disabled for the first figure', (
     tester,
   ) async {
     final drafts = <FigureDraft>[
@@ -645,18 +714,22 @@ void main() {
     ];
     await _pump(tester, drafts);
 
-    final upBtn = tester.widget<IconButton>(
+    await _openMenu(tester, 0);
+    final upBtn = tester.widget<MenuItemButton>(
       find.byKey(const ValueKey('figure-0-move-up')),
     );
     expect(upBtn.onPressed, isNull);
+    // Close and inspect the second figure's menu.
+    await _openMenu(tester, 0);
 
-    final upBtn1 = tester.widget<IconButton>(
+    await _openMenu(tester, 1);
+    final upBtn1 = tester.widget<MenuItemButton>(
       find.byKey(const ValueKey('figure-1-move-up')),
     );
     expect(upBtn1.onPressed, isNotNull);
   });
 
-  testWidgets('move-down button is disabled for the last figure', (
+  testWidgets('move-down menu item is disabled for the last figure', (
     tester,
   ) async {
     final drafts = <FigureDraft>[
@@ -665,39 +738,41 @@ void main() {
     ];
     await _pump(tester, drafts);
 
-    final downBtn = tester.widget<IconButton>(
+    await _openMenu(tester, 1);
+    final downBtn = tester.widget<MenuItemButton>(
       find.byKey(const ValueKey('figure-1-move-down')),
     );
     expect(downBtn.onPressed, isNull);
+    await _openMenu(tester, 1);
 
-    final downBtn0 = tester.widget<IconButton>(
+    await _openMenu(tester, 0);
+    final downBtn0 = tester.widget<MenuItemButton>(
       find.byKey(const ValueKey('figure-0-move-down')),
     );
     expect(downBtn0.onPressed, isNotNull);
   });
 
-  testWidgets('move-up button reorders the draft list', (tester) async {
+  testWidgets('move-up menu item reorders the draft list', (tester) async {
     final drafts = <FigureDraft>[
       FigureDraft(move: 'swing', params: {'beats': 8}),
       FigureDraft(move: 'balance', params: {'beats': 4}),
     ];
     await _pump(tester, drafts);
 
-    await tester.tap(find.byKey(const ValueKey('figure-1-move-up')));
-    await tester.pumpAndSettle();
+    await _tapMenuItem(tester, 1, 'move-up');
 
     expect(drafts[0].move, 'balance');
     expect(drafts[1].move, 'swing');
   });
 
-  testWidgets('move-down button reorders the draft list', (tester) async {
+  testWidgets('move-down menu item reorders the draft list', (tester) async {
     final drafts = <FigureDraft>[
       FigureDraft(move: 'swing', params: {'beats': 8}),
       FigureDraft(move: 'balance', params: {'beats': 4}),
     ];
     await _pump(tester, drafts);
 
-    await tester.tap(find.byKey(const ValueKey('figure-0-move-down')));
+    await _tapMenuItem(tester, 0, 'move-down');
     await tester.pumpAndSettle();
 
     expect(drafts[0].move, 'balance');
@@ -721,8 +796,7 @@ void main() {
       'A2',
     );
 
-    await tester.tap(find.byKey(const ValueKey('figure-0-move-down')));
-    await tester.pumpAndSettle();
+    await _tapMenuItem(tester, 0, 'move-down');
 
     // After swap the order is the same (16+16 beats), labels stay A1/A2, but
     // the figures should be in the new order.
@@ -739,8 +813,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('cut-banner')), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
-    await tester.pumpAndSettle();
+    await _tapMenuItem(tester, 0, 'cut');
 
     expect(find.byKey(const ValueKey('cut-banner')), findsOneWidget);
 
@@ -750,7 +823,7 @@ void main() {
     expect(find.byKey(const ValueKey('cut-banner')), findsNothing);
   });
 
-  testWidgets('cut button is disabled on the cut figure itself', (
+  testWidgets('cut menu item is disabled on the cut figure itself', (
     tester,
   ) async {
     final drafts = <FigureDraft>[
@@ -759,10 +832,11 @@ void main() {
     ];
     await _pump(tester, drafts);
 
-    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
-    await tester.pumpAndSettle();
+    await _tapMenuItem(tester, 0, 'cut');
 
-    final cutBtn = tester.widget<IconButton>(
+    // Re-open the cut figure's menu — its Cut item is now disabled.
+    await _openMenu(tester, 0);
+    final cutBtn = tester.widget<MenuItemButton>(
       find.byKey(const ValueKey('figure-0-cut')),
     );
     expect(cutBtn.onPressed, isNull);
@@ -777,8 +851,7 @@ void main() {
     await _pump(tester, drafts);
 
     // Cut the first figure (swing).
-    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
-    await tester.pumpAndSettle();
+    await _tapMenuItem(tester, 0, 'cut');
 
     // Paste at end.
     await tester.tap(find.byKey(const ValueKey('paste-end')));
@@ -798,8 +871,7 @@ void main() {
     await _pump(tester, drafts);
 
     // Cut the last figure (petronella).
-    await tester.tap(find.byKey(const ValueKey('figure-2-cut')));
-    await tester.pumpAndSettle();
+    await _tapMenuItem(tester, 2, 'cut');
 
     // Paste before first figure.
     await tester.tap(find.byKey(const ValueKey('paste-top')));
@@ -821,8 +893,7 @@ void main() {
     ];
     await _pump(tester, drafts);
 
-    await tester.tap(find.byKey(const ValueKey('figure-0-cut')));
-    await tester.pumpAndSettle();
+    await _tapMenuItem(tester, 0, 'cut');
     await tester.tap(find.byKey(const ValueKey('paste-end')));
     await tester.pumpAndSettle();
 
@@ -843,10 +914,8 @@ void main() {
     ];
     await _pump(tester, drafts);
 
-    await tester.tap(find.byKey(const ValueKey('figure-2-move-up')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('figure-1-move-up')));
-    await tester.pumpAndSettle();
+    await _tapMenuItem(tester, 2, 'move-up');
+    await _tapMenuItem(tester, 1, 'move-up');
 
     // petronella should now be first.
     expect(drafts[0].move, 'petronella');
@@ -1037,6 +1106,7 @@ void main() {
         ),
       ];
       await _pump(tester, drafts);
+      await _openFigure(tester, 0);
 
       // The field should be visible.
       expect(find.byKey(const ValueKey('figure-0-text')), findsOneWidget);
@@ -1044,4 +1114,282 @@ void main() {
       expect(find.textContaining('dotted'), findsOneWidget);
     },
   );
+
+  // -------------------------------------------------------------------------
+  // Collapse-to-sentence accordion redesign
+  // -------------------------------------------------------------------------
+
+  testWidgets('collapsed rows show no param editors or note field at rest', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: 'swing',
+        params: {'who': 'partners', 'beats': 8},
+        note: 'smooth',
+      ),
+      FigureDraft(move: 'balance', params: {'who': 'neighbors', 'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    // Summaries present; no editor widgets in the tree at rest.
+    expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-1-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-0-who')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-0-note')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-0-progression')), findsNothing);
+    // Rendered sentence + beats show on the summary.
+    expect(find.textContaining('swing'), findsWidgets);
+    expect(find.text('8 beats'), findsOneWidget);
+    // The only always-visible per-row control is the ⋮ menu.
+    expect(find.byKey(const ValueKey('figure-0-menu')), findsOneWidget);
+  });
+
+  testWidgets('collapsed empty draft shows placeholder and no beats', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+
+    expect(find.text('(empty — choose a move)'), findsOneWidget);
+    expect(find.textContaining('beats'), findsNothing);
+  });
+
+  testWidgets('collapsed row exposes button semantics with composite label', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: 'swing',
+        params: {'who': 'partners', 'beats': 16},
+        progression: true,
+        note: 'smooth',
+      ),
+    ];
+    await _pump(tester, drafts);
+
+    final data = tester
+        .getSemantics(find.byKey(const ValueKey('figure-0-summary')))
+        .getSemanticsData();
+    expect(data.flagsCollection.isButton, isTrue);
+    expect(data.label, contains('progression'));
+    expect(data.label, contains('16 beats'));
+    expect(data.label, contains('Figure 1 of 1'));
+    expect(data.label, contains('note: smooth'));
+    expect(data.hint, 'Activate to edit');
+    handle.dispose();
+  });
+
+  testWidgets('accordion opens one editor at a time', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+      FigureDraft(move: 'balance', params: {'who': 'neighbors', 'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-1-move-input')), findsNothing);
+
+    // Opening figure 1 auto-collapses figure 0.
+    await tester.tap(find.byKey(const ValueKey('figure-1-summary')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-1-move-input')), findsOneWidget);
+  });
+
+  testWidgets('opening a figure focuses its Move field', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+
+    final editable = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const ValueKey('figure-0-move-input')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(editable.focusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('add auto-opens the new figure and focuses its Move field', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+    ];
+    await _pump(tester, drafts);
+    // The existing figure is collapsed.
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('figure-1-move-input')), findsOneWidget);
+    final editable = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const ValueKey('figure-1-move-input')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(editable.focusNode.hasFocus, isTrue);
+  });
+
+  testWidgets('more than 3 params hide extras behind "More options"', (
+    tester,
+  ) async {
+    // allemande has 4 params (who, hand, turn, beats): first 3 inline, the
+    // 4th (beats) behind the disclosure.
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: 'allemande',
+        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.0, 'beats': 8},
+      ),
+    ];
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+    // Dismiss the autocomplete options overlay so the params are hittable.
+    await _dismissAutocomplete(tester);
+
+    expect(find.byKey(const ValueKey('figure-0-who')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-0-hand')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-0-turn-value')), findsOneWidget);
+    // 4th param hidden until the disclosure is expanded.
+    expect(find.byKey(const ValueKey('figure-0-beats')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-0-more-options')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-beats')), findsOneWidget);
+  });
+
+  testWidgets('3 or fewer params render inline with no disclosure', (
+    tester,
+  ) async {
+    // swing has 3 params (who, prefix, beats) — all inline, no disclosure.
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: 'swing',
+        params: {'who': 'partners', 'prefix': 'none', 'beats': 8},
+      ),
+    ];
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    expect(find.byKey(const ValueKey('figure-0-who')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-0-beats')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-0-more-options')), findsNothing);
+  });
+
+  testWidgets('Alt+ArrowDown on a focused row reorders it', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    // Focus the first collapsed row (its enclosing row FocusNode).
+    Focus.of(
+      tester.element(find.byKey(const ValueKey('figure-0-summary'))),
+    ).requestFocus();
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    await tester.pumpAndSettle();
+
+    expect(drafts[0].move, 'balance');
+    expect(drafts[1].move, 'swing');
+  });
+
+  testWidgets('duplicate menu item clones the figure after the source', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: 'swing',
+        params: {'who': 'partners', 'beats': 8},
+        note: 'smooth',
+        progression: true,
+      ),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts);
+
+    await _tapMenuItem(tester, 0, 'duplicate');
+
+    expect(drafts, hasLength(3));
+    // Clone inserted right after the source.
+    expect(drafts[1].move, 'swing');
+    expect(drafts[1].note, 'smooth');
+    expect(drafts[1].progression, isTrue);
+    // Fresh id + independent params map.
+    expect(drafts[1].id, isNot(drafts[0].id));
+    expect(identical(drafts[1].params, drafts[0].params), isFalse);
+  });
+
+  testWidgets('duplicate menu item is absent when onDuplicate is not wired', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+    ];
+    await _pump(tester, drafts, wireDuplicate: false);
+
+    await _openMenu(tester, 0);
+    expect(find.byKey(const ValueKey('figure-0-duplicate')), findsNothing);
+    // Other items remain present.
+    expect(find.byKey(const ValueKey('figure-0-delete')), findsOneWidget);
+  });
+
+  testWidgets('toggle-progression menu item flips the flag', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+    ];
+    await _pump(tester, drafts);
+    expect(drafts.single.progression, isFalse);
+
+    await _tapMenuItem(tester, 0, 'toggle-progression');
+
+    expect(drafts.single.progression, isTrue);
+    // The ¶ progression marker now shows on the collapsed summary.
+    expect(find.text('¶'), findsOneWidget);
+  });
+
+  testWidgets('Escape collapses the open editor', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+  });
+
+  testWidgets('Ctrl+Enter commits and opens the next figure', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft(), FigureDraft()];
+    await _pump(tester, drafts);
+
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    // Figure 0 collapsed, figure 1 now open.
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-1-move-input')), findsOneWidget);
+  });
 }
