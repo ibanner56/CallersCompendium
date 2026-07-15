@@ -12,6 +12,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
+import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
 
@@ -103,6 +104,36 @@ Future<void> _pumpProgramsList(
         child: ConfirmBeforeDeleteScope(notifier: confirm, child: child!),
       ),
       home: const ProgramsListScreen(),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pumpProgramsShell(
+  WidgetTester tester,
+  CompendiumRepositories repos, {
+  required bool confirmBeforeDelete,
+}) async {
+  tester.view.physicalSize = const Size(1400, 900);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+  final dialect = ValueNotifier<Dialect>(Dialect.canonical);
+  final confirm = ValueNotifier<bool>(confirmBeforeDelete);
+  addTearDown(dialect.dispose);
+  addTearDown(confirm.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(
+          notifier: dialect,
+          child: ConfirmBeforeDeleteScope(notifier: confirm, child: child!),
+        ),
+      ),
+      home: const ProgramsShell(),
     ),
   );
   await tester.pumpAndSettle();
@@ -228,6 +259,62 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Swipe Me'), findsNothing);
+      expect(await repos.programs.listAll(), isEmpty);
+    });
+  });
+
+  group('programs shell summary pane', () {
+    testWidgets('with confirm OFF, delete removes the program immediately', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program('p1', 'Barn Dance'));
+      await _pumpProgramsShell(tester, repos, confirmBeforeDelete: false);
+
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('confirm-delete-dialog')), findsNothing);
+      expect(await repos.programs.listAll(), isEmpty);
+    });
+
+    testWidgets('with confirm ON, Cancel keeps the program', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program('p1', 'Barn Dance'));
+      await _pumpProgramsShell(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('confirm-delete-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
+      await tester.pumpAndSettle();
+
+      expect(await repos.programs.listAll(), hasLength(1));
+    });
+
+    testWidgets('with confirm ON, Delete soft-deletes the program', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program('p1', 'Barn Dance'));
+      await _pumpProgramsShell(tester, repos, confirmBeforeDelete: true);
+
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summary-delete')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('confirm-delete-confirm')));
+      await tester.pumpAndSettle();
+
       expect(await repos.programs.listAll(), isEmpty);
     });
   });
