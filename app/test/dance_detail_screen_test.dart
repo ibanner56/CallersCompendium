@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
@@ -151,6 +152,36 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('dialect-toggle')));
     await tester.pumpAndSettle();
     expect(find.text('role2s chain across'), findsOneWidget);
+  });
+
+  testWidgets('opens in the saved default rendering (ROADMAP G.6b)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kDefaultDanceDetailRenderingKey,
+      DanceDetailRendering.canonical.name,
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    // No toggle interaction: the detail opens showing canonical tokens
+    // instead of the active Larks/Robins dialect.
+    expect(find.text('role2s chain across'), findsOneWidget);
+    expect(find.text('Robins chain across'), findsNothing);
+    // The in-view toggle reflects the seeded canonical state.
+    expect(
+      tester.widget<Switch>(find.byKey(const ValueKey('dialect-toggle'))).value,
+      isTrue,
+    );
   });
 
   testWidgets('figure row announces the verbose form to assistive tech', (

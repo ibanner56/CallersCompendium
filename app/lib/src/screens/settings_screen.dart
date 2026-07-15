@@ -6,8 +6,10 @@ import '../data/app_theme_scope.dart';
 import '../data/custom_theme.dart';
 import '../data/custom_themes_controller.dart';
 import '../data/custom_themes_scope.dart';
+import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
+import '../search/collection_query.dart';
 import '../theme/color_schemes.dart';
 import 'theme_editor_screen.dart';
 
@@ -58,7 +60,8 @@ class SettingsScreen extends StatefulWidget {
 enum _SettingsSection {
   general('General', Icons.tune_outlined, Icons.tune),
   appearance('Appearance', Icons.palette_outlined, Icons.palette),
-  dialect('Dialect', Icons.groups_outlined, Icons.groups);
+  dialect('Dialect', Icons.groups_outlined, Icons.groups),
+  defaults('Defaults', Icons.settings_suggest_outlined, Icons.settings_suggest);
 
   const _SettingsSection(this.label, this.icon, this.selectedIcon);
 
@@ -104,6 +107,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kAutoSizePerformKey, value);
+  }
+
+  /// Default Collection sort order (ROADMAP G.6a). `null` = not yet loaded;
+  /// the view shows `title` (today's default) until the read resolves.
+  CollectionSort? _defaultCollectionSort;
+
+  /// Default dance-detail rendering (ROADMAP G.6b). `null` = not yet loaded;
+  /// the view shows active-dialect (today's default) until the read resolves.
+  DanceDetailRendering? _defaultDanceDetailRendering;
+  bool _defaultsRequested = false;
+  bool _defaultsUserSet = false;
+
+  /// Lazily loads the persisted Display defaults the first time the Defaults
+  /// section is built. Mirrors [_ensureAutoSizeLoaded]: a late read must not
+  /// clobber a selection the user made before it resolved ([_defaultsUserSet]).
+  void _ensureDefaultsLoaded(BuildContext context) {
+    if (_defaultsRequested) return;
+    _defaultsRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings
+        .get(kDefaultCollectionSortKey)
+        .then((stored) {
+          if (!mounted || _defaultsUserSet) return;
+          setState(() {
+            _defaultCollectionSort =
+                collectionSortFromName(stored) ?? CollectionSort.title;
+          });
+        })
+        .catchError((_) {
+          if (!mounted || _defaultsUserSet) return;
+          setState(() => _defaultCollectionSort = CollectionSort.title);
+        });
+    repos.settings
+        .get(kDefaultDanceDetailRenderingKey)
+        .then((stored) {
+          if (!mounted || _defaultsUserSet) return;
+          setState(() {
+            _defaultDanceDetailRendering = danceDetailRenderingFromStored(
+              stored,
+            );
+          });
+        })
+        .catchError((_) {
+          if (!mounted || _defaultsUserSet) return;
+          setState(
+            () => _defaultDanceDetailRendering =
+                DanceDetailRendering.activeDialect,
+          );
+        });
+  }
+
+  Future<void> _onDefaultCollectionSortChanged(CollectionSort value) async {
+    setState(() {
+      _defaultsUserSet = true;
+      _defaultCollectionSort = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kDefaultCollectionSortKey, value.name);
+  }
+
+  Future<void> _onDefaultDanceDetailRenderingChanged(
+    DanceDetailRendering value,
+  ) async {
+    setState(() {
+      _defaultsUserSet = true;
+      _defaultDanceDetailRendering = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kDefaultDanceDetailRenderingKey, value.name);
   }
 
   Future<void> _onDialectChanged(Dialect dialect) async {
@@ -177,6 +249,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _onRequirePerformedForHistoryChanged,
           autoSizePerform: _autoSizePerform ?? true,
           onAutoSizeChanged: _onAutoSizeChanged,
+        );
+      case _SettingsSection.defaults:
+        _ensureDefaultsLoaded(context);
+        return _DefaultsView(
+          defaultCollectionSort: _defaultCollectionSort ?? CollectionSort.title,
+          onDefaultCollectionSortChanged: _onDefaultCollectionSortChanged,
+          defaultDanceDetailRendering:
+              _defaultDanceDetailRendering ??
+              DanceDetailRendering.activeDialect,
+          onDefaultDanceDetailRenderingChanged:
+              _onDefaultDanceDetailRenderingChanged,
         );
     }
   }
@@ -1123,6 +1206,80 @@ class _SectionHeader extends StatelessWidget {
           color: theme.colorScheme.primary,
         ),
       ),
+    );
+  }
+}
+
+/// The Defaults section: app-wide default values, grouped to mirror the
+/// ROADMAP's "Defaults (settings pane)" structure. This PR populates only the
+/// **Display defaults** subsection (ROADMAP G.6). Later PRs add sibling
+/// subsections here — **Program defaults** (G.3, above Display defaults) and
+/// **Dance-authoring defaults** (DD.1–DD.3, below) — each introduced by its own
+/// [_SectionHeader], so extending this is a drop-in, not a rewrite. No empty
+/// subsection is stubbed until it is wired.
+class _DefaultsView extends StatelessWidget {
+  const _DefaultsView({
+    required this.defaultCollectionSort,
+    required this.onDefaultCollectionSortChanged,
+    required this.defaultDanceDetailRendering,
+    required this.onDefaultDanceDetailRenderingChanged,
+  });
+
+  final CollectionSort defaultCollectionSort;
+  final ValueChanged<CollectionSort> onDefaultCollectionSortChanged;
+  final DanceDetailRendering defaultDanceDetailRendering;
+  final ValueChanged<DanceDetailRendering> onDefaultDanceDetailRenderingChanged;
+
+  /// The Collection sort orders offered as a default. Excludes
+  /// [CollectionSort.relevance], which is only meaningful for a bare full-text
+  /// query and never a sensible saved default.
+  static const List<CollectionSort> _sortOptions = [
+    CollectionSort.title,
+    CollectionSort.author,
+    CollectionSort.recentlyAdded,
+    CollectionSort.lastCalled,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        _SectionHeader(title: 'Display defaults'),
+        ListTile(
+          title: const Text('Collection sort order'),
+          subtitle: const Text(
+            'How the Collection is sorted when you open it. You can still '
+            'change the sort while browsing.',
+          ),
+          trailing: DropdownButton<CollectionSort>(
+            key: const ValueKey('defaults-collection-sort'),
+            value: defaultCollectionSort,
+            onChanged: (value) {
+              if (value != null) onDefaultCollectionSortChanged(value);
+            },
+            items: [
+              for (final sort in _sortOptions)
+                DropdownMenuItem(value: sort, child: Text(sort.label)),
+            ],
+          ),
+        ),
+        SwitchListTile(
+          key: const ValueKey('defaults-dance-detail-canonical'),
+          value: defaultDanceDetailRendering == DanceDetailRendering.canonical,
+          onChanged: (value) => onDefaultDanceDetailRenderingChanged(
+            value
+                ? DanceDetailRendering.canonical
+                : DanceDetailRendering.activeDialect,
+          ),
+          title: const Text('Open dance details in canonical terms'),
+          subtitle: const Text(
+            'When on, a dance opens showing canonical role and move names '
+            'instead of your active dialect. You can still switch views on the '
+            'dance while it is open.',
+          ),
+          isThreeLine: true,
+        ),
+      ],
     );
   }
 }

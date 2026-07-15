@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -73,7 +74,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// when `true` it renders canonical role/move tokens.  The toggle is hidden
   /// when the active dialect is already [Dialect.canonical] (toggling would
   /// be a no-op).
+  ///
+  /// Seeded from the saved default dance-detail rendering (ROADMAP G.6b) on
+  /// first load; the in-view toggle overrides it for this session.
   bool _canonicalView = false;
+
+  /// Whether the user has flipped the in-view canonical⇄dialect toggle this
+  /// session. Guards the saved-default seed against clobbering a user change
+  /// (mirrors the settings-screen load-vs-toggle race guard).
+  bool _canonicalUserSet = false;
 
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
 
@@ -95,6 +104,21 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   }
 
   Future<_DanceDetail?> _load() async {
+    // Seed the initial rendering from the saved default (ROADMAP G.6b) before
+    // the body first renders; skip if the user already flipped the toggle (the
+    // body only shows after this future resolves, so this is a belt-and-braces
+    // guard mirroring the settings-screen load-vs-toggle race).
+    if (!_canonicalUserSet) {
+      final storedRendering = await _repos.settings.get(
+        kDefaultDanceDetailRenderingKey,
+      );
+      if (!_canonicalUserSet) {
+        _canonicalView =
+            danceDetailRenderingFromStored(storedRendering) ==
+            DanceDetailRendering.canonical;
+      }
+    }
+
     final dance = await _repos.dances.getById(widget.danceId);
     if (dance == null) return null;
 
@@ -660,7 +684,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             if (!isCanonicalDialect)
               _DialectToggle(
                 canonical: _canonicalView,
-                onChanged: (value) => setState(() => _canonicalView = value),
+                onChanged: (value) => setState(() {
+                  _canonicalUserSet = true;
+                  _canonicalView = value;
+                }),
               ),
           ],
         ),
