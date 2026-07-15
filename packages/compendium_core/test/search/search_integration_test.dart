@@ -659,10 +659,7 @@ void main() {
           FigureFilter.leaf('swing', params: const {'who': 'gents'}),
           dialect: Dialect(
             name: 'Gents/Ladies',
-            roles: const {
-              'role1': RoleTerm('Gent'),
-              'role2': RoleTerm('Lady'),
-            },
+            roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
           ),
         ),
         ['a'],

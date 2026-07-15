@@ -311,7 +311,10 @@ class _DialectViewState extends State<_DialectView> {
 
   /// Builds a [RoleTerm] from a singular/plural pair, or `null` when the
   /// singular is blank (the role is then dropped from the dialect).
-  RoleTerm? _roleTerm(TextEditingController singular, TextEditingController plural) {
+  RoleTerm? _roleTerm(
+    TextEditingController singular,
+    TextEditingController plural,
+  ) {
     final s = singular.text.trim();
     if (s.isEmpty) return null;
     final p = plural.text.trim();
@@ -374,7 +377,9 @@ class _DialectViewState extends State<_DialectView> {
   }
 
   void _removeDiscouraged(String term) {
-    setState(() => _discouraged = _discouraged.where((t) => t != term).toList());
+    setState(
+      () => _discouraged = _discouraged.where((t) => t != term).toList(),
+    );
     _emit();
   }
 
@@ -447,9 +452,9 @@ class _DialectViewState extends State<_DialectView> {
             child: Text(
               'Custom dialect',
               key: const ValueKey('dialect-custom-indicator'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontStyle: FontStyle.italic,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
             ),
           ),
         _SectionHeader(title: 'Role terms'),

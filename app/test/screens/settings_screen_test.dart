@@ -177,10 +177,7 @@ void main() {
       await repos.ensureMigrated();
       final custom = Dialect(
         name: Dialect.customName,
-        roles: const {
-          'role1': RoleTerm('Gent'),
-          'role2': RoleTerm('Lady'),
-        },
+        roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
         moves: const {'shoulder_round': '%S shoulder round'},
         discouragedTerms: const ['gypsy'],
       );

@@ -119,10 +119,7 @@ void main() {
     test('a custom dialect round-trips through toJson/fromJson', () {
       final custom = Dialect(
         name: 'Custom',
-        roles: const {
-          'role1': RoleTerm('Gent'),
-          'role2': RoleTerm('Lady'),
-        },
+        roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
         moves: const {'shoulder_round': '%S shoulder round'},
         discouragedTerms: const ['gypsy', 'gents'],
       );
