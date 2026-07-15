@@ -12,6 +12,7 @@ import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
+import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/screens/app_shell.dart';
@@ -36,7 +37,9 @@ Future<void> main() async {
 /// migration / derived-index back-fill via
 /// [CompendiumRepositories.ensureMigrated] (schema-v2 `dance_figures.section`),
 /// then performs a startup purge sweep that hard-deletes soft-deleted dances
-/// past the 30-day retention window ([DanceRepository.purgeDeleted]). The app
+/// past the configured retention window ([DanceRepository.purgeDeleted]); the
+/// window is user-configurable (30 / 90 days / never — ROADMAP G.4), defaulting
+/// to 30 days, and the sweep is skipped entirely when set to never. The app
 /// then hands the repositories facade down to the Collection screen via
 /// [RepositoriesScope].
 ///
@@ -99,9 +102,18 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   Future<void> _startupSequence() async {
     await _appData.repositories.ensureMigrated();
-    await _appData.repositories.dances.purgeDeleted(
-      now: DateTime.now().toUtc(),
+    // Resolve the configured soft-delete retention window (ROADMAP G.4),
+    // defaulting to 30 days when unset. A `null` window means "never
+    // auto-purge", so the startup sweep is skipped entirely.
+    final retention = softDeleteRetentionFromStored(
+      await _appData.repositories.settings.get(kSoftDeleteRetentionKey),
     );
+    if (retention != null) {
+      await _appData.repositories.dances.purgeDeleted(
+        now: DateTime.now().toUtc(),
+        retention: retention,
+      );
+    }
     // Load the persisted dialect library (custom dialects + active-name ref),
     // migrating any legacy single-dialect blob one time, then seed the notifier
     // with the resolved active dialect (defaults to Larks/Robins when unset).
