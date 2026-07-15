@@ -128,7 +128,14 @@ class MatrixColumn {
     required this.kind,
     this.baseMoveId,
     this.variant,
-  });
+  }) : assert(
+         (kind == MatrixColumnKind.split) == (baseMoveId != null),
+         'split columns require baseMoveId; non-split columns must omit it',
+       ),
+       assert(
+         (baseMoveId != null) == (variant != null),
+         'baseMoveId and variant are set together or not at all',
+       );
 
   /// Canonical move id, an unknown raw id, [customMove] for the custom bucket,
   /// or a compound `<baseMoveId>:<variant>` key for a [MatrixColumnKind.split]
