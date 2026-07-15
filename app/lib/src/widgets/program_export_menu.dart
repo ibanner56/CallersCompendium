@@ -41,7 +41,9 @@ class ProgramExportMenu extends StatelessWidget {
   );
 
   Future<void> _shareText(BuildContext context) async {
-    await Share.share(_plainText(context), subject: program.title);
+    await SharePlus.instance.share(
+      ShareParams(text: _plainText(context), subject: program.title),
+    );
   }
 
   Future<void> _copyText(BuildContext context) async {
