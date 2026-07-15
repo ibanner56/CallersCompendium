@@ -160,4 +160,37 @@ void main() {
       CollectionSort.lastCalled,
     );
   });
+
+  testWidgets('both saved Display defaults reflect independently on reload', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kDefaultCollectionSortKey,
+      CollectionSort.author.name,
+    );
+    await repos.settings.set(
+      kDefaultDanceDetailRenderingKey,
+      DanceDetailRendering.canonical.name,
+    );
+
+    await _pumpDefaults(tester, repos);
+
+    expect(
+      tester
+          .widget<DropdownButton<CollectionSort>>(
+            find.byKey(const ValueKey('defaults-collection-sort')),
+          )
+          .value,
+      CollectionSort.author,
+    );
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.byKey(const ValueKey('defaults-dance-detail-canonical')),
+          )
+          .value,
+      isTrue,
+    );
+  });
 }

@@ -168,7 +168,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Future<void> _seedDefaultSort() async {
     if (_defaultSortSeeded || _sortUserSet) return;
     _defaultSortSeeded = true;
-    final stored = await _repos.settings.get(kDefaultCollectionSortKey);
+    // A settings read/decode failure must not fail the whole Collection load:
+    // fall back silently to the historical default (`title`).
+    Object? stored;
+    try {
+      stored = await _repos.settings.get(kDefaultCollectionSortKey);
+    } catch (_) {
+      return;
+    }
     if (!mounted || _sortUserSet) return;
     final sort = collectionSortFromName(stored);
     if (sort != null && sort != _sort) {

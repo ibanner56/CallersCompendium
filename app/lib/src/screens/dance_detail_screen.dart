@@ -107,15 +107,21 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // Seed the initial rendering from the saved default (ROADMAP G.6b) before
     // the body first renders; skip if the user already flipped the toggle (the
     // body only shows after this future resolves, so this is a belt-and-braces
-    // guard mirroring the settings-screen load-vs-toggle race).
+    // guard mirroring the settings-screen load-vs-toggle race). A settings
+    // read/decode failure must not fail the whole detail load — fall back
+    // silently to the historical active-dialect rendering.
     if (!_canonicalUserSet) {
-      final storedRendering = await _repos.settings.get(
-        kDefaultDanceDetailRenderingKey,
-      );
-      if (!_canonicalUserSet) {
-        _canonicalView =
-            danceDetailRenderingFromStored(storedRendering) ==
-            DanceDetailRendering.canonical;
+      try {
+        final storedRendering = await _repos.settings.get(
+          kDefaultDanceDetailRenderingKey,
+        );
+        if (!_canonicalUserSet) {
+          _canonicalView =
+              danceDetailRenderingFromStored(storedRendering) ==
+              DanceDetailRendering.canonical;
+        }
+      } catch (_) {
+        // Keep the historical default (active dialect).
       }
     }
 

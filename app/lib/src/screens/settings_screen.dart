@@ -117,11 +117,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// the view shows active-dialect (today's default) until the read resolves.
   DanceDetailRendering? _defaultDanceDetailRendering;
   bool _defaultsRequested = false;
-  bool _defaultsUserSet = false;
+  // Separate per-setting guards: a user changing one default before its read
+  // resolves must not suppress seeding the *other* default from storage.
+  bool _defaultSortUserSet = false;
+  bool _defaultRenderingUserSet = false;
 
   /// Lazily loads the persisted Display defaults the first time the Defaults
   /// section is built. Mirrors [_ensureAutoSizeLoaded]: a late read must not
-  /// clobber a selection the user made before it resolved ([_defaultsUserSet]).
+  /// clobber a selection the user made before it resolved (per-setting guards).
   void _ensureDefaultsLoaded(BuildContext context) {
     if (_defaultsRequested) return;
     _defaultsRequested = true;
@@ -129,20 +132,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     repos.settings
         .get(kDefaultCollectionSortKey)
         .then((stored) {
-          if (!mounted || _defaultsUserSet) return;
+          if (!mounted || _defaultSortUserSet) return;
           setState(() {
             _defaultCollectionSort =
                 collectionSortFromName(stored) ?? CollectionSort.title;
           });
         })
         .catchError((_) {
-          if (!mounted || _defaultsUserSet) return;
+          if (!mounted || _defaultSortUserSet) return;
           setState(() => _defaultCollectionSort = CollectionSort.title);
         });
     repos.settings
         .get(kDefaultDanceDetailRenderingKey)
         .then((stored) {
-          if (!mounted || _defaultsUserSet) return;
+          if (!mounted || _defaultRenderingUserSet) return;
           setState(() {
             _defaultDanceDetailRendering = danceDetailRenderingFromStored(
               stored,
@@ -150,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           });
         })
         .catchError((_) {
-          if (!mounted || _defaultsUserSet) return;
+          if (!mounted || _defaultRenderingUserSet) return;
           setState(
             () => _defaultDanceDetailRendering =
                 DanceDetailRendering.activeDialect,
@@ -160,7 +163,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _onDefaultCollectionSortChanged(CollectionSort value) async {
     setState(() {
-      _defaultsUserSet = true;
+      _defaultSortUserSet = true;
       _defaultCollectionSort = value;
     });
     final repos = RepositoriesScope.of(context);
@@ -171,7 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     DanceDetailRendering value,
   ) async {
     setState(() {
-      _defaultsUserSet = true;
+      _defaultRenderingUserSet = true;
       _defaultDanceDetailRendering = value;
     });
     final repos = RepositoriesScope.of(context);
