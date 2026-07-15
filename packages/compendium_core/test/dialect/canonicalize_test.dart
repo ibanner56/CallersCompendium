@@ -3,7 +3,18 @@ import 'package:test/test.dart';
 
 void main() {
   final larks = Dialect.larksRobins;
-  final gents = Dialect.gentsLadies;
+  // Gendered dialects are no longer shipped presets; canonicalization must
+  // still handle a user's custom gendered role terms, so build them inline.
+  final gents = Dialect(
+    name: 'Gents/Ladies',
+    roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
+    discouragedTerms: Dialect.defaultDiscouragedTerms,
+  );
+  final ladles = Dialect(
+    name: 'Ladles/Gentlespoons',
+    roles: const {'role1': RoleTerm('Gentlespoon'), 'role2': RoleTerm('Ladle')},
+    discouragedTerms: Dialect.defaultDiscouragedTerms,
+  );
   final renderer = FigureRenderer(contraTaxonomy);
 
   group('canonicalize maps dialect terms back to role tokens', () {
@@ -58,7 +69,7 @@ void main() {
       'larksRobins': larks,
       'gentsLadies': gents,
       'leadsFollows': Dialect.leadsFollows,
-      'ladlesGentlespoons': Dialect.ladlesGentlespoons,
+      'ladlesGentlespoons': ladles,
     };
 
     for (final entry in dialects.entries) {
@@ -80,7 +91,7 @@ void main() {
     });
 
     test('finds dialect role terms when dialect provided', () {
-      final spans = roleSpans('Gents cross', Dialect.gentsLadies);
+      final spans = roleSpans('Gents cross', gents);
       expect(spans, hasLength(1));
       expect(spans.first.text, 'Gents');
       expect(spans.first.start, 0);

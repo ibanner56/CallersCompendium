@@ -20,6 +20,21 @@ class RoleTerm {
     return '${singular}s';
   }
 
+  /// JSON form: always writes the resolved [plural] so the exact display
+  /// pluralization round-trips (independent of the derivation rule).
+  Map<String, Object?> toJson() => {'singular': singular, 'plural': plural};
+
+  /// Parses a [RoleTerm] from [toJson] output. A missing/blank `plural`
+  /// falls back to the derived plural.
+  static RoleTerm fromJson(Map<String, Object?> json) {
+    final singular = (json['singular'] as String?) ?? '';
+    final plural = json['plural'] as String?;
+    return RoleTerm(
+      singular,
+      plural: (plural != null && plural.isNotEmpty) ? plural : null,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       other is RoleTerm && other.singular == singular && other.plural == plural;
@@ -62,16 +77,12 @@ class Dialect {
   /// The canonical/no-op dialect: renders canonical vocabulary untouched.
   static final Dialect canonical = Dialect(name: 'Canonical');
 
-  /// Default preset (community-current positional terms).
+  /// Default preset (community-current positional terms) and the app's
+  /// out-of-box active dialect.
   static final Dialect larksRobins = Dialect(
     name: 'Larks/Robins',
     roles: const {'role1': RoleTerm('Lark'), 'role2': RoleTerm('Robin')},
     discouragedTerms: defaultDiscouragedTerms,
-  );
-
-  static final Dialect gentsLadies = Dialect(
-    name: 'Gents/Ladies',
-    roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
   );
 
   static final Dialect leadsFollows = Dialect(
@@ -80,23 +91,23 @@ class Dialect {
     discouragedTerms: defaultDiscouragedTerms,
   );
 
-  static final Dialect ladlesGentlespoons = Dialect(
-    name: 'Ladles/Gentlespoons',
-    roles: const {'role1': RoleTerm('Gentlespoon'), 'role2': RoleTerm('Ladle')},
-    discouragedTerms: defaultDiscouragedTerms,
-  );
+  /// The name used for a user-customized dialect (any dialect not identical to
+  /// a shipped preset). Gendered role terms, if wanted, are entered here rather
+  /// than shipped as presets.
+  static const String customName = 'Custom';
 
   /// All shipped dialect presets, in display order.
+  ///
   /// `canonical` is first (the identity/no-op dialect); `larksRobins` is the
-  /// modern gender-free default and the app's out-of-box active dialect.
+  /// modern gender-free default and the app's out-of-box active dialect. Only
+  /// role-neutral presets are shipped — gendered role terms are entered via the
+  /// custom role-terms editor, not baked in.
   ///
   /// The list is unmodifiable — callers must not mutate it.
   static final List<Dialect> presets = List.unmodifiable([
     canonical,
     larksRobins,
-    gentsLadies,
     leadsFollows,
-    ladlesGentlespoons,
   ]);
 
   /// Returns the preset whose [Dialect.name] exactly matches [presetName],
@@ -132,6 +143,54 @@ class Dialect {
     moves: moves ?? this.moves,
     discouragedTerms: discouragedTerms ?? this.discouragedTerms,
   );
+
+  /// Serializes the whole dialect (name + role terms + move substitutions +
+  /// discouraged terms) so a fully-custom dialect can be persisted, not just a
+  /// preset name.
+  Map<String, Object?> toJson() => {
+    'name': name,
+    'roles': {for (final e in roles.entries) e.key: e.value.toJson()},
+    'moves': Map<String, String>.from(moves),
+    'discouragedTerms': List<String>.from(discouragedTerms),
+  };
+
+  /// Reconstructs a [Dialect] from [toJson] output. Missing sections default to
+  /// empty; malformed entries are skipped rather than throwing.
+  static Dialect fromJson(Map<String, Object?> json) {
+    final roles = <String, RoleTerm>{};
+    final rolesJson = json['roles'];
+    if (rolesJson is Map) {
+      for (final entry in rolesJson.entries) {
+        final value = entry.value;
+        if (value is Map) {
+          roles[entry.key.toString()] = RoleTerm.fromJson(
+            value.cast<String, Object?>(),
+          );
+        }
+      }
+    }
+    final moves = <String, String>{};
+    final movesJson = json['moves'];
+    if (movesJson is Map) {
+      for (final entry in movesJson.entries) {
+        final value = entry.value;
+        if (value is String) moves[entry.key.toString()] = value;
+      }
+    }
+    final discouraged = <String>[];
+    final discouragedJson = json['discouragedTerms'];
+    if (discouragedJson is List) {
+      for (final t in discouragedJson) {
+        if (t is String) discouraged.add(t);
+      }
+    }
+    return Dialect(
+      name: (json['name'] as String?) ?? customName,
+      roles: roles,
+      moves: moves,
+      discouragedTerms: discouraged,
+    );
+  }
 
   /// Rejects mappings that would make canonicalization ambiguous: two
   /// canonical terms substituted by the same word, or a substitution that

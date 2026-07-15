@@ -1,6 +1,23 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/widgets.dart';
 
+/// Resolves a persisted settings value into a [Dialect].
+///
+/// The active dialect is stored as a full dialect JSON map so fully-custom
+/// dialects (custom role terms, move substitutions, discouraged terms) survive
+/// a restart. For backward compatibility, a bare preset-name string is still
+/// resolved via [Dialect.forName]. Returns `null` when there is nothing usable
+/// stored (callers fall back to the default, [Dialect.larksRobins]).
+Dialect? dialectFromStored(Object? stored) {
+  if (stored is Map) {
+    return Dialect.fromJson(stored.cast<String, Object?>());
+  }
+  if (stored is String) {
+    return Dialect.forName(stored);
+  }
+  return null;
+}
+
 /// Exposes the user's active [Dialect] as a live [ValueNotifier] to the
 /// widget tree.  Descendants that call [ActiveDialectScope.of] will rebuild
 /// automatically when the dialect changes (live update).

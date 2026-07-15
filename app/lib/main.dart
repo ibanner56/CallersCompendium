@@ -61,12 +61,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
       now: DateTime.now().toUtc(),
     );
     // Load the persisted dialect, defaulting to Larks/Robins when unset.
-    final name =
-        await _appData.repositories.settings.get(kActiveDialectKey) as String?;
-    if (name != null) {
-      final preset = Dialect.forName(name);
-      if (preset != null) _dialectNotifier.value = preset;
-    }
+    // Stored as a full dialect JSON (custom dialects supported); older builds
+    // stored just a preset name, which we still resolve.
+    final stored = await _appData.repositories.settings.get(kActiveDialectKey);
+    final dialect = dialectFromStored(stored);
+    if (dialect != null) _dialectNotifier.value = dialect;
     // Load the persisted theme selection, defaulting to System when unset.
     final themeName =
         await _appData.repositories.settings.get(kAppThemeKey) as String?;

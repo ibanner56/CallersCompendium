@@ -53,10 +53,11 @@ searchKeywords: [allemande, almond]
 ### Roles
 Canonical role IDs are **`role1` / `role2`** (position semantics: role1 =
 left-of-partner facing down… defined precisely in implementation docs). All
-display names — Larks/Robins, Gents/Ladies, Leads/Follows, Ladles/Gentlespoons
-— are dialect, including the default. This is the lesson from both ContraDB
-(hardcoded ladles/gentlespoons) and Caller's Companion (couldn't retrofit
-gender-free Elements). Default dialect ships as Larks/Robins.
+display names — Larks/Robins, Leads/Follows, or any custom (incl. gendered)
+role terms entered by the user — are dialect, including the default. This is the
+lesson from both ContraDB (hardcoded ladles/gentlespoons) and Caller's Companion
+(couldn't retrofit gender-free Elements). Default dialect ships as Larks/Robins;
+gendered presets are deliberately not baked in.
 
 ## Move list v1 (~47)
 

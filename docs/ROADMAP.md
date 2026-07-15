@@ -130,8 +130,12 @@ Design items (each produces a design doc + review):
   settings screen, threading through detail toggle / lingo line / search).~~
   **Resolved in Consolidation PR1** (dialect-settings branch): `Dialect.presets` +
   `Dialect.forName` in core; `ActiveDialectScope` (`InheritedNotifier<ValueNotifier<Dialect>>`);
-  `SettingsScreen` with radio preset list; Collection app bar Settings entry;
-  default = `Dialect.larksRobins`.
+  `SettingsScreen` dialect editor; Collection app bar Settings entry;
+  default = `Dialect.larksRobins`. **Extended** to a full editable dialect
+  (ContraDB-aligned): role-neutral presets only (gendered presets removed —
+  gendered terms via custom role-terms input), editable move substitutions and
+  discouraged-terms list, `Dialect.toJson`/`fromJson`, and the active dialect
+  persisted as full JSON.
 - (2.4a full taxonomy data is now **complete** — full ContraDB contra move set shipped.
   The only still-open 3.2 follow-up is per-Type taxonomy selection, blocked on multi-form data.)
   - ~~Nested figure groups inside `then`~~: **Resolved in Consolidation PR4**

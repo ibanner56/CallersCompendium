@@ -16,10 +16,11 @@ Squares) callers — on desktop, tablet, and phone.
   the choreography itself.
 - **Performance mode** — a large-print, high-contrast, stage-ready calling
   view with wake-lock and one-handed navigation.
-- **Dialect** — your terms, your phrasing: role names (Larks/Robins,
-  Gents/Ladies, …) and figure terms are presentation settings applied over a
+- **Dialect** — your terms, your phrasing: role names, move substitutions, and
+  discouraged-term flags are fully editable presentation settings applied over a
   standardized canonical vocabulary, so search always works and data stays
-  portable.
+  portable. Ships role-neutral presets (Larks/Robins by default, Leads/Follows);
+  gendered or house-specific terms are entered via the custom role-terms editor.
 - **Imports** — connect to community sources (The Caller's Box snapshot,
   ContraDB exports) and migrate seamlessly from Caller's Companion. Everything
   is stored locally; the app is fully usable offline.
