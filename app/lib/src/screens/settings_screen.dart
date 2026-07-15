@@ -7,6 +7,7 @@ import '../data/custom_theme.dart';
 import '../data/custom_themes_controller.dart';
 import '../data/custom_themes_scope.dart';
 import '../data/repositories_scope.dart';
+import '../data/require_performed_for_history_scope.dart';
 import '../theme/color_schemes.dart';
 import 'theme_editor_screen.dart';
 
@@ -15,6 +16,11 @@ const String kActiveDialectKey = 'active_dialect';
 
 /// Key used to persist and load the app theme selection.
 const String kAppThemeKey = 'theme_mode';
+
+/// Key used to persist the "Require mark-performed for calling history" General
+/// setting (ROADMAP G.2). Stored as a bool; absent/unset means off (`false`),
+/// so a dance's calling history shows every program that contains it.
+const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 
 /// Settings screen: a master–detail layout with a sidebar of sections and a
 /// content pane. On wide viewports the sidebar and the selected section sit
@@ -38,7 +44,8 @@ class SettingsScreen extends StatefulWidget {
 /// a value (and its content in [_SettingsScreenState._content]) to add a page.
 enum _SettingsSection {
   appearance('Appearance', Icons.palette_outlined, Icons.palette),
-  dialect('Dialect', Icons.groups_outlined, Icons.groups);
+  dialect('Dialect', Icons.groups_outlined, Icons.groups),
+  general('General', Icons.tune_outlined, Icons.tune);
 
   const _SettingsSection(this.label, this.icon, this.selectedIcon);
 
@@ -74,6 +81,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await repos.settings.set(kAppThemeKey, selection.name);
   }
 
+  Future<void> _onRequirePerformedForHistoryChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern as dialect/theme: flip the
+    // live notifier so every dependent (including an open dance-detail screen)
+    // rebuilds immediately, then persist in the background.
+    RequirePerformedForHistoryScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kRequirePerformedForHistoryKey, value);
+  }
+
   /// Builds the content pane for [section]. Selection and scope reads use
   /// [context] (in the side-by-side layout the screen itself; in the narrow
   /// layout the pushed detail route) via `.of(context)`, which registers that
@@ -101,6 +117,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return _DialectView(
           selected: ActiveDialectScope.of(context),
           onChanged: _onDialectChanged,
+        );
+      case _SettingsSection.general:
+        return _GeneralView(
+          requirePerformedForHistory: RequirePerformedForHistoryScope.of(
+            context,
+          ),
+          onRequirePerformedForHistoryChanged:
+              _onRequirePerformedForHistoryChanged,
         );
     }
   }
@@ -969,6 +993,42 @@ class _DiscouragedTermsEditor extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The General section: app-wide preference switches (ROADMAP G).
+///
+/// Currently hosts the "Require mark-performed for calling history" toggle
+/// (ROADMAP G.2, off by default). New app-wide switches are added here as
+/// additional [SwitchListTile]s.
+class _GeneralView extends StatelessWidget {
+  const _GeneralView({
+    required this.requirePerformedForHistory,
+    required this.onRequirePerformedForHistoryChanged,
+  });
+
+  final bool requirePerformedForHistory;
+  final ValueChanged<bool> onRequirePerformedForHistoryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      children: [
+        _SectionHeader(title: 'Calling history'),
+        SwitchListTile(
+          key: const ValueKey('general-require-performed-for-history'),
+          value: requirePerformedForHistory,
+          onChanged: onRequirePerformedForHistoryChanged,
+          title: const Text('Require “mark performed” for calling history'),
+          subtitle: const Text(
+            'When on, a dance’s calling history lists only programs whose slot '
+            'for that dance was marked performed. When off, a program appears '
+            'as soon as it contains the dance.',
+          ),
+          isThreeLine: true,
+        ),
+      ],
     );
   }
 }

@@ -341,7 +341,7 @@ for app-wide preference switches as they accrue.
   "user-set size, no upper bound" model remains the manual mode — auto-size is
   an opt-out convenience layer on top.
 
-- [ ] G.2 **Require "mark performed" for calling history** — a General settings
+- [x] G.2 **Require "mark performed" for calling history** — a General settings
   toggle (**off by default**) controlling whether a program must have the dance's
   slot marked performed (`ProgramSlot.performedAt` set) to appear in that dance's
   calling-history section (per-dance calling history; `docs/design/ux.md` §2).
