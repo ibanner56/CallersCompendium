@@ -16,15 +16,18 @@ import 'tag_repository.dart';
 /// wires up storage once (`CompendiumRepositories(db, taxonomy)`) instead of
 /// constructing each repository individually.
 class CompendiumRepositories {
-  CompendiumRepositories(this.db, Taxonomy taxonomy)
-    : dances = DanceRepository(db, taxonomy),
-      choreographers = ChoreographerRepository(db),
-      tags = TagRepository(db),
-      customFieldDefs = CustomFieldDefRepository(db),
-      programs = ProgramRepository(db),
-      publishedSources = PublishedSourceRepository(db),
-      settings = SettingsRepository(db),
-      snapshots = SnapshotRepository(db);
+  CompendiumRepositories(
+    this.db,
+    Taxonomy taxonomy, {
+    SettingsRepository? settings,
+  }) : dances = DanceRepository(db, taxonomy),
+       choreographers = ChoreographerRepository(db),
+       tags = TagRepository(db),
+       customFieldDefs = CustomFieldDefRepository(db),
+       programs = ProgramRepository(db),
+       publishedSources = PublishedSourceRepository(db),
+       settings = settings ?? SettingsRepository(db),
+       snapshots = SnapshotRepository(db);
 
   final CompendiumDatabase db;
   final DanceRepository dances;
