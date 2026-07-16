@@ -208,6 +208,8 @@ void main() {
       final imported = await online.import(repos, preview.plan);
       expect(imported.kind, CallersBoxImportKind.created);
       expect(imported.danceId, isNotNull);
+      // Single-dance import: the count guards the UI auto-open behavior.
+      expect(imported.danceCount, 1);
 
       final saved = await repos.dances.listAll();
       expect(saved.map((d) => d.title), contains("Money Musk"));
@@ -227,6 +229,7 @@ void main() {
 
       final imported = await online.import(repos, second.plan);
       expect(imported.kind, CallersBoxImportKind.alreadyInCollection);
+      expect(imported.danceCount, 1);
 
       // No silent duplicate was written.
       final saved = await repos.dances.listAll();

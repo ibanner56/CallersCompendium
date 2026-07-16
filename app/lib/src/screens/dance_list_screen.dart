@@ -508,10 +508,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
     if (!mounted || imported == null) return;
     // Land the user on the now-persisted dance (full collection actions) rather
-    // than leaving them to hunt for it in the list. For an unresolved re-import
-    // (no id) we just confirm with the snackbar.
+    // than leaving them to hunt for it in the list. Guarded on a single-dance
+    // import (always true for this online preview path) so it can never
+    // auto-open for a multi-dance result; an unresolved re-import (no id) just
+    // confirms with the snackbar.
     final danceId = imported.danceId;
-    if (danceId != null) {
+    if (imported.danceCount == 1 && danceId != null) {
       navigator.push(
         MaterialPageRoute<void>(
           builder: (_) => DanceDetailScreen(danceId: danceId),

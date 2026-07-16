@@ -470,5 +470,48 @@ void main() {
       final all = await repos.dances.listAll();
       expect(all.map((d) => d.title), contains('Imported Reel'));
     });
+
+    testWidgets('wide: a multi-dance import shows the report and does NOT '
+        'auto-open a dance', (tester) async {
+      final repos = openTestRepositories();
+      // A two-dance archive: the batch/URL import path must keep its result
+      // summary + Done and never auto-open one of the dances (auto-open is
+      // reserved for the single-dance online-search import).
+      await _pumpShell(
+        tester,
+        repos,
+        size: const Size(1400, 1600),
+        importPicker: () async => _archivePayload([
+          _dance(id: 'imp1', title: 'Imported Reel'),
+          _dance(id: 'imp2', title: 'Imported Jig'),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-dances')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      // The result summary is shown with its Done affordance (not an auto-open).
+      expect(find.byKey(const ValueKey('import-done-button')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('import-done-button')));
+      await tester.pumpAndSettle();
+
+      // Import view closed and NO dance was auto-opened in the detail pane;
+      // both imported dances land in the collection and show in the live list.
+      expect(find.byType(ImportReviewScreen), findsNothing);
+      expect(find.byType(DanceDetailScreen), findsNothing);
+      final all = await repos.dances.listAll();
+      expect(
+        all.map((d) => d.title),
+        containsAll(<String>['Imported Reel', 'Imported Jig']),
+      );
+    });
   });
 }
