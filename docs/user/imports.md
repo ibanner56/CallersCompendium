@@ -1,10 +1,11 @@
 # Imports & migration
 
-This guide is about getting dances *into* Caller's Compendium and moving your
-whole library between devices. It covers bringing in single dances from
-[The Caller's Box](./README.md#glossary) and ContraDB, importing a
-[Caller's Compendium](./README.md#glossary) file, and backing up and restoring
-everything you own. Where a feature is still on the way, it says so plainly.
+This guide is about getting dances *into* [Caller's Compendium](./README.md#glossary)
+and moving your whole library between devices. It covers bringing in single
+dances from [The Caller's Box](./README.md#glossary) and
+[ContraDB](./README.md#glossary), importing a Caller's Compendium file, and
+backing up and restoring everything you own. Where a feature is still on the way,
+it says so plainly.
 
 ## Your data stays yours
 
@@ -34,8 +35,8 @@ what the app quietly threw away, because it throws nothing away.
 
 The Caller's Box is a large community archive of contra dances. Caller's
 Compendium can reach it two ways: a live **online search**, and importing a
-single dance **by its link or id**. Both need an internet connection, and both
-bring in **one dance at a time** so you can look before you keep.
+single dance **by its link or ID number**. Both need an internet connection, and
+both bring in **one dance at a time** so you can look before you keep.
 
 ### Search The Caller's Box and import a dance
 
@@ -56,27 +57,28 @@ you so and does not add a second copy — see
 > with the Online search switch turned on and three Caller's Box results listed
 > below a search for a dance title._
 
-### Import a Caller's Box dance by link or id
+### Import a Caller's Box dance by link or ID
 
 If you already have a dance's web address — or even its number — you can import
 it directly:
 
 1. Open **Settings**, go to the **Import** section, and choose **Import…**.
 2. In the source selector, choose **The Caller's Box**.
-3. Paste the dance's **URL** (for example a `dance.php?id=…` link) or enter its
-   **bare id** (for example `1`) in the address field, then choose **Fetch**.
+3. Paste the dance's **web address** — its URL, for example a `dance.php?id=…`
+   link — or enter its **ID number** (for example `1`) in the address field,
+   then choose **Fetch**.
 4. Review the dance and commit it, as described in
    [Review before anything changes](#review-before-anything-changes).
 
 ## Bring in a dance from ContraDB
 
 ContraDB is another online contra-dance database, and Caller's Compendium can
-import a single dance from it **by link or id**:
+import a single dance from it **by link or ID**:
 
 1. Open **Settings**, go to the **Import** section, and choose **Import…**.
 2. In the source selector, choose **ContraDB**.
-3. Paste a ContraDB dance **URL** (a `…/dances/N` address) or enter its **bare
-   id**, then choose **Fetch**.
+3. Paste a ContraDB dance's **web address** (a `…/dances/N` URL) or enter its
+   **ID number**, then choose **Fetch**.
 4. Review and commit the dance.
 
 A few honest notes about ContraDB imports:
@@ -138,7 +140,7 @@ touches your collection until you commit there. It works the same whichever
 source you pick:
 
 1. **Choose a source and give it something to read** — pick the source, then add
-   a file, paste text, or enter a URL or id. (Paste a recognised web address and
+   a file, paste text, or enter a URL or ID. (Paste a recognised web address and
    the app selects the matching source for you.)
 2. **See the plan** — the app reads the material without changing anything and
    lists every dance it found, with a sense of how much of each dance it could
