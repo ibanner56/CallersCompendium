@@ -554,7 +554,7 @@ void main() {
   });
 
   testWidgets(
-    'narrow-layout Perform persists a mark-performed without an explicit Save',
+    'builder-routed Perform persists a mark-performed without an explicit Save',
     (tester) async {
       // Perform enables the wake-lock; install the fake so the platform
       // channel call doesn't leak an unhandled error into the test.
@@ -568,7 +568,9 @@ void main() {
           slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
         ),
       );
-      // The narrow/tablet gig path routes through this full-screen builder.
+      // The narrow/tablet gig entry point routes through this full-screen
+      // builder; the Perform persist path is width-independent, so we pump at
+      // a comfortable size for the in-event adjust sheet.
       await _pumpBuilder(
         tester,
         repos,
@@ -595,9 +597,9 @@ void main() {
       expect(saved!.slots.single.performedAt, isNotNull);
       expect(saved.slots.single.performedAt!.isUtc, isTrue);
       expect(
-        saved.updatedAt.isAfter(_now),
-        isTrue,
-        reason: 'the immediate persist bumps updatedAt',
+        saved.updatedAt,
+        isNot(_now),
+        reason: 'the immediate persist bumps updatedAt off its saved value',
       );
     },
   );

@@ -279,7 +279,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   _slots = slots;
                 });
                 return;
-              } catch (_) {
+              } on Exception catch (_) {
                 // Fall through to keep the change in the working slots.
               }
             }
