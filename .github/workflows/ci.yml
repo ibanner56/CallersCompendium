@@ -60,8 +60,9 @@ jobs:
       # tools/ci/check_flutter_version.py.
       - name: Guard Flutter version single-source (.fvmrc == toolchain)
         run: |
-          flutter --version
-          python3 tools/ci/check_flutter_version.py
+          version_banner="$(flutter --version | head -n 1)"
+          echo "$version_banner"
+          python3 tools/ci/check_flutter_version.py "$version_banner"
       - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed .
       - run: flutter analyze

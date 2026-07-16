@@ -65,8 +65,15 @@ def _schema_version_at(ref: str) -> int | None:
 
 
 def _changed_paths(base: str, head: str) -> list[str]:
-    """Added/modified paths in the base..head diff (status A or M)."""
-    res = _git("diff", "--name-status", "--diff-filter=AM", base, head)
+    """Added/modified/renamed/copied paths in the base..head diff.
+
+    Includes renames/copies (R/C) so that moving a migration test/fixture still
+    counts as evidence. For R/C, ``git diff --name-status`` emits three
+    tab-separated columns (``R100\told\tnew``); the destination path is always
+    the last column, so taking ``parts[-1]`` yields the new path for R/C and the
+    sole path for A/M.
+    """
+    res = _git("diff", "--name-status", "--diff-filter=AMRC", base, head)
     if res.returncode != 0:
         _fail(
             f"git diff {base}..{head} failed: {res.stderr.strip()}. "
@@ -74,9 +81,9 @@ def _changed_paths(base: str, head: str) -> list[str]:
         )
     paths = []
     for line in res.stdout.splitlines():
-        parts = line.split("\t", 1)
-        if len(parts) == 2:
-            paths.append(parts[1].strip())
+        parts = line.split("\t")
+        if len(parts) >= 2:
+            paths.append(parts[-1].strip())
     return paths
 
 
