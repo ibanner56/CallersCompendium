@@ -5,6 +5,7 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
@@ -254,9 +255,17 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       // issue's figureIndex points at this figure (not the next imported one).
       final beats = _parseBeats(_beatsCell(cells), index, issues);
 
-      final withLabel = label.isEmpty ? scrubbed : '$label: $scrubbed';
+      // Route the (already-scrubbed) text through the shared parser: recognised
+      // moves become structured figures, the rest fall back to custom with the
+      // section label prefixed, as before. Non-null since `scrubbed` isn't empty.
       figures.add(
-        customFigure(withLabel, beats: beats, progression: hasProgression),
+        parseFigureLine(
+          scrubbed,
+          beats: beats,
+          progression: hasProgression,
+          label: label,
+          scrub: (s) => s,
+        )!,
       );
       index++;
     }

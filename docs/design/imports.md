@@ -66,6 +66,30 @@ pure-Dart core → each adapter unit-tested against fixture files.
   fields, provenance, dialect definitions). Serves backup/restore and
   user-to-user sharing. Versioned schema; forward-compatible reader.
 
+### Shared free-text figure parser (cross-cutting)
+- All four free-text adapters (CallersBox, ContraDB-HTML, CC-text, CC-`.USR`)
+  route their `(beats) text` figure lines through one pure-Dart core parser,
+  `parseFigureLine` (`imports/figure_parser.dart`), instead of each emitting
+  `custom` directly. It runs **after** dialect scrubbing (`scrubFigureText` →
+  `canonicalizeText(…, Dialect.canonical)` + the `gypsy`→`shoulder round`
+  safety net), so recognition sees canonical `role1`/`role2` tokens.
+- **Conservative, whole-line, single-move matching.** A line structures only
+  when exactly one covered move plus its recognized modifiers (dancer set,
+  direction, hand/shoulder, rotation/fraction, places) account for the *entire*
+  line; any leftover prose forces the `custom` fallback. Every structured
+  candidate is validated against the taxonomy — an error-severity issue also
+  forces custom. A wrong structured match misrepresents choreography, so when
+  in doubt it stays custom. **Parse-never-fails** is preserved (unrecognized →
+  `custom`, never throws, never drops text); source beats, progression flag,
+  and the custom `'$label: $scrubbed'` section prefix are preserved exactly.
+- **First-cut coverage (in):** swing (+balance/meltdown prefix), balance,
+  balance the ring, do si do / see saw, shoulder round (+gypsy), box the gnat /
+  swat the flea, allemande, circle, star, chain, long lines, right left
+  through, pass through, promenade, petronella. **Out (→ custom for now):**
+  multi-move lines, heys, poussette, down/up the hall, contra corners, figure
+  8, waves, square through, and anything with `or`/leftover prose. Coverage
+  improves iteratively (design target ≥80% of lines structured over time).
+
 ## Error handling & testing
 
 - Every stage yields structured errors with source context (never stack-trace
