@@ -119,14 +119,17 @@ class DanceListTile extends StatelessWidget {
               DanceStatusChip(status: dance.status),
             if (dance.level != null)
               Chip(
-                avatar: const Icon(Icons.signal_cellular_alt, size: 16),
+                avatar: const Icon(
+                  Icons.signal_cellular_alt_outlined,
+                  size: 16,
+                ),
                 label: Text(danceLevelLabel(dance.level!)),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             if (dance.mixedLevel)
               Chip(
-                avatar: const Icon(Icons.swap_vert, size: 16),
+                avatar: const Icon(Icons.swap_vert_outlined, size: 16),
                 label: const Text('Mixed level'),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -134,7 +137,7 @@ class DanceListTile extends StatelessWidget {
             if (dance.rating != null)
               Chip(
                 key: const ValueKey('rating-indicator'),
-                avatar: const Icon(Icons.star, size: 16),
+                avatar: const Icon(Icons.star_outline, size: 16),
                 label: Text(
                   '${dance.rating}',
                   semanticsLabel: 'Rating: ${dance.rating} of 5 stars',

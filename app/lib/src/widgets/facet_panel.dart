@@ -116,7 +116,7 @@ class FacetPanel extends StatelessWidget {
               _chip(
                 key: 'progression-${p.name}',
                 label: progressionLabel(p),
-                icon: Icons.trending_flat,
+                icon: progressionIcon,
                 selected: facets.progressions.contains(p),
                 onSelected: (s) => toggle(facets.progressions, p, s),
               ),

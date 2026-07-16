@@ -96,4 +96,42 @@ void main() {
       expect(find.text('active: ${Dialect.leadsFollows.name}'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'uses the Dialect glyph (groups_outlined), not the language glyph translate',
+    (tester) async {
+      // Regression for UX review 6.8: the quick-switch must NOT share
+      // `Icons.translate` with Settings › Language & region — dialect selection
+      // and app-locale selection are different concepts. It uses the app's
+      // Dialect glyph, outlined (an idle affordance per the 6.3 convention).
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final controller = DialectLibraryController(repos.settings);
+      await controller.load();
+      final notifier = ValueNotifier<Dialect>(controller.active);
+      addTearDown(() {
+        controller.dispose();
+        notifier.dispose();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DialectLibraryScope(
+            controller: controller,
+            child: ActiveDialectScope(
+              notifier: notifier,
+              child: const Scaffold(body: DialectQuickSwitch()),
+            ),
+          ),
+        ),
+      );
+
+      final button = tester.widget<PopupMenuButton<String>>(
+        find.byKey(const ValueKey('dialect-quick-switch')),
+      );
+      expect(button.icon, isA<Icon>());
+      expect((button.icon! as Icon).icon, Icons.groups_outlined);
+      expect(find.byIcon(Icons.translate), findsNothing);
+    },
+  );
 }
