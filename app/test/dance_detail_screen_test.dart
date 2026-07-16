@@ -1,9 +1,12 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/dialect_library_controller.dart';
+import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
@@ -47,8 +50,10 @@ Future<ValueNotifier<bool>> _pumpDetail(
   String danceId, {
   Dialect? activeDialect,
   bool requirePerformedForHistory = false,
+  Size surfaceSize = const Size(1200, 2400),
+  DialectLibraryController? dialectLibrary,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 2400));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
@@ -56,15 +61,20 @@ Future<ValueNotifier<bool>> _pumpDetail(
     requirePerformedForHistory,
   );
   addTearDown(requirePerformedNotifier.dispose);
+  Widget withLibrary(Widget child) => dialectLibrary == null
+      ? child
+      : DialectLibraryScope(controller: dialectLibrary, child: child);
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(
-          notifier: notifier,
-          child: RequirePerformedForHistoryScope(
-            notifier: requirePerformedNotifier,
-            child: child!,
+        child: withLibrary(
+          ActiveDialectScope(
+            notifier: notifier,
+            child: RequirePerformedForHistoryScope(
+              notifier: requirePerformedNotifier,
+              child: child!,
+            ),
           ),
         ),
       ),
@@ -126,6 +136,176 @@ void main() {
     expect(find.text('Share dance (text)'), findsOneWidget);
     expect(find.text('Copy dance'), findsOneWidget);
     expect(find.text('Export / print PDF'), findsOneWidget);
+  });
+
+  group('narrow app bar', () {
+    Future<DialectLibraryController> buildLibrary(
+      CompendiumRepositories repos,
+    ) async {
+      await repos.ensureMigrated();
+      final controller = DialectLibraryController(repos.settings);
+      await controller.load();
+      await controller.setActive(Dialect.larksRobins.name);
+      addTearDown(controller.dispose);
+      return controller;
+    }
+
+    testWidgets(
+      'keeps primary actions one-tap and collapses the rest into an overflow '
+      'menu without overflowing at a phone width',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+        final library = await buildLibrary(repos);
+
+        await _pumpDetail(
+          tester,
+          repos,
+          'd1',
+          surfaceSize: const Size(360, 800),
+          dialectLibrary: library,
+        );
+
+        // (a) No RenderFlex overflow at a 360dp phone width.
+        expect(tester.takeException(), isNull);
+
+        // Primary actions stay one-tap on the bar (Edit remains the FAB).
+        expect(find.byKey(const ValueKey('perform-dance')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('add-dance-to-program')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('edit-dance')), findsOneWidget);
+
+        // Secondary actions are not shown directly on the narrow bar, and the
+        // wide-layout Export/dialect popup controls are not used in compact mode.
+        expect(find.byKey(const ValueKey('duplicate-dance')), findsNothing);
+        expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
+        expect(
+          find.byKey(const ValueKey('overflow-share-dance')),
+          findsNothing,
+        );
+        expect(find.byKey(const ValueKey('dance-export-menu')), findsNothing);
+        expect(
+          find.byKey(const ValueKey('dialect-quick-switch')),
+          findsNothing,
+        );
+
+        // (b) The overflow menu exposes every secondary action as its own
+        // first-class, activatable item (no nested popup menus).
+        final overflow = find.byKey(const ValueKey('dance-actions-overflow'));
+        expect(overflow, findsOneWidget);
+        await tester.tap(overflow);
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('duplicate-dance')), findsOneWidget);
+        expect(find.byKey(const ValueKey('delete-dance')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('overflow-share-dance')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('overflow-copy-dance')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('overflow-export-pdf')),
+          findsOneWidget,
+        );
+        // Each dialect in the library is offered as a checkable entry.
+        expect(
+          find.byKey(
+            ValueKey('dialect-quick-switch-${Dialect.larksRobins.name}'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            ValueKey('dialect-quick-switch-${Dialect.leadsFollows.name}'),
+          ),
+          findsOneWidget,
+        );
+
+        // The (scrollable) menu itself introduces no overflow at 360dp.
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('overflow Export actions are reachable and Copy works', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+
+      // The three Export actions are flattened directly into the overflow menu.
+      expect(find.text('Share dance (text)'), findsOneWidget);
+      expect(find.text('Copy dance'), findsOneWidget);
+      expect(find.text('Export / print PDF'), findsOneWidget);
+
+      // Copy is wired to the same shared plain-text renderer as DanceExportMenu.
+      await tester.tap(find.byKey(const ValueKey('overflow-copy-dance')));
+      await tester.pumpAndSettle();
+      expect(find.text('Dance copied to clipboard.'), findsOneWidget);
+      expect(clipboardText, contains('Narrow Dance'));
+    });
+
+    testWidgets('overflow dialect switch still changes the active dialect', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+
+      // Pick a different dialect directly from the overflow (no nested popup).
+      await tester.tap(
+        find.byKey(
+          ValueKey('dialect-quick-switch-${Dialect.leadsFollows.name}'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(library.activeName, Dialect.leadsFollows.name);
+    });
   });
 
   testWidgets('figure table groups by section and toggles dialect', (
