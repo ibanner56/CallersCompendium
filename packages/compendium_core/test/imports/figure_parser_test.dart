@@ -133,6 +133,10 @@ void main() {
       'N2 neighbor gate counterclockwise 1/2',
       // A poussette with an unmappable leftover ("draw") stays custom.
       'Neighbor draw poussette clockwise 1/2',
+      // A dancer-named pull-by with a trailing direction: pull_by_dancers has
+      // no direction slot, so rather than silently drop "across" the line must
+      // fall to custom (the direction is only valid on the direction-only form).
+      'Men pull by left across',
       // Partial long-lines descriptors are not the canonical "forward and
       // back", so they degrade to custom rather than a half-described figure.
       'long lines back',

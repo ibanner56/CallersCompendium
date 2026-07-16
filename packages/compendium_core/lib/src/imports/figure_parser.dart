@@ -339,8 +339,8 @@ final List<_Recognizer> _recognizers = [
   _doSiDo,
   _boxTheGnat,
   _circle,
-  // Must precede _star and _promenade so "star promenade" isn't half-consumed
-  // by the bare-star or bare-promenade recognizers.
+  // Must precede _star so the shared "star" lead phrase resolves to the more
+  // specific "star promenade" move before the bare-star recognizer.
   _starPromenade,
   _star,
   _chain,
@@ -609,9 +609,9 @@ _Match? _slice(List<String> w) {
   return _Match('slice', {'slice': side});
 }
 
-/// Tier A: TCB writes "Turn alone" / "Ones turn alone" (dance ids 25, 2). The
-/// optional leading dancer set maps to `who`; otherwise the taxonomy default
-/// (everyone) applies.
+/// Tier A: TCB writes "Turn alone" / "Ones turn alone" (dance ids 25, 2). An
+/// optional dancer set (before or after "turn alone") maps to `who`; otherwise
+/// the taxonomy default (everyone) applies.
 _Match? _turnAlone(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['turn', 'alone'])) return null;
@@ -659,8 +659,9 @@ _Match? _californiaTwirl(List<String> w) {
 /// Tier A: TCB writes "Partner star promenade 1/2" (dance id 30 "Mad Gypsy").
 /// The optional dancer set maps to `who`, an explicit hand to `hand`, and a
 /// rotation amount to `turn`. TCB's "(WL)"/"(WR)" hand annotations are stripped
-/// by `_normalize`, so the hand there stays on the taxonomy default. Must run
-/// before `_star`/`_promenade` (see `_recognizers`).
+/// by `_normalize`, so the hand there stays on the taxonomy default. Must
+/// precede `_star` in `_recognizers` so the shared "star" lead phrase resolves
+/// to this more specific move first.
 _Match? _starPromenade(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['star', 'promenade'])) return null;
@@ -701,6 +702,16 @@ _Match? _pullBy(List<String> w) {
   if (!_consumePhrase(w, ['pull', 'by'])) return null;
   final who2 = who ?? _takeDancer(w);
   final hand = _takeSide(w);
+  if (who2 != null) {
+    // Dancer form → pull_by_dancers, which has NO direction slot. Do NOT
+    // consume across/along here: leaving it as leftover makes a
+    // "<dancer> pull by <hand> across" line fall to custom rather than
+    // silently dropping the direction (which pull_by_dancers can't carry).
+    _dropFiller(w);
+    if (w.isNotEmpty) return null;
+    return _Match('pull_by_dancers', {'who': who2, 'hand': ?hand});
+  }
+  // Direction-only (or bare) form → pull_by_direction.
   String? dir;
   if (_consumePhrase(w, ['across'])) {
     dir = 'across';
@@ -709,8 +720,5 @@ _Match? _pullBy(List<String> w) {
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  if (who2 != null) {
-    return _Match('pull_by_dancers', {'who': who2, 'hand': ?hand});
-  }
   return _Match('pull_by_direction', {'dir': ?dir, 'hand': ?hand});
 }
