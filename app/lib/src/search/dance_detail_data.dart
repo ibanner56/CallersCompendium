@@ -67,21 +67,25 @@ class DanceDetailData {
     final tagNames = {for (final t in tags) t.id: t.name};
     final defsById = {for (final d in fieldDefs) d.id: d};
 
-    // Resolve titles for relatedDance links in parallel (deduplicated).
+    // Resolve titles for relatedDance links in parallel. Deduplicate via a
+    // set, then materialize to a list so the id↔result association is an
+    // explicit, O(1) positional index (rather than relying on set iteration
+    // order and O(n) elementAt).
     final relatedDanceTitles = <String, String>{};
     final targetIds = dance.links
         .where(
           (l) => l.kind == LinkKind.relatedDance && l.targetDanceId != null,
         )
         .map((l) => l.targetDanceId!)
-        .toSet();
+        .toSet()
+        .toList();
     if (targetIds.isNotEmpty) {
       final fetched = await Future.wait(
         targetIds.map((id) => repos.dances.getById(id)),
       );
       for (final (i, related) in fetched.indexed) {
         if (related != null) {
-          relatedDanceTitles[targetIds.elementAt(i)] = related.title;
+          relatedDanceTitles[targetIds[i]] = related.title;
         }
       }
     }
