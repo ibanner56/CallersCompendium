@@ -12,16 +12,17 @@ import 'programs_shell.dart';
 import 'settings_screen.dart';
 import 'user_guide/user_guide_screen.dart';
 
-/// Top-level navigation between Collection, Programs, and Settings
-/// (`docs/design/ux.md` information architecture).
+/// Top-level navigation between Collection, Programs, Settings, and the User
+/// Guide (`docs/design/ux.md` information architecture).
 ///
 /// - **Narrow (< 900 px):** bottom [NavigationBar].
 /// - **Wide (≥ 900 px):** left [NavigationRail].
 ///
 /// All destinations are kept alive in an [IndexedStack] so switching preserves
-/// each screen's state (selection, scroll, in-progress edits). Settings is a
-/// first-class destination alongside Collection and Programs rather than a
-/// pushed route.
+/// each screen's state (selection, scroll, in-progress edits). Settings and the
+/// User Guide are first-class destinations alongside Collection and Programs
+/// rather than pushed routes, so the persistent shell chrome (rail search /
+/// bottom bar) stays visible while they're open.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
@@ -35,6 +36,11 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _index = 0;
 
+  /// The core destinations shared by both layouts: rail destinations on wide
+  /// and the first three bottom-bar destinations on narrow. The User Guide is
+  /// index [_guideIndex] — a fourth [IndexedStack] page reached from the
+  /// bottom-of-rail Help affordance (wide) or a fourth bottom-bar destination
+  /// (narrow), so it is deliberately *not* in this list.
   static const _destinations = [
     (
       icon: Icons.auto_stories_outlined,
@@ -53,7 +59,12 @@ class _AppShellState extends State<AppShell> {
     ),
   ];
 
-  static const _pages = [CollectionShell(), ProgramsShell(), SettingsScreen()];
+  /// The IndexedStack position of the User Guide destination (after the three
+  /// [_destinations]).
+  static const int _guideIndex = 3;
+
+  /// Whether the User Guide is the current destination.
+  bool get _guideSelected => _index == _guideIndex;
 
   void _onSelect(int index) => setState(() => _index = index);
 
@@ -81,14 +92,26 @@ class _AppShellState extends State<AppShell> {
     await Navigator.of(context).push(route);
   }
 
-  /// Opens the offline in-app User Guide as a pushed route. Wired to the
-  /// bottom-of-rail Help affordance on wide layouts; narrow layouts reach the
-  /// same screen from Settings ▸ About ▸ User guide.
-  void _openUserGuide() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const UserGuideScreen()));
+  /// Selects the offline in-app User Guide destination. Wired to the
+  /// bottom-of-rail Help affordance on wide layouts, the fourth bottom-bar
+  /// destination on narrow layouts, and Settings ▸ About ▸ User guide.
+  ///
+  /// First pops back to the shell so the guide is revealed even when reached
+  /// from a pushed route (e.g. the narrow Settings ▸ About detail page); a
+  /// no-op when nothing is pushed (the wide inline layout).
+  void _openGuide() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    setState(() => _index = _guideIndex);
   }
+
+  List<Widget> _buildPages() => [
+    const CollectionShell(),
+    const ProgramsShell(),
+    SettingsScreen(onOpenGuide: _openGuide),
+    // Kept alive alongside the other destinations; [UserGuideScreen.isActive]
+    // lets the offscreen guide avoid intercepting system back.
+    UserGuideScreen(isActive: _guideSelected),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -106,14 +129,17 @@ class _AppShellState extends State<AppShell> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= AppShell.railBreakpoint;
-        final body = IndexedStack(index: _index, children: _pages);
+        final body = IndexedStack(index: _index, children: _buildPages());
 
         if (wide) {
           return Scaffold(
             body: Row(
               children: [
                 NavigationRail(
-                  selectedIndex: _index,
+                  // The rail hosts the three core destinations (0..2); the
+                  // guide (index 3) is selected via the trailing Help button,
+                  // so deselect the rail when the guide is showing.
+                  selectedIndex: _guideSelected ? null : _index,
                   onDestinationSelected: _onSelect,
                   labelType: NavigationRailLabelType.all,
                   leading: Padding(
@@ -144,15 +170,18 @@ class _AppShellState extends State<AppShell> {
                         label: Text(d.label),
                       ),
                   ],
-                  // Bottom-aligned Help affordance: the natural home for a
-                  // "User guide" entry on wide layouts. Narrow layouts surface
-                  // the same screen from Settings ▸ About.
+                  // Bottom-aligned Help affordance: the natural home for the
+                  // "User guide" destination on wide layouts. It reads as
+                  // selected while the guide is showing.
                   trailing: Expanded(
                     child: Align(
                       alignment: Alignment.bottomCenter,
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: _RailHelpButton(onPressed: _openUserGuide),
+                        child: _RailHelpButton(
+                          onPressed: _openGuide,
+                          selected: _guideSelected,
+                        ),
                       ),
                     ),
                   ),
@@ -183,6 +212,15 @@ class _AppShellState extends State<AppShell> {
                     selectedIcon: Icon(d.selectedIcon),
                     label: d.label,
                   ),
+                // The guide is a persistent fourth destination on narrow
+                // layouts (parity with the wide rail's Help affordance), so
+                // viewing it keeps the bottom bar visible.
+                const NavigationDestination(
+                  key: ValueKey('user-guide-destination'),
+                  icon: Icon(Icons.help_outline),
+                  selectedIcon: Icon(Icons.help),
+                  label: 'Guide',
+                ),
               ],
             ),
           ),
@@ -246,11 +284,19 @@ class _RailSearchButton extends StatelessWidget {
 /// The desktop nav-rail Help affordance. Mirrors [_RailSearchButton]'s visual
 /// pattern — a circular icon tile with a visible label — so the bottom-of-rail
 /// "User guide" entry reads as a peer of the search affordance rather than a
-/// bare glyph. Opens the offline in-app [UserGuideScreen].
+/// bare glyph. Selects the offline in-app User Guide destination.
+///
+/// Unlike search (an action that is always available), the guide is a
+/// *destination*, so the tile follows the Material 3 nav-selection model: a
+/// filled tertiary indicator when it is the current destination, and a plain,
+/// unfilled icon otherwise.
 class _RailHelpButton extends StatelessWidget {
-  const _RailHelpButton({required this.onPressed});
+  const _RailHelpButton({required this.onPressed, this.selected = false});
 
   final VoidCallback onPressed;
+
+  /// Whether the guide is the current destination.
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -271,12 +317,16 @@ class _RailHelpButton extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: scheme.secondaryContainer,
+                  color: selected
+                      ? scheme.tertiaryContainer
+                      : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.help_outline,
-                  color: scheme.onSecondaryContainer,
+                  selected ? Icons.help : Icons.help_outline,
+                  color: selected
+                      ? scheme.onTertiaryContainer
+                      : scheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 4),

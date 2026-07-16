@@ -9,9 +9,17 @@ import 'package:compendium_app/src/screens/user_guide/user_guide_doc_view.dart';
 import '../../support/fake_url_launcher.dart';
 
 Future<void> _pumpGuide(WidgetTester tester) async {
-  await tester.pumpWidget(const MaterialApp(home: UserGuideScreen()));
+  // The guide is embeddable now (no self-Scaffold), so host it in a Scaffold —
+  // the ScaffoldMessenger target for its "coming soon" SnackBars.
+  await tester.pumpWidget(
+    const MaterialApp(home: Scaffold(body: UserGuideScreen())),
+  );
   await tester.pumpAndSettle();
 }
+
+/// The current in-content header title.
+String _title(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(const ValueKey('user-guide-title'))).data!;
 
 /// Invokes the current guide's link handler as if the user tapped a link with
 /// [href], exercising the real classify-and-act wiring without depending on the
@@ -32,17 +40,14 @@ void main() {
   testWidgets('opens on the documentation hub', (tester) async {
     await _pumpGuide(tester);
 
-    // The panel title reads "User guide" at the hub, and the guide renders.
-    expect(find.widgetWithText(AppBar, 'User guide'), findsOneWidget);
+    // The in-content header title reads "User guide" at the hub, and the guide
+    // renders in the shell content area (no self-hosted AppBar).
+    expect(_title(tester), 'User guide');
+    expect(find.byType(AppBar), findsNothing);
     expect(find.byType(Markdown), findsOneWidget);
-    // At the root of the in-panel stack the leading affordance is a close icon.
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('user-guide-back')),
-        matching: find.byIcon(Icons.close),
-      ),
-      findsOneWidget,
-    );
+    // At the hub there is no back/close affordance — the guide is a shell
+    // destination, so the shell nav (not this header) is how you leave it.
+    expect(find.byKey(const ValueKey('user-guide-back')), findsNothing);
   });
 
   testWidgets('an internal link navigates within the panel and back returns', (
@@ -53,8 +58,8 @@ void main() {
     _tapLink(tester, 'imports.md');
     await tester.pumpAndSettle();
 
-    // Navigated to the Imports guide; the leading affordance is now a back arrow.
-    expect(find.widgetWithText(AppBar, 'Imports'), findsOneWidget);
+    // Navigated to the Imports guide; an in-content back affordance appears.
+    expect(_title(tester), 'Imports');
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('user-guide-back')),
@@ -66,7 +71,7 @@ void main() {
     // Back returns to the hub (still inside the panel, not popped away).
     await tester.tap(find.byKey(const ValueKey('user-guide-back')));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, 'User guide'), findsOneWidget);
+    expect(_title(tester), 'User guide');
   });
 
   testWidgets('a not-yet-written guide surfaces a message, not navigation', (
@@ -81,7 +86,7 @@ void main() {
     expect(find.textContaining("Perform"), findsWidgets);
     expect(find.textContaining("isn't available yet"), findsOneWidget);
     // Still on the hub — no navigation happened.
-    expect(find.widgetWithText(AppBar, 'User guide'), findsOneWidget);
+    expect(_title(tester), 'User guide');
   });
 
   testWidgets('an external link opens in the browser', (tester) async {
@@ -93,7 +98,7 @@ void main() {
 
     expect(launcher.lastLaunchedUrl, 'https://example.com/help');
     // The panel stays put on the hub.
-    expect(find.widgetWithText(AppBar, 'User guide'), findsOneWidget);
+    expect(_title(tester), 'User guide');
   });
 
   testWidgets('a link to a repo doc outside the bundle opens on GitHub', (

@@ -9,11 +9,15 @@ import '../user_guide/user_guide_screen.dart';
 
 /// The About settings section (routing wrapper).
 class AboutSection extends StatelessWidget {
-  const AboutSection({super.key});
+  const AboutSection({super.key, this.onOpenGuide});
+
+  /// Selects the shell's User Guide destination. When `null` the "User guide"
+  /// tile falls back to pushing the guide as a full-screen route.
+  final VoidCallback? onOpenGuide;
 
   @override
   Widget build(BuildContext context) {
-    return const _AboutView();
+    return _AboutView(onOpenGuide: onOpenGuide);
   }
 }
 
@@ -27,7 +31,9 @@ class AboutSection extends StatelessWidget {
 /// The brand header at the top carries the app's identity and version; the
 /// remaining entries build the structure and the compliance content.
 class _AboutView extends StatelessWidget {
-  const _AboutView();
+  const _AboutView({this.onOpenGuide});
+
+  final VoidCallback? onOpenGuide;
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +52,13 @@ class _AboutView extends StatelessWidget {
           ),
           trailing: const Icon(Icons.chevron_right),
           isThreeLine: true,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const UserGuideScreen()),
-          ),
+          onTap:
+              onOpenGuide ??
+              () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const UserGuideScreen(),
+                ),
+              ),
         ),
         SectionHeader(title: 'License'),
         const _AboutParagraph(

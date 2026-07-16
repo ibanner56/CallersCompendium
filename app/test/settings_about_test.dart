@@ -25,6 +25,7 @@ Future<CompendiumRepositories> _pumpAbout(
   // Tall by default so the whole (lazily-built) About list renders without
   // scrolling — matching the convention in settings_screen_test.dart.
   Size surfaceSize = const Size(1000, 2600),
+  VoidCallback? onOpenGuide,
 }) async {
   final repos = openTestRepositories();
 
@@ -49,7 +50,7 @@ Future<CompendiumRepositories> _pumpAbout(
             controller: customThemes,
             child: ActiveDialectScope(
               notifier: dialect,
-              child: const SettingsScreen(),
+              child: SettingsScreen(onOpenGuide: onOpenGuide),
             ),
           ),
         ),
@@ -162,20 +163,27 @@ void main() {
     },
   );
 
-  testWidgets('About offers a User guide entry that opens the in-app guide', (
-    tester,
-  ) async {
-    await _pumpAbout(tester, surfaceSize: const Size(500, 2600));
+  testWidgets(
+    'About User guide entry selects the shell guide destination (no push)',
+    (tester) async {
+      var opened = 0;
+      await _pumpAbout(
+        tester,
+        surfaceSize: const Size(500, 2600),
+        onOpenGuide: () => opened++,
+      );
 
-    final guideTile = find.byKey(const ValueKey('about-user-guide'));
-    expect(guideTile, findsOneWidget);
+      final guideTile = find.byKey(const ValueKey('about-user-guide'));
+      expect(guideTile, findsOneWidget);
 
-    await tester.ensureVisible(guideTile);
-    await tester.tap(guideTile);
-    await tester.pumpAndSettle();
+      await tester.ensureVisible(guideTile);
+      await tester.tap(guideTile);
+      await tester.pumpAndSettle();
 
-    // Opens the offline in-app user guide at the documentation hub.
-    expect(find.byType(UserGuideScreen), findsOneWidget);
-    expect(find.widgetWithText(AppBar, 'User guide'), findsOneWidget);
-  });
+      // The tile switches the shell destination via the callback rather than
+      // pushing a full-screen guide route.
+      expect(opened, 1);
+      expect(find.byType(UserGuideScreen), findsNothing);
+    },
+  );
 }
