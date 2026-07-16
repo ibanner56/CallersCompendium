@@ -24,12 +24,16 @@ const Map<String, String> _legacyRoleSynonyms = {
   'gentlespoons': 'role1s',
   'lark': 'role1',
   'larks': 'role1s',
+  'man': 'role1',
+  'men': 'role1s',
   'lady': 'role2',
   'ladies': 'role2s',
   'ladle': 'role2',
   'ladles': 'role2s',
   'robin': 'role2',
   'robins': 'role2s',
+  'woman': 'role2',
+  'women': 'role2s',
 };
 
 /// The single canonicalization chokepoint (dialect design §"Canonicalization
