@@ -1,0 +1,349 @@
+# Release: on a `v*` tag, gate on the reusable checks, build UNSIGNED desktop
+# binaries, package them under the ADR-002 deterministic name contract, and
+# create a **DRAFT** GitHub Release (a human publishes). Everything here is FREE
+# and needs NO secrets and NO code-signing (signing is a deliberately deferred
+# later wave — see docs/adr/002-distribution-and-update-channels.md).
+#
+# SAFETY MODEL (A6):
+#   * Global token is read-only (`permissions: contents: read`); ONLY the
+#     `publish` job elevates to `contents: write`.
+#   * Every job is guarded to the canonical repo on a tag ref (or a manual
+#     dispatch), so forks / PRs can never trigger a release or mint an elevated
+#     token.
+#   * `publish` runs only for a real tag push. A manual `workflow_dispatch` run
+#     therefore always builds + packages and uploads the results as workflow
+#     artifacts WITHOUT creating any release (a build-only dry run).
+#
+# The Flutter version is derived from .fvmrc (single source of truth) via
+# subosito/flutter-action, exactly like ci.yml / _checks.yml.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  # Manual, build-only dry run: builds + packages on all three OSes and uploads
+  # the artifacts to the run, but never creates a release (the publish job is
+  # gated to tag pushes). To actually cut a release, push a `v*` tag.
+  workflow_dispatch: {}
+
+# Don't cancel an in-flight release (a half-uploaded draft is worse than a
+# queued run); serialize per ref instead.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# Least privilege: the default token only reads. The publish job opts into the
+# narrower-still write scopes it needs (see its `permissions:` block).
+permissions:
+  contents: read
+
+# bash everywhere (Git Bash on Windows) so the shared scripting is uniform;
+# Windows-only packaging steps opt into PowerShell explicitly.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # Resolve + validate the release identity once, and expose it to every
+  # downstream job. Fails fast if the tag doesn't match the built version.
+  meta:
+    name: Resolve release metadata
+    if: >-
+      github.repository == 'ibanner56/CallersCompendium' &&
+      (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      channel: ${{ steps.resolve.outputs.channel }}
+      prerelease: ${{ steps.resolve.outputs.prerelease }}
+      pub_date: ${{ steps.resolve.outputs.pub_date }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Resolve version/channel and reconcile with pubspec
+        id: resolve
+        run: |
+          set -euo pipefail
+          # pubspec semver is the single source of truth for what we build; the
+          # in-code kAppVersion is already guarded equal to it by _checks.yml.
+          pubspec_ver="$(grep -E '^version:' app/pubspec.yaml | head -n1 \
+            | sed -E 's/^version:[[:space:]]*//' | tr -d '[:space:]')"
+          pubspec_semver="${pubspec_ver%%+*}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # No tag on a manual run; name artifacts after the built version.
+            version="$pubspec_semver"
+          else
+            version="${GITHUB_REF_NAME#v}"   # v0.1.0 -> 0.1.0, v0.1.0-beta.1 -> 0.1.0-beta.1
+          fi
+
+          core="${version%%-*}"              # strip any prerelease suffix
+          if [ "$core" != "$pubspec_semver" ]; then
+            echo "::error::tag version core ($core) != app/pubspec.yaml semver ($pubspec_semver)"
+            exit 1
+          fi
+
+          case "$version" in
+            *-*) channel="beta";   prerelease="true"  ;;
+            *)   channel="stable"; prerelease="false" ;;
+          esac
+
+          pub_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          {
+            echo "version=$version"
+            echo "tag=v$version"
+            echo "channel=$channel"
+            echo "prerelease=$prerelease"
+            echo "pub_date=$pub_date"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Resolved: version=$version tag=v$version channel=$channel prerelease=$prerelease"
+
+  # Same lint/analyze/test gate PRs pass — single-sourced from A5's reusable
+  # workflow so a release can never ship code the PR gate would reject.
+  checks:
+    name: Reusable checks
+    if: >-
+      github.repository == 'ibanner56/CallersCompendium' &&
+      (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    uses: ./.github/workflows/_checks.yml
+
+  build:
+    name: Build + package (${{ matrix.platform }})
+    needs: [meta, checks]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            arch: x64
+            os: ubuntu-latest
+          - platform: macos
+            arch: universal
+            os: macos-latest
+          - platform: windows
+            arch: x64
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install Linux desktop dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgtk-3-dev
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+
+      - run: flutter pub get --enforce-lockfile
+
+      # --- Linux: tar.gz (portable) + AppImage -----------------------------
+      - name: Build Linux release bundle
+        if: matrix.platform == 'linux'
+        working-directory: app
+        run: flutter build linux --release
+
+      - name: Package Linux (tar.gz + AppImage)
+        if: matrix.platform == 'linux'
+        env:
+          APPIMAGETOOL_URL: https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+          APPIMAGETOOL_SHA256: ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0
+          RUNTIME_URL: https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64
+          RUNTIME_SHA256: 2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d
+        run: |
+          set -euo pipefail
+          bundle="app/build/linux/x64/release/bundle"
+          mkdir -p dist
+
+          # Portable tar.gz: extraction yields a single named directory.
+          stage="CallersCompendium-${VERSION}-linux-x64"
+          rm -rf "$stage" && cp -r "$bundle" "$stage"
+          tar -czf "dist/${stage}.tar.gz" "$stage"
+
+          # AppImage: build an AppDir from the committed recipe, then pack with a
+          # pinned + checksummed appimagetool and a pinned runtime (no network
+          # runtime fetch, no FUSE needed via --appimage-extract-and-run).
+          curl -fsSL -o appimagetool "$APPIMAGETOOL_URL"
+          echo "${APPIMAGETOOL_SHA256}  appimagetool" | sha256sum -c -
+          chmod +x appimagetool
+          curl -fsSL -o runtime-x86_64 "$RUNTIME_URL"
+          echo "${RUNTIME_SHA256}  runtime-x86_64" | sha256sum -c -
+
+          appdir="AppDir"
+          rm -rf "$appdir" && mkdir -p "$appdir/usr/bin"
+          cp -r "$bundle"/. "$appdir/usr/bin/"
+          install -m 0755 packaging/linux/AppRun "$appdir/AppRun"
+          cp packaging/linux/compendium_app.desktop "$appdir/compendium_app.desktop"
+          cp packaging/linux/icon.png "$appdir/compendium_app.png"
+
+          # APPIMAGE_EXTRACT_AND_RUN lets appimagetool (itself an AppImage) run
+          # without FUSE on CI; --runtime-file uses the pinned runtime (no fetch).
+          APPIMAGE_EXTRACT_AND_RUN=1 ARCH=x86_64 ./appimagetool \
+            --runtime-file runtime-x86_64 \
+            "$appdir" "dist/CallersCompendium-${VERSION}-linux-x64.AppImage"
+
+      # --- macOS: zip + dmg (UNSIGNED, universal) --------------------------
+      - name: Build macOS release bundle
+        if: matrix.platform == 'macos'
+        working-directory: app
+        run: flutter build macos --release
+
+      - name: Package macOS (zip + dmg)
+        if: matrix.platform == 'macos'
+        run: |
+          set -euo pipefail
+          app_path="app/build/macos/Build/Products/Release/compendium_app.app"
+          mkdir -p dist
+
+          # Informational: confirm the produced binary is a universal (fat) Mach-O.
+          lipo -info "$app_path/Contents/MacOS/compendium_app" || true
+
+          # Portable zip (ditto preserves macOS bundle metadata / symlinks).
+          ditto -c -k --keepParent "$app_path" \
+            "dist/CallersCompendium-${VERSION}-macos-universal.zip"
+
+          # Drag-to-Applications style .dmg via the built-in hdiutil (no deps).
+          stage="dmg_stage"
+          rm -rf "$stage" && mkdir -p "$stage"
+          cp -R "$app_path" "$stage/"
+          ln -s /Applications "$stage/Applications"
+          hdiutil create -volname "Caller's Compendium" -srcfolder "$stage" \
+            -ov -format UDZO "dist/CallersCompendium-${VERSION}-macos-universal.dmg"
+
+      # --- Windows: zip (portable) + Inno Setup installer ------------------
+      - name: Build Windows release bundle
+        if: matrix.platform == 'windows'
+        working-directory: app
+        run: flutter build windows --release
+
+      - name: Package Windows (zip + installer)
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = "app/build/windows/x64/runner/Release"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          # Portable zip: extraction yields a single named directory.
+          $stage = "CallersCompendium-$env:VERSION-windows-x64"
+          if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+          Copy-Item -Recurse $release $stage
+          Compress-Archive -Path $stage -DestinationPath "dist/$stage.zip" -Force
+
+          # Installer via Inno Setup (preinstalled on windows-latest; fall back
+          # to Chocolatey if the image ever drops it).
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found after install" }
+
+          # Inno resolves relative [Files] Source paths against the .iss dir, so
+          # pass ABSOLUTE source/output dirs.
+          $releaseAbs = (Resolve-Path $release).Path
+          $distAbs = (Resolve-Path dist).Path
+          & "$iscc" `
+            "/DMyAppVersion=$env:VERSION" `
+            "/DSourceDir=$releaseAbs" `
+            "/DOutputDir=$distAbs" `
+            "/DOutputBaseName=CallersCompendium-$env:VERSION-windows-x64" `
+            packaging\windows\CallersCompendium.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
+
+      - name: List packaged artifacts
+        run: ls -l dist
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-${{ matrix.platform }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  # Draft-release publish. ONLY this job gets write scopes, and it runs ONLY for
+  # a real tag push (never a dispatch dry-run).
+  publish:
+    name: Create draft release
+    needs: [meta, build]
+    if: >-
+      github.repository == 'ibanner56/CallersCompendium' &&
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # create the release + upload assets
+      id-token: write        # keyless SLSA build-provenance (OIDC, no secret)
+      attestations: write    # store the provenance attestation
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Download all packaged artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          pattern: dist-*
+          merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: ls -l dist
+
+      - name: Generate SHA256SUMS + channel manifest
+        run: |
+          set -euo pipefail
+          python3 tools/release/gen_release_metadata.py \
+            --version "${{ needs.meta.outputs.version }}" \
+            --tag "${{ needs.meta.outputs.tag }}" \
+            --channel "${{ needs.meta.outputs.channel }}" \
+            --repo "${{ github.repository }}" \
+            --dist dist \
+            --pub-date "${{ needs.meta.outputs.pub_date }}"
+
+      - name: Attest build provenance (keyless SLSA)
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: 'dist/CallersCompendium-*'
+
+      - name: Create or update the DRAFT release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          CHANNEL: ${{ needs.meta.outputs.channel }}
+          PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/${CHANNEL}.json")
+
+          cat > release-notes.md <<EOF
+          Automated **draft** release for \`${TAG}\`.
+
+          These artifacts are **UNSIGNED** (no code-signing this wave — see ADR-002 §6).
+          Verify downloads against \`SHA256SUMS\`. A maintainer publishes this draft after review.
+          EOF
+
+          pre_flag=()
+          if [ "$PRERELEASE" = "true" ]; then pre_flag=(--prerelease); fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG exists; refreshing assets (draft preserved)."
+            gh release upload "$TAG" "${files[@]}" --clobber
+          else
+            gh release create "$TAG" "${files[@]}" \
+              --draft \
+              "${pre_flag[@]}" \
+              --title "$TAG" \
+              --notes-file release-notes.md \
+              --target "$GITHUB_SHA"
+          fi
+
+          echo "Draft release ready: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
