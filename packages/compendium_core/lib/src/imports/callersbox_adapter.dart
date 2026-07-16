@@ -253,6 +253,10 @@ class CallersBoxAdapter implements SourceAdapter {
 
   /// TCB `phrases` is an array of `{name, figures:[line, ...]}`. Figures are
   /// concatenated across phrases in order; each line becomes a [customFigure].
+  /// The phrase `name` (A1/A2/B1/B2/C1/C2…) is prefixed onto the figure text so
+  /// the caller's phrase grouping survives even though we infer no structured
+  /// sections — matching the sibling Caller's Companion text adapter. Only the
+  /// dance prose is scrubbed; the structural label prefix is left verbatim.
   /// Parse-never-fails: any odd line is still imported as custom.
   List<Figure> _parseFigures(Object? phrases, List<ImportIssue> issues) {
     if (phrases is! List) return const [];
@@ -260,12 +264,13 @@ class CallersBoxAdapter implements SourceAdapter {
     var index = 0;
     for (final phrase in phrases) {
       if (phrase is! Map) continue;
+      final label = _asString(phrase['name'])?.trim();
       final lines = phrase['figures'];
       if (lines is! List) continue;
       for (final line in lines) {
         final text = _asString(line);
         if (text == null) continue;
-        final figure = _parseFigureLine(text, index, issues);
+        final figure = _parseFigureLine(text, label, index, issues);
         if (figure != null) {
           figures.add(figure);
           index++;
@@ -276,9 +281,15 @@ class CallersBoxAdapter implements SourceAdapter {
   }
 
   /// Parses one TCB figure line `(beats) text`. A missing prefix or `(0)` means
-  /// a 0-beat line (a formation label). Returns `null` only for a line that is
-  /// empty after scrubbing (nothing to store).
-  Figure? _parseFigureLine(String line, int index, List<ImportIssue> issues) {
+  /// a 0-beat line (a formation label). The scrubbed dance prose is prefixed
+  /// with the phrase [label] (when present) so the grouping survives. Returns
+  /// `null` only for a line that is empty after scrubbing (nothing to store).
+  Figure? _parseFigureLine(
+    String line,
+    String? label,
+    int index,
+    List<ImportIssue> issues,
+  ) {
     final match = _beatsPrefix.firstMatch(line);
     int beats = 0;
     String text = line.trim();
@@ -288,7 +299,10 @@ class CallersBoxAdapter implements SourceAdapter {
     }
     final scrubbed = _scrub(text).trim();
     if (scrubbed.isEmpty) return null;
-    return customFigure(scrubbed, beats: beats);
+    final withLabel = (label == null || label.isEmpty)
+        ? scrubbed
+        : '$label: $scrubbed';
+    return customFigure(withLabel, beats: beats);
   }
 
   /// Applies the dialect chokepoint (gendered role terms → canonical tokens)

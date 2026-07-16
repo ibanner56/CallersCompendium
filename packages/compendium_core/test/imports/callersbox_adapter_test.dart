@@ -414,12 +414,41 @@ void main() {
           );
           expect(draft.dance.figures, hasLength(2));
           expect(draft.dance.figures.every((f) => f.isCustom), isTrue);
-          expect(_text(draft.dance.figures[0]), 'Neighbor balance');
+          expect(_text(draft.dance.figures[0]), 'A1: Neighbor balance');
           expect(draft.dance.figures[0].params['beats'], 4);
-          expect(_text(draft.dance.figures[1]), 'Neighbor swing');
+          expect(_text(draft.dance.figures[1]), 'A1: Neighbor swing');
           expect(draft.dance.figures[1].params['beats'], 12);
         },
       );
+
+      test('retains the TCB phrase name as a label prefix', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              phrases: [
+                _phrase('A1', ['(4) Neighbor balance']),
+                _phrase('B1', ['(6) Circle left 3/4', '(10) Partner swing']),
+              ],
+            ),
+          ),
+        );
+        expect(_text(draft.dance.figures[0]), 'A1: Neighbor balance');
+        expect(_text(draft.dance.figures[1]), 'B1: Circle left 3/4');
+        expect(_text(draft.dance.figures[2]), 'B1: Partner swing');
+      });
+
+      test('omits the prefix when a phrase has no name', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              phrases: [
+                _phrase('', ['(4) Neighbor balance']),
+              ],
+            ),
+          ),
+        );
+        expect(_text(draft.dance.figures.single), 'Neighbor balance');
+      });
 
       test('scrubs gendered role terms to canonical role tokens', () async {
         final draft = await _importOne(
@@ -435,8 +464,8 @@ void main() {
           ),
         );
         final texts = draft.dance.figures.map(_text).toList();
-        expect(texts[0], 'role2s chain to neighbor');
-        expect(texts[1], 'role1s allemande left');
+        expect(texts[0], 'B2: role2s chain to neighbor');
+        expect(texts[1], 'B2: role1s allemande left');
         expect(texts.join(' '), isNot(contains('Ladies')));
         expect(texts.join(' '), isNot(contains('Gents')));
       });
@@ -451,8 +480,11 @@ void main() {
             ),
           ),
         );
-        expect(_text(draft.dance.figures[0]), 'Neighbor shoulder round right');
-        expect(_text(draft.dance.figures[1]), 'shoulder rounds once');
+        expect(
+          _text(draft.dance.figures[0]),
+          'A1: Neighbor shoulder round right',
+        );
+        expect(_text(draft.dance.figures[1]), 'A1: shoulder rounds once');
       });
 
       test('parse never fails on odd figure lines', () async {
@@ -476,9 +508,9 @@ void main() {
           draft.dance.figures[0].params['beats'],
           isNull,
         ); // (0) → no beats
-        expect(_text(draft.dance.figures[0]), 'Improper formation');
-        expect(_text(draft.dance.figures[1]), 'No beats prefix here');
-        expect(_text(draft.dance.figures[2]), 'Neighbor swing');
+        expect(_text(draft.dance.figures[0]), 'A1: Improper formation');
+        expect(_text(draft.dance.figures[1]), 'A1: No beats prefix here');
+        expect(_text(draft.dance.figures[2]), 'A1: Neighbor swing');
       });
     });
 
@@ -533,11 +565,14 @@ void main() {
         // 10 figure lines across A1/A2/B1/B2.
         expect(draft.dance.figures, hasLength(10));
         expect(draft.dance.figures.every((f) => f.isCustom), isTrue);
-        // "Ladies chain to neighbor" scrubbed to a canonical role token.
+        // "Ladies chain to neighbor" (phrase B2) scrubbed to a role token,
+        // with its phrase label retained as a prefix.
         final chain = draft.dance.figures
             .map(_text)
             .firstWhere((t) => t.contains('chain'));
-        expect(chain, startsWith('role2s chain'));
+        expect(chain, 'B2: role2s chain to neighbor');
+        // The first figure carries its A1 phrase label.
+        expect(_text(draft.dance.figures.first), startsWith('A1: '));
         // Beats preserved from the (N) prefixes.
         expect(draft.dance.figures.first.params['beats'], 4);
       });
