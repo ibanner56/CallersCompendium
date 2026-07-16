@@ -12,11 +12,13 @@ import '../editor/editor_snapshot.dart';
 import '../editor/editor_undo_stack.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../widgets/choreographer_details_dialog.dart';
 import '../widgets/figure_list_editor.dart';
 import '../widgets/lingo_text_editing_controller.dart';
 import '../widgets/published_source_details_dialog.dart';
+import '../widgets/section_header.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,
@@ -982,259 +984,287 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        // Section headers carry their own padding; each section's content is
+        // wrapped in horizontal AppSpacing.md so headers align with the fields
+        // they label. A trailing gap keeps the last section off the bottom edge.
+        padding: const EdgeInsets.only(bottom: AppSpacing.xl),
         children: [
-          TextFormField(
-            key: const ValueKey('title-field'),
-            controller: _titleController,
-            autofocus: widget.isNew,
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(labelText: 'Title *'),
-            onChanged: (_) {
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
-            validator: (value) => (value == null || value.trim().isEmpty)
-                ? 'Title is required'
-                : null,
-          ),
-          _LingoDiscouragedHint(
-            controller: _titleController,
-            dialect: dialect,
-            fieldKey: 'title',
-          ),
-          const SizedBox(height: 16),
-          _Label('Authors'),
-          _NamePicker(
-            fieldKey: 'author',
-            selectedIds: _authorIds,
-            namesById: _choreographerNames,
-            options: [
-              for (final c in _choreographers) (id: c.id, name: c.name),
-            ],
-            onAdd: (id) {
-              // Reached after an await in the picker's onSelected (create
-              // flow), so the editor may have been disposed meanwhile.
-              if (!mounted) return;
-              setState(() => _authorIds.add(id));
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            onRemove: (id) {
-              setState(() => _authorIds.remove(id));
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            onCreate: _createChoreographer,
-            onEdit: _editChoreographer,
-          ),
-          const SizedBox(height: 16),
-          _Label('Formation'),
-          // Key includes the value so a undo/redo that changes _formationShape
-          // forces the DropdownButtonFormField to rebuild with the new state.
-          DropdownButtonFormField<FormationShape>(
-            key: ValueKey('formation-field-${_formationShape.name}'),
-            initialValue: _formationShape,
-            items: [
-              for (final shape in FormationShape.values)
-                DropdownMenuItem(
-                  value: shape,
-                  child: Text(formationShapeLabel(shape)),
+          const SectionHeader(title: 'Details'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  key: const ValueKey('title-field'),
+                  controller: _titleController,
+                  autofocus: widget.isNew,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(labelText: 'Title *'),
+                  onChanged: (_) {
+                    _scheduleUndoPush();
+                    _scheduleAutosave();
+                  },
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Title is required'
+                      : null,
                 ),
-            ],
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => _formationShape = value);
-                _pushUndoNow();
-                _scheduleAutosave();
-              }
-            },
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            key: const ValueKey('formation-detail-field'),
-            controller: _formationDetailController,
-            decoration: const InputDecoration(
-              labelText: 'Formation detail (optional)',
+                _LingoDiscouragedHint(
+                  controller: _titleController,
+                  dialect: dialect,
+                  fieldKey: 'title',
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _Label('Authors'),
+                _NamePicker(
+                  fieldKey: 'author',
+                  selectedIds: _authorIds,
+                  namesById: _choreographerNames,
+                  options: [
+                    for (final c in _choreographers) (id: c.id, name: c.name),
+                  ],
+                  onAdd: (id) {
+                    // Reached after an await in the picker's onSelected (create
+                    // flow), so the editor may have been disposed meanwhile.
+                    if (!mounted) return;
+                    setState(() => _authorIds.add(id));
+                    _pushUndoNow();
+                    _scheduleAutosave();
+                  },
+                  onRemove: (id) {
+                    setState(() => _authorIds.remove(id));
+                    _pushUndoNow();
+                    _scheduleAutosave();
+                  },
+                  onCreate: _createChoreographer,
+                  onEdit: _editChoreographer,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _Label('Formation'),
+                // Key includes the value so a undo/redo that changes _formationShape
+                // forces the DropdownButtonFormField to rebuild with the new state.
+                DropdownButtonFormField<FormationShape>(
+                  key: ValueKey('formation-field-${_formationShape.name}'),
+                  initialValue: _formationShape,
+                  items: [
+                    for (final shape in FormationShape.values)
+                      DropdownMenuItem(
+                        value: shape,
+                        child: Text(formationShapeLabel(shape)),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _formationShape = value);
+                      _pushUndoNow();
+                      _scheduleAutosave();
+                    }
+                  },
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                TextFormField(
+                  key: const ValueKey('formation-detail-field'),
+                  controller: _formationDetailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Formation detail (optional)',
+                  ),
+                  onChanged: (_) {
+                    _scheduleUndoPush();
+                    _scheduleAutosave();
+                  },
+                ),
+                _LingoDiscouragedHint(
+                  controller: _formationDetailController,
+                  dialect: dialect,
+                  fieldKey: 'formation-detail',
+                ),
+                const SizedBox(height: AppSpacing.md),
+                // Progression and Rating share one line.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _EnumDropdown<Progression>(
+                        fieldKey: 'progression',
+                        label: 'Progression',
+                        value: _progression,
+                        values: Progression.values,
+                        labelOf: progressionLabel,
+                        onChanged: (v) {
+                          setState(() => _progression = v);
+                          _pushUndoNow();
+                          _scheduleAutosave();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: _RatingField(
+                        value: _rating,
+                        onChanged: (v) {
+                          setState(() => _rating = v);
+                          _pushUndoNow();
+                          _scheduleAutosave();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  key: const ValueKey('phrase-field'),
+                  controller: _phraseController,
+                  decoration: const InputDecoration(
+                    labelText: 'Phrase structure',
+                    hintText: 'Blank = standard A1 A2 B1 B2; else e.g. 6*8*2',
+                  ),
+                  onChanged: (_) {
+                    setState(_recomputeWarnings);
+                    _scheduleUndoPush();
+                    _scheduleAutosave();
+                  },
+                  validator: (value) {
+                    try {
+                      PhraseStructure.parse(value ?? '');
+                      return null;
+                    } on FormatException catch (e) {
+                      return e.message;
+                    }
+                  },
+                ),
+                _LingoDiscouragedHint(
+                  controller: _phraseController,
+                  dialect: dialect,
+                  fieldKey: 'phrase',
+                ),
+              ],
             ),
-            onChanged: (_) {
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
           ),
-          _LingoDiscouragedHint(
-            controller: _formationDetailController,
-            dialect: dialect,
-            fieldKey: 'formation-detail',
-          ),
-          const SizedBox(height: 16),
-          // Progression and Rating share one line.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _EnumDropdown<Progression>(
-                  fieldKey: 'progression',
-                  label: 'Progression',
-                  value: _progression,
-                  values: Progression.values,
-                  labelOf: progressionLabel,
-                  onChanged: (v) {
-                    setState(() => _progression = v);
+          const SectionHeader(title: 'Figures'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Type a move (e.g. "sw" → swing) and press Enter to add it with '
+                  'default params; unmatched text becomes a custom figure.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                FigureListEditor(
+                  drafts: _figureDrafts,
+                  taxonomy: _taxonomy,
+                  phraseStructure: _phraseStructure,
+                  dialect: dialect,
+                  moveParamDefaults: _moveParamDefaults,
+                  onChanged: () {
+                    setState(_recomputeWarnings);
+                    _scheduleUndoPush();
+                    _scheduleAutosave();
+                  },
+                  onAdd: () {
+                    setState(() => _figureDrafts.add(FigureDraft()));
+                    _pushUndoNow();
+                    _scheduleAutosave();
+                  },
+                  onDelete: (draft) {
+                    setState(() {
+                      _figureDrafts.remove(draft);
+                      _recomputeWarnings();
+                    });
+                    _pushUndoNow();
+                    _scheduleAutosave();
+                  },
+                  onDuplicate: (draft) {
+                    setState(() {
+                      final index = _figureDrafts.indexOf(draft);
+                      if (index == -1) return;
+                      // Clone with a fresh id (stable-identity contract) but copied
+                      // move/params/note/progression, inserted right after source.
+                      final clone = FigureDraft(
+                        move: draft.move,
+                        params: Map<String, Object?>.of(draft.params),
+                        note: draft.note,
+                        progression: draft.progression,
+                        schemaVersion: draft.schemaVersion,
+                      );
+                      _figureDrafts.insert(index + 1, clone);
+                      _recomputeWarnings();
+                    });
+                    _pushUndoNow();
+                    _scheduleAutosave();
+                  },
+                  onReorder: (oldIndex, newIndex) {
+                    setState(() {
+                      // onReorder uses pre-adjusted (onReorderItem) semantics —
+                      // newIndex is the final insertion position after removal.
+                      final draft = _figureDrafts.removeAt(oldIndex);
+                      _figureDrafts.insert(newIndex, draft);
+                      _recomputeWarnings();
+                    });
                     _pushUndoNow();
                     _scheduleAutosave();
                   },
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _RatingField(
-                  value: _rating,
-                  onChanged: (v) {
-                    setState(() => _rating = v);
-                    _pushUndoNow();
+                if (_warnings.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  _WarningsCard(warnings: _warnings),
+                ],
+              ],
+            ),
+          ),
+          const SectionHeader(title: 'Notes'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  key: const ValueKey('notes-field'),
+                  controller: _notesController,
+                  minLines: 2,
+                  maxLines: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Calling notes',
+                    alignLabelWithHint: true,
+                  ),
+                  onChanged: (_) {
+                    _scheduleUndoPush();
                     _scheduleAutosave();
                   },
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            key: const ValueKey('phrase-field'),
-            controller: _phraseController,
-            decoration: const InputDecoration(
-              labelText: 'Phrase structure',
-              hintText: 'Blank = standard A1 A2 B1 B2; else e.g. 6*8*2',
+                _LingoDiscouragedHint(
+                  controller: _notesController,
+                  dialect: dialect,
+                  fieldKey: 'notes',
+                ),
+                const SizedBox(height: AppSpacing.md),
+                TextFormField(
+                  key: const ValueKey('hook-field'),
+                  controller: _hookController,
+                  decoration: const InputDecoration(
+                    labelText: 'Hook',
+                    hintText: 'One-line "why call this"',
+                  ),
+                  onChanged: (_) {
+                    _scheduleUndoPush();
+                    _scheduleAutosave();
+                  },
+                ),
+                _LingoDiscouragedHint(
+                  controller: _hookController,
+                  dialect: dialect,
+                  fieldKey: 'hook',
+                ),
+              ],
             ),
-            onChanged: (_) {
-              setState(_recomputeWarnings);
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
-            validator: (value) {
-              try {
-                PhraseStructure.parse(value ?? '');
-                return null;
-              } on FormatException catch (e) {
-                return e.message;
-              }
-            },
           ),
-          _LingoDiscouragedHint(
-            controller: _phraseController,
-            dialect: dialect,
-            fieldKey: 'phrase',
+          const SizedBox(height: AppSpacing.lg),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: _buildMoreDetails(dialect),
           ),
-          const SizedBox(height: 24),
-          Text('Figures', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(
-            'Type a move (e.g. "sw" → swing) and press Enter to add it with '
-            'default params; unmatched text becomes a custom figure.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 8),
-          FigureListEditor(
-            drafts: _figureDrafts,
-            taxonomy: _taxonomy,
-            phraseStructure: _phraseStructure,
-            dialect: dialect,
-            moveParamDefaults: _moveParamDefaults,
-            onChanged: () {
-              setState(_recomputeWarnings);
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
-            onAdd: () {
-              setState(() => _figureDrafts.add(FigureDraft()));
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            onDelete: (draft) {
-              setState(() {
-                _figureDrafts.remove(draft);
-                _recomputeWarnings();
-              });
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            onDuplicate: (draft) {
-              setState(() {
-                final index = _figureDrafts.indexOf(draft);
-                if (index == -1) return;
-                // Clone with a fresh id (stable-identity contract) but copied
-                // move/params/note/progression, inserted right after source.
-                final clone = FigureDraft(
-                  move: draft.move,
-                  params: Map<String, Object?>.of(draft.params),
-                  note: draft.note,
-                  progression: draft.progression,
-                  schemaVersion: draft.schemaVersion,
-                );
-                _figureDrafts.insert(index + 1, clone);
-                _recomputeWarnings();
-              });
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-            onReorder: (oldIndex, newIndex) {
-              setState(() {
-                // onReorder uses pre-adjusted (onReorderItem) semantics —
-                // newIndex is the final insertion position after removal.
-                final draft = _figureDrafts.removeAt(oldIndex);
-                _figureDrafts.insert(newIndex, draft);
-                _recomputeWarnings();
-              });
-              _pushUndoNow();
-              _scheduleAutosave();
-            },
-          ),
-          if (_warnings.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _WarningsCard(warnings: _warnings),
-          ],
-          const SizedBox(height: 16),
-          TextFormField(
-            key: const ValueKey('notes-field'),
-            controller: _notesController,
-            minLines: 2,
-            maxLines: 6,
-            decoration: const InputDecoration(
-              labelText: 'Calling notes',
-              alignLabelWithHint: true,
-            ),
-            onChanged: (_) {
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
-          ),
-          _LingoDiscouragedHint(
-            controller: _notesController,
-            dialect: dialect,
-            fieldKey: 'notes',
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            key: const ValueKey('hook-field'),
-            controller: _hookController,
-            decoration: const InputDecoration(
-              labelText: 'Hook',
-              hintText: 'One-line "why call this"',
-            ),
-            onChanged: (_) {
-              _scheduleUndoPush();
-              _scheduleAutosave();
-            },
-          ),
-          _LingoDiscouragedHint(
-            controller: _hookController,
-            dialect: dialect,
-            fieldKey: 'hook',
-          ),
-          const SizedBox(height: 24),
-          _buildMoreDetails(dialect),
-          const SizedBox(height: 32),
         ],
       ),
     );
@@ -1266,8 +1296,13 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       collapsedBackgroundColor: colorScheme.surfaceContainerHighest,
       shape: sectionShape,
       collapsedShape: sectionShape,
-      tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-      childrenPadding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      childrenPadding: const EdgeInsets.fromLTRB(
+        AppSpacing.sm,
+        AppSpacing.xs,
+        AppSpacing.sm,
+        AppSpacing.sm,
+      ),
       expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _EnumDropdown<DanceStatus>(
@@ -1282,7 +1317,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _scheduleAutosave();
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         _LevelDropdown(
           value: _level,
           onChanged: (v) {
@@ -1291,7 +1326,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _scheduleAutosave();
           },
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.xs),
         CheckboxListTile(
           key: const ValueKey('mixed-level-field'),
           value: _mixedLevel,
@@ -1306,7 +1341,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         _PartialDateField(
           fieldKey: 'composed-on',
           label: 'Composed',
@@ -1318,7 +1353,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _scheduleAutosave();
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         _PartialDateField(
           fieldKey: 'revised-on',
           label: 'Revised',
@@ -1330,7 +1365,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _scheduleAutosave();
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         _Label('Tags'),
         _NamePicker(
           fieldKey: 'tag',
@@ -1352,7 +1387,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           },
           onCreate: _createTag,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         _Label('Tunes'),
         _TuneEditor(
           tunes: _tunes,
@@ -1369,7 +1404,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           dialect: dialect,
           fieldKey: 'tune',
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         _Label('Links'),
         _LinksEditor(
           links: _links,
@@ -1392,7 +1427,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _scheduleAutosave();
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         _Label('Published sources'),
         _SourceCitationsEditor(
           citations: _sourceCitations,
@@ -1414,7 +1449,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _scheduleAutosave();
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         _Label('Related dances'),
         _RelatedDancesEditor(
           links: _links,
@@ -1440,7 +1475,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           },
         ),
         if (_fieldDefs.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           _Label('Custom fields'),
           for (final def in _fieldDefs) _buildCustomField(def, dialect),
         ],
@@ -1452,7 +1487,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     switch (def.type) {
       case CustomFieldType.text:
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -1477,7 +1512,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         );
       case CustomFieldType.number:
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
           child: TextFormField(
             key: ValueKey('custom-${def.id}'),
             controller: _customTextControllers[def.id],
@@ -1508,7 +1543,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         );
       case CustomFieldType.choice:
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
           child: DropdownButtonFormField<String?>(
             // Value-based key so undo/redo forces a rebuild with new state.
             key: ValueKey('custom-${def.id}-${_customValues[def.id]}'),
@@ -1655,7 +1690,7 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: Text(text, style: Theme.of(context).textTheme.titleSmall),
     );
   }
@@ -1737,7 +1772,10 @@ class _RatingField extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 4),
+            padding: const EdgeInsets.only(
+              left: AppSpacing.xxs,
+              bottom: AppSpacing.xxs,
+            ),
             child: Text('Rating', style: theme.textTheme.bodySmall),
           ),
           Wrap(
@@ -1896,7 +1934,7 @@ class _PartialDateFieldState extends State<_PartialDateField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(widget.label, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xxs),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1928,7 +1966,7 @@ class _PartialDateFieldState extends State<_PartialDateField> {
                 }),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.xs),
             Expanded(
               flex: 3,
               child: DropdownButtonFormField<int?>(
@@ -1957,7 +1995,7 @@ class _PartialDateFieldState extends State<_PartialDateField> {
                       }),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.xs),
             Expanded(
               flex: 2,
               child: DropdownButtonFormField<int?>(
@@ -1979,7 +2017,7 @@ class _PartialDateFieldState extends State<_PartialDateField> {
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xxs),
         Text(widget.helperText, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
@@ -2207,11 +2245,12 @@ class _LingoDiscouragedHint extends StatelessWidget {
         final hint = discouraged.map((s) => s.text).toSet().join(', ');
         final scheme = Theme.of(context).colorScheme;
         return Padding(
+          // intentional: 2px optical inset, below the 4px AppSpacing grid
           padding: const EdgeInsets.only(top: 2),
           child: Row(
             children: [
               Icon(Icons.warning_outlined, size: 13, color: scheme.error),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppSpacing.xxs),
               Flexible(
                 child: Semantics(
                   label: 'Discouraged term: $hint',
@@ -2275,7 +2314,7 @@ class _TuneEditor extends StatelessWidget {
                 onSubmitted: (_) => onAdd(),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.xs),
             IconButton(
               key: const ValueKey('tune-add'),
               tooltip: 'Add tune',
@@ -2316,7 +2355,7 @@ class _LinksEditor extends StatelessWidget {
       children: [
         for (final draft in urlLinks)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -2349,7 +2388,7 @@ class _LinksEditor extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Column(
                     children: [
@@ -2362,7 +2401,7 @@ class _LinksEditor extends StatelessWidget {
                         ),
                         onChanged: (_) => onChanged(),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xxs),
                       TextField(
                         key: ValueKey('link-label-${draft.id}'),
                         controller: draft.labelController,
@@ -2439,7 +2478,7 @@ class _RelatedDancesEditor extends StatelessWidget {
       children: [
         for (final draft in relatedDrafts)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -2461,7 +2500,7 @@ class _RelatedDancesEditor extends StatelessWidget {
                           onChanged();
                         },
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xxs),
                       TextField(
                         key: ValueKey('related-dance-note-${draft.id}'),
                         controller: draft.labelController,
@@ -2764,7 +2803,7 @@ class _SourceCitationsEditor extends StatelessWidget {
       children: [
         for (final draft in citations)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
             child: _buildRow(context, draft),
           ),
         _AddSourceAutocomplete(
@@ -2803,7 +2842,11 @@ class _SourceCitationsEditor extends StatelessWidget {
           ],
         ),
         Padding(
-          padding: const EdgeInsets.only(top: 4, left: 8, right: 8),
+          padding: const EdgeInsets.only(
+            top: AppSpacing.xxs,
+            left: AppSpacing.xs,
+            right: AppSpacing.xs,
+          ),
           child: Row(
             children: [
               Expanded(
@@ -2817,7 +2860,7 @@ class _SourceCitationsEditor extends StatelessWidget {
                   onChanged: (_) => onChanged(),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: TextField(
                   key: ValueKey('source-number-${draft.sourceId}'),
@@ -2970,7 +3013,7 @@ class _WarningsCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       key: const ValueKey('warnings-card'),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: theme.colorScheme.tertiary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
@@ -2985,13 +3028,14 @@ class _WarningsCard extends StatelessWidget {
                 size: 18,
                 color: theme.colorScheme.tertiary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.xs),
               Text('Warnings', style: theme.textTheme.titleSmall),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           for (final warning in warnings)
             Padding(
+              // intentional: 2px optical inset, below the 4px AppSpacing grid
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text('• ${warning.message}'),
             ),

@@ -14,6 +14,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/widgets/section_header.dart';
 
 import '../support/test_repositories.dart';
 
@@ -912,6 +913,23 @@ void main() {
         find.byType(RadioGroup<String>),
       );
       expect(group.groupValue, Dialect.leadsFollows.name);
+    });
+  });
+
+  group('SectionHeader — shared widget', () {
+    testWidgets('settings sections render via the shared SectionHeader', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+
+      // The Appearance section is shown by default; its headers are rendered
+      // by the shared SectionHeader (extracted from this screen so the dance
+      // editor can reuse the identical style).
+      expect(find.widgetWithText(SectionHeader, 'Theme'), findsOneWidget);
+      expect(
+        find.widgetWithText(SectionHeader, 'Custom themes'),
+        findsOneWidget,
+      );
     });
   });
 }

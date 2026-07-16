@@ -10,7 +10,9 @@ import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
+import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
+import 'package:compendium_app/src/widgets/section_header.dart';
 
 import 'support/test_repositories.dart';
 
@@ -1449,6 +1451,30 @@ void main() {
         expect(saved.form, DanceForm.ecd);
       },
     );
+  });
+
+  group('sectioned layout —', () {
+    testWidgets('editor groups the body under shared SectionHeaders', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // The body is grouped into distinct, labelled sections rendered by the
+      // shared SectionHeader (the same widget Settings uses).
+      expect(find.widgetWithText(SectionHeader, 'Details'), findsOneWidget);
+      expect(find.widgetWithText(SectionHeader, 'Figures'), findsOneWidget);
+      expect(find.widgetWithText(SectionHeader, 'Notes'), findsOneWidget);
+
+      // Sectioning preserved the pre-existing fields (Tier-1 metadata, the
+      // figures editor, and the collapsible "More details" drawer).
+      expect(find.byKey(const ValueKey('title-field')), findsOneWidget);
+      expect(find.text('Authors'), findsOneWidget);
+      expect(find.text('Formation'), findsOneWidget);
+      expect(find.byType(FigureListEditor), findsOneWidget);
+      expect(find.text('More details'), findsOneWidget);
+    });
   });
 
   group('DD.1 new-dance metadata defaults', () {
