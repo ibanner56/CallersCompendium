@@ -164,6 +164,31 @@ class ProgramRepository {
     return [for (final row in rows) _toModel(row, await _slotsFor(row.id))];
   }
 
+  /// Lightweight `(id, title)` listing that reads only the two columns it needs
+  /// — avoiding the per-row [_slotsFor] child-query fan-out that [listAll]
+  /// performs. Ordered by title then id; soft-deleted programs are excluded
+  /// unless [includeDeleted] is set. Used by callers that only need to resolve
+  /// or scan program titles (e.g. the command palette). Mirrors
+  /// `DanceRepository.listIdsAndTitles`.
+  Future<List<({String id, String title})>> listIdsAndTitles({
+    bool includeDeleted = false,
+  }) async {
+    final query = _db.selectOnly(_db.programs)
+      ..addColumns([_db.programs.id, _db.programs.title])
+      ..orderBy([
+        OrderingTerm(expression: _db.programs.title),
+        OrderingTerm(expression: _db.programs.id),
+      ]);
+    if (!includeDeleted) {
+      query.where(_db.programs.deletedAt.isNull());
+    }
+    final rows = await query.get();
+    return [
+      for (final row in rows)
+        (id: row.read(_db.programs.id)!, title: row.read(_db.programs.title)!),
+    ];
+  }
+
   Future<List<ProgramSlot>> _slotsFor(String programId) async {
     final rows =
         await (_db.select(_db.programSlots)

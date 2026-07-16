@@ -6,6 +6,7 @@ import '../../dialect/dialect.dart';
 import '../../dialect/renderer.dart';
 import '../../model/dance.dart';
 import '../../model/dance_link.dart';
+import '../../model/enums.dart';
 import '../../model/formation.dart';
 import '../../model/partial_date.dart';
 import '../../model/provenance.dart' as model;
@@ -315,6 +316,35 @@ class DanceRepository {
     return [
       for (final row in rows)
         (id: row.read(_db.dances.id)!, title: row.read(_db.dances.title)!),
+    ];
+  }
+
+  /// Lightweight `(id, title, form)` listing that reads only the three columns
+  /// it needs — avoiding the per-row [_toModel] hydration (figure decoding,
+  /// child queries) that [listAll] performs. Ordered by title then id;
+  /// soft-deleted dances are excluded unless [includeDeleted] is set. Used by
+  /// callers that render a dance's title alongside its [DanceForm] but need
+  /// nothing else — e.g. the command palette, whose per-row icon + label are
+  /// derived from the form.
+  Future<List<({String id, String title, DanceForm form})>>
+  listIdsTitlesAndForms({bool includeDeleted = false}) async {
+    final query = _db.selectOnly(_db.dances)
+      ..addColumns([_db.dances.id, _db.dances.title, _db.dances.form])
+      ..orderBy([
+        OrderingTerm(expression: _db.dances.title),
+        OrderingTerm(expression: _db.dances.id),
+      ]);
+    if (!includeDeleted) {
+      query.where(_db.dances.deletedAt.isNull());
+    }
+    final rows = await query.get();
+    return [
+      for (final row in rows)
+        (
+          id: row.read(_db.dances.id)!,
+          title: row.read(_db.dances.title)!,
+          form: row.readWithConverter(_db.dances.form)!,
+        ),
     ];
   }
 
