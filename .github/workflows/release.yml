@@ -100,6 +100,26 @@ jobs:
 
           echo "Resolved: version=$version tag=v$version channel=$channel prerelease=$prerelease"
 
+      # Fail-fast (A12): a STABLE release must ship hand-written notes, so a
+      # plain x.y.z tag with no matching `## [x.y.z]` section in
+      # app/CHANGELOG.md is rejected here in the cheap meta job — BEFORE the
+      # 3-OS build matrix. A prerelease (beta/rc) is allowed through and falls
+      # back to a loud "add notes" draft body at publish time. Guarded to tag
+      # pushes so a build-only workflow_dispatch dry run is never blocked.
+      - name: Require a CHANGELOG section for stable releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+          TAG: ${{ steps.resolve.outputs.tag }}
+          CHANNEL: ${{ steps.resolve.outputs.channel }}
+        run: |
+          set -euo pipefail
+          python3 tools/release/gen_release_notes.py --check \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --channel "$CHANNEL" \
+            --changelog app/CHANGELOG.md
+
   # Same lint/analyze/test gate PRs pass — single-sourced from A5's reusable
   # workflow so a release can never ship code the PR gate would reject.
   checks:
@@ -314,6 +334,27 @@ jobs:
         with:
           subject-path: 'dist/CallersCompendium-*'
 
+      # Release notes come from app/CHANGELOG.md (A12): gen_release_notes.py
+      # extracts the `## [x.y.z]` section for this version, adds a beta banner
+      # for prerelease tags, and appends the UNSIGNED/verify/maintainer footer.
+      # A missing section falls back to a loud "add notes" body (+ ::warning::)
+      # rather than failing the run — the release is a DRAFT until a human
+      # publishes it. Maintain notes by promoting `## [Unreleased]` before
+      # tagging (see docs/dev/releasing.md).
+      - name: Generate release notes from CHANGELOG
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          CHANNEL: ${{ needs.meta.outputs.channel }}
+        run: |
+          set -euo pipefail
+          python3 tools/release/gen_release_notes.py \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --channel "$CHANNEL" \
+            --changelog app/CHANGELOG.md \
+            --output release-notes.md
+
       - name: Create or update the DRAFT release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -323,13 +364,6 @@ jobs:
         run: |
           set -euo pipefail
           files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/${CHANNEL}.json")
-
-          cat > release-notes.md <<EOF
-          Automated **draft** release for \`${TAG}\`.
-
-          These artifacts are **UNSIGNED** (no code-signing this wave — see ADR-002 §6).
-          Verify downloads against \`SHA256SUMS\`. A maintainer publishes this draft after review.
-          EOF
 
           pre_flag=()
           if [ "$PRERELEASE" = "true" ]; then pre_flag=(--prerelease); fi
