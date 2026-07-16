@@ -2,7 +2,8 @@
 
 Every caller has their own words. This guide shows you how to make Caller's
 Compendium speak yours — choosing the role names and phrasing you use, switching
-them in a tap, and doing it all without ever changing the dances you have saved.
+them in a moment, and doing it all without ever changing the dances you have
+saved.
 
 A [dialect](./README.md#glossary) is your personal choice of role names and
 wording — for example **Larks/Robins** or **Leads/Follows** — applied everywhere
@@ -10,7 +11,7 @@ the app shows text. It is *your words, your way*. Dialects are the heart of
 Caller's Compendium, so it is worth a few minutes to set yours up the way you
 like it.
 
-If you are brand new here, start with the [getting-started guide](./getting-started.md)
+If you are brand new here, start with the [getting-started guide](./README.md#getting-started)
 first, then come back to make the app sound like you.
 
 ## Why callers need dialects
@@ -52,7 +53,7 @@ follow on their own:
   own role names or an older term, the app matches it against the shared form for
   you, so you find the dance either way.
 - **Your data stays portable.** A dance you saved in one dialect opens correctly
-  for someone using another, and your [backups](./backup.md) never bake in one set
+  for someone using another, and your [backups](./README.md#backup--portability) never bake in one set
   of words.
 - **Nothing is ever lost in translation.** Switching between dialects — even
   repeatedly, even mid-evening — can't corrupt or reword your saved dances.
@@ -150,7 +151,7 @@ people icon — that changes your active dialect instantly.
 
 Choose it, pick a dialect from the list, and the whole app re-reads in those
 words at once. This is built for real evenings: guest-calling for a community that
-uses different role names, or switching wording between gigs, takes one tap and
+uses different role names, or switching wording between gigs, takes a moment and
 leaves every saved dance exactly as it was.
 
 Remember the distinction: the quick-switch changes *how dances read for you*, not
@@ -171,7 +172,7 @@ would be nothing to switch between.
 
 This pairs naturally with Perform mode: you can call from your own words and, if a
 dancer or another caller asks, flip to the canonical wording for a moment without
-losing your place. See the [Perform mode guide](./perform.md) for the full calling
+losing your place. See the [Perform mode guide](./README.md#perform-mode) for the full calling
 view.
 
 ## Set your defaults
@@ -187,12 +188,12 @@ Two settings decide what you see before you touch anything:
   toggle still lets you switch a dance while it is open.
 
 For a full tour of everything under Settings, see the
-[Settings guide](./settings.md).
+[Settings guide](./README.md#settings).
 
 ## Practical scenarios
 
 **Guest-calling for another community.** You usually call Larks/Robins, but
-tonight's crowd says Leads/Follows. Before you start, tap the quick-switch on the
+tonight's crowd says Leads/Follows. Before you start, open the quick-switch on the
 dance card or in Perform and choose **Leads/Follows**. Every dance now reads in
 that community's words. Afterwards, switch back — none of your dances changed.
 
@@ -201,7 +202,7 @@ Make a custom dialect once (**Settings › Dialect › New dialect**), enter you
 names and any moves you say differently, and set it active. From then on the whole
 app speaks your language.
 
-**Bringing in dances written in older words.** When you [import](./imports.md)
+**Bringing in dances written in older words.** When you [import](./README.md#imports--migration)
 dances, or open older cards, they may use terms that have since fallen out of use.
 The app quietly understands the common older words and matches them to the shared
 form, so those dances still appear in your dialect and still turn up in search —
@@ -218,17 +219,17 @@ recognise, then flip back to your own.
   someone matches how *they* speak.
 - **Screen readers.** The app reads dances aloud in your dialect too — your own
   words are the clearest ones for you — so the spoken view and the visible view
-  stay in step. See the [accessibility guide](./accessibility.md) for more.
+  stay in step. See the [accessibility guide](./README.md#accessibility) for more.
 - **It's all on your device.** Dialects, like everything in Caller's Compendium,
   live only on your device. There is no account and nothing to sync.
 
 ## Related guides
 
-- [Getting started](./getting-started.md) — find your way around the app.
-- [Perform mode](./perform.md) — call live, with the dialect and canonical
+- [Getting started](./README.md#getting-started) — find your way around the app.
+- [Perform mode](./README.md#perform-mode) — call live, with the dialect and canonical
   controls close at hand.
-- [Settings](./settings.md) — where the dialect manager and display defaults live.
-- [Collection & search](./collection.md) — searching works whatever dialect you
+- [Settings](./README.md#settings) — where the dialect manager and display defaults live.
+- [Collection & search](./README.md#collection--search) — searching works whatever dialect you
   use.
-- [Imports & migration](./imports.md) — bring in dances written in other words.
+- [Imports & migration](./README.md#imports--migration) — bring in dances written in other words.
 - [Glossary](./README.md#glossary) — plain definitions of the terms used here.
