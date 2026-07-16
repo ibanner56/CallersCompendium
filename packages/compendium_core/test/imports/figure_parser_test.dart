@@ -125,24 +125,29 @@ void main() {
     });
 
     test('a bare "Rory O\'More" line validates and renders on defaults', () {
-      // The recogniser sets no `balance`; the MoveDef default (balance: true,
-      // slide: right, who: everyone) applies. `balance` is a structured param,
-      // not a render token, so it does not appear in the canonical rendering.
+      // The recogniser emits `balance: false` explicitly — a standalone rory
+      // line is the unbalanced slide; TCB writes the balance as a separate
+      // preceding line (PR3b's merge flips it to true). `balance` is a
+      // structured param, not a render token, so it never appears in the
+      // canonical rendering; `slide`/`who` fall to their MoveDef defaults.
       final f = parseFigureLine("Rory O'More");
       expect(f!.isCustom, isFalse);
       expect(f.move, 'rory_o_more');
-      expect(f.params.containsKey('balance'), isFalse);
+      expect(f.params['balance'], false);
       final rendered = FigureRenderer(contraTaxonomy).renderCanonical(f);
       expect(rendered, "everyone Rory O'More right");
     });
 
-    test('down/up the hall keep their default ender (merge sets it later)', () {
+    test('down/up the hall emit ender: none (merge sets it later)', () {
+      // The ender is a separate following line in TCB; a bare hall line states
+      // no ender, so we emit the neutral `none` rather than inheriting the
+      // MoveDef default (turnCouple/circle). PR3b upgrades none→bendTheLine.
       final down = parseFigureLine('Go down the hall');
       expect(down!.move, 'down_the_hall');
-      expect(down.params.containsKey('ender'), isFalse);
+      expect(down.params['ender'], 'none');
       final up = parseFigureLine('Up the hall');
       expect(up!.move, 'up_the_hall');
-      expect(up.params.containsKey('ender'), isFalse);
+      expect(up.params['ender'], 'none');
     });
   });
 
