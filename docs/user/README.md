@@ -42,9 +42,9 @@ down this page, so nothing here is a dead end.
 | [Collection & search](collection.md) | ✅ done | Browse your library and find dances fast |
 | [Programs & matrix](programs.md) | ✅ done | Build set lists and check variety at a glance |
 | [Perform mode](perform.md) | ✅ done | Call live with a stage-ready, large-print view |
-| [Backup & portability](#backup--portability) | ✍️ drafting | Save everything to one file and move it anywhere |
-| [Accessibility](#accessibility) | ✍️ drafting | Screen readers, large text, high contrast, keyboard use |
-| [Settings](#settings) | ✍️ drafting | Dialects, data sources, custom fields, appearance, backup |
+| [Backup & portability](backup-portability.md) | ✅ done | Save everything to one file and move it anywhere |
+| [Accessibility](accessibility.md) | ✅ done | Screen readers, large text, high contrast, keyboard use |
+| [Settings](settings.md) | ✅ done | Dialects, data sources, custom fields, appearance, backup |
 | [Installation](#installation) | 🔒 blocked | Downloading and installing on each platform |
 | [FAQ & troubleshooting](#faq--troubleshooting) | ✍️ drafting | Common questions and fixes for common snags |
 | [Glossary](#glossary) | ✍️ drafting | Plain definitions of the terms used throughout |
@@ -53,26 +53,6 @@ down this page, so nothing here is a dead end.
 
 Short previews of the guides that are still being written. When a guide lands, its
 row above will turn ✅ and its title will link to the new page.
-
-### Backup & portability
-
-✍️ *Coming soon.* Your data is yours. Save your entire collection — dances,
-programs, custom fields, and dialects — to a single file, and restore it on the
-same device or a new one. This guide explains when to back up and how to move your
-data between machines.
-
-### Accessibility
-
-✍️ *Coming soon.* Caller's Compendium is built to be usable by everyone. This
-guide covers using the app with a screen reader, enlarging text, choosing
-high-contrast themes, and working entirely from the keyboard, across Linux, macOS,
-Windows, Android, and iOS/iPadOS.
-
-### Settings
-
-✍️ *Coming soon.* A tour of **Settings**: managing dialects, choosing data sources
-and running imports, defining custom fields, changing the appearance and theme, and
-backing up your data.
 
 ### Installation
 
