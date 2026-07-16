@@ -6,6 +6,8 @@ import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/partial_date.dart';
 import '../util/uuid.dart';
+import 'figure_parser.dart';
+import 'figure_text_scrub.dart';
 import 'structured_draft.dart';
 
 /// The reusable Caller's Companion (CC) → Compendium mapping layer.
@@ -158,9 +160,9 @@ const String ccUntitledDanceTitle = "Untitled Caller's Companion dance";
 /// Maps a source-agnostic [CcDanceRecord] into a [Dance] draft and the issues
 /// raised while doing so. **Never throws on content** — a missing title, an
 /// unmapped level/formation, or an unparseable date all surface as
-/// [ImportIssue]s, and every body line becomes a [customFigure] regardless of
-/// shape (the parse-never-fails invariant). This is the single unit both the
-/// text adapter and the future `.USR` reader call.
+/// [ImportIssue]s, and every body line becomes a structured or [customMove]
+/// figure via [parseFigureLine] (the parse-never-fails invariant). This is the
+/// single unit both the text adapter and the `.USR` reader call.
 ///
 /// The draft's identity is disposable: [newId] (default [uuidV4]) and
 /// [timestamp] (default the Unix epoch) exist only so a valid [Dance] can be
@@ -169,11 +171,11 @@ CcDanceMapping mapCallersCompanionDance(
   CcDanceRecord record, {
   String Function()? newId,
   DateTime? timestamp,
-  String Function(String)? scrubFigureText,
+  String Function(String)? scrub,
 }) {
   final issues = <ImportIssue>[];
   final now = timestamp ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-  final scrub = scrubFigureText ?? (String s) => s;
+  final scrubFn = scrub ?? scrubFigureText;
 
   // Title — placeholder + warning when absent (never throw).
   final rawName = record.name?.trim() ?? '';
@@ -244,22 +246,19 @@ CcDanceMapping mapCallersCompanionDance(
             '${field.value.trim()}',
   ]);
 
-  // Body → custom figures (free text; design §2). Section label is prefixed so
-  // the caller's grouping survives even though we infer no structured sections.
-  // Figure text is dialect-scrubbed via [scrub] (identity by default; the .USR
-  // adapter passes the shared scrubFigureText helper).
+  // Body → figures (design §2). Each `(beats) text` line is routed through the
+  // shared [parseFigureLine]: recognised moves become structured figures, the
+  // rest fall back to custom (parse-never-fails). Figure text is dialect-
+  // scrubbed via [scrubFn]. Section labels are NOT embedded in the figure text
+  // (they derive from cumulative beats), so the section label is not prefixed.
   final figures = <Figure>[];
   for (final section in record.body) {
-    final label = section.label?.trim();
     for (final rawLine in section.lines) {
       final line = rawLine.trim();
       if (line.isEmpty) continue;
       final (beats, text) = _splitBeats(line);
-      final scrubbed = scrub(text);
-      final withLabel = (label == null || label.isEmpty)
-          ? scrubbed
-          : '$label: $scrubbed';
-      figures.add(customFigure(withLabel, beats: beats));
+      final figure = parseFigureLine(text, beats: beats, scrub: scrubFn);
+      if (figure != null) figures.add(figure);
     }
   }
 

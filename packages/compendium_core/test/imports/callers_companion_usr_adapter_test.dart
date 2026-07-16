@@ -84,7 +84,7 @@ void main() {
       contentType: 'application/json',
     );
 
-    test('maps a dance and scrubs figure free-text via the shared helper', () {
+    test('maps a dance and scrubs figure free-text via the shared parser', () {
       final draft = adapter.parse(
         rawFor({
           'Name': 'Simplicity Swing',
@@ -94,10 +94,12 @@ void main() {
       );
 
       expect(draft.dance.title, 'Simplicity Swing');
-      final text = draft.dance.figures.single.params['text'] as String;
-      // The gypsy→shoulder round scrub ran on the figure text.
-      expect(text.toLowerCase(), contains('shoulder round'));
-      expect(text.toLowerCase(), isNot(contains('gypsy')));
+      // "gypsy" is scrubbed to "shoulder round", which the shared parser then
+      // recognises as a structured shoulder_round move (proof the scrub ran).
+      final fig = draft.dance.figures.single;
+      expect(fig.move, 'shoulder_round');
+      expect(fig.params['who'], 'partners');
+      expect(fig.toString().toLowerCase(), isNot(contains('gypsy')));
     });
 
     test('an out-of-range rating is dropped with a warning issue', () {

@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import '../model/enums.dart';
 import 'callers_companion_mapping.dart';
 import 'callers_companion_usr_archive.dart';
-import 'figure_text_scrub.dart';
 import 'fmp/fmp_reader.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
@@ -128,10 +127,9 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
     }
 
     final record = ccDanceRecordFromColumns(columns);
-    final mapping = mapCallersCompanionDance(
-      record,
-      scrubFigureText: scrubFigureText,
-    );
+    // Figure text is scrubbed + structured by the shared parser (the mapping's
+    // default scrub is the core `scrubFigureText` chokepoint).
+    final mapping = mapCallersCompanionDance(record);
     return StructuredDraft(
       dance: mapping.dance,
       raw: raw,

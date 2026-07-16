@@ -212,25 +212,23 @@ void main() {
   });
 
   group('parse — figures', () {
-    test('parses every row as a custom figure with beats + label', () async {
-      final draft = await _importOne(_page(_rendezvousBody));
-      final figures = draft.dance.figures;
-      expect(figures, hasLength(6));
-      expect(figures.every((f) => f.isCustom), isTrue);
-      expect(_text(figures[0]), 'A1: neighbors balance & swing');
-      expect(_beats(figures[0]), 16);
-      // HTML entity decoded (&amp; -> &).
-      expect(_text(figures[3]), 'B1: partners balance & swing');
-    });
-
-    test('carries the section label forward onto continuation rows', () async {
-      final draft = await _importOne(_page(_rendezvousBody));
-      final figures = draft.dance.figures;
-      // Row 3 (index 2) has an empty <td> label; it continues A2.
-      expect(_text(figures[2]), startsWith('A2: '));
-      // Row 6 (index 5) has an empty <td> label; it continues B2.
-      expect(_text(figures[5]), startsWith('B2: '));
-    });
+    test(
+      'recognised rows structure; the rest stay custom with beats',
+      () async {
+        final draft = await _importOne(_page(_rendezvousBody));
+        final figures = draft.dance.figures;
+        expect(figures, hasLength(6));
+        // "neighbors balance & swing" → structured swing (balance prefix).
+        expect(figures[0].move, 'swing');
+        expect(figures[0].params['who'], 'neighbors');
+        expect(figures[0].params['prefix'], 'balance');
+        expect(_beats(figures[0]), 16);
+        // "partners balance & swing" likewise structures.
+        expect(figures[3].move, 'swing');
+        expect(figures[3].params['who'], 'partners');
+        expect(figures[3].params['prefix'], 'balance');
+      },
+    );
 
     test('captures <u> and ⁋ progression markers on the figure', () async {
       final draft = await _importOne(_page(_rendezvousBody));
@@ -242,7 +240,7 @@ void main() {
       // Row 6: trailing "⁋" — progression flag set, marker stripped.
       expect(figures[5].progression, isTrue);
       expect(_text(figures[5]), isNot(contains('⁋')));
-      expect(_text(figures[5]).trim(), 'B2: slide left along set');
+      expect(_text(figures[5]).trim(), 'slide left along set');
       // A row with no marker is not flagged.
       expect(figures[0].progression, isFalse);
     });
@@ -253,21 +251,25 @@ void main() {
       expect(_text(draft.dance.figures[2]), contains('role2s do si do'));
     });
 
-    test('applies the gypsy -> shoulder round safety net', () async {
-      final draft = await _importOne(
-        _page(
-          '<h1 class="dance-show-title">G</h1>'
-          '<table class="contra-table-nonfluid">'
-          '<tr><td>A1</td><td class=dance-show-beats>8</td>'
-          '<td><div class="show-figure">gypsy your neighbor</div></td>'
-          '</tr></table>',
-        ),
-      );
-      expect(
-        _text(draft.dance.figures.single),
-        'A1: shoulder round your neighbor',
-      );
-    });
+    test(
+      'applies the gypsy -> shoulder round safety net before parsing',
+      () async {
+        final draft = await _importOne(
+          _page(
+            '<h1 class="dance-show-title">G</h1>'
+            '<table class="contra-table-nonfluid">'
+            '<tr><td>A1</td><td class=dance-show-beats>8</td>'
+            '<td><div class="show-figure">gypsy your neighbor</div></td>'
+            '</tr></table>',
+          ),
+        );
+        // "gypsy" is scrubbed to "shoulder round", which the parser then
+        // recognises as a structured shoulder_round with the neighbor role.
+        final fig = draft.dance.figures.single;
+        expect(fig.move, 'shoulder_round');
+        expect(fig.params['who'], 'neighbors');
+      },
+    );
 
     test('non-numeric beats fall back to 0 with an info issue', () async {
       final draft = await _importOne(
@@ -312,9 +314,11 @@ void main() {
           '</table>',
         ),
       );
-      // Only the one well-formed, non-blank figure survives.
+      // Only the one well-formed, non-blank figure survives; "circle left" is
+      // a recognised move → structured (the label/beats live on the figure).
       expect(draft.dance.figures, hasLength(1));
-      expect(_text(draft.dance.figures.single), 'A2: circle left');
+      expect(draft.dance.figures.single.move, 'circle');
+      expect(draft.dance.figures.single.params['turn'], 'left');
     });
 
     test('parse throws only when the payload is not a dance page', () {
