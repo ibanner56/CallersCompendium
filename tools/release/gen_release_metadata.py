@@ -17,6 +17,13 @@ The manifest lists ONE artifact per (platform, arch) — the "primary" download
 for that target (installer/image preferred over the portable archive) — while
 ``SHA256SUMS`` covers every published binary.
 
+Additional non-binary release assets (e.g. the CycloneDX SBOM produced by
+``gen_sbom.py``) can be folded into ``SHA256SUMS`` via ``--extra-file`` without
+being treated as platform binaries: they are checksummed and listed in
+``SHA256SUMS`` but never added to the ``<channel>.json`` manifest and never
+subjected to the ``<platform>-<arch>.<ext>`` name contract. With no
+``--extra-file`` the output is byte-identical to before.
+
 This module is intentionally pure-stdlib and side-effect-free apart from the two
 output files, so it stays reviewable and unit-testable.
 """
@@ -78,8 +85,15 @@ def build_metadata(
     repo: str,
     dist: Path,
     pub_date: str,
+    extra_files: list[Path] | None = None,
 ) -> tuple[str, dict]:
-    """Compute the SHA256SUMS text and the manifest dict for ``dist``."""
+    """Compute the SHA256SUMS text and the manifest dict for ``dist``.
+
+    ``extra_files`` are additional (non-binary) assets to include in
+    ``SHA256SUMS`` only — they are checksummed and listed alongside the binaries
+    but are NOT classified into the ``<channel>.json`` manifest and are exempt
+    from the ``<platform>-<arch>.<ext>`` name contract.
+    """
     binaries: list[Path] = sorted(
         p
         for p in dist.iterdir()
@@ -133,6 +147,13 @@ def build_metadata(
     if not artifacts:
         raise SystemExit("::error::no artifacts matched the name contract")
 
+    # Extra (non-binary) assets — e.g. the SBOM — go into SHA256SUMS only. They
+    # are exempt from the name contract and never touch the manifest.
+    for extra in extra_files or []:
+        if not extra.is_file():
+            raise SystemExit(f"::error::--extra-file not found: {extra}")
+        sums_lines.append(f"{_sha256(extra)}  {extra.name}")
+
     manifest = {
         "manifestSchemaVersion": 1,
         "channel": channel,
@@ -160,6 +181,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--repo", required=True, help="owner/name")
     ap.add_argument("--dist", required=True, type=Path, help="artifact dir")
     ap.add_argument("--pub-date", default=None, help="RFC3339 UTC; default now")
+    ap.add_argument(
+        "--extra-file",
+        action="append",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="additional asset to include in SHA256SUMS only (repeatable); not "
+        "added to the channel manifest and exempt from the name contract",
+    )
     args = ap.parse_args(argv)
 
     dist: Path = args.dist
@@ -176,6 +206,7 @@ def main(argv: list[str] | None = None) -> int:
         repo=args.repo,
         dist=dist,
         pub_date=args.pub_date or _default_pub_date(),
+        extra_files=args.extra_file,
     )
 
     sums_path = dist / "SHA256SUMS"
