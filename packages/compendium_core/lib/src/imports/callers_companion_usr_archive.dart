@@ -1,0 +1,403 @@
+import 'dart:typed_data';
+
+import 'callers_companion_mapping.dart';
+import 'fmp/fmp_reader.dart';
+
+/// The Caller's Companion (CC) tables recovered from a `.USR` FileMaker file,
+/// reshaped into source-agnostic value objects the import layer can act on.
+///
+/// This is the CC-schema-aware layer that sits on top of the generic
+/// [readFmp12] container reader: it knows which CC tables/columns exist and how
+/// they map to a [CcDanceRecord] (reused verbatim by
+/// [mapCallersCompanionDance]) and to program-shaped [CcSet]/[CcSetItem]s. It
+/// is **pure Dart** and **parse-never-fails**: a missing table/column yields an
+/// empty result + a [warnings] note, never a throw.
+///
+/// ## Schema provenance & honest uncertainty
+///
+/// The CC `Dance` column names are pinned from the schema audit in
+/// `docs/research/callers-companion.md` and are matched case-insensitively.
+/// The `Set`/`SetItem` **foreign-key** and **title** column names were *not*
+/// fully pinned by the audit, so they are resolved by tolerant name-matching
+/// (a column whose normalised name contains e.g. `set`+`id` or `dance`+`id`)
+/// and every such guess is recorded in [warnings]. These need confirming
+/// against a real CC demo `.USR`; until then the dance path (fully validated
+/// against real FileMaker files) is the trustworthy part.
+class CcUsrArchive {
+  CcUsrArchive({
+    required this.dances,
+    required this.sets,
+    required this.warnings,
+  });
+
+  /// One entry per CC `Dance` row, in file order.
+  final List<CcDanceEntry> dances;
+
+  /// One entry per CC `Set` row, each carrying its ordered [CcSetItem]s.
+  final List<CcSet> sets;
+
+  /// Non-fatal notes (missing tables, guessed column names, reader warnings).
+  final List<String> warnings;
+}
+
+/// A single CC `Dance` row: its stable record id, the mapped [CcDanceRecord],
+/// and the verbatim source column map (all CC `Dance` columns, including ones
+/// this PR does not map — preserved so nothing is lost and follow-up phases
+/// have the real values).
+class CcDanceEntry {
+  CcDanceEntry({
+    required this.recordId,
+    required this.record,
+    required this.rawColumns,
+  });
+
+  /// The FileMaker record id, as a string (the dedupe/link key that also joins
+  /// `SetItem` rows to this dance).
+  final String recordId;
+  final CcDanceRecord record;
+  final Map<String, String> rawColumns;
+}
+
+/// A CC `Set` row reshaped toward the `Program` model.
+class CcSet {
+  CcSet({
+    required this.recordId,
+    this.title,
+    this.eventDate,
+    this.location,
+    this.band,
+    this.caller,
+    this.dancerLevel,
+    this.notes,
+    required this.items,
+  });
+
+  final String recordId;
+  final String? title;
+  final String? eventDate;
+  final String? location;
+  final String? band;
+  final String? caller;
+  final String? dancerLevel;
+  final String? notes;
+  final List<CcSetItem> items;
+}
+
+/// A CC `SetItem` row reshaped toward the `ProgramSlot` model.
+class CcSetItem {
+  CcSetItem({
+    required this.order,
+    this.danceRecordId,
+    this.breakText,
+    this.isAlt = false,
+    this.guestCaller,
+    this.minutes,
+  });
+
+  /// The 0-based slot position (derived from CC `Order`, best-effort).
+  final int order;
+
+  /// The CC `Dance` record id this slot plays, if it references a dance.
+  final String? danceRecordId;
+
+  /// Free-text slot content (a break/waltz/announcement) when the slot is not
+  /// a dance reference.
+  final String? breakText;
+  final bool isAlt;
+  final String? guestCaller;
+
+  /// Planned minutes (CC `SetItem.Time`), best-effort; `null` when unparseable.
+  final int? minutes;
+}
+
+/// The `sourceVersion` tag stamped by the `.USR` reader (distinct from the CC
+/// text adapter's `cc-text-1`).
+const String ccUsrSourceVersion = 'cc-usr-1';
+
+/// Reads a Caller's Companion `.USR` file's bytes into a [CcUsrArchive].
+///
+/// Only a non-FileMaker/unsupported container throws ([FmpFormatException]);
+/// everything else degrades to partial results + [CcUsrArchive.warnings].
+CcUsrArchive readCcUsrArchive(Uint8List bytes) {
+  final db = readFmp12(bytes);
+  return extractCcUsrArchive(db);
+}
+
+/// Extracts the CC tables from an already-parsed [FmpDatabase]. Split out from
+/// [readCcUsrArchive] so the CC-schema extraction can be unit-tested against a
+/// hand-built [FmpDatabase] without crafting raw FileMaker bytes (the raw
+/// container reader is validated separately against real files).
+CcUsrArchive extractCcUsrArchive(FmpDatabase db) {
+  final warnings = <String>[...db.warnings];
+  final dances = _extractDances(db, warnings);
+  final sets = _extractSets(db, warnings);
+  return CcUsrArchive(dances: dances, sets: sets, warnings: warnings);
+}
+
+// --- Dance extraction ------------------------------------------------------
+
+const List<String> _danceTableNames = ['Dance', 'Dances'];
+const List<String> _bodyLabels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+List<CcDanceEntry> _extractDances(FmpDatabase db, List<String> warnings) {
+  final table = _findTable(db, _danceTableNames);
+  if (table == null) {
+    warnings.add(
+      'No Caller\'s Companion "Dance" table was found in the file; '
+      'no dances were imported.',
+    );
+    return const [];
+  }
+  final entries = <CcDanceEntry>[];
+  for (final rec in table.records) {
+    final columns = _rowColumns(table, rec);
+    entries.add(
+      CcDanceEntry(
+        recordId: rec.id.toString(),
+        record: ccDanceRecordFromColumns(columns),
+        rawColumns: columns,
+      ),
+    );
+  }
+  return entries;
+}
+
+/// Builds a [CcDanceRecord] from a case-insensitive CC `Dance` column map.
+/// Shared by the `.USR` reader (columns from the binary) and the adapter's
+/// `parse` step (columns from the fetched JSON), so both interpret CC the same.
+CcDanceRecord ccDanceRecordFromColumns(Map<String, String> columns) {
+  final lookup = _CiColumns(columns);
+
+  final authors = [
+    lookup.get('Author1'),
+    lookup.get('Author2'),
+  ].whereType<String>().where((s) => s.trim().isNotEmpty).toList();
+
+  final formation = lookup.firstNonEmpty([
+    'ContraForm',
+    'Formation',
+    'FormationOther',
+  ]);
+  final progression = lookup.firstNonEmpty(['Progression', 'ProgressionOther']);
+
+  var level = lookup.get('Level');
+  if ((level == null || level.trim().isEmpty) &&
+      _isTruthy(lookup.get('Mixed Level'))) {
+    level = 'Mixed';
+  }
+
+  final body = <CcBodySection>[];
+  for (final label in _bodyLabels) {
+    final raw = lookup.get(label);
+    if (raw == null || raw.trim().isEmpty) continue;
+    final lines = raw
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .split('\n')
+        .where((l) => l.trim().isNotEmpty)
+        .toList();
+    if (lines.isNotEmpty) body.add(CcBodySection(label: label, lines: lines));
+  }
+
+  final userFields = <CcUserField>[];
+  for (var i = 1; i <= 3; i++) {
+    final value = lookup.get('UserDefined_$i');
+    if (value == null || value.trim().isEmpty) continue;
+    final label = lookup.get('UserDefined_${i}_Name');
+    userFields.add(
+      CcUserField(
+        label: (label == null || label.trim().isEmpty)
+            ? 'User field $i'
+            : label.trim(),
+        value: value,
+      ),
+    );
+  }
+
+  return CcDanceRecord(
+    name: lookup.get('Name'),
+    authors: authors,
+    type: lookup.firstNonEmpty(['Type', 'SubType']),
+    formation: formation,
+    level: level,
+    progression: progression,
+    music: lookup.get('Music'),
+    notes: lookup.get('Credits'),
+    composed: lookup.get('DateComposed'),
+    revised: lookup.get('DateRevised'),
+    rating: lookup.get('Rating'),
+    userFields: userFields,
+    body: body,
+  );
+}
+
+// --- Set / SetItem extraction ---------------------------------------------
+
+const List<String> _setTableNames = ['Set', 'Sets', 'Program', 'Programs'];
+const List<String> _setItemTableNames = ['SetItem', 'SetItems', 'Set_Item'];
+
+List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
+  final setTable = _findTable(db, _setTableNames);
+  if (setTable == null) {
+    warnings.add(
+      'No Caller\'s Companion "Set" table was found; no programs were '
+      'imported (the dance import is unaffected).',
+    );
+    return const [];
+  }
+  final itemTable = _findTable(db, _setItemTableNames);
+  if (itemTable == null) {
+    warnings.add(
+      'No "SetItem" table was found; sets were imported without their items.',
+    );
+  }
+
+  // Resolve the (unpinned) title + foreign-key columns by tolerant matching,
+  // flagging each guess so it can be confirmed against a real CC file.
+  final setTitleCol = _findColumnByTokens(setTable, [
+    ['title'],
+    ['name'],
+  ]);
+  if (setTitleCol != null) {
+    warnings.add(
+      'Using Set column "$setTitleCol" as the program title (guessed — '
+      'confirm against a real CC .USR).',
+    );
+  }
+
+  final items = <String, List<CcSetItem>>{};
+  if (itemTable != null) {
+    final setFk = _findColumnByTokens(itemTable, [
+      ['set', 'id'],
+      ['setid'],
+      ['set'],
+    ]);
+    final danceFk = _findColumnByTokens(itemTable, [
+      ['dance', 'id'],
+      ['danceid'],
+      ['dance'],
+    ]);
+    warnings.add(
+      'SetItem→Set link resolved to column "${setFk ?? '(none found)'}" and '
+      'SetItem→Dance link to "${danceFk ?? '(none found)'}" (guessed — '
+      'confirm against a real CC .USR).',
+    );
+    for (final rec in itemTable.records) {
+      final cols = _CiColumns(_rowColumns(itemTable, rec));
+      final setId = setFk == null ? null : cols.get(setFk)?.trim();
+      if (setId == null || setId.isEmpty) continue;
+      final danceId = danceFk == null ? null : cols.get(danceFk)?.trim();
+      final breakText = cols.firstNonEmpty(['Break', 'BreakText', 'Note']);
+      final hasDance = danceId != null && danceId.isNotEmpty;
+      items
+          .putIfAbsent(setId, () => [])
+          .add(
+            CcSetItem(
+              order: _parseInt(cols.get('Order')) ?? items[setId]?.length ?? 0,
+              danceRecordId: hasDance ? danceId : null,
+              breakText: hasDance ? null : breakText,
+              isAlt: _isTruthy(cols.get('AlternateDance')),
+              guestCaller: cols.get('Caller'),
+              minutes: _parseInt(cols.get('Time')),
+            ),
+          );
+    }
+  }
+
+  final sets = <CcSet>[];
+  for (final rec in setTable.records) {
+    final cols = _CiColumns(_rowColumns(setTable, rec));
+    final id = rec.id.toString();
+    final setItems = (items[id] ?? [])
+      ..sort((a, b) => a.order.compareTo(b.order));
+    sets.add(
+      CcSet(
+        recordId: id,
+        title: setTitleCol == null ? null : cols.get(setTitleCol),
+        eventDate: cols.get('Date'),
+        location: cols.get('Location'),
+        band: cols.get('Band'),
+        caller: cols.get('Caller'),
+        dancerLevel: cols.firstNonEmpty(['DancerLevel', 'Level']),
+        notes: cols.get('Notes'),
+        items: setItems,
+      ),
+    );
+  }
+  return sets;
+}
+
+// --- Helpers ---------------------------------------------------------------
+
+FmpTable? _findTable(FmpDatabase db, List<String> candidateNames) {
+  for (final name in candidateNames) {
+    final t = db.tables.firstWhereOrNull(
+      (t) => t.name.toLowerCase() == name.toLowerCase(),
+    );
+    if (t != null) return t;
+  }
+  return null;
+}
+
+/// Finds a column whose normalised (lowercased, non-alphanumeric-stripped) name
+/// contains ALL tokens of any one candidate token-set, trying sets in order.
+String? _findColumnByTokens(FmpTable table, List<List<String>> tokenSets) {
+  String norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  for (final tokens in tokenSets) {
+    for (final col in table.columns) {
+      final n = norm(col.name);
+      if (tokens.every(n.contains)) return col.name;
+    }
+  }
+  return null;
+}
+
+Map<String, String> _rowColumns(FmpTable table, FmpRecord record) {
+  final map = <String, String>{};
+  for (final col in table.columns) {
+    final v = record.valuesByColumnIndex[col.index];
+    if (v != null) map[col.name] = v;
+  }
+  return map;
+}
+
+bool _isTruthy(String? raw) {
+  final v = raw?.trim().toLowerCase() ?? '';
+  return v == '1' || v == 'true' || v == 'yes' || v == 'y';
+}
+
+int? _parseInt(String? raw) {
+  final v = raw?.trim() ?? '';
+  if (v.isEmpty) return null;
+  final m = RegExp(r'-?\d+').firstMatch(v);
+  return m == null ? null : int.tryParse(m.group(0)!);
+}
+
+/// A case-insensitive view over a CC column map.
+class _CiColumns {
+  _CiColumns(Map<String, String> columns)
+    : _byLower = {
+        for (final e in columns.entries) e.key.toLowerCase().trim(): e.value,
+      };
+
+  final Map<String, String> _byLower;
+
+  String? get(String name) => _byLower[name.toLowerCase().trim()];
+
+  String? firstNonEmpty(List<String> names) {
+    for (final name in names) {
+      final v = get(name);
+      if (v != null && v.trim().isNotEmpty) return v;
+    }
+    return null;
+  }
+}
+
+extension _FirstWhereOrNull<E> on Iterable<E> {
+  E? firstWhereOrNull(bool Function(E) test) {
+    for (final e in this) {
+      if (test(e)) return e;
+    }
+    return null;
+  }
+}
