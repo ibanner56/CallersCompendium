@@ -7,14 +7,14 @@ confidence.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Collection** and **New dance**. The first time a
-> dance term appears it links to the [Glossary](./README.md#glossary), so you
+> dance term appears it links to the [Glossary](./glossary.md), so you
 > can get a plain-language definition without losing your place.
 
 ## What Caller's Compendium is
 
 Caller's Compendium is a free, open-source organizer for contra-dance callers.
-It keeps your [collection](./README.md#glossary) of
-[dances](./README.md#glossary), helps you build [programs](./README.md#glossary)
+It keeps your [collection](./glossary.md#collection) of
+[dances](./glossary.md#dance), helps you build [programs](./glossary.md#program)
 (set lists) for events, and gives you a large-print, high-contrast calling view
 for the stage.
 
@@ -38,13 +38,13 @@ It is **local-first**, and that shapes everything else:
 
 Because your whole library lives in one place on your device, you can move it to
 a new machine any time with a single backup file — see the
-[Backup & portability guide](./README.md#backup--portability).
+[Backup & portability guide](./backup-portability.md).
 
 ## Installing the app
 
 *Coming soon.* Downloadable, installable builds for each platform are still being
 prepared, so step-by-step install instructions are not ready yet. When they are,
-the [Installation guide](./installation.md) will walk you through downloading and
+the [Installation guide](./README.md#installation) will walk you through downloading and
 setting up Caller's Compendium on Linux, macOS, Windows, Android, and
 iOS/iPadOS. Please do not look for download links here in the meantime — there
 are not any official ones yet.
@@ -88,8 +88,8 @@ is time to call, and step back out of when you are done.
 
 **Collection** is your whole library of dances, and it is where the app opens.
 Each dance is one transcription: its title, author,
-[formation](./README.md#glossary), and the ordered list of
-[figures](./README.md#glossary) (the moves) that make it up.
+[formation](./glossary.md#formation), and the ordered list of
+[figures](./glossary.md#figure) (the moves) that make it up.
 
 From here you can:
 
@@ -98,7 +98,7 @@ From here you can:
 - **Search** with the bar at the top — type any words and it searches across
   your dances.
 - **Filter** with the structured panel — narrow by formation,
-  [progression](./README.md#glossary), author, tags, custom fields, or even by
+  [progression](./glossary.md#progression), author, tags, custom fields, or even by
   the figures a dance contains (for example, dances with a petronella, or a
   chain *then* a swing).
 - **Add a dance** with **New dance**, or **Import** dances from other sources.
@@ -114,8 +114,8 @@ weekend, a one-off gig. Open **Programs** to see the programs you have built;
 it starts with a short prompt and a **New program** button until you make your
 first one.
 
-Inside a program you arrange [slots](./README.md#glossary): dance slots pulled
-from your collection, an alternate dance (an [alt](./README.md#glossary)) tucked
+Inside a program you arrange [slots](./glossary.md#slot): dance slots pulled
+from your collection, an alternate dance (an [alt](./glossary.md#alt)) tucked
 under its primary, and free-text slots for the things between dances — a break,
 a waltz, announcements. A program also carries its event date, venue, and notes.
 
@@ -125,7 +125,7 @@ is a low-fidelity layout sketch, not the finished app.*
 
 ![Wireframe sketch of the Programs builder, showing ordered program slots on the left and a collection picker with filters on the right](../design/wireframes/4-programs-builder.svg)
 
-Each program also has a **[matrix](./README.md#glossary)** — a figures-by-dances
+Each program also has a **[matrix](./glossary.md#matrix)** — a figures-by-dances
 grid worked out from the choreography — so you can see the shape and variety of
 your evening at a glance and avoid calling three swings-into-a-hey in a row. The
 [Programs & matrix guide](./programs.md) covers building programs
@@ -133,7 +133,7 @@ and reading the matrix in full.
 
 ### Perform — the calling view
 
-**[Perform mode](./README.md#glossary)** is the app's stage-ready calling view.
+**[Perform mode](./glossary.md#perform-mode)** is the app's stage-ready calling view.
 It is not a navigation tab; you enter it when you are ready to call and it fills
 the whole screen.
 
@@ -164,18 +164,18 @@ changes mid-gig — is in the [Perform mode guide](./perform.md).
 **Settings** is where you shape the app around how you work. It is organized into
 sections:
 
-- **General** — where you run [imports](./README.md#glossary) and manage your
-  data, including [backup and restore](./README.md#backup--portability).
+- **General** — where you run [imports](./glossary.md#import) and manage your
+  data, including [backup and restore](./backup-portability.md).
 - **Appearance** — themes (including light, dark, and high-contrast) and text
   size.
-- **[Dialect](./README.md#glossary)** — your role names and wording (more on
+- **[Dialect](./glossary.md#dialect)** — your role names and wording (more on
   this next).
 - **Language & region** — regional preferences.
 - **Defaults** — sensible starting values, such as a default caller or band, to
   save typing.
 - **About** — version and license information.
 
-The [Settings guide](./README.md#settings) covers each section in detail.
+The [Settings guide](./settings.md) covers each section in detail.
 
 ## Add your first dance
 
@@ -236,11 +236,11 @@ editing individual moves, and live previews — see the
 - **Build an evening:** [Programs & matrix](./programs.md)
 - **Call it:** [Perform mode](./perform.md)
 - **Make it yours:** [Dialect](./dialects.md) ·
-  [Settings](./README.md#settings) ·
-  [Backup & portability](./README.md#backup--portability)
+  [Settings](./settings.md) ·
+  [Backup & portability](./backup-portability.md)
 - **Using assistive technology or large text?** The
-  [Accessibility guide](./README.md#accessibility) covers screen readers, text
+  [Accessibility guide](./accessibility.md) covers screen readers, text
   size, high contrast, and keyboard use.
 
-Not sure what a word means? The [Glossary](./README.md#glossary) has plain
+Not sure what a word means? The [Glossary](./glossary.md) has plain
 definitions for every term used across these guides.

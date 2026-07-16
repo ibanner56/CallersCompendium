@@ -1,16 +1,16 @@
 # Collection & search
 
-Your [collection](./README.md#glossary) is your whole library of
-[dances](./README.md#glossary) — every transcription you have typed in or
+Your [collection](./glossary.md#collection) is your whole library of
+[dances](./glossary.md#dance) — every transcription you have typed in or
 brought in from elsewhere. This guide shows you how to browse and sort it, find
-exactly the dance you want (by words, by the [moves](./README.md#glossary) it
+exactly the dance you want (by words, by the [moves](./glossary.md#move) it
 contains, or both), add and tidy up dances, and shape the list around how you
 work.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Collection**, **Filters**, and **New dance**. The
 > first time a dance term appears it links to the
-> [Glossary](./README.md#glossary), so you can get a plain-language definition
+> [Glossary](./glossary.md), so you can get a plain-language definition
 > without losing your place.
 
 If you are brand new here, start with the
@@ -24,7 +24,7 @@ list that stays fast no matter how large your library grows. Each row gives you
 the essentials at a glance:
 
 - the dance **title** and its **author** or authors;
-- a [formation](./README.md#glossary) chip;
+- a [formation](./glossary.md#formation) chip;
 - status and tag chips, when a dance carries them;
 - a rating indicator, if you have rated the dance; and
 - any custom fields you have chosen to show in the list (more on those under
@@ -44,7 +44,7 @@ sort by:
   Nice Combination* sorts under **N**, where you would look for it.
 - **Author** — grouped by who wrote the dances.
 - **Recently added** — newest additions first, handy just after an
-  [import](./README.md#glossary).
+  [import](./glossary.md#import).
 - **Last called** — the dances you have programmed most recently, first.
 - **Relevance** — how well each dance matches your words. This one appears only
   while you have a plain-text search active (see below), and it is the order the
@@ -102,7 +102,7 @@ swing?* Two tools answer questions like these.
 
 ### Build a figure query with Advanced
 
-Open the **Advanced** builder to ask about the [figures](./README.md#glossary) —
+Open the **Advanced** builder to ask about the [figures](./glossary.md#figure) —
 the moves — inside your dances. It works by stacking up rows and groups:
 
 1. Add a **"has figure"** row and pick a move with the type-ahead field — start
@@ -149,14 +149,14 @@ The detail view brings together:
 - **A header** — title, authors, formation, and level, plus a status banner if
   the dance is flagged (for example, deprecated or broken).
 - **The figures**, laid out by section (A1, A2, B1, B2), each with a beats column
-  and a marker showing where the [progression](./README.md#glossary) happens.
+  and a marker showing where the [progression](./glossary.md#progression) happens.
 - **A wording toggle** — flip between your dialect and the neutral, shared
   wording without changing the saved dance. See the [Dialect guide](./dialects.md)
   for how this fits together.
 - **Calling notes**, the choreographer's or your own.
 - **Links** — to the source, a video, and related dances.
 - **Calling history** — which of your [programs](./programs.md) include this
-  dance. (A [Settings](./README.md#settings) toggle decides whether this counts
+  dance. (A [Settings](./settings.md) toggle decides whether this counts
   only slots you marked performed or any program that contains the dance.)
 - **Custom fields** you have filled in.
 - **Published-source citation** — the book and page a dance came from, when you
@@ -219,7 +219,7 @@ change reversible.
 - **Restore or remove** from **Recently Deleted** — bring a dance back, or delete
   it permanently when you are sure. Anything left there is purged automatically
   after a retention window, which you can lengthen or switch off in
-  [Settings](./README.md#settings).
+  [Settings](./settings.md).
 
 ### Tag many dances at once
 
@@ -237,11 +237,11 @@ the screen.
 - **Bring in dances you already have:** [Imports & migration](./imports.md)
 - **Put the app in your own words:** [Dialect](./dialects.md)
 - **Keep your library safe and portable:**
-  [Backup & portability](./README.md#backup--portability) ·
-  [Settings](./README.md#settings)
+  [Backup & portability](./backup-portability.md) ·
+  [Settings](./settings.md)
 - **Using assistive technology or large text?** The
-  [Accessibility guide](./README.md#accessibility) covers screen readers, text
+  [Accessibility guide](./accessibility.md) covers screen readers, text
   size, high contrast, and keyboard use.
 
-Not sure what a word means? The [Glossary](./README.md#glossary) has plain
+Not sure what a word means? The [Glossary](./glossary.md) has plain
 definitions for every term used across these guides.

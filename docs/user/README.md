@@ -46,13 +46,13 @@ down this page, so nothing here is a dead end.
 | [Accessibility](accessibility.md) | ✅ done | Screen readers, large text, high contrast, keyboard use |
 | [Settings](settings.md) | ✅ done | Dialects, data sources, custom fields, appearance, backup |
 | [Installation](#installation) | 🔒 blocked | Downloading and installing on each platform |
-| [FAQ & troubleshooting](#faq--troubleshooting) | ✍️ drafting | Common questions and fixes for common snags |
-| [Glossary](#glossary) | ✍️ drafting | Plain definitions of the terms used throughout |
+| [FAQ & troubleshooting](faq.md) | ✅ done | Common questions and fixes for common snags |
+| [Glossary](glossary.md) | ✅ done | Plain definitions of the terms used throughout |
 
 ## What each guide will cover
 
-Short previews of the guides that are still being written. When a guide lands, its
-row above will turn ✅ and its title will link to the new page.
+A preview of the one guide that isn't here yet. When it lands, its row above will
+turn ✅ and its title will link to the new page.
 
 ### Installation
 
@@ -60,19 +60,6 @@ row above will turn ✅ and its title will link to the new page.
 Android, and iOS/iPadOS. This guide is waiting on the release packaging and signing
 work (roadmap **Phase 7.1**); it will be written once there are installable builds
 to point you at.
-
-### FAQ & troubleshooting
-
-✍️ *Coming soon.* Quick answers to common questions ("Where is my data stored?",
-"Why can't I find a dance I imported?") and fixes for the snags people hit most
-often.
-
-### Glossary
-
-✍️ *Coming soon.* Plain-language definitions of the terms used across these guides
-and in the app — *dance*, *figure*, *formation*, *progression*, *dialect*,
-*program*, *slot*, *alt*, *matrix*, and more. The other guides link here on first
-use of a term.
 
 ## Looking deeper
 

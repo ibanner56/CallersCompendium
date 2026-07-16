@@ -1,15 +1,15 @@
 # Perform mode
 
-[Perform mode](./README.md#glossary) is the app's stage-ready calling view. This
-guide covers calling a single [dance](./README.md#glossary) or a whole
-[program](./README.md#glossary), sizing the text so it is readable from a distance,
+[Perform mode](./glossary.md#perform-mode) is the app's stage-ready calling view. This
+guide covers calling a single [dance](./glossary.md#dance) or a whole
+[program](./glossary.md#program), sizing the text so it is readable from a distance,
 moving through your evening, keeping time, and making changes on the fly without
 losing your place.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Perform this dance** and **Perform this program**.
 > The first time a dance term appears it links to the
-> [Glossary](./README.md#glossary), so you can get a plain-language definition
+> [Glossary](./glossary.md), so you can get a plain-language definition
 > without losing your place.
 
 New to the app? Start with the [Getting started guide](./getting-started.md).
@@ -37,7 +37,7 @@ This is a low-fidelity layout sketch, not the finished app.*
 ## Read the card
 
 Perform mode shows one dance at a time in very large type, with the
-[figures](./README.md#glossary) grouped by section (A1, A2, B1, B2) and set in a
+[figures](./glossary.md#figure) grouped by section (A1, A2, B1, B2) and set in a
 typeface built to be read from a distance.
 
 Your [dialect](./dialects.md) is applied, so the card speaks in your words. A
@@ -53,7 +53,7 @@ dance or slot, rotate the device, or resize the window — so the text is always
 large as it can be while still fitting.
 
 If you would rather set the size yourself, turn auto-size off in
-[Settings](./README.md#settings). Perform mode then uses a manual large-print
+[Settings](./settings.md). Perform mode then uses a manual large-print
 control instead: **A−** and **A+** step the size down and up, starting large with
 no upper limit. The **A−/A+** controls stay on screen either way, so you can
 always nudge the size in the moment.
@@ -81,7 +81,7 @@ control suits you and your setup:
 - the **arrow keys** or **page keys** on a keyboard.
 
 A **jump-to-slot overview** lets you jump anywhere in the program at once — useful
-if plans change mid-evening. And when a slot has an [alt](./README.md#glossary),
+if plans change mid-evening. And when a slot has an [alt](./glossary.md#alt),
 one tap swaps it in place of the primary.
 
 ## Keep time through the evening
@@ -120,8 +120,8 @@ For screen-reader users, Perform mode announces each figure in an expanded,
 spoken-friendly form — clearer to hear than the terse text shown on the card. If
 you would like that fuller wording everywhere, not only through assistive
 technology, turn on always-verbose rendering in
-[Settings](./README.md#settings). The
-[Accessibility guide](./README.md#accessibility) covers this and the app's other
+[Settings](./settings.md). The
+[Accessibility guide](./accessibility.md) covers this and the app's other
 accessibility options.
 
 ## Print or share a single dance
@@ -138,8 +138,8 @@ the Collection guide.
 - **Find and prepare dances:** [Collection & search](./collection.md)
 - **Call in your own words:** [Dialect](./dialects.md)
 - **Large text, high contrast, screen readers, keyboard:** the
-  [Accessibility guide](./README.md#accessibility) and
-  [Settings](./README.md#settings)
+  [Accessibility guide](./accessibility.md) and
+  [Settings](./settings.md)
 
-Not sure what a word means? The [Glossary](./README.md#glossary) has plain
+Not sure what a word means? The [Glossary](./glossary.md) has plain
 definitions for every term used across these guides.

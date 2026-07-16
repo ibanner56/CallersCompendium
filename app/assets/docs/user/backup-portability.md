@@ -10,14 +10,14 @@ back if a device is lost, replaced, or wiped.
 > **Finding your way around these words.** On-screen buttons and screens
 > are written in **bold** — like **Settings**, **Export**, and
 > **Restore**. The first time a dance term appears it links to the
-> [Glossary](./README.md#glossary), so you can get a plain-language
+> [Glossary](./glossary.md), so you can get a plain-language
 > definition without losing your place.
 
 ## Why back up
 
 Because your work lives locally, a backup is simply your insurance. One
-exported file captures your entire [collection](./README.md#glossary) of
-[dances](./README.md#glossary), your [programs](./README.md#glossary),
+exported file captures your entire [collection](./glossary.md#collection) of
+[dances](./glossary.md#dance), your [programs](./glossary.md#program),
 and all your personal settings. Keep a recent copy somewhere safe — a
 cloud drive, a USB stick, or your email — and you can recover from
 almost anything.
@@ -46,10 +46,10 @@ confirmation.
 A backup holds **everything** you've built, including:
 
 - Your whole collection of dances — figures, notes, tunes, links, and
-  any [custom field](./README.md#glossary) values you've filled in,
+  any [custom field](./glossary.md#custom-field) values you've filled in,
   along with where each dance was imported from.
-- All your programs, with their [slots](./README.md#glossary),
-  [alternates](./README.md#glossary), event details, and which dances
+- All your programs, with their [slots](./glossary.md#slot),
+  [alternates](./glossary.md#alt), event details, and which dances
   you've marked as performed.
 - Your custom fields, tags, and choreographers.
 - Your custom [dialects](./dialects.md) and which one is active.
@@ -160,5 +160,5 @@ It's easy to mix up three related-but-different features:
   program.
 - [Imports & migration](./imports.md) — merge in dances from other apps
   and sources.
-- [FAQ & troubleshooting](./README.md#faq--troubleshooting) — quick
+- [FAQ & troubleshooting](./faq.md) — quick
   answers to common questions.

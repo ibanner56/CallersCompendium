@@ -1,8 +1,8 @@
 # Settings
 
-**Settings** is where you tune Caller's Compendium to fit the way you work — how your library sorts, how [dances](./README.md#glossary) look on stage, which [dialect](./README.md#glossary) names appear, and how the app protects your data. Most of what you'll find here has a dedicated guide of its own, so think of this page as a tour: it shows you where each control lives and points you to the details.
+**Settings** is where you tune Caller's Compendium to fit the way you work — how your library sorts, how [dances](./glossary.md#dance) look on stage, which [dialect](./glossary.md#dialect) names appear, and how the app protects your data. Most of what you'll find here has a dedicated guide of its own, so think of this page as a tour: it shows you where each control lives and points you to the details.
 
-> **Finding your way around these words.** On-screen buttons and screens are written in **bold** — like **Settings**, **Appearance**, and **Defaults**. The first time a dance term appears it links to the [Glossary](./README.md#glossary), so you can get a plain-language definition without losing your place.
+> **Finding your way around these words.** On-screen buttons and screens are written in **bold** — like **Settings**, **Appearance**, and **Defaults**. The first time a dance term appears it links to the [Glossary](./glossary.md), so you can get a plain-language definition without losing your place.
 
 *Wireframe sketch of the Settings screen: a section list on the left (General, Appearance, Dialect, Language & region, Defaults, About) beside the settings for the chosen section. This is a low-fidelity layout sketch, not the finished app.*
 ![Wireframe sketch of the Settings screen showing the section list beside the controls for the selected section](../design/wireframes/7-settings.svg)
@@ -30,16 +30,16 @@ The **General** section gathers everyday behavior into small groups.
 
 ### Performance
 
-- **Auto-size Perform cards** (on) — scales each card so it fits the screen in [Perform mode](./README.md#glossary). Turn it off when you'd rather size the text yourself using the **A−** and **A+** buttons while performing. See [Perform mode](./perform.md) for more.
+- **Auto-size Perform cards** (on) — scales each card so it fits the screen in [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size the text yourself using the **A−** and **A+** buttons while performing. See [Perform mode](./perform.md) for more.
 
 ### Calling history
 
-- **Require “mark performed” for calling history** (off) — when on, a dance's calling history lists only the [programs](./README.md#glossary) whose [slot](./README.md#glossary) was actually marked performed, rather than every program the dance appears in.
+- **Require “mark performed” for calling history** (off) — when on, a dance's calling history lists only the [programs](./glossary.md#program) whose [slot](./glossary.md#slot) was actually marked performed, rather than every program the dance appears in.
 
 ### Accessibility
 
 - **Reduce motion** — trims animations and movement.
-- **Always show verbose figure text** — shows the full spoken-style [figure](./README.md#glossary) wording on screen, not only to screen readers.
+- **Always show verbose figure text** — shows the full spoken-style [figure](./glossary.md#figure) wording on screen, not only to screen readers.
 - **Confirm before delete** — adds a prompt before you delete a dance or program. Deletes are still undoable either way.
 
 These are the highlights; the [Accessibility guide](./accessibility.md) gives you the full picture.
@@ -74,7 +74,7 @@ A gallery of built-in themes: **System** (follows your device), **Light**, **Dar
 
 ## Dialect
 
-The **Dialect** section is your library of [dialects](./README.md#glossary) — the role names and wording the app uses when it describes dances.
+The **Dialect** section is your library of [dialects](./glossary.md#dialect) — the role names and wording the app uses when it describes dances.
 
 - Preset dialects are read-only, but you can **Duplicate to customize** to make your own version.
 - Custom dialects can be edited, renamed, or deleted.
@@ -109,7 +109,7 @@ These help if you write your own dances. Keep in mind you can override any of th
 - **Form**, **Formation**, and **Progression** dropdowns — the starting choices for a new dance.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or set your own.
 - **Starting figures** — an editor for the figures a new dance begins with; defaults to a single stand-still.
-- **Move defaults** — preferred parameter values applied automatically when you insert a [move](./README.md#glossary) while writing.
+- **Move defaults** — preferred parameter values applied automatically when you insert a [move](./glossary.md#move) while writing.
 
 For writing and editing dances, see [Collection & search](./collection.md).
 
