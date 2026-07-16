@@ -76,4 +76,61 @@ void main() {
       );
     });
   });
+
+  group('buildContraDbUrl', () {
+    test('a bare numeric id builds the canonical dance page URL', () {
+      expect(buildContraDbUrl('1'), 'https://contradb.com/dances/1');
+      // Surrounding whitespace is tolerated.
+      expect(buildContraDbUrl('  42 '), 'https://contradb.com/dances/42');
+    });
+
+    test('a pasted dance URL is canonicalized to /dances/N', () {
+      expect(
+        buildContraDbUrl('https://contradb.com/dances/1'),
+        'https://contradb.com/dances/1',
+      );
+    });
+
+    test('a trailing slash, query, and fragment are dropped', () {
+      expect(
+        buildContraDbUrl('https://contradb.com/dances/7?foo=bar#notes'),
+        'https://contradb.com/dances/7',
+      );
+    });
+
+    test('a pasted URL keeps its own host (self-hosted instance)', () {
+      final uri = Uri.parse(buildContraDbUrl('http://localhost:3000/dances/9'));
+      expect(uri.host, 'localhost');
+      expect(uri.port, 3000);
+      expect(uri.path, '/dances/9');
+    });
+
+    test('user-info credentials are dropped from the canonical URL', () {
+      final url = buildContraDbUrl('https://user:pass@contradb.com/dances/5');
+      expect(url, 'https://contradb.com/dances/5');
+      expect(Uri.parse(url).userInfo, isEmpty);
+    });
+
+    test('empty input throws a UrlFetchException', () {
+      expect(() => buildContraDbUrl('   '), throwsA(isA<UrlFetchException>()));
+    });
+
+    test('a URL with no dance id throws a UrlFetchException', () {
+      expect(
+        () => buildContraDbUrl('https://contradb.com/dances'),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('a non-http(s) / non-numeric input throws a UrlFetchException', () {
+      expect(
+        () => buildContraDbUrl('ftp://contradb.com/dances/1'),
+        throwsA(isA<UrlFetchException>()),
+      );
+      expect(
+        () => buildContraDbUrl('not a url or id'),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+  });
 }

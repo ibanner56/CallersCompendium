@@ -559,6 +559,90 @@ void main() {
     });
   });
 
+  group('ContraDB routing', () {
+    // Minimal real-shaped ContraDB dance page (id=1, "The Rendezvous").
+    const contraDbPage =
+        '<!DOCTYPE html><html><body class="dances-show-body">'
+        '<h1 class="dance-show-title">The Rendezvous</h1>'
+        '<p class="dance-show-choreographer">by: '
+        '<strong><a href="/choreographers/4">Dan Pearl</a></strong></p>'
+        '<p class="dance-show-formation">formation: improper </p>'
+        '<table class="contra-table-nonfluid">'
+        '<tr><td>A1</td><td class=dance-show-beats>16</td>'
+        '<td><div class="show-figure">neighbors balance &amp; swing</div></td>'
+        '</tr></table></body></html>';
+
+    List<ImportSource> sourcesFor() => [
+      ImportSource(label: 'test JSON', adapterFactory: GenericJsonAdapter.new),
+      ImportSource(
+        label: 'ContraDB',
+        adapterFactory: ContraDbHtmlAdapter.new,
+        urlBuilder: buildContraDbUrl,
+      ),
+    ];
+
+    Future<void> selectContraDb(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('import-source-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ContraDB').last);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a bare id resolves to the dance page and is scraped by '
+        'ContraDbHtmlAdapter', (tester) async {
+      final repos = openTestRepositories();
+      String? fetchedUrl;
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(),
+        fetcher: (url) async {
+          fetchedUrl = url;
+          return contraDbPage;
+        },
+      );
+
+      await selectContraDb(tester);
+      await _fetch(tester, '1');
+
+      // The bare id became the canonical ContraDB dance page URL.
+      expect(fetchedUrl, 'https://contradb.com/dances/1');
+
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      // The dance was parsed by ContraDbHtmlAdapter and reached the queue.
+      expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
+      expect(find.text('The Rendezvous'), findsOneWidget);
+    });
+
+    testWidgets('a bad ContraDB input shows an inline error, no fetch', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      var fetchCalls = 0;
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(),
+        fetcher: (url) async {
+          fetchCalls++;
+          return contraDbPage;
+        },
+      );
+
+      await selectContraDb(tester);
+      // A URL with no dance id can't be turned into a dance page URL.
+      await _fetch(tester, 'https://contradb.com/dances');
+
+      expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
+      expect(fetchCalls, 0);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   group('fetchImportUrl (default seam)', () {
     test('returns the body on a 200', () async {
       final client = MockClient(

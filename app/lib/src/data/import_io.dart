@@ -201,3 +201,62 @@ String buildCallersBoxJsonUrl(String input) {
   params['format'] = 'JSON';
   return uri.replace(queryParameters: params).toString();
 }
+
+/// The host used to build a ContraDB dance URL from a **bare id**. ContraDB
+/// serves the dance page as server-rendered HTML at `contradb.com/dances/N`
+/// (there is no JSON endpoint — `dances/N.json` → HTTP 406). A pasted full URL
+/// keeps its own host; only bare-id input needs a host supplied here.
+const String contraDbHost = 'contradb.com';
+
+/// Builds the canonical ContraDB dance-page URL from what the user typed.
+///
+/// ContraDB serves each dance as HTML at `contradb.com/dances/N`. This accepts
+/// either:
+/// - a **bare numeric id** (`"1"`) → `https://contradb.com/dances/1`;
+/// - a pasted **http(s) URL** whose path contains `/dances/N` (with or without
+///   a trailing slash, query string, or fragment) → the canonical
+///   `https://<host>/dances/N` (the pasted host is preserved so a self-hosted
+///   instance also works; the dance id is re-extracted so query/fragment cruft
+///   is dropped).
+///
+/// Throws a [UrlFetchException] (message safe to show) for empty input, a
+/// non-http(s) URL, or a URL with no dance id.
+String buildContraDbUrl(String input) {
+  final trimmed = input.trim();
+  if (trimmed.isEmpty) {
+    throw const UrlFetchException(
+      'Enter a ContraDB dance URL or id to import from.',
+    );
+  }
+
+  // Bare numeric id: build the canonical page URL from scratch.
+  if (RegExp(r'^\d+$').hasMatch(trimmed)) {
+    return Uri.https(contraDbHost, '/dances/$trimmed').toString();
+  }
+
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null ||
+      !uri.hasScheme ||
+      (!uri.isScheme('http') && !uri.isScheme('https'))) {
+    throw const UrlFetchException(
+      "That doesn't look like a ContraDB dance URL or a numeric id.",
+    );
+  }
+
+  final match = RegExp(r'/dances/(\d+)').firstMatch(uri.path);
+  if (match == null) {
+    throw const UrlFetchException(
+      'That ContraDB URL is missing a dance id (…/dances/N).',
+    );
+  }
+  final id = match.group(1)!;
+  // Preserve the pasted scheme/host/port; canonicalize the path and drop any
+  // query/fragment. User-info (credentials) is intentionally dropped — it is
+  // never needed to fetch /dances/N and could leak via logs or the UI.
+  return Uri(
+    scheme: uri.scheme,
+    host: uri.host,
+    port: uri.hasPort ? uri.port : null,
+    path: '/dances/$id',
+  ).toString();
+}
