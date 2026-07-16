@@ -11,7 +11,7 @@ the app shows text. It is *your words, your way*. Dialects are the heart of
 Caller's Compendium, so it is worth a few minutes to set yours up the way you
 like it.
 
-If you are brand new here, start with the [getting-started guide](./README.md#getting-started)
+If you are brand new here, start with the [getting-started guide](./getting-started.md)
 first, then come back to make the app sound like you.
 
 ## Why callers need dialects
@@ -172,7 +172,7 @@ would be nothing to switch between.
 
 This pairs naturally with Perform mode: you can call from your own words and, if a
 dancer or another caller asks, flip to the canonical wording for a moment without
-losing your place. See the [Perform mode guide](./README.md#perform-mode) for the full calling
+losing your place. See the [Perform mode guide](./perform.md) for the full calling
 view.
 
 ## Set your defaults
@@ -202,7 +202,7 @@ Make a custom dialect once (**Settings › Dialect › New dialect**), enter you
 names and any moves you say differently, and set it active. From then on the whole
 app speaks your language.
 
-**Bringing in dances written in older words.** When you [import](./README.md#imports--migration)
+**Bringing in dances written in older words.** When you [import](./imports.md)
 dances, or open older cards, they may use terms that have since fallen out of use.
 The app quietly understands the common older words and matches them to the shared
 form, so those dances still appear in your dialect and still turn up in search —
@@ -225,11 +225,11 @@ recognise, then flip back to your own.
 
 ## Related guides
 
-- [Getting started](./README.md#getting-started) — find your way around the app.
-- [Perform mode](./README.md#perform-mode) — call live, with the dialect and canonical
+- [Getting started](./getting-started.md) — find your way around the app.
+- [Perform mode](./perform.md) — call live, with the dialect and canonical
   controls close at hand.
 - [Settings](./README.md#settings) — where the dialect manager and display defaults live.
 - [Collection & search](./README.md#collection--search) — searching works whatever dialect you
   use.
-- [Imports & migration](./README.md#imports--migration) — bring in dances written in other words.
+- [Imports & migration](./imports.md) — bring in dances written in other words.
 - [Glossary](./README.md#glossary) — plain definitions of the terms used here.
