@@ -314,6 +314,27 @@ jobs:
         with:
           subject-path: 'dist/CallersCompendium-*'
 
+      # Release notes come from app/CHANGELOG.md (A12): gen_release_notes.py
+      # extracts the `## [x.y.z]` section for this version, adds a beta banner
+      # for prerelease tags, and appends the UNSIGNED/verify/maintainer footer.
+      # A missing section falls back to a loud "add notes" body (+ ::warning::)
+      # rather than failing the run — the release is a DRAFT until a human
+      # publishes it. Maintain notes by promoting `## [Unreleased]` before
+      # tagging (see docs/dev/releasing.md).
+      - name: Generate release notes from CHANGELOG
+        env:
+          VERSION: ${{ needs.meta.outputs.version }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          CHANNEL: ${{ needs.meta.outputs.channel }}
+        run: |
+          set -euo pipefail
+          python3 tools/release/gen_release_notes.py \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --channel "$CHANNEL" \
+            --changelog app/CHANGELOG.md \
+            --output release-notes.md
+
       - name: Create or update the DRAFT release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -323,13 +344,6 @@ jobs:
         run: |
           set -euo pipefail
           files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/${CHANNEL}.json")
-
-          cat > release-notes.md <<EOF
-          Automated **draft** release for \`${TAG}\`.
-
-          These artifacts are **UNSIGNED** (no code-signing this wave — see ADR-002 §6).
-          Verify downloads against \`SHA256SUMS\`. A maintainer publishes this draft after review.
-          EOF
 
           pre_flag=()
           if [ "$PRERELEASE" = "true" ]; then pre_flag=(--prerelease); fi
