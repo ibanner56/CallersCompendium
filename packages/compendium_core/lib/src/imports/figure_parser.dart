@@ -108,14 +108,21 @@ _Match? _recognize(String scrubbed) {
 }
 
 /// Lowercases, strips `()`/`[]` parenthetical annotations (TCB appends shoulder
-/// / param notes like `(NR)` or `(W1-M2-W2-M1)` that only the custom fallback
-/// keeps — the fallback works on the un-normalized text), maps `&`→`and` and
+/// / param notes like `(NR)` or `(W1-M2-W2-M1)`), maps `&`→`and` and
 /// `thru`→`through`, folds the common unicode halves/quarters, strips
 /// surrounding punctuation, and splits into words.
+///
+/// The annotation strip is for RECOGNITION only, so a structured match does
+/// NOT retain the bracketed text — the value it carried (e.g. shoulder/param
+/// hints) is not part of the taxonomy figure. The annotation only survives on
+/// the *custom fallback*, which runs on the un-normalized scrubbed text: a line
+/// that fails recognition keeps its annotation verbatim in the custom figure.
 List<String> _normalize(String text) {
   var s = text.toLowerCase();
-  // Drop bracketed/parenthesized annotations for RECOGNITION only. The custom
-  // fallback path operates on the original scrubbed text, so nothing is lost.
+  // Drop bracketed/parenthesized annotations for RECOGNITION only. This trims
+  // them from the structured match; the custom fallback path operates on the
+  // original scrubbed text, so an *unrecognized* line still keeps its
+  // annotation.
   s = s
       .replaceAll(RegExp(r'\([^)]*\)'), ' ')
       .replaceAll(RegExp(r'\[[^\]]*\]'), ' ');
