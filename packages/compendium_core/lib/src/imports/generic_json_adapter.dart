@@ -56,6 +56,11 @@ class GenericJsonAdapter implements SourceAdapter {
 
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
+    // Reset discovery state up front so a failed attempt never leaves stale
+    // records fetchable from a prior successful discover on this instance.
+    _dancesById.clear();
+    _schemaVersion = archiveSchemaVersion;
+
     final payload = request.payload;
     if (payload == null || payload.trim().isEmpty) {
       throw ImportError(
@@ -68,15 +73,8 @@ class GenericJsonAdapter implements SourceAdapter {
     final result = decodeArchive(payload);
     // A root-level read error means the payload is not a decodable archive at
     // all (invalid JSON or a non-object root); there is nothing to import.
-    final rootError = result.errors.firstWhere(
-      (e) => e.entityType == 'archive' && e.kind == ArchiveErrorKind.read,
-      orElse: () => const ArchiveError(
-        kind: ArchiveErrorKind.read,
-        entityType: '',
-        message: '',
-      ),
-    );
-    if (rootError.entityType == 'archive') {
+    final rootError = _rootReadError(result);
+    if (rootError != null) {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
@@ -86,9 +84,7 @@ class GenericJsonAdapter implements SourceAdapter {
       );
     }
 
-    _dancesById
-      ..clear()
-      ..addEntries(result.archive.dances.map((d) => MapEntry(d.id, d)));
+    _dancesById.addEntries(result.archive.dances.map((d) => MapEntry(d.id, d)));
     _schemaVersion = result.archive.schemaVersion;
 
     return [
@@ -104,12 +100,19 @@ class GenericJsonAdapter implements SourceAdapter {
 
   @override
   Future<RawRecord> fetch(DiscoveredRecord record) async {
-    final danceId = record.locator['danceId'] as String?;
-    final dance = danceId == null ? null : _dancesById[danceId];
+    final rawDanceId = record.locator['danceId'];
+    if (rawDanceId is! String) {
+      throw fetchError(
+        source,
+        'Record locator is missing a valid "danceId"; re-run discover.',
+        externalId: record.externalId,
+      );
+    }
+    final dance = _dancesById[rawDanceId];
     if (dance == null) {
       throw fetchError(
         source,
-        'Dance "$danceId" is no longer available to fetch; re-run discover.',
+        'Dance "$rawDanceId" is no longer available to fetch; re-run discover.',
         externalId: record.externalId,
       );
     }
@@ -126,6 +129,14 @@ class GenericJsonAdapter implements SourceAdapter {
   @override
   StructuredDraft parse(RawRecord raw) {
     final result = decodeArchive(raw.payload);
+    final rootError = _rootReadError(result);
+    if (rootError != null) {
+      throw parseError(
+        source,
+        'Payload is not a decodable Compendium archive: ${rootError.message}',
+        externalId: raw.externalId,
+      );
+    }
     final dances = result.archive.dances;
     if (dances.isEmpty) {
       throw parseError(
@@ -147,7 +158,9 @@ class GenericJsonAdapter implements SourceAdapter {
         ImportIssue(
           severity: ImportIssueSeverity.warning,
           code: 'archive_read_error',
-          message: e.message,
+          // Full context (entityType/entityId) so a skipped entity is
+          // actionable when several are dropped.
+          message: e.toString(),
         ),
       for (final w in result.warnings)
         ImportIssue(
@@ -164,6 +177,17 @@ class GenericJsonAdapter implements SourceAdapter {
       raw: raw,
       issues: issues,
     );
+  }
+
+  /// The archive-level read error (the payload is not a decodable archive at
+  /// all), or `null` when the root decoded to a JSON object.
+  static ArchiveError? _rootReadError(ArchiveReadResult result) {
+    for (final e in result.errors) {
+      if (e.entityType == 'archive' && e.kind == ArchiveErrorKind.read) {
+        return e;
+      }
+    }
+    return null;
   }
 
   /// Encodes [dance] as a minimal, self-contained single-dance archive so the

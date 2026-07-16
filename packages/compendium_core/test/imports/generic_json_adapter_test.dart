@@ -228,6 +228,32 @@ void main() {
       });
     });
 
+    test('fetch rejects a record with an invalid locator', () async {
+      final adapter = GenericJsonAdapter();
+      expect(
+        () => adapter.fetch(
+          const DiscoveredRecord(source: ProvenanceSource.json),
+        ),
+        throwsA(
+          isA<ImportError>().having((e) => e.stage, 'stage', ImportStage.fetch),
+        ),
+      );
+    });
+
+    test('a failed discover clears stale records from a prior run', () async {
+      final adapter = GenericJsonAdapter();
+      final good = encodeArchive(_archive([_dance('keep', 'Keep')]));
+      final firstRecord = (await adapter.discover(
+        ImportRequest(payload: good),
+      )).single;
+
+      await expectLater(
+        adapter.discover(const ImportRequest(payload: 'not json {')),
+        throwsA(isA<ImportError>()),
+      );
+      expect(() => adapter.fetch(firstRecord), throwsA(isA<ImportError>()));
+    });
+
     test('exact (json, externalId) re-import resolves to reimport', () async {
       final dance = _dance('x1', 'Reimport Me', authorIds: ['c1']);
       final json = encodeArchive(_archive([dance]));
