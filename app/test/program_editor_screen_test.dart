@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 
 import 'support/test_repositories.dart';
+import 'support/fake_wakelock.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -551,6 +552,57 @@ void main() {
     // Free-text slots are not stamped.
     expect(saved.slots[1].performedAt, isNull);
   });
+
+  testWidgets(
+    'builder-routed Perform persists a mark-performed without an explicit Save',
+    (tester) async {
+      // Perform enables the wake-lock; install the fake so the platform
+      // channel call doesn't leak an unhandled error into the test.
+      installFakeWakelock();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      // The narrow/tablet gig entry point routes through this full-screen
+      // builder; the Perform persist path is width-independent, so we pump at
+      // a comfortable size for the in-event adjust sheet.
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(1400, 2400),
+      );
+
+      // Enter the live Perform view, open the in-event adjust sheet, and mark
+      // the current dance performed — then close the sheet.
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+
+      // Simulate a background/relaunch: WITHOUT ever tapping Save, re-read the
+      // program straight from the repository. The persistent store survives a
+      // kill; the widget tree does not. The performed stamp must have been
+      // written immediately during Perform.
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots.single.performedAt, isNotNull);
+      expect(saved.slots.single.performedAt!.isUtc, isTrue);
+      expect(
+        saved.updatedAt,
+        isNot(_now),
+        reason: 'the immediate persist bumps updatedAt off its saved value',
+      );
+    },
+  );
 
   testWidgets('blocks clearing a free-text slot to empty', (tester) async {
     final repos = openTestRepositories();
