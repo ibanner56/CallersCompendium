@@ -128,6 +128,10 @@ void main() {
       'poussette clockwise',
       'contra corners',
       'square through four',
+      // Partial long-lines descriptors are not the canonical "forward and
+      // back", so they degrade to custom rather than a half-described figure.
+      'long lines back',
+      'long lines forward',
     ];
 
     for (final line in mustStayCustom) {
@@ -156,6 +160,19 @@ void main() {
         isNull,
       );
     });
+
+    test(
+      'negative beats never break the custom fallback (parse-never-fails)',
+      () {
+        // `customFigure` throws on a negative beat count, so a malformed source
+        // beat must not propagate through the fallback path.
+        final f = parseFigureLine('hey for four', beats: -8);
+        expect(f, isNotNull);
+        expect(f!.isCustom, isTrue);
+        expect(_text(f), 'hey for four');
+        expect(f.params['beats'], isNull);
+      },
+    );
 
     test('the progression flag is preserved on structured + custom', () {
       expect(

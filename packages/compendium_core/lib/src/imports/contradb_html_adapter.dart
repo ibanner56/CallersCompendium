@@ -222,14 +222,15 @@ class ContraDbHtmlAdapter implements SourceAdapter {
 
   // --- Figures ---------------------------------------------------------------
 
-  /// Walks the `table.contra-table-nonfluid` rows into [customFigure]s. Each row
-  /// is `(section-label, beats, figure-text)`; the last non-empty section label
-  /// is carried forward onto continuation rows (empty label cell). `<u>` and `⁋`
-  /// progression markers are stripped from the text and captured via the
+  /// Walks the `table.contra-table-nonfluid` rows into [Figure]s via the shared
+  /// [parseFigureLine]. Each row is `(section-label, beats, figure-text)`. `<u>`
+  /// and `⁋` progression markers are stripped from the text and captured via the
   /// figure's progression flag. A row with no usable figure cell or only blank
   /// figure text is **skipped** (there is nothing to store); every remaining row
-  /// is imported as a [customFigure] (the parse-never-fails invariant — figure
-  /// content never throws).
+  /// is routed through the parser — recognised moves become structured figures,
+  /// the rest fall back to [customFigure] (the parse-never-fails invariant —
+  /// figure content never throws). Section labels are NOT stored in the figure
+  /// text; they derive from cumulative beats via the domain model.
   List<Figure> _parseFigures(dom.Element? table, List<ImportIssue> issues) {
     if (table == null) return const [];
     final figures = <Figure>[];

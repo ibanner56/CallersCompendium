@@ -48,12 +48,16 @@ Figure? parseFigureLine(
 }) {
   final scrubFn = scrub ?? scrubFigureText;
   final tax = taxonomy ?? contraTaxonomy;
+  // Negative beats are meaningless; normalise to 0 (treated as absent) so the
+  // parse-never-fails contract holds even for malformed source beats —
+  // `customFigure` throws on a negative beat count.
+  final safeBeats = beats < 0 ? 0 : beats;
 
   final scrubbed = scrubFn(rawText);
   if (scrubbed.isEmpty) return null;
 
   Figure fallback() =>
-      customFigure(scrubbed, beats: beats, progression: progression);
+      customFigure(scrubbed, beats: safeBeats, progression: progression);
 
   try {
     final match = _recognize(scrubbed);
@@ -61,7 +65,7 @@ Figure? parseFigureLine(
 
     final params = <String, Object?>{
       ...match.params,
-      if (beats > 0) 'beats': beats,
+      if (safeBeats > 0) 'beats': safeBeats,
     };
     final candidate = Figure(
       move: match.moveId,
@@ -479,13 +483,11 @@ _Match? _promenade(List<String> w) {
 
 _Match? _longLines(List<String> w) {
   if (!_consumePhrase(w, ['long', 'lines'])) return null;
-  // Accept the canonical "[go] forward and back" descriptor (goBack default
-  // true); nothing else.
+  // Accept only the canonical "[go] forward and back" descriptor, or bare
+  // "long lines"; a partial "forward"/"back"/"and" alone is NOT enough — it
+  // would leave the phrase half-described, so it falls through to custom.
   _consumePhrase(w, ['go']);
   _consumePhrase(w, ['forward', 'and', 'back']);
-  _consumePhrase(w, ['forward']);
-  _consumePhrase(w, ['and']);
-  _consumePhrase(w, ['back']);
   _dropFiller(w);
   return w.isEmpty ? const _Match('long_lines') : null;
 }
