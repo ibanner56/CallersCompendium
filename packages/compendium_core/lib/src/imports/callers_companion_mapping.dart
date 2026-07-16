@@ -69,8 +69,11 @@ class CcDanceRecord {
     this.notes,
     this.composed,
     this.revised,
+    this.rating,
+    List<CcUserField> userFields = const [],
     List<CcBodySection> body = const [],
   }) : authors = List.unmodifiable(authors),
+       userFields = List.unmodifiable(userFields),
        body = List.unmodifiable(body);
 
   /// CC `Name` — the dance title. `null`/blank means "no title supplied".
@@ -106,8 +109,31 @@ class CcDanceRecord {
   /// CC `DateRevised`, as a raw string (same shapes as [composed]).
   final String? revised;
 
+  /// CC `Rating`, as a raw source string (typically `"1".."5"`, sometimes a
+  /// star glyph run or blank). Interpreted best-effort onto the model's closed
+  /// `1..5` scale by [mapCallersCompanionDance]; out-of-range values are
+  /// dropped with a warning rather than clamped.
+  final String? rating;
+
+  /// CC `UserDefined_1..3` user-defined fields, each a (label, value) pair.
+  /// CC lets a caller define up to three custom columns (with `*_Name`
+  /// labels). The model's typed `customFields` need a custom-field *definition*
+  /// the import pipeline cannot create yet, so these are folded into the
+  /// dance's calling notes as labelled lines by [mapCallersCompanionDance].
+  final List<CcUserField> userFields;
+
   /// The free-text transcription body, grouped by CC section.
   final List<CcBodySection> body;
+}
+
+/// A Caller's Companion user-defined field: the caller's own label (from CC's
+/// `UserDefined_N_Name`, or a synthesised fallback) and the value stored in
+/// `UserDefined_N`.
+@immutable
+class CcUserField {
+  const CcUserField({required this.label, required this.value});
+  final String label;
+  final String value;
 }
 
 /// The result of [mapCallersCompanionDance]: a [Dance] draft plus the non-fatal
@@ -143,9 +169,11 @@ CcDanceMapping mapCallersCompanionDance(
   CcDanceRecord record, {
   String Function()? newId,
   DateTime? timestamp,
+  String Function(String)? scrubFigureText,
 }) {
   final issues = <ImportIssue>[];
   final now = timestamp ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+  final scrub = scrubFigureText ?? (String s) => s;
 
   // Title — placeholder + warning when absent (never throw).
   final rawName = record.name?.trim() ?? '';
@@ -198,16 +226,28 @@ CcDanceMapping mapCallersCompanionDance(
   final composedOn = _mapDate(record.composed, 'composed', issues);
   final revisedOn = _mapDate(record.revised, 'revised', issues);
 
-  // Notes: Music + an unmapped-type note + any extra source notes.
+  // Rating → 1..5 star scale, best-effort; out-of-range → warning + unset.
+  final rating = _mapRating(record.rating, issues);
+
+  // Notes: Music + an unmapped-type note + any extra source notes + the CC
+  // user-defined fields (folded here because true customFields need a
+  // custom-field-definition import path the pipeline lacks — see the mapping
+  // doc / PR notes).
   final notes = _joinNotes([
     if ((record.music ?? '').trim().isNotEmpty)
       'Music: ${record.music!.trim()}',
     ?typeNote,
     if ((record.notes ?? '').trim().isNotEmpty) record.notes!.trim(),
+    for (final field in record.userFields)
+      if (field.value.trim().isNotEmpty)
+        '${field.label.trim().isEmpty ? 'Note' : field.label.trim()}: '
+            '${field.value.trim()}',
   ]);
 
   // Body → custom figures (free text; design §2). Section label is prefixed so
   // the caller's grouping survives even though we infer no structured sections.
+  // Figure text is dialect-scrubbed via [scrub] (identity by default; the .USR
+  // adapter passes the shared scrubFigureText helper).
   final figures = <Figure>[];
   for (final section in record.body) {
     final label = section.label?.trim();
@@ -215,9 +255,10 @@ CcDanceMapping mapCallersCompanionDance(
       final line = rawLine.trim();
       if (line.isEmpty) continue;
       final (beats, text) = _splitBeats(line);
+      final scrubbed = scrub(text);
       final withLabel = (label == null || label.isEmpty)
-          ? text
-          : '$label: $text';
+          ? scrubbed
+          : '$label: $scrubbed';
       figures.add(customFigure(withLabel, beats: beats));
     }
   }
@@ -232,6 +273,7 @@ CcDanceMapping mapCallersCompanionDance(
     callingNotes: notes,
     level: level,
     mixedLevel: mixedLevel,
+    rating: rating,
     composedOn: composedOn,
     revisedOn: revisedOn,
     createdAt: now,
@@ -393,3 +435,45 @@ PartialDate? _mapDate(String? raw, String which, List<ImportIssue> issues) {
 
 String _joinNotes(List<String> parts) =>
     parts.where((p) => p.isNotEmpty).join('\n');
+
+/// Maps CC `Rating` onto the model's closed `1..5` star scale, best-effort.
+///
+/// Accepts a leading integer (`"4"`, `"4 stars"`) or a run of star glyphs
+/// (`"★★★"`). Blank/absent → `null` (unrated, no issue). A value that parses to
+/// a number outside `1..5` is dropped with a warning rather than clamped, so an
+/// invalid rating never silently becomes a misleading one.
+int? _mapRating(String? raw, List<ImportIssue> issues) {
+  final value = raw?.trim() ?? '';
+  if (value.isEmpty) return null;
+
+  int? parsed;
+  final leadingInt = RegExp(r'^-?\d+').firstMatch(value);
+  if (leadingInt != null) {
+    parsed = int.tryParse(leadingInt.group(0)!);
+  } else {
+    final stars = RegExp('[★*]').allMatches(value).length;
+    if (stars > 0) parsed = stars;
+  }
+
+  if (parsed == null) {
+    issues.add(
+      ImportIssue(
+        severity: ImportIssueSeverity.warning,
+        code: 'cc_unparsed_rating',
+        message: 'Could not read the rating "$value"; left unrated.',
+      ),
+    );
+    return null;
+  }
+  if (parsed < 1 || parsed > 5) {
+    issues.add(
+      ImportIssue(
+        severity: ImportIssueSeverity.warning,
+        code: 'cc_rating_out_of_range',
+        message: 'Rating "$value" is outside the 1–5 scale; left unrated.',
+      ),
+    );
+    return null;
+  }
+  return parsed;
+}
