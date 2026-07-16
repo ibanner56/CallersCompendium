@@ -339,6 +339,9 @@ final List<_Recognizer> _recognizers = [
   _doSiDo,
   _boxTheGnat,
   _circle,
+  // Must precede _star and _promenade so "star promenade" isn't half-consumed
+  // by the bare-star or bare-promenade recognizers.
+  _starPromenade,
   _star,
   _chain,
   _rightLeftThrough,
@@ -346,6 +349,12 @@ final List<_Recognizer> _recognizers = [
   _promenade,
   _shift,
   _longLines,
+  _slice,
+  _turnAlone,
+  _poussette,
+  _californiaTwirl,
+  _squareThrough,
+  _pullBy,
 ];
 
 _Match? _swing(List<String> w) {
@@ -586,4 +595,122 @@ _Match? _longLines(List<String> w) {
   _consumePhrase(w, ['forward', 'and', 'back']);
   _dropFiller(w);
   return w.isEmpty ? const _Match('long_lines') : null;
+}
+
+/// Tier A: TCB writes "Slice left/right" (dance id 1860 "Power Surge"). The
+/// direction maps to the `slice` choice param; `by`/`return` stay on their
+/// taxonomy defaults. A side is required — a bare "slice" is too ambiguous, so
+/// it falls to custom.
+_Match? _slice(List<String> w) {
+  if (!_consumePhrase(w, ['slice'])) return null;
+  final side = _takeSide(w);
+  _dropFiller(w);
+  if (side == null || w.isNotEmpty) return null;
+  return _Match('slice', {'slice': side});
+}
+
+/// Tier A: TCB writes "Turn alone" / "Ones turn alone" (dance ids 25, 2). The
+/// optional leading dancer set maps to `who`; otherwise the taxonomy default
+/// (everyone) applies.
+_Match? _turnAlone(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['turn', 'alone'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('turn_alone', {'who': ?who2});
+}
+
+/// Tier A: TCB writes "Partner poussette clockwise 1/2" (dance id 488 "Rough
+/// Ride"). The spin word maps to `turn` (spinDirection) and the fraction to
+/// `half`. Anything else left over (e.g. "draw", or a non-half fraction like
+/// "9/16") forces the custom fallback.
+_Match? _poussette(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['poussette'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  String? spin;
+  if (_consumePhrase(w, ['clockwise'])) {
+    spin = 'clockwise';
+  } else if (_consumePhrase(w, ['counterclockwise'])) {
+    spin = 'counterclockwise';
+  }
+  String? frac;
+  if (_consumePhrase(w, ['1/2'])) {
+    frac = 'half';
+  } else if (_consumePhrase(w, ['full']) || _consumePhrase(w, ['1'])) {
+    frac = 'full';
+  }
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('poussette', {'who': ?who2, 'turn': ?spin, 'half': ?frac});
+}
+
+/// Tier A: TCB writes "Partner California twirl" (dance id 11 "Hocus Pocus").
+_Match? _californiaTwirl(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['california', 'twirl'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('california_twirl', {'who': ?who2});
+}
+
+/// Tier A: TCB writes "Partner star promenade 1/2" (dance id 30 "Mad Gypsy").
+/// The optional dancer set maps to `who`, an explicit hand to `hand`, and a
+/// rotation amount to `turn`. TCB's "(WL)"/"(WR)" hand annotations are stripped
+/// by `_normalize`, so the hand there stays on the taxonomy default. Must run
+/// before `_star`/`_promenade` (see `_recognizers`).
+_Match? _starPromenade(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['star', 'promenade'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  final hand = _takeSide(w);
+  final turn = _takeRotation(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('star_promenade', {'who': ?who2, 'hand': ?hand, 'turn': ?turn});
+}
+
+/// Tier A: TCB writes "Square through 3" / "Square through 4" (dance id 322
+/// "Whim's Gym"). Only a digit count is consumed (TCB never spells the count
+/// out); the word form "square through four" stays custom. A bare "square
+/// through" uses the taxonomy default (4 places).
+_Match? _squareThrough(List<String> w) {
+  if (!_consumePhrase(w, ['square', 'through'])) return null;
+  int? places;
+  for (var i = 0; i < w.length; i++) {
+    final n = int.tryParse(w[i]);
+    if (n != null && n >= 1 && n <= 10) {
+      w.removeAt(i);
+      places = n;
+      break;
+    }
+  }
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('square_through', {'places': ?places});
+}
+
+/// Tier A: TCB writes "Men pull by left" / "Partner pull by left" (dance ids
+/// 481, 467). A named dancer set maps to `pull_by_dancers` (with hand); a form
+/// with only a spatial direction (or bare) maps to `pull_by_direction`. TCB's
+/// attested pull-bys all name a dancer, so the direction branch is defensive.
+_Match? _pullBy(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['pull', 'by'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  final hand = _takeSide(w);
+  String? dir;
+  if (_consumePhrase(w, ['across'])) {
+    dir = 'across';
+  } else if (_consumePhrase(w, ['along'])) {
+    dir = 'along';
+  }
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  if (who2 != null) {
+    return _Match('pull_by_dancers', {'who': who2, 'hand': ?hand});
+  }
+  return _Match('pull_by_direction', {'dir': ?dir, 'hand': ?hand});
 }

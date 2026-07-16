@@ -124,9 +124,15 @@ void main() {
       // Moves outside the first-cut coverage.
       'hey for four',
       'down the hall four in line',
-      'poussette clockwise',
       'contra corners',
+      // "square through" spelled out (TCB uses a digit count) stays custom.
       'square through four',
+      // gate: SKIPPED this PR — every attested TCB gate carries a
+      // clockwise/counterclockwise/mirror qualifier + fraction the taxonomy's
+      // face (up/down/in/out) param cannot represent (dance id 519).
+      'N2 neighbor gate counterclockwise 1/2',
+      // A poussette with an unmappable leftover ("draw") stays custom.
+      'Neighbor draw poussette clockwise 1/2',
       // Partial long-lines descriptors are not the canonical "forward and
       // back", so they degrade to custom rather than a half-described figure.
       'long lines back',
@@ -264,6 +270,48 @@ void main() {
       // 11. shift → slide_along_set (Tier B).
       'Shift left': (move: 'slide_along_set', params: {'slide': 'left'}),
       'Shift right': (move: 'slide_along_set', params: {'slide': 'right'}),
+      // --- Tier A: recognizers for existing moves TCB writes in missed forms.
+      // 12. slice (TCB "Slice left" — dance id 1860 "Power Surge").
+      'Slice left': (move: 'slice', params: {'slice': 'left'}),
+      'Slice right': (move: 'slice', params: {'slice': 'right'}),
+      // 13. turn_alone (TCB "Turn alone" id 25; "Ones turn alone" id 2).
+      'Turn alone': (move: 'turn_alone', params: {}),
+      'Ones turn alone': (move: 'turn_alone', params: {'who': 'ones'}),
+      // 14. poussette (TCB "Partner poussette clockwise 1/2" — id 488
+      //     "Rough Ride").
+      'Partner poussette clockwise 1/2': (
+        move: 'poussette',
+        params: {'who': 'partners', 'turn': 'clockwise', 'half': 'half'},
+      ),
+      // 15. california_twirl (TCB "Partner California twirl" — id 11
+      //     "Hocus Pocus").
+      'Partner California twirl': (
+        move: 'california_twirl',
+        params: {'who': 'partners'},
+      ),
+      // 16. star_promenade (TCB "Partner star promenade 1/2" — id 30
+      //     "Mad Gypsy"). Must beat the bare _star/_promenade recognizers.
+      'Partner star promenade 1/2': (
+        move: 'star_promenade',
+        params: {'who': 'partners', 'turn': 0.5},
+      ),
+      // 17. square_through (TCB "Square through 3" — id 322 "Whim's Gym").
+      'Square through 3': (move: 'square_through', params: {'places': 3}),
+      'Square through 4': (move: 'square_through', params: {'places': 4}),
+      // 18. pull_by dancer form → pull_by_dancers (TCB "Men pull by left"
+      //     id 481 "Hard Cider Boys"; "Partner pull by left" id 467).
+      'Men pull by left': (
+        move: 'pull_by_dancers',
+        params: {'who': 'role1s', 'hand': 'left'},
+      ),
+      'Partner pull by left': (
+        move: 'pull_by_dancers',
+        params: {'who': 'partners', 'hand': 'left'},
+      ),
+      'Neighbor pull by right': (
+        move: 'pull_by_dancers',
+        params: {'who': 'neighbors', 'hand': 'right'},
+      ),
     };
 
     cases.forEach((line, expected) {
@@ -301,6 +349,17 @@ void main() {
       final f = parseFigureLine('hey for four (from the top)');
       expect(f!.isCustom, isTrue);
       expect(_text(f), 'hey for four (from the top)');
+    });
+
+    // Tier A: a direction-only pull-by (no named dancer) → pull_by_direction.
+    // No such form was found in the scanned TCB sample — every attested TCB
+    // pull-by names a dancer (→ pull_by_dancers) — so this synthetic line just
+    // guards the defensive direction branch of the _pullBy recognizer.
+    test('"Pull by across" (no dancer) → pull_by_direction', () {
+      final f = parseFigureLine('Pull by across');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'pull_by_direction');
+      expect(f.params['dir'], 'across');
     });
   });
 }
