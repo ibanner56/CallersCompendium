@@ -51,6 +51,7 @@ class DanceListScreen extends StatefulWidget {
     this.onSelectDance,
     this.selectedDanceId,
     this.refreshTrigger,
+    this.onImport,
   });
 
   /// Called with the tapped dance's id when the split-pane shell needs to
@@ -65,6 +66,13 @@ class DanceListScreen extends StatefulWidget {
   /// changes — allowing the [CollectionShell] to trigger a refresh after a
   /// delete or restore in the detail pane.
   final ValueListenable<int>? refreshTrigger;
+
+  /// Called when the user taps the app-bar Import action. Null ⇒ the action is
+  /// hidden (the list has no way to open import on its own). The owning shell
+  /// (e.g. [CollectionShell]) supplies this and decides whether to embed the
+  /// import view in a detail pane (wide) or push it as a route (narrow), so the
+  /// list itself stays layout-agnostic (mirrors [onSelectDance]).
+  final VoidCallback? onImport;
 
   @override
   State<DanceListScreen> createState() => _DanceListScreenState();
@@ -493,6 +501,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
             onPressed: openSearch,
           ),
         if (_data != null) ...[
+          if (widget.onImport != null)
+            IconButton(
+              key: const ValueKey('import-dances'),
+              tooltip: 'Import dances',
+              icon: const Icon(Icons.download_outlined),
+              onPressed: widget.onImport,
+            ),
           IconButton(
             key: const ValueKey('batch-select'),
             tooltip: 'Select dances',

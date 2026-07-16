@@ -643,6 +643,97 @@ void main() {
     });
   });
 
+  group('URL source auto-detection', () {
+    const tcbJson =
+        '{"ID":1,"Name":"The Nice Combination","Permission":"full"}';
+
+    ImportSource selectedSource(WidgetTester tester) => tester
+        .widget<DropdownButton<ImportSource>>(
+          find.byKey(const ValueKey('import-source-select')),
+        )
+        .value!;
+
+    Future<void> typeUrl(WidgetTester tester, String url) async {
+      await tester.enterText(
+        find.byKey(const ValueKey('import-url-field')),
+        url,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a Caller\'s Box URL flips the selector to The Caller\'s Box '
+        'and routes through CallersBoxAdapter', (tester) async {
+      final repos = openTestRepositories();
+      String? fetchedUrl;
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: defaultImportSources(),
+        fetcher: (url) async {
+          fetchedUrl = url;
+          return tcbJson;
+        },
+      );
+
+      // Default selection is the generic-JSON source.
+      expect(selectedSource(tester).label, "a Caller's Compendium JSON file");
+
+      await typeUrl(tester, 'https://www.thecallersbox.com/dance.php?id=1');
+      // The selector auto-flipped to Caller's Box without the user touching it.
+      expect(selectedSource(tester).label, "The Caller's Box");
+
+      await tester.tap(find.byKey(const ValueKey('import-fetch-url')));
+      await tester.pumpAndSettle();
+      expect(fetchedUrl, contains('format=JSON'));
+
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      // Parsed by CallersBoxAdapter (the auto-detected source).
+      expect(find.text('The Nice Combination'), findsOneWidget);
+    });
+
+    testWidgets('a ContraDB URL flips the selector to ContraDB', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: defaultImportSources(),
+        fetcher: (url) async => 'unused',
+      );
+
+      await typeUrl(tester, 'https://contradb.com/dances/42');
+      expect(selectedSource(tester).label, 'ContraDB');
+    });
+
+    testWidgets('a manual source choice is respected (no auto-flip after)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: defaultImportSources(),
+        fetcher: (url) async => 'unused',
+      );
+
+      // User explicitly picks ContraDB…
+      await tester.tap(find.byKey(const ValueKey('import-source-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ContraDB').last);
+      await tester.pumpAndSettle();
+      expect(selectedSource(tester).label, 'ContraDB');
+
+      // …then pastes a Caller's Box URL: the manual choice wins, no auto-flip.
+      await typeUrl(tester, 'https://www.thecallersbox.com/dance.php?id=1');
+      expect(selectedSource(tester).label, 'ContraDB');
+    });
+  });
+
   group('fetchImportUrl (default seam)', () {
     test('returns the body on a 200', () async {
       final client = MockClient(

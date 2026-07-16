@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../data/import_io.dart';
 import 'dance_detail_screen.dart';
 import 'dance_list_screen.dart';
+import 'import_review_screen.dart';
 
 /// Responsive collection shell (`docs/design/ux.md` — list/detail split pane
 /// for desktop/tablet; `docs/ROADMAP.md` deferred follow-up
@@ -25,7 +27,25 @@ import 'dance_list_screen.dart';
 /// Duplication (via [DanceDetailScreen.onNavigateTo]) refreshes the list and
 /// switches the selection to the new copy's id.
 class CollectionShell extends StatefulWidget {
-  const CollectionShell({super.key});
+  const CollectionShell({
+    super.key,
+    this.importPicker,
+    this.urlFetcher,
+    this.importSources,
+  });
+
+  /// Test seam for choosing an import file; forwarded to [ImportReviewScreen].
+  /// Defaults to [pickImportFile] (native open-file dialog) when null.
+  final ImportPicker? importPicker;
+
+  /// Test seam for fetching an import URL; forwarded to [ImportReviewScreen].
+  /// Defaults to [fetchImportUrl] (real HTTP GET) when null.
+  final UrlFetcher? urlFetcher;
+
+  /// Override for the selectable import sources; defaults to
+  /// [defaultImportSources]. Exists so widget tests can inject a trimmed or
+  /// fake source list without real file-picking / network.
+  final List<ImportSource>? importSources;
 
   /// Breakpoint (logical pixels) at which the split-pane layout activates.
   static const double splitBreakpoint = 900;
@@ -40,9 +60,24 @@ class CollectionShell extends StatefulWidget {
 class _CollectionShellState extends State<CollectionShell> {
   String? _selectedDanceId;
 
+  /// Whether the wide-layout detail pane currently shows the import view
+  /// (instead of a [DanceDetailScreen] / the empty placeholder). Toggled by the
+  /// app-bar Import action and cleared when the user selects a dance or closes
+  /// the embedded import view.
+  bool _showImport = false;
+
   /// Incrementing this value triggers [DanceListScreen] to reload via its
   /// [refreshTrigger] parameter.
   final _listRefresh = ValueNotifier<int>(0);
+
+  /// The import sources, resolved once and cached for the lifetime of this
+  /// state. [defaultImportSources] builds fresh [ImportSource] instances on
+  /// every call and [ImportSource] uses identity equality, so rebuilding the
+  /// list on each access would make the embedded [ImportReviewScreen]'s
+  /// [DropdownButton] assert (its selected value would no longer match any item
+  /// instance in a freshly-built list).
+  late final List<ImportSource> _importSources =
+      widget.importSources ?? defaultImportSources();
 
   @override
   void dispose() {
@@ -51,7 +86,36 @@ class _CollectionShellState extends State<CollectionShell> {
   }
 
   void _onSelectDance(String danceId) {
-    setState(() => _selectedDanceId = danceId);
+    // Selecting a dance always exits import mode and shows that dance.
+    setState(() {
+      _selectedDanceId = danceId;
+      _showImport = false;
+    });
+  }
+
+  /// Wide layout: swap the detail pane over to the embedded import view.
+  void _onImport() {
+    setState(() => _showImport = true);
+  }
+
+  /// Wide layout: leave the embedded import view, returning to the previously
+  /// selected dance (or the empty placeholder).
+  void _onImportClose() {
+    setState(() => _showImport = false);
+  }
+
+  /// Narrow layout: push the import view as a full-screen route (it has its own
+  /// Scaffold/AppBar). Mirrors how detail uses push-nav on narrow.
+  void _pushImportRoute() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ImportReviewScreen(
+          sources: _importSources,
+          picker: widget.importPicker,
+          fetcher: widget.urlFetcher,
+        ),
+      ),
+    );
   }
 
   /// Called by the embedded [DanceDetailScreen] after a successful soft-delete.
@@ -82,7 +146,8 @@ class _CollectionShellState extends State<CollectionShell> {
           return _buildSplitPane();
         }
         // Narrow: standard single-pane list with existing push navigation.
-        return const DanceListScreen();
+        // Import pushes its own full-screen route (there is no detail pane).
+        return DanceListScreen(onImport: _pushImportRoute);
       },
     );
   }
@@ -102,27 +167,42 @@ class _CollectionShellState extends State<CollectionShell> {
               onSelectDance: _onSelectDance,
               selectedDanceId: _selectedDanceId,
               refreshTrigger: _listRefresh,
+              onImport: _onImport,
             ),
           ),
         ),
         const VerticalDivider(width: 1, thickness: 1),
-        Expanded(
-          child: ScaffoldMessenger(
-            child: selectedId != null
-                ? DanceDetailScreen(
-                    // Keyed on the dance id so the screen fully resets when the
-                    // selection changes (fresh FutureBuilder, clean _canonicalView).
-                    key: ValueKey('detail-$selectedId'),
-                    danceId: selectedId,
-                    onDeleted: _onDetailDeleted,
-                    onRestored: _onDetailRestored,
-                    onNavigateTo: _onNavigateTo,
-                  )
-                : const _EmptyDetailPane(),
-          ),
-        ),
+        Expanded(child: ScaffoldMessenger(child: _buildDetailPane(selectedId))),
       ],
     );
+  }
+
+  /// The wide-layout detail pane: the embedded import view when import mode is
+  /// active, otherwise the selected [DanceDetailScreen] or the empty
+  /// placeholder.
+  Widget _buildDetailPane(String? selectedId) {
+    if (_showImport) {
+      return ImportReviewScreen(
+        // Keyed so switching in/out of import mode fully resets the flow.
+        key: const ValueKey('collection-import'),
+        sources: _importSources,
+        picker: widget.importPicker,
+        fetcher: widget.urlFetcher,
+        onClose: _onImportClose,
+      );
+    }
+    if (selectedId != null) {
+      return DanceDetailScreen(
+        // Keyed on the dance id so the screen fully resets when the
+        // selection changes (fresh FutureBuilder, clean _canonicalView).
+        key: ValueKey('detail-$selectedId'),
+        danceId: selectedId,
+        onDeleted: _onDetailDeleted,
+        onRestored: _onDetailRestored,
+        onNavigateTo: _onNavigateTo,
+      );
+    }
+    return const _EmptyDetailPane();
   }
 }
 

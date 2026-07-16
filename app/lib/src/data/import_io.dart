@@ -127,6 +127,7 @@ class ImportSource {
     required this.label,
     required this.adapterFactory,
     this.urlBuilder,
+    this.matchesUrl,
   });
 
   /// Human-readable name, e.g. "Caller's Compendium JSON" or "The Caller's Box".
@@ -139,6 +140,17 @@ class ImportSource {
   /// Rewrites URL-mode input into the URL actually fetched; `null` fetches the
   /// input verbatim (the generic-JSON case).
   final ImportUrlBuilder? urlBuilder;
+
+  /// Returns `true` if this source recognizes [uri] as one of its own dance
+  /// URLs, used by [detectSourceForUrl] to auto-select the source as the user
+  /// types a URL (so they need not toggle the dropdown manually). `null` means
+  /// the source is never auto-detected from a URL (the generic-JSON case —
+  /// there is no host to recognize).
+  ///
+  /// A predicate (rather than a simple host set) is used because The Caller's
+  /// Box is also mirrored on ibiblio.org under a `/thecallersbox/` path, which
+  /// a host-only match cannot express.
+  final bool Function(Uri uri)? matchesUrl;
 }
 
 /// The host used to build a Caller's Box JSON endpoint from a **bare id**.
@@ -259,4 +271,78 @@ String buildContraDbUrl(String input) {
     port: uri.hasPort ? uri.port : null,
     path: '/dances/$id',
   ).toString();
+}
+
+/// Hosts serving The Caller's Box directly.
+const Set<String> _callersBoxHosts = {
+  'thecallersbox.com',
+  'www.thecallersbox.com',
+};
+
+/// Hosts serving the ibiblio.org mirror; a Caller's Box URL there lives under a
+/// `/thecallersbox/` path segment (so host alone is not enough to recognize it).
+const Set<String> _ibiblioHosts = {'ibiblio.org', 'www.ibiblio.org'};
+
+/// Hosts serving ContraDB dance pages.
+const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
+
+/// The canonical, ordered list of selectable import sources
+/// (`docs/ROADMAP.md` Phase 6.3/6.4): the generic [GenericJsonAdapter]
+/// ("a Caller's Compendium JSON file", the default), the [CallersBoxAdapter]
+/// ("The Caller's Box"), and the [ContraDbHtmlAdapter] ("ContraDB").
+///
+/// Extracted here so every launch point (Settings and the Collection blade)
+/// shares one definition and the two can never drift. `picker`/`fetcher`
+/// injection is handled separately by each caller via [ImportReviewScreen].
+List<ImportSource> defaultImportSources() => [
+  ImportSource(
+    label: "a Caller's Compendium JSON file",
+    adapterFactory: GenericJsonAdapter.new,
+  ),
+  ImportSource(
+    label: "The Caller's Box",
+    adapterFactory: CallersBoxAdapter.new,
+    urlBuilder: buildCallersBoxJsonUrl,
+    matchesUrl: (uri) =>
+        _callersBoxHosts.contains(uri.host.toLowerCase()) ||
+        (_ibiblioHosts.contains(uri.host.toLowerCase()) &&
+            uri.path.toLowerCase().contains('/thecallersbox/')),
+  ),
+  ImportSource(
+    label: 'ContraDB',
+    adapterFactory: ContraDbHtmlAdapter.new,
+    urlBuilder: buildContraDbUrl,
+    matchesUrl: (uri) => _contraDbHosts.contains(uri.host.toLowerCase()),
+  ),
+];
+
+/// Auto-detects which [ImportSource] a URL-mode [input] belongs to, so the
+/// review screen can flip the source selector for the user as they paste a
+/// link. Returns the first source in [sources] whose [ImportSource.matchesUrl]
+/// recognizes the parsed URL, or `null` when nothing matches.
+///
+/// Returns `null` (leaving the current selection unchanged — never forcing the
+/// generic source) for:
+/// - empty input;
+/// - a **bare numeric id** (`"1"`) — it has no host to detect, which is exactly
+///   why the explicit selector is retained;
+/// - any input that is not a valid http(s) URL;
+/// - a valid URL whose host no source recognizes.
+ImportSource? detectSourceForUrl(String input, List<ImportSource> sources) {
+  final trimmed = input.trim();
+  if (trimmed.isEmpty) return null;
+  // A bare id has no host — keep whatever the user selected.
+  if (RegExp(r'^\d+$').hasMatch(trimmed)) return null;
+
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null ||
+      !uri.hasScheme ||
+      (!uri.isScheme('http') && !uri.isScheme('https'))) {
+    return null;
+  }
+
+  for (final source in sources) {
+    if (source.matchesUrl?.call(uri) ?? false) return source;
+  }
+  return null;
 }

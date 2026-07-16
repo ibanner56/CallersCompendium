@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/collection_refresh_scope.dart';
+import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
+import 'package:compendium_app/src/screens/import_review_screen.dart';
 
 import 'support/test_repositories.dart';
 
@@ -33,10 +36,16 @@ Dance _dance({
 /// Wide surface (≥ 900 wide) triggers the split-pane layout.
 /// Use at least 1400 px wide for wide tests to give the 400 px list pane
 /// enough room for its AppBar actions without overflow.
+///
+/// [importPicker] / [urlFetcher] / [importSources] are forwarded to the shell
+/// so import tests can drive the flow without real file-picking or network.
 Future<void> _pumpShell(
   WidgetTester tester,
   CompendiumRepositories repos, {
   required Size size,
+  ImportPicker? importPicker,
+  UrlFetcher? urlFetcher,
+  List<ImportSource>? importSources,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -46,16 +55,33 @@ Future<void> _pumpShell(
   });
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final refresh = ValueNotifier<int>(0);
+  addTearDown(refresh.dispose);
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: ActiveDialectScope(
+          notifier: notifier,
+          // Mirror main.dart: import commit/undo bumps this so the live list
+          // reloads. Optional in focused tests, required for the import flow.
+          child: CollectionRefreshScope(revision: refresh, child: child!),
+        ),
       ),
-      home: const CollectionShell(),
+      home: CollectionShell(
+        importPicker: importPicker,
+        urlFetcher: urlFetcher,
+        importSources: importSources,
+      ),
     ),
   );
 }
+
+/// Encodes a one-or-more-dance archive as the generic-JSON payload the
+/// [GenericJsonAdapter] consumes (used by injected import pickers).
+String _archivePayload(List<Dance> dances) => encodeArchive(
+  CompendiumArchive(exportedAt: DateTime.utc(2026, 7, 15), dances: dances),
+);
 
 // ── narrow layout ─────────────────────────────────────────────────────────────
 
@@ -296,5 +322,153 @@ void main() {
         expect(find.text('Select a dance'), findsOneWidget);
       },
     );
+  });
+
+  // ── import button + flow ─────────────────────────────────────────────────────
+
+  group('import', () {
+    testWidgets('button renders in the app bar, left of batch-select', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'A Dance'));
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      final importFinder = find.byKey(const ValueKey('import-dances'));
+      final batchFinder = find.byKey(const ValueKey('batch-select'));
+      expect(importFinder, findsOneWidget);
+      expect(batchFinder, findsOneWidget);
+      // Import sits to the LEFT of Select dances in the same app bar row.
+      expect(
+        tester.getTopLeft(importFinder).dx,
+        lessThan(tester.getTopLeft(batchFinder).dx),
+      );
+    });
+
+    testWidgets('button is available with an empty collection', (tester) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('import-dances')), findsOneWidget);
+    });
+
+    testWidgets('wide: tapping Import shows ImportReviewScreen in the detail '
+        'pane (not a pushed route)', (tester) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-dances')));
+      await tester.pumpAndSettle();
+
+      // Import view is embedded: it appears WITH the list pane still visible
+      // (a pushed route would cover the list) and shows the embedded close
+      // affordance.
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(find.byType(DanceListScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('import-close')), findsOneWidget);
+      expect(find.text('Select a dance'), findsNothing);
+    });
+
+    testWidgets('wide: selecting a dance exits import mode and shows detail', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Escape Dance'));
+
+      await _pumpShell(tester, repos, size: const Size(1400, 3000));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-dances')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+
+      await tester.tap(find.text('Escape Dance'));
+      await tester.pumpAndSettle();
+
+      // Import is gone; the selected dance's detail is shown instead.
+      expect(find.byType(ImportReviewScreen), findsNothing);
+      expect(find.byType(DanceDetailScreen), findsOneWidget);
+    });
+
+    testWidgets('wide: the close button returns to the empty detail state', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-dances')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('import-close')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsNothing);
+      expect(find.text('Select a dance'), findsOneWidget);
+    });
+
+    testWidgets('narrow: tapping Import pushes the ImportReviewScreen route', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+
+      await _pumpShell(tester, repos, size: const Size(600, 900));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-dances')));
+      await tester.pumpAndSettle();
+
+      // A full-screen route is pushed: the import screen is shown, the list is
+      // covered (offstage), and there is no embedded close button (default back
+      // arrow instead).
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(find.byType(DanceListScreen), findsNothing);
+      expect(find.byKey(const ValueKey('import-close')), findsNothing);
+    });
+
+    testWidgets('wide: an end-to-end import commits and the dance appears in '
+        'the list', (tester) async {
+      final repos = openTestRepositories();
+      // Injected picker returns a one-dance archive; no real file dialog.
+      await _pumpShell(
+        tester,
+        repos,
+        size: const Size(1400, 1600),
+        importPicker: () async =>
+            _archivePayload([_dance(id: 'imp1', title: 'Imported Reel')]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-dances')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      // Dismiss the result dialog (Done) — embedded, this closes import mode.
+      await tester.tap(find.byKey(const ValueKey('import-done-button')));
+      await tester.pumpAndSettle();
+
+      // Import view closed and the committed dance now shows in the live list
+      // (CollectionRefreshScope drove the reload).
+      expect(find.byType(ImportReviewScreen), findsNothing);
+      expect(find.text('Imported Reel'), findsOneWidget);
+
+      final all = await repos.dances.listAll();
+      expect(all.map((d) => d.title), contains('Imported Reel'));
+    });
   });
 }

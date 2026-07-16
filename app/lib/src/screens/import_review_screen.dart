@@ -24,6 +24,7 @@ class ImportReviewScreen extends StatefulWidget {
     required this.sources,
     this.picker,
     this.fetcher,
+    this.onClose,
   }) : assert(sources.length > 0, 'at least one import source is required');
 
   /// The selectable import sources; the first is selected by default.
@@ -37,6 +38,16 @@ class ImportReviewScreen extends StatefulWidget {
   /// GET). Widget tests inject canned text or a throwing fake so no real
   /// network call is made.
   final UrlFetcher? fetcher;
+
+  /// Invoked to dismiss the screen when it is **embedded** (e.g. in the
+  /// Collection blade's detail pane) rather than pushed as a route.
+  ///
+  /// When non-null the app bar shows a leading close button, and the
+  /// post-commit auto-dismiss calls this instead of [Navigator.pop] — because
+  /// an embedded screen has no route of its own to pop (popping would dismiss
+  /// the whole shell). When null (the pushed / Settings case) the default back
+  /// arrow and [Navigator.pop] behavior is preserved.
+  final VoidCallback? onClose;
 
   @override
   State<ImportReviewScreen> createState() => _ImportReviewScreenState();
@@ -65,6 +76,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// The currently selected import source (defaults to the first). Governs
   /// which adapter parses the payload and how URL-mode input is transformed.
   late ImportSource _selected = widget.sources.first;
+
+  /// Set once the user picks a source from the dropdown themselves. After that
+  /// the URL field stops auto-detecting/overriding the source (manual choice
+  /// always wins) — so a deliberate selection is never silently reverted while
+  /// the user edits a URL.
+  bool _sourceManuallySelected = false;
 
   final TextEditingController _pasteController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
@@ -368,7 +385,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
       );
     } else {
-      Navigator.of(context).pop();
+      // Embedded (onClose provided): dismiss via the shell — it has no route to
+      // pop. Pushed (onClose null): pop this screen's route as before.
+      final onClose = widget.onClose;
+      if (onClose != null) {
+        onClose();
+      } else {
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -381,6 +405,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       appBar: AppBar(
         title: const Text('Import dances'),
         key: const ValueKey('import-review-appbar'),
+        leading: widget.onClose == null
+            ? null
+            : IconButton(
+                key: const ValueKey('import-close'),
+                tooltip: 'Close import',
+                icon: const Icon(Icons.close),
+                onPressed: widget.onClose,
+              ),
       ),
       body: switch (_phase) {
         _Phase.input => _buildInput(context),
@@ -420,6 +452,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     if (source == null) return;
                     setState(() {
                       _selected = source;
+                      // A deliberate pick disables URL auto-detection so it is
+                      // never silently reverted as the user edits the URL.
+                      _sourceManuallySelected = true;
                       // Selecting a new source drops any stale fetch error and
                       // URL provenance: the fetched-from URL belonged to the
                       // previous source/adapter, so carrying it onto the next
@@ -467,8 +502,22 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 keyboardType: TextInputType.url,
                 autocorrect: false,
                 enabled: !busy,
-                onChanged: (_) {
-                  if (_fetchError != null) setState(() => _fetchError = null);
+                onChanged: (value) {
+                  final detected = _sourceManuallySelected
+                      ? null
+                      : detectSourceForUrl(value, widget.sources);
+                  final clearError = _fetchError != null;
+                  if (detected != null && detected != _selected) {
+                    // Auto-flip the source selector to match the pasted URL's
+                    // host (manual selection would have short-circuited above).
+                    setState(() {
+                      _selected = detected;
+                      _fetchError = null;
+                      _sourceUri = null;
+                    });
+                  } else if (clearError) {
+                    setState(() => _fetchError = null);
+                  }
                 },
                 onSubmitted: (_) => busy ? null : _fetchFromUrl(),
                 decoration: InputDecoration(
