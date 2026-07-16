@@ -44,14 +44,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      # Single-source guard: the in-code kAppVersion must equal the semver part
+      # of app/pubspec.yaml's version:. Runs before the (slower) Flutter setup so
+      # a version drift fails fast. See tools/ci/check_app_version.py.
+      - name: Guard app version single-source (kAppVersion == pubspec semver)
+        run: python3 tools/ci/check_app_version.py
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           # Single source of truth for the Flutter version (see .fvmrc).
           flutter-version-file: .fvmrc
           channel: stable
           cache: true # caches the Flutter SDK and the pub cache
-      - name: Show Flutter version (must match .fvmrc)
-        run: flutter --version
+      # .fvmrc is the single source of truth; assert the SDK the action actually
+      # resolved matches it (catches a channel override / drift). See
+      # tools/ci/check_flutter_version.py.
+      - name: Guard Flutter version single-source (.fvmrc == toolchain)
+        run: |
+          flutter --version
+          python3 tools/ci/check_flutter_version.py
       - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed .
       - run: flutter analyze
@@ -230,3 +240,17 @@ jobs:
       - name: Build
         working-directory: app
         run: flutter build ${{ matrix.build_args }}
+
+  # PR-only single-source gate: a schemaVersion bump in compendium_core's
+  # database.dart must ship a migration test/fixture in the same PR. Needs full
+  # history to diff against the PR base. See tools/ci/check_schema_migration.py.
+  schema-guard:
+    name: Schema migration gate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0 # full history so we can diff against the PR base
+      - name: Guard schemaVersion bumps ship a migration test/fixture
+        run: python3 tools/ci/check_schema_migration.py "${{ github.event.pull_request.base.sha }}"
