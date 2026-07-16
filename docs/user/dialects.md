@@ -5,7 +5,7 @@ Compendium speak yours — choosing the role names and phrasing you use, switchi
 them in a moment, and doing it all without ever changing the dances you have
 saved.
 
-A [dialect](./README.md#glossary) is your personal choice of role names and
+A [dialect](./glossary.md#dialect) is your personal choice of role names and
 wording — for example **Larks/Robins** or **Leads/Follows** — applied everywhere
 the app shows text. It is *your words, your way*. Dialects are the heart of
 Caller's Compendium, so it is worth a few minutes to set yours up the way you
@@ -22,7 +22,7 @@ use other words again. The same is true of moves — one caller's "shoulder roun
 is another's older term for the very same figure.
 
 That variety is wonderful, but it makes a shared library of dances awkward: if a
-[dance](./README.md#glossary) is written down in one caller's words, everyone
+[dance](./glossary.md#dance) is written down in one caller's words, everyone
 else has to translate it in their head. Dialects solve this. You keep every dance
 once, and the app shows it to *you* in *your* words — and to the next caller in
 theirs — without anyone rewriting anything.
@@ -32,7 +32,7 @@ theirs — without anyone rewriting anything.
 This is the single most important thing to understand, and it makes everything
 else safe to experiment with.
 
-Under the hood, every dance in your [collection](./README.md#glossary) is stored
+Under the hood, every dance in your [collection](./glossary.md#collection) is stored
 in one shared, neutral form. Your dialect is a layer of wording laid *on top* of
 that stored dance when the app draws it on screen. Choosing or switching a
 dialect changes only what you see — it never rewrites the dance itself.
@@ -43,7 +43,7 @@ That leads to a distinction worth keeping clear:
   read on the dance card, in a program, and while calling all update to match. No
   saved dance is touched.
 - **Editing a dance changes the *dance*.** That happens only in the dance editor,
-  when you deliberately change a [figure](./README.md#glossary), the notes, or the
+  when you deliberately change a [figure](./glossary.md#figure), the notes, or the
   title.
 
 Because the stored form never changes when you switch dialects, three good things
@@ -53,7 +53,7 @@ follow on their own:
   own role names or an older term, the app matches it against the shared form for
   you, so you find the dance either way.
 - **Your data stays portable.** A dance you saved in one dialect opens correctly
-  for someone using another, and your [backups](./README.md#backup--portability) never bake in one set
+  for someone using another, and your [backups](./backup-portability.md) never bake in one set
   of words.
 - **Nothing is ever lost in translation.** Switching between dialects — even
   repeatedly, even mid-evening — can't corrupt or reword your saved dances.
@@ -146,7 +146,7 @@ list ships with some common examples and is yours to edit, add to, or clear.
 ## Switch dialect on the fly
 
 You don't have to visit Settings every time. On the dance card and in
-[Perform mode](./README.md#glossary) there is a quick-switch control — the
+[Perform mode](./glossary.md#perform-mode) there is a quick-switch control — the
 people icon — that changes your active dialect instantly.
 
 Choose it, pick a dialect from the list, and the whole app re-reads in those
@@ -188,7 +188,7 @@ Two settings decide what you see before you touch anything:
   toggle still lets you switch a dance while it is open.
 
 For a full tour of everything under Settings, see the
-[Settings guide](./README.md#settings).
+[Settings guide](./settings.md).
 
 ## Practical scenarios
 
@@ -219,7 +219,7 @@ recognise, then flip back to your own.
   someone matches how *they* speak.
 - **Screen readers.** The app reads dances aloud in your dialect too — your own
   words are the clearest ones for you — so the spoken view and the visible view
-  stay in step. See the [accessibility guide](./README.md#accessibility) for more.
+  stay in step. See the [accessibility guide](./accessibility.md) for more.
 - **It's all on your device.** Dialects, like everything in Caller's Compendium,
   live only on your device. There is no account and nothing to sync.
 
@@ -228,8 +228,8 @@ recognise, then flip back to your own.
 - [Getting started](./getting-started.md) — find your way around the app.
 - [Perform mode](./perform.md) — call live, with the dialect and canonical
   controls close at hand.
-- [Settings](./README.md#settings) — where the dialect manager and display defaults live.
+- [Settings](./settings.md) — where the dialect manager and display defaults live.
 - [Collection & search](./collection.md) — searching works whatever dialect you
   use.
 - [Imports & migration](./imports.md) — bring in dances written in other words.
-- [Glossary](./README.md#glossary) — plain definitions of the terms used here.
+- [Glossary](./glossary.md) — plain definitions of the terms used here.

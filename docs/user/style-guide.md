@@ -40,16 +40,16 @@ gig.
   **Perform**, **Settings**, the **Import** button.
 - Put the most common path first; tuck edge cases and power-user details under a
   later "More options" or "Troubleshooting" heading.
-- Cross-link generously to other guides and to the [Glossary](./README.md#glossary)
+- Cross-link generously to other guides and to the [Glossary](./glossary.md)
   rather than re-explaining the same concept in several places.
 
 ## Terminology conventions
 
 Consistent words reduce confusion. Use these, and **link the first use of a term
-in each guide to the [Glossary](./README.md#glossary)** so newcomers can get a
-definition without leaving the page. (Until the Glossary guide is written, link
-to its hub anchor as shown here; the link target stays the same when the guide
-lands.)
+in each guide to the [Glossary](./glossary.md)** so newcomers can get a
+definition without leaving the page. Link to the term's own anchor — for example
+`./glossary.md#program` or `./glossary.md#dialect` — so the reader lands directly
+on that definition rather than the top of the page.
 
 - **Caller's Compendium** — the app's full name; "the app" is fine after first use.
 - **dance** — a single transcription in your **collection**.

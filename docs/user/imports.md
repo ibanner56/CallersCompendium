@@ -1,15 +1,15 @@
 # Imports & migration
 
-This guide is about getting dances *into* [Caller's Compendium](./README.md#glossary)
+This guide is about getting dances *into* [Caller's Compendium](./glossary.md#callers-compendium)
 and moving your whole library between devices. It covers bringing in single
-dances from [The Caller's Box](./README.md#glossary) and
-[ContraDB](./README.md#glossary), importing a Caller's Compendium file, and
+dances from [The Caller's Box](./glossary.md#the-callers-box) and
+[ContraDB](./glossary.md#contradb), importing a Caller's Compendium file, and
 backing up and restoring everything you own. Where a feature is still on the way,
 it says so plainly.
 
 ## Your data stays yours
 
-Caller's Compendium is **local-first**. Your [collection](./README.md#glossary)
+Caller's Compendium is **local-first**. Your [collection](./glossary.md#collection)
 lives on your own device, the app works fully offline, there is no account to
 create, and nothing you do is sent anywhere for tracking. Importing and
 exporting are the doors your dances walk through — the ways you bring
@@ -23,7 +23,7 @@ changes your collection until you say so.
 Every import follows one promise: **bringing a dance in never loses the dance.**
 
 When the app reads a dance from another source, it recognises the
-[figures](./README.md#glossary) it can and turns them into structured moves you
+[figures](./glossary.md#figure) it can and turns them into structured moves you
 can search and rework. Anything it does not recognise — an unusual phrasing, a
 complicated sequence, a note the choreographer tucked into a line — is kept
 word-for-word as a plain-text figure instead of being dropped. A dance can
@@ -111,8 +111,8 @@ below.
 ## Move your whole library: backup and restore
 
 A single Caller's Compendium file can hold **everything** — your dances,
-[programs](./README.md#glossary), custom fields,
-[dialects](./README.md#glossary), themes, and settings. This is how you keep a
+[programs](./glossary.md#program), custom fields,
+[dialects](./glossary.md#dialect), themes, and settings. This is how you keep a
 safety copy and how you move your whole library from an old machine to a new
 one. Because a backup you export can be restored (or imported) again exactly,
 moving between devices is a clean round trip: what you save is what you get back.
@@ -197,5 +197,5 @@ this guide will gain step-by-step instructions for each.
   [Backup & portability](./backup-portability.md).
 - Want imported dances to read in your own words and role names? See
   [Dialect](./dialects.md).
-- Unsure about a term used here? The [Glossary](./README.md#glossary) has plain
+- Unsure about a term used here? The [Glossary](./glossary.md) has plain
   definitions.

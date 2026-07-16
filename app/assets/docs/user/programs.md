@@ -1,16 +1,16 @@
 # Programs & matrix
 
-A [program](./README.md#glossary) is an ordered set list for one event —
+A [program](./glossary.md#program) is an ordered set list for one event —
 Saturday's dance, a weekend, a one-off gig. This guide shows you how to build a
-program from your [dances](./README.md#glossary), check the variety of your
+program from your [dances](./glossary.md#dance), check the variety of your
 evening at a glance with the
-[matrix](./README.md#glossary), print or share it, and keep track of what you
+[matrix](./glossary.md#matrix), print or share it, and keep track of what you
 have called.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Programs**, **New program**, and **Matrix**. The
 > first time a dance term appears it links to the
-> [Glossary](./README.md#glossary), so you can get a plain-language definition
+> [Glossary](./glossary.md), so you can get a plain-language definition
 > without losing your place.
 
 New to the app? The [Getting started guide](./getting-started.md) gives you the
@@ -42,7 +42,7 @@ is a low-fidelity layout sketch, not the finished app.*
 ![Wireframe sketch of the Programs builder, showing ordered program slots on the left and a collection picker with filters on the right](../design/wireframes/4-programs-builder.svg)
 
 - **Your program** — the ordered list of
-  [slots](./README.md#glossary) that make up the evening.
+  [slots](./glossary.md#slot) that make up the evening.
 - **The collection picker** — the same search tools you know from
   [Collection & search](./collection.md): the **Filters** panel, the
   **Advanced** figure builder, and the **By-Phrase** panel. Find a dance and add
@@ -52,10 +52,10 @@ is a low-fidelity layout sketch, not the finished app.*
 
 A program is made of three kinds of slots:
 
-- **Dance slots** — dances pulled from your [collection](./README.md#glossary).
+- **Dance slots** — dances pulled from your [collection](./glossary.md#collection).
 - **Free-text slots** — for the things between dances: a break, a waltz,
   announcements.
-- **[Alts](./README.md#glossary)** — an alternate dance you might call instead
+- **[Alts](./glossary.md#alt)** — an alternate dance you might call instead
   of the one above it. An alt appears indented under its primary and is marked
   with an icon and text (never color alone), so it is always clear which dance is
   the backup.
@@ -76,7 +76,7 @@ A program carries the details of its event:
 
 If you often play the same role, set a default caller or band in **Settings →
 Defaults** and new programs will prefill them — see
-[Settings](./README.md#settings). You can always change these per program.
+[Settings](./settings.md). You can always change these per program.
 
 ## Check your evening with the matrix
 
@@ -139,7 +139,7 @@ There are two ways to think about "called," and a setting lets you choose:
 - **only slots you marked performed** count.
 
 You mark a slot performed from within [Perform mode](./perform.md), during the
-event. The [Settings](./README.md#settings) toggle decides which of the two
+event. The [Settings](./settings.md) toggle decides which of the two
 rules a dance's calling history follows.
 
 ## Where to go next
@@ -148,8 +148,8 @@ rules a dance's calling history follows.
 - **Call your program from the stage:** [Perform mode](./perform.md)
 - **Put your programs in your own words:** [Dialect](./dialects.md)
 - **Save and move your data:**
-  [Settings](./README.md#settings) ·
-  [Backup & portability](./README.md#backup--portability)
+  [Settings](./settings.md) ·
+  [Backup & portability](./backup-portability.md)
 
-Not sure what a word means? The [Glossary](./README.md#glossary) has plain
+Not sure what a word means? The [Glossary](./glossary.md) has plain
 definitions for every term used across these guides.
