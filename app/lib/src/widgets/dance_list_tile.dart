@@ -26,6 +26,9 @@ class DanceListTile extends StatelessWidget {
     this.selected = false,
     this.selectionMode = false,
     this.selectedForBatch = false,
+    this.onDelete,
+    this.onDuplicate,
+    this.onAddToProgram,
   }) : assert(
          !selectionMode || selected == selectedForBatch,
          'In selection mode the row highlight (selected) must match the '
@@ -51,6 +54,19 @@ class DanceListTile extends StatelessWidget {
 
   /// Whether this row is currently checked in batch multi-select mode.
   final bool selectedForBatch;
+
+  /// Soft-deletes this dance (same flow as swipe-to-delete, incl. the undo
+  /// snackbar). When non-null and the row is not in [selectionMode], the
+  /// trailing overflow (⋮) menu exposes a "Delete" action.
+  final VoidCallback? onDelete;
+
+  /// Duplicates this dance. When non-null (and not in [selectionMode]) the ⋮
+  /// menu exposes a "Duplicate" action.
+  final VoidCallback? onDuplicate;
+
+  /// Opens the add-to-program flow for this dance. When non-null (and not in
+  /// [selectionMode]) the ⋮ menu exposes an "Add to program" action.
+  final VoidCallback? onAddToProgram;
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +172,7 @@ class DanceListTile extends StatelessWidget {
         ),
       ),
       isThreeLine: false,
-      trailing: selectionMode ? null : const Icon(Icons.chevron_right),
+      trailing: selectionMode ? null : _buildTrailing(),
       onTap:
           onTap ??
           () => Navigator.of(context).push(
@@ -167,4 +183,78 @@ class DanceListTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
   }
+
+  /// Trailing content for a normal (non-selection) row: the row action overflow
+  /// (⋮) menu when any action callback is wired, followed by the drill-in
+  /// chevron. Falls back to the chevron alone when no actions are provided.
+  Widget _buildTrailing() {
+    final hasActions =
+        onDelete != null || onDuplicate != null || onAddToProgram != null;
+    if (!hasActions) return const Icon(Icons.chevron_right);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [_actionsMenu(), const Icon(Icons.chevron_right)],
+    );
+  }
+
+  /// A keyboard- and screen-reader-reachable "⋮" menu exposing the row actions
+  /// without a swipe. Each item is a first-class [PopupMenuItem] with an
+  /// icon+text [ListTile] so its label is announced by assistive tech; the
+  /// button itself is labelled by its [PopupMenuButton.tooltip].
+  Widget _actionsMenu() {
+    final dance = entry.dance;
+    return PopupMenuButton<_DanceRowAction>(
+      key: ValueKey('dance-actions-${dance.id}'),
+      tooltip: 'Actions for ${dance.title}',
+      icon: const Icon(Icons.more_vert),
+      onSelected: (action) {
+        switch (action) {
+          case _DanceRowAction.duplicate:
+            onDuplicate?.call();
+          case _DanceRowAction.addToProgram:
+            onAddToProgram?.call();
+          case _DanceRowAction.delete:
+            onDelete?.call();
+        }
+      },
+      itemBuilder: (context) => [
+        if (onDuplicate != null)
+          const PopupMenuItem<_DanceRowAction>(
+            key: ValueKey('dance-action-duplicate'),
+            value: _DanceRowAction.duplicate,
+            child: ListTile(
+              leading: Icon(Icons.copy_all_outlined),
+              title: Text('Duplicate'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        if (onAddToProgram != null)
+          const PopupMenuItem<_DanceRowAction>(
+            key: ValueKey('dance-action-add-to-program'),
+            value: _DanceRowAction.addToProgram,
+            child: ListTile(
+              leading: Icon(Icons.playlist_add),
+              title: Text('Add to program'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        if (onDelete != null) ...[
+          if (onDuplicate != null || onAddToProgram != null)
+            const PopupMenuDivider(),
+          const PopupMenuItem<_DanceRowAction>(
+            key: ValueKey('dance-action-delete'),
+            value: _DanceRowAction.delete,
+            child: ListTile(
+              leading: Icon(Icons.delete_outline),
+              title: Text('Delete'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
+
+/// Row actions exposed by [DanceListTile]'s trailing overflow (⋮) menu.
+enum _DanceRowAction { duplicate, addToProgram, delete }

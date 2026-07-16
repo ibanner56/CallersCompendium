@@ -142,4 +142,55 @@ void main() {
     await tester.pumpAndSettle();
     expect((await repos.programs.listAll()), hasLength(1));
   });
+
+  testWidgets(
+    'row overflow menu Delete soft-deletes with the same undo snackbar as swipe',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Menu Delete'));
+      await repos.programs.create(_program(id: 'p2', title: 'Stay Here'));
+      await _pump(tester, repos);
+
+      // Open the row's ⋮ menu (no swipe) and invoke Delete.
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Menu Delete'), findsNothing);
+      expect(find.text('Stay Here'), findsOneWidget);
+      // Identical undo snackbar as the swipe flow.
+      expect(
+        find.byKey(const ValueKey('program-deleted-snackbar')),
+        findsOneWidget,
+      );
+      expect(find.text('Undo'), findsOneWidget);
+
+      final deleted = await repos.programs.getById('p1', includeDeleted: true);
+      expect(deleted, isNotNull);
+      expect(deleted!.deletedAt, isNotNull);
+
+      // Undo restores it.
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(await repos.programs.getById('p1'), isNotNull);
+    },
+  );
+
+  testWidgets('row overflow menu Duplicate creates a "(copy)" program', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Copy Me'));
+    await _pump(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-action-duplicate')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Copy Me (copy)'), findsOneWidget);
+    final all = await repos.programs.listAll();
+    expect(all.where((p) => p.title == 'Copy Me (copy)'), isNotEmpty);
+  });
 }
