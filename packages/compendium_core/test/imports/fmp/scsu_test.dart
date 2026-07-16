@@ -26,6 +26,15 @@ void main() {
       expect(decodeScsu([0x61, 0x09, 0x62]), 'a b');
     });
 
+    test('decodes an SDX extended dynamic window per the UTS-#6 spec', () {
+      // SDX(0x0B) H=0x20 L=0x00 → window 1, offset 0x10000; a following 0x80
+      // byte then maps to U+10000 (a supplementary-plane code point).
+      expect(
+        decodeScsu([0x0B, 0x20, 0x00, 0x80]),
+        String.fromCharCode(0x10000),
+      );
+    });
+
     test('empty input yields empty string, never throws', () {
       expect(decodeScsu(const []), '');
     });

@@ -2,12 +2,22 @@
 /// (SCSU, Unicode Technical Standard #6), the text encoding FileMaker Pro 12
 /// uses for stored string values.
 ///
-/// This is a faithful port of the reference C implementation in the
+/// This is a close port of the reference C implementation in the
 /// MIT-licensed `fmptools` project (`src/scsu.c`, © 2020 Evan Miller) — see
 /// `docs/design/imports.md` §2 and the adapter that consumes it. It is kept
 /// deliberately close to the original (same control-code handling, same
 /// CR/VT/LF and tab normalisation) so its output matches `fmp2json`/`fmp2sqlite`
 /// on real files, which is how the reader is validated.
+///
+/// One deliberate deviation: the SCSU *define-extended-window* opcodes
+/// (`SDX`/`UDX`) are decoded per the UTS-#6 spec — the window index comes from
+/// the top three bits of the first parameter byte and the offset is
+/// `0x10000 + (((H & 0x1F) << 8) | L) * 0x80` — rather than reproducing an
+/// upstream quirk that read the window from the opcode byte and used decimal
+/// constants. These paths only apply to supplementary-plane text, which
+/// FileMaker's Latin/BMP string fields never use, so the byte-for-byte
+/// validation against real files is unaffected; correcting them just avoids a
+/// latent mis-decode for exotic input.
 ///
 /// Pure Dart (no `dart:convert` codec, no `package:flutter`) so it can live in
 /// the Flutter-free core.
@@ -72,8 +82,11 @@ int _offsetTable(int x) {
   }
 }
 
+/// The SCSU extended-window offset (UTS-#6): the window base for a
+/// define-extended opcode, spanning the supplementary planes. [hByte] is the
+/// first parameter byte; its low 5 bits and [lByte] form the window number.
 int _extendedOffset(int hByte, int lByte) =>
-    10000 + 80 * ((hByte & 0x1F) * 100 + lByte);
+    0x10000 + (((hByte & 0x1F) << 8) | lByte) * 0x80;
 
 /// Decodes SCSU-encoded [src] bytes into a Dart string.
 ///
@@ -117,7 +130,9 @@ String decodeScsu(List<int> src) {
         break;
       } else if (c == _udx) {
         if (i + 2 <= src.length) {
-          activeWindow = (c & 0xE0) >> 5;
+          // Window index + offset both derive from the parameter bytes (spec),
+          // not the opcode.
+          activeWindow = src[i] >> 5;
           dynamicWindowOffsets[activeWindow] = _extendedOffset(
             src[i],
             src[i + 1],
@@ -162,7 +177,9 @@ String decodeScsu(List<int> src) {
       break;
     } else if (c == _sdx) {
       if (i + 2 <= src.length) {
-        activeWindow = (c & 0xE0) >> 5;
+        // Window index + offset both derive from the parameter bytes (spec),
+        // not the opcode.
+        activeWindow = src[i] >> 5;
         dynamicWindowOffsets[activeWindow] = _extendedOffset(
           src[i],
           src[i + 1],

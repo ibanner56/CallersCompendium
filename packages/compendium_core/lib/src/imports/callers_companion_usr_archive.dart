@@ -94,7 +94,11 @@ class CcSetItem {
     this.minutes,
   });
 
-  /// The 0-based slot position (derived from CC `Order`, best-effort).
+  /// The CC `Order` value (as stored — CC is 1-based), used only to **sequence**
+  /// a set's items; falls back to insertion order when `Order` is missing or
+  /// unparseable. It is a sort key, not a final slot position: `buildCcPrograms`
+  /// sorts by it and then assigns each surviving slot its own 0-based
+  /// [ProgramSlot.position].
   final int order;
 
   /// The CC `Dance` record id this slot plays, if it references a dance.

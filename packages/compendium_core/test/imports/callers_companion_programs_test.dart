@@ -125,6 +125,24 @@ void main() {
     expect(result.programs.single.title, "Caller's Companion set #42");
   });
 
+  test('an impossible calendar date (2/31) is rejected as unparseable', () {
+    final result = build(
+      _archive([
+        CcSet(
+          recordId: '1',
+          title: 'S',
+          eventDate: '2/31/2020',
+          items: const [],
+        ),
+      ]),
+    );
+    expect(result.programs.single.eventDate, isNull);
+    expect(
+      result.issues.any((i) => i.code == 'cc_program_unparsed_date'),
+      isTrue,
+    );
+  });
+
   test('parses ISO event dates too', () {
     final result = build(
       _archive([

@@ -158,7 +158,12 @@ String _titleFor(CcSet set) {
     final month = int.parse(m.group(1)!);
     final day = int.parse(m.group(2)!);
     if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-      return (DateTime.utc(year, month, day), null);
+      final date = DateTime.utc(year, month, day);
+      // DateTime silently normalises impossible dates (e.g. 2/31 → Mar 2), so
+      // reject anything that didn't round-trip rather than storing a wrong day.
+      if (date.year == year && date.month == month && date.day == day) {
+        return (date, null);
+      }
     }
   }
 
