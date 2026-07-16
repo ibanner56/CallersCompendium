@@ -142,8 +142,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // Fast, once-per-launch integrity probe (SQLite `PRAGMA quick_check`, per
     // `docs/design/storage.md` "Durability"). A failure is advisory — the app
     // still opens, but [build] surfaces a corruption warning so the user can
-    // restore from a backup (Stage 1.7).
-    _dataIntegrityOk = await _runIntegrityCheck();
+    // restore from a backup (Stage 1.7). A thrown probe (not just a `false`
+    // result) is treated as a failed check too, so startup continues and warns
+    // rather than blocking the whole app on the error/retry screen.
+    _dataIntegrityOk = await _runIntegrityCheck().catchError((_) => false);
     // Resolve the configured soft-delete retention window (ROADMAP G.4),
     // defaulting to 30 days when unset. A `null` window means "never
     // auto-purge", so the startup sweep is skipped entirely.

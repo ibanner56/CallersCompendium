@@ -36,7 +36,14 @@ class _FailingWindowService extends WindowService {
   void dispose() {}
 }
 
-AppData _openAppData() => AppData(CompendiumDatabase(NativeDatabase.memory()));
+AppData _openAppData() {
+  final appData = AppData(CompendiumDatabase(NativeDatabase.memory()));
+  // The database is also closed by CompendiumApp.dispose(); sqlite3's close is
+  // idempotent, so this teardown just guarantees cleanup even for the last test
+  // in the file (whose widget tree is never unmounted).
+  addTearDown(appData.close);
+  return appData;
+}
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
