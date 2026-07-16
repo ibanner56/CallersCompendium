@@ -69,9 +69,23 @@ void main() {
   test('invalid JSON yields a structured error and an empty document', () {
     final decoded = decodeBackup('not json {');
     expect(decoded.hasErrors, isTrue);
+    expect(decoded.fatal, isTrue);
     expect(decoded.errors.single.entityType, 'backup');
     expect(decoded.document.core.dances, isEmpty);
     expect(decoded.document.customDialects, isEmpty);
+  });
+
+  test('a backup missing its core section is fatal', () {
+    final decoded = decodeBackup(
+      '{"backupVersion": 1, "app": {"settings": {}}}',
+    );
+    expect(decoded.fatal, isTrue);
+    expect(decoded.errors.any((e) => e.entityType == 'backup'), isTrue);
+  });
+
+  test('a non-object core section is fatal', () {
+    final decoded = decodeBackup('{"backupVersion": 1, "core": 5}');
+    expect(decoded.fatal, isTrue);
   });
 
   test('a newer backupVersion is read best-effort with a warning', () {
@@ -97,6 +111,8 @@ void main() {
       // The good theme still loads; the malformed one is recorded as an error.
       expect(decoded.document.customThemes.single.id, 'ok');
       expect(decoded.errors.any((e) => e.entityType == 'theme'), isTrue);
+      // A per-entity problem is NOT fatal — the rest of the backup is usable.
+      expect(decoded.fatal, isFalse);
     },
   );
 

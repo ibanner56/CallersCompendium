@@ -71,11 +71,19 @@ class BackupReadResult {
     required this.document,
     this.errors = const [],
     this.warnings = const [],
+    this.fatal = false,
   });
 
   final BackupDocument document;
   final List<ArchiveError> errors;
   final List<String> warnings;
+
+  /// Whether the envelope itself was unusable (not valid JSON, not a JSON
+  /// object, or missing/invalid `core`). A fatal result must never drive a
+  /// destructive restore — there is nothing safe to apply and doing so in
+  /// replace mode would wipe live data. Per-entity problems (a single corrupt
+  /// dialect/theme/dance) are recorded in [errors] but are NOT fatal.
+  final bool fatal;
 
   bool get hasErrors => errors.isNotEmpty;
 }
@@ -137,6 +145,7 @@ BackupReadResult decodeBackup(String json) {
           cause: e,
         ),
       ],
+      fatal: true,
     );
   }
   if (root is! Map) {
@@ -149,6 +158,7 @@ BackupReadResult decodeBackup(String json) {
           message: 'backup file is not a JSON object',
         ),
       ],
+      fatal: true,
     );
   }
   return backupFromJson(root.cast<String, Object?>());
@@ -180,6 +190,10 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
   }
 
   // --- core archive ---
+  // A backup with no usable `core` is fatal: a destructive replace restore off
+  // an empty archive would wipe live content. We record the problem and mark
+  // the result fatal so the service refuses to touch live data.
+  var coreFatal = false;
   CompendiumArchive core = CompendiumArchive(exportedAt: _epoch);
   final rawCore = root['core'];
   if (rawCore is Map) {
@@ -188,11 +202,21 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
     errors.addAll(coreResult.errors);
     warnings.addAll(coreResult.warnings);
   } else if (rawCore != null) {
+    coreFatal = true;
     errors.add(
       const ArchiveError(
         kind: ArchiveErrorKind.read,
         entityType: 'backup',
         message: 'core section is not an object; no content restored',
+      ),
+    );
+  } else {
+    coreFatal = true;
+    errors.add(
+      const ArchiveError(
+        kind: ArchiveErrorKind.read,
+        entityType: 'backup',
+        message: 'backup has no core section; no content restored',
       ),
     );
   }
@@ -283,5 +307,6 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
     ),
     errors: errors,
     warnings: warnings,
+    fatal: coreFatal,
   );
 }

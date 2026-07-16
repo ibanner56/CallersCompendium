@@ -102,6 +102,26 @@ void main() {
     },
   );
 
+  test(
+    'restore removes stale non-denylisted settings absent from the backup',
+    () async {
+      final source = openTestRepositories();
+      await _seed(source);
+      final json = await BackupService(source).exportToJson();
+
+      final target = openTestRepositories();
+      // A stale preference key that is NOT present in the backup.
+      await target.settings.set('some_stale_pref', 'old-value');
+
+      await BackupService(target).restoreFromJson(json);
+
+      // Replace semantics: the stale key is gone after restore.
+      expect(await target.settings.get('some_stale_pref'), isNull);
+      // A backed-up preference is present.
+      expect(await target.settings.get(kSortIgnoreArticlesKey), false);
+    },
+  );
+
   test('recordBackup stamps the last-backup timestamp', () async {
     final repos = openTestRepositories();
     final at = DateTime.utc(2026, 7, 15, 9, 30);
@@ -114,9 +134,37 @@ void main() {
     );
   });
 
-  test('restoring malformed JSON reports errors without throwing', () async {
-    final repos = openTestRepositories();
-    final outcome = await BackupService(repos).restoreFromJson('garbage {');
-    expect(outcome.hasErrors, isTrue);
-  });
+  test(
+    'restoring malformed JSON reports errors without touching live data',
+    () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('live', 'Live Dance'));
+
+      final outcome = await BackupService(repos).restoreFromJson('garbage {');
+
+      expect(outcome.hasErrors, isTrue);
+      expect(outcome.applied, isFalse);
+      // Live content is untouched — a corrupt file must never wipe data.
+      final dances = await repos.dances.listAll();
+      expect(dances.map((d) => d.id), ['live']);
+    },
+  );
+
+  test(
+    'restoring a backup with no core aborts without wiping live data',
+    () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('live', 'Live Dance'));
+
+      // Well-formed JSON, but no `core` section — must be treated as fatal.
+      final outcome = await BackupService(
+        repos,
+      ).restoreFromJson('{"backupVersion":1,"app":{"settings":{}}}');
+
+      expect(outcome.applied, isFalse);
+      expect(outcome.hasErrors, isTrue);
+      final dances = await repos.dances.listAll();
+      expect(dances.map((d) => d.id), ['live']);
+    },
+  );
 }

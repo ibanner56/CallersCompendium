@@ -289,6 +289,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     try {
       final outcome = await BackupService(repos).restoreFromJson(json);
+      if (!outcome.applied) {
+        if (!mounted) return;
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Couldn't restore: the file isn't a valid backup. "
+              'Your data is unchanged.',
+            ),
+          ),
+        );
+        return;
+      }
       if (onRestored != null) await onRestored();
       if (!mounted) return;
       messenger.showSnackBar(

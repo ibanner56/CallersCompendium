@@ -35,10 +35,17 @@ class BackupRestoreOutcome {
   const BackupRestoreOutcome({
     this.errors = const [],
     this.warnings = const [],
+    this.applied = false,
   });
 
   final List<ArchiveError> errors;
   final List<String> warnings;
+
+  /// Whether the restore actually wrote to live data. `false` means the backup
+  /// was rejected before anything was touched (a fatal envelope error such as
+  /// invalid JSON or a missing/invalid `core` section), so the live app is
+  /// unchanged and no refresh is warranted.
+  final bool applied;
 
   bool get hasErrors => errors.isNotEmpty;
 }
@@ -100,12 +107,26 @@ class BackupService {
   /// the app-local dialects, themes, and preference settings are written back
   /// into the `settings` table. Tolerant throughout: decode/restore problems are
   /// collected into the returned [BackupRestoreOutcome] rather than thrown.
+  ///
+  /// A **fatal** decode (invalid JSON, non-object root, or a missing/invalid
+  /// `core` section) aborts before touching live data, so a corrupt or wrong
+  /// file can never wipe the user's content. Such a restore returns
+  /// [BackupRestoreOutcome.applied] `false`.
   Future<BackupRestoreOutcome> restoreFromJson(String json) async {
     final read = decodeBackup(json);
-    final doc = read.document;
     final errors = <ArchiveError>[...read.errors];
     final warnings = <String>[...read.warnings];
 
+    if (read.fatal) {
+      // Nothing safe to restore — leave live data untouched.
+      return BackupRestoreOutcome(
+        errors: errors,
+        warnings: warnings,
+        applied: false,
+      );
+    }
+
+    final doc = read.document;
     final restoreResult = await ArchiveRestorer(
       _repos,
     ).restore(doc.core, mode: RestoreMode.replace);
@@ -114,13 +135,31 @@ class BackupService {
 
     await _applyAppSettings(doc);
 
-    return BackupRestoreOutcome(errors: errors, warnings: warnings);
+    return BackupRestoreOutcome(
+      errors: errors,
+      warnings: warnings,
+      applied: true,
+    );
   }
 
   /// Writes the backup's app-local pieces into the `settings` table so the
   /// dialect/theme controllers and preference notifiers pick them up on reload.
+  ///
+  /// This is a **replace**: existing non-denylisted preference keys that are
+  /// absent from the backup are removed first, so restoring an older backup
+  /// can't leave stale preferences behind. Denylisted keys (device-local
+  /// geometry, backup metadata, and the structurally-represented dialect/theme
+  /// keys) are preserved and handled explicitly below.
   Future<void> _applyAppSettings(BackupDocument doc) async {
     final settings = _repos.settings;
+
+    final existing = await settings.all();
+    final backedUp = doc.settings.keys.toSet();
+    for (final key in existing.keys) {
+      if (kBackupSettingsDenylist.contains(key)) continue;
+      if (backedUp.contains(key)) continue;
+      await settings.remove(key);
+    }
 
     // Dialect library: rewrite the custom list and the active ref, plus keep the
     // legacy full-blob key in sync for any reader that still resolves the active
