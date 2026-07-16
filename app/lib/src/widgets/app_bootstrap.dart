@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../data/migration_guard.dart' show DatabaseDowngradeError;
+
 /// Gates the app on a startup [future] — the schema migration / derived-index
 /// back-fill run by `CompendiumRepositories.ensureMigrated()`. Shows a loading
 /// screen while it runs (so nothing reads the derived indexes before they are
 /// rebuilt), an error screen with retry if it fails, and [builder]'s content
 /// once it completes.
+///
+/// One error is special-cased: a [DatabaseDowngradeError] (the on-disk data was
+/// written by a newer build) shows that error's guidance and *no* Retry — the
+/// only fix is to update the app, so retrying would just fail again.
 class AppBootstrap extends StatelessWidget {
   const AppBootstrap({
     super.key,
@@ -32,6 +38,24 @@ class AppBootstrap extends StatelessWidget {
           );
         }
         if (snapshot.hasError) {
+          final error = snapshot.error;
+          if (error is DatabaseDowngradeError) {
+            return Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.system_update_alt, size: 48),
+                      const SizedBox(height: 8),
+                      Text(error.message, textAlign: TextAlign.center),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
           return Scaffold(
             body: Center(
               child: Column(

@@ -14,6 +14,7 @@ import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
+import 'src/data/migration_guard.dart';
 import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
@@ -43,7 +44,15 @@ Future<void> main() async {
   // `runApp` — which would leave a blank window with no way to recover.
   final appData = AppData(openAppDatabase());
   final windowService = WindowService(appData.repositories.settings);
-  runApp(CompendiumApp(appData: appData, windowService: windowService));
+  runApp(
+    CompendiumApp(
+      appData: appData,
+      windowService: windowService,
+      migrationPreflight: () => runMigrationPreflightForApp(
+        runningSchemaVersion: kCompendiumSchemaVersion,
+      ),
+    ),
+  );
 }
 
 /// Root widget. The on-device database is opened once (in [main]) and injected;
@@ -70,6 +79,7 @@ class CompendiumApp extends StatefulWidget {
     super.key,
     required this.appData,
     required this.windowService,
+    this.migrationPreflight,
     this.integrityCheck,
   });
 
@@ -80,6 +90,14 @@ class CompendiumApp extends StatefulWidget {
 
   /// The desktop window service to tear down on dispose (no-op off desktop).
   final WindowService windowService;
+
+  /// Data-safety preflight run as the *first* bootstrap step, before anything
+  /// forces the database open (see `migration_guard.dart`): it guards against
+  /// opening a file written by a newer build (throws [DatabaseDowngradeError],
+  /// routed to the [AppBootstrap] error screen) and snapshots the file before a
+  /// pending upgrade migration. Injected from [main]; left `null` in tests that
+  /// don't exercise it (the step is then skipped), mirroring [integrityCheck].
+  final Future<void> Function()? migrationPreflight;
 
   /// Fast, once-per-launch data-integrity probe run during bootstrap. Returns
   /// `true` when the database is healthy; `false` triggers a (non-fatal)
@@ -148,6 +166,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
   }
 
   Future<void> _startupSequence() async {
+    // Data-safety preflight, before anything opens the database (Phase 7):
+    // refuse to open a file written by a newer build (routes to the error
+    // screen) and snapshot the file before a pending upgrade migration. Runs
+    // first so no drift open — including the window restore below — precedes it.
+    if (widget.migrationPreflight != null) {
+      await widget.migrationPreflight!();
+    }
     // Restore the last-known desktop window size/position (no-op off desktop).
     // This reads the persisted frame, which forces the database open, so it
     // runs here — inside the bootstrapped future gated by [AppBootstrap] —

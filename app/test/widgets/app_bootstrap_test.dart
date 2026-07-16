@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/widgets/app_bootstrap.dart';
 
 void main() {
@@ -57,5 +58,28 @@ void main() {
 
     await tester.tap(find.text('Retry'));
     expect(retried, isTrue);
+  });
+
+  testWidgets('a downgrade error shows update guidance and no Retry', (
+    tester,
+  ) async {
+    final completer = Completer<void>();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppBootstrap(
+          future: completer.future,
+          onRetry: () {},
+          builder: (_) => const Text('Collection ready'),
+        ),
+      ),
+    );
+
+    const error = DatabaseDowngradeError(fileVersion: 12, appVersion: 9);
+    completer.completeError(error);
+    await tester.pumpAndSettle();
+
+    expect(find.text(error.message), findsOneWidget);
+    expect(find.text('Retry'), findsNothing);
+    expect(find.text('Collection ready'), findsNothing);
   });
 }
