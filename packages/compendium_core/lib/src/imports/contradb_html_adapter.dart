@@ -1,12 +1,11 @@
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
-import '../dialect/canonicalize.dart';
-import '../dialect/dialect.dart';
 import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import 'figure_text_scrub.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -248,7 +247,7 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       if (figureCell == null) continue;
       final hasProgression = _hasProgression(figureCell);
       final rawText = figureCell.text;
-      final scrubbed = _scrub(_stripProgressionMarkers(rawText)).trim();
+      final scrubbed = scrubFigureText(_stripProgressionMarkers(rawText));
       if (scrubbed.isEmpty) continue;
 
       // Parse beats only once the row is known to emit a figure, so a beats
@@ -307,23 +306,6 @@ class ContraDbHtmlAdapter implements SourceAdapter {
 
   String _stripProgressionMarkers(String text) =>
       text.replaceAll(_progressionMarker, ' ');
-
-  /// Applies the dialect chokepoint (gendered role terms → canonical tokens)
-  /// after the `gypsy` → `shoulder round` legacy-move safety net, matching the
-  /// CallersBox/Caller's Companion adapters. Whitespace is collapsed so that
-  /// unwrapped inline markup does not leave doubled spaces.
-  ///
-  /// NOTE: this intentionally mirrors the sibling `_scrub` helpers in
-  /// `callersbox_adapter.dart` and `callers_companion_*` — it is now the third
-  /// copy. A future pass should extract a shared free-text-scrub helper (the
-  /// same phase that owns the free-text → structured-move taxonomy parser).
-  String _scrub(String text) {
-    final degypsied = text
-        .replaceAllMapped(_gypsiesTerm, (_) => 'shoulder rounds')
-        .replaceAllMapped(_gypsyTerm, (_) => 'shoulder round');
-    final canonical = canonicalizeText(degypsied, Dialect.canonical);
-    return canonical.replaceAll(_whitespace, ' ').trim();
-  }
 
   // --- Formation -------------------------------------------------------------
 
@@ -451,13 +433,6 @@ class ContraDbHtmlAdapter implements SourceAdapter {
   /// `⁋` (U+204B) and the standard pilcrow `¶` (U+00B6). The `<u>` element is
   /// handled separately since it carries no distinctive character.
   static final RegExp _progressionMarker = RegExp('[\u204B\u00B6]');
-
-  static final RegExp _whitespace = RegExp(r'\s+');
-  static final RegExp _gypsyTerm = RegExp(r'\bgypsy\b', caseSensitive: false);
-  static final RegExp _gypsiesTerm = RegExp(
-    r'\bgypsies\b',
-    caseSensitive: false,
-  );
 
   static final DateTime _epoch = DateTime.fromMillisecondsSinceEpoch(
     0,

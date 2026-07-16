@@ -1,12 +1,11 @@
 import 'dart:convert';
 
-import '../dialect/canonicalize.dart';
-import '../dialect/dialect.dart';
 import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
+import 'figure_text_scrub.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -297,21 +296,12 @@ class CallersBoxAdapter implements SourceAdapter {
       beats = int.tryParse(match.group(1)!) ?? 0;
       text = match.group(2)!.trim();
     }
-    final scrubbed = _scrub(text).trim();
+    final scrubbed = scrubFigureText(text);
     if (scrubbed.isEmpty) return null;
     final withLabel = (label == null || label.isEmpty)
         ? scrubbed
         : '$label: $scrubbed';
     return customFigure(withLabel, beats: beats);
-  }
-
-  /// Applies the dialect chokepoint (gendered role terms → canonical tokens)
-  /// after the `gypsy` → `shoulder round` legacy-move safety net.
-  String _scrub(String text) {
-    final degypsied = text
-        .replaceAllMapped(_gypsiesTerm, (_) => 'shoulder rounds')
-        .replaceAllMapped(_gypsyTerm, (_) => 'shoulder round');
-    return canonicalizeText(degypsied, Dialect.canonical);
   }
 
   // --- Formation -------------------------------------------------------------
@@ -567,11 +557,6 @@ class CallersBoxAdapter implements SourceAdapter {
   static final RegExp _beatsPrefix = RegExp(
     r'^\s*\((\d+)\)\s*(.*)$',
     dotAll: true,
-  );
-  static final RegExp _gypsyTerm = RegExp(r'\bgypsy\b', caseSensitive: false);
-  static final RegExp _gypsiesTerm = RegExp(
-    r'\bgypsies\b',
-    caseSensitive: false,
   );
 
   static final DateTime _epoch = DateTime.fromMillisecondsSinceEpoch(
