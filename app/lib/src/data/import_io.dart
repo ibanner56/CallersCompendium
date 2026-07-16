@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:compendium_core/compendium_core.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:http/http.dart' as http;
 
@@ -105,4 +106,98 @@ Future<String> fetchImportUrl(String url, {http.Client? client}) async {
     throw const UrlFetchException('The URL returned an empty response.');
   }
   return body;
+}
+
+/// Transforms the raw text a user typed in URL mode (a pasted link or a bare
+/// id) into the actual URL that should be fetched. Returns the fetch URL, or
+/// throws a [UrlFetchException] whose [UrlFetchException.message] is safe to
+/// show directly. Returning the input unchanged (see [ImportSource.urlBuilder]
+/// being `null`) means "fetch exactly what was typed".
+typedef ImportUrlBuilder = String Function(String input);
+
+/// One selectable import source in [ImportReviewScreen]: a human [label], the
+/// [adapterFactory] that parses its payloads, and an optional [urlBuilder] that
+/// rewrites URL-mode input before it is fetched.
+///
+/// Keeping the adapter choice and URL rewrite together (rather than sniffing a
+/// hostname) lets the user pick the source explicitly, which is the only way to
+/// route a **bare id** (e.g. `1`) — it has no host to auto-detect from.
+class ImportSource {
+  const ImportSource({
+    required this.label,
+    required this.adapterFactory,
+    this.urlBuilder,
+  });
+
+  /// Human-readable name, e.g. "Caller's Compendium JSON" or "The Caller's Box".
+  final String label;
+
+  /// Builds a fresh [SourceAdapter] for each planning run (adapters may hold
+  /// per-discovery state).
+  final SourceAdapter Function() adapterFactory;
+
+  /// Rewrites URL-mode input into the URL actually fetched; `null` fetches the
+  /// input verbatim (the generic-JSON case).
+  final ImportUrlBuilder? urlBuilder;
+}
+
+/// The host used to build a Caller's Box JSON endpoint from a **bare id**.
+/// Confirmed live: `dance.php?id=1&format=JSON` returns real TCB JSON. A pasted
+/// full URL keeps its own host (so the surveyed `ibiblio.org` mirror also
+/// works); only bare-id input needs a host supplied here.
+const String callersBoxHost = 'www.thecallersbox.com';
+
+/// Builds the Caller's Box per-dance JSON endpoint from what the user typed.
+///
+/// The Caller's Box serves per-dance JSON at `dance.php?id=N&format=JSON`. This
+/// accepts either:
+/// - a **bare numeric id** (`"1"`) → `https://www.thecallersbox.com/dance.php?id=1&format=JSON`;
+/// - a pasted **http(s) URL** with an `id` query param (`.../dance.php?id=N`,
+///   with or without an existing `format=…`) → the same URL with `format=JSON`
+///   set (any existing `format` is overwritten, so it is never doubled and an
+///   already-`format=JSON` link is returned effectively unchanged). The pasted
+///   host and path are preserved.
+///
+/// Throws a [UrlFetchException] (message safe to show) for empty input, a
+/// non-http(s) URL, or a URL with no dance id.
+String buildCallersBoxJsonUrl(String input) {
+  final trimmed = input.trim();
+  if (trimmed.isEmpty) {
+    throw const UrlFetchException(
+      "Enter a Caller's Box dance URL or id to import from.",
+    );
+  }
+
+  // Bare numeric id: build the canonical endpoint from scratch.
+  if (RegExp(r'^\d+$').hasMatch(trimmed)) {
+    return Uri.https(callersBoxHost, '/dance.php', {
+      'id': trimmed,
+      'format': 'JSON',
+    }).toString();
+  }
+
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null ||
+      !uri.hasScheme ||
+      (!uri.isScheme('http') && !uri.isScheme('https'))) {
+    throw const UrlFetchException(
+      "That doesn't look like a Caller's Box dance URL or a numeric id.",
+    );
+  }
+
+  final id = uri.queryParameters['id'];
+  if (id == null || id.trim().isEmpty) {
+    throw const UrlFetchException(
+      "That Caller's Box URL is missing a dance id (…dance.php?id=N).",
+    );
+  }
+
+  // Preserve the pasted host/path/other params; force format=JSON (overwrites
+  // any existing value, case-insensitively, so it is never duplicated).
+  final params = <String, String>{};
+  uri.queryParameters.forEach((key, value) {
+    if (key.toLowerCase() != 'format') params[key] = value;
+  });
+  params['format'] = 'JSON';
+  return uri.replace(queryParameters: params).toString();
 }
