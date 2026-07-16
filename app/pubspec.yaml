@@ -36,6 +36,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/fonts/Roboto-VariableFont.ttf
+    # Bundled font license texts, loaded at runtime via LicenseRegistry so
+    # they appear in showLicensePage (Settings ▸ About ▸ View licenses).
+    - assets/fonts/Fraunces-OFL.txt
+    - assets/fonts/AtkinsonHyperlegible-OFL.txt
+    - assets/fonts/Roboto-OFL.txt
   fonts:
     - family: Fraunces # display / headings (serif, OFL) — variable opsz/wght
       fonts:

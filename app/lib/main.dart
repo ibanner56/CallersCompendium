@@ -21,6 +21,7 @@ import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/window_service.dart';
+import 'src/licenses.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/settings_screen.dart'
     show kAppThemeKey, kRequirePerformedForHistoryKey, kSortIgnoreArticlesKey;
@@ -29,6 +30,9 @@ import 'src/widgets/app_bootstrap.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Register the bundled font license texts (OFL) so Flutter's showLicensePage
+  // — reachable from Settings ▸ About ▸ View licenses — includes them.
+  registerBundledFontLicenses();
   // [AppData] is opened once here and handed to [CompendiumApp] (which owns
   // disposal) so we never open the database twice. The database itself opens
   // lazily on first use: the desktop window restore (which reads the persisted
