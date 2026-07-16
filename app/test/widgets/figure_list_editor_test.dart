@@ -1,4 +1,5 @@
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
+import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -1764,8 +1765,8 @@ void main() {
     await _tapMenuItem(tester, 0, 'toggle-progression');
 
     expect(drafts.single.progression, isTrue);
-    // The ¶ progression marker now shows on the collapsed summary.
-    expect(find.text('¶'), findsOneWidget);
+    // The progression marker glyph now shows on the collapsed summary.
+    expect(find.byIcon(progressionIcon), findsOneWidget);
   });
 
   testWidgets('Escape collapses the open editor', (tester) async {
