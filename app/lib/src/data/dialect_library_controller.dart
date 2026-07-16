@@ -1,10 +1,12 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
-import '../screens/settings_screen.dart' show kActiveDialectKey;
-
 /// Persistence key for the JSON list of user-created custom [Dialect]s.
 const String kCustomDialectsKey = 'custom_dialects';
+
+/// Legacy persistence key holding the full JSON blob of the active dialect.
+/// Kept in sync for readers that still resolve the active dialect from it.
+const String kActiveDialectKey = 'active_dialect';
 
 /// Persistence key for the name of the active dialect (a shipped preset name or
 /// a custom dialect name). Absent means the app default is active.

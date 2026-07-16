@@ -4,6 +4,16 @@ import 'package:compendium_core/compendium_core.dart';
 
 import 'editor_snapshot.dart';
 
+/// Settings-table key prefix for the dance editor's transient autosave drafts.
+///
+/// Draft keys are dynamic (`editor_draft:<danceId|new>`) and hold unsaved,
+/// device-local in-progress edits — not user content or preferences. They must
+/// never travel in a backup, so `backup_service.dart` excludes this prefix from
+/// both export and restore (see `kBackupSettingsDenylistPrefixes`). It lives in
+/// this non-UI module so both the editor screen and `BackupService` can share
+/// it without a data→UI dependency.
+const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
+
 /// Draft schema version. Increment if the JSON shape changes in a
 /// backward-incompatible way; [decodeDraft] checks this and rejects
 /// unrecognised future versions gracefully.

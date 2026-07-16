@@ -18,14 +18,6 @@ import '../widgets/figure_list_editor.dart';
 import '../widgets/lingo_text_editing_controller.dart';
 import '../widgets/published_source_details_dialog.dart';
 
-/// Settings-table key prefix for the dance editor's transient autosave drafts.
-///
-/// Draft keys are dynamic (`editor_draft:<danceId|new>`) and hold unsaved,
-/// device-local in-progress edits — not user content or preferences. They must
-/// never travel in a backup, so `backup_service.dart` excludes this prefix from
-/// both export and restore (see `kBackupSettingsDenylistPrefixes`).
-const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
-
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,
 /// progression, phrase structure, hook, calling notes, tunes, tags, status,

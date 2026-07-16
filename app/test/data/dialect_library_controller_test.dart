@@ -1,6 +1,4 @@
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
-import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kActiveDialectKey;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 

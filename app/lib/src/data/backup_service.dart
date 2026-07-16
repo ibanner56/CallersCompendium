@@ -1,7 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 
-import '../screens/dance_editor_screen.dart' show kDanceEditorDraftKeyPrefix;
-import '../screens/settings_screen.dart' show kActiveDialectKey;
+import '../editor/editor_draft_codec.dart' show kDanceEditorDraftKeyPrefix;
 import 'backup_document.dart';
 import 'backup_reminder.dart';
 import 'custom_theme.dart';

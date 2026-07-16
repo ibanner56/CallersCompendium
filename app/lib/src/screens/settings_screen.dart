@@ -32,9 +32,6 @@ import '../widgets/move_autocomplete.dart';
 import 'dialect_editor_screen.dart';
 import 'theme_editor_screen.dart';
 
-/// Key used to persist and load the active dialect.
-const String kActiveDialectKey = 'active_dialect';
-
 /// Key used to persist and load the app theme selection.
 const String kAppThemeKey = 'theme_mode';
 
