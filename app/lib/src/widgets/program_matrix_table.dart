@@ -110,8 +110,19 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
       builder: (context, constraints) {
         final compact =
             constraints.maxWidth < ProgramMatrixTable.compactBreakpoint;
+        // The compact view drops columns no dance actually uses (e.g. the
+        // always-emitted swing baseline), so its announced move count is the
+        // number of columns actually shown — keeping the semantics label
+        // accurate for assistive tech.
+        final moveCount = compact
+            ? _presentColumnCount(matrix)
+            : matrix.columns.length;
         final content = compact
-            ? _CompactMatrix(matrix: matrix, labels: labels)
+            ? _CompactMatrix(
+                matrix: matrix,
+                labels: labels,
+                altDanceIds: widget.altDanceIds,
+              )
             : _wideTable(labels);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -124,7 +135,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                 label:
                     'Programming matrix: '
                     '${matrix.rows.length} dances by '
-                    '${matrix.columns.length} moves',
+                    '$moveCount moves',
                 child: content,
               ),
             ),
@@ -384,10 +395,15 @@ class _Cell extends StatelessWidget {
 }
 
 class _CompactMatrix extends StatelessWidget {
-  const _CompactMatrix({required this.matrix, required this.labels});
+  const _CompactMatrix({
+    required this.matrix,
+    required this.labels,
+    required this.altDanceIds,
+  });
 
   final ProgramMatrix matrix;
   final List<String> labels;
+  final Set<String> altDanceIds;
 
   @override
   Widget build(BuildContext context) {
@@ -405,7 +421,11 @@ class _CompactMatrix extends StatelessWidget {
       for (var r = 0; r < matrix.rows.length; r++) {
         if (matrix.isPresent(r, c)) {
           dances.add(
-            _DanceUse(title: matrix.rows[r].title, first: matrix.isFirst(r, c)),
+            _DanceUse(
+              title: matrix.rows[r].title,
+              first: matrix.isFirst(r, c),
+              isAlt: altDanceIds.contains(matrix.rows[r].danceId),
+            ),
           );
         }
       }
@@ -420,13 +440,16 @@ class _CompactMatrix extends StatelessWidget {
     });
 
     final children = <Widget>[];
-    if (repeated.isEmpty) {
+    if (repeated.isEmpty && singles.isEmpty) {
+      // Dances exist but carry no comparable moves (e.g. only figure-less
+      // dances, whose sole columns are the unused swing baseline). Say so
+      // plainly rather than implying a move list that isn't there.
       children.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            'No moves repeat across these dances — every move below is used '
-            'by a single dance.',
+            'None of these dances have structured figures yet, so there are '
+            'no moves to compare.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -434,27 +457,42 @@ class _CompactMatrix extends StatelessWidget {
         ),
       );
     } else {
-      children.add(_SectionHeader(label: 'Repeated moves'));
-      children.add(
-        Padding(
-          padding: const EdgeInsets.only(top: 2, bottom: 4),
-          child: Text(
-            'Moves shared across two or more dances, most-repeated first.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+      if (repeated.isNotEmpty) {
+        children.add(_SectionHeader(label: 'Repeated moves'));
+        children.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 4),
+            child: Text(
+              'Moves shared across two or more dances, most-repeated first.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-        ),
-      );
-      for (final m in repeated) {
-        children.add(_MoveCard(summary: m, total: total));
+        );
+        for (final m in repeated) {
+          children.add(_MoveCard(summary: m, total: total));
+        }
+      } else {
+        children.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'No moves repeat across these dances — every move below is used '
+              'by a single dance.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        );
       }
-    }
 
-    if (singles.isNotEmpty) {
-      children.add(_SectionHeader(label: 'Used once'));
-      for (final m in singles) {
-        children.add(_MoveCard(summary: m, total: total));
+      if (singles.isNotEmpty) {
+        children.add(_SectionHeader(label: 'Used once'));
+        for (final m in singles) {
+          children.add(_MoveCard(summary: m, total: total));
+        }
       }
     }
 
@@ -466,6 +504,21 @@ class _CompactMatrix extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Number of matrix columns present in at least one dance — the move count the
+/// compact view actually renders (it drops columns no dance uses).
+int _presentColumnCount(ProgramMatrix matrix) {
+  var count = 0;
+  for (var c = 0; c < matrix.columns.length; c++) {
+    for (var r = 0; r < matrix.rows.length; r++) {
+      if (matrix.isPresent(r, c)) {
+        count++;
+        break;
+      }
+    }
+  }
+  return count;
 }
 
 /// Per-move roll-up for the compact view: the move's label, its stable column
@@ -482,13 +535,15 @@ class _MoveSummary {
   final List<_DanceUse> dances;
 }
 
-/// A single dance's use of a move: its title and whether the move is that
-/// dance's FIRST figure (mirrors the grid's first-figure highlight).
+/// A single dance's use of a move: its title, whether the move is that dance's
+/// FIRST figure (mirrors the grid's first-figure highlight), and whether the
+/// dance is an alternate slot (mirrors the grid's ALT row badge).
 class _DanceUse {
-  _DanceUse({required this.title, required this.first});
+  _DanceUse({required this.title, required this.first, required this.isAlt});
 
   final String title;
   final bool first;
+  final bool isAlt;
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -570,6 +625,7 @@ class _MoveCard extends StatelessWidget {
                   danceTitle: d.title,
                   moveLabel: summary.label,
                   first: d.first,
+                  isAlt: d.isAlt,
                 ),
             ],
           ),
@@ -584,18 +640,23 @@ class _DanceChip extends StatelessWidget {
     required this.danceTitle,
     required this.moveLabel,
     required this.first,
+    required this.isAlt,
   });
 
   final String danceTitle;
   final String moveLabel;
   final bool first;
+  final bool isAlt;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final state = first ? 'first figure' : 'present';
+    // Preserve the grid's ALT distinction, which otherwise lives only in the
+    // wide row header, so it isn't lost on phones.
+    final who = isAlt ? '$danceTitle (alternate dance)' : danceTitle;
     return Semantics(
-      label: '$danceTitle, $moveLabel: $state',
+      label: '$who, $moveLabel: $state',
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -615,6 +676,14 @@ class _DanceChip extends StatelessWidget {
                   ? theme.colorScheme.primary
                   : theme.colorScheme.onSurface,
             ),
+            if (isAlt) ...[
+              const SizedBox(width: 3),
+              Icon(
+                Icons.alt_route,
+                size: 14,
+                color: theme.colorScheme.secondary,
+              ),
+            ],
             const SizedBox(width: 4),
             Text(danceTitle, style: theme.textTheme.labelMedium),
           ],

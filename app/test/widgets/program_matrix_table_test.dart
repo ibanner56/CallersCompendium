@@ -336,8 +336,54 @@ void main() {
           dance('d2', 'B', [swing()]),
         ],
       );
+      // The announced move count reflects what the compact view actually shows
+      // (the unused neighbor-swing baseline column is dropped), so the label
+      // stays accurate for assistive tech.
       expect(
-        find.bySemanticsLabel('Programming matrix: 2 dances by 2 moves'),
+        find.bySemanticsLabel('Programming matrix: 2 dances by 1 moves'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('surfaces ALT dances in the chip label and badge', (
+      tester,
+    ) async {
+      await pumpNarrow(
+        tester,
+        dances: [
+          dance('d1', 'A', [swing()]),
+          dance('d2', 'Alt Dance', [swing()]),
+        ],
+        altDanceIds: {'d2'},
+      );
+      // The alternate-slot distinction (only in the wide row header) is carried
+      // into the compact chip's semantics and shown with the alt_route icon.
+      expect(
+        find.bySemanticsLabel(
+          'Alt Dance (alternate dance), partner swing: first figure',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('A, partner swing: first figure'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.alt_route), findsWidgets);
+    });
+
+    testWidgets('handles dances with no comparable moves', (tester) async {
+      // Figure-less dances produce only the unused swing baseline columns, so
+      // the compact view has nothing to list — it must say so plainly rather
+      // than claim a move list that isn't there.
+      await pumpNarrow(
+        tester,
+        dances: [dance('d1', 'A', const []), dance('d2', 'B', const [])],
+      );
+      expect(find.textContaining('no moves to compare'), findsOneWidget);
+      expect(find.text('Repeated moves'), findsNothing);
+      expect(find.text('Used once'), findsNothing);
+      expect(
+        find.bySemanticsLabel('Programming matrix: 2 dances by 0 moves'),
         findsOneWidget,
       );
     });
