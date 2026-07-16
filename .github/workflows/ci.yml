@@ -6,10 +6,27 @@
 # `flutter-version-file`. Bumping .fvmrc therefore updates every job at once.
 name: CI
 
+# Docs-only changes (Markdown) don't affect the build/test/analyze pipeline, so
+# skip CI when a push or PR touches nothing but *.md files.
+#
+# NOTE: paths-ignore prevents these workflows from starting at all for a
+# Markdown-only change, so they never report a status. As of this writing the
+# `main` branch ruleset does NOT mark these CI checks as required, so a
+# Markdown-only PR won't get stuck waiting on a status that never arrives.
+# Branch protection lives outside this file and can change, though: if CI is
+# ever made a required status check, revisit this, because a skipped required
+# check stays pending forever. The fix would be to always start the workflow
+# and gate the heavy jobs internally (e.g. a dorny/paths-filter step guarding
+# conditional jobs, plus a final job that always reports the required check
+# name) rather than skipping the run via paths-ignore.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
   pull_request:
+    paths-ignore:
+      - '**.md'
 
 # Cancel superseded in-flight runs for the same PR (or ref, for pushes) so a
 # new push doesn't leave stale, redundant builds burning runner minutes.
