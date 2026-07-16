@@ -1,0 +1,43 @@
+# Dependabot configuration (schema v2).
+# Keeps dependencies current across the pub workspace, GitHub Actions, and the
+# Android Gradle build. Minor/patch bumps are grouped to reduce PR noise, while
+# major bumps stay as individual PRs so breaking changes get their own review.
+version: 2
+updates:
+  # Dart/Flutter (pub) dependencies. This repo is a pub workspace, so cover the
+  # root along with each member package's pubspec.yaml.
+  - package-ecosystem: "pub"
+    directories:
+      - "/"
+      - "/app"
+      - "/packages/compendium_core"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      pub-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions used by the CI workflows.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Android Gradle dependencies for the Flutter app.
+  - package-ecosystem: "gradle"
+    directory: "/app/android"
+    schedule:
+      interval: "weekly"
+    groups:
+      gradle-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
