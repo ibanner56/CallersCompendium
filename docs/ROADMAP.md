@@ -500,6 +500,12 @@ taxonomy are unchanged.
   `Venue` → venue entity, `Term` → glossary, `Dance_Related` → related links.
   Free-text figures import as `custom` (see design/imports.md §2).
 - [ ] 6.6 Generic import/export (JSON) for backup and inter-user sharing
+  - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
+  - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
+    `SourceAdapter`, `ProvenanceSource.json`) imports our canonical
+    `CompendiumArchive` JSON **per dance** through the standard import pipeline
+    (discover → fetch → parse → dedupe → commit). App-side wiring / review-queue
+    UI (6.3) still pending; box left for confirmation.
 
 ## Phase 7 — Release
 

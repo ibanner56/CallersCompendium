@@ -174,7 +174,8 @@ class Dance {
   /// pass `clearLevel: true` to set [level] back to `null`. A set clear flag
   /// **wins** over any value passed for the same field, so
   /// `copyWith(level: DanceLevel.advanced, clearLevel: true)` clears it. The
-  /// same holds for `clearComposedOn` / `clearRevisedOn` / `clearRating`.
+  /// same holds for `clearComposedOn` / `clearRevisedOn` / `clearRating` /
+  /// `clearProvenance`.
   Dance copyWith({
     String? title,
     List<String>? authorIds,
@@ -197,6 +198,7 @@ class Dance {
     List<DanceLink>? links,
     List<SourceCitation>? sourceCitations,
     Provenance? provenance,
+    bool clearProvenance = false,
     PartialDate? composedOn,
     bool clearComposedOn = false,
     PartialDate? revisedOn,
@@ -224,7 +226,7 @@ class Dance {
     tagIds: tagIds ?? this.tagIds,
     links: links ?? this.links,
     sourceCitations: sourceCitations ?? this.sourceCitations,
-    provenance: provenance ?? this.provenance,
+    provenance: clearProvenance ? null : (provenance ?? this.provenance),
     composedOn: clearComposedOn ? null : (composedOn ?? this.composedOn),
     revisedOn: clearRevisedOn ? null : (revisedOn ?? this.revisedOn),
     createdAt: createdAt,
