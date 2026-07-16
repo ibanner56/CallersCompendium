@@ -33,6 +33,14 @@ jobs:
       # a version drift fails fast. See tools/ci/check_app_version.py.
       - name: Guard app version single-source (kAppVersion == pubspec semver)
         run: python3 tools/ci/check_app_version.py
+      # The in-app User Guide renders docs bundled under app/assets/docs/,
+      # mirrored from docs/user/ by tools/ci/sync_user_docs.py. Assert the
+      # committed bundle is in sync so an edit to docs/user/ (or a stale bundle
+      # file) can't ship offline docs that drift from the source of truth. Runs
+      # before the (slower) Flutter setup so drift fails fast, and — because it
+      # lives here — it also gates the reusable release path (ADR-002).
+      - name: Guard in-app user-docs bundle single-source (docs/user == assets)
+        run: python3 tools/ci/sync_user_docs.py --check
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           # Single source of truth for the Flutter version (see .fvmrc).

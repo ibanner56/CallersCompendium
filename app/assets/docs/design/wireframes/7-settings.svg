@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="740" viewBox="0 0 1160 740" font-family="system-ui,Segoe UI,Roboto,sans-serif">
+  <style>
+    .frame{fill:#ffffff;stroke:#333;stroke-width:2}
+    .panel{fill:#f5f5f5;stroke:#c4c4c4;stroke-width:1.5}
+    .card{fill:#ffffff;stroke:#a8a8a8;stroke-width:1.5}
+    .bar{fill:#d3d3d3}.barD{fill:#9e9e9e}
+    .ph{fill:none;stroke:#c0c0c0;stroke-width:1.5;stroke-dasharray:5 5}
+    .icon{fill:#dcdcdc;stroke:#9a9a9a;stroke-width:1}
+    .t{fill:#2b2b2b;font-weight:700;font-size:15px}
+    .l{fill:#3a3a3a;font-weight:600;font-size:12px}
+    .s{fill:#6a6a6a;font-size:11px}
+    .an{fill:#ffffff;font-weight:700;font-size:11px}.anc{fill:#b04a2f}
+    .note{fill:#3a3a3a;font-size:12px}.noteh{fill:#b04a2f;font-weight:700;font-size:12px}
+    .seg{fill:#ffffff;stroke:#a8a8a8;stroke-width:1.5}.segon{fill:#b04a2f}
+    .warn{fill:#fbeee9;stroke:#b04a2f;stroke-width:1.5}
+    .prog{fill:#d3d3d3}.progfill{fill:#9e9e9e}
+  </style>
+  <rect class="frame" x="1" y="1" width="1158" height="738" rx="10"/>
+  <text class="t" x="20" y="30">Settings</text>
+  <text class="s" x="20" y="48">ux.md §6 · appearance ↔ ux-modernization.md §4 · low-fi</text>
+  <line x1="0" y1="60" x2="700" y2="60" stroke="#e0e0e0"/>
+
+  <!-- section nav -->
+  <rect class="panel" x="20" y="70" width="220" height="646" rx="8"/>
+  <rect class="segon" x="32" y="84" width="196" height="30" rx="6"/><text class="an" x="46" y="104">Dialects</text>
+  <rect class="card" x="32" y="122" width="196" height="30" rx="6"/><text class="s" x="46" y="142">Data sources</text>
+  <rect class="card" x="32" y="160" width="196" height="30" rx="6"/><text class="s" x="46" y="180">Custom fields</text>
+  <rect class="card" x="32" y="198" width="196" height="30" rx="6"/><text class="s" x="46" y="218">Appearance</text>
+  <rect class="card" x="32" y="236" width="196" height="30" rx="6"/><text class="s" x="46" y="256">Backup / export</text>
+
+  <!-- Dialect manager -->
+  <rect class="panel" x="256" y="70" width="560" height="360" rx="8"/>
+  <text class="l" x="276" y="94">Dialect manager</text>
+  <rect class="card" x="276" y="106" width="240" height="30" rx="6"/><text class="s" x="290" y="126">Active dialect ▾ (preset picker)</text>
+  <rect class="card" x="530" y="106" width="120" height="30" rx="6"/><text class="s" x="544" y="126">+ New dialect</text>
+  <!-- term editor + live preview -->
+  <rect class="card" x="276" y="148" width="256" height="200" rx="8"/><text class="s" x="290" y="170">role / move term editor</text>
+  <rect class="bar" x="290" y="182" width="120" height="8" rx="4"/><rect class="card" x="418" y="176" width="100" height="20" rx="4"/>
+  <rect class="bar" x="290" y="206" width="150" height="8" rx="4"/><rect class="card" x="418" y="200" width="100" height="20" rx="4"/>
+  <rect class="warn" x="290" y="226" width="228" height="22" rx="6"/><circle class="icon" cx="306" cy="237" r="7"/><text class="s" x="320" y="241">collision — term already used</text>
+  <rect class="card" x="548" y="148" width="248" height="200" rx="8"/><text class="s" x="562" y="170">live preview</text>
+  <rect class="ph" x="562" y="182" width="220" height="150" rx="6"/>
+  <!-- discouraged terms -->
+  <rect class="card" x="276" y="360" width="520" height="56" rx="8"/><text class="s" x="290" y="382">discouraged-terms list</text>
+  <rect class="card" x="290" y="390" width="90" height="18" rx="9"/><rect class="card" x="388" y="390" width="70" height="18" rx="9"/><rect class="card" x="466" y="390" width="110" height="18" rx="9"/>
+
+  <!-- Data sources -->
+  <rect class="panel" x="256" y="440" width="560" height="276" rx="8"/>
+  <text class="l" x="276" y="464">Data sources</text>
+  <rect class="card" x="276" y="476" width="380" height="30" rx="6"/><text class="s" x="290" y="496">snapshot URL(s)</text>
+  <rect class="card" x="668" y="476" width="130" height="30" rx="6"/><text class="s" x="682" y="496">Check updates</text>
+  <text class="s" x="276" y="530">download progress</text>
+  <rect class="prog" x="276" y="538" width="400" height="10" rx="5"/><rect class="progfill" x="276" y="538" width="240" height="10" rx="5"/>
+  <rect class="card" x="276" y="560" width="200" height="30" rx="6"/><text class="s" x="290" y="580">Review queue ▸</text>
+  <rect class="card" x="276" y="602" width="240" height="30" rx="6"/><text class="s" x="290" y="622">Import file — .USR / JSON</text>
+
+  <!-- Appearance (theme switcher) -->
+  <rect class="panel" x="832" y="70" width="308" height="360" rx="8"/>
+  <text class="l" x="852" y="94">Appearance</text>
+  <text class="s" x="852" y="118">Theme</text>
+  <rect class="seg" x="852" y="126" width="270" height="34" rx="8"/>
+  <rect class="segon" x="854" y="128" width="66" height="30" rx="7"/><text class="an" x="866" y="148">System</text>
+  <text class="s" x="932" y="146">Light</text><text class="s" x="988" y="146">Dark</text><text class="s" x="1040" y="146">High-C</text>
+  <line x1="924" y1="128" x2="924" y2="158" stroke="#ddd"/><line x1="980" y1="128" x2="980" y2="158" stroke="#ddd"/><line x1="1030" y1="128" x2="1030" y2="158" stroke="#ddd"/>
+  <text class="s" x="852" y="188">Text scale</text>
+  <rect class="prog" x="852" y="198" width="270" height="8" rx="4"/><circle class="icon" cx="960" cy="202" r="9"/>
+  <rect class="ph" x="852" y="224" width="270" height="190" rx="8"/><text class="s" x="920" y="324">theme preview</text>
+
+  <!-- Backup / export -->
+  <rect class="panel" x="832" y="440" width="308" height="276" rx="8"/>
+  <text class="l" x="852" y="464">Backup / export</text>
+  <rect class="card" x="852" y="476" width="130" height="30" rx="6"/><text class="s" x="866" y="496">Export data</text>
+  <rect class="card" x="992" y="476" width="130" height="30" rx="6"/><text class="s" x="1006" y="496">Backup now</text>
+
+  <!-- annotations -->
+  <circle class="anc" cx="276" cy="90" r="10"/><text class="an" x="272" y="94">1</text>
+  <circle class="anc" cx="562" cy="166" r="10"/><text class="an" x="558" y="170">2</text>
+  <circle class="anc" cx="306" cy="237" r="10"/><text class="an" x="302" y="241">3</text>
+  <circle class="anc" cx="276" cy="464" r="10"/><text class="an" x="272" y="468">4</text>
+  <circle class="anc" cx="852" cy="94" r="10"/><text class="an" x="848" y="98">5</text>
+
+  <text class="noteh" x="256" y="654">Notes</text>
+  <text class="note" x="256" y="674">1 · Named dialects + preset picker; quick-switch also on dance card / perform.  2 · Term editor w/ live preview.</text>
+  <text class="note" x="256" y="694">3 · Collision validation; discouraged-terms editor.  4 · Snapshot URLs, update check + progress, review queue, import .USR/JSON.</text>
+  <text class="note" x="256" y="712">5 · Appearance = theme switcher (System / Light / Dark / High-contrast) + text scale — wired per ux-modernization.md §4.</text>
+</svg>

@@ -5,6 +5,7 @@ import '../../theme/app_spacing.dart';
 import '../../utils/launch_external_url.dart';
 import '../../widgets/brand_mark.dart';
 import '../../widgets/section_header.dart';
+import '../user_guide/user_guide_screen.dart';
 
 /// The About settings section (routing wrapper).
 class AboutSection extends StatelessWidget {
@@ -34,6 +35,21 @@ class _AboutView extends StatelessWidget {
     return ListView(
       children: [
         const _AboutBrandHeader(),
+        SectionHeader(title: 'Help'),
+        ListTile(
+          key: const ValueKey('about-user-guide'),
+          leading: const Icon(Icons.menu_book_outlined),
+          title: const Text('User guide'),
+          subtitle: const Text(
+            'Read the built-in guides — getting started, dialects, imports, '
+            'and more. Works offline.',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          isThreeLine: true,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const UserGuideScreen()),
+          ),
+        ),
         SectionHeader(title: 'License'),
         const _AboutParagraph(
           "Caller's Compendium is free software, licensed under the GNU "

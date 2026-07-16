@@ -10,6 +10,7 @@ import 'app_shell_search_scope.dart';
 import 'collection_shell.dart';
 import 'programs_shell.dart';
 import 'settings_screen.dart';
+import 'user_guide/user_guide_screen.dart';
 
 /// Top-level navigation between Collection, Programs, and Settings
 /// (`docs/design/ux.md` information architecture).
@@ -80,6 +81,15 @@ class _AppShellState extends State<AppShell> {
     await Navigator.of(context).push(route);
   }
 
+  /// Opens the offline in-app User Guide as a pushed route. Wired to the
+  /// bottom-of-rail Help affordance on wide layouts; narrow layouts reach the
+  /// same screen from Settings ▸ About ▸ User guide.
+  void _openUserGuide() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const UserGuideScreen()));
+  }
+
   @override
   Widget build(BuildContext context) {
     return CallbackShortcuts(
@@ -134,6 +144,18 @@ class _AppShellState extends State<AppShell> {
                         label: Text(d.label),
                       ),
                   ],
+                  // Bottom-aligned Help affordance: the natural home for a
+                  // "User guide" entry on wide layouts. Narrow layouts surface
+                  // the same screen from Settings ▸ About.
+                  trailing: Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: _RailHelpButton(onPressed: _openUserGuide),
+                      ),
+                    ),
+                  ),
                 ),
                 const VerticalDivider(width: 1, thickness: 1),
                 Expanded(child: body),
@@ -213,6 +235,52 @@ class _RailSearchButton extends StatelessWidget {
               Text('Search', style: theme.textTheme.labelMedium),
               const SizedBox(height: 2),
               _ShortcutHint(hint),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The desktop nav-rail Help affordance. Mirrors [_RailSearchButton]'s visual
+/// pattern — a circular icon tile with a visible label — so the bottom-of-rail
+/// "User guide" entry reads as a peer of the search affordance rather than a
+/// bare glyph. Opens the offline in-app [UserGuideScreen].
+class _RailHelpButton extends StatelessWidget {
+  const _RailHelpButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Tooltip(
+      message: 'User guide',
+      child: InkWell(
+        key: const ValueKey('user-guide-button'),
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: scheme.secondaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.menu_book_outlined,
+                  color: scheme.onSecondaryContainer,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text('Guide', style: theme.textTheme.labelMedium),
             ],
           ),
         ),

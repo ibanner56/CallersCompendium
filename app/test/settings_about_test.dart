@@ -12,6 +12,7 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/licenses.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
@@ -160,4 +161,21 @@ void main() {
       expect(find.text('Roboto (OFL 1.1)'), findsOneWidget);
     },
   );
+
+  testWidgets('About offers a User guide entry that opens the in-app guide', (
+    tester,
+  ) async {
+    await _pumpAbout(tester, surfaceSize: const Size(500, 2600));
+
+    final guideTile = find.byKey(const ValueKey('about-user-guide'));
+    expect(guideTile, findsOneWidget);
+
+    await tester.ensureVisible(guideTile);
+    await tester.tap(guideTile);
+    await tester.pumpAndSettle();
+
+    // Opens the offline in-app user guide at the documentation hub.
+    expect(find.byType(UserGuideScreen), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'User guide'), findsOneWidget);
+  });
 }
