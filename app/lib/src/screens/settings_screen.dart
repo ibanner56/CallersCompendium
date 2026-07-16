@@ -338,16 +338,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  /// Opens the adapter-agnostic import review flow (ROADMAP 6.3), wired to the
-  /// single concrete [GenericJsonAdapter] ("Caller's Compendium JSON"). The
-  /// screen is fully self-contained (plan → review → commit → undo) and
-  /// refreshes the live Collection on commit via [CollectionRefreshScope].
+  /// Opens the adapter-agnostic import review flow (ROADMAP 6.3), offering the
+  /// generic [GenericJsonAdapter] ("Caller's Compendium JSON", default) and the
+  /// [CallersBoxAdapter] ("The Caller's Box", which resolves a pasted dance URL
+  /// or bare id to the `&format=JSON` endpoint before fetching). The screen is
+  /// fully self-contained (plan → review → commit → undo) and refreshes the
+  /// live Collection on commit via [CollectionRefreshScope].
   Future<void> _onImportDances() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ImportReviewScreen(
-          adapterFactory: GenericJsonAdapter.new,
-          sourceLabel: "a Caller's Compendium JSON file",
+          sources: [
+            ImportSource(
+              label: "a Caller's Compendium JSON file",
+              adapterFactory: GenericJsonAdapter.new,
+            ),
+            ImportSource(
+              label: 'The Caller\'s Box',
+              adapterFactory: CallersBoxAdapter.new,
+              urlBuilder: buildCallersBoxJsonUrl,
+            ),
+          ],
           picker: widget.importPicker,
           fetcher: widget.urlFetcher,
         ),

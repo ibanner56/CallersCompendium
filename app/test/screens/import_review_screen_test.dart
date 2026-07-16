@@ -34,6 +34,7 @@ Future<void> _pump(
   CompendiumRepositories repos, {
   required String payload,
   SourceAdapter Function()? adapterFactory,
+  List<ImportSource>? sources,
   UrlFetcher? fetcher,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1000, 1600));
@@ -43,8 +44,14 @@ Future<void> _pump(
       home: RepositoriesScope(
         repositories: repos,
         child: ImportReviewScreen(
-          adapterFactory: adapterFactory ?? GenericJsonAdapter.new,
-          sourceLabel: 'test JSON',
+          sources:
+              sources ??
+              [
+                ImportSource(
+                  label: 'test JSON',
+                  adapterFactory: adapterFactory ?? GenericJsonAdapter.new,
+                ),
+              ],
           picker: () async => payload,
           fetcher: fetcher,
         ),
@@ -410,6 +417,145 @@ void main() {
 
       expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group("Caller's Box routing", () {
+    // Minimal real-shaped TCB per-dance JSON (id=1, "The Nice Combination").
+    const tcbJson =
+        '{"ID":1,"Name":"The Nice Combination","Permission":"full"}';
+
+    List<ImportSource> sourcesFor() => [
+      ImportSource(label: 'test JSON', adapterFactory: GenericJsonAdapter.new),
+      ImportSource(
+        label: "The Caller's Box",
+        adapterFactory: CallersBoxAdapter.new,
+        urlBuilder: buildCallersBoxJsonUrl,
+      ),
+    ];
+
+    Future<void> selectCallersBox(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('import-source-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("The Caller's Box").last);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a bare id is resolved to the &format=JSON endpoint and '
+        'parsed by CallersBoxAdapter', (tester) async {
+      final repos = openTestRepositories();
+      String? fetchedUrl;
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(),
+        fetcher: (url) async {
+          fetchedUrl = url;
+          return tcbJson;
+        },
+      );
+
+      await selectCallersBox(tester);
+      await _fetch(tester, '1');
+
+      // The bare id became the canonical TCB JSON endpoint.
+      expect(
+        fetchedUrl,
+        'https://www.thecallersbox.com/dance.php?id=1&format=JSON',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      // The dance was parsed by CallersBoxAdapter and reached the review queue.
+      expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
+      expect(find.text('The Nice Combination'), findsOneWidget);
+    });
+
+    testWidgets('a pasted dance URL gains format=JSON and is fetched', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      String? fetchedUrl;
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(),
+        fetcher: (url) async {
+          fetchedUrl = url;
+          return tcbJson;
+        },
+      );
+
+      await selectCallersBox(tester);
+      await _fetch(tester, 'https://www.thecallersbox.com/dance.php?id=1');
+
+      expect(fetchedUrl, contains('id=1'));
+      expect(fetchedUrl, contains('format=JSON'));
+    });
+
+    testWidgets('a bad Caller\'s Box input shows an inline error, no fetch', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      var fetchCalls = 0;
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(),
+        fetcher: (url) async {
+          fetchCalls++;
+          return tcbJson;
+        },
+      );
+
+      await selectCallersBox(tester);
+      // A URL with no dance id can't be turned into an endpoint.
+      await _fetch(tester, 'https://www.thecallersbox.com/dances.php');
+
+      expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
+      expect(fetchCalls, 0);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('switching source clears stale URL provenance', (tester) async {
+      final repos = openTestRepositories();
+      final adapter = _CapturingAdapter();
+      // A generic-JSON source using a provenance-capturing adapter, plus the
+      // Caller's Box source. Fetch under Caller's Box, then switch back to
+      // generic and plan: the previous fetch URL must NOT be reattached.
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: [
+          ImportSource(label: 'test JSON', adapterFactory: () => adapter),
+          ImportSource(
+            label: "The Caller's Box",
+            adapterFactory: CallersBoxAdapter.new,
+            urlBuilder: buildCallersBoxJsonUrl,
+          ),
+        ],
+        fetcher: (url) async => 'body',
+      );
+
+      await selectCallersBox(tester);
+      await _fetch(tester, '1');
+
+      // Switch back to the generic JSON source.
+      await tester.tap(find.byKey(const ValueKey('import-source-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('test JSON').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      // Provenance was dropped on the switch, so it plans as a paste.
+      expect(adapter.lastRequest?.uri, isNull);
     });
   });
 

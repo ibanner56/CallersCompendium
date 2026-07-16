@@ -10,24 +10,24 @@ import '../data/repositories_scope.dart';
 /// discovered record (with its parse quality, issues, and dedupe verdict),
 /// resolve any ambiguous matches, commit, and offer an undo.
 ///
-/// The screen takes a [SourceAdapter] factory so it is not tied to any one
-/// source; this PR wires the single concrete [GenericJsonAdapter] ("Import from
-/// Caller's Compendium JSON"). A fresh adapter is built per plan because
-/// adapters may hold per-discovery state.
+/// The screen takes a list of selectable [ImportSource]s so it is not tied to
+/// any one source; this PR wires two — the generic [GenericJsonAdapter]
+/// ("Caller's Compendium JSON", the default) and the [CallersBoxAdapter]
+/// ("The Caller's Box"), which rewrites a pasted dance URL / bare id into the
+/// `&format=JSON` endpoint before fetching. The user picks the source
+/// explicitly (a dropdown) so a bare id — which has no host to auto-detect —
+/// routes unambiguously. A fresh adapter is built per plan because adapters may
+/// hold per-discovery state.
 class ImportReviewScreen extends StatefulWidget {
   const ImportReviewScreen({
     super.key,
-    required this.adapterFactory,
-    required this.sourceLabel,
+    required this.sources,
     this.picker,
     this.fetcher,
-  });
+  }) : assert(sources.length > 0, 'at least one import source is required');
 
-  /// Builds a fresh [SourceAdapter] for each planning run.
-  final SourceAdapter Function() adapterFactory;
-
-  /// Human-readable name of the source, e.g. "Caller's Compendium JSON".
-  final String sourceLabel;
+  /// The selectable import sources; the first is selected by default.
+  final List<ImportSource> sources;
 
   /// Test seam for choosing a file; defaults to [pickImportFile] (native
   /// open-file dialog). Widget tests inject canned text.
@@ -61,6 +61,10 @@ class _RowChoice {
 class _ImportReviewScreenState extends State<ImportReviewScreen> {
   late final CompendiumRepositories _repos;
   bool _started = false;
+
+  /// The currently selected import source (defaults to the first). Governs
+  /// which adapter parses the payload and how URL-mode input is transformed.
+  late ImportSource _selected = widget.sources.first;
 
   final TextEditingController _pasteController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
@@ -120,17 +124,28 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   Future<void> _fetchFromUrl() async {
     final fetcher = widget.fetcher ?? fetchImportUrl;
-    final url = _urlController.text.trim();
+    final input = _urlController.text.trim();
+    // Rewrite the typed input into the URL actually fetched (e.g. build the
+    // Caller's Box &format=JSON endpoint). A null builder fetches as typed.
+    final String target;
+    try {
+      target = _selected.urlBuilder?.call(input) ?? input;
+    } on UrlFetchException catch (e) {
+      setState(() => _fetchError = e.message);
+      return;
+    }
     setState(() {
       _fetching = true;
       _fetchError = null;
     });
     try {
-      final body = await fetcher(url);
+      final body = await fetcher(target);
       if (!mounted) return;
       setState(() {
         _pasteController.text = body;
-        _sourceUri = url;
+        // Provenance is the URL actually fetched (the resolved endpoint), not
+        // the human URL/id the user typed.
+        _sourceUri = target;
       });
     } on UrlFetchException catch (e) {
       if (!mounted) return;
@@ -154,7 +169,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
       final index = await pipeline.buildDedupeIndex();
       final batch = await pipeline.plan(
-        widget.adapterFactory(),
+        _selected.adapterFactory(),
         ImportRequest(payload: payload, uri: _sourceUri),
         index: index,
       );
@@ -388,11 +403,45 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // late-completing pick/fetch can't overwrite the payload or clobber
     // `_sourceUri` under the user, and so planning can't start on stale input.
     final busy = _picking || _fetching;
+    final isUrlSource = _selected.urlBuilder != null;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (widget.sources.length > 1) ...[
+          Text('Source', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          DropdownButton<ImportSource>(
+            key: const ValueKey('import-source-select'),
+            isExpanded: true,
+            value: _selected,
+            onChanged: busy
+                ? null
+                : (source) {
+                    if (source == null) return;
+                    setState(() {
+                      _selected = source;
+                      // Selecting a new source drops any stale fetch error and
+                      // URL provenance: the fetched-from URL belonged to the
+                      // previous source/adapter, so carrying it onto the next
+                      // plan would misattribute provenance. The payload is left
+                      // for the user (they may re-fetch or paste); it plans as
+                      // a paste (uri == null) until a fresh fetch sets it.
+                      _fetchError = null;
+                      _sourceUri = null;
+                    });
+                  },
+            items: [
+              for (final source in widget.sources)
+                DropdownMenuItem<ImportSource>(
+                  value: source,
+                  child: Text(source.label),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
         Text(
-          'Import dances from ${widget.sourceLabel}.',
+          'Import dances from ${_selected.label}.',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 4),
@@ -422,10 +471,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   if (_fetchError != null) setState(() => _fetchError = null);
                 },
                 onSubmitted: (_) => busy ? null : _fetchFromUrl(),
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Import from URL',
-                  hintText: 'https://…',
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: isUrlSource
+                      ? 'Dance URL or id'
+                      : 'Import from URL',
+                  hintText: isUrlSource
+                      ? 'https://www.thecallersbox.com/dance.php?id=1  · or · 1'
+                      : 'https://…',
                 ),
               ),
             ),
