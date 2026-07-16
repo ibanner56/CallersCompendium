@@ -643,7 +643,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(Icons.grid_view, size: 18),
+                    const Icon(formationIcon, size: 18),
                     const SizedBox(width: 6),
                     Expanded(child: Text(formationLabel(dance.formation))),
                   ],
@@ -651,7 +651,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.repeat, size: 18),
+                    const Icon(progressionIcon, size: 18),
                     const SizedBox(width: 6),
                     Text(progressionLabel(dance.progression)),
                   ],

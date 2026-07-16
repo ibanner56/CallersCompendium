@@ -485,7 +485,7 @@ class _Header extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 12),
-        _MetaRow(icon: Icons.grid_view, text: formationLabel(dance.formation)),
+        _MetaRow(icon: formationIcon, text: formationLabel(dance.formation)),
         if (level != null) ...[
           const SizedBox(height: 8),
           _MetaRow(
@@ -667,11 +667,12 @@ class _FigureRow extends StatelessWidget {
               child: progression
                   ? Tooltip(
                       message: 'Progression',
-                      child: Text(
-                        '¶',
-                        style: textStyle?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
+                      child: Icon(
+                        progressionIcon,
+                        size: MediaQuery.textScalerOf(
+                          context,
+                        ).scale(textStyle?.fontSize ?? 24).clamp(20.0, 32.0),
+                        color: theme.colorScheme.primary,
                       ),
                     )
                   : null,

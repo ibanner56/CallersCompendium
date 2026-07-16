@@ -96,7 +96,7 @@ class FacetPanel extends StatelessWidget {
               _chip(
                 key: 'formation-${shape.name}',
                 label: formationShapeLabel(shape),
-                icon: Icons.grid_view,
+                icon: formationIcon,
                 selected: facets.formations.contains(shape),
                 onSelected: (s) => toggle(facets.formations, shape, s),
               ),

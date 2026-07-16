@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../data/reduce_motion_scope.dart';
+import '../search/facet_labels.dart';
 import 'figure_param_editors.dart';
 import 'lingo_text_editing_controller.dart';
 import 'move_autocomplete.dart';
@@ -974,12 +975,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       child: draft.progression
                           ? Tooltip(
                               message: 'Progression',
-                              child: Text(
-                                '¶',
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              child: Icon(
+                                progressionIcon,
+                                size: MediaQuery.textScalerOf(context)
+                                    .scale(
+                                      theme.textTheme.bodyLarge?.fontSize ?? 16,
+                                    )
+                                    .clamp(14.0, 16.0),
+                                color: theme.colorScheme.primary,
                               ),
                             )
                           : null,
