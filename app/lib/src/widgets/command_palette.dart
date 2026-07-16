@@ -81,8 +81,12 @@ class _CommandPaletteState extends State<CommandPalette> {
 
   Future<void> _load() async {
     final repos = RepositoriesScope.of(context);
-    final dances = await repos.dances.listIdsTitlesAndForms();
-    final programs = await repos.programs.listIdsAndTitles();
+    // The two queries are independent; start both before awaiting so the
+    // database work overlaps and the palette opens sooner.
+    final dancesFuture = repos.dances.listIdsTitlesAndForms();
+    final programsFuture = repos.programs.listIdsAndTitles();
+    final dances = await dancesFuture;
+    final programs = await programsFuture;
     if (!mounted) return;
     final all = <CommandResult>[
       for (final d in dances)

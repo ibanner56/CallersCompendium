@@ -320,6 +320,13 @@ void main() {
         ]);
       },
     );
+
+    test('breaks equal-title ties deterministically by id', () async {
+      await dances.create(sampleDance(id: 'd2', title: 'Same Dance'));
+      await dances.create(sampleDance(id: 'd1', title: 'Same Dance'));
+      final records = await dances.listIdsTitlesAndForms();
+      expect(records.map((r) => r.id), ['d1', 'd2']);
+    });
   });
 
   group('soft delete / restore / purge', () {

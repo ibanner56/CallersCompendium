@@ -204,6 +204,13 @@ void main() {
         ]);
       },
     );
+
+    test('breaks equal-title ties deterministically by id', () async {
+      await repo.create(sampleProgram(id: 'p2', title: 'Same Night'));
+      await repo.create(sampleProgram(id: 'p1', title: 'Same Night'));
+      final pairs = await repo.listIdsAndTitles();
+      expect(pairs.map((p) => p.id), ['p1', 'p2']);
+    });
   });
 
   group('soft delete / restore / purge', () {
