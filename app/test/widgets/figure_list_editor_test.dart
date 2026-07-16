@@ -256,10 +256,11 @@ void main() {
     await _pump(tester, drafts);
     await _openFigure(tester, 0);
 
-    // A non-beats edit resyncs beats to the move's canonical default rather
-    // than leaving it stuck at 0.
+    // A non-beats edit resyncs beats to the move's canonical value. Selecting
+    // the "meltdown" prefix drives the swing to its ContraDB 16-beat duration
+    // (prefixed swings are 16), rather than leaving beats stuck at 0.
     await _selectDropdownOption(tester, 'figure-0-prefix', 'meltdown');
-    expect(drafts.single.beats, 8);
+    expect(drafts.single.beats, 16);
   });
 
   test('taxonomy beats defaults match canonical values', () {

@@ -19,7 +19,12 @@ import 'taxonomy.dart';
 ///     Moves whose ContraDB beats are a range/ratio rather than a discrete
 ///     per-value count (poussette, the places family, turn_alone) are left on
 ///     their flat default — see the notes at those moves. See MoveDef.paramBeats.
-const int contraTaxonomyVersion = 8;
+/// v9: extends `paramBeats` coverage — swing `prefix` (none 8, balance/meltdown
+///     16), petronella `balance` (8/4), and long_lines `goBack` (8/4), all
+///     ContraDB-sourced. The `meltdown_swing` alias now derives 16 beats.
+///     Moves with continuous angle/ratio beat rules (allemande, do_si_do,
+///     shoulder_round, circle/star family, box_the_gnat) remain deferred.
+const int contraTaxonomyVersion = 9;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -79,6 +84,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
       progressionCapable: true,
       renderTemplate: '{who} {prefix} {move}',
       goodBeats: [8, 16],
+      // ContraDB swingChange: a prefixed swing (balance OR meltdown) with
+      // beats <= 8 snaps to 16; swingGoodBeats narrows a prefixed swing to
+      // 14..16. A plain (none) swing stays 8. Collapsed to the discrete
+      // per-value defaults; beats stays user-overridable and warning-only.
+      paramBeats: ParamBeats(
+        param: 'prefix',
+        byValue: {'none': 8, 'balance': 16, 'meltdown': 16},
+      ),
     ),
     const MoveDef(
       id: 'balance',
@@ -157,6 +170,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{move}',
       goodBeats: [4, 8],
+      // ContraDB petronellaGoodBeats: `beats === (balance ? 8 : 4)`.
+      paramBeats: ParamBeats(param: 'balance', byValue: {true: 8, false: 4}),
     ),
     const MoveDef(
       id: 'long_lines',
@@ -167,6 +182,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{move}',
       goodBeats: [4, 8],
+      // ContraDB longLinesChange/GoodBeats: `beats = goBack ? 8 : 4`.
+      paramBeats: ParamBeats(param: 'goBack', byValue: {true: 8, false: 4}),
     ),
     const MoveDef(
       id: 'pass_through',
