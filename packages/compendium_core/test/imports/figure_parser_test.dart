@@ -77,25 +77,38 @@ void main() {
         move: 'allemande',
         params: {'who': 'role1s', 'hand': 'left'},
       ),
-      // TCB "Rory O'More" (dance ids 6, 39). A standalone line is NOT balanced
-      // — `balance` stays on its default; the cross-line balance merge sets it.
-      "Rory O'More": (move: 'rory_o_more', params: {}),
-      "Rory O'More right": (move: 'rory_o_more', params: {'slide': 'right'}),
-      "Rory O'More left": (move: 'rory_o_more', params: {'slide': 'left'}),
-      "Ones Rory O'More": (move: 'rory_o_more', params: {'who': 'ones'}),
+      // TCB "Rory O'More" (dance ids 6, 39). A standalone line is the unbalanced
+      // 4-beat slide, so the recogniser emits `balance: false` EXPLICITLY (TCB
+      // writes the balance as a separate preceding line; PR3b's merge flips it).
+      "Rory O'More": (move: 'rory_o_more', params: {'balance': false}),
+      "Rory O'More right": (
+        move: 'rory_o_more',
+        params: {'slide': 'right', 'balance': false},
+      ),
+      "Rory O'More left": (
+        move: 'rory_o_more',
+        params: {'slide': 'left', 'balance': false},
+      ),
+      "Ones Rory O'More": (
+        move: 'rory_o_more',
+        params: {'who': 'ones', 'balance': false},
+      ),
       // A bare "Rory" is unambiguous shorthand for Rory O'More.
-      'Rory': (move: 'rory_o_more', params: {}),
+      'Rory': (move: 'rory_o_more', params: {'balance': false}),
       // TCB "Go down the hall" / "Down the hall" (dance ids 10945, 11239,
-      // 12001). `facing`/`ender` stay default; the bend-the-line merge sets
-      // `ender` in a later pass.
-      'Go down the hall': (move: 'down_the_hall', params: {}),
-      'Down the hall': (move: 'down_the_hall', params: {}),
+      // 12001). A bare hall line states no ender, so the recogniser emits
+      // `ender: 'none'` EXPLICITLY; the bend-the-line merge upgrades it later.
+      'Go down the hall': (move: 'down_the_hall', params: {'ender': 'none'}),
+      'Down the hall': (move: 'down_the_hall', params: {'ender': 'none'}),
+      // The "the" is optional, so the shorter alias parses the same.
+      'Down hall': (move: 'down_the_hall', params: {'ender': 'none'}),
       'Everyone down the hall': (
         move: 'down_the_hall',
-        params: {'who': 'everyone'},
+        params: {'who': 'everyone', 'ender': 'none'},
       ),
-      'Go up the hall': (move: 'up_the_hall', params: {}),
-      'Up the hall': (move: 'up_the_hall', params: {}),
+      'Go up the hall': (move: 'up_the_hall', params: {'ender': 'none'}),
+      'Up the hall': (move: 'up_the_hall', params: {'ender': 'none'}),
+      'Up hall': (move: 'up_the_hall', params: {'ender': 'none'}),
     };
 
     cases.forEach((line, expected) {

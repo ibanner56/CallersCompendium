@@ -355,11 +355,14 @@ final List<_Recognizer> _recognizers = [
   _californiaTwirl,
   _squareThrough,
   _pullBy,
-  // Appended at the lowest precedence: their lead tokens (`rory`/`o'more`,
-  // `hall`) are disjoint from every recogniser above, so end placement cannot
-  // shadow or be shadowed. They emit ONLY the params a single line states;
-  // `balance`/`facing`/`ender` stay on the MoveDef default (the CallersBox
-  // cross-line merge sets those in a later pass).
+  // Appended at the lowest precedence. End placement is safe because these
+  // recognisers are conservative (any leftover token → null → custom) and no
+  // earlier recogniser consumes their move anchors (`rory`/`o'more`, `hall`);
+  // a leading dancer set alone (e.g. "Ones …", "Everyone …") never triggers an
+  // earlier recogniser either, so they neither shadow nor are shadowed. They
+  // emit only what a single line states, and set the neutral value for the
+  // cross-line params (`balance: false` on rory, `ender: 'none'` on the halls)
+  // EXPLICITLY — the CallersBox cross-line merge fills the real value later.
   _roryOMore,
   _downTheHall,
   _upTheHall,
@@ -734,8 +737,10 @@ _Match? _pullBy(List<String> w) {
 /// Tier A: TCB writes "Rory O'More" (dance ids 6, 39), optionally with a slide
 /// direction ("Rory O'More right"). An optional dancer set maps to `who` and a
 /// left/right to `slide`; both fall to the taxonomy default when absent. The
-/// surname is accepted in any apostrophe spelling (`o'more`/`o’more`/`omore`)
-/// and is optional (a bare "Rory" is unambiguous).
+/// surname is accepted in the common apostrophe spellings (`o'more` with an
+/// ASCII apostrophe, `o’more` with U+2019, or `omore`) and is optional (a bare
+/// "Rory" is unambiguous). Rarer apostrophe codepoints are not recognised and
+/// fall to custom via the leftover-token guard.
 ///
 /// We emit `balance: false` EXPLICITLY for import fidelity. TCB writes the
 /// balance as a SEPARATE preceding line (ratified D1: "balance(4)+rory(4)"), so
@@ -752,7 +757,7 @@ _Match? _roryOMore(List<String> w) {
   final who = _takeDancer(w);
   final slide = _takeSide(w);
   if (!_consumePhrase(w, ['rory'])) return null;
-  // Optional "O'More" surname token, any apostrophe spelling.
+  // Optional "O'More" surname token, in the common apostrophe spellings.
   const surnames = {"o'more", 'o\u2019more', 'omore'};
   if (w.isNotEmpty && surnames.contains(w.first)) w.removeAt(0);
   final who2 = who ?? _takeDancer(w);
@@ -768,7 +773,8 @@ _Match? _roryOMore(List<String> w) {
 
 /// Tier A: TCB writes "Go down the hall" / "Down the hall" (dance ids 10945,
 /// 11239, 12001). An optional leading "go" and an optional dancer set are
-/// consumed. A descriptor that changes the move — "and back"
+/// consumed. The "the" is optional, so the shorter alias "down hall" is also
+/// accepted. A descriptor that changes the move — "and back"
 /// (forward-then-backward) or "four in line" — is left as leftover, so those
 /// lines stay custom.
 ///
@@ -793,9 +799,10 @@ _Match? _downTheHall(List<String> w) {
 }
 
 /// Tier A: TCB writes "Go up the hall" / "Up the hall". Mirror of
-/// [_downTheHall]; same conservative descriptor handling. Emits `ender: 'none'`
-/// explicitly for the same reason (up_the_hall's MoveDef defaults `circle`; DO
-/// NOT restore that default here — PR3b's merge sets the real ender).
+/// [_downTheHall]; same conservative descriptor handling and the same optional
+/// "the" (so "up hall" is accepted). Emits `ender: 'none'` explicitly for the
+/// same reason (up_the_hall's MoveDef defaults `circle`; DO NOT restore that
+/// default here — PR3b's merge sets the real ender).
 _Match? _upTheHall(List<String> w) {
   final who = _takeDancer(w);
   _consumePhrase(w, ['go']);
