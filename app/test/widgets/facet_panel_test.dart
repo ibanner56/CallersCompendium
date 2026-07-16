@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/search/collection_query.dart';
+import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/facet_panel.dart';
 
 Future<void> _pump(
   WidgetTester tester,
   FacetSelections facets, {
+  List<Progression> progressions = const [],
   List<DanceLevel> levels = const [],
   List<CustomFieldDef> choiceFields = const [],
   List<PublishedSource> citedSources = const [],
@@ -24,7 +26,7 @@ Future<void> _pump(
               facets: facets,
               forms: const [],
               formations: const [],
-              progressions: const [],
+              progressions: progressions,
               statuses: const [],
               levels: levels,
               hasMixedLevel: hasMixedLevel,
@@ -51,6 +53,31 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('progression chips use the centralized progressionIcon', (
+    tester,
+  ) async {
+    // 6.5 parity: the Progression facet value chips must use the app-wide
+    // `progressionIcon` (matching the Formation facet), not the legacy
+    // `Icons.trending_flat`.
+    final facets = FacetSelections();
+    var changes = 0;
+    await _pump(
+      tester,
+      facets,
+      progressions: Progression.values,
+      onChanged: () => changes++,
+    );
+
+    expect(find.text('Progression'), findsOneWidget);
+    expect(find.byIcon(progressionIcon), findsWidgets);
+    expect(find.byIcon(Icons.trending_flat), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('progression-single')));
+    await tester.pump();
+    expect(facets.progressions, contains(Progression.single));
+    expect(changes, 1);
+  });
+
   testWidgets('level chips toggle the selection and notify', (tester) async {
     final facets = FacetSelections();
     var changes = 0;

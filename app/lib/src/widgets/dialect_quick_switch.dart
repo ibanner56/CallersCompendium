@@ -26,7 +26,7 @@ class DialectQuickSwitch extends StatelessWidget {
 
     return PopupMenuButton<String>(
       key: const ValueKey('dialect-quick-switch'),
-      icon: const Icon(Icons.translate),
+      icon: const Icon(Icons.groups_outlined),
       tooltip: 'Switch dialect',
       onSelected: (name) => controller.setActive(name),
       itemBuilder: (context) => [

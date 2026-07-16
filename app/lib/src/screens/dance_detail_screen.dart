@@ -856,7 +856,7 @@ class _StatusBanner extends StatelessWidget {
     final (icon, color) = switch (status) {
       DanceStatus.broken => (Icons.error_outline, theme.colorScheme.error),
       DanceStatus.deprecated => (
-        Icons.warning_amber,
+        Icons.warning_amber_outlined,
         theme.colorScheme.tertiary,
       ),
       DanceStatus.active => (

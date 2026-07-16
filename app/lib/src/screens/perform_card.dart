@@ -337,6 +337,12 @@ class PerformDialectToggle extends StatelessWidget {
     // The accessible name stays 'Show canonical terms' and the on/off STATE is
     // folded into the button's own node via Semantics.toggled, so assistive tech
     // announces one control carrying role, name, tap action, and toggle state.
+    //
+    // Uses the app's Dialect glyph family (`Icons.groups`), NOT `Icons.translate`
+    // (which is reserved for Settings › Language & region / app locale). Canonical
+    // vs dialect terminology is a dialect-domain concern, so it shares the
+    // Dialect glyph and follows the outlined-idle/filled-active convention:
+    // outlined when showing dialect terms, filled when canonical terms are shown.
     return MergeSemantics(
       child: Semantics(
         toggled: canonical,
@@ -344,7 +350,8 @@ class PerformDialectToggle extends StatelessWidget {
           key: const ValueKey('perform-dialect-toggle'),
           tooltip: 'Show canonical terms',
           isSelected: canonical,
-          icon: const Icon(Icons.translate),
+          icon: const Icon(Icons.groups_outlined),
+          selectedIcon: const Icon(Icons.groups),
           onPressed: () => onChanged(!canonical),
         ),
       ),
@@ -490,7 +497,7 @@ class _Header extends StatelessWidget {
         if (level != null) ...[
           const SizedBox(height: AppSpacing.xs),
           _MetaRow(
-            icon: Icons.signal_cellular_alt,
+            icon: Icons.signal_cellular_alt_outlined,
             text: danceLevelLabel(level),
           ),
         ],
@@ -721,7 +728,7 @@ class _StatusBanner extends StatelessWidget {
     final (icon, color) = switch (status) {
       DanceStatus.broken => (Icons.error_outline, theme.colorScheme.error),
       DanceStatus.deprecated => (
-        Icons.warning_amber,
+        Icons.warning_amber_outlined,
         theme.colorScheme.tertiary,
       ),
       DanceStatus.active => (
