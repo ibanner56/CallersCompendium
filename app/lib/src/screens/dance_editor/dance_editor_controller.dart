@@ -7,7 +7,7 @@ import '../../data/display_defaults.dart';
 import '../../editor/editor_draft_codec.dart';
 import '../../editor/editor_snapshot.dart';
 import '../../editor/editor_undo_stack.dart';
-import '../../widgets/figure_list_editor.dart';
+import '../../editor/figure_draft.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 import 'link_draft.dart';
 import 'source_citation_draft.dart';

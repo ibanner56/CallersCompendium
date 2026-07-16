@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../data/reduce_motion_scope.dart';
+import '../editor/figure_draft.dart';
 import '../search/facet_labels.dart';
 import 'figure_param_editors.dart';
 import 'lingo_text_editing_controller.dart';
@@ -16,75 +17,6 @@ import 'move_autocomplete.dart';
 /// editing field is blanked — the stored draft keeps its move/params until a
 /// real move is chosen, so nothing is lost if the editor is collapsed as-is.
 const String _standStillMove = 'stand_still';
-
-// ---------------------------------------------------------------------------
-// FigureDraft (unchanged public API)
-// ---------------------------------------------------------------------------
-/// editor. Committed to an immutable [Figure] on save via [toFigure].
-class FigureDraft {
-  FigureDraft({
-    String? id,
-    this.move,
-    Map<String, Object?>? params,
-    this.note = '',
-    this.progression = false,
-    this.schemaVersion = figureSchemaVersion,
-    this.beatsTouched = false,
-  }) : id = id ?? uuidV4(),
-       params = params ?? <String, Object?>{};
-
-  /// Seeds a draft from an existing figure, keeping its params/note/flags.
-  ///
-  /// [beatsTouched] is set only when the loaded figure carries an explicit
-  /// `beats` value — that authored count is user-owned and never auto-filled
-  /// over (see [beatsTouched]). A figure with no `beats` (older/partial data)
-  /// stays untouched so it can still adopt the taxonomy default on the next
-  /// resync rather than remaining stuck at 0.
-  factory FigureDraft.fromFigure(Figure figure) => FigureDraft(
-    move: figure.move,
-    params: Map<String, Object?>.of(figure.params),
-    note: figure.note ?? '',
-    progression: figure.progression,
-    schemaVersion: figure.schemaVersion,
-    beatsTouched: figure.params.containsKey('beats'),
-  );
-
-  /// Stable identity for widget keys across reorders/rebuilds.
-  final String id;
-
-  /// Canonical move (or alias) id, or `null` until the user picks one.
-  String? move;
-  final Map<String, Object?> params;
-  String note;
-  bool progression;
-  final int schemaVersion;
-
-  /// Whether the user has explicitly taken ownership of the `beats` value.
-  ///
-  /// Beats are auto-filled from the taxonomy: picking a move seeds the move's
-  /// canonical default and clears this flag. Once the user edits the beats
-  /// field directly (or the draft is seeded from a loaded figure that already
-  /// carries an explicit `beats` via [FigureDraft.fromFigure]), this becomes
-  /// `true` and the editor stops auto-filling beats so a manual override is
-  /// never silently overwritten.
-  bool beatsTouched;
-
-  int get beats => (params['beats'] as int?) ?? 0;
-
-  /// Builds the immutable figure, or `null` when no move is chosen yet.
-  Figure? toFigure() {
-    final id = move;
-    if (id == null) return null;
-    final trimmedNote = note.trim();
-    return Figure(
-      schemaVersion: schemaVersion,
-      move: id,
-      params: Map<String, Object?>.of(params),
-      note: trimmedNote.isEmpty ? null : trimmedNote,
-      progression: progression,
-    );
-  }
-}
 
 /// Editable, keyboard-first figure list for the dance editor (`docs/design/
 /// ux.md` §3, roadmap 3.3b + 3.3c). Adopts a collapse-to-sentence accordion:
