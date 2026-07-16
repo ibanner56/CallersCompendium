@@ -3,8 +3,9 @@
 Your [collection](./README.md#glossary) is your whole library of
 [dances](./README.md#glossary) — every transcription you have typed in or
 brought in from elsewhere. This guide shows you how to browse and sort it, find
-exactly the dance you want (by words, by the moves it contains, or both), add
-and tidy up dances, and shape the list around how you work.
+exactly the dance you want (by words, by the [moves](./README.md#glossary) it
+contains, or both), add and tidy up dances, and shape the list around how you
+work.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Collection**, **Filters**, and **New dance**. The

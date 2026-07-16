@@ -2,7 +2,7 @@
 
 [Perform mode](./README.md#glossary) is the app's stage-ready calling view. This
 guide covers calling a single [dance](./README.md#glossary) or a whole
-[program](./programs.md), sizing the text so it is readable from a distance,
+[program](./README.md#glossary), sizing the text so it is readable from a distance,
 moving through your evening, keeping time, and making changes on the fly without
 losing your place.
 

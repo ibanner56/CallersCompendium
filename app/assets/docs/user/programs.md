@@ -2,7 +2,8 @@
 
 A [program](./README.md#glossary) is an ordered set list for one event —
 Saturday's dance, a weekend, a one-off gig. This guide shows you how to build a
-program from your dances, check the variety of your evening at a glance with the
+program from your [dances](./README.md#glossary), check the variety of your
+evening at a glance with the
 [matrix](./README.md#glossary), print or share it, and keep track of what you
 have called.
 
