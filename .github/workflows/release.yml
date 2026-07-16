@@ -318,6 +318,32 @@ jobs:
       - name: List downloaded artifacts
         run: ls -l dist
 
+      # SBOM (A10): resolve the workspace dependency graph and emit a
+      # deterministic CycloneDX 1.5 SBOM so downstream users can see exactly
+      # which dependencies went into the build. Flutter setup mirrors ci.yml /
+      # the build job (pinned action + .fvmrc, cache); `pub get` here only
+      # RESOLVES the single root pubspec.lock (no build), and `dart` ships with
+      # the Flutter SDK. The SBOM is named OUTSIDE the `CallersCompendium-*`
+      # binary namespace so gen_release_metadata never treats it as a platform
+      # binary and the build-provenance `subject-path` never globs it — it gets
+      # its own attestation below and is folded into SHA256SUMS via --extra-file.
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+
+      - run: flutter pub get --enforce-lockfile
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          set -euo pipefail
+          dart pub deps --json > "$RUNNER_TEMP/deps.json"
+          python3 tools/release/gen_sbom.py \
+            --deps "$RUNNER_TEMP/deps.json" \
+            --version "${{ needs.meta.outputs.version }}" \
+            --output "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
+
       - name: Generate SHA256SUMS + channel manifest
         run: |
           set -euo pipefail
@@ -327,12 +353,24 @@ jobs:
             --channel "${{ needs.meta.outputs.channel }}" \
             --repo "${{ github.repository }}" \
             --dist dist \
-            --pub-date "${{ needs.meta.outputs.pub_date }}"
+            --pub-date "${{ needs.meta.outputs.pub_date }}" \
+            --extra-file "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
 
       - name: Attest build provenance (keyless SLSA)
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
           subject-path: 'dist/CallersCompendium-*'
+
+      # Attest the SBOM (A10): binds the CycloneDX SBOM to the release binaries
+      # with the same keyless (OIDC) signing as the build provenance, so users
+      # can `gh attestation verify` the dependency list too. `subject-path` is
+      # the BINARIES only (never the SBOM/SHA256SUMS/<channel>.json); `sbom-path`
+      # is the generated CycloneDX document.
+      - name: Attest SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: 'dist/CallersCompendium-*'
+          sbom-path: 'dist/sbom-${{ needs.meta.outputs.version }}.cdx.json'
 
       # Release notes come from app/CHANGELOG.md (A12): gen_release_notes.py
       # extracts the `## [x.y.z]` section for this version, adds a beta banner
@@ -358,12 +396,13 @@ jobs:
       - name: Create or update the DRAFT release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.meta.outputs.version }}
           TAG: ${{ needs.meta.outputs.tag }}
           CHANNEL: ${{ needs.meta.outputs.channel }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
         run: |
           set -euo pipefail
-          files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/${CHANNEL}.json")
+          files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/${CHANNEL}.json" "dist/sbom-${VERSION}.cdx.json")
 
           pre_flag=()
           if [ "$PRERELEASE" = "true" ]; then pre_flag=(--prerelease); fi
