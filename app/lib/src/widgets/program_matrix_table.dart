@@ -42,6 +42,18 @@ class ProgramMatrixTable extends StatefulWidget {
   static const double rowHeaderWidth = 168;
   static const double columnHeaderHeight = 72;
 
+  /// Width (logical pixels) below which the wide scrolling grid is replaced by
+  /// the [_CompactMatrix] fallback. 600 mirrors Material 3's compact
+  /// window-size-class cutoff (matching `DanceDetailScreen.compactActionsBreakpoint`),
+  /// so phones get the condensed view while tablets/desktop keep the full grid.
+  ///
+  /// At a 360dp phone width the grid reserves [rowHeaderWidth] (168) for the
+  /// pinned dance column, leaving room for only ~3 [columnWidth] move columns —
+  /// too few to read the core insight (which moves repeat across the set)
+  /// without horizontally scrolling the whole grid. The compact view surfaces
+  /// that insight directly, grouped by move.
+  static const double compactBreakpoint = 600;
+
   @override
   State<ProgramMatrixTable> createState() => _ProgramMatrixTableState();
 }
@@ -94,7 +106,51 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
         matrixColumnLabel(c, widget.taxonomy, widget.dialect),
     ];
 
-    final table = Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            constraints.maxWidth < ProgramMatrixTable.compactBreakpoint;
+        final content = compact
+            ? _CompactMatrix(matrix: matrix, labels: labels)
+            : _wideTable(labels);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Legend(),
+            const Divider(height: 1, thickness: 1),
+            Expanded(
+              child: Semantics(
+                container: true,
+                label:
+                    'Programming matrix: '
+                    '${matrix.rows.length} dances by '
+                    '${matrix.columns.length} moves',
+                child: content,
+              ),
+            ),
+            if (widget.omittedFreeTextCount > 0)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  _omittedCaption(widget.omittedFreeTextCount),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// The full four-quadrant scrolling grid (corner / pinned column headers /
+  /// pinned row headers / two-axis scrolling body) used at tablet and desktop
+  /// widths. Below [ProgramMatrixTable.compactBreakpoint] it is replaced by
+  /// [_CompactMatrix].
+  Widget _wideTable(List<String> labels) {
+    final matrix = widget.matrix;
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Top strip: corner + horizontally-scrolling column headers.
@@ -176,33 +232,6 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
             ],
           ),
         ),
-      ],
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _Legend(),
-        const Divider(height: 1, thickness: 1),
-        Expanded(
-          child: Semantics(
-            container: true,
-            label:
-                'Programming matrix: '
-                '${matrix.rows.length} dances by ${matrix.columns.length} moves',
-            child: table,
-          ),
-        ),
-        if (widget.omittedFreeTextCount > 0)
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              _omittedCaption(widget.omittedFreeTextCount),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -349,6 +378,247 @@ class _Cell extends StatelessWidget {
           ),
         ),
         child: mark,
+      ),
+    );
+  }
+}
+
+class _CompactMatrix extends StatelessWidget {
+  const _CompactMatrix({required this.matrix, required this.labels});
+
+  final ProgramMatrix matrix;
+  final List<String> labels;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final total = matrix.rows.length;
+
+    // Group present moves into those shared across dances (the core insight)
+    // and those used just once. Columns with zero present dances (e.g. the
+    // always-emitted partner/neighbor swing baseline when no dance swings that
+    // role) are dropped — an unused move isn't part of "the set's moves".
+    final repeated = <_MoveSummary>[];
+    final singles = <_MoveSummary>[];
+    for (var c = 0; c < matrix.columns.length; c++) {
+      final dances = <_DanceUse>[];
+      for (var r = 0; r < matrix.rows.length; r++) {
+        if (matrix.isPresent(r, c)) {
+          dances.add(
+            _DanceUse(title: matrix.rows[r].title, first: matrix.isFirst(r, c)),
+          );
+        }
+      }
+      if (dances.isEmpty) continue;
+      final summary = _MoveSummary(label: labels[c], order: c, dances: dances);
+      (dances.length >= 2 ? repeated : singles).add(summary);
+    }
+    // Most-repeated first; ties keep taxonomy column order (deterministic).
+    repeated.sort((a, b) {
+      final byCount = b.dances.length.compareTo(a.dances.length);
+      return byCount != 0 ? byCount : a.order.compareTo(b.order);
+    });
+
+    final children = <Widget>[];
+    if (repeated.isEmpty) {
+      children.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            'No moves repeat across these dances — every move below is used '
+            'by a single dance.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    } else {
+      children.add(_SectionHeader(label: 'Repeated moves'));
+      children.add(
+        Padding(
+          padding: const EdgeInsets.only(top: 2, bottom: 4),
+          child: Text(
+            'Moves shared across two or more dances, most-repeated first.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+      for (final m in repeated) {
+        children.add(_MoveCard(summary: m, total: total));
+      }
+    }
+
+    if (singles.isNotEmpty) {
+      children.add(_SectionHeader(label: 'Used once'));
+      for (final m in singles) {
+        children.add(_MoveCard(summary: m, total: total));
+      }
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+}
+
+/// Per-move roll-up for the compact view: the move's label, its stable column
+/// [order] (for deterministic tie-breaking), and the dances that use it.
+class _MoveSummary {
+  _MoveSummary({
+    required this.label,
+    required this.order,
+    required this.dances,
+  });
+
+  final String label;
+  final int order;
+  final List<_DanceUse> dances;
+}
+
+/// A single dance's use of a move: its title and whether the move is that
+/// dance's FIRST figure (mirrors the grid's first-figure highlight).
+class _DanceUse {
+  _DanceUse({required this.title, required this.first});
+
+  final String title;
+  final bool first;
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 2),
+      child: Semantics(
+        header: true,
+        child: Text(
+          label,
+          style: theme.textTheme.titleSmall?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One move in the compact view: a header row (move label + "N of M dances"
+/// count) over a wrap of the dances that use it. Preserves the grid's table
+/// semantics — the header is flagged a semantic header ("Move: label, used in
+/// N of M dances") and each dance chip announces "dance, move: present" (or
+/// "first figure"), matching [_Cell].
+class _MoveCard extends StatelessWidget {
+  const _MoveCard({required this.summary, required this.total});
+
+  final _MoveSummary summary;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final n = summary.dances.length;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            label: 'Move: ${summary.label}, used in $n of $total dances',
+            excludeSemantics: true,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    summary.label,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '$n of $total',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final d in summary.dances)
+                _DanceChip(
+                  danceTitle: d.title,
+                  moveLabel: summary.label,
+                  first: d.first,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DanceChip extends StatelessWidget {
+  const _DanceChip({
+    required this.danceTitle,
+    required this.moveLabel,
+    required this.first,
+  });
+
+  final String danceTitle;
+  final String moveLabel;
+  final bool first;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final state = first ? 'first figure' : 'present';
+    return Semantics(
+      label: '$danceTitle, $moveLabel: $state',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: first
+              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.4)
+              : theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              first ? Icons.star : Icons.check,
+              size: 14,
+              color: first
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface,
+            ),
+            const SizedBox(width: 4),
+            Text(danceTitle, style: theme.textTheme.labelMedium),
+          ],
+        ),
       ),
     );
   }

@@ -212,4 +212,153 @@ void main() {
     expect(find.text('neighbor twirl'), findsOneWidget);
     expect(find.text('partner swing'), findsNothing);
   });
+
+  group('phone-width compact view (< 600dp)', () {
+    Future<void> pumpNarrow(
+      WidgetTester tester, {
+      required List<Dance> dances,
+      int omittedFreeTextCount = 0,
+      Set<String> altDanceIds = const {},
+      Dialect? dialect,
+    }) async {
+      // A 360dp phone: below ProgramMatrixTable.compactBreakpoint (600), so the
+      // wide scrolling grid is replaced by the condensed by-move view.
+      await tester.binding.setSurfaceSize(const Size(360, 720));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProgramMatrixTable(
+              matrix: buildProgramMatrix(dances),
+              taxonomy: contraTaxonomy,
+              dialect: dialect ?? Dialect.canonical,
+              omittedFreeTextCount: omittedFreeTextCount,
+              altDanceIds: altDanceIds,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('surfaces moves that repeat across the set', (tester) async {
+      await pumpNarrow(
+        tester,
+        dances: [
+          dance('d1', 'A', [swing(), move('balance')]),
+          dance('d2', 'B', [swing(), move('balance')]),
+        ],
+      );
+
+      // The core insight is presented directly, grouped by move — no
+      // horizontal scrolling needed to see what repeats.
+      expect(find.text('Repeated moves'), findsOneWidget);
+
+      // Each repeated move states how many of the set's dances use it...
+      expect(
+        find.bySemanticsLabel('Move: partner swing, used in 2 of 2 dances'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('Move: balance, used in 2 of 2 dances'),
+        findsOneWidget,
+      );
+
+      // ...and the per-dance table semantics are preserved on each chip.
+      expect(
+        find.bySemanticsLabel('A, partner swing: first figure'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('B, partner swing: first figure'),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('A, balance: present'), findsOneWidget);
+      expect(find.bySemanticsLabel('B, balance: present'), findsOneWidget);
+    });
+
+    testWidgets('marks the first figure of a repeated move with a star', (
+      tester,
+    ) async {
+      await pumpNarrow(
+        tester,
+        dances: [
+          // A opens on the swing; B opens on balance, so the shared partner
+          // swing is B's second figure (present, not first).
+          dance('d1', 'A', [swing()]),
+          dance('d2', 'B', [move('balance'), swing()]),
+        ],
+      );
+
+      expect(find.text('Repeated moves'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('A, partner swing: first figure'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('B, partner swing: present'),
+        findsOneWidget,
+      );
+      // First-figure highlight is a distinct shape (star), not colour alone.
+      expect(find.byIcon(Icons.star), findsWidgets);
+    });
+
+    testWidgets('notes when no moves repeat across the dances', (tester) async {
+      await pumpNarrow(
+        tester,
+        dances: [
+          dance('d1', 'A', [move('balance')]),
+          dance('d2', 'B', [move('allemande')]),
+        ],
+      );
+
+      expect(find.textContaining('No moves repeat'), findsOneWidget);
+      expect(find.text('Repeated moves'), findsNothing);
+      // Every move is still listed (nothing dropped) under "Used once".
+      expect(find.text('Used once'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Move: balance, used in 1 of 2 dances'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('Move: allemande, used in 1 of 2 dances'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('keeps the container table semantics for assistive tech', (
+      tester,
+    ) async {
+      await pumpNarrow(
+        tester,
+        dances: [
+          dance('d1', 'A', [swing()]),
+          dance('d2', 'B', [swing()]),
+        ],
+      );
+      expect(
+        find.bySemanticsLabel('Programming matrix: 2 dances by 2 moves'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('still notes omitted free-text slots', (tester) async {
+      await pumpNarrow(
+        tester,
+        dances: [
+          dance('d1', 'A', [swing()]),
+          dance('d2', 'B', [swing()]),
+        ],
+        omittedFreeTextCount: 2,
+      );
+      expect(find.textContaining('2 free-text slots'), findsOneWidget);
+    });
+
+    testWidgets('empty matrix still shows the auto-fill empty state', (
+      tester,
+    ) async {
+      await pumpNarrow(tester, dances: const []);
+      expect(find.text('No structured figures yet'), findsOneWidget);
+    });
+  });
 }
