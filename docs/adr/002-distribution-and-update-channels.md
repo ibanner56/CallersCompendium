@@ -69,7 +69,7 @@ it. Fields:
 
 ```jsonc
 {
-  "manifestSchemaVersion": 1,          // int, required. Client hard-refuses an unknown major.
+  "manifestSchemaVersion": 1,          // int, required. Client hard-refuses a value it doesn't recognize.
   "channel": "stable",                 // "stable" | "beta", required. Must equal the file's channel.
   "version": "0.2.0",                  // SemVer string, required. Compared against kAppVersion.
   "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.2.0",
@@ -89,9 +89,9 @@ it. Fields:
 
 Field rules:
 
-- `manifestSchemaVersion` — integer feed-contract version. The client refuses a
-  value whose **major** it does not understand rather than guessing; a breaking
-  schema change bumps this and is a Revisit trigger.
+- `manifestSchemaVersion` — integer feed-contract version. The client refuses
+  any value it does not recognize rather than guessing; a breaking schema change
+  increments this integer and is a Revisit trigger.
 - `channel` — must equal the channel implied by the filename (`stable.json` →
   `"stable"`), so a mis-published file is detectable.
 - `version` — SemVer; the pure-Dart client compares it against `kAppVersion`
@@ -145,11 +145,11 @@ in-app update via the **`auto_updater`** package (leanflutter — the **same
 ecosystem** as the app's existing `window_manager` / `screen_retriever`
 dependencies), which wraps **Sparkle on macOS** and **WinSparkle on Windows**
 and is driven by the **appcast** generated from the manifest data. This stage is
-**gated on code-signing existing** (Sparkle/WinSparkle require signed updates to
-be trustworthy), so it does not ship until signing is in place. Linux continues
-to use the Stage-1 path (or distro/Flathub updates). **Sparkle system profiling
-stays OFF** — we never set `sendsSystemProfile` — to honor the no-telemetry
-stance.
+**gated on code-signing being in place** (Sparkle/WinSparkle require signed
+updates to be trustworthy), so it does not ship until signing exists. Linux
+continues to use the Stage-1 path (or distro/Flathub updates). **Sparkle system
+profiling stays OFF** — we never set `sendsSystemProfile` — to honor the
+no-telemetry stance.
 
 ### 5. Privacy contract for the update check
 
