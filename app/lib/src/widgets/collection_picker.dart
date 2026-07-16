@@ -7,12 +7,15 @@ import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
+import 'advanced_query_builder.dart';
+import 'by_phrase_panel.dart';
 import 'dance_list_tile.dart';
 import 'facet_panel.dart';
 
 /// A reusable dance picker that reuses the Collection search stack (full-text
-/// search + [FacetPanel] + [DanceRepository.search]) so the Programs builder
-/// can find and add dances with the same filtering as the Collection screen
+/// search + [FacetPanel] + [ByPhrasePanel] + [AdvancedQueryBuilder] +
+/// [DanceRepository.search]) so the Programs builder can find and add dances
+/// with the same figure-aware filtering as the Collection screen
 /// (`docs/design/ux.md` §4).
 ///
 /// Unlike [DanceListScreen] this is a plain embeddable widget (no [Scaffold]/
@@ -52,6 +55,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   final _ftsController = TextEditingController();
   final _facets = FacetSelections();
+  final _byPhrase = ByPhraseSelections();
+  final _advancedRoot = BuilderGroup();
+  bool _advancedEnabled = false;
 
   late CompendiumRepositories _repos;
   bool _started = false;
@@ -98,6 +104,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ftsText: _ftsController.text,
         facets: _facets,
         defs: data.customFieldDefs,
+        byPhrase: _byPhrase,
+        advancedRoot: _advancedEnabled ? _advancedRoot : null,
       );
       final ids = await _repos.dances.search(filter, dialect: widget.dialect);
       if (!mounted || seq != _searchSeq) return;
@@ -129,13 +137,30 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _runSearch();
   }
 
+  void _onByPhraseChanged() {
+    setState(() {});
+    _runSearch();
+  }
+
+  void _onAdvancedChanged() {
+    setState(() {});
+    _runSearch();
+  }
+
   bool get _hasActiveQuery =>
-      _ftsController.text.trim().isNotEmpty || !_facets.isEmpty;
+      _ftsController.text.trim().isNotEmpty ||
+      !_facets.isEmpty ||
+      !_byPhrase.isEmpty ||
+      (_advancedEnabled && _advancedRoot.toFilter() != null);
 
   void _clearAll() {
     setState(() {
       _ftsController.clear();
       _facets.clear();
+      _byPhrase.clear();
+      _advancedRoot.children.clear();
+      _advancedRoot.kind = GroupKind.all;
+      _advancedEnabled = false;
     });
     _runSearch();
   }
@@ -189,6 +214,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
               SliverList(
                 delegate: SliverChildListDelegate([
                   _buildFiltersPanel(data),
+                  _buildByPhrasePanel(data),
+                  _buildAdvancedPanel(data),
                   _buildResultCount(),
                   const Divider(height: 1),
                 ]),
@@ -229,6 +256,68 @@ class _CollectionPickerState extends State<CollectionPicker> {
           numberFields: data.numberFields,
           onChanged: _onFacetsChanged,
         ),
+      ],
+    );
+  }
+
+  Widget _buildByPhrasePanel(CollectionData data) {
+    final activeCount = _byPhraseActiveCount();
+    return ExpansionTile(
+      key: const ValueKey('picker-by-phrase-panel'),
+      leading: const Icon(Icons.grid_view_outlined),
+      title: Text(
+        activeCount == 0 ? 'By phrase' : 'By phrase ($activeCount active)',
+      ),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      children: [
+        ByPhrasePanel(
+          selections: _byPhrase,
+          taxonomy: data.taxonomy,
+          sectionLabels: data.sectionLabels,
+          onChanged: _onByPhraseChanged,
+        ),
+      ],
+    );
+  }
+
+  int _byPhraseActiveCount() {
+    var count = 0;
+    for (final moves in _byPhrase.match.values) {
+      count += moves.length;
+    }
+    for (final moves in _byPhrase.exclude.values) {
+      count += moves.length;
+    }
+    return count;
+  }
+
+  Widget _buildAdvancedPanel(CollectionData data) {
+    return ExpansionTile(
+      key: const ValueKey('picker-advanced-panel'),
+      leading: const Icon(Icons.account_tree_outlined),
+      title: const Text('Advanced'),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      children: [
+        SwitchListTile(
+          key: const ValueKey('picker-advanced-enable'),
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Use advanced query'),
+          subtitle: const Text(
+            'Combine figures and sequences with all / any / none groups.',
+          ),
+          value: _advancedEnabled,
+          onChanged: (value) {
+            setState(() => _advancedEnabled = value);
+            _runSearch();
+          },
+        ),
+        if (_advancedEnabled)
+          AdvancedQueryBuilder(
+            root: _advancedRoot,
+            taxonomy: data.taxonomy,
+            sectionLabels: data.sectionLabels,
+            onChanged: _onAdvancedChanged,
+          ),
       ],
     );
   }
