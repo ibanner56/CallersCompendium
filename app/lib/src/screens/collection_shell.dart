@@ -416,7 +416,6 @@ class _EmptyDetailPane extends StatelessWidget {
             BrandMark(
               size: 64,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
-              semanticLabel: "Caller's Compendium",
             ),
             const SizedBox(height: 16),
             Text(
