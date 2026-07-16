@@ -12,6 +12,7 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/licenses.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
 
@@ -77,10 +78,19 @@ void main() {
   ) async {
     await _pumpAbout(tester);
 
-    // App identity.
-    expect(find.byKey(const ValueKey('about-app-version')), findsOneWidget);
-    expect(find.text(kAppName), findsWidgets);
+    // Brand home header: the app mark, wordmark, version, and mission line.
+    final brandHeader = find.byKey(const ValueKey('about-brand-header'));
+    expect(brandHeader, findsOneWidget);
+    expect(
+      find.descendant(of: brandHeader, matching: find.byType(BrandMark)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: brandHeader, matching: find.text(kAppName)),
+      findsOneWidget,
+    );
     expect(find.text('Version $kAppVersion'), findsOneWidget);
+    expect(find.text(kAppTagline), findsOneWidget);
 
     // AGPL-3.0 license notice + source offer and link.
     expect(find.textContaining('AGPL-3.0'), findsWidgets);
@@ -111,6 +121,16 @@ void main() {
     tester,
   ) async {
     await _pumpAbout(tester, surfaceSize: const Size(420, 2600));
+
+    // The brand home header renders in the narrow (detail-route) layout too.
+    final brandHeader = find.byKey(const ValueKey('about-brand-header'));
+    expect(brandHeader, findsOneWidget);
+    expect(
+      find.descendant(of: brandHeader, matching: find.byType(BrandMark)),
+      findsOneWidget,
+    );
+    expect(find.text('Version $kAppVersion'), findsOneWidget);
+    expect(find.text(kAppTagline), findsOneWidget);
 
     // The detail route shows the same compliance content.
     expect(find.text(kAppName), findsWidgets);

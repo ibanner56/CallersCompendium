@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app_metadata.dart';
 import '../../theme/app_spacing.dart';
 import '../../utils/launch_external_url.dart';
+import '../../widgets/brand_mark.dart';
 import '../../widgets/section_header.dart';
 
 /// The About settings section (routing wrapper).
@@ -15,15 +16,15 @@ class AboutSection extends StatelessWidget {
   }
 }
 
-/// The About section: app identity, the AGPL-3.0 notice with the corresponding
+/// The About section: the app's brand home (mark, wordmark, version, and a
+/// one-line mission) followed by the AGPL-3.0 notice with the corresponding
 /// source offer (an AGPL conveyance obligation), attribution for the bundled
 /// fonts, the "inspired by" theme note, and the dance-data provenance — plus a
 /// "View licenses" entry into Flutter's `showLicensePage` (which also lists the
 /// bundled font license texts registered via `registerBundledFontLicenses`).
 ///
-/// Intentionally brand-free: a later item layers the app mark / Fraunces
-/// wordmark on top of this same section, so this half only builds the structure
-/// and the compliance content.
+/// The brand header at the top carries the app's identity and version; the
+/// remaining entries build the structure and the compliance content.
 class _AboutView extends StatelessWidget {
   const _AboutView();
 
@@ -32,13 +33,7 @@ class _AboutView extends StatelessWidget {
     final theme = Theme.of(context);
     return ListView(
       children: [
-        SectionHeader(title: 'About'),
-        const ListTile(
-          key: ValueKey('about-app-version'),
-          leading: Icon(Icons.info_outline),
-          title: Text(kAppName),
-          subtitle: Text('Version $kAppVersion'),
-        ),
+        const _AboutBrandHeader(),
         SectionHeader(title: 'License'),
         const _AboutParagraph(
           "Caller's Compendium is free software, licensed under the GNU "
@@ -138,6 +133,57 @@ class _AboutView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The centered brand home shown at the very top of the About section: the
+/// full-color app mark, the [kAppName] wordmark in Fraunces, the current
+/// version, and a one-line mission ([kAppTagline]). Carries the app identity
+/// so the sections below can focus on compliance and attribution content.
+class _AboutBrandHeader extends StatelessWidget {
+  const _AboutBrandHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      key: const ValueKey('about-brand-header'),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.xl,
+        AppSpacing.md,
+        AppSpacing.lg,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const BrandMark(size: 80, showTile: true, semanticLabel: kAppName),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            kAppName,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.displaySmall,
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            'Version $kAppVersion',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            kAppTagline,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
