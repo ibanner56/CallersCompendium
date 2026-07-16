@@ -1,0 +1,89 @@
+name: 📥 Import problem
+description: Report trouble importing dances from a source (Caller's Box, ContraDB, Caller's Companion, JSON/backup, etc.).
+title: "[Import]: "
+labels: ["type: import", "area: import", "status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Use this form when an import didn't go the way you expected — a source
+        wouldn't parse, data went missing, dances duplicated, or figures mapped
+        to the wrong thing.
+  - type: markdown
+    attributes:
+      value: >-
+        **Heads up:** some import sources are still being built (roadmap Phase
+        6). This form is usable now, but a source you're after may not be
+        available in-app yet — that's useful to know too, so please report it.
+  - type: markdown
+    attributes:
+      value: >-
+        **Privacy:** the app is local-first and collects no telemetry — the only
+        details we get are the ones you paste here. Please redact anything
+        personal or private from samples and snippets before sharing.
+  - type: dropdown
+    id: source
+    attributes:
+      label: Which source were you importing from?
+      options:
+        - The Caller's Box
+        - ContraDB
+        - Caller's Companion
+        - JSON / backup file
+        - Other (describe below)
+    validations:
+      required: true
+  - type: textarea
+    id: what-imported
+    attributes:
+      label: What were you importing?
+      description: What you were bringing in (a single dance, a batch, a full backup) and how you started the import (link/ID, file, etc.).
+    validations:
+      required: true
+  - type: dropdown
+    id: problem-type
+    attributes:
+      label: What went wrong?
+      options:
+        - Parse error (import failed or wouldn't load)
+        - Missing data (something didn't come through)
+        - Duplicate (dance imported more than once)
+        - Wrong mapping (figures/fields mapped incorrectly)
+        - Other (describe below)
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What happened?
+      description: Describe the problem — what you expected vs. what you got, and any error message shown.
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample or snippet (optional)
+      description: A small excerpt of the source data or the error text helps a lot. Please redact anything private first.
+      render: text
+    validations:
+      required: false
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform (optional)
+      multiple: true
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Android
+        - iOS / iPadOS
+    validations:
+      required: false
+  - type: checkboxes
+    id: privacy-ack
+    attributes:
+      label: Privacy acknowledgement
+      options:
+        - label: I've redacted any personal or identifying information from the samples above.
+          required: true

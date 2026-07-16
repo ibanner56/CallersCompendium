@@ -1,7 +1,14 @@
-name: Feature request
+name: ✨ Feature request
 description: Suggest an improvement or new capability
-labels: ["enhancement"]
+title: "[Feature]: "
+labels: ["type: enhancement", "status: triage"]
 body:
+  - type: markdown
+    attributes:
+      value: >-
+        **Privacy:** Caller's Compendium is local-first and collects no
+        telemetry. Please don't include personal or identifying information in
+        your request.
   - type: textarea
     id: problem
     attributes:
@@ -15,10 +22,30 @@ body:
       label: Proposed solution
     validations:
       required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the app does this touch?
+      description: Pick the closest area (a triager will confirm the matching area label).
+      options:
+        - "Collection (area: collection)"
+        - "Programs (area: programs)"
+        - "Perform (area: perform)"
+        - "Dialect (area: dialect)"
+        - "Import (area: import)"
+        - "Search (area: search)"
+        - "Settings (area: settings)"
+        - "Packaging (area: packaging)"
+        - "Accessibility (area: a11y)"
+        - "Docs (area: docs)"
+    validations:
+      required: false
   - type: textarea
     id: alternatives
     attributes:
       label: Alternatives considered
+    validations:
+      required: false
   - type: checkboxes
     id: scope
     attributes:
