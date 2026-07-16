@@ -466,24 +466,26 @@ void main() {
             ),
           );
           expect(draft.dance.hook, 'A joyful chestnut');
-          expect(draft.dance.callingNotes, contains('Cary Ravitz'));
+          expect(draft.dance.callingNotes, isNot(contains('Cary Ravitz')));
           expect(draft.dance.callingNotes, contains('Careful of the ends.'));
           expect(draft.dance.callingNotes, contains('First published 1990.'));
           expect(draft.dance.authorIds, isEmpty);
+          expect(draft.authorNames, ['Cary Ravitz']);
           expect(
             draft.issues.any(
               (i) => i.code == 'contradb_choreographer_unresolved',
             ),
-            isTrue,
+            isFalse,
           );
         },
       );
 
-      test('choreographer object with a name is read', () async {
+      test('choreographer object with a name → authorNames', () async {
         final draft = await _importOne(
           jsonEncode(_dance(choreographer: {'id': 7, 'name': 'Bob Isaacs'})),
         );
-        expect(draft.dance.callingNotes, contains('Bob Isaacs'));
+        expect(draft.authorNames, ['Bob Isaacs']);
+        expect(draft.dance.callingNotes, isNot(contains('Bob Isaacs')));
       });
     });
 

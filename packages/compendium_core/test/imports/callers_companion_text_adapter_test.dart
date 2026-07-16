@@ -109,15 +109,16 @@ void main() {
       expect(draft.quality.score, greaterThan(0.0));
     });
 
-    test('author name surfaces as an unresolved-author issue', () async {
+    test('author name surfaces on the draft authorNames', () async {
       final draft = (await _importAll(adapter, _fullDance)).single;
-      // No fabricated author ids — the name is conveyed for review instead.
+      // No fabricated author ids — the name is conveyed for the pipeline to
+      // resolve (match-or-create) at commit.
       expect(draft.dance.authorIds, isEmpty);
-      final authorIssues = draft.issues.where(
-        (i) => i.code == 'cc_unresolved_author',
+      expect(draft.authorNames, contains('Becky Hill'));
+      expect(
+        draft.issues.any((i) => i.code == 'cc_unresolved_author'),
+        isFalse,
       );
-      expect(authorIssues, hasLength(1));
-      expect(authorIssues.single.message, contains('Becky Hill'));
     });
 
     test('a body line with no beats prefix imports with beats 0', () async {

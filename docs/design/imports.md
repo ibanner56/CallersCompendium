@@ -17,12 +17,49 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **RawRecord** | Source-native payload preserved verbatim + source id/version → stored in `provenance.raw_payload`. Re-import/diff is always possible. |
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; formation strings mapped to the enum (+detail). |
-| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (normalized title + author) → user chooses link/duplicate/skip. |
+| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (normalized title + author) → user chooses link/duplicate/skip. Free-text imports feed their raw author names (see *Author resolution*) into this signal. |
 | **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Accept-all is one tap; nothing silently mutates existing user data. |
-| **commit** | Transactional; provenance row written; import session log kept for undo. |
+| **commit** | Transactional; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo. |
 
 Adapters implement a small interface (`discover() / fetch() / parse()`) in the
 pure-Dart core → each adapter unit-tested against fixture files.
+
+## Author resolution (resolve-or-create seam)
+
+Free-text sources (CallersBox, ContraDB — JSON and HTML — and Caller's Companion
+text + `.USR`) supply author/choreographer **names**, not stable ids. Each adapter
+carries those names verbatim on `StructuredDraft.authorNames` (in order, blanks
+dropped) and **never fabricates ids** — names are data, not a parse failure. The
+pipeline resolves them to real `Choreographer` associations (`Dance.authorIds`) at
+**commit**:
+
+- **Matching policy — exact, normalized, conservative.** A name matches an existing
+  `Choreographer` iff its normalized form (trim → collapse internal whitespace →
+  lowercase) equals an existing row's normalized name. **Punctuation is significant**
+  (never stripped) and there is **no fuzzy matching** (v1): a wrong merge
+  (miscrediting a dance) is worse than an occasional near-duplicate row. The seeded
+  `Traditional`/`Unknown` rows are ordinary rows — a name normalizing to them
+  matches and is reused, with no special-casing.
+- **Create path.** A name with no match mints a new id and inserts a name-only
+  `Choreographer` (no website/email). Blank/whitespace-only names are skipped
+  entirely; a name repeated within one record collapses to a single authorship
+  entry.
+- **Batch de-dup.** A single normalized-name → id map is seeded from the collection
+  at the start of a commit and newly-created ids are added to it live, so two dances
+  crediting the same new author in one batch resolve to **one** created row.
+- **Re-import/link replaces authors.** Because re-import overwrites the dance's
+  content wholesale, it also **replaces** the resolved author list — a manually-added
+  co-author on the target dance is dropped on re-import.
+- **Undo.** The import session tracks the ids of choreographers it created. Undo
+  hard-deletes inserted dances (cascading away their `dance_authors` rows) and
+  restores updated dances, then removes each created choreographer — but only those
+  no surviving dance still references (the repository's referenced-guard is
+  respected). Pre-existing choreographers are never touched.
+- **`callingNotes` behavior change.** Author names are **no longer folded** into
+  `Dance.callingNotes`, and the old per-name `*_unresolved` info issues are removed;
+  authorship now lives in `Dance.authorIds`. The per-record resolution outcome
+  (matched vs created, per name) is surfaced structurally on
+  `CommittedRecord.authorResolutions` for the review step.
 
 ## Sources
 

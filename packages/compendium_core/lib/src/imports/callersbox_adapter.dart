@@ -49,11 +49,11 @@ import 'structured_draft.dart';
 ///   Figures are never fabricated for a non-full dance.
 ///
 /// ## Choreographers / metadata
-/// The pipeline resolves authors by id and does not create Choreographer rows
-/// from names, so [Dance.authorIds] is left **empty**; each TCB `Authors[]`
-/// name is folded into [Dance.callingNotes] and surfaced as an info issue for
-/// the review step. `FormationBase`/`FormationDetail` classify to a
-/// [FormationShape] best-effort (original kept as [Formation.detail]);
+/// Each TCB `Authors[]` name is carried on the draft's `authorNames`; the
+/// import pipeline resolves those to real [Choreographer] associations
+/// ([Dance.authorIds]) at commit (match-or-create). Author names are no longer
+/// folded into [Dance.callingNotes]. `FormationBase`/`FormationDetail` classify
+/// to a [FormationShape] best-effort (original kept as [Formation.detail]);
 /// `Progression` maps best-effort; `PhraseStructure` empty means the default.
 ///
 /// ## Contract
@@ -237,7 +237,7 @@ class CallersBoxAdapter implements SourceAdapter {
         progression: progression,
         phraseStructure: phraseStructure,
         figures: figures,
-        callingNotes: _buildNotes(dance, issues),
+        callingNotes: _buildNotes(dance),
         tunes: _asStringList(dance['Tunes']),
         // The pipeline attaches provenance at commit, derived from `raw`.
         createdAt: _epoch,
@@ -245,6 +245,7 @@ class CallersBoxAdapter implements SourceAdapter {
       ),
       raw: raw,
       issues: issues,
+      authorNames: _asStringList(dance['Authors']),
     );
   }
 
@@ -414,25 +415,12 @@ class CallersBoxAdapter implements SourceAdapter {
 
   // --- Notes -----------------------------------------------------------------
 
-  String _buildNotes(Map<String, Object?> dance, List<ImportIssue> issues) {
+  String _buildNotes(Map<String, Object?> dance) {
     final parts = <String>[];
 
-    final authors = _asStringList(dance['Authors']);
-    if (authors.isNotEmpty) {
-      parts.add('By: ${authors.join(', ')}');
-      for (final author in authors) {
-        issues.add(
-          ImportIssue(
-            severity: ImportIssueSeverity.info,
-            code: 'callersbox_author_unresolved',
-            message:
-                'Author "$author" recorded in notes; author linking is '
-                'resolved by the import pipeline (no id fabricated).',
-          ),
-        );
-      }
-    }
-
+    // Author names are resolved to Choreographer associations by the import
+    // pipeline (Dance.authorIds); they are carried on the draft's authorNames
+    // and deliberately NOT folded into the notes here.
     final interpretedBy = _asStringList(dance['InterpretedBy']);
     if (interpretedBy.isNotEmpty) {
       parts.add('Interpreted by: ${interpretedBy.join(', ')}');

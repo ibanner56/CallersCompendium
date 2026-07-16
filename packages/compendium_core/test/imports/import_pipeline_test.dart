@@ -35,12 +35,16 @@ void main() {
     String? version,
     String? permission,
     String? license,
+    List<String> authorNames = const [],
+    List<String> authorIds = const [],
   }) => {
     'id': id,
     'title': title,
     'version': ?version,
     'permission': ?permission,
     'license': ?license,
+    'authorNames': authorNames,
+    'authorIds': authorIds,
     'figures': figures,
   };
 
@@ -286,6 +290,250 @@ void main() {
       await pipeline.undo(s2);
       final restored = (await dances.getById(id))!;
       expect(restored.title, 'Before');
+    });
+    group('author name resolution', () {
+      Future<List<String>> authorNamesOf(String danceId) async {
+        final dance = (await dances.getById(danceId))!;
+        final names = <String>[];
+        for (final id in dance.authorIds) {
+          final c = await choreographers.getById(id);
+          if (c != null) names.add(c.name);
+        }
+        return names;
+      }
+
+      test('matches an existing choreographer (no new row created)', () async {
+        await choreographers.upsert(
+          Choreographer(id: 'gene', name: 'Gene Hubert'),
+        );
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Gene Hubert']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        final id = session.insertedDanceIds.single;
+        expect((await dances.getById(id))!.authorIds, ['gene']);
+        expect(session.createdChoreographerIds, isEmpty);
+        final res = session.records.single.authorResolutions.single;
+        expect(res.choreographerId, 'gene');
+        expect(res.created, isFalse);
+        expect(await choreographers.listAll(), hasLength(1));
+      });
+
+      test('creates a new choreographer when no match exists', () async {
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Nova Newname']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        final id = session.insertedDanceIds.single;
+        expect(await authorNamesOf(id), ['Nova Newname']);
+        expect(session.createdChoreographerIds, hasLength(1));
+        expect(session.records.single.authorResolutions.single.created, isTrue);
+      });
+
+      test('matches case- and whitespace-insensitively', () async {
+        await choreographers.upsert(
+          Choreographer(id: 'bob', name: 'Bob Isaacs'),
+        );
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['  bob   ISAACS ']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        expect(
+          (await dances.getById(session.insertedDanceIds.single))!.authorIds,
+          ['bob'],
+        );
+        expect(session.createdChoreographerIds, isEmpty);
+      });
+
+      test('de-dups a new author across a batch to ONE row', () async {
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'One', authorNames: ['Shared Author']),
+          record('fake-2', 'Two', authorNames: ['Shared Author']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        expect(session.createdChoreographerIds, hasLength(1));
+        final ids = [
+          for (final id in session.insertedDanceIds)
+            (await dances.getById(id))!.authorIds.single,
+        ];
+        expect(ids[0], ids[1]);
+      });
+
+      test('skips blank/whitespace-only names', () async {
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['', '   ']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        expect(
+          (await dances.getById(session.insertedDanceIds.single))!.authorIds,
+          isEmpty,
+        );
+        expect(session.createdChoreographerIds, isEmpty);
+      });
+
+      test('collapses a name repeated within one record', () async {
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Al Olson', 'al olson']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        expect(
+          (await dances.getById(session.insertedDanceIds.single))!.authorIds,
+          hasLength(1),
+        );
+      });
+
+      test('reuses the seeded Traditional row by name', () async {
+        await choreographers.upsert(
+          Choreographer(id: 'traditional', name: 'Traditional'),
+        );
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Traditional']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        expect(
+          (await dances.getById(session.insertedDanceIds.single))!.authorIds,
+          ['traditional'],
+        );
+        expect(session.createdChoreographerIds, isEmpty);
+      });
+
+      test(
+        'preserves draft authorIds when no author names are carried',
+        () async {
+          // The generic archive/JSON adapter ships canonical authorIds in the
+          // draft and sets no authorNames; commit must NOT clear them.
+          await choreographers.upsert(
+            Choreographer(id: 'canon', name: 'Canonical Author'),
+          );
+          final adapter = FakeSourceAdapter([
+            record('fake-1', 'A Dance', authorIds: ['canon']),
+          ]);
+          final session = await pipeline.commit(
+            await pipeline.plan(adapter, const ImportRequest()),
+            now: now,
+            newId: nextId,
+          );
+          final id = session.insertedDanceIds.single;
+          expect((await dances.getById(id))!.authorIds, ['canon']);
+          expect(session.createdChoreographerIds, isEmpty);
+          expect(session.records.single.authorResolutions, isEmpty);
+        },
+      );
+
+      test('reimport replaces the resolved authors', () async {
+        final first = FakeSourceAdapter([
+          record('fake-1', 'Same', authorNames: ['First Author']),
+        ]);
+        final s1 = await pipeline.commit(
+          await pipeline.plan(first, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        final id = s1.insertedDanceIds.single;
+        expect(await authorNamesOf(id), ['First Author']);
+
+        final again = FakeSourceAdapter([
+          record('fake-1', 'Same', authorNames: ['Second Author']),
+        ]);
+        await pipeline.commit(
+          await pipeline.plan(again, const ImportRequest()),
+          now: DateTime.utc(2026, 9, 1),
+          newId: nextId,
+        );
+        expect(await authorNamesOf(id), ['Second Author']);
+      });
+
+      test('undo removes a choreographer created by the batch', () async {
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Ephemeral Author']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        final created = session.createdChoreographerIds.single;
+        expect(await choreographers.getById(created), isNotNull);
+
+        await pipeline.undo(session);
+        expect(await choreographers.getById(created), isNull);
+      });
+
+      test('undo keeps a pre-existing matched choreographer', () async {
+        await choreographers.upsert(
+          Choreographer(id: 'gene', name: 'Gene Hubert'),
+        );
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Gene Hubert']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        await pipeline.undo(session);
+        expect(await choreographers.getById('gene'), isNotNull);
+      });
+
+      test(
+        'undo keeps a created choreographer still referenced elsewhere',
+        () async {
+          final adapter = FakeSourceAdapter([
+            record('fake-1', 'Imported', authorNames: ['Popular Author']),
+          ]);
+          final session = await pipeline.commit(
+            await pipeline.plan(adapter, const ImportRequest()),
+            now: now,
+            newId: nextId,
+          );
+          final created = session.createdChoreographerIds.single;
+
+          // A separate (non-import) dance also credits the created choreographer.
+          await dances.create(
+            Dance(
+              id: 'manual-1',
+              title: 'Manual',
+              authorIds: [created],
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+          await pipeline.undo(session);
+          // The imported dance is gone, but the still-referenced choreographer
+          // survives the referenced-guard.
+          expect(await dances.getById(session.insertedDanceIds.single), isNull);
+          expect(await choreographers.getById(created), isNotNull);
+        },
+      );
     });
   });
 }
