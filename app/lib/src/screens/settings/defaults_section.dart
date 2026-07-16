@@ -447,12 +447,11 @@ class _DefaultsSectionState extends State<DefaultsSection> {
 }
 
 /// The Defaults section: app-wide default values, grouped to mirror the
-/// ROADMAP's "Defaults (settings pane)" structure. It now populates the
-/// **Program defaults** subsection (ROADMAP G.3) and the **Display defaults**
-/// subsection (ROADMAP G.6). A later PR adds the sibling **Dance-authoring
-/// defaults** subsection (DD.1–DD.3, below Display defaults), introduced by its
-/// own [SectionHeader], so extending this is a drop-in, not a rewrite. No
-/// empty subsection is stubbed until it is wired.
+/// ROADMAP's "Defaults (settings pane)" structure. It populates the
+/// **Program defaults** subsection (ROADMAP G.3), the **Display defaults**
+/// subsection (ROADMAP G.6), and the sibling **Dance-authoring defaults**
+/// subsection (DD.1–DD.3, below Display defaults), each introduced by its own
+/// [SectionHeader].
 class _DefaultsView extends StatelessWidget {
   const _DefaultsView({
     required this.programCallerController,
@@ -503,7 +502,7 @@ class _DefaultsView extends StatelessWidget {
 
   /// The live draft list backing the starting-figures template editor (ROADMAP
   /// DD.2), plus callbacks mirroring the dance editor's [FigureListEditor]
-  /// wiring. Owned by [_SettingsScreenState]; mutated in the callbacks.
+  /// wiring. Owned by [_DefaultsSectionState]; mutated in the callbacks.
   final List<FigureDraft> danceFigureTemplateDrafts;
   final VoidCallback onDanceFigureTemplateChanged;
   final VoidCallback onDanceFigureTemplateAdd;
@@ -512,7 +511,7 @@ class _DefaultsView extends StatelessWidget {
   final void Function(int oldIndex, int newIndex) onDanceFigureTemplateReorder;
 
   /// The per-move param overrides (ROADMAP DD.3), keyed by move id then param
-  /// key. Owned by [_SettingsScreenState]; read-only here.
+  /// key. Owned by [_DefaultsSectionState]; read-only here.
   final Map<String, Map<String, Object?>> moveParamOverrides;
 
   /// Move ids currently shown in the Move-defaults editor, in view order.
@@ -785,7 +784,7 @@ class _DefaultsView extends StatelessWidget {
 /// move's parameters rendered via [FigureParamEditor] (seeded from the current
 /// override else the taxonomy default). An "Add move default" affordance opens
 /// a [MoveAutocomplete] picker. Recording/dropping diffs and persistence are
-/// handled by the owning [_SettingsScreenState] via the callbacks; this widget
+/// handled by the owning [_DefaultsSectionState] via the callbacks; this widget
 /// only renders and reports edits (the add-move dialog is its only local UI
 /// state, shown transiently via [showDialog]).
 class _MoveDefaultsEditor extends StatelessWidget {
