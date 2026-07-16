@@ -40,17 +40,16 @@ import 'structured_draft.dart';
 ///   `<u>…</u>` inside a figure and a trailing `⁋` (pilcrow) both mark the
 ///   progression point.
 ///
-/// ## Figure parsing (custom + dialect scrub — matches CallersBox/CC)
-/// Rows are read as (section-label, beats, free-text) tuples. The last non-empty
-/// section label is carried forward onto continuation rows. Progression markers
+/// ## Figure parsing (shared parser + dialect scrub — matches CallersBox/CC)
+/// Rows are read as (section-label, beats, free-text) tuples. Progression markers
 /// (`<u>` / `⁋`) are stripped from the display text and captured via the figure's
 /// [Figure.progression] flag. Each figure's text is routed through the CORE
 /// canonicalization chokepoint [canonicalizeText] with [Dialect.canonical]
 /// (gendered role terms → `role1`/`role2`), after a `gypsy` → `shoulder round`
-/// legacy-move safety net, and the section label is preserved as a prefix
-/// (`'$label: $scrubbed'`). Figures import as [customFigure] (beats + scrubbed
-/// text); a `(beats) text` → structured-move grammar parser stays **deferred**
-/// (the same call as ContraDB 6.4 figures_json / CallersBox / CC 6.5).
+/// legacy-move safety net, then through the shared [parseFigureLine]: recognised
+/// moves import as structured [Figure]s, the rest fall back to [customFigure]
+/// (beats + scrubbed text). Section labels are NOT embedded in the figure text —
+/// they derive from cumulative beats via the domain model.
 ///
 /// ## Metadata
 /// - `h1.dance-show-title` → title (missing → a `ContraDB dance <id>` stub).
@@ -234,15 +233,10 @@ class ContraDbHtmlAdapter implements SourceAdapter {
   List<Figure> _parseFigures(dom.Element? table, List<ImportIssue> issues) {
     if (table == null) return const [];
     final figures = <Figure>[];
-    var lastLabel = '';
     var index = 0;
     for (final row in table.querySelectorAll('tr')) {
       final cells = row.children.where((c) => c.localName == 'td').toList();
       if (cells.isEmpty) continue;
-
-      final rawLabel = cells.isNotEmpty ? cells[0].text.trim() : '';
-      if (rawLabel.isNotEmpty) lastLabel = rawLabel;
-      final label = rawLabel.isNotEmpty ? rawLabel : lastLabel;
 
       final figureCell = _figureCell(cells);
       if (figureCell == null) continue;
@@ -256,14 +250,14 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       final beats = _parseBeats(_beatsCell(cells), index, issues);
 
       // Route the (already-scrubbed) text through the shared parser: recognised
-      // moves become structured figures, the rest fall back to custom with the
-      // section label prefixed, as before. Non-null since `scrubbed` isn't empty.
+      // moves become structured figures, the rest fall back to custom. The
+      // section label is not embedded in the text (it derives from beats).
+      // Non-null since `scrubbed` isn't empty.
       figures.add(
         parseFigureLine(
           scrubbed,
           beats: beats,
           progression: hasProgression,
-          label: label,
           scrub: (s) => s,
         )!,
       );

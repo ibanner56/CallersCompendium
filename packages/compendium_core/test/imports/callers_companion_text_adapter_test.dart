@@ -95,9 +95,11 @@ void main() {
       expect(swing.beats, 16);
       expect(swing.move, 'swing');
       expect(swing.params['who'], 'partners');
-      // "Hey for four" is out of the recognised cut → custom fallback.
+      // "Hey for four" is out of the recognised cut → custom fallback. The
+      // section label is no longer prefixed (it derives from beats), so the
+      // stored text is the clean scrubbed line.
       expect(dance.figures.last.isCustom, isTrue);
-      expect(dance.figures.last.params['text'], 'B2: Hey for four');
+      expect(dance.figures.last.params['text'], 'Hey for four');
     });
 
     test('quality reflects the mix of structured + custom figures', () async {

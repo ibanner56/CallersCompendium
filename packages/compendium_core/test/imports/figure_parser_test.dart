@@ -168,23 +168,17 @@ void main() {
       );
     });
 
-    test('the section label is applied only on the custom fallback', () {
+    test('section labels are never embedded in the figure text', () {
       // Structured: no in-text label (section derives from beats downstream).
-      final structured = parseFigureLine('Neighbor swing', label: 'A1');
+      final structured = parseFigureLine('Neighbor swing');
       expect(structured!.isCustom, isFalse);
       expect(structured.params.containsKey('text'), isFalse);
-      // Custom: the label is prefixed exactly as the adapters did before.
-      final custom = parseFigureLine('hey for four', label: 'B2');
+      // Custom: clean scrubbed text only — no `A1:`/`B2:` prefix. The section
+      // label and beats are structured fields on the figure; embedding them in
+      // the text would duplicate structured data that can drift out of sync.
+      final custom = parseFigureLine('hey for four');
       expect(custom!.isCustom, isTrue);
-      expect(_text(custom), 'B2: hey for four');
-    });
-
-    test('a null/empty label leaves the custom text unprefixed', () {
-      expect(_text(parseFigureLine('hey for four')!), 'hey for four');
-      expect(
-        _text(parseFigureLine('hey for four', label: '')!),
-        'hey for four',
-      );
+      expect(_text(custom), 'hey for four');
     });
   });
 

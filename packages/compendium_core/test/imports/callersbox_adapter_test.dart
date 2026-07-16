@@ -425,10 +425,11 @@ void main() {
         },
       );
 
-      test('retains the TCB phrase name as a label prefix on custom '
+      test('stores clean custom text with no phrase-label prefix on '
           'fallback', () async {
-        // Unrecognised lines fall back to custom and keep the phrase-label
-        // prefix exactly as before.
+        // Unrecognised lines fall back to custom. The TCB phrase name is NOT
+        // prefixed onto the text — section grouping derives from beats, so
+        // embedding it would duplicate a structured field.
         final draft = await _importOne(
           jsonEncode(
             _dance(
@@ -442,29 +443,26 @@ void main() {
         expect(draft.dance.figures[0].isCustom, isTrue);
         expect(
           _text(draft.dance.figures[0]),
-          'A2: In a line of four, go down the hall',
+          'In a line of four, go down the hall',
         );
         expect(draft.dance.figures[1].isCustom, isTrue);
-        expect(_text(draft.dance.figures[1]), 'B2: Bend the line');
-        // "Star left 1" is recognised → structured, no label prefix.
+        expect(_text(draft.dance.figures[1]), 'Bend the line');
+        // "Star left 1" is recognised → structured.
         expect(draft.dance.figures[2].move, 'star');
       });
 
-      test(
-        'omits the prefix when a phrase has no name (custom fallback)',
-        () async {
-          final draft = await _importOne(
-            jsonEncode(
-              _dance(
-                phrases: [
-                  _phrase('', ['(2) Bend the line']),
-                ],
-              ),
+      test('stores clean custom text when a phrase has no name', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              phrases: [
+                _phrase('', ['(2) Bend the line']),
+              ],
             ),
-          );
-          expect(_text(draft.dance.figures.single), 'Bend the line');
-        },
-      );
+          ),
+        );
+        expect(_text(draft.dance.figures.single), 'Bend the line');
+      });
 
       test('scrubs gendered role terms before parsing', () async {
         final draft = await _importOne(
@@ -481,7 +479,7 @@ void main() {
         );
         // "Ladies chain to neighbor" keeps trailing prose → custom, scrubbed.
         expect(draft.dance.figures[0].isCustom, isTrue);
-        expect(_text(draft.dance.figures[0]), 'B2: role2s chain to neighbor');
+        expect(_text(draft.dance.figures[0]), 'role2s chain to neighbor');
         // "Gents allemande left" structures; the scrub still ran, so who is the
         // canonical role token (proof scrub happens before parsing).
         expect(draft.dance.figures[1].move, 'allemande');
@@ -506,7 +504,7 @@ void main() {
         // "gypsies once" scrubs to "shoulder rounds once" but has no dancer set
         // and stays custom — the scrub is still visible in the text.
         expect(draft.dance.figures[1].isCustom, isTrue);
-        expect(_text(draft.dance.figures[1]), 'A1: shoulder rounds once');
+        expect(_text(draft.dance.figures[1]), 'shoulder rounds once');
       });
 
       test('parse never fails on odd figure lines', () async {
@@ -530,8 +528,8 @@ void main() {
           draft.dance.figures[0].params['beats'],
           isNull,
         ); // (0) → no beats
-        expect(_text(draft.dance.figures[0]), 'A1: Improper formation');
-        expect(_text(draft.dance.figures[1]), 'A1: No beats prefix here');
+        expect(_text(draft.dance.figures[0]), 'Improper formation');
+        expect(_text(draft.dance.figures[1]), 'No beats prefix here');
         // "Neighbor swing" is recognised → structured with source beats.
         expect(draft.dance.figures[2].move, 'swing');
         expect(draft.dance.figures[2].params['beats'], 4);
@@ -593,12 +591,12 @@ void main() {
         // stay custom.
         expect(draft.dance.figures.where((f) => f.isCustom), hasLength(5));
         // "Ladies chain to neighbor" (phrase B2) keeps its trailing prose, so it
-        // stays custom, scrubbed to a role token, with its phrase label prefix.
+        // stays custom, scrubbed to a role token, with no phrase-label prefix.
         final chain = draft.dance.figures
             .where((f) => f.isCustom)
             .map(_text)
             .firstWhere((t) => t.contains('chain'));
-        expect(chain, 'B2: role2s chain to neighbor');
+        expect(chain, 'role2s chain to neighbor');
         // The first figure is a recognised balance carrying its source beats.
         expect(draft.dance.figures.first.move, 'balance');
         // Beats preserved from the (N) prefixes.

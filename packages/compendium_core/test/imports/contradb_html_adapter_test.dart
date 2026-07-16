@@ -213,7 +213,7 @@ void main() {
 
   group('parse — figures', () {
     test(
-      'recognised rows structure; the rest stay custom with beats + label',
+      'recognised rows structure; the rest stay custom with beats',
       () async {
         final draft = await _importOne(_page(_rendezvousBody));
         final figures = draft.dance.figures;
@@ -230,15 +230,6 @@ void main() {
       },
     );
 
-    test('carries the section label forward onto continuation rows', () async {
-      final draft = await _importOne(_page(_rendezvousBody));
-      final figures = draft.dance.figures;
-      // Row 3 (index 2) has an empty <td> label; it continues A2.
-      expect(_text(figures[2]), startsWith('A2: '));
-      // Row 6 (index 5) has an empty <td> label; it continues B2.
-      expect(_text(figures[5]), startsWith('B2: '));
-    });
-
     test('captures <u> and ⁋ progression markers on the figure', () async {
       final draft = await _importOne(_page(_rendezvousBody));
       final figures = draft.dance.figures;
@@ -249,7 +240,7 @@ void main() {
       // Row 6: trailing "⁋" — progression flag set, marker stripped.
       expect(figures[5].progression, isTrue);
       expect(_text(figures[5]), isNot(contains('⁋')));
-      expect(_text(figures[5]).trim(), 'B2: slide left along set');
+      expect(_text(figures[5]).trim(), 'slide left along set');
       // A row with no marker is not flagged.
       expect(figures[0].progression, isFalse);
     });

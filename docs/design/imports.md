@@ -80,8 +80,14 @@ pure-Dart core → each adapter unit-tested against fixture files.
   candidate is validated against the taxonomy — an error-severity issue also
   forces custom. A wrong structured match misrepresents choreography, so when
   in doubt it stays custom. **Parse-never-fails** is preserved (unrecognized →
-  `custom`, never throws, never drops text); source beats, progression flag,
-  and the custom `'$label: $scrubbed'` section prefix are preserved exactly.
+  `custom`, never throws, never drops text); source beats and the progression
+  flag are preserved exactly. Section labels (`A1`…) are **not** embedded in the
+  figure text — they derive from cumulative beats via the domain model
+  (`deriveSections`), and the beat count is already a structured field, so a
+  `'$label: $scrubbed'` prefix would duplicate structured data that can drift
+  out of sync. Both the structured and custom paths therefore store clean text
+  only. (This intentionally drops the previous CallersBox/ContraDB phrase-label
+  prefix on custom figures.)
 - **First-cut coverage (in):** swing (+balance/meltdown prefix), balance,
   balance the ring, do si do / see saw, shoulder round (+gypsy), box the gnat /
   swat the flea, allemande, circle, star, chain, long lines, right left

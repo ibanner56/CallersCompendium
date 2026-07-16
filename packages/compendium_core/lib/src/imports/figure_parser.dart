@@ -33,16 +33,16 @@ import 'structured_draft.dart';
 /// store) — callers skip those, matching the previous per-adapter behaviour.
 ///
 /// [beats] and [progression] come from the source line and are preserved on the
-/// resulting figure (structured or custom). [label] is the source section label
-/// (e.g. `A1`); it is applied ONLY on the custom fallback (`'$label: $text'`,
-/// exactly as the adapters did before). Structured figures carry no in-text
-/// label — section labels are derived from cumulative beats by the domain model
-/// (`deriveSections`), identical to every other structured figure in the app.
+/// resulting figure (structured or custom). Section labels (e.g. `A1`) are NOT
+/// stored in the figure text: they are derived from cumulative beats by the
+/// domain model (`deriveSections`) and the beat count is already a structured
+/// field, so embedding `'$label: $text'` would duplicate structured data that
+/// can drift out of sync. Both the structured and custom paths therefore carry
+/// clean text only.
 Figure? parseFigureLine(
   String rawText, {
   int beats = 0,
   bool progression = false,
-  String? label,
   Taxonomy? taxonomy,
   String Function(String)? scrub,
 }) {
@@ -52,12 +52,8 @@ Figure? parseFigureLine(
   final scrubbed = scrubFn(rawText);
   if (scrubbed.isEmpty) return null;
 
-  Figure fallback() {
-    final withLabel = (label == null || label.isEmpty)
-        ? scrubbed
-        : '$label: $scrubbed';
-    return customFigure(withLabel, beats: beats, progression: progression);
-  }
+  Figure fallback() =>
+      customFigure(scrubbed, beats: beats, progression: progression);
 
   try {
     final match = _recognize(scrubbed);
