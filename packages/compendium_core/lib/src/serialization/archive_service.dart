@@ -55,20 +55,36 @@ class ArchiveRestorer {
   Future<ArchiveRestoreResult> restore(
     CompendiumArchive archive, {
     RestoreMode mode = RestoreMode.replace,
-  }) {
-    return _repos.db.transaction(() async {
-      // Dances can reference each other (relatedDance links), so intra-batch
-      // insert order — and even reference cycles — would otherwise trip foreign
-      // keys. Deferring FK enforcement to commit time lets us load the batch in
-      // a fixed order and only requires the final state to be consistent.
-      await _repos.db.customStatement('PRAGMA defer_foreign_keys = ON');
-      final errors = <ArchiveError>[];
-      if (mode == RestoreMode.replace) {
-        await _clearAll();
-      }
-      await _load(archive, errors);
-      return ArchiveRestoreResult(errors: errors);
-    });
+  }) async {
+    final errors = <ArchiveError>[];
+    try {
+      await _repos.db.transaction(() async {
+        // Dances can reference each other (relatedDance links), so intra-batch
+        // insert order — and even reference cycles — would otherwise trip
+        // foreign keys. Deferring FK enforcement to commit time lets us load the
+        // batch in a fixed order and only requires the final state to be
+        // consistent.
+        await _repos.db.customStatement('PRAGMA defer_foreign_keys = ON');
+        if (mode == RestoreMode.replace) {
+          await _clearAll();
+        }
+        await _load(archive, errors);
+      });
+    } on Exception catch (e) {
+      // Deferred foreign-key checks and other integrity constraints only fire at
+      // commit time, outside the per-entity `_guard`. Convert any such failure
+      // into an archive-level structured error so callers always get a result
+      // rather than a stack trace.
+      errors.add(
+        ArchiveError(
+          kind: ArchiveErrorKind.restore,
+          entityType: 'archive',
+          message: 'archive could not be restored',
+          cause: e,
+        ),
+      );
+    }
+    return ArchiveRestoreResult(errors: errors);
   }
 
   /// Writes every archive entity in foreign-key-safe order: the entities a
@@ -141,13 +157,17 @@ class ArchiveRestorer {
   ) async {
     try {
       await op();
-    } catch (e) {
+    } on Exception catch (e) {
+      // Catch only Exceptions: Dart Errors signal programming/contract bugs and
+      // should surface, not be swallowed as data-quality issues. Keep the
+      // user-facing message stable (no engine-specific SQL leaking in); the raw
+      // exception is preserved in `cause` for diagnostics.
       errors.add(
         ArchiveError(
           kind: ArchiveErrorKind.restore,
           entityType: entityType,
           entityId: entityId,
-          message: 'could not be restored: $e',
+          message: 'could not be restored',
           cause: e,
         ),
       );

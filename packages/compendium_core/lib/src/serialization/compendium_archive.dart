@@ -26,9 +26,11 @@ enum RestoreMode {
   /// under which the round-trip identity property holds.
   replace,
 
-  /// Merge: the archive is layered onto the existing collection, reusing the
-  /// import pipeline's dedupe primitives to resolve id collisions. Reserved for
-  /// user-to-user sharing (ROADMAP G.5); not fully implemented here.
+  /// Merge: the archive is layered onto the existing collection by id — new
+  /// entities are inserted and existing ids are updated (id-keyed upsert). Fuzzy
+  /// dedupe-driven conflict resolution (link/duplicate/skip via
+  /// `src/imports/dedupe.dart`) for user-to-user sharing is deferred to ROADMAP
+  /// G.5; this mode does not yet consult those primitives.
   merge,
 }
 

@@ -352,7 +352,10 @@ List<T> _decodeList<T>(
     final map = entry.cast<String, Object?>();
     try {
       result.add(decode(map));
-    } catch (e) {
+    } on Exception catch (e) {
+      // Catch only Exceptions (the decode helpers throw FormatException for
+      // malformed input): Dart Errors signal genuine bugs and should surface
+      // during development rather than being recorded as data-quality errors.
       errors.add(
         ArchiveError(
           kind: ArchiveErrorKind.read,
