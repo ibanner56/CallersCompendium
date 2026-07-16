@@ -4,9 +4,10 @@ An open-source, local-first dance organizer for Contra (and eventually ECD and
 Squares) callers — on desktop, tablet, and phone.
 
 > **Status: in active development.** The core app is built and working —
-> collection management, programs, and performance mode are all implemented
-> (roadmap Phases 0–5, plus the Caller's Companion parity backfill). Imports
-> from community sources and release packaging are the main remaining work.
+> collection management, programs, and performance mode are complete
+> (roadmap Phases 0–5, plus the Caller's Companion parity backfill), and most
+> of the community-source import work (Phase 6) has landed. Release packaging
+> and signing are the main remaining work.
 > See [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed, item-by-item status.
 
 ## What it does
@@ -27,10 +28,12 @@ Squares) callers — on desktop, tablet, and phone.
   portable. Ships role-neutral presets (Larks/Robins by default, Leads/Follows);
   gendered or house-specific terms are entered via the custom role-terms editor.
   _(built; a named-dialect library manager is in progress)_
-- **Imports** — connect to community sources (The Caller's Box snapshot,
-  ContraDB exports) and migrate seamlessly from Caller's Companion. Everything
-  is stored locally; the app is fully usable offline. _(planned — the import
-  pipeline framework is in place; source adapters are the next milestone)_
+- **Imports** — bring dances in from community sources and migrate from
+  Caller's Companion; everything is stored locally and the app is fully usable
+  offline. _(built: in-app import from The Caller's Box and ContraDB (by
+  link/id), Caller's Companion text export, and generic Compendium JSON, all
+  through a review-and-commit queue. Remaining: a hosted Caller's Box snapshot
+  and the Caller's Companion binary `.USR` migration.)_
 
 ## Design & decisions
 
