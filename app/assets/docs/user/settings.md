@@ -34,7 +34,7 @@ The **General** section gathers everyday behavior into small groups.
 
 ### Calling history
 
-- **Require "mark performed" for calling history** (off) — when on, a dance's calling history lists only the [programs](./README.md#glossary) whose [slot](./README.md#glossary) was actually marked performed, rather than every program the dance appears in.
+- **Require “mark performed” for calling history** (off) — when on, a dance's calling history lists only the [programs](./README.md#glossary) whose [slot](./README.md#glossary) was actually marked performed, rather than every program the dance appears in.
 
 ### Accessibility
 
