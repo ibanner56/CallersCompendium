@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../data/repositories_scope.dart';
 import '../utils/confirm_delete.dart';
 import '../widgets/program_list_tile.dart';
+import 'app_shell.dart';
 import 'program_editor_screen.dart';
 import 'programs_recently_deleted_screen.dart';
 
@@ -197,10 +198,21 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final openSearch = AppShellSearchScope.of(context)?.openSearch;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Programs'),
         actions: [
+          // Phone-only: search lives in the app bar (the bottom-right FAB slot
+          // is reserved for the "New program" FAB). On wide layouts the nav
+          // rail owns search, so no scope is present and this action is omitted.
+          if (openSearch != null)
+            IconButton(
+              key: const ValueKey('programs-search'),
+              tooltip: 'Search (Ctrl/Cmd-K)',
+              icon: const Icon(Icons.search),
+              onPressed: openSearch,
+            ),
           if (_programs != null) ...[
             IconButton(
               key: const ValueKey('programs-recently-deleted'),

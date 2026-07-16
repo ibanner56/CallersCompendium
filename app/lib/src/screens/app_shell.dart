@@ -128,30 +128,61 @@ class _AppShellState extends State<AppShell> {
           );
         }
 
-        return Scaffold(
-          body: body,
-          floatingActionButton: FloatingActionButton.small(
-            key: const ValueKey('global-search-fab'),
-            heroTag: 'global-search',
-            tooltip: 'Search (Ctrl/Cmd-K)',
-            onPressed: _openSearch,
-            child: const Icon(Icons.search),
-          ),
-          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _index,
-            onDestinationSelected: _onSelect,
-            destinations: [
-              for (final d in _destinations)
-                NavigationDestination(
-                  icon: Icon(d.icon),
-                  selectedIcon: Icon(d.selectedIcon),
-                  label: d.label,
-                ),
-            ],
+        // Narrow: the bottom-right FAB slot belongs to each screen's "New"
+        // FAB.extended, so search moves into the app bar via
+        // [AppShellSearchScope] (nested list screens surface a 1-tap search
+        // action). This avoids the phone double-FAB collision while keeping a
+        // labeled affordance consistent with the wide layout's rail search.
+        return AppShellSearchScope(
+          openSearch: _openSearch,
+          child: Scaffold(
+            body: body,
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: _onSelect,
+              destinations: [
+                for (final d in _destinations)
+                  NavigationDestination(
+                    icon: Icon(d.icon),
+                    selectedIcon: Icon(d.selectedIcon),
+                    label: d.label,
+                  ),
+              ],
+            ),
           ),
         );
       },
     );
   }
+}
+
+/// Exposes the shell's global-search callback ([AppShell] `_openSearch`) to
+/// nested screens so they can surface a 1-tap search affordance in their app
+/// bars.
+///
+/// It is intentionally provided **only in the narrow (phone) layout**, where
+/// the bottom-right FAB slot is reserved for each screen's "New"
+/// FAB.extended. In the wide layout search lives in the [NavigationRail], so
+/// no scope is inserted and `of(context)` returns `null` — nested list screens
+/// then omit their in-app-bar search action to avoid duplicating the rail
+/// affordance.
+class AppShellSearchScope extends InheritedWidget {
+  const AppShellSearchScope({
+    required this.openSearch,
+    required super.child,
+    super.key,
+  });
+
+  /// Opens the global command palette. Mirrors the Ctrl/Cmd-K shortcut and the
+  /// wide layout's rail search button.
+  final Future<void> Function() openSearch;
+
+  /// Returns the nearest scope, or `null` when search is not surfaced in the
+  /// app bar (i.e. the wide layout, where the rail owns search).
+  static AppShellSearchScope? of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<AppShellSearchScope>();
+
+  @override
+  bool updateShouldNotify(AppShellSearchScope oldWidget) =>
+      openSearch != oldWidget.openSearch;
 }
