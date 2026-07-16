@@ -18,6 +18,7 @@ class CallersBoxImportResult {
     required this.kind,
     required this.title,
     this.danceId,
+    this.danceCount = 1,
   });
 
   final CallersBoxImportKind kind;
@@ -28,6 +29,14 @@ class CallersBoxImportResult {
   /// when it can be resolved (an exact re-import carries its target id). `null`
   /// when no dance id is available (e.g. an unresolved already-in-collection).
   final String? danceId;
+
+  /// Number of dances this import created or matched. Always `1` for the
+  /// single-dance online-preview flow (it commits exactly one previewed dance).
+  /// The UI auto-opens the imported dance ONLY when this is exactly `1`, so the
+  /// "land on the imported dance" behavior can never fire for a multi-dance
+  /// result — multi-dance batch/URL imports go through `ImportReviewScreen`,
+  /// which keeps its result summary + Done affordance instead.
+  final int danceCount;
 }
 
 /// User-facing snackbar message for an online import [result]. Shared by the
@@ -122,6 +131,12 @@ class CallersBoxOnline {
   ///   written — no silent duplicate);
   /// - a fuzzy near-match is imported as a new dance (the user explicitly asked
   ///   for this Caller's Box dance).
+  ///
+  /// This is a strictly SINGLE-dance import (one previewed [plan]); the returned
+  /// [CallersBoxImportResult.danceCount] reflects that so the UI can guard its
+  /// "land on the imported dance" behavior on a single-dance import. Multi-dance
+  /// batch/URL imports are not handled here — they go through the
+  /// [ImportPipeline] + `ImportReviewScreen` report flow.
   Future<CallersBoxImportResult> import(
     CompendiumRepositories repos,
     ImportRecordPlan plan, {
@@ -135,6 +150,7 @@ class CallersBoxOnline {
         // The exact re-import verdict carries the existing dance's id so the UI
         // can open it in the detail pane instead of leaving the user to hunt.
         danceId: plan.verdict.targetDanceId,
+        danceCount: 1,
       );
     }
 
@@ -162,6 +178,8 @@ class CallersBoxOnline {
       kind: CallersBoxImportKind.created,
       title: title,
       danceId: record.danceId,
+      // Committed exactly this one previewed dance (single-record batch).
+      danceCount: session.committedCount,
     );
   }
 

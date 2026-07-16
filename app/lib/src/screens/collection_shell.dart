@@ -219,7 +219,11 @@ class _CollectionShellState extends State<CollectionShell> {
         _listRefresh.value++;
       }
       final danceId = result.danceId;
-      if (danceId != null) {
+      // Land on the imported dance ONLY for a single-dance import. This online
+      // path is single-dance by construction; the explicit count guard ensures
+      // the auto-open can never fire for a multi-dance result (those go through
+      // ImportReviewScreen, which keeps its result summary + Done affordance).
+      if (result.danceCount == 1 && danceId != null) {
         setState(() {
           _selectedDanceId = danceId;
           _detailMode = _DetailMode.none;
