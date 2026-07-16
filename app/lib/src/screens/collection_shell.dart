@@ -138,7 +138,7 @@ class _EmptyDetailPane extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.library_music_outlined,
+              Icons.auto_stories_outlined,
               size: 64,
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
