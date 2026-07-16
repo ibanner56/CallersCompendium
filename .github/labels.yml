@@ -1,0 +1,145 @@
+# Triage label taxonomy — SOURCE OF TRUTH for the Caller's Compendium beta program.
+#
+# This file defines every triage label used to sort, prioritize, and route beta
+# feedback and issues. Edit labels here (name, color, description); do not create
+# ad-hoc labels in the GitHub UI, so the taxonomy stays consistent and reviewable.
+#
+# Colors are grouped by one hue family per group so a label's group is obvious at
+# a glance:
+#   type      -> blue      severity -> red/orange (hotter = worse)
+#   area      -> green      status   -> purple
+#   platform  -> teal/cyan  cross-cutting labels use their own distinct colors.
+#
+# Names use a "group: value" convention (e.g. "type: bug") so groups sort and
+# read together. Colors are 6-digit hex WITHOUT a leading '#'.
+#
+# Applying this file: the .github/workflows/label-sync.yml workflow syncs these
+# labels to the repo (create/update only — see that file for why it never
+# deletes). If that workflow is ever removed, a maintainer must apply this file
+# manually; it remains the source of truth regardless.
+
+# --- type: what kind of report this is (blue) --------------------------------
+- name: "type: bug"
+  color: "1D76DB"
+  description: "A defect: something isn't working as intended"
+- name: "type: enhancement"
+  color: "0E68C9"
+  description: "A new feature or an improvement to existing behavior"
+- name: "type: feedback"
+  color: "3D8BF0"
+  description: "General beta-tester feedback or impressions"
+- name: "type: usability"
+  color: "5AA0F5"
+  description: "Confusing, awkward, or inefficient user experience"
+- name: "type: import"
+  color: "0757BA"
+  description: "Importing dances or notation from external sources"
+- name: "type: docs"
+  color: "1B4F9C"
+  description: "Documentation, help text, or in-app guidance"
+- name: "type: question"
+  color: "7BAEF7"
+  description: "A question or request for clarification"
+
+# --- severity: how bad the impact is (red/orange, hotter = worse) ------------
+- name: "severity: critical"
+  color: "B60205"
+  description: "Data loss, crash, or can't call at a gig; needs urgent attention"
+- name: "severity: major"
+  color: "D93F0B"
+  description: "Significant impact or broken workflow with no easy workaround"
+- name: "severity: minor"
+  color: "E99695"
+  description: "Limited impact; a reasonable workaround exists"
+- name: "severity: trivial"
+  color: "F9D0C4"
+  description: "Cosmetic or very low impact"
+
+# --- area: which part of the app is affected (green) -------------------------
+- name: "area: collection"
+  color: "0E8A16"
+  description: "The dance collection / library"
+- name: "area: programs"
+  color: "18A02A"
+  description: "Building and managing dance programs"
+- name: "area: perform"
+  color: "2EA043"
+  description: "Perform / calling mode"
+- name: "area: dialect"
+  color: "3FB950"
+  description: "Figure taxonomy, notation, and dialects"
+- name: "area: import"
+  color: "57D364"
+  description: "Import pipeline and parsers"
+- name: "area: search"
+  color: "137B2E"
+  description: "Search and filtering"
+- name: "area: settings"
+  color: "1B6E30"
+  description: "Settings and preferences"
+- name: "area: packaging"
+  color: "0B6B2C"
+  description: "Packaging, installers, and distribution"
+- name: "area: a11y"
+  color: "2DA44E"
+  description: "Accessibility"
+- name: "area: docs"
+  color: "4AC26B"
+  description: "Documentation and help content"
+
+# --- status: where the issue is in its lifecycle (purple) --------------------
+- name: "status: triage"
+  color: "5319E7"
+  description: "Awaiting initial triage"
+- name: "status: needs-info"
+  color: "6F42C1"
+  description: "Waiting on more information from the reporter"
+- name: "status: confirmed"
+  color: "8A63D2"
+  description: "Reproduced and accepted as valid"
+- name: "status: in-progress"
+  color: "A371F7"
+  description: "Actively being worked on"
+- name: "status: blocked"
+  color: "3B0A80"
+  description: "Blocked on a dependency or a decision"
+- name: "status: fixed-pending-release"
+  color: "B392F0"
+  description: "Fixed on main; awaiting a release"
+- name: "status: wont-fix"
+  color: "C9B6F5"
+  description: "Valid but will not be addressed"
+
+# --- platform: OS-specific reports (teal/cyan) -------------------------------
+- name: "platform: linux"
+  color: "0E7C86"
+  description: "Specific to Linux"
+- name: "platform: macos"
+  color: "128F9B"
+  description: "Specific to macOS"
+- name: "platform: windows"
+  color: "17A2B0"
+  description: "Specific to Windows"
+- name: "platform: android"
+  color: "1DB6C5"
+  description: "Specific to Android"
+- name: "platform: ios"
+  color: "2CCAD9"
+  description: "Specific to iOS / iPadOS"
+
+# --- cross-cutting: program-wide markers (distinct colors) -------------------
+- name: "beta"
+  color: "FBCA04"
+  description: "Reported or raised during the beta program"
+- name: "priority: high"
+  color: "EA4AAA"
+  description: "High priority; schedule soon"
+- name: "priority: medium"
+  color: "F074BB"
+  description: "Medium priority"
+- name: "priority: low"
+  color: "F9A8D4"
+  description: "Low priority; nice to have"
+- name: "good first issue"
+  color: "7057FF"
+  description: "Good for newcomers / first-time contributors"

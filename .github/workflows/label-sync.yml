@@ -1,0 +1,43 @@
+# Label sync: apply .github/labels.yml (the source of truth for our triage label
+# taxonomy) to this repository whenever it changes on the default branch.
+#
+# The action is SHA-pinned to a tagged release, matching the pinning convention
+# used in ci.yml.
+#
+# skip-delete is enabled on purpose: this workflow only CREATES and UPDATES the
+# labels defined in labels.yml and never deletes labels missing from it. That
+# protects pre-existing labels the project still relies on — notably `bug` and
+# `enhancement` (referenced by the issue templates in .github/ISSUE_TEMPLATE/)
+# and the dependabot labels (`dependencies`, `github_actions`, ...). To retire a
+# label, remove it in the GitHub UI as a deliberate action.
+name: Label sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/labels.yml
+      - .github/workflows/label-sync.yml
+  workflow_dispatch:
+
+# Least privilege: manage repository labels (issues: write) and read the
+# checked-out labels.yml (contents: read). Nothing else is needed.
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: label-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Apply labels.yml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: crazy-max/ghaction-github-labeler@548a7c3603594ec17c819e1239f281a3b801ab4d # v6.0.0
+        with:
+          yaml-file: .github/labels.yml
+          skip-delete: true
+          github-token: ${{ github.token }}
