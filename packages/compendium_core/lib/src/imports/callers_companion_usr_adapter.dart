@@ -134,6 +134,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       dance: mapping.dance,
       raw: raw,
       issues: mapping.issues,
+      authorNames: mapping.authorNames,
     );
   }
 

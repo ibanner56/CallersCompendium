@@ -147,6 +147,10 @@ class FakeSourceAdapter implements SourceAdapter {
     final authorIds = [
       for (final a in (decoded['authorIds'] as List?) ?? const []) a as String,
     ];
+    final authorNames = [
+      for (final a in (decoded['authorNames'] as List?) ?? const [])
+        a as String,
+    ];
 
     final now = DateTime.utc(2026, 1, 1);
     final dance = Dance(
@@ -157,6 +161,11 @@ class FakeSourceAdapter implements SourceAdapter {
       createdAt: now,
       updatedAt: now,
     );
-    return StructuredDraft(dance: dance, raw: raw, issues: issues);
+    return StructuredDraft(
+      dance: dance,
+      raw: raw,
+      issues: issues,
+      authorNames: authorNames,
+    );
   }
 }

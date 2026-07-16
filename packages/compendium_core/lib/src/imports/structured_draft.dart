@@ -99,8 +99,10 @@ class StructuredDraft {
     required this.raw,
     ParseQuality? quality,
     List<ImportIssue> issues = const [],
+    List<String> authorNames = const [],
   }) : quality = quality ?? ParseQuality.ofFigures(dance.figures),
-       issues = List.unmodifiable(issues);
+       issues = List.unmodifiable(issues),
+       authorNames = List.unmodifiable(authorNames);
 
   /// The parsed dance. Figures that could not be structured are present as
   /// [customMove] figures carrying their beats + text (the parse-never-fails
@@ -109,6 +111,14 @@ class StructuredDraft {
   final RawRecord raw;
   final ParseQuality quality;
   final List<ImportIssue> issues;
+
+  /// Raw author/choreographer display names carried by the source, in order,
+  /// with blanks dropped. Adapters populate this WITHOUT fabricating ids: the
+  /// [ImportPipeline] resolves each name to an existing [Choreographer] (exact,
+  /// case- and whitespace-normalized match) or creates a new one at commit,
+  /// then writes the resulting ids to [Dance.authorIds]. Names are data, not a
+  /// parse failure — the draft is valid whether or not any resolve.
+  final List<String> authorNames;
 
   @override
   String toString() =>

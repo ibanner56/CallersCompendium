@@ -138,18 +138,22 @@ void main() {
       expect(draft.dance.title, 'The Rendezvous');
       expect(draft.dance.formation.shape, FormationShape.dupleImproper);
       expect(draft.dance.formation.detail, 'improper');
-      expect(draft.dance.callingNotes, contains('By: Dan Pearl'));
+      expect(draft.dance.callingNotes, isNot(contains('Dan Pearl')));
       expect(draft.dance.callingNotes, contains('Imported from ContraDB.'));
     });
 
-    test('leaves authorIds empty and surfaces an info issue', () async {
-      final draft = await _importOne(_page(_rendezvousBody));
-      expect(draft.dance.authorIds, isEmpty);
-      expect(
-        draft.issues.any((i) => i.code == 'contradb_html_author_unresolved'),
-        isTrue,
-      );
-    });
+    test(
+      'choreographer → authorNames; empty authorIds; no info issue',
+      () async {
+        final draft = await _importOne(_page(_rendezvousBody));
+        expect(draft.dance.authorIds, isEmpty);
+        expect(draft.authorNames, ['Dan Pearl']);
+        expect(
+          draft.issues.any((i) => i.code == 'contradb_html_author_unresolved'),
+          isFalse,
+        );
+      },
+    );
 
     test('an unknown formation falls back to other + a warning', () async {
       final draft = await _importOne(
@@ -178,7 +182,7 @@ void main() {
       expect(draft.dance.formation.shape, FormationShape.becketCw);
     });
 
-    test('a missing choreographer omits the By: note', () async {
+    test('a missing choreographer yields empty authorNames', () async {
       final draft = await _importOne(
         _page(
           '<h1 class="dance-show-title">No Author</h1>'
@@ -187,6 +191,7 @@ void main() {
           '<td><div class="show-figure">circle left</div></td></tr></table>',
         ),
       );
+      expect(draft.authorNames, isEmpty);
       expect(draft.dance.callingNotes, isNot(contains('By:')));
       expect(
         draft.issues.any((i) => i.code == 'contradb_html_author_unresolved'),

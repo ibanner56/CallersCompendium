@@ -144,11 +144,20 @@ class CcUserField {
 /// at commit — and its id/timestamps are placeholders the pipeline reassigns.
 @immutable
 class CcDanceMapping {
-  CcDanceMapping({required this.dance, List<ImportIssue> issues = const []})
-    : issues = List.unmodifiable(issues);
+  CcDanceMapping({
+    required this.dance,
+    List<ImportIssue> issues = const [],
+    List<String> authorNames = const [],
+  }) : issues = List.unmodifiable(issues),
+       authorNames = List.unmodifiable(authorNames);
 
   final Dance dance;
   final List<ImportIssue> issues;
+
+  /// CC author display names (trimmed, blanks dropped), in order. The
+  /// [ImportPipeline] resolves these to [Choreographer] associations at commit;
+  /// this mapping never fabricates ids.
+  final List<String> authorNames;
 }
 
 /// Placeholder title used when a CC record supplies no name. Parsing never
@@ -195,22 +204,13 @@ CcDanceMapping mapCallersCompanionDance(
     title = rawName;
   }
 
-  // Authors — names cannot be turned into authorIds (those are foreign keys to
-  // existing Choreographer rows) and this mapping never creates records, so we
-  // surface each name for the review step to link/create.
-  for (final author in record.authors) {
-    final name = author.trim();
-    if (name.isEmpty) continue;
-    issues.add(
-      ImportIssue(
-        severity: ImportIssueSeverity.info,
-        code: 'cc_unresolved_author',
-        message:
-            'Author "$name" needs to be linked to or created as a '
-            'choreographer during review.',
-      ),
-    );
-  }
+  // Authors — collected as display names for the pipeline to resolve to
+  // Choreographer associations (match-or-create) at commit. This mapping never
+  // fabricates ids; blank names are dropped.
+  final authorNames = [
+    for (final author in record.authors)
+      if (author.trim().isNotEmpty) author.trim(),
+  ];
 
   // Level → DanceLevel (+ mixedLevel), best-effort.
   final (level, mixedLevel) = _mapLevel(record.level, issues);
@@ -279,7 +279,7 @@ CcDanceMapping mapCallersCompanionDance(
     updatedAt: now,
   );
 
-  return CcDanceMapping(dance: dance, issues: issues);
+  return CcDanceMapping(dance: dance, issues: issues, authorNames: authorNames);
 }
 
 /// Splits a body line's leading `(N)` beats prefix from its text. A missing or

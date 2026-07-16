@@ -55,9 +55,10 @@ import 'structured_draft.dart';
 /// - `h1.dance-show-title` → title (missing → a `ContraDB dance <id>` stub).
 /// - `p.dance-show-formation` → [FormationShape] best-effort (original kept as
 ///   [Formation.detail]; unknown → [FormationShape.other] + a warning).
-/// - `p.dance-show-choreographer` name → folded into [Dance.callingNotes] + one
-///   info issue; [Dance.authorIds] left **empty** (the pipeline resolves authors
-///   by id — no ids are fabricated).
+/// - `p.dance-show-choreographer` name → carried on the draft's `authorNames`
+///   and resolved to a real [Choreographer] association ([Dance.authorIds]) by
+///   the import pipeline (match-or-create); no longer folded into
+///   [Dance.callingNotes].
 ///
 /// ## Parse-never-fails
 /// Missing/malformed elements become non-fatal [ImportIssue]s; a page with no
@@ -204,19 +205,24 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       );
     }
 
+    final choreographer = _choreographer(document);
+
     return StructuredDraft(
       dance: Dance(
         id: 'contradb-html-import',
         title: effectiveTitle,
         formation: formation,
         figures: figures,
-        callingNotes: _buildNotes(document, issues),
+        callingNotes: _buildNotes(),
         // The pipeline attaches provenance at commit, derived from `raw`.
         createdAt: _epoch,
         updatedAt: _epoch,
       ),
       raw: raw,
       issues: issues,
+      authorNames: [
+        if (choreographer != null && choreographer.isNotEmpty) choreographer,
+      ],
     );
   }
 
@@ -371,25 +377,11 @@ class ContraDbHtmlAdapter implements SourceAdapter {
 
   // --- Notes -----------------------------------------------------------------
 
-  String _buildNotes(dom.Document document, List<ImportIssue> issues) {
-    final parts = <String>[];
-
-    final choreographer = _choreographer(document);
-    if (choreographer != null && choreographer.isNotEmpty) {
-      parts.add('By: $choreographer');
-      issues.add(
-        ImportIssue(
-          severity: ImportIssueSeverity.info,
-          code: 'contradb_html_author_unresolved',
-          message:
-              'Choreographer "$choreographer" recorded in notes; author '
-              'linking is resolved by the import pipeline (no id fabricated).',
-        ),
-      );
-    }
-
-    parts.add('Imported from ContraDB.');
-    return parts.join('\n\n');
+  String _buildNotes() {
+    // The choreographer name is resolved to a Choreographer association by the
+    // import pipeline (Dance.authorIds) via the draft's authorNames, so it is
+    // no longer folded into the notes.
+    return 'Imported from ContraDB.';
   }
 
   /// Extracts the choreographer name from `p.dance-show-choreographer`,

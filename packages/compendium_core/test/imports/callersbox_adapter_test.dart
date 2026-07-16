@@ -356,18 +356,22 @@ void main() {
         },
       );
 
-      test('Authors → notes + one info issue each; authorIds empty', () async {
-        final draft = await _importOne(
-          jsonEncode(_dance(authors: ['Gene Hubert', 'Cary Ravitz'])),
-        );
-        expect(draft.dance.authorIds, isEmpty);
-        expect(draft.dance.callingNotes, contains('Gene Hubert'));
-        expect(draft.dance.callingNotes, contains('Cary Ravitz'));
-        final authorIssues = draft.issues
-            .where((i) => i.code == 'callersbox_author_unresolved')
-            .toList();
-        expect(authorIssues, hasLength(2));
-      });
+      test(
+        'Authors → authorNames; not folded into notes; no info issue',
+        () async {
+          final draft = await _importOne(
+            jsonEncode(_dance(authors: ['Gene Hubert', 'Cary Ravitz'])),
+          );
+          expect(draft.dance.authorIds, isEmpty);
+          expect(draft.authorNames, ['Gene Hubert', 'Cary Ravitz']);
+          expect(draft.dance.callingNotes, isNot(contains('Gene Hubert')));
+          expect(draft.dance.callingNotes, isNot(contains('Cary Ravitz')));
+          expect(
+            draft.issues.any((i) => i.code == 'callersbox_author_unresolved'),
+            isFalse,
+          );
+        },
+      );
 
       test('OtherNames, Music, Tunes, Appearances fold as expected', () async {
         final draft = await _importOne(
@@ -583,7 +587,8 @@ void main() {
         expect(draft.dance.formation.shape, FormationShape.dupleImproper);
         expect(draft.dance.progression, Progression.single);
         expect(draft.dance.authorIds, isEmpty);
-        expect(draft.dance.callingNotes, contains('Gene Hubert'));
+        expect(draft.authorNames, ['Gene Hubert']);
+        expect(draft.dance.callingNotes, isNot(contains('Gene Hubert')));
         // 10 figure lines across A1/A2/B1/B2.
         expect(draft.dance.figures, hasLength(10));
         // Recognised lines now structure (balance, swings, circle, star);

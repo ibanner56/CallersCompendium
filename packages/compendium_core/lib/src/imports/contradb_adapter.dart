@@ -54,10 +54,10 @@ import 'structured_draft.dart';
 ///   [ImportIssue].
 ///
 /// ## Choreographer / metadata
-/// The adapter cannot create Choreographer rows — the pipeline owns author
-/// resolution by id — so [Dance.authorIds] is left empty and the ContraDB
-/// choreographer name is folded into [Dance.callingNotes] under a labeled
-/// prefix (with an info issue). ContraDB `hook` → [Dance.hook]; `preamble` +
+/// The ContraDB choreographer name is carried on the draft's `authorNames`; the
+/// import pipeline resolves it to a real [Choreographer] association
+/// ([Dance.authorIds]) at commit (match-or-create). It is no longer folded into
+/// [Dance.callingNotes]. ContraDB `hook` → [Dance.hook]; `preamble` +
 /// `notes` → [Dance.callingNotes]. `start_type` free text is classified to a
 /// [FormationShape] best-effort (its original text preserved in
 /// [Formation.detail]); an unclassifiable string yields a warning and
@@ -175,6 +175,7 @@ class ContraDbAdapter implements SourceAdapter {
     final issues = <ImportIssue>[];
     final figures = _parseFigures(dance['figures_json'], issues);
     final formation = _parseFormation(dance['start_type'], issues);
+    final choreographer = _choreographerName(dance);
 
     return StructuredDraft(
       dance: Dance(
@@ -183,13 +184,16 @@ class ContraDbAdapter implements SourceAdapter {
         formation: formation,
         figures: figures,
         hook: _asString(dance['hook'])?.trim() ?? '',
-        callingNotes: _buildNotes(dance, issues),
+        callingNotes: _buildNotes(dance),
         // The pipeline attaches provenance at commit, derived from `raw`.
         createdAt: _epoch,
         updatedAt: _epoch,
       ),
       raw: raw,
       issues: issues,
+      authorNames: [
+        if (choreographer != null && choreographer.isNotEmpty) choreographer,
+      ],
     );
   }
 
@@ -434,21 +438,11 @@ class ContraDbAdapter implements SourceAdapter {
 
   // --- Notes -----------------------------------------------------------------
 
-  String _buildNotes(Map<String, Object?> dance, List<ImportIssue> issues) {
+  String _buildNotes(Map<String, Object?> dance) {
     final parts = <String>[];
-    final choreographer = _choreographerName(dance);
-    if (choreographer != null && choreographer.isNotEmpty) {
-      parts.add('Choreographer: $choreographer');
-      issues.add(
-        ImportIssue(
-          severity: ImportIssueSeverity.info,
-          code: 'contradb_choreographer_unresolved',
-          message:
-              'Choreographer "$choreographer" recorded in notes; '
-              'author linking is resolved by the import pipeline.',
-        ),
-      );
-    }
+    // The choreographer name is resolved to a Choreographer association by the
+    // import pipeline (Dance.authorIds) via the draft's authorNames, so it is
+    // no longer folded into the notes.
     final preamble = _asString(dance['preamble'])?.trim();
     if (preamble != null && preamble.isNotEmpty) {
       parts.add('Preamble: $preamble');
