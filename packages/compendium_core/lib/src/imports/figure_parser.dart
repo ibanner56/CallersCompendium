@@ -70,6 +70,7 @@ Figure? parseFigureLine(
     final candidate = Figure(
       move: match.moveId,
       params: params,
+      note: match.note,
       progression: progression,
     );
     final hasError = tax
@@ -84,9 +85,13 @@ Figure? parseFigureLine(
 /// A recognised move: its taxonomy [moveId] and the params extracted from the
 /// text (never including `beats`, which the caller layers on from the source).
 class _Match {
-  const _Match(this.moveId, [this.params = const {}]);
+  const _Match(this.moveId, [this.params = const {}, this.note]);
   final String moveId;
   final Map<String, Object?> params;
+
+  /// Optional free-text note preserved from the source when a detail cannot be
+  /// expressed as a structured param (e.g. chain's "to neighbor" target).
+  final String? note;
 }
 
 /// Attempts to recognise [scrubbed] as one covered move. Returns `null` when no
@@ -102,10 +107,18 @@ _Match? _recognize(String scrubbed) {
   return null;
 }
 
-/// Lowercases, maps `&`→`and` and `thru`→`through`, folds the common unicode
-/// halves/quarters, strips surrounding punctuation, and splits into words.
+/// Lowercases, strips `()`/`[]` parenthetical annotations (TCB appends shoulder
+/// / param notes like `(NR)` or `(W1-M2-W2-M1)` that only the custom fallback
+/// keeps — the fallback works on the un-normalized text), maps `&`→`and` and
+/// `thru`→`through`, folds the common unicode halves/quarters, strips
+/// surrounding punctuation, and splits into words.
 List<String> _normalize(String text) {
   var s = text.toLowerCase();
+  // Drop bracketed/parenthesized annotations for RECOGNITION only. The custom
+  // fallback path operates on the original scrubbed text, so nothing is lost.
+  s = s
+      .replaceAll(RegExp(r'\([^)]*\)'), ' ')
+      .replaceAll(RegExp(r'\[[^\]]*\]'), ' ');
   s = s
       .replaceAll('&', ' and ')
       .replaceAll('½', ' 1/2 ')
@@ -139,6 +152,16 @@ const Map<String, String> _dancerWords = {
   'everyone': 'everyone',
   'ones': 'ones',
   'twos': 'twos',
+  // Tier B: TCB writes "Shadow allemande"; taxonomy supports `shadows`.
+  'shadow': 'shadows',
+  'shadows': 'shadows',
+  // Tier B: TCB N-prefix relationship shorthand ("N2 neighbor", "N1", …).
+  // Ni maps to the taxonomy's pair dancer-set convention.
+  'n0': 'prevNeighbors',
+  'n1': 'neighbors',
+  'n2': 'nextNeighbors',
+  'n3': 'thirdNeighbors',
+  'n4': 'fourthNeighbors',
 };
 
 /// Filler words that carry no structural meaning and may be dropped anywhere.
@@ -173,7 +196,16 @@ String? _takeDancer(List<String> w) {
   for (var i = 0; i < w.length; i++) {
     final token = _dancerWords[w[i]];
     if (token != null) {
-      w.removeAt(i);
+      final raw = w.removeAt(i);
+      // TCB pairs the N-prefix with a redundant "neighbor(s)" word
+      // ("N2 neighbor"); drop it so the pair reads as one dancer set rather
+      // than leaving "neighbor" as unexplained leftover → custom.
+      if (raw.length == 2 &&
+          raw.startsWith('n') &&
+          i < w.length &&
+          (w[i] == 'neighbor' || w[i] == 'neighbors')) {
+        w.removeAt(i);
+      }
       return token;
     }
   }
@@ -213,6 +245,15 @@ double? _takeRotation(List<String> w) {
     // Two-token "1 1/2" / "1 1/4" / "1 3/4" forms.
     if (i + 1 < w.length && w[i] == '1') {
       const combo = {'1/4': 1.25, '1/2': 1.5, '3/4': 1.75};
+      // Three-token "1 and 1/2" form: TCB writes "1 & 1/2" and `_normalize`
+      // maps `&`→"and", so bridge the intervening "and".
+      if (w[i + 1] == 'and' && i + 2 < w.length) {
+        final v3 = combo[w[i + 2]];
+        if (v3 != null) {
+          w.removeRange(i, i + 3);
+          return v3;
+        }
+      }
       final v = combo[w[i + 1]];
       if (v != null) {
         w.removeRange(i, i + 2);
@@ -296,6 +337,7 @@ final List<_Recognizer> _recognizers = [
   _rightLeftThrough,
   _passThrough,
   _promenade,
+  _shift,
   _longLines,
 ];
 
@@ -330,7 +372,11 @@ _Match? _petronella(List<String> w) {
 }
 
 _Match? _balanceTheRing(List<String> w) {
-  if (!_consumePhrase(w, ['balance', 'the', 'ring'])) return null;
+  // Accept "balance the ring" and TCB's "balance ring" (no "the").
+  if (!_consumePhrase(w, ['balance', 'the', 'ring']) &&
+      !_consumePhrase(w, ['balance', 'ring'])) {
+    return null;
+  }
   _dropFiller(w);
   return w.isEmpty ? const _Match('balance_the_ring') : null;
 }
@@ -416,12 +462,31 @@ _Match? _star(List<String> w) {
   if (!_consumePhrase(w, ['star'])) return null;
   final hand = _takeSide(w);
   final places = _takePlaces(w);
+  // TCB writes "Hands-across star right/left"; recognise the grip qualifier
+  // (hyphenated single token or two words). It carries no render token.
+  final grip =
+      _consumePhrase(w, ['hands-across']) ||
+          _consumePhrase(w, ['hands', 'across'])
+      ? 'handsAcross'
+      : null;
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('star', {'hand': ?hand, 'places': ?places});
+  return _Match('star', {'hand': ?hand, 'places': ?places, 'grip': ?grip});
 }
 
 _Match? _chain(List<String> w) {
+  // TCB writes "Ladies chain to neighbor/partner" exclusively. Preserve the
+  // "to <dancer>" target as a Figure NOTE rather than folding it into `who`
+  // (which would misrepresent the chaining set). Capture it FIRST so its
+  // dancer isn't consumed as the chaining set by the _takeDancer calls below.
+  String? note;
+  final toIdx = w.indexOf('to');
+  if (toIdx != -1 &&
+      toIdx + 1 < w.length &&
+      _dancerWords.containsKey(w[toIdx + 1])) {
+    note = 'to ${w[toIdx + 1]}';
+    w.removeRange(toIdx, toIdx + 2);
+  }
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['chain'])) return null;
   final who2 = who ?? _takeDancer(w);
@@ -440,7 +505,7 @@ _Match? _chain(List<String> w) {
   // match and let it fall back to custom. No explicit dancer → leave `who`
   // unset so the taxonomy default (role2s) applies.
   if (who2 != null && who2 != 'role1s' && who2 != 'role2s') return null;
-  return _Match('chain', {'who': ?who2, 'dir': ?dir});
+  return _Match('chain', {'who': ?who2, 'dir': ?dir}, note);
 }
 
 _Match? _rightLeftThrough(List<String> w) {
@@ -453,6 +518,11 @@ _Match? _rightLeftThrough(List<String> w) {
     dir = 'across';
   } else if (_consumePhrase(w, ['along'])) {
     dir = 'along';
+  }
+  // TCB writes "...right and left through with partner/neighbor" exclusively;
+  // consume the trailing "with <dancer>" qualifier (no structured slot).
+  if (_consumePhrase(w, ['with'])) {
+    _takeDancer(w);
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
@@ -476,12 +546,31 @@ _Match? _promenade(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['promenade'])) return null;
   final who2 = who ?? _takeDancer(w);
+  // Consume an optional trailing direction (promenade's `dir` param). Prior to
+  // this it was never consumed, so any directed promenade fell to custom.
+  String? dir;
+  if (_consumePhrase(w, ['across'])) {
+    dir = 'across';
+  } else if (_consumePhrase(w, ['along'])) {
+    dir = 'along';
+  }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('promenade', {'who': ?who2});
+  return _Match('promenade', {'who': ?who2, 'dir': ?dir});
+}
+
+/// Tier B: TCB writes "Shift left/right" for a slide along the set.
+_Match? _shift(List<String> w) {
+  if (!_consumePhrase(w, ['shift'])) return null;
+  final slide = _takeSide(w);
+  _dropFiller(w);
+  if (slide == null || w.isNotEmpty) return null;
+  return _Match('slide_along_set', {'slide': slide});
 }
 
 _Match? _longLines(List<String> w) {
+  // TCB writes "In long lines, ..." exclusively; consume the leading "in".
+  _consumePhrase(w, ['in']);
   if (!_consumePhrase(w, ['long', 'lines'])) return null;
   // Accept only the canonical "[go] forward and back" descriptor, or bare
   // "long lines"; a partial "forward"/"back"/"and" alone is NOT enough — it

@@ -481,9 +481,13 @@ void main() {
             ),
           ),
         );
-        // "Ladies chain to neighbor" keeps trailing prose → custom, scrubbed.
-        expect(draft.dance.figures[0].isCustom, isTrue);
-        expect(_text(draft.dance.figures[0]), 'role2s chain to neighbor');
+        // "Ladies chain to neighbor" now structures (PR2 D3): the chain is
+        // recognised and the "to neighbor" target is preserved as a Figure
+        // note. The scrub still ran (who is the canonical role token).
+        expect(draft.dance.figures[0].isCustom, isFalse);
+        expect(draft.dance.figures[0].move, 'chain');
+        expect(draft.dance.figures[0].params['who'], 'role2s');
+        expect(draft.dance.figures[0].note, 'to neighbor');
         // "Gents allemande left" structures; the scrub still ran, so who is the
         // canonical role token (proof scrub happens before parsing).
         expect(draft.dance.figures[1].move, 'allemande');
@@ -591,17 +595,15 @@ void main() {
         expect(draft.dance.callingNotes, isNot(contains('Gene Hubert')));
         // 10 figure lines across A1/A2/B1/B2.
         expect(draft.dance.figures, hasLength(10));
-        // Recognised lines now structure (balance, swings, circle, star);
-        // A2's hall/turn-as-couples/bend lines + the chain-to-neighbor line
-        // stay custom.
-        expect(draft.dance.figures.where((f) => f.isCustom), hasLength(5));
-        // "Ladies chain to neighbor" (phrase B2) keeps its trailing prose, so it
-        // stays custom, scrubbed to a role token, with no phrase-label prefix.
-        final chain = draft.dance.figures
-            .where((f) => f.isCustom)
-            .map(_text)
-            .firstWhere((t) => t.contains('chain'));
-        expect(chain, 'role2s chain to neighbor');
+        // Recognised lines now structure (balance, swings, circle, star, and
+        // the chain-to-neighbor line — PR2 D3); only A2's
+        // hall/turn-as-couples/bend lines stay custom.
+        expect(draft.dance.figures.where((f) => f.isCustom), hasLength(4));
+        // "Ladies chain to neighbor" (phrase B2) now structures as a chain with
+        // the "to neighbor" target preserved as a Figure note.
+        final chain = draft.dance.figures.firstWhere((f) => f.move == 'chain');
+        expect(chain.params['who'], 'role2s');
+        expect(chain.note, 'to neighbor');
         // The first figure is a recognised balance carrying its source beats.
         expect(draft.dance.figures.first.move, 'balance');
         // Beats preserved from the (N) prefixes.
