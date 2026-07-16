@@ -339,11 +339,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// Opens the adapter-agnostic import review flow (ROADMAP 6.3), offering the
-  /// generic [GenericJsonAdapter] ("Caller's Compendium JSON", default) and the
+  /// generic [GenericJsonAdapter] ("Caller's Compendium JSON", default), the
   /// [CallersBoxAdapter] ("The Caller's Box", which resolves a pasted dance URL
-  /// or bare id to the `&format=JSON` endpoint before fetching). The screen is
-  /// fully self-contained (plan → review → commit → undo) and refreshes the
-  /// live Collection on commit via [CollectionRefreshScope].
+  /// or bare id to the `&format=JSON` endpoint before fetching), and the
+  /// [ContraDbHtmlAdapter] ("ContraDB", which resolves a pasted dance URL or
+  /// bare id to the `contradb.com/dances/N` HTML page and scrapes it). The
+  /// screen is fully self-contained (plan → review → commit → undo) and
+  /// refreshes the live Collection on commit via [CollectionRefreshScope].
   Future<void> _onImportDances() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -357,6 +359,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               label: 'The Caller\'s Box',
               adapterFactory: CallersBoxAdapter.new,
               urlBuilder: buildCallersBoxJsonUrl,
+            ),
+            ImportSource(
+              label: 'ContraDB',
+              adapterFactory: ContraDbHtmlAdapter.new,
+              urlBuilder: buildContraDbUrl,
             ),
           ],
           picker: widget.importPicker,
