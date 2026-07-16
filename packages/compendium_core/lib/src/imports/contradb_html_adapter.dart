@@ -312,6 +312,11 @@ class ContraDbHtmlAdapter implements SourceAdapter {
   /// after the `gypsy` → `shoulder round` legacy-move safety net, matching the
   /// CallersBox/Caller's Companion adapters. Whitespace is collapsed so that
   /// unwrapped inline markup does not leave doubled spaces.
+  ///
+  /// NOTE: this intentionally mirrors the sibling `_scrub` helpers in
+  /// `callersbox_adapter.dart` and `callers_companion_*` — it is now the third
+  /// copy. A future pass should extract a shared free-text-scrub helper (the
+  /// same phase that owns the free-text → structured-move taxonomy parser).
   String _scrub(String text) {
     final degypsied = text
         .replaceAllMapped(_gypsiesTerm, (_) => 'shoulder rounds')
