@@ -204,24 +204,6 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: gradle # caches ~/.gradle for the Android build
-      - name: Cache CocoaPods
-        if: matrix.target == 'macos' || matrix.target == 'ios'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          # Cache only the CocoaPods spec repo / CDN download cache, which are
-          # the slow parts and always exist after a pod install. The per-project
-          # app/*/Pods dir is fast to regenerate and is target-specific, so it is
-          # deliberately not cached (avoids "path not found" on the target that
-          # doesn't build it). The repo commits no Podfile.lock, so the key is
-          # derived from the committed root pubspec.lock — the authoritative
-          # source for plugin (and therefore pod) versions — so the cache
-          # invalidates whenever dependencies change.
-          path: |
-            ~/.cocoapods
-            ~/Library/Caches/CocoaPods
-          key: pods-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
-          restore-keys: |
-            pods-${{ runner.os }}-
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version-file: .fvmrc
