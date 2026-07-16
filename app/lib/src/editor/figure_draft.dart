@@ -5,10 +5,8 @@
 
 import 'package:compendium_core/compendium_core.dart';
 
-// ---------------------------------------------------------------------------
-// FigureDraft (unchanged public API)
-// ---------------------------------------------------------------------------
-/// editor. Committed to an immutable [Figure] on save via [toFigure].
+/// Mutable working state for a single figure while it is being edited in the
+/// dance editor. Committed to an immutable [Figure] on save via [toFigure].
 class FigureDraft {
   FigureDraft({
     String? id,
