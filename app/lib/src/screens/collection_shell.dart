@@ -6,6 +6,7 @@ import '../data/collection_refresh_scope.dart';
 import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
 import '../theme/app_spacing.dart';
+import '../widgets/brand_mark.dart';
 import 'dance_detail_screen.dart';
 import 'dance_list_screen.dart';
 import 'import_review_screen.dart';
@@ -412,10 +413,9 @@ class _EmptyDetailPane extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.auto_stories_outlined,
+            BrandMark(
               size: 64,
-              color: Theme.of(context).colorScheme.outlineVariant,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(

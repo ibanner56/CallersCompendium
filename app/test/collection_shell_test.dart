@@ -11,6 +11,7 @@ import 'package:compendium_app/src/screens/collection_shell.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
 
@@ -160,6 +161,9 @@ void main() {
 
       // Empty-state placeholder (no selection yet)
       expect(find.text('Select a dance'), findsOneWidget);
+      // The empty detail pane leads with the brand mark (§4.4). The list pane
+      // holds a dance, so this is the only mark on screen.
+      expect(find.byType(BrandMark), findsOneWidget);
       // No DanceDetailScreen yet
       expect(find.byType(DanceDetailScreen), findsNothing);
     });

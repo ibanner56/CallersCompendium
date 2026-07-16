@@ -20,6 +20,7 @@ import '../utils/confirm_delete.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
 import '../widgets/batch_tag_dialog.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/by_phrase_panel.dart';
 import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
@@ -988,14 +989,24 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Widget _buildEmptyCollectionSliver() {
-    return const SliverToBoxAdapter(
+    return SliverToBoxAdapter(
       child: Padding(
-        padding: EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Center(
-          child: Text(
-            'Your collection is empty. Add or import a dance to get started — '
-            "or turn on Online search above to import from The Caller's Box.",
-            textAlign: TextAlign.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              BrandMark(
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const Text(
+                'Your collection is empty. Add or import a dance to get started — '
+                "or turn on Online search above to import from The Caller's Box.",
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       ),

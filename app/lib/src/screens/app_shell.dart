@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../screens/dance_detail_screen.dart';
 import '../screens/program_editor_screen.dart';
+import '../theme/app_spacing.dart';
+import '../widgets/brand_mark.dart';
 import '../widgets/command_palette.dart';
 import 'app_shell_search_scope.dart';
 import 'collection_shell.dart';
@@ -106,7 +108,23 @@ class _AppShellState extends State<AppShell> {
                   labelType: NavigationRailLabelType.all,
                   leading: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: _RailSearchButton(onPressed: _openSearch),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Full-color app tile (petrol + amber) so the mark stays
+                        // legible on every theme surface, including high-contrast
+                        // ones where a bare glyph could fall below contrast.
+                        // Decorative + labeled (Semantics image, not focusable),
+                        // so keyboard focus order is unchanged.
+                        const BrandMark(
+                          size: 32,
+                          showTile: true,
+                          semanticLabel: "Caller's Compendium",
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        _RailSearchButton(onPressed: _openSearch),
+                      ],
+                    ),
                   ),
                   destinations: [
                     for (final d in _destinations)
