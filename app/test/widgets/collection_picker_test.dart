@@ -194,4 +194,53 @@ void main() {
     await _tapVisible(tester, find.byKey(const ValueKey('picker-add-a')));
     expect(added, ['a']);
   });
+
+  testWidgets('advanced builder: add a figure row filters the picker results', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'a',
+        title: 'Has Petronella',
+        figures: [
+          Figure(move: 'petronella', params: const {'beats': 16}),
+        ],
+      ),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'b',
+        title: 'Just Swing',
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpPicker(tester, repos, onAddDance: (_) {});
+    await tester.pumpAndSettle();
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-enable')),
+    );
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has figure'));
+
+    final moveField = find.byType(TextField).last;
+    await tester.ensureVisible(moveField);
+    await tester.enterText(moveField, 'petro');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('petronella').last);
+    await tester.pumpAndSettle();
+
+    // The advanced tree compiles through buildCollectionFilter and re-runs the
+    // search, so only the dance with the figure survives.
+    expect(_titles(tester), ['Has Petronella']);
+  });
 }
