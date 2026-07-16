@@ -11,7 +11,14 @@
 # (the recommended set includes the core lints).
 # The core lints are also what is used by pub.dev for scoring packages.
 
-include: package:lints/recommended.yaml
+# The workspace-root options (../../analysis_options.yaml) are layered on top
+# so the strict analyzer settings (strict-casts / strict-inference /
+# strict-raw-types and the error escalations defined there) actually apply to
+# this package. The analyzer only reads the *nearest* options file, so without
+# this explicit include the intended strictness would be silently unenforced.
+include:
+  - package:lints/recommended.yaml
+  - ../../analysis_options.yaml
 
 # Uncomment the following section to specify additional rules.
 

@@ -176,7 +176,7 @@ class DanceListTile extends StatelessWidget {
       onTap:
           onTap ??
           () => Navigator.of(context).push(
-            MaterialPageRoute(
+            MaterialPageRoute<void>(
               builder: (_) => DanceDetailScreen(danceId: dance.id),
             ),
           ),

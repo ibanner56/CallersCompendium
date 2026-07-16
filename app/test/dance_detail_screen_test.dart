@@ -596,7 +596,7 @@ void main() {
           builder: (ctx) => Scaffold(
             body: GestureDetector(
               onTap: () => Navigator.of(ctx).push(
-                MaterialPageRoute(
+                MaterialPageRoute<void>(
                   builder: (_) => const DanceDetailScreen(danceId: 'd1'),
                 ),
               ),
@@ -650,7 +650,7 @@ void main() {
           builder: (ctx) => Scaffold(
             body: GestureDetector(
               onTap: () => Navigator.of(ctx).push(
-                MaterialPageRoute(
+                MaterialPageRoute<void>(
                   builder: (_) => const DanceDetailScreen(danceId: 'd1'),
                 ),
               ),
