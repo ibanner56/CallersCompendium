@@ -18,6 +18,20 @@ IconData danceFormIcon(DanceForm form) => switch (form) {
   DanceForm.square => Icons.crop_square,
 };
 
+/// The one canonical glyph for the "formation" facet (the shape of the set:
+/// duple, becket, triple, square, …). Deliberately **distinct** from the Matrix
+/// feature's grid glyph (`Icons.grid_on_outlined`) so the two concepts never
+/// read as the same thing. Always paired with a formation text label — meaning
+/// is never carried by the glyph alone (`docs/research/accessibility-baseline.md`).
+const IconData formationIcon = Icons.table_rows_outlined;
+
+/// The one canonical glyph for "progression" (a figure/dance that advances
+/// dancers to new neighbours). Replaces the earlier inconsistent mix of
+/// `Icons.repeat` and a `¶` pilcrow across the UI. Always paired with a
+/// "Progression" label/tooltip. (The plain-text and PDF exports keep the
+/// typographic `¶` marker, which is a text artifact rather than a UI glyph.)
+const IconData progressionIcon = Icons.repeat;
+
 String progressionLabel(Progression p) => switch (p) {
   Progression.none => 'No progression',
   Progression.single => 'Single',

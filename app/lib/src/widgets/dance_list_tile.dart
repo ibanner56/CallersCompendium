@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/dance_list_entry.dart';
 import '../screens/dance_detail_screen.dart';
 import '../search/facet_labels.dart';
+import 'program_status_chip.dart';
 
 /// One Collection result row: title, authors, formation chip, status/tag chips
 /// and `showInList` custom fields (Phase 3.1 rendering). Tapping it opens
@@ -109,27 +110,13 @@ class DanceListTile extends StatelessWidget {
                 style: theme.textTheme.bodyMedium,
               ),
             Chip(
-              avatar: const Icon(Icons.grid_view, size: 16),
+              avatar: const Icon(formationIcon, size: 16),
               label: Text(formationLabel(dance.formation)),
               visualDensity: VisualDensity.compact,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             if (dance.status != DanceStatus.active)
-              Chip(
-                avatar: Icon(
-                  dance.status == DanceStatus.deprecated
-                      ? Icons.history_toggle_off
-                      : Icons.report_problem_outlined,
-                  size: 16,
-                ),
-                label: Text(
-                  dance.status == DanceStatus.deprecated
-                      ? 'Deprecated'
-                      : 'Broken',
-                ),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
+              DanceStatusChip(status: dance.status),
             if (dance.level != null)
               Chip(
                 avatar: const Icon(Icons.signal_cellular_alt, size: 16),

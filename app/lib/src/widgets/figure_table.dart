@@ -2,10 +2,11 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/verbose_figure_rendering_scope.dart';
+import '../search/facet_labels.dart';
 
 /// Read-only figure table grouped by derived phrase section (`docs/design/ux.md`
 /// §2). Each section (A1, A2, …) heads a group; rows show the rendered figure
-/// text (under [dialect]), a progression ¶ marker, and the beat count.
+/// text (under [dialect]), a progression marker, and the beat count.
 ///
 /// Structured editing of these rows lands with roadmap 3.3b; here the table is
 /// display-only, shared by the dance detail view and the (read-only) figure
@@ -139,11 +140,10 @@ class _FigureRow extends StatelessWidget {
               child: progression
                   ? Tooltip(
                       message: 'Progression',
-                      child: Text(
-                        '¶',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
+                      child: Icon(
+                        progressionIcon,
+                        size: 18,
+                        color: theme.colorScheme.primary,
                       ),
                     )
                   : null,
