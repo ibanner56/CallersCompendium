@@ -1,6 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 
-import '../screens/settings_screen.dart' show kActiveDialectKey;
+import '../editor/editor_draft_codec.dart' show kDanceEditorDraftKeyPrefix;
 import 'backup_document.dart';
 import 'backup_reminder.dart';
 import 'custom_theme.dart';
@@ -29,6 +29,30 @@ const Set<String> kBackupSettingsDenylist = {
   kLastBackupAtKey,
   kBackupReminderCadenceKey,
 };
+
+/// Key *prefixes* excluded from backups. Some settings-table keys are dynamic
+/// (built per-entity), so they can't be named as exact denylist entries:
+/// - [kDanceEditorDraftKeyPrefix] — transient, device-local dance-editor
+///   autosave drafts (`editor_draft:<id>`); unsaved in-progress edits that are
+///   neither user content nor preferences and must never travel in a backup.
+const Set<String> kBackupSettingsDenylistPrefixes = {
+  kDanceEditorDraftKeyPrefix,
+};
+
+/// Whether a settings-table [key] is eligible to travel in a backup's
+/// `app.settings` map (and thus be fully replaced on restore).
+///
+/// The denylist ([kBackupSettingsDenylist] + [kBackupSettingsDenylistPrefixes])
+/// is the single source of truth for "device-local / structurally-represented /
+/// don't touch". Everything else is by definition backup-eligible content that a
+/// restore replaces.
+bool isBackupEligibleSettingKey(String key) {
+  if (kBackupSettingsDenylist.contains(key)) return false;
+  for (final prefix in kBackupSettingsDenylistPrefixes) {
+    if (key.startsWith(prefix)) return false;
+  }
+  return true;
+}
 
 /// Outcome of restoring a [BackupDocument] to the live app.
 class BackupRestoreOutcome {
@@ -78,8 +102,7 @@ class BackupService {
 
     final settings = <String, Object?>{
       for (final entry in allSettings.entries)
-        if (!kBackupSettingsDenylist.contains(entry.key))
-          entry.key: entry.value,
+        if (isBackupEligibleSettingKey(entry.key)) entry.key: entry.value,
     };
 
     return BackupDocument(
@@ -156,7 +179,7 @@ class BackupService {
     final existing = await settings.all();
     final backedUp = doc.settings.keys.toSet();
     for (final key in existing.keys) {
-      if (kBackupSettingsDenylist.contains(key)) continue;
+      if (!isBackupEligibleSettingKey(key)) continue;
       if (backedUp.contains(key)) continue;
       await settings.remove(key);
     }
@@ -180,10 +203,11 @@ class BackupService {
     ]);
     await settings.set(kActiveCustomThemeKey, doc.activeCustomThemeId);
 
-    // Preference settings: re-apply every backed-up key (already denylisted at
-    // export, so device-local/metadata keys are never touched here).
+    // Preference settings: re-apply every backed-up key. The predicate guards
+    // against a hand-edited or hostile backup smuggling a denylisted/device-local
+    // key into `app.settings`.
     for (final entry in doc.settings.entries) {
-      if (kBackupSettingsDenylist.contains(entry.key)) continue;
+      if (!isBackupEligibleSettingKey(entry.key)) continue;
       await settings.set(entry.key, entry.value);
     }
   }

@@ -121,7 +121,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   Timer? _undoTimer;
   Timer? _autosaveTimer;
 
-  String get _draftKey => 'editor_draft:${widget.danceId ?? 'new'}';
+  String get _draftKey =>
+      '$kDanceEditorDraftKeyPrefix${widget.danceId ?? 'new'}';
 
   /// A decoded draft snapshot waiting to be restored or discarded.
   /// Set by [_load] when a draft exists; cleared by [_maybeShowRestoreDialog].

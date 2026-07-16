@@ -3,6 +3,8 @@ import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/backup_reminder.dart';
+import 'package:compendium_app/src/data/reduce_motion_scope.dart'
+    show kReduceMotionKey;
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show kSortIgnoreArticlesKey;
 import 'package:compendium_app/src/data/window_service.dart'
@@ -103,6 +105,33 @@ void main() {
   );
 
   test(
+    'editor draft keys never travel in a backup and survive a restore',
+    () async {
+      final source = openTestRepositories();
+      await _seed(source);
+      // A transient, device-local editor draft on the source device.
+      await source.settings.set('editor_draft:new', '{"title":"WIP"}');
+
+      final doc = await BackupService(source).buildDocument();
+      // Excluded from export — drafts are neither content nor preferences.
+      expect(doc.settings.containsKey('editor_draft:new'), isFalse);
+
+      final json = await BackupService(source).exportToJson();
+
+      final target = openTestRepositories();
+      // The target device has its own in-progress draft.
+      await target.settings.set('editor_draft:d9', '{"title":"local"}');
+
+      await BackupService(target).restoreFromJson(json);
+
+      // Device-local draft is left untouched by the restore's settings replace.
+      expect(await target.settings.get('editor_draft:d9'), '{"title":"local"}');
+      // And the source's draft was never written onto the target.
+      expect(await target.settings.get('editor_draft:new'), isNull);
+    },
+  );
+
+  test(
     'restore removes stale non-denylisted settings absent from the backup',
     () async {
       final source = openTestRepositories();
@@ -110,12 +139,16 @@ void main() {
       final json = await BackupService(source).exportToJson();
 
       final target = openTestRepositories();
+      // A real preference the target turned on that the backup does not carry.
+      await target.settings.set(kReduceMotionKey, true);
       // A stale preference key that is NOT present in the backup.
       await target.settings.set('some_stale_pref', 'old-value');
 
       await BackupService(target).restoreFromJson(json);
 
-      // Replace semantics: the stale key is gone after restore.
+      // Replace semantics: keys absent from the backup are cleared, so undoing
+      // changes by restoring an older backup doesn't leave stale prefs behind.
+      expect(await target.settings.get(kReduceMotionKey), isNull);
       expect(await target.settings.get('some_stale_pref'), isNull);
       // A backed-up preference is present.
       expect(await target.settings.get(kSortIgnoreArticlesKey), false);
