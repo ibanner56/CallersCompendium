@@ -514,9 +514,31 @@ taxonomy are unchanged.
     free-text body `(beats) text` lines → `custom` figures (design §2;
     opportunistic structuring deferred until the TCB grammar parser lands),
     author names surfaced for review (no fabricated ids). No stable CC id →
-    fuzzy title/author dedupe. The headline FileMaker-12 binary `.USR` parser
-    (the primary migration path) and `Set`/`SetItem` → Programs land in a
-    follow-up PR that **reuses** this mapping unit, so this box stays open.
+    fuzzy title/author dedupe.
+  - **Binary `.USR` migration adapter delivered** (part 2 of 2; box stays open —
+    see caveats): the headline FileMaker-12 binary path landed in PR #204,
+    reusing the `mapCallersCompanionDance` unit above.
+    - Pure-Dart FileMaker-12 `.USR` binary reader (`readFmp12` + SCSU text
+      decode) — block/sector chain + catalog table/field-name recovery —
+      **validated against the real `CallersCompanion2.USR`** (22 tables, 40
+      dances, 205 authors; byte-for-byte cross-check against the `fmptools`
+      reference across five real files). Stays **Flutter-free** (pure
+      `dart:typed_data`; passes the ADR-001 guard).
+    - `CallersCompanionUsrAdapter` imports **dances end-to-end** through the
+      existing pipeline (discover → fetch → parse → dedupe → commit), reusing
+      `mapCallersCompanionDance`; `externalId` = CC `zk_Dance_ID`; `Rating` →
+      `Dance.rating`, `UserDefined_*` → calling notes.
+    - `Set`/`SetItem` → `Program` **builder** (`buildCcPrograms`) delivered and
+      **real-file-validated for FK linkage** — it joins on CC's own field values
+      `zk_Set_ID`/`zk_Dance_ID`, not the FileMaker record ids — but the
+      **app-layer program persistence/undo wiring is still a follow-up**
+      (`ImportPipeline` is dance-only), a key reason this box stays open.
+    - Honest caveats keeping 6.5 open: the free-text figure → `custom` scrub is
+      **unvalidated against real figure data** (the sample library has no
+      `A1`–`B2`/`Moves` notation); `Author`/`Venue`/`Term`/`Dance_Related`
+      tables are confirmed present in the real file but their entity resolution
+      is **deferred** (no models yet); program provenance/dedupe **deferred**
+      (the `Program` model has no `provenance` field).
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
