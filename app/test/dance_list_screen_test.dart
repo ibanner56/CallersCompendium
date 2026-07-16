@@ -901,6 +901,83 @@ void main() {
     expect(dance!.deletedAt, isNull);
   });
 
+  // ── Row action menu (⋮, non-swipe) ─────────────────────────────────────────
+
+  testWidgets(
+    'row overflow menu Delete removes the dance and shows the undo snackbar',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Menu Delete'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Stay Here'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      // Open the row's ⋮ menu (no swipe) and invoke Delete.
+      await tester.tap(find.byKey(const ValueKey('dance-actions-d1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dance-action-delete')));
+      await tester.pumpAndSettle();
+
+      // Same delete + undo flow as the swipe.
+      expect(find.text('Menu Delete'), findsNothing);
+      expect(find.text('Stay Here'), findsOneWidget);
+      expect(find.text('"Menu Delete" deleted.'), findsOneWidget);
+      expect(find.text('Undo'), findsOneWidget);
+
+      // Soft-deleted in storage, not hard-deleted.
+      final deleted = await repos.dances.getById('d1', includeDeleted: true);
+      expect(deleted, isNotNull);
+      expect(deleted!.deletedAt, isNotNull);
+    },
+  );
+
+  testWidgets('row overflow menu Duplicate adds a "(copy)" to the list', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Copy Me'));
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('dance-actions-d1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('dance-action-duplicate')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Copy Me (copy)'), findsOneWidget);
+    final all = await repos.dances.listAll();
+    expect(all.where((d) => d.title == 'Copy Me (copy)'), isNotEmpty);
+  });
+
+  testWidgets('row overflow menu Add to program opens the picker sheet', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Add Me'));
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Friday Night',
+        slots: const [],
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('dance-actions-d1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('dance-action-add-to-program')));
+    await tester.pumpAndSettle();
+
+    // The shared add-to-program sheet lists the existing program.
+    expect(find.byKey(const ValueKey('program-pick-p1')), findsOneWidget);
+  });
+
   // ── Recently Deleted navigation ────────────────────────────────────────────
 
   testWidgets(

@@ -175,6 +175,26 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
   }
 
+  Future<void> _duplicateFromList(Program program) async {
+    final now = DateTime.now().toUtc();
+    final copy = await _repos.programs.duplicate(
+      id: program.id,
+      newId: uuidV4(),
+      newSlotId: uuidV4,
+      now: now,
+      newTitle: '${program.title} (copy)',
+    );
+    if (!mounted) return;
+    await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('program-duplicated-snackbar'),
+        content: Text('Duplicated as "${copy.title}".'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -336,6 +356,18 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                       widget.onSelectProgram != null &&
                       widget.selectedProgramId == program.id,
                   onTap: () => _openProgram(program.id),
+                  // Row action menu (⋮): non-swipe access for mouse/keyboard/AT
+                  // users. Delete routes through the identical confirm +
+                  // soft-delete + undo flow as the Dismissible swipe above.
+                  onDelete: () async {
+                    if (await confirmDeleteIfEnabled(
+                      context,
+                      itemLabel: program.title,
+                    )) {
+                      await _softDelete(program);
+                    }
+                  },
+                  onDuplicate: () => _duplicateFromList(program),
                 ),
               );
             },

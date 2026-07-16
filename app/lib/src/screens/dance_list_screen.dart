@@ -13,6 +13,7 @@ import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
 import '../utils/confirm_delete.dart';
+import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
 import '../widgets/batch_tag_dialog.dart';
 import '../widgets/by_phrase_panel.dart';
@@ -574,6 +575,29 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
+  /// Duplicates a dance from the collection list. Mirrors the detail screen's
+  /// Duplicate (appends " (copy)" to the copy's title), then reloads so the
+  /// copy appears in the list and confirms with a snackbar.
+  Future<void> _duplicateFromList(String danceId) async {
+    final now = DateTime.now().toUtc();
+    final copy = await _repos.dances.duplicate(
+      id: danceId,
+      newId: uuidV4(),
+      now: now,
+    );
+    final newTitle = '${copy.title} (copy)';
+    await _repos.dances.update(copy.copyWith(title: newTitle, updatedAt: now));
+    if (!mounted) return;
+    await _boot();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('list-duplicated-snackbar'),
+        content: Text('Duplicated as "$newTitle".'),
+      ),
+    );
+  }
+
   Widget _buildBody() {
     if (_loadError != null) {
       return Center(
@@ -802,6 +826,24 @@ class _DanceListScreenState extends State<DanceListScreen> {
         final entry = _results[index];
         final tile = DanceListTile(
           entry: entry,
+          // Row action menu (⋮): non-swipe access to the row actions for
+          // mouse/keyboard/AT users. Delete routes through the identical
+          // confirm + soft-delete + undo flow as the Dismissible swipe below.
+          onDelete: () async {
+            if (await confirmDeleteIfEnabled(
+              context,
+              itemLabel: entry.dance.title,
+            )) {
+              await _softDeleteFromList(entry.dance.id, entry.dance.title);
+            }
+          },
+          onDuplicate: () => _duplicateFromList(entry.dance.id),
+          onAddToProgram: () => showAddToProgramSheet(
+            context,
+            repositories: _repos,
+            danceId: entry.dance.id,
+            danceTitle: entry.dance.title,
+          ),
           selectionMode: _selectionMode,
           selectedForBatch: _selectedIds.contains(entry.dance.id),
           onLongPress: _selectionMode
