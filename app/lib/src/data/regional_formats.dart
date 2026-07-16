@@ -1,11 +1,10 @@
 /// App-only regional-format preferences (ROADMAP G.8).
 ///
 /// Ahead of full app i18n (which we do NOT ship here), this exposes the cheap,
-/// genuinely-useful regional pieces: how program event dates render and which
-/// day the week starts on. Both are persisted via `SettingsRepository` as
-/// stable string tokens.
+/// genuinely-useful regional piece: how program event dates render. The
+/// preference is persisted via `SettingsRepository` as a stable string token.
 ///
-/// The keys, enums, and resolvers below are Flutter-free pure functions so they
+/// The key, enum, and resolver below are Flutter-free pure functions so they
 /// can be unit-tested directly. Only [formatEventDate] touches Flutter, and only
 /// for the `system` default, where it defers to [MaterialLocalizations].
 library;
@@ -84,56 +83,5 @@ String? formatDatePattern(DateTime date, DateFormatPref pref) {
       return '$d/$m/$y';
     case DateFormatPref.mdy:
       return '$m/$d/$y';
-  }
-}
-
-/// Key used to persist the first-day-of-week preference (ROADMAP G.8).
-///
-/// Stored as a stable string token: one of `system` (the default), `sunday`, or
-/// `monday`. Absent/unset or an unrecognized value ⇒ [FirstDayOfWeekPref.system].
-const String kFirstDayOfWeekKey = 'first_day_of_week';
-
-/// Which day the week starts on in the app's date pickers.
-enum FirstDayOfWeekPref {
-  /// Defer to the platform locale's first day of week.
-  system('system'),
-
-  /// Force weeks to start on Sunday.
-  sunday('sunday'),
-
-  /// Force weeks to start on Monday.
-  monday('monday');
-
-  const FirstDayOfWeekPref(this.token);
-
-  /// The stable token persisted via `SettingsRepository`.
-  final String token;
-}
-
-/// Resolves a persisted settings value into a [FirstDayOfWeekPref].
-///
-/// Defensive by design: `null`, a non-string, or an unrecognized token all fall
-/// back to [FirstDayOfWeekPref.system].
-FirstDayOfWeekPref firstDayOfWeekPrefFromStored(Object? stored) {
-  if (stored is String) {
-    for (final pref in FirstDayOfWeekPref.values) {
-      if (pref.token == stored) return pref;
-    }
-  }
-  return FirstDayOfWeekPref.system;
-}
-
-/// Maps a [FirstDayOfWeekPref] to the weekday index Flutter's date pickers use
-/// (`0` = Sunday … `6` = Saturday, matching
-/// [MaterialLocalizations.firstDayOfWeekIndex]), or `null` for
-/// [FirstDayOfWeekPref.system] (defer to the platform locale).
-int? firstDayOfWeekIndexFor(FirstDayOfWeekPref pref) {
-  switch (pref) {
-    case FirstDayOfWeekPref.system:
-      return null;
-    case FirstDayOfWeekPref.sunday:
-      return 0;
-    case FirstDayOfWeekPref.monday:
-      return 1;
   }
 }

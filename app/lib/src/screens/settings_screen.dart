@@ -11,7 +11,6 @@ import '../data/date_format_scope.dart';
 import '../data/dialect_library_controller.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
-import '../data/first_day_of_week_scope.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
@@ -594,12 +593,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await repos.settings.set(kDateFormatKey, value.token);
   }
 
-  Future<void> _onFirstDayOfWeekChanged(FirstDayOfWeekPref value) async {
-    FirstDayOfWeekScope.notifierOf(context).value = value;
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kFirstDayOfWeekKey, value.token);
-  }
-
   /// Builds the content pane for [section]. Selection and scope reads use
   /// [context] (in the side-by-side layout the screen itself; in the narrow
   /// layout the pushed detail route) via `.of(context)`, which registers that
@@ -631,8 +624,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return _RegionalView(
           dateFormat: DateFormatScope.of(context),
           onDateFormatChanged: _onDateFormatChanged,
-          firstDayOfWeek: FirstDayOfWeekScope.of(context),
-          onFirstDayOfWeekChanged: _onFirstDayOfWeekChanged,
         );
       case _SettingsSection.general:
         _ensureAutoSizeLoaded(context);
@@ -1191,23 +1182,21 @@ class _DialectNameDialogState extends State<_DialectNameDialog> {
 }
 
 /// The Language & region section (ROADMAP G.8): regional-format preferences and
-/// a home for a future UI-language selector.
+/// a home for future regional/localization options.
 ///
-/// Ships the cheap regional pieces — how program event dates render and which
-/// day the week starts on — plus an explicit disabled "App language" placeholder
-/// row signaling that full UI localization is a future item (not yet available).
+/// Ships the cheap, genuinely-functional piece — how program event dates render
+/// (the Date format control) — alongside explicit disabled placeholder rows for
+/// options that are not available yet: a first-day-of-week control (Flutter's
+/// date pickers can't yet consume a custom first day without a heavy
+/// localizations override) and a future UI-language selector.
 class _RegionalView extends StatelessWidget {
   const _RegionalView({
     required this.dateFormat,
     required this.onDateFormatChanged,
-    required this.firstDayOfWeek,
-    required this.onFirstDayOfWeekChanged,
   });
 
   final DateFormatPref dateFormat;
   final ValueChanged<DateFormatPref> onDateFormatChanged;
-  final FirstDayOfWeekPref firstDayOfWeek;
-  final ValueChanged<FirstDayOfWeekPref> onFirstDayOfWeekChanged;
 
   static String _dateFormatLabel(DateFormatPref pref) {
     switch (pref) {
@@ -1219,17 +1208,6 @@ class _RegionalView extends StatelessWidget {
         return 'Day/month/year (15/07/2026)';
       case DateFormatPref.mdy:
         return 'Month/day/year (07/15/2026)';
-    }
-  }
-
-  static String _firstDayLabel(FirstDayOfWeekPref pref) {
-    switch (pref) {
-      case FirstDayOfWeekPref.system:
-        return 'System default';
-      case FirstDayOfWeekPref.sunday:
-        return 'Sunday';
-      case FirstDayOfWeekPref.monday:
-        return 'Monday';
     }
   }
 
@@ -1264,25 +1242,15 @@ class _RegionalView extends StatelessWidget {
             ],
           ),
         ),
-        ListTile(
-          title: const Text('First day of week'),
-          subtitle: const Text(
-            'The day the week starts on in the app’s date pickers.',
+        const ListTile(
+          key: ValueKey('regional-first-day-of-week'),
+          enabled: false,
+          title: Text('First day of week'),
+          subtitle: Text(
+            'Choose which day the week starts on. Not available yet.',
           ),
-          trailing: DropdownButton<FirstDayOfWeekPref>(
-            key: const ValueKey('regional-first-day-of-week'),
-            value: firstDayOfWeek,
-            onChanged: (value) {
-              if (value != null) onFirstDayOfWeekChanged(value);
-            },
-            items: [
-              for (final pref in FirstDayOfWeekPref.values)
-                DropdownMenuItem(
-                  value: pref,
-                  child: Text(_firstDayLabel(pref)),
-                ),
-            ],
-          ),
+          isThreeLine: true,
+          trailing: Text('Coming soon'),
         ),
         _SectionHeader(title: 'Language'),
         const ListTile(

@@ -12,7 +12,6 @@ import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
-import 'src/data/first_day_of_week_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
@@ -92,8 +91,6 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<DateFormatPref> _dateFormatNotifier = ValueNotifier(
     DateFormatPref.system,
   );
-  final ValueNotifier<FirstDayOfWeekPref> _firstDayOfWeekNotifier =
-      ValueNotifier(FirstDayOfWeekPref.system);
   late final CustomThemesController _customThemes;
   late final DialectLibraryController _dialectLibrary;
 
@@ -175,19 +172,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (confirmBeforeDelete is bool) {
       _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
     }
-    // Load the regional-format preferences (ROADMAP G.8), each defaulting to
-    // System when unset. Defensive: a read failure or garbage token resolves to
-    // the safe System default via the resolvers.
+    // Load the regional-format preference (ROADMAP G.8), defaulting to System
+    // when unset. Defensive: a read failure or garbage token resolves to the
+    // safe System default via the resolver.
     final dateFormat = await _appData.repositories.settings
         .get(kDateFormatKey)
         .catchError((_) => null);
     _dateFormatNotifier.value = dateFormatPrefFromStored(dateFormat);
-    final firstDayOfWeek = await _appData.repositories.settings
-        .get(kFirstDayOfWeekKey)
-        .catchError((_) => null);
-    _firstDayOfWeekNotifier.value = firstDayOfWeekPrefFromStored(
-      firstDayOfWeek,
-    );
     // Load any locally-saved custom themes and the active one (if set).
     await _customThemes.load();
   }
@@ -202,7 +193,6 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _verboseFigureRenderingNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
     _dateFormatNotifier.dispose();
-    _firstDayOfWeekNotifier.dispose();
     _customThemes.dispose();
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
@@ -286,10 +276,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
                               notifier: _confirmBeforeDeleteNotifier,
                               child: DateFormatScope(
                                 notifier: _dateFormatNotifier,
-                                child: FirstDayOfWeekScope(
-                                  notifier: _firstDayOfWeekNotifier,
-                                  child: child!,
-                                ),
+                                child: child!,
                               ),
                             ),
                           ),

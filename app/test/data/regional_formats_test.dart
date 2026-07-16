@@ -63,35 +63,9 @@ void main() {
     });
   });
 
-  group('firstDayOfWeekPrefFromStored', () {
-    test('defaults to system when unset (null)', () {
-      expect(firstDayOfWeekPrefFromStored(null), FirstDayOfWeekPref.system);
-    });
-
-    test('resolves each known token to its enum', () {
-      expect(firstDayOfWeekPrefFromStored('system'), FirstDayOfWeekPref.system);
-      expect(firstDayOfWeekPrefFromStored('sunday'), FirstDayOfWeekPref.sunday);
-      expect(firstDayOfWeekPrefFromStored('monday'), FirstDayOfWeekPref.monday);
-    });
-
-    test('falls back to system for garbage', () {
-      expect(firstDayOfWeekPrefFromStored('friday'), FirstDayOfWeekPref.system);
-      expect(firstDayOfWeekPrefFromStored(1), FirstDayOfWeekPref.system);
-    });
-  });
-
-  group('firstDayOfWeekIndexFor', () {
-    test('maps prefs to the picker weekday index (null = system)', () {
-      expect(firstDayOfWeekIndexFor(FirstDayOfWeekPref.system), isNull);
-      expect(firstDayOfWeekIndexFor(FirstDayOfWeekPref.sunday), 0);
-      expect(firstDayOfWeekIndexFor(FirstDayOfWeekPref.monday), 1);
-    });
-  });
-
   group('regional-format constants (G.8)', () {
-    test('use their stable stored keys', () {
+    test('use their stable stored key', () {
       expect(kDateFormatKey, 'date_format');
-      expect(kFirstDayOfWeekKey, 'first_day_of_week');
     });
 
     test('enum tokens are stable', () {
@@ -99,9 +73,6 @@ void main() {
       expect(DateFormatPref.ymd.token, 'ymd');
       expect(DateFormatPref.dmy.token, 'dmy');
       expect(DateFormatPref.mdy.token, 'mdy');
-      expect(FirstDayOfWeekPref.system.token, 'system');
-      expect(FirstDayOfWeekPref.sunday.token, 'sunday');
-      expect(FirstDayOfWeekPref.monday.token, 'monday');
     });
   });
 }
