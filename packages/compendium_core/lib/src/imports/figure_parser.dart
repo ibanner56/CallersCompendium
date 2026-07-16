@@ -355,6 +355,14 @@ final List<_Recognizer> _recognizers = [
   _californiaTwirl,
   _squareThrough,
   _pullBy,
+  // Appended at the lowest precedence: their lead tokens (`rory`/`o'more`,
+  // `hall`) are disjoint from every recogniser above, so end placement cannot
+  // shadow or be shadowed. They emit ONLY the params a single line states;
+  // `balance`/`facing`/`ender` stay on the MoveDef default (the CallersBox
+  // cross-line merge sets those in a later pass).
+  _roryOMore,
+  _downTheHall,
+  _upTheHall,
 ];
 
 _Match? _swing(List<String> w) {
@@ -721,4 +729,61 @@ _Match? _pullBy(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('pull_by_direction', {'dir': ?dir, 'hand': ?hand});
+}
+
+/// Tier A: TCB writes "Rory O'More" (dance ids 6, 39), optionally with a slide
+/// direction ("Rory O'More right"). An optional dancer set maps to `who` and a
+/// left/right to `slide`; both fall to the taxonomy default when absent. The
+/// surname is accepted in any apostrophe spelling (`o'more`/`o’more`/`omore`)
+/// and is optional (a bare "Rory" is unambiguous). `balance` is NOT set here —
+/// a standalone line is not a balanced Rory; the CallersBox cross-line balance
+/// merge sets that. Trailing structure ("Rory O'More and swing") leaves
+/// leftover tokens, so it falls to custom. An out-of-domain `who` (e.g.
+/// "neighbors", not in Rory's dancer choices) is rejected by validation → custom.
+_Match? _roryOMore(List<String> w) {
+  final who = _takeDancer(w);
+  final slide = _takeSide(w);
+  if (!_consumePhrase(w, ['rory'])) return null;
+  // Optional "O'More" surname token, any apostrophe spelling.
+  const surnames = {"o'more", 'o\u2019more', 'omore'};
+  if (w.isNotEmpty && surnames.contains(w.first)) w.removeAt(0);
+  final who2 = who ?? _takeDancer(w);
+  final slide2 = slide ?? _takeSide(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('rory_o_more', {'who': ?who2, 'slide': ?slide2});
+}
+
+/// Tier A: TCB writes "Go down the hall" / "Down the hall" (dance ids 10945,
+/// 11239, 12001). An optional leading "go" and an optional dancer set are
+/// consumed; `facing`/`ender` stay on the MoveDef default (the cross-line
+/// bend-the-line merge sets `ender`). A descriptor that changes the move —
+/// "and back" (forward-then-backward) or "four in line" — is left as leftover,
+/// so those lines stay custom.
+_Match? _downTheHall(List<String> w) {
+  final who = _takeDancer(w);
+  _consumePhrase(w, ['go']);
+  if (!_consumePhrase(w, ['down', 'the', 'hall']) &&
+      !_consumePhrase(w, ['down', 'hall'])) {
+    return null;
+  }
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('down_the_hall', {'who': ?who2});
+}
+
+/// Tier A: TCB writes "Go up the hall" / "Up the hall". Mirror of
+/// [_downTheHall]; same conservative descriptor handling.
+_Match? _upTheHall(List<String> w) {
+  final who = _takeDancer(w);
+  _consumePhrase(w, ['go']);
+  if (!_consumePhrase(w, ['up', 'the', 'hall']) &&
+      !_consumePhrase(w, ['up', 'hall'])) {
+    return null;
+  }
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('up_the_hall', {'who': ?who2});
 }

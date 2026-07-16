@@ -77,6 +77,25 @@ void main() {
         move: 'allemande',
         params: {'who': 'role1s', 'hand': 'left'},
       ),
+      // TCB "Rory O'More" (dance ids 6, 39). A standalone line is NOT balanced
+      // — `balance` stays on its default; the cross-line balance merge sets it.
+      "Rory O'More": (move: 'rory_o_more', params: {}),
+      "Rory O'More right": (move: 'rory_o_more', params: {'slide': 'right'}),
+      "Rory O'More left": (move: 'rory_o_more', params: {'slide': 'left'}),
+      "Ones Rory O'More": (move: 'rory_o_more', params: {'who': 'ones'}),
+      // A bare "Rory" is unambiguous shorthand for Rory O'More.
+      'Rory': (move: 'rory_o_more', params: {}),
+      // TCB "Go down the hall" / "Down the hall" (dance ids 10945, 11239,
+      // 12001). `facing`/`ender` stay default; the bend-the-line merge sets
+      // `ender` in a later pass.
+      'Go down the hall': (move: 'down_the_hall', params: {}),
+      'Down the hall': (move: 'down_the_hall', params: {}),
+      'Everyone down the hall': (
+        move: 'down_the_hall',
+        params: {'who': 'everyone'},
+      ),
+      'Go up the hall': (move: 'up_the_hall', params: {}),
+      'Up the hall': (move: 'up_the_hall', params: {}),
     };
 
     cases.forEach((line, expected) {
@@ -104,6 +123,27 @@ void main() {
       expect(f!.move, 'chain');
       expect(f.params['who'], 'role2s');
     });
+
+    test('a bare "Rory O\'More" line validates and renders on defaults', () {
+      // The recogniser sets no `balance`; the MoveDef default (balance: true,
+      // slide: right, who: everyone) applies. `balance` is a structured param,
+      // not a render token, so it does not appear in the canonical rendering.
+      final f = parseFigureLine("Rory O'More");
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'rory_o_more');
+      expect(f.params.containsKey('balance'), isFalse);
+      final rendered = FigureRenderer(contraTaxonomy).renderCanonical(f);
+      expect(rendered, "everyone Rory O'More right");
+    });
+
+    test('down/up the hall keep their default ender (merge sets it later)', () {
+      final down = parseFigureLine('Go down the hall');
+      expect(down!.move, 'down_the_hall');
+      expect(down.params.containsKey('ender'), isFalse);
+      final up = parseFigureLine('Up the hall');
+      expect(up!.move, 'up_the_hall');
+      expect(up.params.containsKey('ender'), isFalse);
+    });
   });
 
   group('parseFigureLine — conservative fallback (must stay custom)', () {
@@ -123,8 +163,21 @@ void main() {
       'swing to partner',
       // Moves outside the first-cut coverage.
       'hey for four',
-      'down the hall four in line',
       'contra corners',
+      // "down/up the hall" IS recognised now, but a descriptor that changes the
+      // move leaves leftover tokens, so these near-misses stay custom:
+      //   "four in line" (a formation detail the taxonomy can't carry) and
+      //   "and back" (forward-then-backward, a distinct `facing`).
+      'down the hall four in line',
+      'go down the hall and back',
+      'up the hall and back',
+      // "Rory O'More" IS recognised now, but trailing structure (a second move)
+      // or an out-of-domain dancer set forces custom:
+      "Rory O'More and swing",
+      'balance and Rory O\'More',
+      // "neighbors" is not one of Rory O'More's dancer-set choices, so the
+      // candidate fails validation and degrades to custom.
+      "Neighbor Rory O'More",
       // "square through" spelled out (TCB uses a digit count) stays custom.
       'square through four',
       // gate: SKIPPED this PR — every attested TCB gate carries a
