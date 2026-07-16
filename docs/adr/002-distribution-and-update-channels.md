@@ -170,19 +170,68 @@ The check is a **plain HTTPS `GET` of the static manifest** and nothing more:
 
 ### 6. Per-platform distribution + signing dependency table
 
-| Platform | Distribution | OS-trust signing dependency |
-|----------|--------------|-----------------------------|
-| Linux    | AppImage + `tar.gz`; Flathub | None (free) |
-| macOS    | `dmg` / `zip` | **Developer ID + notarization → Apple Developer Program $99/yr** |
-| Windows  | Inno/NSIS installer + `zip` | **Authenticode code-signing certificate** |
-| Android  | Release APK (self-generated keystore); F-Droid; optional Play Store | Self-managed keystore; Play $25 one-time (optional) |
-| iOS      | App Store / TestFlight | **Apple Developer Program $99/yr** |
+Per-platform routes, cheapest-first. Where noted, this follows the official
+Flutter deployment docs (<https://docs.flutter.dev/deployment>).
+
+| Platform | Distribution route(s) | Trust / signing dependency & cost |
+|----------|-----------------------|-----------------------------------|
+| Linux    | AppImage + `tar.gz` (baseline); **Snap** (Flutter-documented); Flathub | None — Linux has no OS-trust-warning model (all free) |
+| macOS    | Direct notarized `dmg`/`zip` (recommended); Mac App Store | Apple Developer Program **$99/yr** (both paths) |
+| Windows  | (0) Unsigned installer+`zip` on GitHub Releases (free) → (a) Microsoft Store MSIX (~$19 one-time) → (b) Azure Trusted Signing (~$120/yr) → (c) Certum OSS (~$70–100/yr) → (d) OV (~$100–400/yr) → (e) EV (~$300–700/yr) | Rises with route; see below |
+| Android  | Release APK signed with a self-generated upload keystore (official Flutter mechanism); F-Droid; optional Play Store | Self-managed keystore (free); Play $25 one-time (optional) |
+| iOS      | App Store / TestFlight | Apple Developer Program **$99/yr** |
+
+**Android.** The official Flutter-documented signing mechanism is a `keytool`
+**upload-keystore** referenced from `android/key.properties` and wired into
+Gradle `signingConfigs` for the release build type. The Flutter docs stress the
+keystore **must not be committed to public source control** — so we store it (and
+`key.properties`) as **CI secrets**. This confirms our free self-signed
+release-key plan; no paid authority is required to produce an installable signed
+APK. (Flutter: *Build and release an Android app*.)
+
+**Windows.** Cheapest → priciest *trusted* routes:
+
+- **(0) FREE** — ship an unsigned installer + `zip` on GitHub Releases and
+  document the SmartScreen **"More info → Run anyway"** step. Flutter's docs
+  **explicitly state publishing via the Microsoft Store is not required**; a
+  self-distributed app is fully supported. (Flutter: *Build and release a Windows
+  desktop app*.)
+- **(a) Microsoft Store (MSIX)** — ~**$19 one-time** individual developer
+  account; **the Store signs the MSIX**, so no standalone Authenticode
+  certificate is needed. Built via the `msix` pub package + the `msstore` CLI
+  (GitHub-Actions-automatable). Trade-off: Store certification and Store-based
+  distribution/updates.
+- **(b) Azure Trusted Signing** — ~**$9.99/mo (~$120/yr)**; signs a self-hosted
+  installer, no HSM to manage.
+- **(c) Certum Open Source code-signing** — ~**$70–100/yr**.
+- **(d) OV certificate** — ~**$100–400/yr** (HSM-backed).
+- **(e) EV certificate** — ~**$300–700/yr**; grants instant SmartScreen
+  reputation.
+
+A **sideloaded (non-Store) MSIX still needs a trusted certificate**; only a
+**Store-distributed MSIX is signed by the Store**. **WinSparkle** (the Stage-2
+auto-update path, §4) applies **only to the non-Store, self-hosted route** — the
+Store owns updates for the MSIX route.
+
+**macOS.** Flutter's own macOS deployment doc covers **only the Mac App Store**
+path (Mac App Distribution + Mac Installer Distribution certificates). Our
+recommended **direct-distribution** path — a **Developer ID Application**
+certificate + **`notarytool`** + **`stapler`** to notarize a `.dmg` distributed
+outside the Store — is valid and common but is an Apple-platform step **beyond**
+the Flutter doc. We record **both**; both require the same Apple Developer
+Program (**$99/yr**). (Flutter: *Build and release a macOS app*.)
+
+**Linux.** Alongside the AppImage + `tar.gz` baseline and Flathub, we also list
+**Snap** (`snapcraft`), which is the **Flutter-documented** Linux release path.
+All three are free, and Linux has no OS-trust-warning model to satisfy. (Flutter:
+*Build and release a Linux app*.)
 
 Independent of OS-trust signing, a **free integrity layer applies to ALL
 platforms**, even where signing is absent: a per-release **`SHA256SUMS`**,
 **keyless SLSA build-provenance attestations** (GitHub OIDC, no secret to
 manage), and an **SBOM**. The `sha256` in each manifest entry lets the client
 verify a downloaded artifact regardless of platform trust.
+
 
 ### 7. Data-safety across updates
 
