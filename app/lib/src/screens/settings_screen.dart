@@ -351,22 +351,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ImportReviewScreen(
-          sources: [
-            ImportSource(
-              label: "a Caller's Compendium JSON file",
-              adapterFactory: GenericJsonAdapter.new,
-            ),
-            ImportSource(
-              label: 'The Caller\'s Box',
-              adapterFactory: CallersBoxAdapter.new,
-              urlBuilder: buildCallersBoxJsonUrl,
-            ),
-            ImportSource(
-              label: 'ContraDB',
-              adapterFactory: ContraDbHtmlAdapter.new,
-              urlBuilder: buildContraDbUrl,
-            ),
-          ],
+          sources: defaultImportSources(),
           picker: widget.importPicker,
           fetcher: widget.urlFetcher,
         ),

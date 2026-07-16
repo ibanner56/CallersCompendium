@@ -133,4 +133,71 @@ void main() {
       );
     });
   });
+
+  group('defaultImportSources', () {
+    test('returns the canonical [GenericJson, CallersBox, ContraDB] list', () {
+      final sources = defaultImportSources();
+      expect(sources, hasLength(3));
+      expect(sources[0].label, "a Caller's Compendium JSON file");
+      expect(sources[1].label, "The Caller's Box");
+      expect(sources[2].label, 'ContraDB');
+      // Only the URL-backed sources carry a urlBuilder / matchesUrl; the
+      // generic-JSON default is file/paste only.
+      expect(sources[0].urlBuilder, isNull);
+      expect(sources[0].matchesUrl, isNull);
+      expect(sources[1].urlBuilder, isNotNull);
+      expect(sources[2].urlBuilder, isNotNull);
+    });
+  });
+
+  group('detectSourceForUrl', () {
+    final sources = defaultImportSources();
+    ImportSource? detect(String input) => detectSourceForUrl(input, sources);
+
+    test('a Caller\'s Box host resolves to The Caller\'s Box', () {
+      expect(
+        detect('https://www.thecallersbox.com/dance.php?id=1'),
+        same(sources[1]),
+      );
+      // Bare (no www.) host also matches.
+      expect(
+        detect('http://thecallersbox.com/dance.php?id=7&format=JSON'),
+        same(sources[1]),
+      );
+    });
+
+    test('the ibiblio mirror path resolves to The Caller\'s Box', () {
+      expect(
+        detect(
+          'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1',
+        ),
+        same(sources[1]),
+      );
+    });
+
+    test('an ibiblio URL without the mirror path does not match', () {
+      expect(detect('https://www.ibiblio.org/something/else'), isNull);
+    });
+
+    test('a ContraDB host resolves to ContraDB', () {
+      expect(detect('https://contradb.com/dances/42'), same(sources[2]));
+      expect(detect('https://www.contradb.com/dances/42'), same(sources[2]));
+    });
+
+    test('an unrecognized host returns null (never forces generic)', () {
+      expect(detect('https://example.com/dances/1'), isNull);
+    });
+
+    test('a bare numeric id returns null (keep current selection)', () {
+      expect(detect('1'), isNull);
+      expect(detect('  42 '), isNull);
+    });
+
+    test('empty / garbage / non-http input returns null', () {
+      expect(detect(''), isNull);
+      expect(detect('   '), isNull);
+      expect(detect('not a url'), isNull);
+      expect(detect('ftp://contradb.com/dances/1'), isNull);
+    });
+  });
 }
