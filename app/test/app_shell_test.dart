@@ -151,13 +151,72 @@ void main() {
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
   });
 
-  testWidgets('the search FAB opens the palette (narrow)', (tester) async {
+  testWidgets('the app-bar search action opens the palette (narrow)', (
+    tester,
+  ) async {
     final repos = openTestRepositories();
     await _pump(tester, repos, size: const Size(500, 900));
 
-    await tester.tap(find.byKey(const ValueKey('global-search-fab')));
+    // The old bottom-right search FAB no longer exists on phones.
+    expect(find.byKey(const ValueKey('global-search-fab')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('collection-search')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+  });
+
+  testWidgets(
+    'phone (360dp) shows a single, unobstructed New FAB and app-bar search',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, size: const Size(360, 800));
+
+      // Only one FAB in the bottom-right slot — the screen's "New dance" FAB.
+      // The previously-overlapping search FAB is gone, so there is no collision.
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byKey(const ValueKey('new-dance')), findsOneWidget);
+      expect(find.byKey(const ValueKey('global-search-fab')), findsNothing);
+
+      // Search is reachable in a single tap from the app bar, with a touch
+      // target that meets the >=44px minimum.
+      final search = find.byKey(const ValueKey('collection-search'));
+      expect(search, findsOneWidget);
+      final searchSize = tester.getSize(search);
+      expect(searchSize.width, greaterThanOrEqualTo(44));
+      expect(searchSize.height, greaterThanOrEqualTo(44));
+
+      await tester.tap(search);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+    },
+  );
+
+  testWidgets('Programs (narrow) exposes app-bar search and a single New FAB', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, size: const Size(360, 800));
+
+    await tester.tap(find.text('Programs').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.byKey(const ValueKey('new-program')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('programs-search')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+  });
+
+  testWidgets('wide layout keeps search in the rail, not the app bar', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, size: const Size(1200, 900));
+
+    // The rail owns search on desktop; the list app bar must not duplicate it.
+    expect(find.byKey(const ValueKey('global-search-button')), findsOneWidget);
+    expect(find.byKey(const ValueKey('collection-search')), findsNothing);
   });
 }

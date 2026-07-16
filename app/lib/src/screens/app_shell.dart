@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../screens/dance_detail_screen.dart';
 import '../screens/program_editor_screen.dart';
 import '../widgets/command_palette.dart';
+import 'app_shell_search_scope.dart';
 import 'collection_shell.dart';
 import 'programs_shell.dart';
 import 'settings_screen.dart';
@@ -128,27 +129,27 @@ class _AppShellState extends State<AppShell> {
           );
         }
 
-        return Scaffold(
-          body: body,
-          floatingActionButton: FloatingActionButton.small(
-            key: const ValueKey('global-search-fab'),
-            heroTag: 'global-search',
-            tooltip: 'Search (Ctrl/Cmd-K)',
-            onPressed: _openSearch,
-            child: const Icon(Icons.search),
-          ),
-          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _index,
-            onDestinationSelected: _onSelect,
-            destinations: [
-              for (final d in _destinations)
-                NavigationDestination(
-                  icon: Icon(d.icon),
-                  selectedIcon: Icon(d.selectedIcon),
-                  label: d.label,
-                ),
-            ],
+        // Narrow: the bottom-right FAB slot belongs to each screen's "New"
+        // FAB.extended, so search moves into the app bar via
+        // [AppShellSearchScope] (nested list screens surface a 1-tap search
+        // action). This avoids the phone double-FAB collision while keeping a
+        // labeled affordance consistent with the wide layout's rail search.
+        return AppShellSearchScope(
+          openSearch: _openSearch,
+          child: Scaffold(
+            body: body,
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: _index,
+              onDestinationSelected: _onSelect,
+              destinations: [
+                for (final d in _destinations)
+                  NavigationDestination(
+                    icon: Icon(d.icon),
+                    selectedIcon: Icon(d.selectedIcon),
+                    label: d.label,
+                  ),
+              ],
+            ),
           ),
         );
       },

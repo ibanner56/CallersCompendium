@@ -21,6 +21,7 @@ import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
+import 'app_shell_search_scope.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 
@@ -458,9 +459,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   PreferredSizeWidget _buildDefaultAppBar() {
+    final openSearch = AppShellSearchScope.of(context)?.openSearch;
     return AppBar(
       title: const Text('Collection'),
       actions: [
+        // Phone-only: search lives in the app bar (the bottom-right FAB slot is
+        // reserved for the "New dance" FAB). On wide layouts the nav rail owns
+        // search, so no scope is present and this action is omitted.
+        if (openSearch != null)
+          IconButton(
+            key: const ValueKey('collection-search'),
+            tooltip: 'Search (Ctrl/Cmd-K)',
+            icon: const Icon(Icons.search),
+            onPressed: openSearch,
+          ),
         if (_data != null) ...[
           IconButton(
             key: const ValueKey('batch-select'),
