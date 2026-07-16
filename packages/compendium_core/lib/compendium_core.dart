@@ -15,6 +15,7 @@ export 'src/export/program_text.dart';
 export 'src/imports/callers_companion_mapping.dart';
 export 'src/imports/callers_companion_text_adapter.dart';
 export 'src/imports/dedupe.dart';
+export 'src/imports/contradb_adapter.dart';
 export 'src/imports/generic_json_adapter.dart';
 export 'src/imports/import_error.dart';
 export 'src/imports/import_pipeline.dart';
