@@ -124,7 +124,12 @@ class ProgramStatusChip extends StatelessWidget {
 /// Broken). Shares [StatusChip] with [ProgramStatusChip] so dance status finally
 /// uses the `statusDeprecated` / `statusBroken` tokens instead of a plain chip.
 class DanceStatusChip extends StatelessWidget {
-  const DanceStatusChip({super.key, required this.status});
+  const DanceStatusChip({super.key, required this.status})
+    : assert(
+        status != DanceStatus.active,
+        'DanceStatusChip is only for non-active statuses; active renders no '
+        'chip in the UI.',
+      );
 
   final DanceStatus status;
 

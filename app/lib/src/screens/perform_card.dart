@@ -669,10 +669,9 @@ class _FigureRow extends StatelessWidget {
                       message: 'Progression',
                       child: Icon(
                         progressionIcon,
-                        size:
-                            ((textStyle?.fontSize ?? 24) *
-                                    MediaQuery.textScalerOf(context).scale(1))
-                                .clamp(20.0, 32.0),
+                        size: MediaQuery.textScalerOf(
+                          context,
+                        ).scale(textStyle?.fontSize ?? 24).clamp(20.0, 32.0),
                         color: theme.colorScheme.primary,
                       ),
                     )
