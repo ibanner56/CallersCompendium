@@ -20,6 +20,7 @@ class ImportReviewScreen extends StatefulWidget {
     required this.adapterFactory,
     required this.sourceLabel,
     this.picker,
+    this.fetcher,
   });
 
   /// Builds a fresh [SourceAdapter] for each planning run.
@@ -31,6 +32,11 @@ class ImportReviewScreen extends StatefulWidget {
   /// Test seam for choosing a file; defaults to [pickImportFile] (native
   /// open-file dialog). Widget tests inject canned text.
   final ImportPicker? picker;
+
+  /// Test seam for fetching a URL; defaults to [fetchImportUrl] (real HTTP
+  /// GET). Widget tests inject canned text or a throwing fake so no real
+  /// network call is made.
+  final UrlFetcher? fetcher;
 
   @override
   State<ImportReviewScreen> createState() => _ImportReviewScreenState();
@@ -57,7 +63,18 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   bool _started = false;
 
   final TextEditingController _pasteController = TextEditingController();
+  final TextEditingController _urlController = TextEditingController();
   bool _picking = false;
+  bool _fetching = false;
+
+  /// The source URL the current payload was fetched from, stashed on
+  /// [ImportRequest.uri] for provenance. Cleared whenever the payload is
+  /// replaced by a file pick or a manual paste edit so it never goes stale;
+  /// file/paste imports leave `uri == null`.
+  String? _sourceUri;
+
+  /// User-presentable message from the last failed URL fetch, or `null`.
+  String? _fetchError;
 
   _Phase _phase = _Phase.input;
 
@@ -81,6 +98,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   @override
   void dispose() {
     _pasteController.dispose();
+    _urlController.dispose();
     super.dispose();
   }
 
@@ -91,9 +109,37 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final text = await picker();
       if (!mounted || text == null) return;
       _pasteController.text = text;
+      // A freshly picked file replaces any URL-sourced payload; drop stale
+      // provenance so this import is recorded as file/paste (uri == null).
+      _sourceUri = null;
       setState(() {});
     } finally {
       if (mounted) setState(() => _picking = false);
+    }
+  }
+
+  Future<void> _fetchFromUrl() async {
+    final fetcher = widget.fetcher ?? fetchImportUrl;
+    final url = _urlController.text.trim();
+    setState(() {
+      _fetching = true;
+      _fetchError = null;
+    });
+    try {
+      final body = await fetcher(url);
+      if (!mounted) return;
+      setState(() {
+        _pasteController.text = body;
+        _sourceUri = url;
+      });
+    } on UrlFetchException catch (e) {
+      if (!mounted) return;
+      setState(() => _fetchError = e.message);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _fetchError = "Couldn't fetch that URL: $e");
+    } finally {
+      if (mounted) setState(() => _fetching = false);
     }
   }
 
@@ -109,7 +155,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final index = await pipeline.buildDedupeIndex();
       final batch = await pipeline.plan(
         widget.adapterFactory(),
-        ImportRequest(payload: payload),
+        ImportRequest(payload: payload, uri: _sourceUri),
         index: index,
       );
       final titles = {
@@ -338,6 +384,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   Widget _buildInput(BuildContext context) {
     final hasContent = _pasteController.text.trim().isNotEmpty;
+    // While a file pick or URL fetch is in flight, lock every input so a
+    // late-completing pick/fetch can't overwrite the payload or clobber
+    // `_sourceUri` under the user, and so planning can't start on stale input.
+    final busy = _picking || _fetching;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -347,23 +397,90 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Choose a file or paste its contents. Nothing is added to your '
-          'collection until you review and confirm.',
+          'Choose a file, paste its contents, or fetch it from a URL. Nothing '
+          'is added to your collection until you review and confirm.',
         ),
         const SizedBox(height: 16),
         OutlinedButton.icon(
           key: const ValueKey('import-choose-file'),
-          onPressed: _picking ? null : _chooseFile,
+          onPressed: busy ? null : _chooseFile,
           icon: const Icon(Icons.folder_open_outlined),
           label: const Text('Choose file…'),
         ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextField(
+                key: const ValueKey('import-url-field'),
+                controller: _urlController,
+                keyboardType: TextInputType.url,
+                autocorrect: false,
+                enabled: !busy,
+                onChanged: (_) {
+                  if (_fetchError != null) setState(() => _fetchError = null);
+                },
+                onSubmitted: (_) => busy ? null : _fetchFromUrl(),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Import from URL',
+                  hintText: 'https://…',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.tonalIcon(
+              key: const ValueKey('import-fetch-url'),
+              onPressed: busy ? null : _fetchFromUrl,
+              icon: _fetching
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_outlined),
+              label: const Text('Fetch'),
+            ),
+          ],
+        ),
+        if (_fetchError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              key: const ValueKey('import-url-error'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _fetchError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: 12),
         TextField(
           key: const ValueKey('import-paste-field'),
           controller: _pasteController,
           minLines: 4,
           maxLines: 10,
-          onChanged: (_) => setState(() {}),
+          enabled: !busy,
+          onChanged: (_) {
+            // Editing the payload by hand drops any URL provenance so the
+            // import is recorded as a paste (uri == null).
+            _sourceUri = null;
+            setState(() {});
+          },
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             labelText: 'Or paste JSON',
@@ -372,7 +489,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         const SizedBox(height: 16),
         FilledButton.icon(
           key: const ValueKey('import-continue'),
-          onPressed: hasContent ? _plan : null,
+          onPressed: (hasContent && !busy) ? _plan : null,
           icon: const Icon(Icons.playlist_add_check),
           label: const Text('Review import'),
         ),

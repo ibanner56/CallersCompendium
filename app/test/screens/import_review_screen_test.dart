@@ -1,8 +1,11 @@
+import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import '../support/test_repositories.dart';
 
@@ -31,6 +34,7 @@ Future<void> _pump(
   CompendiumRepositories repos, {
   required String payload,
   SourceAdapter Function()? adapterFactory,
+  UrlFetcher? fetcher,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1000, 1600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -42,6 +46,7 @@ Future<void> _pump(
           adapterFactory: adapterFactory ?? GenericJsonAdapter.new,
           sourceLabel: 'test JSON',
           picker: () async => payload,
+          fetcher: fetcher,
         ),
       ),
     ),
@@ -55,6 +60,13 @@ Future<void> _toReview(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('import-choose-file')));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('import-continue')));
+  await tester.pumpAndSettle();
+}
+
+/// Types [url] into the URL field and taps "Fetch".
+Future<void> _fetch(WidgetTester tester, String url) async {
+  await tester.enterText(find.byKey(const ValueKey('import-url-field')), url);
+  await tester.tap(find.byKey(const ValueKey('import-fetch-url')));
   await tester.pumpAndSettle();
 }
 
@@ -287,6 +299,212 @@ void main() {
       expect(titles, containsAll(['Alpha', 'Beta']));
     });
   });
+
+  group('Import from URL', () {
+    testWidgets('a fetched archive drives the review queue and commits', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final payload = _archivePayload([_dance('u1', 'Fetched Reel')]);
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        fetcher: (url) async => payload,
+      );
+
+      await _fetch(tester, 'https://example.com/archive.json');
+      // The fetched body populates the payload field.
+      expect(find.text(payload), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
+      expect(find.text('Fetched Reel'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('import-result-dialog')),
+        findsOneWidget,
+      );
+      final all = await repos.dances.listAll();
+      expect(all.map((d) => d.title), contains('Fetched Reel'));
+    });
+
+    testWidgets('the fetched URL is carried onto ImportRequest.uri', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final adapter = _CapturingAdapter();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        adapterFactory: () => adapter,
+        fetcher: (url) async => 'body',
+      );
+
+      await _fetch(tester, 'https://example.com/archive.json');
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      expect(adapter.lastRequest?.uri, 'https://example.com/archive.json');
+      expect(adapter.lastRequest?.payload, 'body');
+    });
+
+    testWidgets('a fetch failure shows the error and does not crash', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        fetcher: (url) async => throw const UrlFetchException(
+          'The server responded with HTTP 404.',
+        ),
+      );
+
+      await _fetch(tester, 'https://example.com/missing.json');
+
+      expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
+      expect(find.text('The server responded with HTTP 404.'), findsOneWidget);
+      // Still on the input phase; nothing crashed and no review list appeared.
+      expect(find.byKey(const ValueKey('import-review-list')), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('an empty-body failure surfaces its message', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        fetcher: (url) async => throw const UrlFetchException(
+          'The URL returned an empty response.',
+        ),
+      );
+
+      await _fetch(tester, 'https://example.com/empty.json');
+
+      expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
+      expect(find.text('The URL returned an empty response.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a non-UrlFetchException is still surfaced without crashing', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        fetcher: (url) async => throw StateError('boom'),
+      );
+
+      await _fetch(tester, 'https://example.com/x.json');
+
+      expect(find.byKey(const ValueKey('import-url-error')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('fetchImportUrl (default seam)', () {
+    test('returns the body on a 200', () async {
+      final client = MockClient(
+        (_) async => http.Response('{"schemaVersion":1}', 200),
+      );
+      expect(
+        await fetchImportUrl('https://example.com/a.json', client: client),
+        '{"schemaVersion":1}',
+      );
+    });
+
+    test('rejects an empty URL', () async {
+      await expectLater(
+        fetchImportUrl('   '),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('rejects a non-http(s) URL', () async {
+      await expectLater(
+        fetchImportUrl('ftp://example.com/a.json'),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('throws on a non-2xx status', () async {
+      final client = MockClient((_) async => http.Response('nope', 404));
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.message,
+            'message',
+            contains('404'),
+          ),
+        ),
+      );
+    });
+
+    test('throws on an empty body', () async {
+      final client = MockClient((_) async => http.Response('   ', 200));
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('wraps a transport failure', () async {
+      final client = MockClient((_) async => throw Exception('offline'));
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+  });
+}
+
+/// A [SourceAdapter] that records the [ImportRequest] it was planned with, so a
+/// test can assert the source URL was stashed on [ImportRequest.uri]. Produces
+/// one trivial new dance so the review queue renders.
+class _CapturingAdapter implements SourceAdapter {
+  ImportRequest? lastRequest;
+
+  @override
+  ProvenanceSource get source => ProvenanceSource.json;
+
+  @override
+  Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
+    lastRequest = request;
+    return const [
+      DiscoveredRecord(source: ProvenanceSource.json, externalId: 'c1'),
+    ];
+  }
+
+  @override
+  Future<RawRecord> fetch(DiscoveredRecord record) async => RawRecord(
+    source: source,
+    externalId: record.externalId,
+    payload: 'captured',
+    contentType: 'text/plain',
+  );
+
+  @override
+  StructuredDraft parse(RawRecord raw) => StructuredDraft(
+    dance: Dance(
+      id: 'captured',
+      title: 'Captured Dance',
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+    ),
+    raw: raw,
+  );
 }
 
 /// A [SourceAdapter] that discovers two records but fails to fetch one — used
