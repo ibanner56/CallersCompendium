@@ -5,10 +5,10 @@ you see the first time you open it, and how to find your way around — so you c
 add your first dance and, when a gig comes around, call from the stage with
 confidence.
 
-> **New to the words?** Terms in **bold** are on-screen buttons and screens.
-> The first time a dance term appears it links to the
-> [Glossary](./README.md#glossary), so you can get a plain-language definition
-> without losing your place.
+> **Finding your way around these words.** On-screen buttons and screens are
+> written in **bold** — like **Collection** and **New dance**. The first time a
+> dance term appears it links to the [Glossary](./README.md#glossary), so you
+> can get a plain-language definition without losing your place.
 
 ## What Caller's Compendium is
 
@@ -72,14 +72,14 @@ Two small things worth knowing on day one:
 - **Your wording is already set.** Out of the box, the app speaks in
   **Larks/Robins** role names. You can change this at any time — see
   [Calling in your own words](#calling-in-your-own-words) below.
-- **Nothing is permanent by accident.** Deleting a dance or program is
-  undoable, and deleted items can be restored later, so you can explore without
-  worrying about losing work.
+- **Nothing is permanent by accident.** If you delete a dance or program, you
+  can undo it, and deleted items can be restored later — so you can explore
+  without worrying about losing work.
 
 ## A tour of the four main areas
 
 Caller's Compendium is organized around four areas. Three of them —
-**Collection**, **Programs**, and **Settings** — are always one tap away in the
+**Collection**, **Programs**, and **Settings** — are always one step away in the
 navigation (a bottom bar on a phone, a left rail on a tablet or desktop). The
 fourth, **Perform**, is a *mode* you step into from a dance or a program when it
 is time to call, and step back out of when you are done.
