@@ -6,7 +6,6 @@ import 'package:printing/printing.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/display_defaults.dart';
-import '../data/first_day_of_week_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../export/program_matrix_pdf.dart';
@@ -1059,18 +1058,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final initial = stored == null
         ? now
         : DateTime(stored.year, stored.month, stored.day);
-    // Resolve the user's first-day-of-week preference (ROADMAP G.8). The setting
-    // is persisted and exposed end-to-end, but Flutter's [showDatePicker] takes
-    // no firstDayOfWeek parameter — the picker reads
+    // The user's first-day-of-week preference (ROADMAP G.8) is persisted and
+    // exposed via FirstDayOfWeekScope (read in the settings screen). Flutter's
+    // [showDatePicker] takes no firstDayOfWeek parameter — the picker reads
     // MaterialLocalizations.firstDayOfWeekIndex, which can only be overridden by
     // supplying a custom MaterialLocalizations delegate. That heavy override is a
-    // deliberate FOLLOW-UP (see PR notes); for now we honor the platform locale.
-    // ignore: unused_local_variable
-    final firstDayOfWeek = firstDayOfWeekIndexFor(
-      FirstDayOfWeekScope.of(context),
-    );
-    // TODO(g8-first-day): apply `firstDayOfWeek` to the date picker once a clean
-    // MaterialLocalizations override (or a Flutter API for it) is available.
+    // deliberate FOLLOW-UP (see PR notes); for now the picker honors the platform
+    // locale.
+    // TODO(g8-first-day): apply FirstDayOfWeekScope.of(context) to the date
+    // picker once a clean MaterialLocalizations override (or a Flutter API for
+    // it) is available.
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,

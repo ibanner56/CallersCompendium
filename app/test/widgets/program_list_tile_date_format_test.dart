@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
+final _eventDate = DateTime.utc(2026, 7, 15);
 
 Program _program(DateTime eventDate) => Program(
   id: 'p1',
@@ -25,9 +26,7 @@ Future<void> _pumpTile(WidgetTester tester, DateFormatPref pref) async {
     MaterialApp(
       home: DateFormatScope(
         notifier: notifier,
-        child: Scaffold(
-          body: ProgramListTile(program: _program(DateTime.utc(2026, 7, 15))),
-        ),
+        child: Scaffold(body: ProgramListTile(program: _program(_eventDate))),
       ),
     ),
   );
@@ -39,13 +38,20 @@ void main() {
       'the scope selects it', (tester) async {
     await _pumpTile(tester, DateFormatPref.ymd);
     expect(find.textContaining('2026-07-15'), findsOneWidget);
+    expect(find.textContaining('July'), findsNothing);
   });
 
-  testWidgets('the same tile renders differently under the system default', (
+  testWidgets('the same tile renders the platform medium date under system', (
     tester,
   ) async {
     await _pumpTile(tester, DateFormatPref.system);
-    // The system/medium format is not the fixed ymd pattern.
+    final expected = const DefaultMaterialLocalizations().formatMediumDate(
+      _eventDate,
+    );
+    expect(find.textContaining(expected), findsOneWidget);
+    // The fixed ymd pattern must NOT appear under the system default, and the
+    // medium date must genuinely differ from it for this locale.
     expect(find.textContaining('2026-07-15'), findsNothing);
+    expect(expected, isNot('2026-07-15'));
   });
 }
