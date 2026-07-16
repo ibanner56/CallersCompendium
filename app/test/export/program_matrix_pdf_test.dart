@@ -16,13 +16,21 @@ void main() {
   );
 
   Figure move(String id) => Figure(move: id);
+  Figure swing([String? who]) => Figure(move: 'swing', params: {'who': ?who});
+  Figure hey([String? length]) =>
+      Figure(move: 'hey', params: {'length': ?length});
 
   group('buildProgramMatrixPdf', () {
     test('returns non-empty bytes for a populated matrix', () async {
       final matrix = buildProgramMatrix([
-        dance('d1', 'Butterfly', [move('swing'), move('balance')]),
-        dance('d2', 'The Baby Rose', [move('balance'), move('allemande')]),
+        dance('d1', 'Butterfly', [swing(), move('balance'), hey('full')]),
+        dance('d2', 'The Baby Rose', [move('balance'), swing('neighbors')]),
       ]);
+      // Swing/hey split columns are present in the model the PDF renders.
+      expect(
+        matrix.columns.map((c) => c.moveId),
+        containsAll(['swing:partner', 'swing:neighbor', 'hey:full']),
+      );
 
       final bytes = await buildProgramMatrixPdf(
         matrix,
@@ -37,7 +45,7 @@ void main() {
     });
 
     test('returns non-empty bytes for an empty matrix', () async {
-      final matrix = buildProgramMatrix([dance('d1', 'No figures', const [])]);
+      final matrix = buildProgramMatrix(const []);
       expect(matrix.isEmpty, isTrue);
 
       final bytes = await buildProgramMatrixPdf(
@@ -53,10 +61,11 @@ void main() {
 
     test('builds a matrix that carries a first-figure marker', () async {
       final matrix = buildProgramMatrix([
-        dance('d1', 'Opener', [move('swing'), move('balance')]),
+        dance('d1', 'Opener', [swing(), move('balance')]),
       ]);
-      // The first figure ('swing') is flagged so the star marker path is hit.
-      expect(matrix.rows.first.firstMoveId, 'swing');
+      // The first figure (a partner swing) is flagged so the star marker path
+      // is hit on its split sub-column.
+      expect(matrix.rows.first.firstMoveId, 'swing:partner');
 
       final bytes = await buildProgramMatrixPdf(
         matrix,
