@@ -251,13 +251,41 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           data: data,
           renderer: _performRenderer,
           // In-event adjustments (`docs/design/ux.md` §5) fold back into the
-          // builder's working slots so they survive returning here and persist
-          // through the editor's normal save — the draft may be unsaved, so we
-          // never write it out from Perform directly.
+          // builder's working slots. For an already-saved program this is the
+          // real live-gig path (a tablet routed through the builder is the
+          // primary Perform form factor), so — mirroring the wide summary
+          // pane's persist callback in `programs_shell.dart` — we write the
+          // change (e.g. a mark-performed stamp) straight to the repository
+          // immediately. The editor has no autosave, so without this a
+          // background/kill before an explicit Save would silently lose it.
+          // A brand-new, still-unsaved program has nothing to update in the DB
+          // yet, so its adjustments stay in the working slots to be saved
+          // explicitly; a failed write falls back the same way rather than
+          // dropping the change.
           onProgramChanged: (updated) async {
             if (!mounted) return;
+            final slots = _renumber(updated.slots.toList());
+            final existing = _existing;
+            if (existing != null) {
+              final persisted = existing.copyWith(
+                slots: slots,
+                updatedAt: DateTime.now().toUtc(),
+              );
+              try {
+                await _repos.programs.update(persisted);
+                if (!mounted) return;
+                setState(() {
+                  _existing = persisted;
+                  _slots = slots;
+                });
+                return;
+              } catch (_) {
+                // Fall through to keep the change in the working slots.
+              }
+            }
+            if (!mounted) return;
             setState(() {
-              _slots = _renumber(updated.slots.toList());
+              _slots = slots;
               _dirty = true;
             });
           },
