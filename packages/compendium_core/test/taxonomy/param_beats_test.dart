@@ -73,6 +73,56 @@ void main() {
     });
   });
 
+  group('swing prefix -> beats (ContraDB swingChange: prefixed => 16)', () {
+    test('a plain swing is 8, balance/meltdown swings are 16', () {
+      expect(beatsFor('swing', {'prefix': 'none'}), 8);
+      expect(beatsFor('swing', {'prefix': 'balance'}), 16);
+      expect(beatsFor('swing', {'prefix': 'meltdown'}), 16);
+    });
+
+    test('default (none) derives the flat spec default of 8', () {
+      expect(beatsFor('swing'), 8);
+    });
+
+    test('an explicit beats value wins over the derived count', () {
+      expect(beatsFor('swing', {'prefix': 'balance', 'beats': 8}), 8);
+    });
+
+    test('the meltdown_swing alias (pins prefix) derives 16', () {
+      expect(beatsFor('meltdown_swing'), 16);
+    });
+  });
+
+  group('petronella balance -> beats (ContraDB balance ? 8 : 4)', () {
+    test('balanced is 8, unbalanced is 4', () {
+      expect(beatsFor('petronella', {'balance': true}), 8);
+      expect(beatsFor('petronella', {'balance': false}), 4);
+    });
+
+    test('default (balanced) derives the flat spec default of 8', () {
+      expect(beatsFor('petronella'), 8);
+    });
+
+    test('an explicit beats value wins over the derived count', () {
+      expect(beatsFor('petronella', {'balance': false, 'beats': 8}), 8);
+    });
+  });
+
+  group('long_lines goBack -> beats (ContraDB goBack ? 8 : 4)', () {
+    test('going back is 8, forward-only is 4', () {
+      expect(beatsFor('long_lines', {'goBack': true}), 8);
+      expect(beatsFor('long_lines', {'goBack': false}), 4);
+    });
+
+    test('default (goBack) derives the flat spec default of 8', () {
+      expect(beatsFor('long_lines'), 8);
+    });
+
+    test('an explicit beats value wins over the derived count', () {
+      expect(beatsFor('long_lines', {'goBack': false, 'beats': 8}), 8);
+    });
+  });
+
   group('deferred moves keep a flat default (no paramBeats)', () {
     test('poussette, the places family, and turn_alone have no paramBeats', () {
       for (final id in const [
@@ -118,8 +168,26 @@ void main() {
       expect(pb.byValue, {'straight': 8, 'diagonal': 8, 'none': 4});
     });
 
+    test('swing drives beats off its prefix param', () {
+      final pb = tax.resolve('swing')!.paramBeats!;
+      expect(pb.param, 'prefix');
+      expect(pb.byValue, {'none': 8, 'balance': 16, 'meltdown': 16});
+    });
+
+    test('petronella drives beats off its balance flag', () {
+      final pb = tax.resolve('petronella')!.paramBeats!;
+      expect(pb.param, 'balance');
+      expect(pb.byValue, {true: 8, false: 4});
+    });
+
+    test('long_lines drives beats off its goBack flag', () {
+      final pb = tax.resolve('long_lines')!.paramBeats!;
+      expect(pb.param, 'goBack');
+      expect(pb.byValue, {true: 8, false: 4});
+    });
+
     test('a move with a flat default has no paramBeats', () {
-      expect(tax.resolve('swing')!.paramBeats, isNull);
+      expect(tax.resolve('do_si_do')!.paramBeats, isNull);
     });
   });
 }
