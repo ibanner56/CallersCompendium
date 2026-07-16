@@ -39,6 +39,10 @@ class RecentlyDeletedConfig<T> {
   final Future<Duration?> Function(CompendiumRepositories repos)? loadRetention;
 
   /// Loads the soft-deleted items (those with a non-null `deletedAt`).
+  ///
+  /// Contract: implementations MUST filter out non-deleted items — the screen
+  /// renders each item's purge-ETA from its `deletedAt` and asserts it is
+  /// non-null.
   final Future<List<T>> Function(CompendiumRepositories repos) loadDeleted;
 
   /// Restores [item] to the active collection.
@@ -50,6 +54,9 @@ class RecentlyDeletedConfig<T> {
 
   final String Function(T item) idOf;
   final String Function(T item) titleOf;
+
+  /// The item's soft-delete timestamp. Guaranteed non-null for every item
+  /// [loadDeleted] returns; the screen asserts this before using it.
   final DateTime? Function(T item) deletedAtOf;
 
   /// Snackbar copy shown after a successful restore, given the item title.
@@ -224,10 +231,21 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
             itemCount: deleted.length,
             itemBuilder: (context, index) {
               final item = deleted[index];
+              final deletedAt = _config.deletedAtOf(item);
+              // Invariant: loadDeleted only ever yields soft-deleted items, so
+              // deletedAt is non-null here. Assert (debug-only) so a
+              // misconfigured config surfaces with a clear message in dev/tests
+              // instead of an opaque null-check crash.
+              assert(
+                deletedAt != null,
+                'RecentlyDeletedConfig.loadDeleted must return only '
+                'soft-deleted items (deletedAt != null); got a '
+                '${_config.pluralNoun} item with a null deletedAt.',
+              );
               return _DeletedItemTile(
                 title: _config.titleOf(item),
                 id: _config.idOf(item),
-                deletedAt: _config.deletedAtOf(item)!,
+                deletedAt: deletedAt!,
                 retention: _retention,
                 onRestore: () => _restore(item),
                 onPermanentDelete: () => _permanentDelete(item),
