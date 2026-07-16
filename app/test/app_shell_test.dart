@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
 
@@ -75,6 +76,47 @@ void main() {
 
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets('wide layout seats a brand mark atop the nav rail', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, size: const Size(1200, 900));
+
+    // A compact brand mark lives in the rail header (above the search button);
+    // scoped to the rail so it is distinct from any empty-state marks in the
+    // body content.
+    expect(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.byType(BrandMark),
+      ),
+      findsOneWidget,
+    );
+    // Rail wiring is preserved: the search button still sits in the rail.
+    expect(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.byKey(const ValueKey('global-search-button')),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('narrow layout has no rail brand mark', (tester) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, size: const Size(500, 900));
+
+    // The rail mark is desktop-only (§4.3); the bottom-nav layout carries none.
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.byType(BrandMark),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('switching to Programs shows the Programs screen', (

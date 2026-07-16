@@ -14,6 +14,7 @@ import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
+import 'package:compendium_app/src/widgets/brand_mark.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 import 'package:compendium_app/src/widgets/skeleton.dart';
 
@@ -154,6 +155,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('collection is empty'), findsOneWidget);
+    // The empty-collection state leads with the brand mark above the copy (§4.4).
+    expect(find.byType(BrandMark), findsOneWidget);
   });
 
   testWidgets(
