@@ -15,6 +15,7 @@ import '../../search/search_sort.dart';
 import '../../search/title_sort_key.dart';
 import '../../search/filter.dart';
 import '../../search/filter_compiler.dart';
+import '../../search/search_enrichment.dart';
 import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
 import '../../taxonomy/taxonomy.dart';
@@ -448,6 +449,10 @@ class DanceRepository {
   /// ids in [sort] order. [dialect] (default [Dialect.canonical]) canonicalizes
   /// move names, full-text terms and role-valued params at the compiler
   /// boundary so a dialect user's query matches the canonical stored tokens.
+  /// [enrichment] optionally adds always-on reverse synonyms from the union of
+  /// every saved dialect, so terms configured in any saved dialect resolve
+  /// regardless of which one is active (the active dialect and legacy synonyms
+  /// still win on overlap).
   ///
   /// [SearchSort.title], [SearchSort.recentlyAdded], [SearchSort.recentlyEdited]
   /// and (bare-full-text) [SearchSort.relevance] are ordered in SQL;
@@ -468,9 +473,13 @@ class DanceRepository {
     DanceFilter filter, {
     SearchSort sort = SearchSort.title,
     Dialect? dialect,
+    SearchEnrichment? enrichment,
     bool ignoreLeadingArticles = false,
   }) async {
-    final compiled = FilterCompiler(dialect).compile(filter, sort: sort);
+    final compiled = FilterCompiler(
+      dialect,
+      enrichment,
+    ).compile(filter, sort: sort);
     final rows = await _db
         .customSelect(
           compiled.sql,
@@ -501,12 +510,14 @@ class DanceRepository {
     DanceFilter filter, {
     SearchSort sort = SearchSort.title,
     Dialect? dialect,
+    SearchEnrichment? enrichment,
     bool ignoreLeadingArticles = false,
   }) async {
     final ids = await search(
       filter,
       sort: sort,
       dialect: dialect,
+      enrichment: enrichment,
       ignoreLeadingArticles: ignoreLeadingArticles,
     );
     final result = <Dance>[];

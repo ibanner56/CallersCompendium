@@ -3,6 +3,7 @@ import '../dialect/dialect.dart';
 import '../model/enums.dart';
 import 'filter.dart';
 import 'fts_query.dart';
+import 'search_enrichment.dart';
 import 'search_sort.dart';
 
 /// A compiled search: one parameterized SQL statement plus its ordered bind
@@ -28,12 +29,23 @@ class CompiledFilter {
 /// dialect's move substitutions — mirroring how data was canonicalized on the
 /// way in, so a dialect user's query matches the canonical tokens stored in
 /// the derived indexes.
+///
+/// An optional [SearchEnrichment] adds always-on, dialect-agnostic reverse
+/// synonyms drawn from the union of every saved dialect, so search resolves a
+/// term configured in any saved dialect — not just the active one — exactly as
+/// the built-in legacy synonyms already do. The active dialect (and legacy
+/// synonyms) always win where they overlap the enrichment.
 class FilterCompiler {
-  FilterCompiler([Dialect? dialect]) : dialect = dialect ?? Dialect.canonical {
+  FilterCompiler([Dialect? dialect, SearchEnrichment? enrichment])
+    : dialect = dialect ?? Dialect.canonical,
+      enrichment = enrichment ?? SearchEnrichment.empty {
     // Reverse the dialect's move substitutions (display → canonical id),
     // skipping templated (`%S`) substitutions which aren't reversible by a
     // plain word match. Conservative: unknown/unmapped moves pass through.
+    // The enrichment's union move synonyms are layered underneath, so the
+    // active dialect's own move substitutions win where they overlap.
     final reverse = <String, String>{};
+    reverse.addAll(this.enrichment.moveSynonyms);
     for (final entry in this.dialect.moves.entries) {
       final display = entry.value;
       if (display.contains('%S')) continue;
@@ -43,6 +55,7 @@ class FilterCompiler {
   }
 
   final Dialect dialect;
+  final SearchEnrichment enrichment;
   late final Map<String, String> _moveReverse;
 
   /// Compiles [filter] with the given [sort] (default [SearchSort.title]).
@@ -66,7 +79,13 @@ class FilterCompiler {
   }
 
   CompiledFilter _compileRelevance(FullTextFilter filter) {
-    final query = toFtsMatchQuery(canonicalizeText(filter.query, dialect));
+    final query = toFtsMatchQuery(
+      canonicalizeText(
+        filter.query,
+        dialect,
+        extraRoleSynonyms: enrichment.roleSynonyms,
+      ),
+    );
     const sql =
         'SELECT dance_fts.dance_id FROM dance_fts '
         'JOIN dances ON dances.id = dance_fts.dance_id '
@@ -108,7 +127,15 @@ class FilterCompiler {
       case NotFilter(:final child):
         return 'NOT (${_dance(child, binds)})';
       case FullTextFilter(:final query):
-        binds.add(toFtsMatchQuery(canonicalizeText(query, dialect)));
+        binds.add(
+          toFtsMatchQuery(
+            canonicalizeText(
+              query,
+              dialect,
+              extraRoleSynonyms: enrichment.roleSynonyms,
+            ),
+          ),
+        );
         return 'id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)';
       case AuthorFilter(:final choreographerId):
         binds.add(choreographerId);
@@ -333,7 +360,13 @@ class FilterCompiler {
   /// natural typing. Role-valued strings are canonicalized; booleans compare
   /// against `json_extract`'s 1/0.
   Object? _paramBind(Object? value) {
-    if (value is String) return canonicalizeText(value, dialect);
+    if (value is String) {
+      return canonicalizeText(
+        value,
+        dialect,
+        extraRoleSynonyms: enrichment.roleSynonyms,
+      );
+    }
     if (value is bool) return value ? 1 : 0;
     return value;
   }
