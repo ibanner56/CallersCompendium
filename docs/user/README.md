@@ -36,9 +36,9 @@ down this page, so nothing here is a dead end.
 |---|---|---|
 | Documentation home *(this page)* | ✅ done | The index you are reading now |
 | [Style guide](style-guide.md) | ✅ done | Writing conventions for these docs *(for contributors)* |
-| [Getting started](#getting-started) | ✍️ drafting | Open the app, find your way around, call your first dance |
-| [Dialect](#dialect) | ✍️ drafting | Put the app in your own words — role names and phrasing |
-| [Imports & migration](#imports--migration) | ✍️ drafting | Bring dances in from other sources and apps |
+| [Getting started](getting-started.md) | ✅ done | Open the app, find your way around, call your first dance |
+| [Dialect](dialects.md) | ✅ done | Put the app in your own words — role names and phrasing |
+| [Imports & migration](imports.md) | ✅ done | Bring dances in from other sources and apps |
 | [Collection & search](#collection--search) | ✍️ drafting | Browse your library and find dances fast |
 | [Programs & matrix](#programs--matrix) | ✍️ drafting | Build set lists and check variety at a glance |
 | [Perform mode](#perform-mode) | ✍️ drafting | Call live with a stage-ready, large-print view |
@@ -53,28 +53,6 @@ down this page, so nothing here is a dead end.
 
 Short previews of the guides that are still being written. When a guide lands, its
 row above will turn ✅ and its title will link to the new page.
-
-### Getting started
-
-✍️ *Coming soon.* A first-run tour: opening the app, finding your way around the
-four main areas — **Collection**, **Programs**, **Perform**, and **Settings** —
-and calling your very first dance.
-
-### Dialect
-
-✍️ *Coming soon.* Make the app speak your language. Choose the role names you use
-(the app ships **Larks/Robins** by default, with **Leads/Follows** ready to pick,
-and you can enter any wording you like), reword individual moves, and switch
-dialects instantly — even between gigs. Your dances are stored in a shared
-vocabulary underneath, so search always works and your data stays portable no
-matter which words you prefer.
-
-### Imports & migration
-
-✍️ *Coming soon.* Bring dances into your collection from **The Caller's Box**,
-**ContraDB**, **Caller's Companion**, or a **Caller's Compendium** file. Every
-import lands in a review queue first, with a side-by-side look at the original and
-the parsed result, so nothing changes your collection until you say so.
 
 ### Collection & search
 
