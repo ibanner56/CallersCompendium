@@ -37,6 +37,9 @@ export 'src/search/title_sort_key.dart';
 export 'src/search/filter.dart';
 export 'src/search/filter_compiler.dart';
 export 'src/search/fts_query.dart';
+export 'src/serialization/archive_codec.dart';
+export 'src/serialization/archive_service.dart';
+export 'src/serialization/compendium_archive.dart';
 export 'src/serialization/figure_codec.dart';
 export 'src/storage/database.dart'
     show CompendiumDatabase, derivedRebuildRequiredKey;
