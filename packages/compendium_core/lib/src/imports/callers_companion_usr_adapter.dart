@@ -29,14 +29,16 @@ import 'structured_draft.dart';
 ///
 /// ## Identity, dedupe & provenance
 ///
-/// Unlike the text adapter (no stable id → fuzzy dedupe), the binary file has
-/// real FileMaker record ids, so each [RawRecord] carries `externalId` = the CC
-/// `Dance` record id. That gives exact `(source, externalId)` dedupe/re-import
-/// and is the key that links `SetItem` rows to their dance. The `fetch` payload
-/// is a JSON object of that dance's **verbatim** CC column map (all columns,
-/// including ones this PR does not map) plus its record id, so
-/// `provenance.raw_payload` losslessly preserves the source row for re-import
-/// and for the follow-up phases (author resolution, custom-field defs, etc.).
+/// Unlike the text adapter (no stable id → fuzzy dedupe), CC gives every dance a
+/// stable relational key in its `zk_Dance_ID` field, so each [RawRecord] carries
+/// `externalId` = that CC dance id. That gives exact `(source, externalId)`
+/// dedupe/re-import and is the key that links `SetItem` rows to their dance
+/// (CC's `SetItem.zk_Dance_ID` references `Dance.zk_Dance_ID`, **not** the
+/// FileMaker record id). The `fetch` payload is a JSON object of that dance's
+/// **verbatim** CC column map (all columns, including ones this PR does not map)
+/// plus its id, so `provenance.raw_payload` losslessly preserves the source row
+/// for re-import and for the follow-up phases (author resolution, custom-field
+/// defs, etc.).
 ///
 /// ## Scope
 ///

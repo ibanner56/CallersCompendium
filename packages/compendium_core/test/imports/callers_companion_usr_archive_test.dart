@@ -7,39 +7,45 @@ import 'package:test/test.dart';
 ///
 /// The raw FileMaker container reader ([readFmp12]) is validated separately
 /// against real files; here we feed a **hand-built** [FmpDatabase] shaped like
-/// the CC schema so the CC-specific mapping (table/column discovery, the
-/// tolerant Set/SetItem foreign-key matching, and the verbatim raw-column
-/// preservation) is tested hermetically and Flutter-free.
+/// the **real** CC schema so the CC-specific mapping is tested hermetically and
+/// Flutter-free. Crucially the fixture mirrors the real file's identity model —
+/// FileMaker record ids differ from CC's own `zk_Dance_ID`/`zk_Set_ID` fields,
+/// and `SetItem` foreign keys reference the *field* values (in the real file,
+/// Dance record 5430 carries `zk_Dance_ID=4`, and `SetItem.zk_Dance_ID=4` points
+/// at it) — so the join logic must key on the CC ids, not the record ids.
 FmpDatabase _ccDatabase() {
   final dance = FmpTable(
     1,
     'Dance',
     [
+      FmpColumn(3, 'zk_Dance_ID'),
       FmpColumn(1, 'Name'),
       FmpColumn(2, 'Author1'),
-      FmpColumn(3, 'Type'),
-      FmpColumn(4, 'ContraForm'),
-      FmpColumn(5, 'Level'),
-      FmpColumn(6, 'A1'),
-      FmpColumn(7, 'Rating'),
-      FmpColumn(8, 'DateComposed'),
-      FmpColumn(9, 'UserDefined_1'),
-      FmpColumn(10, 'UserDefined_1_Name'),
-      FmpColumn(11, 'Music'),
+      FmpColumn(4, 'Type'),
+      FmpColumn(5, 'ContraForm'),
+      FmpColumn(6, 'Level'),
+      FmpColumn(7, 'A1'),
+      FmpColumn(8, 'Rating'),
+      FmpColumn(9, 'DateComposed'),
+      FmpColumn(10, 'UserDefined_1'),
+      FmpColumn(11, 'UserDefined_1_Name'),
+      FmpColumn(12, 'Music'),
     ],
     [
-      FmpRecord(7, {
+      // Record id 5430 but CC dance id 4 — deliberately different id spaces.
+      FmpRecord(5430, {
+        3: '4',
         1: 'Simplicity Swing',
         2: 'Becky Hill',
-        3: 'Contra',
-        4: 'Improper',
-        5: 'Intermediate',
-        6: '(8) gypsy your partner',
-        7: '3',
-        8: '2016',
-        9: 'blue',
-        10: 'Card colour',
-        11: 'a lovely reel',
+        4: 'Contra',
+        5: 'Improper',
+        6: 'Intermediate',
+        7: '(8) gypsy your partner',
+        8: '3',
+        9: '2016',
+        10: 'blue',
+        11: 'Card colour',
+        12: 'a lovely reel',
       }),
     ],
   );
@@ -48,21 +54,22 @@ FmpDatabase _ccDatabase() {
     2,
     'Set',
     [
-      FmpColumn(1, 'Title'),
-      FmpColumn(2, 'Date'),
-      FmpColumn(3, 'Location'),
-      FmpColumn(4, 'Band'),
-      FmpColumn(5, 'Caller'),
-      FmpColumn(6, 'Notes'),
+      FmpColumn(4, 'zk_Set_ID'),
+      FmpColumn(1, 'Date'),
+      FmpColumn(2, 'Location'),
+      FmpColumn(3, 'Notes'),
+      FmpColumn(5, 'Band'),
+      FmpColumn(23, 'Caller'),
     ],
     [
-      FmpRecord(100, {
-        1: 'Friday Contra',
-        2: '3/14/2020',
-        3: 'Grange Hall',
-        4: 'The Band',
-        5: 'Jane',
-        6: 'a good night',
+      // Record id 6156 but CC set id 1.
+      FmpRecord(6156, {
+        4: '1',
+        1: '3/14/2020',
+        2: 'Grange Hall',
+        3: 'a good night',
+        5: 'The Band',
+        23: 'Jane',
       }),
     ],
   );
@@ -71,15 +78,18 @@ FmpDatabase _ccDatabase() {
     3,
     'SetItem',
     [
-      FmpColumn(1, 'SetId'),
-      FmpColumn(2, 'DanceId'),
+      FmpColumn(1, 'zk_Set_ID'),
+      FmpColumn(2, 'zk_SetItem_ID'),
+      FmpColumn(4, 'zk_Dance_ID'),
       FmpColumn(3, 'Order'),
-      FmpColumn(4, 'Time'),
-      FmpColumn(5, 'Break'),
+      FmpColumn(19, 'Time'),
+      FmpColumn(10, 'Break'),
     ],
     [
-      FmpRecord(200, {1: '100', 2: '7', 3: '1', 4: '8'}),
-      FmpRecord(201, {1: '100', 3: '2', 5: 'Waltz break'}),
+      // Item references the set/dance by CC *field* ids (1 and 4), not record
+      // ids (6156 and 5430).
+      FmpRecord(200, {1: '1', 2: '11', 4: '4', 3: '1', 19: '8'}),
+      FmpRecord(201, {1: '1', 2: '12', 3: '2', 10: 'Waltz break'}),
     ],
   );
 
@@ -142,44 +152,49 @@ void main() {
   });
 
   group('extractCcUsrArchive', () {
-    test('extracts dances keyed by their FileMaker record id', () {
+    test('keys dances by CC zk_Dance_ID, not the FileMaker record id', () {
       final archive = extractCcUsrArchive(_ccDatabase());
 
       expect(archive.dances, hasLength(1));
       final dance = archive.dances.single;
-      expect(dance.recordId, '7');
+      // The join identity is CC's zk_Dance_ID (4), not the record id (5430).
+      expect(dance.recordId, '4');
       expect(dance.record.name, 'Simplicity Swing');
       // Raw columns are preserved verbatim (nothing dropped).
       expect(dance.rawColumns['Music'], 'a lovely reel');
       expect(dance.rawColumns['UserDefined_1_Name'], 'Card colour');
     });
 
-    test('extracts sets with ordered items and resolves FK columns', () {
+    test('keys sets by zk_Set_ID and links items by CC field ids', () {
       final archive = extractCcUsrArchive(_ccDatabase());
 
       expect(archive.sets, hasLength(1));
       final set = archive.sets.single;
-      expect(set.recordId, '100');
-      expect(set.title, 'Friday Contra');
+      // Keyed by CC set id (1), not the record id (6156).
+      expect(set.recordId, '1');
+      // CC Sets have no title column; the title is derived downstream.
+      expect(set.title, isNull);
       expect(set.location, 'Grange Hall');
       expect(set.band, 'The Band');
 
       expect(set.items, hasLength(2));
       expect(set.items[0].order, 1);
-      expect(set.items[0].danceRecordId, '7');
+      // Item links to the dance by its CC id (4) — matching dance.recordId.
+      expect(set.items[0].danceRecordId, '4');
+      expect(set.items[0].danceRecordId, archive.dances.single.recordId);
       expect(set.items[0].minutes, 8);
       expect(set.items[1].order, 2);
       expect(set.items[1].danceRecordId, isNull);
       expect(set.items[1].breakText, 'Waltz break');
     });
 
-    test('records tolerant column-guess warnings for later confirmation', () {
+    test('does not emit "guess" warnings for the confirmed CC schema', () {
       final archive = extractCcUsrArchive(_ccDatabase());
+      expect(archive.warnings.any((w) => w.contains('guessed')), isFalse);
       expect(
-        archive.warnings.any((w) => w.contains('SetItem→Set link')),
-        isTrue,
+        archive.warnings.any((w) => w.contains('confirm against a real')),
+        isFalse,
       );
-      expect(archive.warnings.any((w) => w.contains('program title')), isTrue);
     });
 
     test('missing Dance/Set tables degrade to warnings, never throw', () {

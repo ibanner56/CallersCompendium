@@ -137,6 +137,9 @@ CcProgramsResult buildCcPrograms(
 String _titleFor(CcSet set) {
   final title = (set.title ?? '').trim();
   if (title.isNotEmpty) return title;
+  // CC Sets have no title field; the Location is the de-facto event name.
+  final location = (set.location ?? '').trim();
+  if (location.isNotEmpty) return location;
   final date = (set.eventDate ?? '').trim();
   if (date.isNotEmpty) return "Caller's Companion set — $date";
   return "Caller's Companion set #${set.recordId}";

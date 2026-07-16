@@ -13,16 +13,17 @@ import 'fmp/fmp_reader.dart';
 /// is **pure Dart** and **parse-never-fails**: a missing table/column yields an
 /// empty result + a [warnings] note, never a throw.
 ///
-/// ## Schema provenance & honest uncertainty
+/// ## Schema provenance
 ///
-/// The CC `Dance` column names are pinned from the schema audit in
-/// `docs/research/callers-companion.md` and are matched case-insensitively.
-/// The `Set`/`SetItem` **foreign-key** and **title** column names were *not*
-/// fully pinned by the audit, so they are resolved by tolerant name-matching
-/// (a column whose normalised name contains e.g. `set`+`id` or `dance`+`id`)
-/// and every such guess is recorded in [warnings]. These need confirming
-/// against a real CC demo `.USR`; until then the dance path (fully validated
-/// against real FileMaker files) is the trustworthy part.
+/// The CC table/column names are **confirmed against a real `CallersCompanion2`
+/// `.USR` (FileMaker Pro 12)**: `Dance`, `Author`, `Set`, `SetItem` and their
+/// columns were read directly from the file's catalog. Relational links use CC's
+/// own key *fields* — `Dance.zk_Dance_ID`, `Set.zk_Set_ID`, and the matching
+/// `SetItem.zk_Set_ID` / `SetItem.zk_Dance_ID` foreign keys — **not** FileMaker's
+/// internal record ids (in the real file e.g. Dance record 5430 carries
+/// `zk_Dance_ID=4`, and that `4` is what a `SetItem` references). Names are still
+/// matched tolerantly (case-insensitive, token-based) so a slightly different CC
+/// build degrades gracefully rather than failing.
 class CcUsrArchive {
   CcUsrArchive({
     required this.dances,
@@ -40,7 +41,7 @@ class CcUsrArchive {
   final List<String> warnings;
 }
 
-/// A single CC `Dance` row: its stable record id, the mapped [CcDanceRecord],
+/// A single CC `Dance` row: its CC relational id, the mapped [CcDanceRecord],
 /// and the verbatim source column map (all CC `Dance` columns, including ones
 /// this PR does not map — preserved so nothing is lost and follow-up phases
 /// have the real values).
@@ -51,8 +52,10 @@ class CcDanceEntry {
     required this.rawColumns,
   });
 
-  /// The FileMaker record id, as a string (the dedupe/link key that also joins
-  /// `SetItem` rows to this dance).
+  /// The CC dance identity used as the dedupe key **and** the join key that
+  /// `SetItem` rows reference: the value of CC's own `zk_Dance_ID` field (e.g.
+  /// `"4"`), *not* FileMaker's internal record id. Falls back to the FileMaker
+  /// record id only when `zk_Dance_ID` is missing/empty (flagged in warnings).
   final String recordId;
   final CcDanceRecord record;
   final Map<String, String> rawColumns;
@@ -152,15 +155,34 @@ List<CcDanceEntry> _extractDances(FmpDatabase db, List<String> warnings) {
     );
     return const [];
   }
+  // CC references dances by its own `zk_Dance_ID` field value, not the FileMaker
+  // record id, so that is the join/dedupe identity we expose.
+  final danceIdCol = _findColumnByTokens(table, [
+    ['dance', 'id'],
+    ['danceid'],
+  ]);
   final entries = <CcDanceEntry>[];
+  var missingIdCount = 0;
   for (final rec in table.records) {
     final columns = _rowColumns(table, rec);
+    final ccId = danceIdCol == null
+        ? null
+        : _CiColumns(columns).get(danceIdCol)?.trim();
+    final recordId = (ccId == null || ccId.isEmpty) ? rec.id.toString() : ccId;
+    if (ccId == null || ccId.isEmpty) missingIdCount++;
     entries.add(
       CcDanceEntry(
-        recordId: rec.id.toString(),
+        recordId: recordId,
         record: ccDanceRecordFromColumns(columns),
         rawColumns: columns,
       ),
+    );
+  }
+  if (missingIdCount > 0) {
+    warnings.add(
+      '$missingIdCount Caller\'s Companion dance row(s) had no "zk_Dance_ID"; '
+      'used the FileMaker record id as a fallback identity (their program '
+      'slots may not link).',
     );
   }
   return entries;
@@ -256,18 +278,15 @@ List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
     );
   }
 
-  // Resolve the (unpinned) title + foreign-key columns by tolerant matching,
-  // flagging each guess so it can be confirmed against a real CC file.
-  final setTitleCol = _findColumnByTokens(setTable, [
-    ['title'],
-    ['name'],
+  // CC joins SetItem→Set on the `zk_Set_ID` *field* value (not the FileMaker
+  // record id), so we key each set by its own `zk_Set_ID` and group items by
+  // the matching SetItem foreign key.
+  final setIdCol = _findColumnByTokens(setTable, [
+    ['set', 'id'],
+    ['setid'],
   ]);
-  if (setTitleCol != null) {
-    warnings.add(
-      'Using Set column "$setTitleCol" as the program title (guessed — '
-      'confirm against a real CC .USR).',
-    );
-  }
+  // CC Sets have no title/name column; the program title is derived downstream
+  // from Location/Date.
 
   final items = <String, List<CcSetItem>>{};
   if (itemTable != null) {
@@ -281,11 +300,6 @@ List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
       ['danceid'],
       ['dance'],
     ]);
-    warnings.add(
-      'SetItem→Set link resolved to column "${setFk ?? '(none found)'}" and '
-      'SetItem→Dance link to "${danceFk ?? '(none found)'}" (guessed — '
-      'confirm against a real CC .USR).',
-    );
     for (final rec in itemTable.records) {
       final cols = _CiColumns(_rowColumns(itemTable, rec));
       final setId = setFk == null ? null : cols.get(setFk)?.trim();
@@ -311,13 +325,14 @@ List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
   final sets = <CcSet>[];
   for (final rec in setTable.records) {
     final cols = _CiColumns(_rowColumns(setTable, rec));
-    final id = rec.id.toString();
+    final ccId = setIdCol == null ? null : cols.get(setIdCol)?.trim();
+    final id = (ccId == null || ccId.isEmpty) ? rec.id.toString() : ccId;
     final setItems = (items[id] ?? [])
       ..sort((a, b) => a.order.compareTo(b.order));
     sets.add(
       CcSet(
         recordId: id,
-        title: setTitleCol == null ? null : cols.get(setTitleCol),
+        title: null,
         eventDate: cols.get('Date'),
         location: cols.get('Location'),
         band: cols.get('Band'),

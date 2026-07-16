@@ -125,6 +125,29 @@ void main() {
     expect(result.programs.single.title, "Caller's Companion set #42");
   });
 
+  test('derives the title from Location when the set has no title', () {
+    final result = build(
+      _archive([
+        CcSet(
+          recordId: '1',
+          location: 'Grange Hall',
+          eventDate: '3/14/2020',
+          items: const [],
+        ),
+      ]),
+    );
+    final program = result.programs.single;
+    expect(program.title, 'Grange Hall');
+    expect(program.venue, 'Grange Hall');
+  });
+
+  test('falls back to the date-based title when there is no Location', () {
+    final result = build(
+      _archive([CcSet(recordId: '1', eventDate: '3/14/2020', items: const [])]),
+    );
+    expect(result.programs.single.title, "Caller's Companion set — 3/14/2020");
+  });
+
   test('an impossible calendar date (2/31) is rejected as unparseable', () {
     final result = build(
       _archive([
