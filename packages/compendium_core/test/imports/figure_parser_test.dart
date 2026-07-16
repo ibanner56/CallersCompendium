@@ -115,6 +115,10 @@ void main() {
       'balance and swing, then circle left',
       // "or" alternatives / conditional prose.
       'ladles do si do 1½ or swing to partner',
+      // "chain" with an explicit dancer set outside its role1s/role2s domain
+      // must not be silently coerced to the default — it stays custom.
+      'partners chain',
+      'neighbors chain across',
       // Trailing prose the recogniser cannot consume.
       'chain to neighbor',
       'swing to partner',

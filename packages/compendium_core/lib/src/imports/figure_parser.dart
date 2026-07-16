@@ -149,7 +149,8 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 /// Removes all leading/embedded [_filler] words in place.
 void _dropFiller(List<String> w) => w.removeWhere(_filler.contains);
 
-/// If [w] starts with the consecutive [phrase], removes it and returns true.
+/// Removes the first occurrence of the consecutive [phrase] found anywhere in
+/// [w] and returns true; returns false (leaving [w] untouched) if absent.
 bool _consumePhrase(List<String> w, List<String> phrase) {
   for (var i = 0; i + phrase.length <= w.length; i++) {
     var hit = true;
@@ -433,10 +434,13 @@ _Match? _chain(List<String> w) {
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  // chain's `who` domain is role1s/role2s only; leave unset otherwise so the
-  // taxonomy default (role2s) applies and validation stays clean.
-  final chainWho = (who2 == 'role1s' || who2 == 'role2s') ? who2 : null;
-  return _Match('chain', {'who': ?chainWho, 'dir': ?dir});
+  // chain's `who` domain is role1s/role2s only. An explicit dancer set outside
+  // that domain (e.g. "partners chain") must NOT be silently dropped to the
+  // taxonomy default — that would misrepresent the source — so reject the
+  // match and let it fall back to custom. No explicit dancer → leave `who`
+  // unset so the taxonomy default (role2s) applies.
+  if (who2 != null && who2 != 'role1s' && who2 != 'role2s') return null;
+  return _Match('chain', {'who': ?who2, 'dir': ?dir});
 }
 
 _Match? _rightLeftThrough(List<String> w) {
