@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Caller's Compendium
+GenericName=Dance Organizer
+Comment=Your dances, your dialect — in the hall or on the road.
+Exec=compendium_app
+Icon=compendium_app
+Terminal=false
+Categories=AudioVideo;Audio;Utility;
+Keywords=contra;dance;caller;choreography;program;

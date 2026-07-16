@@ -1,0 +1,13 @@
+#!/bin/sh
+# AppRun entrypoint for the Caller's Compendium AppImage.
+#
+# The Flutter Linux release bundle (the `compendium_app` executable plus its
+# `lib/` and `data/` siblings) is staged under usr/bin/ inside the AppDir, so we
+# resolve our own location, put that directory on PATH (so the engine finds its
+# co-located libraries), and exec the app forwarding all arguments.
+set -eu
+
+HERE="$(dirname "$(readlink -f "${0}")")"
+export PATH="${HERE}/usr/bin:${PATH}"
+export LD_LIBRARY_PATH="${HERE}/usr/bin/lib:${LD_LIBRARY_PATH:-}"
+exec "${HERE}/usr/bin/compendium_app" "$@"
