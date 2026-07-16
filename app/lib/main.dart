@@ -7,6 +7,7 @@ import 'src/data/active_dialect_scope.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/backup_controller_scope.dart';
+import 'src/data/collection_refresh_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
@@ -111,6 +112,12 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<DateFormatPref> _dateFormatNotifier = ValueNotifier(
     DateFormatPref.system,
   );
+
+  /// App-level "the collection changed, reload it" signal (ROADMAP 6.3).
+  /// Bumped by the import review flow (reached from Settings) so the live
+  /// Collection list re-boots without a relaunch. Exposed via
+  /// [CollectionRefreshScope].
+  final ValueNotifier<int> _collectionRefreshNotifier = ValueNotifier(0);
   late final CustomThemesController _customThemes;
   late final DialectLibraryController _dialectLibrary;
 
@@ -266,6 +273,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _verboseFigureRenderingNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
     _dateFormatNotifier.dispose();
+    _collectionRefreshNotifier.dispose();
     _customThemes.dispose();
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
@@ -389,7 +397,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                 notifier: _dateFormatNotifier,
                                 child: BackupControllerScope(
                                   onRestored: reloadFromSettings,
-                                  child: child!,
+                                  child: CollectionRefreshScope(
+                                    revision: _collectionRefreshNotifier,
+                                    child: child!,
+                                  ),
                                 ),
                               ),
                             ),

@@ -16,6 +16,7 @@ import '../data/date_format_scope.dart';
 import '../data/dialect_library_controller.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/import_io.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
@@ -32,6 +33,7 @@ import '../widgets/figure_list_editor.dart';
 import '../widgets/figure_param_editors.dart';
 import '../widgets/move_autocomplete.dart';
 import 'dialect_editor_screen.dart';
+import 'import_review_screen.dart';
 import 'theme_editor_screen.dart';
 
 /// Key used to persist and load the app theme selection.
@@ -59,7 +61,12 @@ const String kSortIgnoreArticlesKey = 'sort_ignore_articles';
 ///
 /// Changes take effect immediately (live update via the relevant scope).
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, this.backupSaver, this.backupPicker});
+  const SettingsScreen({
+    super.key,
+    this.backupSaver,
+    this.backupPicker,
+    this.importPicker,
+  });
 
   /// Test seam for delivering an exported backup file; defaults to
   /// [saveBackupToFile] (temp file + OS share sheet).
@@ -68,6 +75,10 @@ class SettingsScreen extends StatefulWidget {
   /// Test seam for choosing a backup file to restore; defaults to
   /// [pickBackupFile] (native open-file dialog).
   final BackupPicker? backupPicker;
+
+  /// Test seam for choosing an import file; defaults to [pickImportFile]
+  /// (native open-file dialog). Forwarded to [ImportReviewScreen].
+  final ImportPicker? importPicker;
 
   /// Viewport width (logical px) at/above which the sidebar and content sit
   /// side by side instead of the sidebar pushing a detail page.
@@ -318,6 +329,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SnackBar(content: Text("Couldn't restore the backup.")),
       );
     }
+  }
+
+  /// Opens the adapter-agnostic import review flow (ROADMAP 6.3), wired to the
+  /// single concrete [GenericJsonAdapter] ("Caller's Compendium JSON"). The
+  /// screen is fully self-contained (plan → review → commit → undo) and
+  /// refreshes the live Collection on commit via [CollectionRefreshScope].
+  Future<void> _onImportDances() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ImportReviewScreen(
+          adapterFactory: GenericJsonAdapter.new,
+          sourceLabel: "a Caller's Compendium JSON file",
+          picker: widget.importPicker,
+        ),
+      ),
+    );
   }
 
   /// Default Collection sort order (ROADMAP G.6a). `null` = not yet loaded;
@@ -789,6 +816,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           lastBackupAt: _lastBackupAt,
           onExportBackup: _onExportBackup,
           onRestoreBackup: _onRestoreBackup,
+          onImportDances: _onImportDances,
         );
       case _SettingsSection.defaults:
         _ensureDefaultsLoaded(context);
@@ -1440,6 +1468,7 @@ class _GeneralView extends StatelessWidget {
     required this.lastBackupAt,
     required this.onExportBackup,
     required this.onRestoreBackup,
+    required this.onImportDances,
   });
 
   final bool requirePerformedForHistory;
@@ -1468,6 +1497,9 @@ class _GeneralView extends StatelessWidget {
   final DateTime? lastBackupAt;
   final Future<void> Function() onExportBackup;
   final Future<void> Function() onRestoreBackup;
+
+  /// Opens the import review flow (ROADMAP 6.3).
+  final Future<void> Function() onImportDances;
 
   @override
   Widget build(BuildContext context) {
@@ -1566,6 +1598,21 @@ class _GeneralView extends StatelessWidget {
                 child: Text('Never'),
               ),
             ],
+          ),
+        ),
+        _SectionHeader(title: 'Import'),
+        ListTile(
+          title: const Text('Import dances'),
+          subtitle: const Text(
+            "Bring dances into your collection from a Caller's Compendium JSON "
+            'file. You review every dance and confirm before anything is added.',
+          ),
+          isThreeLine: true,
+          trailing: OutlinedButton.icon(
+            key: const ValueKey('import-dances-button'),
+            onPressed: onImportDances,
+            icon: const Icon(Icons.file_download_outlined),
+            label: const Text('Import…'),
           ),
         ),
         _SectionHeader(title: 'Backup & restore'),

@@ -492,6 +492,7 @@ taxonomy are unchanged.
 - [x] 6.1 Source adapter framework + provenance tracking — pure-Dart import pipeline in `packages/compendium_core/lib/src/imports/`: `SourceAdapter` (discover/fetch/parse), `RawRecord` (verbatim payload → provenance), `StructuredDraft`+`ParseQuality` (structured-vs-custom score; parse-never-fails custom fallback), structured `ImportError`s with source context + partial-batch tolerance, dedupe primitives (exact `(source, externalId)` re-import + fuzzy title/author → link/duplicate/skip), and `ImportPipeline` (transactional commit writing provenance) with a session-scoped in-memory undo log (`ImportSession`; no schema bump — provenance persists via the existing v9 table, `DanceRepository.hardDelete` supports undo). Exercised end-to-end by an in-memory fake adapter (test-only). Real source adapters remain 6.2–6.6; review-queue UI is 6.3.
 - [ ] 6.2 CallersBox sanitization pipeline (separate tool) + hosted snapshot
 - [ ] 6.3 CallersBox snapshot import in-app
+  - Adapter-agnostic import review-queue UI delivered (`app/lib/src/screens/import_review_screen.dart`): source input (.json file / paste) → non-destructive plan → review queue (parse-quality, issues, new/reimport/ambiguous actions; ambiguous defaults to skip) → commit → result summary → undo, with a live Collection refresh. Reached from Settings › General; currently wired to `GenericJsonAdapter`. The CallersBox-specific in-app import lands with 6.2, so this box stays open.
 - [ ] 6.4 ContraDB import
 - [ ] 6.5 Caller's Companion migration import — map CC tables discovered in the
   schema audit: `Dance` (incl. `Level`, composed/revised dates, `Rating`,
@@ -499,13 +500,13 @@ taxonomy are unchanged.
   dancerLevel, ALT flags, guest caller, timing), `Author` → Choreographers,
   `Venue` → venue entity, `Term` → glossary, `Dance_Related` → related links.
   Free-text figures import as `custom` (see design/imports.md §2).
-- [ ] 6.6 Generic import/export (JSON) for backup and inter-user sharing
+- [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
     `SourceAdapter`, `ProvenanceSource.json`) imports our canonical
     `CompendiumArchive` JSON **per dance** through the standard import pipeline
     (discover → fetch → parse → dedupe → commit). App-side wiring / review-queue
-    UI (6.3) still pending; box left for confirmation.
+    UI now delivered under 6.3, making JSON import user-reachable end to end.
 
 ## Phase 7 — Release
 

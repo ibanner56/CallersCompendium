@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/collection_refresh_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
@@ -100,6 +101,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   late CompendiumRepositories _repos;
   bool _started = false;
 
+  /// The app-level collection-refresh notifier (ROADMAP 6.3), if provided.
+  /// Re-boots the list when an out-of-tab mutation (e.g. an import commit/undo
+  /// from Settings) bumps it. Tracked so listeners are swapped correctly.
+  ValueListenable<int>? _collectionRefresh;
+
   CollectionData? _data;
   Object? _loadError;
 
@@ -138,6 +144,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
     } else if (dialectChanged || ignoreArticlesChanged) {
       _runSearch();
     }
+
+    // Subscribe to the app-level collection-refresh notifier (registers a
+    // rebuild dependency; the notifier instance is stable across the app's
+    // lifetime, so this attaches once).
+    final refresh = CollectionRefreshScope.maybeOf(context);
+    if (!identical(refresh, _collectionRefresh)) {
+      _collectionRefresh?.removeListener(_onRefreshTriggered);
+      _collectionRefresh = refresh;
+      _collectionRefresh?.addListener(_onRefreshTriggered);
+    }
   }
 
   @override
@@ -156,6 +172,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   @override
   void dispose() {
     widget.refreshTrigger?.removeListener(_onRefreshTriggered);
+    _collectionRefresh?.removeListener(_onRefreshTriggered);
     _debounceTimer?.cancel();
     _ftsController.dispose();
     super.dispose();
