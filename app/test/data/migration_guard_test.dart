@@ -116,6 +116,32 @@ void main() {
     expect(snapshots, hasLength(retain));
   });
 
+  test('disambiguates snapshots that resolve to the same timestamp', () async {
+    final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+    final older = kCompendiumSchemaVersion - 1;
+    _createFixture(dbFile.path, userVersion: older);
+
+    // Pin the clock so both runs would otherwise produce an identical name.
+    final fixed = DateTime.utc(2026, 6, 1, 12, 30, 0);
+    for (var i = 0; i < 2; i++) {
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        now: () => fixed,
+      );
+    }
+
+    final names = snapshotDir
+        .listSync()
+        .whereType<File>()
+        .map((f) => p.basename(f.path))
+        .where((n) => n.endsWith('.sqlite.bak'))
+        .toSet();
+    // Both snapshots are retained under distinct names (no silent overwrite).
+    expect(names, hasLength(2));
+  });
+
   test(
     'is a no-op for a missing file, empty file, or matching version',
     () async {

@@ -139,10 +139,17 @@ Future<File> snapshotBeforeMigrate({
   await snapshotDir.create(recursive: true);
   _checkpoint(dbFile.path);
 
-  final name =
-      '$_snapshotPrefix$fromVersion-${_formatTimestamp(timestamp)}'
-      '$_snapshotSuffix';
-  final dest = File(p.join(snapshotDir.path, name));
+  // Disambiguate collisions: microsecond timestamps make same-name snapshots
+  // vanishingly unlikely, but a retry loop *could* still land in the same
+  // microsecond, so fall back to an incrementing suffix rather than silently
+  // overwriting a previous backup.
+  final base = '$_snapshotPrefix$fromVersion-${_formatTimestamp(timestamp)}';
+  var dest = File(p.join(snapshotDir.path, '$base$_snapshotSuffix'));
+  var collision = 1;
+  while (await dest.exists()) {
+    dest = File(p.join(snapshotDir.path, '$base-$collision$_snapshotSuffix'));
+    collision++;
+  }
   await dbFile.copy(dest.path);
 
   await _pruneSnapshots(snapshotDir, retain);
@@ -162,21 +169,25 @@ void _checkpoint(String path) {
   }
 }
 
-/// Filename-safe, lexicographically-sortable UTC timestamp
-/// (`YYYYMMDDTHHMMSSmmmZ`).
+/// Filename-safe, lexicographically-sortable UTC timestamp with microsecond
+/// resolution (`YYYYMMDDTHHMMSSmmmuuuZ`).
 String _formatTimestamp(DateTime t) {
   final u = t.toUtc();
   String two(int n) => n.toString().padLeft(2, '0');
+  String three(int n) => n.toString().padLeft(3, '0');
   final year = u.year.toString().padLeft(4, '0');
-  final ms = u.millisecond.toString().padLeft(3, '0');
   return '$year${two(u.month)}${two(u.day)}T'
-      '${two(u.hour)}${two(u.minute)}${two(u.second)}${ms}Z';
+      '${two(u.hour)}${two(u.minute)}${two(u.second)}'
+      '${three(u.millisecond)}${three(u.microsecond)}Z';
 }
 
 bool _isSnapshot(String basename) =>
     basename.startsWith(_snapshotPrefix) && basename.endsWith(_snapshotSuffix);
 
-/// Deletes the oldest snapshots (by modified time) so at most [retain] remain.
+/// Deletes the oldest snapshots so at most [retain] remain. Ordering is by
+/// modified time, with the (lexicographically sortable, timestamped) filename
+/// as a deterministic tie-breaker so coarse-resolution filesystems that give
+/// several snapshots the same mtime never prune out of order.
 Future<void> _pruneSnapshots(Directory dir, int retain) async {
   if (retain < 0) return;
   final snapshots = <(File, DateTime)>[];
@@ -188,7 +199,11 @@ Future<void> _pruneSnapshots(Directory dir, int retain) async {
   if (snapshots.length <= retain) return;
   // Oldest first; the copy just written has the newest mtime, so recency order
   // is correct even when snapshots span multiple `fromVersion`s.
-  snapshots.sort((a, b) => a.$2.compareTo(b.$2));
+  snapshots.sort((a, b) {
+    final byMtime = a.$2.compareTo(b.$2);
+    if (byMtime != 0) return byMtime;
+    return p.basename(a.$1.path).compareTo(p.basename(b.$1.path));
+  });
   for (final (file, _) in snapshots.take(snapshots.length - retain)) {
     try {
       await file.delete();
