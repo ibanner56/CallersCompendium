@@ -1,4 +1,5 @@
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
+import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';

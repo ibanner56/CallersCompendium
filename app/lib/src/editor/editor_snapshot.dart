@@ -1,7 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
-import '../widgets/figure_list_editor.dart';
+import 'figure_draft.dart';
 
 // ---------------------------------------------------------------------------
 // FigureDraftSnapshot — immutable copy of a [FigureDraft]'s mutable fields.

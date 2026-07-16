@@ -24,6 +24,7 @@ import '../data/require_performed_for_history_scope.dart';
 import '../data/soft_delete_retention.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/verbose_figure_rendering_scope.dart';
+import '../editor/figure_draft.dart';
 import '../models/dance_list_entry.dart' show formationShapeLabel;
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
