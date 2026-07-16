@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
+import 'src/data/backup_controller_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
@@ -172,6 +173,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
         retention: retention,
       );
     }
+    await _loadPreferences();
+  }
+
+  /// Loads every persisted preference and app-local controller from the
+  /// `settings` table into the live notifiers/controllers. Extracted from the
+  /// startup sequence so a backup restore (ROADMAP G.5) can re-run exactly this
+  /// step — via [reloadFromSettings] — to refresh the UI without a relaunch.
+  Future<void> _loadPreferences() async {
     // Load the persisted dialect library (custom dialects + active-name ref),
     // migrating any legacy single-dialect blob one time, then seed the notifier
     // with the resolved active dialect (defaults to Larks/Robins when unset).
@@ -226,6 +235,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dateFormatNotifier.value = dateFormatPrefFromStored(dateFormat);
     // Load any locally-saved custom themes and the active one (if set).
     await _customThemes.load();
+  }
+
+  /// Re-reads all preferences and app-local controllers from the (freshly
+  /// restored) `settings` table so the live UI reflects a backup restore
+  /// without a relaunch (ROADMAP G.5). Wired to the backup controls via
+  /// [BackupControllerScope].
+  Future<void> reloadFromSettings() async {
+    await _loadPreferences();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -359,7 +377,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
                               notifier: _confirmBeforeDeleteNotifier,
                               child: DateFormatScope(
                                 notifier: _dateFormatNotifier,
-                                child: child!,
+                                child: BackupControllerScope(
+                                  onRestored: reloadFromSettings,
+                                  child: child!,
+                                ),
                               ),
                             ),
                           ),

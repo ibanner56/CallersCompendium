@@ -405,7 +405,7 @@ defaults) live in the **Defaults** pane section below.
   purge call reads the configured window; default remains 30 days. Persisted
   via `SettingsRepository`.
 
-- [ ] G.5 **Back up / restore all data** — a General settings entry point to
+- [x] G.5 **Back up / restore all data** — a General settings entry point to
   export the full collection + programs + custom fields/dialects/themes to a
   single JSON file and restore from one, plus an optional backup-reminder
   cadence. Addresses Caller's Companion's biggest pain point (data lock-in /

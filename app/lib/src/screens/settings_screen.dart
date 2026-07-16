@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/app_theme_scope.dart';
+import '../data/backup_controller_scope.dart';
+import '../data/backup_io.dart';
+import '../data/backup_reminder.dart';
+import '../data/backup_service.dart';
 import '../data/confirm_before_delete_scope.dart';
 import '../data/custom_theme.dart';
 import '../data/custom_themes_controller.dart';
@@ -56,7 +60,15 @@ const String kSortIgnoreArticlesKey = 'sort_ignore_articles';
 ///
 /// Changes take effect immediately (live update via the relevant scope).
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({super.key, this.backupSaver, this.backupPicker});
+
+  /// Test seam for delivering an exported backup file; defaults to
+  /// [saveBackupToFile] (temp file + OS share sheet).
+  final BackupSaver? backupSaver;
+
+  /// Test seam for choosing a backup file to restore; defaults to
+  /// [pickBackupFile] (native open-file dialog).
+  final BackupPicker? backupPicker;
 
   /// Viewport width (logical px) at/above which the sidebar and content sit
   /// side by side instead of the sidebar pushing a detail page.
@@ -182,6 +194,118 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kSoftDeleteRetentionKey, value);
+  }
+
+  /// Backup-reminder cadence (ROADMAP G.5). `null` = not yet loaded; the view
+  /// shows "Off" until the read resolves.
+  BackupReminderCadence? _backupCadence;
+
+  /// Timestamp of the last successful backup export, or `null` for "never".
+  DateTime? _lastBackupAt;
+  bool _backupPrefsRequested = false;
+
+  /// Lazily loads the backup-reminder cadence + last-backup timestamp the first
+  /// time the General section is built, mirroring the other lazy reads here.
+  void _ensureBackupPrefsLoaded(BuildContext context) {
+    if (_backupPrefsRequested) return;
+    _backupPrefsRequested = true;
+    final settings = RepositoriesScope.of(context).settings;
+    settings
+        .get(kBackupReminderCadenceKey)
+        .then((stored) {
+          if (!mounted) return;
+          setState(
+            () => _backupCadence = backupReminderCadenceFromStored(stored),
+          );
+        })
+        .catchError((_) {
+          if (!mounted) return;
+          setState(() => _backupCadence = BackupReminderCadence.off);
+        });
+    settings
+        .get(kLastBackupAtKey)
+        .then((stored) {
+          if (!mounted) return;
+          setState(() => _lastBackupAt = lastBackupAtFromStored(stored));
+        })
+        .catchError((_) {});
+  }
+
+  Future<void> _onBackupCadenceChanged(BackupReminderCadence cadence) async {
+    setState(() => _backupCadence = cadence);
+    await RepositoriesScope.of(
+      context,
+    ).settings.set(kBackupReminderCadenceKey, cadence.token);
+  }
+
+  /// Suggested filename for an exported backup, dated (UTC) so backups sort and
+  /// are easy to tell apart, e.g. `callers-compendium-backup-2026-07-15.json`.
+  String _backupFileName(DateTime when) {
+    final d = when.toUtc();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return 'callers-compendium-backup-'
+        '${d.year}-${two(d.month)}-${two(d.day)}.json';
+  }
+
+  /// Builds the whole-app backup and hands it to the save/share seam, then
+  /// stamps the last-backup time on success.
+  Future<void> _onExportBackup() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repos = RepositoriesScope.of(context);
+    final saver = widget.backupSaver ?? saveBackupToFile;
+    try {
+      final service = BackupService(repos);
+      final now = DateTime.now();
+      final json = await service.exportToJson(createdAt: now);
+      await saver(json, _backupFileName(now));
+      await service.recordBackup(now);
+      if (!mounted) return;
+      setState(() {
+        _backupPrefsRequested = true;
+        _lastBackupAt = now.toUtc();
+      });
+      messenger.showSnackBar(const SnackBar(content: Text('Backup exported.')));
+    } on Exception catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Couldn't export a backup.")),
+      );
+    }
+  }
+
+  /// Prompts for a backup (file or pasted JSON) behind a destructive-replace
+  /// confirmation, applies it, then refreshes the live app so the restore shows
+  /// without a relaunch.
+  Future<void> _onRestoreBackup() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repos = RepositoriesScope.of(context);
+    final picker = widget.backupPicker ?? pickBackupFile;
+    final onRestored = BackupControllerScope.maybeOf(context)?.onRestored;
+
+    final json = await showDialog<String>(
+      context: context,
+      builder: (_) => _RestoreBackupDialog(picker: picker),
+    );
+    if (json == null || json.trim().isEmpty) return;
+
+    try {
+      final outcome = await BackupService(repos).restoreFromJson(json);
+      if (onRestored != null) await onRestored();
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            outcome.hasErrors
+                ? 'Backup restored with ${outcome.errors.length} '
+                      'problem(s) skipped.'
+                : 'Backup restored.',
+          ),
+        ),
+      );
+    } on Exception catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Couldn't restore the backup.")),
+      );
+    }
   }
 
   /// Default Collection sort order (ROADMAP G.6a). `null` = not yet loaded;
@@ -628,6 +752,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case _SettingsSection.general:
         _ensureAutoSizeLoaded(context);
         _ensureSoftDeleteRetentionLoaded(context);
+        _ensureBackupPrefsLoaded(context);
         return _GeneralView(
           requirePerformedForHistory: RequirePerformedForHistoryScope.of(
             context,
@@ -647,6 +772,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           softDeleteRetentionDays:
               _softDeleteRetentionDays ?? kSoftDeleteRetentionDefaultDays,
           onSoftDeleteRetentionChanged: _onSoftDeleteRetentionChanged,
+          backupCadence: _backupCadence ?? BackupReminderCadence.off,
+          onBackupCadenceChanged: _onBackupCadenceChanged,
+          lastBackupAt: _lastBackupAt,
+          onExportBackup: _onExportBackup,
+          onRestoreBackup: _onRestoreBackup,
         );
       case _SettingsSection.defaults:
         _ensureDefaultsLoaded(context);
@@ -1291,6 +1421,11 @@ class _GeneralView extends StatelessWidget {
     required this.onAutoSizeChanged,
     required this.softDeleteRetentionDays,
     required this.onSoftDeleteRetentionChanged,
+    required this.backupCadence,
+    required this.onBackupCadenceChanged,
+    required this.lastBackupAt,
+    required this.onExportBackup,
+    required this.onRestoreBackup,
   });
 
   final bool requirePerformedForHistory;
@@ -1310,6 +1445,15 @@ class _GeneralView extends StatelessWidget {
   /// (`0` = never auto-purge — see [kSoftDeleteRetentionNever]).
   final int softDeleteRetentionDays;
   final ValueChanged<int> onSoftDeleteRetentionChanged;
+
+  /// Backup-reminder cadence (ROADMAP G.5).
+  final BackupReminderCadence backupCadence;
+  final ValueChanged<BackupReminderCadence> onBackupCadenceChanged;
+
+  /// When the last successful backup export happened, or `null` for "never".
+  final DateTime? lastBackupAt;
+  final Future<void> Function() onExportBackup;
+  final Future<void> Function() onRestoreBackup;
 
   @override
   Widget build(BuildContext context) {
@@ -1409,6 +1553,192 @@ class _GeneralView extends StatelessWidget {
               ),
             ],
           ),
+        ),
+        _SectionHeader(title: 'Backup & restore'),
+        ..._buildBackupSection(context),
+      ],
+    );
+  }
+
+  /// The "Backup & restore" controls (ROADMAP G.5): export the whole app to one
+  /// JSON file, restore from one (destructive replace, behind a confirm), a
+  /// reminder cadence, and a "Last backup" line with a gentle overdue hint.
+  List<Widget> _buildBackupSection(BuildContext context) {
+    final overdue = isBackupOverdue(
+      cadence: backupCadence,
+      lastBackupAt: lastBackupAt,
+      now: DateTime.now(),
+    );
+    final lastBackupLabel = lastBackupAt == null
+        ? 'Last backup: never'
+        : 'Last backup: '
+              '${MaterialLocalizations.of(context).formatMediumDate(lastBackupAt!.toLocal())}';
+    return [
+      ListTile(
+        title: const Text('Export a backup'),
+        subtitle: const Text(
+          'Save your entire collection, programs, custom fields, dialects, '
+          'themes, and settings to a single JSON file you can keep safe or '
+          'move to another device.',
+        ),
+        isThreeLine: true,
+        trailing: FilledButton.tonalIcon(
+          key: const ValueKey('backup-export-button'),
+          onPressed: onExportBackup,
+          icon: const Icon(Icons.file_upload_outlined),
+          label: const Text('Export'),
+        ),
+      ),
+      ListTile(
+        title: const Text('Restore from a backup'),
+        subtitle: const Text(
+          'Replace everything currently in the app with the contents of a '
+          'backup file. This cannot be undone.',
+        ),
+        isThreeLine: true,
+        trailing: OutlinedButton.icon(
+          key: const ValueKey('backup-restore-button'),
+          onPressed: onRestoreBackup,
+          icon: const Icon(Icons.file_download_outlined),
+          label: const Text('Restore'),
+        ),
+      ),
+      ListTile(
+        title: const Text('Backup reminder'),
+        subtitle: Text(lastBackupLabel),
+        trailing: DropdownButton<BackupReminderCadence>(
+          key: const ValueKey('backup-reminder-cadence'),
+          value: backupCadence,
+          onChanged: (value) {
+            if (value != null) onBackupCadenceChanged(value);
+          },
+          items: const [
+            DropdownMenuItem(
+              value: BackupReminderCadence.off,
+              child: Text('Off'),
+            ),
+            DropdownMenuItem(
+              value: BackupReminderCadence.weekly,
+              child: Text('Weekly'),
+            ),
+            DropdownMenuItem(
+              value: BackupReminderCadence.monthly,
+              child: Text('Monthly'),
+            ),
+          ],
+        ),
+      ),
+      if (overdue)
+        Padding(
+          key: const ValueKey('backup-overdue-hint'),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "It's been a while since your last backup — consider "
+                  'exporting one now.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ),
+        ),
+    ];
+  }
+}
+
+/// A modal that collects a backup to restore — either by choosing a file (via
+/// the injected [picker]) or by pasting JSON — behind an explicit,
+/// destructive-replace warning. Returns the chosen JSON string when the user
+/// confirms, or `null` if they cancel.
+class _RestoreBackupDialog extends StatefulWidget {
+  const _RestoreBackupDialog({required this.picker});
+
+  final BackupPicker picker;
+
+  @override
+  State<_RestoreBackupDialog> createState() => _RestoreBackupDialogState();
+}
+
+class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
+  final TextEditingController _controller = TextEditingController();
+  bool _picking = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _chooseFile() async {
+    setState(() => _picking = true);
+    try {
+      final json = await widget.picker();
+      if (!mounted || json == null) return;
+      _controller.text = json;
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasContent = _controller.text.trim().isNotEmpty;
+    return AlertDialog(
+      key: const ValueKey('restore-backup-dialog'),
+      title: const Text('Restore from a backup'),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Restoring replaces everything currently in the app — your '
+              'collection, programs, dialects, themes, and settings — with the '
+              "backup's contents. This cannot be undone.",
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              key: const ValueKey('restore-choose-file'),
+              onPressed: _picking ? null : _chooseFile,
+              icon: const Icon(Icons.folder_open_outlined),
+              label: const Text('Choose file…'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const ValueKey('restore-paste-field'),
+              controller: _controller,
+              minLines: 3,
+              maxLines: 6,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Or paste backup JSON',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('restore-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const ValueKey('restore-confirm'),
+          onPressed: hasContent
+              ? () => Navigator.of(context).pop(_controller.text)
+              : null,
+          child: const Text('Replace all data'),
         ),
       ],
     );
