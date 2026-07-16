@@ -33,6 +33,23 @@ void main() {
       expect(toFtsMatchQuery('NEAR OR NOT'), '"NEAR" "OR" "NOT"');
     });
 
+    test('neutralizes grouping, prefix, column, and caret syntax', () {
+      // The doc comment promises `( ) : * ^` are all defused; each stays inside
+      // its quoted phrase so FTS5 can never read it as grouping, a prefix query,
+      // a column filter, or an initial-token match.
+      expect(toFtsMatchQuery('(swing)'), '"(swing)"');
+      expect(toFtsMatchQuery('swing*'), '"swing*"');
+      expect(toFtsMatchQuery('title:swing'), '"title:swing"');
+      expect(toFtsMatchQuery('^swing'), '"^swing"');
+    });
+
+    test('quotes an unbalanced parenthesis token rather than grouping', () {
+      // A lone `(` or `)` is FTS5 grouping syntax that would otherwise be an
+      // unbalanced-parens syntax error.
+      expect(toFtsMatchQuery('(swing'), '"(swing"');
+      expect(toFtsMatchQuery('swing)'), '"swing)"');
+    });
+
     test('collapses runs of whitespace and trims', () {
       expect(toFtsMatchQuery('  swing   partners  '), '"swing" "partners"');
     });

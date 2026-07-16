@@ -223,6 +223,85 @@ void main() {
       });
 
       test(
+        'unbalanced parentheses match literally instead of throwing',
+        () async {
+          await dances.create(_dance(id: 'a', title: 'Swing Time'));
+          await dances.create(
+            _dance(
+              id: 'b',
+              title: 'Plain',
+              figures: [
+                Figure(move: 'balance', params: const {'beats': 16}),
+              ],
+            ),
+          );
+          // A lone `(` / `)` is FTS5 grouping syntax; unbalanced it is a syntax
+          // error. Quoting ("(swing") makes FTS5 read a phrase literal, not
+          // grouping; at match time the tokenizer drops the paren, so the
+          // phrase reduces to the term `swing`.
+          expect(await dances.search(const FullTextFilter('(swing')), ['a']);
+          expect(await dances.search(const FullTextFilter('swing)')), ['a']);
+        },
+      );
+
+      test('OR is a literal token, not a boolean union operator', () async {
+        await dances.create(
+          _dance(id: 'literal', title: 'Swing Or Petronella Medley'),
+        );
+        await dances.create(_dance(id: 'swingonly', title: 'Swing Time'));
+        await dances.create(_dance(id: 'petonly', title: 'Petronella Reel'));
+        // As an operator, `OR` would UNION swingonly + petonly (two rows). As
+        // sanitized literal text it is the implicit-AND of "swing" "or"
+        // "petronella", so only the row containing all three tokens matches.
+        expect(
+          await dances.search(const FullTextFilter('swing OR petronella')),
+          ['literal'],
+        );
+      });
+
+      test('NOT is a literal token, not an exclusion operator', () async {
+        await dances.create(_dance(id: 'a', title: 'Swing Reel'));
+        await dances.create(_dance(id: 'b', title: 'Plain'));
+        // As an operator, `swing NOT reel` would EXCLUDE 'Swing Reel'. As
+        // literal text it AND-matches "swing" "not" "reel"; no row has "not",
+        // so the exclusion never fires and nothing matches.
+        expect(
+          await dances.search(const FullTextFilter('swing NOT reel')),
+          isEmpty,
+        );
+      });
+
+      test(
+        'prefix / column / initial-token operators never inject or throw',
+        () async {
+          await dances.create(_dance(id: 'a', title: 'Swing Time'));
+          await dances.create(
+            _dance(
+              id: 'b',
+              title: 'Plain',
+              figures: [
+                Figure(move: 'balance', params: const {'beats': 16}),
+              ],
+            ),
+          );
+          // Quoting each token ("swing*", "^swing") stops FTS5 reading `*` as a
+          // prefix query or `^` as a first-token match; the tokenizer then
+          // drops the punctuation so the phrase matches the term `swing`.
+          expect(await dances.search(const FullTextFilter('swing*')), ['a']);
+          expect(await dances.search(const FullTextFilter('^swing')), ['a']);
+          // A raw column filter on a non-existent column would be an FTS5
+          // 'no such column: foo' error; quoting ("foo:swing") makes FTS5 parse
+          // a phrase literal instead, which the tokenizer splits into `foo` +
+          // `swing`, so it matches only a row with that adjacent phrase (none
+          // here).
+          expect(
+            await dances.search(const FullTextFilter('foo:swing')),
+            isEmpty,
+          );
+        },
+      );
+
+      test(
         'empty / whitespace-only text returns no rows, never throws',
         () async {
           await dances.create(_dance(id: 'a', title: 'Anything'));

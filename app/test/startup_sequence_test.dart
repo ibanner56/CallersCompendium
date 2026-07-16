@@ -36,6 +36,40 @@ class _FailingWindowService extends WindowService {
   void dispose() {}
 }
 
+/// A [CompendiumRepositories] whose derived-index rebuild throws on its first
+/// invocation and succeeds thereafter. This is the same `runDerivedRebuild`
+/// seam the core `migration_test` uses to prove `ensureMigrated` retries a
+/// transient failure, here driven through the full [CompendiumApp] bootstrap so
+/// a failing migration is exercised end-to-end (error screen → retry → recover).
+class _FailOnceMigrationRepositories extends CompendiumRepositories {
+  _FailOnceMigrationRepositories(super.db, super.taxonomy);
+
+  int rebuildAttempts = 0;
+
+  @override
+  Future<void> runDerivedRebuild() async {
+    rebuildAttempts++;
+    if (rebuildAttempts == 1) {
+      throw StateError('injected migration failure');
+    }
+    await super.runDerivedRebuild();
+  }
+}
+
+/// An [AppData] that hands [CompendiumApp] the failing-once repositories over
+/// the same database. The base [AppData] still builds a real facade into its
+/// field, but this getter shadows it so the bootstrap's `ensureMigrated` call
+/// routes through the flaky one — without touching any `lib/` production code.
+class _FailOnceMigrationAppData extends AppData {
+  _FailOnceMigrationAppData(super.db);
+
+  late final _FailOnceMigrationRepositories _repositories =
+      _FailOnceMigrationRepositories(db, contraTaxonomy);
+
+  @override
+  _FailOnceMigrationRepositories get repositories => _repositories;
+}
+
 AppData _openAppData() {
   final appData = AppData(CompendiumDatabase(NativeDatabase.memory()));
   // The database is also closed by CompendiumApp.dispose(); sqlite3's close is
@@ -125,6 +159,60 @@ void main() {
       );
       expect(find.text('Retry'), findsOneWidget);
       expect(find.byType(AppShell), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a failing migration reaches the error/retry screen, then retry recovers '
+    'into the app (Stage 1 bootstrap)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final appData = _FailOnceMigrationAppData(db);
+      addTearDown(appData.close);
+
+      // Durably mark that a derived-index rebuild is owed so ensureMigrated()
+      // invokes runDerivedRebuild() (which throws on its first attempt).
+      // Reading/writing here forces the fresh in-memory schema to be created.
+      await db.customStatement(
+        'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+        [derivedRebuildRequiredKey, 'true'],
+      );
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          // Keep the (advisory) integrity probe green so the only failure under
+          // test is the migration itself.
+          integrityCheck: () async => true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // First bootstrap: the derived rebuild threw, so the migration failure
+      // reaches the AppBootstrap error/retry screen and the app is gated.
+      expect(
+        find.textContaining('Could not prepare the collection'),
+        findsOneWidget,
+      );
+      expect(find.text('Retry'), findsOneWidget);
+      expect(find.byType(AppShell), findsNothing);
+      expect(appData.repositories.rebuildAttempts, 1);
+
+      // Retry: ensureMigrated cleared its memo and the durable marker survived,
+      // so the rebuild runs again — now succeeding — and the app recovers.
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Could not prepare the collection'),
+        findsNothing,
+      );
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(appData.repositories.rebuildAttempts, 2);
     },
   );
 
