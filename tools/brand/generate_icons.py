@@ -250,7 +250,10 @@ def android_vector(color_hex: str, ops: Sequence[Op]) -> str:
 
 
 def write_text(path: str, text: str) -> None:
-    with open(path, "w") as f:
+    # Force UTF-8 + LF regardless of the host OS so regenerating on Windows vs
+    # macOS/Linux yields byte-identical files (the XML comments contain an
+    # em-dash, and Windows would otherwise default to CRLF / cp1252).
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
     print(f"  xml       {os.path.relpath(path, REPO)}")
 
