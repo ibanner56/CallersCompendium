@@ -119,7 +119,13 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
 /// opens a fixture DB created at the previous version and asserts the
-/// migrated schema/data (see `test/storage/migration_test.dart`).
+/// migrated schema/data (see `test/storage/migration_test.dart`). CI enforces
+/// (c): a change to this constant fails the build unless the same PR also
+/// adds/changes a migration test or a `test/storage/fixtures/` fixture.
+///
+/// Release rule: **never bump [schemaVersion] in a PATCH release** — a schema
+/// change is a data-format change and must ride at least a MINOR bump (see
+/// CONTRIBUTING.md).
 @DriftDatabase(
   tables: [
     Dances,

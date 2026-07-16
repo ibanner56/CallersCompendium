@@ -27,6 +27,18 @@ error paths, and edge cases. UI changes include widget tests where practical
 and must satisfy the [accessibility baseline](docs/research/accessibility-baseline.md)
 (semantics, keyboard, contrast) — a11y is an acceptance criterion, not polish.
 
+### Database schema migrations
+The local database schema is versioned by `schemaVersion` in
+[`packages/compendium_core/lib/src/storage/database.dart`](packages/compendium_core/lib/src/storage/database.dart).
+When you change the schema:
+
+- Bump `schemaVersion`, add the matching `MigrationStrategy` step, and ship a
+  migration test/fixture (`test/storage/migration_test.dart` and/or a
+  `test/storage/fixtures/` fixture). CI **fails** a PR that bumps
+  `schemaVersion` without adding or changing such a test/fixture.
+- **Never bump `schemaVersion` in a PATCH release.** A schema change is a
+  data-format change and rides at least a MINOR version bump.
+
 ### Architecture decisions
 Non-trivial, hard-to-reverse choices are recorded as ADRs in
 [docs/adr/](docs/adr/) using [the template](docs/adr/template.md). Propose one
