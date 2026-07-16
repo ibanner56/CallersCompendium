@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -176,16 +177,22 @@ void main() {
         );
         expect(find.byKey(const ValueKey('edit-dance')), findsOneWidget);
 
-        // Secondary actions are not shown directly on the narrow bar.
+        // Secondary actions are not shown directly on the narrow bar, and the
+        // wide-layout Export/dialect popup controls are not used in compact mode.
         expect(find.byKey(const ValueKey('duplicate-dance')), findsNothing);
         expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
+        expect(
+          find.byKey(const ValueKey('overflow-share-dance')),
+          findsNothing,
+        );
         expect(find.byKey(const ValueKey('dance-export-menu')), findsNothing);
         expect(
           find.byKey(const ValueKey('dialect-quick-switch')),
           findsNothing,
         );
 
-        // (b) The overflow menu exposes every secondary action.
+        // (b) The overflow menu exposes every secondary action as its own
+        // first-class, activatable item (no nested popup menus).
         final overflow = find.byKey(const ValueKey('dance-actions-overflow'));
         expect(overflow, findsOneWidget);
         await tester.tap(overflow);
@@ -193,20 +200,60 @@ void main() {
 
         expect(find.byKey(const ValueKey('duplicate-dance')), findsOneWidget);
         expect(find.byKey(const ValueKey('delete-dance')), findsOneWidget);
-        expect(find.byKey(const ValueKey('dance-export-menu')), findsOneWidget);
         expect(
-          find.byKey(const ValueKey('dialect-quick-switch')),
+          find.byKey(const ValueKey('overflow-share-dance')),
           findsOneWidget,
         );
+        expect(
+          find.byKey(const ValueKey('overflow-copy-dance')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('overflow-export-pdf')),
+          findsOneWidget,
+        );
+        // Each dialect in the library is offered as a checkable entry.
+        expect(
+          find.byKey(
+            ValueKey('dialect-quick-switch-${Dialect.larksRobins.name}'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            ValueKey('dialect-quick-switch-${Dialect.leadsFollows.name}'),
+          ),
+          findsOneWidget,
+        );
+
+        // The (scrollable) menu itself introduces no overflow at 360dp.
+        expect(tester.takeException(), isNull);
       },
     );
 
-    testWidgets('overflow export control stays usable on a narrow bar', (
+    testWidgets('overflow Export actions are reachable and Copy works', (
       tester,
     ) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
       final library = await buildLibrary(repos);
+
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
 
       await _pumpDetail(
         tester,
@@ -219,12 +266,16 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
       await tester.pumpAndSettle();
 
-      // Opening the nested export control still offers its three actions.
-      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
-      await tester.pumpAndSettle();
+      // The three Export actions are flattened directly into the overflow menu.
       expect(find.text('Share dance (text)'), findsOneWidget);
       expect(find.text('Copy dance'), findsOneWidget);
       expect(find.text('Export / print PDF'), findsOneWidget);
+
+      // Copy is wired to the same shared plain-text renderer as DanceExportMenu.
+      await tester.tap(find.byKey(const ValueKey('overflow-copy-dance')));
+      await tester.pumpAndSettle();
+      expect(find.text('Dance copied to clipboard.'), findsOneWidget);
+      expect(clipboardText, contains('Narrow Dance'));
     });
 
     testWidgets('overflow dialect switch still changes the active dialect', (
@@ -245,9 +296,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
       await tester.pumpAndSettle();
 
-      // Open the nested dialect switch and pick a different dialect.
-      await tester.tap(find.byKey(const ValueKey('dialect-quick-switch')));
-      await tester.pumpAndSettle();
+      // Pick a different dialect directly from the overflow (no nested popup).
       await tester.tap(
         find.byKey(
           ValueKey('dialect-quick-switch-${Dialect.leadsFollows.name}'),

@@ -1,12 +1,17 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/date_format_scope.dart';
+import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
+import '../export/dance_pdf.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../utils/confirm_delete.dart';
@@ -615,61 +620,140 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     ],
   );
 
-  /// Single "⋮" menu holding the secondary actions on narrow widths. The
-  /// dialect switch and Export controls are their own popup menus, so they are
-  /// hosted verbatim inside menu rows (their tooltips act as the accessible
-  /// label); Duplicate and Delete call the same handlers as the wide layout.
-  Widget _overflowMenu(BuildContext context, _DanceDetail detail) =>
-      PopupMenuButton<void>(
-        key: const ValueKey('dance-actions-overflow'),
-        tooltip: 'More actions',
-        icon: const Icon(Icons.more_vert),
-        itemBuilder: (context) => [
-          PopupMenuItem<void>(
-            child: Row(
-              children: const [
-                DialectQuickSwitch(),
-                SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    'Switch dialect',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+  /// Single "⋮" menu holding the secondary actions on narrow widths. Every
+  /// entry is a first-class [PopupMenuItem] so it stays keyboard- and
+  /// screen-reader-activatable: the dialect choices are [CheckedPopupMenuItem]s
+  /// (mirroring [DialectQuickSwitch]), the three Export actions are flattened in
+  /// from [DanceExportMenu], and Duplicate / Delete call the same handlers as
+  /// the wide layout. Nothing is a nested popup, so activating any row performs
+  /// its action rather than dismissing the menu.
+  Widget _overflowMenu(BuildContext context, _DanceDetail detail) {
+    final controller = DialectLibraryScope.maybeOf(context);
+    final activeDialectName = controller == null
+        ? null
+        : (controller.activeName ?? controller.active.name);
+    final dialect = ActiveDialectScope.of(context);
+    String exportText() => danceToPlainText(
+      detail.dance,
+      dialect: dialect,
+      authorNames: detail.authorNames,
+      formationLabel: formationLabel(detail.dance.formation),
+      levelLabel: _levelLabel(detail.dance),
+      statusLabel: danceStatusLabel(detail.dance.status),
+      renderer: _renderer,
+    );
+
+    return PopupMenuButton<void>(
+      key: const ValueKey('dance-actions-overflow'),
+      tooltip: 'More actions',
+      icon: const Icon(Icons.more_vert),
+      itemBuilder: (context) => [
+        if (controller != null) ...[
+          for (final entry in controller.all)
+            CheckedPopupMenuItem<void>(
+              key: ValueKey('dialect-quick-switch-${entry.name}'),
+              checked: entry.name == activeDialectName,
+              onTap: () => controller.setActive(entry.name),
+              child: Text(entry.name),
             ),
-          ),
-          PopupMenuItem<void>(
-            child: Row(
-              children: [
-                _exportMenu(context, detail),
-                const SizedBox(width: 8),
-                const Flexible(
-                  child: Text('Export', overflow: TextOverflow.ellipsis),
-                ),
-              ],
-            ),
-          ),
-          PopupMenuItem<void>(
-            onTap: _duplicate,
-            child: const ListTile(
-              key: ValueKey('duplicate-dance'),
-              leading: Icon(Icons.copy_all_outlined),
-              title: Text('Duplicate dance'),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
-          PopupMenuItem<void>(
-            onTap: _delete,
-            child: const ListTile(
-              key: ValueKey('delete-dance'),
-              leading: Icon(Icons.delete_outline),
-              title: Text('Delete dance'),
-              contentPadding: EdgeInsets.zero,
-            ),
-          ),
+          const PopupMenuDivider(),
         ],
+        PopupMenuItem<void>(
+          key: const ValueKey('overflow-share-dance'),
+          onTap: () => _shareDance(exportText(), detail.dance.title),
+          child: const ListTile(
+            leading: Icon(Icons.mail_outline),
+            title: Text('Share dance (text)'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
+          key: const ValueKey('overflow-copy-dance'),
+          onTap: () => _copyDance(exportText()),
+          child: const ListTile(
+            leading: Icon(Icons.copy_outlined),
+            title: Text('Copy dance'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
+          key: const ValueKey('overflow-export-pdf'),
+          onTap: () => _exportDancePdf(dialect, detail),
+          child: const ListTile(
+            leading: Icon(Icons.picture_as_pdf_outlined),
+            title: Text('Export / print PDF'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem<void>(
+          key: const ValueKey('duplicate-dance'),
+          onTap: _duplicate,
+          child: const ListTile(
+            leading: Icon(Icons.copy_all_outlined),
+            title: Text('Duplicate dance'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
+          key: const ValueKey('delete-dance'),
+          onTap: _delete,
+          child: const ListTile(
+            leading: Icon(Icons.delete_outline),
+            title: Text('Delete dance'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Compact-layout Export handlers. On wide layouts the Export control is the
+  // reusable [DanceExportMenu]; on narrow widths its three actions are flattened
+  // into the overflow menu (above) so each stays an individually activatable
+  // item instead of a nested popup. The shareable card and PDF are built from
+  // the same public `danceToPlainText` / `buildDancePdf` helpers the widget
+  // uses, so only the thin share / clipboard / print wiring lives here.
+  Future<void> _shareDance(String text, String subject) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await SharePlus.instance.share(ShareParams(text: text, subject: subject));
+    } on Exception catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Couldn't share this dance")),
       );
+    }
+  }
+
+  Future<void> _copyDance(String text) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Clipboard.setData(ClipboardData(text: text));
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Dance copied to clipboard.')),
+    );
+  }
+
+  Future<void> _exportDancePdf(Dialect dialect, _DanceDetail detail) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await Printing.layoutPdf(
+        name: detail.dance.title,
+        onLayout: (format) => buildDancePdf(
+          detail.dance,
+          dialect: dialect,
+          authorNames: detail.authorNames,
+          formationLabel: formationLabel(detail.dance.formation),
+          levelLabel: _levelLabel(detail.dance),
+          statusLabel: danceStatusLabel(detail.dance.status),
+          renderer: _renderer,
+        ),
+      );
+    } on Exception catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Couldn't export this dance")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
