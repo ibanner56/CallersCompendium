@@ -30,11 +30,11 @@ import '../dialect/dialect.dart';
 /// `.USR` path via `mapCallersCompanionDance`), so a `custom` figure reads
 /// consistently no matter which source it came from.
 String scrubFigureText(String text) {
-  final degypsied = text
+  final normalizedMoves = text
       .replaceAllMapped(_gypsiesTerm, (_) => 'shoulder rounds')
       .replaceAllMapped(_gypsyTerm, (_) => 'shoulder round')
       .replaceAllMapped(_doSiDoTerm, (_) => 'do si do');
-  final canonical = canonicalizeText(degypsied, Dialect.canonical);
+  final canonical = canonicalizeText(normalizedMoves, Dialect.canonical);
   return canonical.replaceAll(_whitespace, ' ').trim();
 }
 
