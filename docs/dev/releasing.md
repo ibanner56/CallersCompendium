@@ -56,7 +56,8 @@ secret), **iOS** (needs Apple signing), and an SBOM.
    draft's body is generated from — see
    [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Promote
    the accumulated `## [Unreleased]` items into a new versioned section **before**
-   tagging:
+   tagging. **For a stable (plain `x.y.z`) tag this is mandatory** — the release
+   fails fast in the `meta` job if the section is missing.
 
    ```md
    ## [Unreleased]
@@ -86,12 +87,15 @@ secret), **iOS** (needs Apple signing), and an SBOM.
    git push origin v0.2.0
    ```
 
-4. Watch the run under **Actions → Release**. It gates on the reusable checks,
-   builds + packages on all three OSes, then creates the **draft** release.
+4. Watch the run under **Actions → Release**. It resolves + validates metadata
+   (a **stable** tag with no matching CHANGELOG section fails here, fast), gates
+   on the reusable checks, builds + packages on all three OSes, then creates the
+   **draft** release.
 5. Review the draft under **Releases**: confirm the six binaries, `SHA256SUMS`,
    and the channel manifest are present and named correctly, **and that the
-   notes body matches the CHANGELOG section** (a `⚠️ No … entry` banner means
-   you forgot step 1 — add the section and re-run, or edit the draft by hand).
+   notes body matches the CHANGELOG section**. For a prerelease, a
+   ``⚠️ No `## [x.y.z]` entry`` banner means you skipped step 1 — add the section
+   and re-push the tag, or edit the draft by hand, before publishing.
 6. **Publish** the draft manually when satisfied.
 
 ## CHANGELOG-driven release notes
@@ -106,11 +110,19 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
   banner, so a `-beta`/`-rc` tag can never render misleading "stable" wording.
 - It always appends the safety footer (artifacts are **UNSIGNED**, verify
   against `SHA256SUMS`, a maintainer publishes the draft after review).
-- If **no matching section exists** it does **not** fail the release. It emits a
-  minimal body with a loud ``⚠️ No `## [x.y.z]` entry …`` banner and logs a
-  `::warning::`. Because the release is a DRAFT (never public), this is a
-  reviewer-visible nudge rather than a hard stop — fix the CHANGELOG and re-push
-  the tag, or edit the draft directly, before publishing.
+- If **no matching section exists**, behaviour is **channel-conditional**:
+  - **Stable** tag (plain `x.y.z`): the release **fails fast** in the cheap
+    `meta` job — *before* the build matrix — with a clear `::error::` telling you
+    to promote `## [Unreleased]` → `## [x.y.z]` first. Public releases therefore
+    can never ship without hand-written notes.
+  - **Beta/rc** prerelease tag: the release is **not** blocked. The draft is
+    still produced with a loud ``⚠️ No `## [x.y.z]` entry …`` banner in the body
+    and a `::warning::` in the log — a reviewer-visible nudge that keeps beta
+    iteration frictionless. Fix the CHANGELOG and re-push, or edit the draft,
+    before publishing.
+
+The stable guard runs the tool in `--check` mode from the `meta` job; a
+build-only `workflow_dispatch` dry run is exempt (it never publishes).
 
 Run it locally to preview a body (also how its unit tests are exercised):
 

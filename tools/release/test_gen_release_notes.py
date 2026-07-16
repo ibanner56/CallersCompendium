@@ -143,6 +143,58 @@ def _cases() -> None:
     #     Looking up 0.1 must NOT match the [0.1.0] heading.
     assert g.extract_section(CHANGELOG, "0.1") is None
 
+    # --- check_section (the meta job's channel-conditional fail-fast guard) ---
+
+    # 11. Stable release WITH a matching section -> ok.
+    ok, msg = g.check_section(
+        version="0.2.0", channel="stable", changelog_text=CHANGELOG,
+    )
+    assert ok is True, msg
+
+    # 12. Stable release with NO matching section -> NOT ok (fail fast in meta).
+    ok, msg = g.check_section(
+        version="9.9.9", channel="stable", changelog_text=CHANGELOG,
+    )
+    assert ok is False
+    assert "9.9.9" in msg and "Unreleased" in msg
+
+    # 13. Beta/rc prerelease with NO matching section -> ok (graceful fallback);
+    #     matched on the core, so the meta guard never blocks a prerelease.
+    ok, msg = g.check_section(
+        version="9.9.9-rc.1", channel="beta", changelog_text=CHANGELOG,
+    )
+    assert ok is True, msg
+
+    # 14. Beta prerelease WHOSE core has a section -> ok.
+    ok, msg = g.check_section(
+        version="0.1.0-rc.3", channel="beta", changelog_text=CHANGELOG,
+    )
+    assert ok is True, msg
+
+    # 15. The tool's --check CLI exits non-zero for a stable-missing section
+    #     (proves the meta guard's actual invocation fails), and exits 0 for a
+    #     beta-missing section.
+    import io
+    import contextlib
+    from pathlib import Path
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        cl = Path(td) / "CHANGELOG.md"
+        cl.write_text(CHANGELOG, encoding="utf-8")
+        argv_common = ["--tag", "v9.9.9", "--changelog", str(cl), "--check"]
+        with contextlib.redirect_stderr(io.StringIO()) as err:
+            rc_stable = g.main(
+                ["--version", "9.9.9", "--channel", "stable", *argv_common]
+            )
+        assert rc_stable == 1
+        assert "::error::" in err.getvalue()
+        rc_beta = g.main(
+            ["--version", "9.9.9-rc.1", "--channel", "beta",
+             "--tag", "v9.9.9-rc.1", "--changelog", str(cl), "--check"]
+        )
+        assert rc_beta == 0
+
 
 def main() -> int:
     _cases()

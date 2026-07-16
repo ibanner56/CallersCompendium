@@ -100,6 +100,26 @@ jobs:
 
           echo "Resolved: version=$version tag=v$version channel=$channel prerelease=$prerelease"
 
+      # Fail-fast (A12): a STABLE release must ship hand-written notes, so a
+      # plain x.y.z tag with no matching `## [x.y.z]` section in
+      # app/CHANGELOG.md is rejected here in the cheap meta job — BEFORE the
+      # 3-OS build matrix. A prerelease (beta/rc) is allowed through and falls
+      # back to a loud "add notes" draft body at publish time. Guarded to tag
+      # pushes so a build-only workflow_dispatch dry run is never blocked.
+      - name: Require a CHANGELOG section for stable releases
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+          TAG: ${{ steps.resolve.outputs.tag }}
+          CHANNEL: ${{ steps.resolve.outputs.channel }}
+        run: |
+          set -euo pipefail
+          python3 tools/release/gen_release_notes.py --check \
+            --version "$VERSION" \
+            --tag "$TAG" \
+            --channel "$CHANNEL" \
+            --changelog app/CHANGELOG.md
+
   # Same lint/analyze/test gate PRs pass — single-sourced from A5's reusable
   # workflow so a release can never ship code the PR gate would reject.
   checks:

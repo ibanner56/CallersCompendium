@@ -17,10 +17,16 @@ Behaviour:
   wording.
 * A short footer is always appended: the artifacts are UNSIGNED, verify against
   ``SHA256SUMS``, and a maintainer publishes the draft after review.
-* If no matching section exists the tool does **not** fail the release (the
-  release is a DRAFT, never public); it emits a minimal body with a loud
-  "add release notes before publishing" banner and prints a ``::warning::`` so
-  the publishing maintainer can't miss it.
+* Missing-section handling is **channel-conditional**:
+    - ``--check`` mode (run in the release ``meta`` job) fails fast with an
+      ``::error::`` when a **stable** release has no matching section, so public
+      releases can't ship without hand-written notes — and it fails *before* the
+      build matrix runs. A prerelease is allowed through.
+    - In notes-emission mode a missing section never crashes the run (the
+      release is a DRAFT, never public): it emits a minimal body with a loud
+      "add release notes before publishing" banner and prints a ``::warning::``.
+      In the wired pipeline this path is only reached for a prerelease, because
+      the stable ``--check`` guard already failed earlier.
 
 This module is intentionally pure-stdlib and Flutter-free (mirroring
 ``gen_release_metadata.py``) so it stays reviewable and unit-testable.
@@ -93,6 +99,36 @@ def extract_section(changelog: str, core: str) -> str | None:
     return "\n".join(body) if body else None
 
 
+def check_section(
+    *,
+    version: str,
+    channel: str,
+    changelog_text: str,
+) -> tuple[bool, str]:
+    """Presence check for the ``meta`` job's fail-fast guard.
+
+    Returns ``(ok, message)``. ``ok`` is False *only* when a **stable** release
+    is missing its ``## [x.y.z]`` section — that must fail the release before the
+    build matrix runs so public releases always ship hand-written notes. A
+    prerelease (beta/rc) is always ``ok`` here; a missing section falls back
+    gracefully in the publish job instead.
+    """
+    core = _core_version(version)
+    present = extract_section(changelog_text, core) is not None
+    if channel == "stable" and not present:
+        return False, (
+            f"no '## [{core}]' section in app/CHANGELOG.md for stable release "
+            f"{version}; promote '## [Unreleased]' -> '## [{core}] - <date>' "
+            f"(with the Flutter build line) before tagging."
+        )
+    if present:
+        return True, f"OK: CHANGELOG has a '## [{core}]' section."
+    return True, (
+        f"OK: no '## [{core}]' section, but channel '{channel}' allows a "
+        f"graceful fallback body."
+    )
+
+
 def build_notes(
     *,
     version: str,
@@ -151,17 +187,39 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="write the notes to this file (default: stdout)",
     )
+    ap.add_argument(
+        "--check",
+        action="store_true",
+        help="presence-check mode (for the release meta job): exit non-zero "
+        "with an ::error:: when a STABLE release has no matching CHANGELOG "
+        "section; a prerelease with no section still exits 0 (it falls back "
+        "gracefully at publish time). Emits no notes body.",
+    )
     args = ap.parse_args(argv)
 
     changelog: Path = args.changelog
     if not changelog.is_file():
         raise SystemExit(f"::error::changelog not found: {changelog}")
 
+    changelog_text = changelog.read_text(encoding="utf-8")
+
+    if args.check:
+        ok, message = check_section(
+            version=args.version,
+            channel=args.channel,
+            changelog_text=changelog_text,
+        )
+        if not ok:
+            print(f"::error::{message}", file=sys.stderr)
+            return 1
+        print(message)
+        return 0
+
     body, found = build_notes(
         version=args.version,
         tag=args.tag,
         channel=args.channel,
-        changelog_text=changelog.read_text(encoding="utf-8"),
+        changelog_text=changelog_text,
     )
 
     if not found:
