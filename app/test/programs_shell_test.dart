@@ -450,6 +450,59 @@ void main() {
     },
   );
 
+  testWidgets(
+    'wide split-pane: an in-pane Perform adjustment that changes the slot '
+    'count refreshes the coexisting program list without a manual reload',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Inserted Reel'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      // The left list tile starts at a single slot.
+      expect(find.text('1 slot'), findsOneWidget);
+
+      // Enter the Perform view from the summary pane (Perform-first, no edit
+      // mode) and grow the program via the in-event "adjust" sheet.
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-insert-dance')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('picker-add-d2')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-done')));
+      await tester.pumpAndSettle();
+
+      // The adjustment persisted a second slot ...
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots, hasLength(2));
+
+      // ... and the coexisting list pane (still mounted beneath the Perform
+      // route) reflects the new count with no back-navigation or manual
+      // reload. Before the fix the tile stayed "1 slot" until re-navigated,
+      // because the in-pane mutation never bumped the shared list refresh.
+      expect(find.text('2 slots', skipOffstage: false), findsOneWidget);
+      expect(find.text('1 slot', skipOffstage: false), findsNothing);
+    },
+  );
+
   testWidgets('mark-all-performed is hidden when no slot has a dance', (
     tester,
   ) async {

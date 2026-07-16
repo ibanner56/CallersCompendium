@@ -97,6 +97,7 @@ class ProgramSummaryPane extends StatefulWidget {
     required this.onOpenBuilder,
     required this.onDeleted,
     required this.onNavigateTo,
+    this.onProgramMutated,
     this.showAppBar = false,
     this.prominentPerform = false,
   });
@@ -106,6 +107,16 @@ class ProgramSummaryPane extends StatefulWidget {
   final VoidCallback onOpenBuilder;
   final VoidCallback onDeleted;
   final void Function(String id) onNavigateTo;
+
+  /// Called after an **in-place** mutation that keeps this pane on the same
+  /// program — "Mark all performed" and in-event Perform adjustments (which can
+  /// change slot count, mark slots performed, and bump `updatedAt`). The wide
+  /// split-pane wires this to bump its shared list refresh so the coexisting
+  /// program list reflects the change without a manual reload. The narrow
+  /// [ProgramSummaryScreen] leaves it unset: its list reloads unconditionally
+  /// when the summary route pops, so there is nothing to signal. Duplicate and
+  /// delete are handled separately via [onNavigateTo] / [onDeleted].
+  final VoidCallback? onProgramMutated;
 
   /// Wraps the pane in a [Scaffold] [AppBar] (back button + generic title) when
   /// pushed as a full-screen route on narrow layouts. The wide detail pane
@@ -258,11 +269,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           renderer: _performRenderer,
           // This is the real in-event path: the program is saved, so in-event
           // adjustments (`docs/design/ux.md` §5) persist immediately via the
-          // repository (bumping `updatedAt`) and the summary reloads to reflect
-          // them.
+          // repository (bumping `updatedAt`, and possibly the slot count) and
+          // the summary reloads to reflect them. On the wide split-pane
+          // [onProgramMutated] also refreshes the coexisting program list so
+          // its slot count / ordering do not go stale.
           onProgramChanged: (updated) async {
             await _repos.programs.update(updated);
-            if (mounted) _load();
+            if (!mounted) return;
+            _load();
+            widget.onProgramMutated?.call();
           },
         ),
       ),
@@ -445,6 +460,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       const SnackBar(content: Text('Marked all dances performed.')),
     );
     _load();
+    // On the wide split-pane, refresh the coexisting list too (this bumps
+    // `updatedAt`, affecting the "recently updated" sort order).
+    widget.onProgramMutated?.call();
   }
 
   /// Builds the read-only, ordered set list. Primaries are numbered 1..n and
