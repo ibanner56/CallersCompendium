@@ -31,6 +31,26 @@ void main() {
       );
     });
 
+    test('gendered Men/Women synonyms resolve to role tokens', () {
+      // The Caller's Box uses these exclusively (e.g. dance ids 5010, 9616,
+      // 14387). Gents=role1 / Ladies=role2, so Men=role1 / Women=role2.
+      expect(canonicalizeText('Men', Dialect.canonical), 'role1s');
+      expect(canonicalizeText('Women', Dialect.canonical), 'role2s');
+      expect(canonicalizeText('Man', Dialect.canonical), 'role1');
+      expect(canonicalizeText('Woman', Dialect.canonical), 'role2');
+    });
+
+    test('gendered synonyms resolve inside a figure line', () {
+      expect(
+        canonicalizeText('(8) Men allemande left 1', Dialect.canonical),
+        '(8) role1s allemande left 1',
+      );
+      expect(
+        canonicalizeText('the man and the woman balance', larks),
+        'the role1 and the role2 balance',
+      );
+    });
+
     test('is case-insensitive on input but emits canonical tokens', () {
       expect(canonicalizeText('LARKS and robins', larks), 'role1s and role2s');
     });
@@ -57,9 +77,17 @@ void main() {
     });
 
     test('a purely discouraged term is flagged but left as typed', () {
-      // "men" is discouraged but not a role synonym → not rewritten.
+      // "ravens" is discouraged but not a role synonym → not rewritten.
+      final result = canonicalize('the ravens bow', larks);
+      expect(result.text, 'the ravens bow');
+      expect(result.discouraged.map((d) => d.text), contains('ravens'));
+    });
+
+    test('men is both canonicalized and flagged discouraged', () {
+      // "men" is a legacy role synonym (→ role1s) *and* discouraged, so it is
+      // rewritten like "gents" while still surfacing on the lingo line.
       final result = canonicalize('the men bow', larks);
-      expect(result.text, 'the men bow');
+      expect(result.text, 'the role1s bow');
       expect(result.discouraged.map((d) => d.text), contains('men'));
     });
   });

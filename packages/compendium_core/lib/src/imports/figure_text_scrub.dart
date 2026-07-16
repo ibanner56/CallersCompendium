@@ -6,9 +6,14 @@ import '../dialect/dialect.dart';
 /// which source it came from.
 ///
 /// Three steps, in order:
-/// 1. The legacy move term `gypsy`/`gypsies` is rewritten to
-///    `shoulder round`/`shoulder rounds` (The Caller's Box applied this
-///    globally in Oct 2025; we normalise on import so historical decks match).
+/// 1. Legacy move terms are normalised to their canonical taxonomy spelling so
+///    the recognizer matches them:
+///    - `gypsy`/`gypsies` is rewritten to `shoulder round`/`shoulder rounds`
+///      (The Caller's Box applied this globally in Oct 2025; we normalise on
+///      import so historical decks match).
+///    - the hyphenated `do-si-do` is rewritten to `do si do` (The Caller's Box
+///      hyphenates it exclusively, but the figure parser tokenises on spaces
+///      and only matches the space-separated `do si do` / `dosido` forms).
 /// 2. The text is routed through the core canonicalization chokepoint
 ///    [canonicalizeText] with [Dialect.canonical], whose always-on
 ///    substitutions map gendered role terms to canonical `role1`/`role2`
@@ -25,13 +30,15 @@ import '../dialect/dialect.dart';
 /// `.USR` path via `mapCallersCompanionDance`), so a `custom` figure reads
 /// consistently no matter which source it came from.
 String scrubFigureText(String text) {
-  final degypsied = text
+  final normalizedMoves = text
       .replaceAllMapped(_gypsiesTerm, (_) => 'shoulder rounds')
-      .replaceAllMapped(_gypsyTerm, (_) => 'shoulder round');
-  final canonical = canonicalizeText(degypsied, Dialect.canonical);
+      .replaceAllMapped(_gypsyTerm, (_) => 'shoulder round')
+      .replaceAllMapped(_doSiDoTerm, (_) => 'do si do');
+  final canonical = canonicalizeText(normalizedMoves, Dialect.canonical);
   return canonical.replaceAll(_whitespace, ' ').trim();
 }
 
 final RegExp _gypsyTerm = RegExp(r'\bgypsy\b', caseSensitive: false);
 final RegExp _gypsiesTerm = RegExp(r'\bgypsies\b', caseSensitive: false);
+final RegExp _doSiDoTerm = RegExp(r'\bdo-si-do\b', caseSensitive: false);
 final RegExp _whitespace = RegExp(r'\s+');
