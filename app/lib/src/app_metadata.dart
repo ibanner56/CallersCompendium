@@ -23,5 +23,7 @@ const String kSourceRepoUrl = 'https://github.com/ibanner56/CallersCompendium';
 
 /// SPDX identifier for the application's own license. The repository is
 /// licensed under the GNU Affero General Public License, version 3 (see the
-/// top-level `LICENSE` file and the README license badge).
-const String kAppLicenseSpdx = 'AGPL-3.0';
+/// top-level `LICENSE` file and the README license badge). The `LICENSE` text
+/// is plain AGPLv3 with no "or (at your option) any later version" grant, so
+/// the exact SPDX id is `AGPL-3.0-only`.
+const String kAppLicenseSpdx = 'AGPL-3.0-only';
