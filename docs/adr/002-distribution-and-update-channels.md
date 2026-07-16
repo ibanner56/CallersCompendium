@@ -199,8 +199,9 @@ APK. (Flutter: *Build and release an Android app*.)
 - **(a) Microsoft Store (MSIX)** — ~**$19 one-time** individual developer
   account; **the Store signs the MSIX**, so no standalone Authenticode
   certificate is needed. Built via the `msix` pub package + the `msstore` CLI
-  (GitHub-Actions-automatable). Trade-off: Store certification and Store-based
-  distribution/updates.
+  (GitHub-Actions-automatable). This is the **cheapest cert-backed trusted route
+  and the recommended first paid step** if/when Windows trust is wanted.
+  Trade-off: Store certification and Store-based distribution/updates.
 - **(b) Azure Trusted Signing** — ~**$9.99/mo (~$120/yr)**; signs a self-hosted
   installer, no HSM to manage.
 - **(c) Certum Open Source code-signing** — ~**$70–100/yr**.
@@ -239,13 +240,21 @@ Migrations are forward-only today (`schemaVersion` 9). We **add**:
 
 - **Downgrade protection** — refuse to open a database whose `user_version` is
   **greater than** the running `schemaVersion` (an older build must not run new-
-  schema data). This is a defensive check in the database open path
-  (`packages/compendium_core/lib/src/storage/database.dart`), surfaced to the
-  user rather than risking silent corruption.
-- **Backup-before-migrate** — snapshot the database *before* an upgrade runs.
-  This **folds into the existing `BackupService`** (`app/lib/src/data/`,
-  ROADMAP G.5) rather than adding a new mechanism, so a failed migration is
-  always recoverable.
+  schema data). This is primarily an **app-layer preflight** that reads
+  `PRAGMA user_version` *before* drift opens the file and surfaces a clear
+  message to the user, backed by an optional **core belt** — an
+  `if (from > to) throw` guard in the database open path
+  (`packages/compendium_core/lib/src/storage/database.dart`) — rather than
+  risking silent corruption.
+- **Backup-before-migrate** — take a snapshot of the database *before* an upgrade
+  runs. This is a **physical, schema-agnostic byte copy** of the SQLite file
+  (after a WAL checkpoint), **distinct from — not folded into — the logical
+  `BackupService` export** (`app/lib/src/data/`, ROADMAP G.5). The G.5 backup is
+  a *logical v9-schema JSON export* that queries through repositories modeling
+  the **current** schema, so it **cannot run against an un-migrated older-schema
+  file**; the pre-migration snapshot must therefore be a complementary
+  disaster-recovery mechanism (a raw file copy that restores byte-for-byte if a
+  migration fails), different in kind from the user-triggered logical backup.
 - **CI migration-fixture gate** — CI **requires a migration fixture test on any
   `schemaVersion` bump** (extending the existing rule that every migration ships
   a fixture test in `test/storage/migration_test.dart`).
