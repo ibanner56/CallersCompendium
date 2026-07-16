@@ -526,7 +526,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                       ? 'Dance URL or id'
                       : 'Import from URL',
                   hintText: isUrlSource
-                      ? 'https://www.thecallersbox.com/dance.php?id=1  · or · 1'
+                      ? 'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1  · or · 1'
                       : 'https://…',
                 ),
               ),

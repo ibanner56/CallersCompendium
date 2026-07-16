@@ -462,7 +462,7 @@ void main() {
       // The bare id became the canonical TCB JSON endpoint.
       expect(
         fetchedUrl,
-        'https://www.thecallersbox.com/dance.php?id=1&format=JSON',
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1&format=JSON',
       );
 
       await tester.tap(find.byKey(const ValueKey('import-continue')));
