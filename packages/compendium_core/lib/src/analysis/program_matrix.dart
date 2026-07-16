@@ -219,7 +219,11 @@ class ProgramMatrix {
   final List<MatrixColumn> columns;
   final List<MatrixRow> rows;
 
-  /// True when no move columns were discovered (no dance carries a figure).
+  /// True when the matrix has no columns. Because the partner/neighbor swing
+  /// baseline is emitted whenever the program has at least one dance, this is
+  /// true only for a program with **no dances** at all — not merely one whose
+  /// dances carry no figures. Gates the empty-state (on-screen table and PDF)
+  /// and the matrix-export control.
   bool get isEmpty => columns.isEmpty;
 
   /// Whether [rows]`[rowIndex]` uses [columns]`[colIndex]`.
