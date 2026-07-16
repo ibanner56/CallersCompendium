@@ -41,9 +41,25 @@ const Map<String, String> _legacyRoleSynonyms = {
 /// legacy synonyms — back to canonical role tokens before persistence, so
 /// storage and search stay dialect-agnostic. Conservative: only exact,
 /// word-boundary term matches are rewritten; unknown prose is left as typed.
-CanonicalizationResult canonicalize(String text, Dialect dialect) {
+///
+/// [extraRoleSynonyms] is an optional, always-on reverse map (display term →
+/// canonical role token) used only by the *search* path to resolve role terms
+/// from the union of every saved dialect (see `SearchEnrichment`). It is
+/// layered *underneath* the legacy synonyms and the active dialect, so it never
+/// overrides them and an empty map (the default — used by the storage/entry
+/// path) leaves output byte-for-byte unchanged.
+CanonicalizationResult canonicalize(
+  String text,
+  Dialect dialect, {
+  Map<String, String> extraRoleSynonyms = const {},
+}) {
   final reverse = <String, String>{};
-  // Legacy synonyms first; the active dialect overrides where they overlap.
+  // Union enrichment first (lowest precedence); then legacy synonyms; then the
+  // active dialect — so legacy and the active dialect always win where they
+  // overlap, and the union only fills terms they leave unclaimed.
+  if (extraRoleSynonyms.isNotEmpty) {
+    reverse.addAll(extraRoleSynonyms);
+  }
   reverse.addAll(_legacyRoleSynonyms);
   for (final entry in dialect.roles.entries) {
     reverse[entry.value.singular.toLowerCase()] = entry.key;
@@ -61,8 +77,11 @@ CanonicalizationResult canonicalize(String text, Dialect dialect) {
 }
 
 /// Convenience: canonical text only (drops the discouraged-term spans).
-String canonicalizeText(String text, Dialect dialect) =>
-    canonicalize(text, dialect).text;
+String canonicalizeText(
+  String text,
+  Dialect dialect, {
+  Map<String, String> extraRoleSynonyms = const {},
+}) => canonicalize(text, dialect, extraRoleSynonyms: extraRoleSynonyms).text;
 
 /// Whether [token] is one of the canonical role tokens.
 bool isRoleToken(String token) => roleTokens.contains(token);

@@ -39,9 +39,9 @@ down this page, so nothing here is a dead end.
 | [Getting started](getting-started.md) | ✅ done | Open the app, find your way around, call your first dance |
 | [Dialect](dialects.md) | ✅ done | Put the app in your own words — role names and phrasing |
 | [Imports & migration](imports.md) | ✅ done | Bring dances in from other sources and apps |
-| [Collection & search](#collection--search) | ✍️ drafting | Browse your library and find dances fast |
-| [Programs & matrix](#programs--matrix) | ✍️ drafting | Build set lists and check variety at a glance |
-| [Perform mode](#perform-mode) | ✍️ drafting | Call live with a stage-ready, large-print view |
+| [Collection & search](collection.md) | ✅ done | Browse your library and find dances fast |
+| [Programs & matrix](programs.md) | ✅ done | Build set lists and check variety at a glance |
+| [Perform mode](perform.md) | ✅ done | Call live with a stage-ready, large-print view |
 | [Backup & portability](#backup--portability) | ✍️ drafting | Save everything to one file and move it anywhere |
 | [Accessibility](#accessibility) | ✍️ drafting | Screen readers, large text, high contrast, keyboard use |
 | [Settings](#settings) | ✍️ drafting | Dialects, data sources, custom fields, appearance, backup |
@@ -53,28 +53,6 @@ down this page, so nothing here is a dead end.
 
 Short previews of the guides that are still being written. When a guide lands, its
 row above will turn ✅ and its title will link to the new page.
-
-### Collection & search
-
-✍️ *Coming soon.* Your **collection** is your whole library of dances. This guide
-covers browsing and sorting it, and searching by title, author, formation, level,
-tags, custom fields — or even by the **figures** a dance contains, including
-sequences like "chain *then* swing."
-
-### Programs & matrix
-
-✍️ *Coming soon.* Build a **program** (a set list) for an event from dances,
-alternates (**alts**), and free-text slots like breaks and waltzes. Then open the
-**matrix** — a figures-by-dances grid computed from the choreography — to see the
-shape and variety of your evening at a glance. Includes duplicating, printing, and
-marking dances as performed.
-
-### Perform mode
-
-✍️ *Coming soon.* Call from the stage with confidence: huge, adjustable type,
-high-contrast dark-stage theme, edge-reachable next/previous navigation, the screen
-kept awake while you call, and an "adjust" sheet for on-the-fly changes that never
-disturbs the card you are reading.
 
 ### Backup & portability
 
