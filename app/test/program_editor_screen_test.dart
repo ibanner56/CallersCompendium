@@ -554,7 +554,7 @@ void main() {
   });
 
   testWidgets(
-    'builder-routed Perform persists a mark-performed without an explicit Save',
+    'persists a mark-performed made via the builder-routed Perform path',
     (tester) async {
       // Perform enables the wake-lock; install the fake so the platform
       // channel call doesn't leak an unhandled error into the test.
@@ -568,15 +568,19 @@ void main() {
           slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
         ),
       );
-      // The narrow/tablet gig entry point routes through this full-screen
-      // builder; the Perform persist path is width-independent, so we pump at
-      // a comfortable size for the in-event adjust sheet.
+      // Pump the full-screen builder at a NARROW width (800px, below both the
+      // ProgramsShell 900px entry breakpoint and the builder's own 820px
+      // two-pane breakpoint) — the tablet/phone gig form factor this fix
+      // targets, and the layout the narrow entry point routes through.
       await _pumpBuilder(
         tester,
         repos,
         programId: 'p1',
-        size: const Size(1400, 2400),
+        size: const Size(800, 1600),
       );
+
+      // The pre-persist value the immediate write must change.
+      final before = (await repos.programs.getById('p1'))!.updatedAt;
 
       // Enter the live Perform view, open the in-event adjust sheet, and mark
       // the current dance performed — then close the sheet.
@@ -598,8 +602,10 @@ void main() {
       expect(saved.slots.single.performedAt!.isUtc, isTrue);
       expect(
         saved.updatedAt,
-        isNot(_now),
-        reason: 'the immediate persist bumps updatedAt off its saved value',
+        isNot(before),
+        reason:
+            'the immediate persist changed updatedAt from its pre-persist '
+            'value',
       );
     },
   );
