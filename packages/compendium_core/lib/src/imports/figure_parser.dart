@@ -355,6 +355,17 @@ final List<_Recognizer> _recognizers = [
   _californiaTwirl,
   _squareThrough,
   _pullBy,
+  // Appended at the lowest precedence. End placement is safe because these
+  // recognisers are conservative (any leftover token → null → custom) and no
+  // earlier recogniser consumes their move anchors (`rory`/`o'more`, `hall`);
+  // a leading dancer set alone (e.g. "Ones …", "Everyone …") never triggers an
+  // earlier recogniser either, so they neither shadow nor are shadowed. They
+  // emit only what a single line states, and set the neutral value for the
+  // cross-line params (`balance: false` on rory, `ender: 'none'` on the halls)
+  // EXPLICITLY — the CallersBox cross-line merge fills the real value later.
+  _roryOMore,
+  _downTheHall,
+  _upTheHall,
 ];
 
 _Match? _swing(List<String> w) {
@@ -721,4 +732,86 @@ _Match? _pullBy(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('pull_by_direction', {'dir': ?dir, 'hand': ?hand});
+}
+
+/// Tier A: TCB writes "Rory O'More" (dance ids 6, 39), optionally with a slide
+/// direction ("Rory O'More right"). An optional dancer set maps to `who` and a
+/// left/right to `slide`; both fall to the taxonomy default when absent. The
+/// surname is accepted in the common apostrophe spellings (`o'more` with an
+/// ASCII apostrophe, `o’more` with U+2019, or `omore`) and is optional (a bare
+/// "Rory" is unambiguous). Rarer apostrophe codepoints are not recognised and
+/// fall to custom via the leftover-token guard.
+///
+/// We emit `balance: false` EXPLICITLY for import fidelity. TCB writes the
+/// balance as a SEPARATE preceding line (ratified D1: "balance(4)+rory(4)"), so
+/// a standalone rory LINE is the 4-beat unbalanced slide — it does NOT carry a
+/// balance. Rory's MoveDef defaults `balance: true`, so DO NOT restore that
+/// default here: inheriting it would fabricate a balance the line never stated
+/// (and `false`→4 beats matches rory's paramBeats). PR3b's cross-line merge
+/// flips this to `true` when a preceding balance line exists.
+///
+/// Trailing structure ("Rory O'More and swing") leaves leftover tokens, so it
+/// falls to custom. An out-of-domain `who` (e.g. "neighbors", not in Rory's
+/// dancer choices) is rejected by validation → custom.
+_Match? _roryOMore(List<String> w) {
+  final who = _takeDancer(w);
+  final slide = _takeSide(w);
+  if (!_consumePhrase(w, ['rory'])) return null;
+  // Optional "O'More" surname token, in the common apostrophe spellings.
+  const surnames = {"o'more", 'o\u2019more', 'omore'};
+  if (w.isNotEmpty && surnames.contains(w.first)) w.removeAt(0);
+  final who2 = who ?? _takeDancer(w);
+  final slide2 = slide ?? _takeSide(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('rory_o_more', {
+    'who': ?who2,
+    'slide': ?slide2,
+    'balance': false,
+  });
+}
+
+/// Tier A: TCB writes "Go down the hall" / "Down the hall" (dance ids 10945,
+/// 11239, 12001). An optional leading "go" and an optional dancer set are
+/// consumed. The "the" is optional, so the shorter alias "down hall" is also
+/// accepted. A descriptor that changes the move — "and back"
+/// (forward-then-backward) or "four in line" — is left as leftover, so those
+/// lines stay custom.
+///
+/// We emit `ender: 'none'` EXPLICITLY for import fidelity. TCB writes the ender
+/// as a SEPARATE following line (the bend-the-line cross-line proof, ids
+/// 10945/11239/12001), so a bare hall line states no ender. down_the_hall's
+/// MoveDef defaults `ender: 'turnCouple'`, so DO NOT restore that default here:
+/// inheriting it would assert a turn the line never stated and double-count the
+/// ender when it IS on the next line. `none` = "ender not determined on this
+/// line"; PR3b's cross-line merge upgrades `none`→`bendTheLine`.
+_Match? _downTheHall(List<String> w) {
+  final who = _takeDancer(w);
+  _consumePhrase(w, ['go']);
+  if (!_consumePhrase(w, ['down', 'the', 'hall']) &&
+      !_consumePhrase(w, ['down', 'hall'])) {
+    return null;
+  }
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('down_the_hall', {'who': ?who2, 'ender': 'none'});
+}
+
+/// Tier A: TCB writes "Go up the hall" / "Up the hall". Mirror of
+/// [_downTheHall]; same conservative descriptor handling and the same optional
+/// "the" (so "up hall" is accepted). Emits `ender: 'none'` explicitly for the
+/// same reason (up_the_hall's MoveDef defaults `circle`; DO NOT restore that
+/// default here — PR3b's merge sets the real ender).
+_Match? _upTheHall(List<String> w) {
+  final who = _takeDancer(w);
+  _consumePhrase(w, ['go']);
+  if (!_consumePhrase(w, ['up', 'the', 'hall']) &&
+      !_consumePhrase(w, ['up', 'hall'])) {
+    return null;
+  }
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('up_the_hall', {'who': ?who2, 'ender': 'none'});
 }

@@ -77,6 +77,38 @@ void main() {
         move: 'allemande',
         params: {'who': 'role1s', 'hand': 'left'},
       ),
+      // TCB "Rory O'More" (dance ids 6, 39). A standalone line is the unbalanced
+      // 4-beat slide, so the recogniser emits `balance: false` EXPLICITLY (TCB
+      // writes the balance as a separate preceding line; PR3b's merge flips it).
+      "Rory O'More": (move: 'rory_o_more', params: {'balance': false}),
+      "Rory O'More right": (
+        move: 'rory_o_more',
+        params: {'slide': 'right', 'balance': false},
+      ),
+      "Rory O'More left": (
+        move: 'rory_o_more',
+        params: {'slide': 'left', 'balance': false},
+      ),
+      "Ones Rory O'More": (
+        move: 'rory_o_more',
+        params: {'who': 'ones', 'balance': false},
+      ),
+      // A bare "Rory" is unambiguous shorthand for Rory O'More.
+      'Rory': (move: 'rory_o_more', params: {'balance': false}),
+      // TCB "Go down the hall" / "Down the hall" (dance ids 10945, 11239,
+      // 12001). A bare hall line states no ender, so the recogniser emits
+      // `ender: 'none'` EXPLICITLY; the bend-the-line merge upgrades it later.
+      'Go down the hall': (move: 'down_the_hall', params: {'ender': 'none'}),
+      'Down the hall': (move: 'down_the_hall', params: {'ender': 'none'}),
+      // The "the" is optional, so the shorter alias parses the same.
+      'Down hall': (move: 'down_the_hall', params: {'ender': 'none'}),
+      'Everyone down the hall': (
+        move: 'down_the_hall',
+        params: {'who': 'everyone', 'ender': 'none'},
+      ),
+      'Go up the hall': (move: 'up_the_hall', params: {'ender': 'none'}),
+      'Up the hall': (move: 'up_the_hall', params: {'ender': 'none'}),
+      'Up hall': (move: 'up_the_hall', params: {'ender': 'none'}),
     };
 
     cases.forEach((line, expected) {
@@ -104,6 +136,32 @@ void main() {
       expect(f!.move, 'chain');
       expect(f.params['who'], 'role2s');
     });
+
+    test('a bare "Rory O\'More" line validates and renders on defaults', () {
+      // The recogniser emits `balance: false` explicitly — a standalone rory
+      // line is the unbalanced slide; TCB writes the balance as a separate
+      // preceding line (PR3b's merge flips it to true). `balance` is a
+      // structured param, not a render token, so it never appears in the
+      // canonical rendering; `slide`/`who` fall to their MoveDef defaults.
+      final f = parseFigureLine("Rory O'More");
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'rory_o_more');
+      expect(f.params['balance'], false);
+      final rendered = FigureRenderer(contraTaxonomy).renderCanonical(f);
+      expect(rendered, "everyone Rory O'More right");
+    });
+
+    test('down/up the hall emit ender: none (merge sets it later)', () {
+      // The ender is a separate following line in TCB; a bare hall line states
+      // no ender, so we emit the neutral `none` rather than inheriting the
+      // MoveDef default (turnCouple/circle). PR3b upgrades none→bendTheLine.
+      final down = parseFigureLine('Go down the hall');
+      expect(down!.move, 'down_the_hall');
+      expect(down.params['ender'], 'none');
+      final up = parseFigureLine('Up the hall');
+      expect(up!.move, 'up_the_hall');
+      expect(up.params['ender'], 'none');
+    });
   });
 
   group('parseFigureLine — conservative fallback (must stay custom)', () {
@@ -123,8 +181,21 @@ void main() {
       'swing to partner',
       // Moves outside the first-cut coverage.
       'hey for four',
-      'down the hall four in line',
       'contra corners',
+      // "down/up the hall" IS recognised now, but a descriptor that changes the
+      // move leaves leftover tokens, so these near-misses stay custom:
+      //   "four in line" (a formation detail the taxonomy can't carry) and
+      //   "and back" (forward-then-backward, a distinct `facing`).
+      'down the hall four in line',
+      'go down the hall and back',
+      'up the hall and back',
+      // "Rory O'More" IS recognised now, but trailing structure (a second move)
+      // or an out-of-domain dancer set forces custom:
+      "Rory O'More and swing",
+      'balance and Rory O\'More',
+      // "neighbors" is not one of Rory O'More's dancer-set choices, so the
+      // candidate fails validation and degrades to custom.
+      "Neighbor Rory O'More",
       // "square through" spelled out (TCB uses a digit count) stays custom.
       'square through four',
       // gate: SKIPPED this PR — every attested TCB gate carries a
