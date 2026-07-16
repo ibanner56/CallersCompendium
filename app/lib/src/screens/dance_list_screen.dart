@@ -628,7 +628,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
                       onPressed: _clearAll,
                     )
                   : null,
-              border: const OutlineInputBorder(),
             ),
           ),
         ),

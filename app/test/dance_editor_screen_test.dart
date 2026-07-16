@@ -9,6 +9,7 @@ import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
+import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 
 import 'support/test_repositories.dart';
@@ -47,6 +48,7 @@ Future<void> _pumpEditor(
   WidgetTester tester,
   CompendiumRepositories repos, {
   String? danceId,
+  ThemeData? theme,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -54,6 +56,7 @@ Future<void> _pumpEditor(
   addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      theme: theme,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: ActiveDialectScope(notifier: notifier, child: child!),
@@ -1967,6 +1970,32 @@ void main() {
         expect(p.$2, isNot(TextDecoration.lineThrough));
       }
       expect(find.byKey(const ValueKey('title-lingo-hint')), findsNothing);
+    });
+  });
+
+  group('Themed field decoration (UX-2 §5.3/§8)', () {
+    testWidgets('Title field inherits the shared themed input border '
+        '(filled, 12dp) instead of a hard-coded bare border', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpEditor(tester, repos, theme: AppTheme.light);
+
+      final decorator = tester.widget<InputDecorator>(
+        find.descendant(
+          of: find.byKey(const ValueKey('title-field')),
+          matching: find.byType(InputDecorator),
+        ),
+      );
+
+      // Filled treatment comes from the shared InputDecorationTheme.
+      expect(decorator.decoration.filled, isTrue);
+      // Removing the ad-hoc `OutlineInputBorder()` lets the field pick up the
+      // theme's 12dp radius; a bare default border would be 4dp.
+      final border = decorator.decoration.border;
+      expect(border, isA<OutlineInputBorder>());
+      expect(
+        (border as OutlineInputBorder).borderRadius,
+        const BorderRadius.all(Radius.circular(12)),
+      );
     });
   });
 }

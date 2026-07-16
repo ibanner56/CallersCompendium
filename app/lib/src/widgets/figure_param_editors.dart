@@ -127,7 +127,6 @@ class FigureParamEditor extends StatelessWidget {
         decoration: InputDecoration(
           labelText: humanizeToken(paramKey),
           isDense: true,
-          border: const OutlineInputBorder(),
         ),
         items: [
           for (final choice in choices)
@@ -265,11 +264,7 @@ class _IntFieldState extends State<_IntField> {
         key: ValueKey(widget.fieldKey),
         controller: _controller,
         keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          labelText: widget.label,
-          isDense: true,
-          border: const OutlineInputBorder(),
-        ),
+        decoration: InputDecoration(labelText: widget.label, isDense: true),
         onChanged: (text) {
           final n = int.tryParse(text.trim());
           if (n != null && n >= widget.min && n <= widget.max) {
@@ -330,11 +325,7 @@ class _TextParamFieldState extends State<_TextParamField> {
       child: TextField(
         key: ValueKey(widget.fieldKey),
         controller: _controller,
-        decoration: InputDecoration(
-          labelText: widget.label,
-          isDense: true,
-          border: const OutlineInputBorder(),
-        ),
+        decoration: InputDecoration(labelText: widget.label, isDense: true),
         onChanged: widget.onChanged,
       ),
     );

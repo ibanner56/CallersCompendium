@@ -988,10 +988,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             controller: _titleController,
             autofocus: widget.isNew,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'Title *',
-              border: OutlineInputBorder(),
-            ),
+            decoration: const InputDecoration(labelText: 'Title *'),
             onChanged: (_) {
               _scheduleUndoPush();
               _scheduleAutosave();
@@ -1037,7 +1034,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           DropdownButtonFormField<FormationShape>(
             key: ValueKey('formation-field-${_formationShape.name}'),
             initialValue: _formationShape,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
             items: [
               for (final shape in FormationShape.values)
                 DropdownMenuItem(
@@ -1059,7 +1055,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             controller: _formationDetailController,
             decoration: const InputDecoration(
               labelText: 'Formation detail (optional)',
-              border: OutlineInputBorder(),
             ),
             onChanged: (_) {
               _scheduleUndoPush();
@@ -1110,7 +1105,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             decoration: const InputDecoration(
               labelText: 'Phrase structure',
               hintText: 'Blank = standard A1 A2 B1 B2; else e.g. 6*8*2',
-              border: OutlineInputBorder(),
             ),
             onChanged: (_) {
               setState(_recomputeWarnings);
@@ -1207,7 +1201,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             maxLines: 6,
             decoration: const InputDecoration(
               labelText: 'Calling notes',
-              border: OutlineInputBorder(),
               alignLabelWithHint: true,
             ),
             onChanged: (_) {
@@ -1227,7 +1220,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             decoration: const InputDecoration(
               labelText: 'Hook',
               hintText: 'One-line "why call this"',
-              border: OutlineInputBorder(),
             ),
             onChanged: (_) {
               _scheduleUndoPush();
@@ -1467,10 +1459,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
               TextFormField(
                 key: ValueKey('custom-${def.id}'),
                 controller: _customTextControllers[def.id],
-                decoration: InputDecoration(
-                  labelText: def.label,
-                  border: const OutlineInputBorder(),
-                ),
+                decoration: InputDecoration(labelText: def.label),
                 onChanged: (_) {
                   _scheduleUndoPush();
                   _scheduleAutosave();
@@ -1492,10 +1481,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             key: ValueKey('custom-${def.id}'),
             controller: _customTextControllers[def.id],
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: def.label,
-              border: const OutlineInputBorder(),
-            ),
+            decoration: InputDecoration(labelText: def.label),
             onChanged: (_) {
               _scheduleUndoPush();
               _scheduleAutosave();
@@ -1526,10 +1512,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             // Value-based key so undo/redo forces a rebuild with new state.
             key: ValueKey('custom-${def.id}-${_customValues[def.id]}'),
             initialValue: _customValues[def.id] as String?,
-            decoration: InputDecoration(
-              labelText: def.label,
-              border: const OutlineInputBorder(),
-            ),
+            decoration: InputDecoration(labelText: def.label),
             items: [
               const DropdownMenuItem(value: null, child: Text('—')),
               for (final choice in def.choices ?? const <String>[])
@@ -1703,10 +1686,7 @@ class _EnumDropdown<T> extends StatelessWidget {
       // `initialValue` after construction.
       key: ValueKey('$fieldKey-field-$value'),
       initialValue: value,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: label),
       items: [
         for (final v in values)
           DropdownMenuItem(value: v, child: Text(labelOf(v))),
@@ -1807,10 +1787,7 @@ class _LevelDropdown extends StatelessWidget {
       // externally (e.g. via undo/redo), matching [_EnumDropdown].
       key: ValueKey('level-field-${value?.name ?? 'none'}'),
       initialValue: value,
-      decoration: const InputDecoration(
-        labelText: 'Level',
-        border: OutlineInputBorder(),
-      ),
+      decoration: const InputDecoration(labelText: 'Level'),
       items: [
         const DropdownMenuItem<DanceLevel?>(
           value: null,
@@ -1932,7 +1909,6 @@ class _PartialDateFieldState extends State<_PartialDateField> {
                 decoration: InputDecoration(
                   labelText: 'Year',
                   hintText: 'e.g. 1989',
-                  border: const OutlineInputBorder(),
                   counterText: '',
                   errorText: showYearError ? '1–9999' : null,
                 ),
@@ -1957,10 +1933,7 @@ class _PartialDateFieldState extends State<_PartialDateField> {
               child: DropdownButtonFormField<int?>(
                 key: ValueKey('${widget.fieldKey}-month-${_month ?? 0}'),
                 initialValue: _month,
-                decoration: const InputDecoration(
-                  labelText: 'Month',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: 'Month'),
                 items: [
                   const DropdownMenuItem<int?>(value: null, child: Text('—')),
                   for (var m = 1; m <= 12; m++)
@@ -1989,10 +1962,7 @@ class _PartialDateFieldState extends State<_PartialDateField> {
               child: DropdownButtonFormField<int?>(
                 key: ValueKey('${widget.fieldKey}-day-${_day ?? 0}'),
                 initialValue: _day,
-                decoration: const InputDecoration(
-                  labelText: 'Day',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: 'Day'),
                 items: [
                   const DropdownMenuItem<int?>(value: null, child: Text('—')),
                   for (var d = 1; d <= maxDay; d++)
@@ -2152,7 +2122,6 @@ class _AddAutocomplete extends StatelessWidget {
           decoration: const InputDecoration(
             hintText: 'Type to add or create…',
             isDense: true,
-            border: OutlineInputBorder(),
           ),
           onSubmitted: (_) => onSubmit(),
         );
@@ -2301,7 +2270,6 @@ class _TuneEditor extends StatelessWidget {
                 decoration: const InputDecoration(
                   hintText: 'Add a suggested tune…',
                   isDense: true,
-                  border: OutlineInputBorder(),
                 ),
                 onSubmitted: (_) => onAdd(),
               ),
@@ -2358,9 +2326,6 @@ class _LinksEditor extends StatelessWidget {
                     initialValue: draft.kind,
                     isDense: true,
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
                     items: const [
                       DropdownMenuItem(
                         value: LinkKind.source,
@@ -2393,7 +2358,6 @@ class _LinksEditor extends StatelessWidget {
                         decoration: const InputDecoration(
                           labelText: 'URL',
                           isDense: true,
-                          border: OutlineInputBorder(),
                         ),
                         onChanged: (_) => onChanged(),
                       ),
@@ -2404,7 +2368,6 @@ class _LinksEditor extends StatelessWidget {
                         decoration: const InputDecoration(
                           labelText: 'Label (optional)',
                           isDense: true,
-                          border: OutlineInputBorder(),
                         ),
                         onChanged: (_) => onChanged(),
                       ),
@@ -2504,7 +2467,6 @@ class _RelatedDancesEditor extends StatelessWidget {
                         decoration: const InputDecoration(
                           labelText: 'Note (optional)',
                           isDense: true,
-                          border: OutlineInputBorder(),
                         ),
                         onChanged: (_) => onChanged(),
                       ),
@@ -2569,7 +2531,6 @@ class _RelatedDancePicker extends StatelessWidget {
             labelText: 'Related dance',
             hintText: 'Type to search…',
             isDense: true,
-            border: OutlineInputBorder(),
           ),
         );
       },
@@ -2851,7 +2812,6 @@ class _SourceCitationsEditor extends StatelessWidget {
                   decoration: const InputDecoration(
                     labelText: 'Page (optional)',
                     isDense: true,
-                    border: OutlineInputBorder(),
                   ),
                   onChanged: (_) => onChanged(),
                 ),
@@ -2864,7 +2824,6 @@ class _SourceCitationsEditor extends StatelessWidget {
                   decoration: const InputDecoration(
                     labelText: 'Number (optional)',
                     isDense: true,
-                    border: OutlineInputBorder(),
                   ),
                   onChanged: (_) => onChanged(),
                 ),
@@ -2928,7 +2887,6 @@ class _AddSourceAutocomplete extends StatelessWidget {
           decoration: const InputDecoration(
             hintText: 'Cite a source: type to add or create…',
             isDense: true,
-            border: OutlineInputBorder(),
           ),
           onSubmitted: (_) => onSubmit(),
         );
