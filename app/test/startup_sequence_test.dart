@@ -162,9 +162,12 @@ void main() {
         CompendiumApp(
           appData: appData,
           windowService: _NoopWindowService(appData.repositories.settings),
-          integrityCheck: () async {
-            throw StateError('quick_check failed to run');
-          },
+          // Throw *synchronously* (before any Future is returned). This escapes
+          // a `.catchError` on the probe's result — the throw happens before
+          // there is a Future to attach the handler to — so it is the clearest
+          // regression against the old guard and is only handled by the
+          // try/catch around the probe.
+          integrityCheck: () => throw StateError('quick_check failed to run'),
         ),
       );
       await tester.pumpAndSettle();
