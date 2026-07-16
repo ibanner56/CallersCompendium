@@ -126,7 +126,7 @@ class DanceExportMenu extends StatelessWidget {
   ) async {
     try {
       await action();
-    } catch (_) {
+    } on Exception catch (_) {
       messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
