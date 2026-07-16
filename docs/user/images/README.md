@@ -28,5 +28,5 @@ The full rules live in the [style guide](../style-guide.md); the essentials:
 - **Size:** keep files small (aim for well under 500 KB per screenshot); crop to
   the relevant area rather than shipping full-desktop captures.
 
-The `.gitkeep` file keeps this directory in version control while it is otherwise
-empty.
+This README keeps the directory tracked in version control until real images
+land.
