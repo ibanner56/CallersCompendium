@@ -101,12 +101,19 @@ Every image in the user docs **must** have alt text. This is not optional.
 - **Informative images (screenshots, diagrams):** write alt text that conveys the
   same information the image gives a sighted reader — what screen it is and what
   it shows.
-  `![The Collection screen showing a search for "petronella" with three matching
-  dances listed](images/collection-search-petronella.png)`
+
+  ```markdown
+  ![The Collection screen showing a search for "petronella" with three matching dances listed](images/collection-search-petronella.png)
+  ```
+
 - **Decorative images** (a divider, a purely aesthetic flourish that adds no
   information): mark them decorative with **empty** alt text so screen readers skip
-  them: `![](images/divider.png)`. Add an HTML comment noting it is decorative if
-  it is not obvious.
+  them. Add an HTML comment noting it is decorative if it is not obvious.
+
+  ```markdown
+  ![](images/divider.png)
+  ```
+
 - **Describe, don't transcribe.** Summarize the meaningful content; you do not
   need to read out every label. Aim for one clear sentence.
 - **Don't start with "Image of…"** — the screen reader already announces that it
