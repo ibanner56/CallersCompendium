@@ -540,7 +540,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Future<void> _openCustomFields() async {
     await Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const CustomFieldsScreen()));
+    ).push(MaterialPageRoute<void>(builder: (_) => const CustomFieldsScreen()));
     // Reload so newly-created/edited fields show up as facets.
     if (mounted) await _boot();
   }

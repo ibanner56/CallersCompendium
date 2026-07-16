@@ -156,7 +156,8 @@ class Program {
     required this.updatedAt,
     this.deletedAt,
   }) : slots = List.unmodifiable(
-         [...slots]..sort((a, b) => a.position.compareTo(b.position)),
+         <ProgramSlot>[...slots]
+           ..sort((a, b) => a.position.compareTo(b.position)),
        ) {
     if (title.trim().isEmpty) {
       throw ArgumentError.value(title, 'title', 'must be non-empty');

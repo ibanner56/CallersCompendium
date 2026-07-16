@@ -43,8 +43,12 @@ by opening a PR adding a `Proposed` ADR.
 The app is a Flutter [pub workspace](pubspec.yaml): the `app/` Flutter app plus a
 pure-Dart domain core in `packages/compendium_core/` (which must not import
 Flutter — ADR-001, enforced in CI). Flutter is pinned to the version in
-[`.fvmrc`](.fvmrc); [FVM](https://fvm.app/) is the way we keep
-everyone on that exact version. Install FVM, then from the repo root:
+[`.fvmrc`](.fvmrc), which is the **single source of truth** for the Flutter
+version: [FVM](https://fvm.app/) reads it to keep everyone on that exact SDK
+locally, and CI derives its Flutter version from the very same file (via
+`subosito/flutter-action`'s `flutter-version-file`). Bumping `.fvmrc` therefore
+updates local development *and* every CI job together — there is no second
+version to keep in sync. Install FVM, then from the repo root:
 
 ```sh
 fvm install                     # fetch the pinned Flutter version (.fvmrc)
