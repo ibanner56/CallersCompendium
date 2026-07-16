@@ -30,44 +30,35 @@ Future<void> showAddToProgramSheet(
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    showDragHandle: true,
     builder: (sheetContext) {
-      return DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.7,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) {
-          return Column(
+      final maxHeight = MediaQuery.of(sheetContext).size.height * 0.7;
+      return SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: Column(
             children: [
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const SizedBox(width: 16),
-                  Text(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
                     'Add to program',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(sheetContext).textTheme.titleMedium,
                   ),
-                  const Spacer(),
-                  IconButton(
-                    key: const ValueKey('add-to-program-close'),
-                    tooltip: 'Close',
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(sheetContext).pop(),
-                  ),
-                ],
+                ),
               ),
               Expanded(
                 child: programs.isEmpty
                     ? _buildEmptyPrograms(
-                        context,
                         sheetContext,
-                        scrollController,
+                        sheetContext,
                         repositories: repositories,
                         danceId: danceId,
                         danceTitle: danceTitle,
                         messenger: messenger,
                       )
                     : ListView.builder(
-                        controller: scrollController,
                         itemCount: programs.length,
                         itemBuilder: (context, index) => _buildProgramPickRow(
                           context,
@@ -81,8 +72,8 @@ Future<void> showAddToProgramSheet(
                       ),
               ),
             ],
-          );
-        },
+          ),
+        ),
       );
     },
   );
@@ -136,8 +127,7 @@ Widget _buildProgramPickRow(
 /// to create a brand-new program seeded with this dance.
 Widget _buildEmptyPrograms(
   BuildContext context,
-  BuildContext sheetContext,
-  ScrollController controller, {
+  BuildContext sheetContext, {
   required CompendiumRepositories repositories,
   required String danceId,
   required String danceTitle,
@@ -145,7 +135,6 @@ Widget _buildEmptyPrograms(
 }) {
   final theme = Theme.of(context);
   return ListView(
-    controller: controller,
     padding: const EdgeInsets.all(24),
     children: [
       const SizedBox(height: 16),

@@ -219,4 +219,31 @@ void main() {
     expect(find.byKey(const ValueKey('global-search-button')), findsOneWidget);
     expect(find.byKey(const ValueKey('collection-search')), findsNothing);
   });
+
+  testWidgets('desktop rail search is labeled with a keyboard shortcut hint', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, size: const Size(1200, 900));
+
+    // Discoverability: the rail search entry is not a bare glyph — it shows a
+    // visible "Search" label plus the ⌘K / Ctrl K shortcut hint.
+    final button = find.byKey(const ValueKey('global-search-button'));
+    expect(button, findsOneWidget);
+    expect(
+      find.descendant(of: button, matching: find.text('Search')),
+      findsOneWidget,
+    );
+    final hint = find.byKey(const ValueKey('global-search-shortcut-hint'));
+    expect(hint, findsOneWidget);
+    expect(
+      find.descendant(of: hint, matching: find.textContaining('K')),
+      findsOneWidget,
+    );
+
+    // The labeled affordance still opens the palette (binding preserved).
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+  });
 }

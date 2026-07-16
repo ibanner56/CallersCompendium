@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/repositories_scope.dart';
 import '../search/facet_labels.dart';
+import 'skeleton.dart';
 
 /// The kind of entity a [CommandResult] points at, so the shell knows which
 /// section to switch to and which route to open.
@@ -227,8 +228,8 @@ class _CommandPaletteState extends State<CommandPalette> {
   Widget _buildBody(ThemeData theme) {
     if (_loading) {
       return const Padding(
-        padding: EdgeInsets.all(32),
-        child: Center(child: CircularProgressIndicator()),
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: SkeletonResultRows(),
       );
     }
     if (_results.isEmpty) {

@@ -18,6 +18,7 @@ import '../widgets/add_to_program_sheet.dart';
 import '../widgets/dance_export_menu.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/figure_table.dart';
+import '../widgets/skeleton.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
 import 'program_editor_screen.dart';
@@ -583,7 +584,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
+                return const SkeletonDetailView();
               }
               final detail = snapshot.data;
               if (detail == null) {
