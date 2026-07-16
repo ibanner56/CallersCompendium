@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sql;
 
@@ -54,7 +55,9 @@ class DatabaseDowngradeError implements Exception {
 ///    migrate.
 /// 2. **Backup-before-migrate** — if an upgrade is pending (file version <
 ///    running), snapshot the file into [snapshotDir] first (retaining the
-///    newest [retain]), so a botched migration is recoverable.
+///    newest [retain]), so a botched migration is recoverable. This step is
+///    *fail-open*: if the snapshot cannot be written, it is logged and the
+///    migration proceeds (a safety net must never block startup).
 ///
 /// A missing file (fresh install) or an uninitialized file (`user_version == 0`,
 /// which drift will populate via `onCreate`) is a no-op.
@@ -83,13 +86,26 @@ Future<void> runMigrationPreflight({
   }
 
   if (fileVersion < runningSchemaVersion) {
-    await snapshotBeforeMigrate(
-      dbFile: dbFile,
-      snapshotDir: snapshotDir,
-      fromVersion: fileVersion,
-      retain: retain,
-      timestamp: now(),
-    );
+    // Asymmetric by design: the downgrade guard above is fail-CLOSED (it must
+    // refuse to open), but the pre-migration snapshot is fail-OPEN. The
+    // snapshot is a safety net; if it can't be written (disk full, unwritable
+    // db_backups, checkpoint failure) we log and proceed so drift still
+    // migrates. A failing backup must never be more harmful than the pre-PR
+    // behavior, which ran upgrades with no snapshot at all.
+    try {
+      await snapshotBeforeMigrate(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        fromVersion: fileVersion,
+        retain: retain,
+        timestamp: now(),
+      );
+    } on Object catch (error) {
+      debugPrint(
+        'Migration preflight: pre-migration snapshot failed, proceeding '
+        'with migration anyway: $error',
+      );
+    }
   }
 }
 

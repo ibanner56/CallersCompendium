@@ -143,6 +143,37 @@ void main() {
   });
 
   test(
+    'fails open when the snapshot cannot be written, so migration proceeds',
+    () async {
+      final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+      final older = kCompendiumSchemaVersion - 1;
+      _createFixture(dbFile.path, userVersion: older, seedValue: 'survive');
+
+      // Block snapshot creation: put a *file* where the snapshot dir's parent
+      // must be, so Directory.create(recursive: true) throws.
+      final blocker = File(p.join(dir.path, 'blocker'));
+      await blocker.writeAsString('not a directory');
+      final unwritableDir = Directory(p.join(blocker.path, 'db_backups'));
+
+      // Fail-open: the snapshot failure is swallowed and the preflight returns
+      // normally (so drift still migrates), unlike the fail-closed downgrade
+      // guard which must throw.
+      await expectLater(
+        runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: unwritableDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+        ),
+        completes,
+      );
+
+      // No snapshot was written, and the original file is left for drift.
+      expect(unwritableDir.existsSync(), isFalse);
+      expect(readUserVersion(dbFile.path), older);
+    },
+  );
+
+  test(
     'is a no-op for a missing file, empty file, or matching version',
     () async {
       // Missing file (fresh install).
