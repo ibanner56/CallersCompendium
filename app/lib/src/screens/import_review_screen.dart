@@ -384,6 +384,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   Widget _buildInput(BuildContext context) {
     final hasContent = _pasteController.text.trim().isNotEmpty;
+    // While a file pick or URL fetch is in flight, lock every input so a
+    // late-completing pick/fetch can't overwrite the payload or clobber
+    // `_sourceUri` under the user, and so planning can't start on stale input.
+    final busy = _picking || _fetching;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -399,7 +403,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         const SizedBox(height: 16),
         OutlinedButton.icon(
           key: const ValueKey('import-choose-file'),
-          onPressed: _picking ? null : _chooseFile,
+          onPressed: busy ? null : _chooseFile,
           icon: const Icon(Icons.folder_open_outlined),
           label: const Text('Choose file…'),
         ),
@@ -413,11 +417,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 controller: _urlController,
                 keyboardType: TextInputType.url,
                 autocorrect: false,
-                enabled: !_fetching,
+                enabled: !busy,
                 onChanged: (_) {
                   if (_fetchError != null) setState(() => _fetchError = null);
                 },
-                onSubmitted: (_) => _fetching ? null : _fetchFromUrl(),
+                onSubmitted: (_) => busy ? null : _fetchFromUrl(),
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: 'Import from URL',
@@ -428,7 +432,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             const SizedBox(width: 8),
             FilledButton.tonalIcon(
               key: const ValueKey('import-fetch-url'),
-              onPressed: _fetching ? null : _fetchFromUrl,
+              onPressed: busy ? null : _fetchFromUrl,
               icon: _fetching
                   ? const SizedBox(
                       width: 16,
@@ -470,6 +474,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           controller: _pasteController,
           minLines: 4,
           maxLines: 10,
+          enabled: !busy,
           onChanged: (_) {
             // Editing the payload by hand drops any URL provenance so the
             // import is recorded as a paste (uri == null).
@@ -484,7 +489,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         const SizedBox(height: 16),
         FilledButton.icon(
           key: const ValueKey('import-continue'),
-          onPressed: hasContent ? _plan : null,
+          onPressed: (hasContent && !busy) ? _plan : null,
           icon: const Icon(Icons.playlist_add_check),
           label: const Text('Review import'),
         ),

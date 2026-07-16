@@ -424,13 +424,16 @@ void main() {
       );
     });
 
-    test('rejects an empty URL', () {
-      expect(() => fetchImportUrl('   '), throwsA(isA<UrlFetchException>()));
+    test('rejects an empty URL', () async {
+      await expectLater(
+        fetchImportUrl('   '),
+        throwsA(isA<UrlFetchException>()),
+      );
     });
 
-    test('rejects a non-http(s) URL', () {
-      expect(
-        () => fetchImportUrl('ftp://example.com/a.json'),
+    test('rejects a non-http(s) URL', () async {
+      await expectLater(
+        fetchImportUrl('ftp://example.com/a.json'),
         throwsA(isA<UrlFetchException>()),
       );
     });
