@@ -12,6 +12,7 @@ import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_dance_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show kAutoSizePerformKey;
+import 'package:compendium_app/src/theme/app_typography.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
 
 import 'support/test_repositories.dart';
@@ -132,6 +133,37 @@ void main() {
     // Larks/Robins preset: role2s -> robins.
     expect(find.text('robins chain across'), findsOneWidget);
   });
+
+  testWidgets(
+    'renders figure rows and section headers in Atkinson, title in Fraunces',
+    (tester) async {
+      await _pumpPerform(
+        tester,
+        dance: _dance(title: 'Midwest Folklore', figures: [_chain()]),
+        authorNames: const ['Gene Hubert'],
+      );
+
+      // Perform is the accessibility-critical surface: the distance-read body
+      // (figure rows + phrase section headers) must render in the Atkinson
+      // Hyperlegible face, not the Fraunces serif (§1c).
+      final figureStyle = tester
+          .widget<Text>(find.text('robins chain across'))
+          .style;
+      expect(figureStyle?.fontFamily, AppTypography.bodyFamily);
+
+      final sectionStyle = tester.widget<Text>(find.text('A1')).style;
+      expect(sectionStyle?.fontFamily, AppTypography.bodyFamily);
+
+      final authorStyle = tester.widget<Text>(find.text('Gene Hubert')).style;
+      expect(authorStyle?.fontFamily, AppTypography.bodyFamily);
+
+      // The dance title keeps Fraunces for brand identity.
+      final titleStyle = tester
+          .widget<Text>(find.byKey(const ValueKey('perform-title')))
+          .style;
+      expect(titleStyle?.fontFamily, AppTypography.displayFamily);
+    },
+  );
 
   testWidgets('figure line announces the verbose form to assistive tech', (
     tester,

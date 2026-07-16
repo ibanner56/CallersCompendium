@@ -137,4 +137,40 @@ class AppTypography {
       letterSpacing: 0.5,
     ),
   );
+
+  /// Perform-mode distance-read scale (§1c: "Body / UI / **Perform**: Atkinson
+  /// Hyperlegible … scales without bound in Perform"). Perform is the most
+  /// accessibility-critical surface, so its distance-read text — the figure
+  /// rows, section headers, and calling notes — renders in [bodyFamily]
+  /// Atkinson Hyperlegible, the low-vision face, rather than the [displayFamily]
+  /// Fraunces serif the headline styles use elsewhere. The dance title keeps
+  /// Fraunces for brand identity.
+  ///
+  /// Sizes/weights/heights deliberately mirror the headline styles these
+  /// replace (`headlineMedium` / `headlineSmall`) so layout, the auto-size fit
+  /// search, and the A-/A+ size controls are unchanged — only the type face
+  /// differs. Like [textTheme] they carry no [TextStyle.color], so the active
+  /// [ColorScheme] still drives contrast; merge them over a themed headline
+  /// style (e.g. `headlineSmall.merge(performBody)`) to keep its resolved color.
+
+  /// Perform section headers (phrase labels A1/A2/B1… and "Calling notes");
+  /// mirrors [TextTheme.headlineMedium] in Atkinson Hyperlegible.
+  static const TextStyle performSectionHeader = TextStyle(
+    fontFamily: bodyFamily,
+    fontFamilyFallback: _fallback,
+    fontSize: 28,
+    fontWeight: FontWeight.w500,
+    height: 1.29,
+  );
+
+  /// Perform distance-read body (figure-row text, calling-notes text, header
+  /// meta and author lines); mirrors [TextTheme.headlineSmall] in Atkinson
+  /// Hyperlegible.
+  static const TextStyle performBody = TextStyle(
+    fontFamily: bodyFamily,
+    fontFamilyFallback: _fallback,
+    fontSize: 24,
+    fontWeight: FontWeight.w500,
+    height: 1.33,
+  );
 }
