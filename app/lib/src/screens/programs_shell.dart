@@ -21,7 +21,8 @@ import 'programs_list_screen.dart';
 ///
 /// **Breakpoint: 900 logical pixels wide.**
 /// - **Narrow (< 900 px):** [ProgramsListScreen] with push-navigation to the
-///   full-screen [ProgramEditorScreen] builder route.
+///   read-focused [ProgramSummaryScreen] (a Perform-first summary), which in
+///   turn opens the full-screen [ProgramEditorScreen] builder route on Edit.
 /// - **Wide (≥ 900 px):** master-detail [Row] — a fixed 400 px list pane and a
 ///   lightweight **summary** pane for the selected program. Building/editing
 ///   opens the **full-screen** builder route (not embedded) so the builder's
@@ -75,6 +76,9 @@ class _ProgramsShellState extends State<ProgramsShell> {
         if (constraints.maxWidth >= ProgramsShell.splitBreakpoint) {
           return _buildSplitPane();
         }
+        // Narrow: single-pane list. Tapping a program pushes the read-focused
+        // [ProgramSummaryScreen] (not the edit builder), mirroring the dance
+        // side's narrow list → [DanceDetailScreen] flow.
         return const ProgramsListScreen();
       },
     );
@@ -123,6 +127,105 @@ class _ProgramsShellState extends State<ProgramsShell> {
   }
 }
 
+/// Full-screen, read-focused summary of a saved program, pushed on **narrow**
+/// (phone / tablet-portrait) layouts when the user taps a program in
+/// [ProgramsListScreen].
+///
+/// Mirrors the dance side's [DanceDetailScreen]: tapping a saved item opens a
+/// **read view** — a Perform-first summary with a prominent "Perform this
+/// program" action and an "Edit program" action — instead of dropping the
+/// caller straight into the full-screen builder. Reuses the exact same
+/// [_ProgramSummaryPane] content the wide split-pane detail renders, so the two
+/// layouts stay consistent.
+///
+/// Self-manages navigation because there is no hosting shell on narrow:
+/// - **Edit** pushes [ProgramEditorScreen]; on return the summary reloads in
+///   place, or pops (signalling the list to reload) if the builder deleted it.
+/// - **Delete** pops with `'deleted'` so the list drops the stale row.
+/// - **Duplicate** re-targets this screen at the new copy.
+///
+/// Pops with a non-null [String] whenever the program may have changed so
+/// [ProgramsListScreen] reloads; `null` on a plain back-navigation.
+class ProgramSummaryScreen extends StatefulWidget {
+  const ProgramSummaryScreen({super.key, required this.programId});
+
+  final String programId;
+
+  @override
+  State<ProgramSummaryScreen> createState() => _ProgramSummaryScreenState();
+}
+
+class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
+  /// Local refresh signal so the reused [_ProgramSummaryPane] reloads after an
+  /// in-place edit (the wide layout gets this from the shell instead).
+  final _refresh = ValueNotifier<int>(0);
+  late String _programId = widget.programId;
+
+  /// Set once the program may have been mutated (edited, duplicated, marked
+  /// performed) so the list reloads when this screen pops.
+  bool _changed = false;
+
+  @override
+  void dispose() {
+    _refresh.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openBuilder() async {
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => ProgramEditorScreen(programId: _programId),
+      ),
+    );
+    if (!mounted) return;
+    if (result == 'deleted') {
+      // The builder deleted the program; leave the summary and let the list
+      // reload so the row disappears.
+      Navigator.of(context).pop('deleted');
+    } else if (result != null) {
+      // The builder saved edits (title / slots / status may have changed);
+      // reload the summary in place and remember to refresh the list.
+      setState(() {
+        _programId = result;
+        _changed = true;
+      });
+      _refresh.value++;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope<String>(
+      // Route the system back gesture through the same "did anything change?"
+      // signal as the AppBar back button so the list always reloads when it
+      // should, and never needlessly otherwise.
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.of(context).pop(_changed ? _programId : null);
+      },
+      child: _ProgramSummaryPane(
+        // Keyed on the program id so the pane fully resets (fresh load) when a
+        // duplicate re-targets this screen.
+        key: ValueKey('summary-screen-$_programId'),
+        programId: _programId,
+        refreshTrigger: _refresh,
+        showAppBar: true,
+        prominentPerform: true,
+        onOpenBuilder: _openBuilder,
+        onDeleted: () => Navigator.of(context).pop('deleted'),
+        onNavigateTo: (id) {
+          setState(() {
+            _programId = id;
+            _changed = true;
+          });
+          _refresh.value++;
+        },
+      ),
+    );
+  }
+}
+
 /// Read-only summary of the selected program shown in the wide detail pane. The
 /// heavy building work happens in the full-screen [ProgramEditorScreen] route
 /// launched by [onOpenBuilder]; this pane keeps quick duplicate/delete actions.
@@ -134,6 +237,8 @@ class _ProgramSummaryPane extends StatefulWidget {
     required this.onOpenBuilder,
     required this.onDeleted,
     required this.onNavigateTo,
+    this.showAppBar = false,
+    this.prominentPerform = false,
   });
 
   final String programId;
@@ -141,6 +246,15 @@ class _ProgramSummaryPane extends StatefulWidget {
   final VoidCallback onOpenBuilder;
   final VoidCallback onDeleted;
   final void Function(String id) onNavigateTo;
+
+  /// Wraps the pane in a [Scaffold] [AppBar] (back button + generic title) when
+  /// pushed as a full-screen route on narrow layouts. The wide detail pane
+  /// leaves this `false` — its title lives in the body, not an app bar.
+  final bool showAppBar;
+
+  /// Renders a prominent full-width "Perform this program" button (Perform-first)
+  /// in place of the compact perform icon button, for the narrow read view.
+  final bool prominentPerform;
 
   @override
   State<_ProgramSummaryPane> createState() => _ProgramSummaryPaneState();
@@ -298,6 +412,7 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: widget.showAppBar ? AppBar(title: const Text('Program')) : null,
       body: _buildBody(),
       floatingActionButton: (_program != null)
           ? FloatingActionButton.extended(
@@ -345,7 +460,7 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
             Expanded(
               child: Text(program.title, style: theme.textTheme.headlineSmall),
             ),
-            _buildPerformAction(program),
+            if (!widget.prominentPerform) _buildPerformAction(program),
             ProgramExportMenu(
               program: program,
               titleFor: (id) => _danceTitles[id],
@@ -373,6 +488,10 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
         ),
         const SizedBox(height: 8),
         ProgramStatusChip(status: program.status),
+        if (widget.prominentPerform) ...[
+          const SizedBox(height: 16),
+          _buildProminentPerform(program),
+        ],
         const SizedBox(height: 16),
         if (dateLabel != null) _summaryRow(Icons.event_outlined, dateLabel),
         if (program.venue != null)
@@ -413,6 +532,31 @@ class _ProgramSummaryPaneState extends State<_ProgramSummaryPane> {
           : 'Add at least one slot to perform this program',
       icon: const Icon(Icons.slideshow),
       onPressed: canPerform ? _performProgram : null,
+    );
+  }
+
+  /// Prominent, full-width "Perform this program" button for the narrow
+  /// read-focused summary — the Perform-first primary action a caller reaches
+  /// for at a gig. Shares the [ValueKey]`('summary-perform')` and disabled-state
+  /// semantics of [_buildPerformAction] (only one is ever in the tree at a
+  /// time), so the same dead-button guard and tooltip apply: disabled (never
+  /// absent-and-tappable) with an explanatory tooltip when the program has no
+  /// slots or the reference data has not loaded yet.
+  Widget _buildProminentPerform(Program program) {
+    final canPerform = program.slots.isNotEmpty && _collectionData != null;
+    return Tooltip(
+      message: canPerform
+          ? 'Perform this program'
+          : 'Add at least one slot to perform this program',
+      child: SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          key: const ValueKey('summary-perform'),
+          onPressed: canPerform ? _performProgram : null,
+          icon: const Icon(Icons.slideshow),
+          label: const Text('Perform this program'),
+        ),
+      ),
     );
   }
 
