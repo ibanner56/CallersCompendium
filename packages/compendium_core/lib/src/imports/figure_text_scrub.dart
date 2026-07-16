@@ -16,12 +16,13 @@ import '../dialect/dialect.dart';
 ///    dialect.
 /// 3. Runs of whitespace are collapsed to a single space and the result is
 ///    trimmed, so text extracted from wrapped/inline markup (e.g. the ContraDB
-///    HTML page) does not leave doubled spaces or stray newlines. Single-line
-///    inputs (CallersBox / Caller's Companion figure strings) are unaffected.
+///    HTML page) does not leave doubled spaces or stray newlines. Inputs
+///    without repeated whitespace (typical CallersBox / Caller's Companion
+///    figure strings) are unchanged by this step.
 ///
 /// This is the single shared implementation every free-text import adapter uses
 /// (`CallersBoxAdapter`, `ContraDbHtmlAdapter`, and the Caller's Companion
-/// text/`.USR` path via `mapCallersCompanionDance`), so a `custom` figure reads
+/// `.USR` path via `mapCallersCompanionDance`), so a `custom` figure reads
 /// consistently no matter which source it came from.
 String scrubFigureText(String text) {
   final degypsied = text
