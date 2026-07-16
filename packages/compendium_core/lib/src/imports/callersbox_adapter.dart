@@ -108,7 +108,7 @@ class CallersBoxAdapter implements SourceAdapter {
     }
 
     final elements = _extractDanceElements(decoded);
-    if (elements == null || elements.isEmpty) {
+    if (elements == null) {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
@@ -118,7 +118,10 @@ class CallersBoxAdapter implements SourceAdapter {
             'a "dances"/"records" array.',
       );
     }
-    if (!elements.any(_looksLikeTcbDance)) {
+    // Keep only dance-like elements so a mixed array/wrapper never surfaces a
+    // record with a null id/label that would only fail later in parse().
+    final dances = elements.where(_looksLikeTcbDance).toList();
+    if (dances.isEmpty) {
       throw ImportError(
         stage: ImportStage.discover,
         source: source,
@@ -128,13 +131,13 @@ class CallersBoxAdapter implements SourceAdapter {
       );
     }
 
-    _records.addAll(elements);
+    _records.addAll(dances);
     return [
-      for (var i = 0; i < elements.length; i++)
+      for (var i = 0; i < dances.length; i++)
         DiscoveredRecord(
           source: source,
-          externalId: _externalIdOf(elements[i]),
-          label: _nameOf(elements[i]),
+          externalId: _externalIdOf(dances[i]),
+          label: _nameOf(dances[i]),
           locator: {'index': i},
         ),
     ];

@@ -191,6 +191,36 @@ void main() {
         expect(records.single.externalId, '9');
       });
 
+      test('filters non-dance elements out of a mixed array', () async {
+        final adapter = CallersBoxAdapter();
+        final records = await adapter.discover(
+          ImportRequest(
+            payload: jsonEncode([
+              {'not': 'a dance'},
+              _dance(id: '5', name: 'Real'),
+              'junk',
+            ]),
+          ),
+        );
+        expect(records, hasLength(1));
+        expect(records.single.externalId, '5');
+        expect(records.single.label, 'Real');
+      });
+
+      test('throws when an array has no dance-like elements', () {
+        expect(
+          () => CallersBoxAdapter().discover(
+            ImportRequest(
+              payload: jsonEncode([
+                {'not': 'a dance'},
+                'junk',
+              ]),
+            ),
+          ),
+          throwsA(isA<ImportError>()),
+        );
+      });
+
       test('a failed discover clears prior state', () async {
         final adapter = CallersBoxAdapter();
         await adapter.discover(
