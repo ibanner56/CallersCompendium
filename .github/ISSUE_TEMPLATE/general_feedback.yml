@@ -1,0 +1,61 @@
+name: 💬 General feedback
+description: Share a quick impression, a rough edge, or something that felt awkward — no bug required.
+title: "[Feedback]: "
+labels: ["type: feedback", "status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for helping shape Caller's Compendium during the beta! This is a
+        low-effort form — a sentence or two is plenty. Bugs have their own form,
+        but anything that felt confusing, slow, or just *off* belongs here.
+  - type: markdown
+    attributes:
+      value: >-
+        **Privacy:** Caller's Compendium is local-first and collects no
+        telemetry — nothing is gathered automatically, so everything here is
+        only what you choose to type. Please don't paste personal or identifying
+        information.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What were you trying to do?
+      description: The task or workflow you were working on (e.g. building a program, importing a dance, calling from Perform mode).
+      placeholder: I was putting together a set list for a Saturday dance…
+    validations:
+      required: true
+  - type: textarea
+    id: experience
+    attributes:
+      label: What happened, or what felt awkward?
+      description: What worked, what didn't, or what got in your way.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform (optional)
+      description: Where you were using the app, if it's relevant.
+      multiple: true
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Android
+        - iOS / iPadOS
+    validations:
+      required: false
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Any suggestion? (optional)
+      description: If you have an idea for how it could be better, we'd love to hear it.
+    validations:
+      required: false
+  - type: checkboxes
+    id: privacy-ack
+    attributes:
+      label: Privacy acknowledgement
+      options:
+        - label: I haven't included personal or identifying information in this report.
+          required: true

@@ -1,12 +1,20 @@
-name: Bug report
+name: 🐞 Bug report
 description: Something isn't working correctly
-labels: ["bug"]
+title: "[Bug]: "
+labels: ["type: bug", "status: triage"]
 body:
+  - type: markdown
+    attributes:
+      value: >-
+        **Privacy:** Caller's Compendium is local-first and collects no
+        telemetry — there's no automatic diagnostics collection, so everything
+        below is only what you provide. Please don't paste personal or
+        identifying information.
   - type: textarea
     id: what-happened
     attributes:
       label: What happened?
-      description: What did you do, what did you expect, and what happened instead?
+      description: A clear description of the bug — what went wrong.
     validations:
       required: true
   - type: textarea
@@ -16,13 +24,53 @@ body:
       placeholder: |
         1. …
         2. …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened?
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Impact / severity
+      description: How bad is it? (A triager will confirm the matching severity label.)
+      options:
+        - "Critical — data loss, crash, or can't call at a gig (severity: critical)"
+        - "Major — broken workflow with no easy workaround (severity: major)"
+        - "Minor — limited impact, a workaround exists (severity: minor)"
+        - "Trivial — cosmetic or very low impact (severity: trivial)"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform(s)
+      description: Where you saw the bug (select all that apply).
+      multiple: true
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Android
+        - iOS / iPadOS
     validations:
       required: true
   - type: input
-    id: platform
+    id: app-version
     attributes:
-      label: Platform & version
-      placeholder: e.g. iPadOS 19, app v0.3.1
+      label: App version
+      description: "Find it in Settings ▸ About once that screen is available; otherwise it's 0.1.0."
+      value: "0.1.0"
     validations:
       required: true
   - type: textarea
@@ -31,4 +79,14 @@ body:
       label: Dance data involved (if notation-related)
       description: >-
         If the bug involves a specific dance, include its source (book, site,
-        CallersBox ID) or paste the figures so we can reproduce it.
+        Caller's Box ID) or paste the figures so we can reproduce it. Please
+        redact anything personal or private.
+    validations:
+      required: false
+  - type: checkboxes
+    id: privacy-ack
+    attributes:
+      label: Privacy acknowledgement
+      options:
+        - label: I haven't included personal or identifying information in this report.
+          required: true

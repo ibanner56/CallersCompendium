@@ -1,0 +1,18 @@
+# Issue chooser configuration for Caller's Compendium.
+# Blank issues are disabled so every report flows through a structured form,
+# which keeps beta triage consistent (see .github/labels.yml for the taxonomy).
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions (questions, ideas & general chat)
+    url: https://github.com/ibanner56/CallersCompendium/discussions
+    about: >-
+      The primary place for questions, ideas, and general conversation about
+      Caller's Compendium. Start here for anything that isn't a specific bug,
+      feature request, or beta report — it's easier to discuss and search than
+      an issue.
+  - name: ✉️ Private feedback to the maintainer
+    url: mailto:ibanner56@gmail.com
+    about: >-
+      Prefer to share something privately (or it doesn't fit a public form)?
+      Email the maintainer directly. Please don't include personal or
+      identifying data — the app is local-first and collects no telemetry.
