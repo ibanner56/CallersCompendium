@@ -43,6 +43,14 @@ const List<String> searchIndexSql = [
 /// [CompendiumRepositories.ensureMigrated] only after the rebuild succeeds.
 const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 
+/// The current on-disk schema version of [CompendiumDatabase].
+///
+/// Exposed as a top-level constant (in addition to the [CompendiumDatabase.
+/// schemaVersion] getter) so the app-layer migration preflight can compare a
+/// file's persisted `user_version` against the running schema *without* opening
+/// the database. Keep this and the migration `onUpgrade` steps in lockstep.
+const int kCompendiumSchemaVersion = 9;
+
 /// The Caller's Compendium local database.
 ///
 /// Schema version history:
@@ -150,7 +158,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   CompendiumDatabase(super.executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => kCompendiumSchemaVersion;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -162,6 +170,22 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
     },
     onUpgrade: (m, from, to) async {
+      // Belt-and-suspenders downgrade guard. drift is forward-only and has no
+      // `onDowngrade`; it invokes `onUpgrade` whenever the stored version
+      // differs from the running one — *including* `from > to` (a file written
+      // by a newer build). None of the `if (from < N)` steps below would fire,
+      // so drift would silently stamp `user_version` DOWN to `to` while leaving
+      // newer tables/columns in place, risking corruption. Refuse instead. The
+      // app layer normally catches this earlier (see the migration preflight in
+      // `app/lib/src/data/migration_guard.dart`); this is the last line of
+      // defense for any open path that bypasses it.
+      if (from > to) {
+        throw StateError(
+          'Refusing to migrate the database down: it was created at schema '
+          'version $from by a newer build, but this build only understands '
+          'version $to.',
+        );
+      }
       if (from < 2) {
         await m.addColumn(danceFigures, danceFigures.section);
         for (final sql in searchIndexSql) {

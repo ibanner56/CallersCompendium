@@ -1157,6 +1157,41 @@ void main() {
       await second.close();
     },
   );
+
+  test('refuses to migrate a database stamped by a newer schema version '
+      '(downgrade belt-and-suspenders)', () async {
+    final dir = await Directory.systemTemp.createTemp('compendium_core_');
+    addTearDown(() => dir.delete(recursive: true));
+    final dbPath = p.join(dir.path, 'test.sqlite');
+
+    // 1. Create a normal current-version database.
+    final first = CompendiumDatabase(NativeDatabase(File(dbPath)));
+    await first.quickCheck();
+    await first.close();
+
+    // 2. Stamp its user_version to a *future* version, as if a newer build
+    // wrote it. drift is forward-only with no onDowngrade; it still invokes
+    // onUpgrade whenever the stored version differs, so without the guard it
+    // would silently stamp the version back down.
+    final raw = sqlite3.sqlite3.open(dbPath);
+    raw.execute('PRAGMA user_version = ${kCompendiumSchemaVersion + 1}');
+    raw.close();
+
+    // 3. Reopening must refuse: onUpgrade(from > to) throws, propagating out
+    // of the first query rather than migrating down.
+    final second = CompendiumDatabase(NativeDatabase(File(dbPath)));
+    addTearDown(() async {
+      try {
+        await second.close();
+      } on Object {
+        // A failed open can leave close() unhappy; ignore during teardown.
+      }
+    });
+    await expectLater(
+      second.customSelect('SELECT 1').get(),
+      throwsA(isA<StateError>()),
+    );
+  });
 }
 
 /// A [CompendiumRepositories] whose derived-index rebuild throws on its first

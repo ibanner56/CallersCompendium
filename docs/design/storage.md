@@ -75,3 +75,34 @@ No full-table in-memory scans (ContraDB pitfall #2). Target: <50 ms over
 - WAL mode; foreign keys ON; nightly-on-launch `PRAGMA quick_check`.
 - All writes in transactions via repository layer; soft deletes purge after a
   configurable retention (default 30 days) via startup sweep.
+
+### Migration safety (app-layer preflight)
+
+Before the app opens the drift database it runs a preflight
+(`app/lib/src/data/migration_guard.dart`) that reads the file's persisted
+`PRAGMA user_version` — via a short-lived, WAL-aware `sqlite3` connection, not
+by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
+
+- **Downgrade protection.** If the file's version is *higher* than the running
+  schema (it was written by a newer build), the preflight refuses to open it and
+  routes to the `AppBootstrap` error screen ("created by a newer version …
+  please update the app"). drift is forward-only with no `onDowngrade`, so
+  migrating such a file would silently stamp the version down and risk
+  corruption; a belt-and-suspenders guard in `MigrationStrategy.onUpgrade`
+  (`from > to` throws) backstops any open path that bypasses the preflight.
+- **Backup-before-migrate.** If an upgrade is pending (file version < running),
+  the preflight first checkpoints the WAL and copies the whole SQLite file to
+  `<app-documents>/db_backups/compendium.pre-v<from>-<UTC-timestamp>.sqlite.bak`,
+  retaining the newest 5. This is a raw byte snapshot, distinct from the
+  user-triggered JSON backup/restore (6.6/G.5): the JSON path is a *logical*
+  export through the current-schema repositories and cannot run against a file
+  that hasn't been migrated to that schema yet, whereas a byte copy is
+  schema-agnostic and the highest-fidelity rollback for a botched migration.
+
+  **Restoring a pre-migration snapshot:** quit the app, replace the live
+  `compendium.sqlite` in the app-documents directory with the chosen
+  `.sqlite.bak` (renaming it back to `compendium.sqlite`), and relaunch. Because
+  the snapshot is stamped at the older `user_version`, opening it with the build
+  that created the backup migrates it forward again; if the migration itself was
+  the problem, open it with the matching older app version instead.
+

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 
@@ -294,4 +295,38 @@ void main() {
     expect(find.textContaining('integrity check failed'), findsNothing);
     expect(find.byType(AppShell), findsOneWidget);
   });
+
+  testWidgets(
+    'a downgrade preflight failure shows the update-app message and gates the '
+    'app, with no Retry (Phase 7 migration safety)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      const error = DatabaseDowngradeError(fileVersion: 99, appVersion: 9);
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          // The preflight runs first; a downgrade rejection must reach the
+          // AppBootstrap error screen with a tailored, non-retryable message.
+          migrationPreflight: () async => throw error,
+          integrityCheck: () async => true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(error.message), findsOneWidget);
+      expect(find.byType(AppShell), findsNothing);
+      // Retrying can't help — the fix is to update the app — so it's hidden.
+      expect(find.text('Retry'), findsNothing);
+      // This is not the generic failure path.
+      expect(
+        find.textContaining('Could not prepare the collection'),
+        findsNothing,
+      );
+    },
+  );
 }

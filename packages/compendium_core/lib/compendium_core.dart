@@ -55,7 +55,10 @@ export 'src/serialization/archive_service.dart';
 export 'src/serialization/compendium_archive.dart';
 export 'src/serialization/figure_codec.dart';
 export 'src/storage/database.dart'
-    show CompendiumDatabase, derivedRebuildRequiredKey;
+    show
+        CompendiumDatabase,
+        derivedRebuildRequiredKey,
+        kCompendiumSchemaVersion;
 export 'src/storage/repositories/choreographer_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
     show
