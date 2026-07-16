@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
@@ -191,6 +192,36 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+  });
+
+  testWidgets('the rail hosts a bottom Help affordance that opens the guide', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, size: const Size(1200, 900));
+
+    // The Help/User-guide button lives in the rail on wide layouts.
+    final helpButton = find.byKey(const ValueKey('user-guide-button'));
+    expect(
+      find.descendant(of: find.byType(NavigationRail), matching: helpButton),
+      findsOneWidget,
+    );
+
+    await tester.tap(helpButton);
+    await tester.pumpAndSettle();
+
+    // It opens the offline in-app user guide at the hub.
+    expect(find.byType(UserGuideScreen), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'User guide'), findsOneWidget);
+  });
+
+  testWidgets('the narrow layout has no rail Help button', (tester) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, size: const Size(500, 900));
+
+    // The rail Help button is desktop-only; mobile reaches the guide from
+    // Settings ▸ About instead.
+    expect(find.byKey(const ValueKey('user-guide-button')), findsNothing);
   });
 
   testWidgets('the app-bar search action opens the palette (narrow)', (

@@ -1,0 +1,45 @@
+# Standalone drift-check for the in-app User Guide's bundled docs.
+#
+# The in-app User Guide renders docs bundled under app/assets/docs/, mirrored
+# from docs/user/ by tools/ci/sync_user_docs.py. This is the sole gate that the
+# committed bundle stays in sync with docs/user/ (the single source of truth).
+# It lives in its own workflow — rather than the shared _checks.yml — because
+# ci.yml skips entirely for Markdown-only changes (`paths-ignore: '**.md'`), and
+# the guide sources under docs/user/ are Markdown; a docs-only PR that edits
+# docs/user/ without regenerating app/assets/docs/ would slip past a gate that
+# only ran inside ci.yml. This workflow's path filters (below) trigger precisely
+# on the files that affect drift — for both docs-only and code PRs — closing
+# that gap without touching the main CI/release triggers.
+#
+# It is intentionally cheap (plain python3, no Flutter setup) and is not marked
+# a required status, so it never runs on unrelated PRs and never leaves a
+# required check pending.
+name: Docs bundle check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/user/**'
+      - 'app/assets/docs/**'
+      - 'tools/ci/sync_user_docs.py'
+      - '.github/workflows/docs-bundle-check.yml'
+  pull_request:
+    paths:
+      - 'docs/user/**'
+      - 'app/assets/docs/**'
+      - 'tools/ci/sync_user_docs.py'
+      - '.github/workflows/docs-bundle-check.yml'
+
+# Least privilege: this check only reads the checked-out code.
+permissions:
+  contents: read
+
+jobs:
+  docs-bundle:
+    name: User-docs bundle in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Guard in-app user-docs bundle single-source (docs/user == assets)
+        run: python3 tools/ci/sync_user_docs.py --check

@@ -27,6 +27,11 @@ dependencies:
   window_manager: ^0.5.2
   file_selector: ^1.1.0
   http: ^1.2.2
+  # In-app User Guide: render the bundled Markdown guides (headings, lists,
+  # tables, fenced code, links). `flutter_markdown_plus` is the maintained
+  # successor to the discontinued `flutter_markdown` and exposes the
+  # `onTapLink`/`imageBuilder` seams the guide's in-app navigation relies on.
+  flutter_markdown_plus: ^1.0.12
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -44,6 +49,11 @@ flutter:
     - assets/fonts/Fraunces-OFL.txt
     - assets/fonts/AtkinsonHyperlegible-OFL.txt
     - assets/fonts/Roboto-OFL.txt
+    # In-app User Guide: the offline copy of the user documentation, mirrored
+    # from /docs/user by tools/ci/sync_user_docs.py and kept in sync by a CI
+    # drift-check. Rendered from these bundled assets so the guide works fully
+    # offline. Text-only for now — images are rendered as alt-text captions.
+    - assets/docs/user/
   fonts:
     - family: Fraunces # display / headings (serif, OFL) — variable opsz/wght
       fonts:
