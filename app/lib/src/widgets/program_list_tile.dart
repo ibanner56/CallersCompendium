@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../data/date_format_scope.dart';
+import '../data/regional_formats.dart';
 import 'program_status_chip.dart';
 
 /// One Programs list row: title, event date, venue, slot count, and a status
@@ -25,7 +27,11 @@ class ProgramListTile extends StatelessWidget {
     final eventDate = program.eventDate;
     final dateLabel = eventDate == null
         ? null
-        : MaterialLocalizations.of(context).formatMediumDate(eventDate);
+        : formatEventDate(
+            eventDate,
+            DateFormatScope.of(context),
+            MaterialLocalizations.of(context),
+          );
 
     final venue = program.venue?.trim();
     final subtitleParts = <String>[

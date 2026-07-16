@@ -2,7 +2,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/date_format_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -404,9 +406,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final slotCount = program.slots.length;
     final dateLabel = program.eventDate == null
         ? null
-        : MaterialLocalizations.of(
-            context,
-          ).formatMediumDate(program.eventDate!);
+        : formatEventDate(
+            program.eventDate!,
+            DateFormatScope.of(context),
+            MaterialLocalizations.of(context),
+          );
     final countLabel = '$slotCount ${slotCount == 1 ? 'dance' : 'dances'}';
     final subtitleParts = [?dateLabel, countLabel];
     return MergeSemantics(

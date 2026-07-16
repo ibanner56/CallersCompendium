@@ -4,7 +4,9 @@ import 'package:flutter/semantics.dart';
 import 'package:printing/printing.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/date_format_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
@@ -930,7 +932,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Widget _buildMetadataSection() {
     final dateLabel = _eventDate == null
         ? 'No date set'
-        : MaterialLocalizations.of(context).formatMediumDate(_eventDate!);
+        : formatEventDate(
+            _eventDate!,
+            DateFormatScope.of(context),
+            MaterialLocalizations.of(context),
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1080,6 +1086,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final initial = stored == null
         ? now
         : DateTime(stored.year, stored.month, stored.day);
+    // The date picker follows the platform locale's first day of week; a
+    // configurable first-day-of-week preference is a future item (ROADMAP G.8).
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,

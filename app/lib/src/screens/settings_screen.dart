@@ -7,10 +7,12 @@ import '../data/confirm_before_delete_scope.dart';
 import '../data/custom_theme.dart';
 import '../data/custom_themes_controller.dart';
 import '../data/custom_themes_scope.dart';
+import '../data/date_format_scope.dart';
 import '../data/dialect_library_controller.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/reduce_motion_scope.dart';
+import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/soft_delete_retention.dart';
@@ -79,6 +81,7 @@ enum _SettingsSection {
   general('General', Icons.tune_outlined, Icons.tune),
   appearance('Appearance', Icons.palette_outlined, Icons.palette),
   dialect('Dialect', Icons.groups_outlined, Icons.groups),
+  regional('Language & region', Icons.translate_outlined, Icons.translate),
   defaults('Defaults', Icons.settings_suggest_outlined, Icons.settings_suggest);
 
   const _SettingsSection(this.label, this.icon, this.selectedIcon);
@@ -582,6 +585,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await repos.settings.set(kConfirmBeforeDeleteKey, value);
   }
 
+  Future<void> _onDateFormatChanged(DateFormatPref value) async {
+    // Instant-notifier-then-persist (ROADMAP G.8): flip the live notifier so
+    // on-screen event dates re-render immediately, then persist the token.
+    DateFormatScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kDateFormatKey, value.token);
+  }
+
   /// Builds the content pane for [section]. Selection and scope reads use
   /// [context] (in the side-by-side layout the screen itself; in the narrow
   /// layout the pushed detail route) via `.of(context)`, which registers that
@@ -608,6 +619,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case _SettingsSection.dialect:
         return _DialectLibrarySection(
           controller: DialectLibraryScope.of(context),
+        );
+      case _SettingsSection.regional:
+        return _RegionalView(
+          dateFormat: DateFormatScope.of(context),
+          onDateFormatChanged: _onDateFormatChanged,
         );
       case _SettingsSection.general:
         _ensureAutoSizeLoaded(context);
@@ -1159,6 +1175,94 @@ class _DialectNameDialogState extends State<_DialectNameDialog> {
           key: const ValueKey('dialect-name-confirm'),
           onPressed: _submit,
           child: Text(widget.confirmLabel),
+        ),
+      ],
+    );
+  }
+}
+
+/// The Language & region section (ROADMAP G.8): regional-format preferences and
+/// a home for future regional/localization options.
+///
+/// Ships the cheap, genuinely-functional piece — how program event dates render
+/// (the Date format control) — alongside explicit disabled placeholder rows for
+/// options that are not available yet: a first-day-of-week control (Flutter's
+/// date pickers can't yet consume a custom first day without a heavy
+/// localizations override) and a future UI-language selector.
+class _RegionalView extends StatelessWidget {
+  const _RegionalView({
+    required this.dateFormat,
+    required this.onDateFormatChanged,
+  });
+
+  final DateFormatPref dateFormat;
+  final ValueChanged<DateFormatPref> onDateFormatChanged;
+
+  static String _dateFormatLabel(DateFormatPref pref) {
+    switch (pref) {
+      case DateFormatPref.system:
+        return 'System default';
+      case DateFormatPref.ymd:
+        return 'Year-month-day (2026-07-15)';
+      case DateFormatPref.dmy:
+        return 'Day/month/year (15/07/2026)';
+      case DateFormatPref.mdy:
+        return 'Month/day/year (07/15/2026)';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // A live example of how today's date renders in the chosen format, shown as
+    // the date-format control's subtitle so the choice is concrete.
+    final example = formatEventDate(
+      DateTime.now(),
+      dateFormat,
+      MaterialLocalizations.of(context),
+    );
+    return ListView(
+      children: [
+        _SectionHeader(title: 'Formats'),
+        ListTile(
+          title: const Text('Date format'),
+          subtitle: Text('How program event dates appear. Example: $example'),
+          isThreeLine: true,
+          trailing: DropdownButton<DateFormatPref>(
+            key: const ValueKey('regional-date-format'),
+            value: dateFormat,
+            onChanged: (value) {
+              if (value != null) onDateFormatChanged(value);
+            },
+            items: [
+              for (final pref in DateFormatPref.values)
+                DropdownMenuItem(
+                  value: pref,
+                  child: Text(_dateFormatLabel(pref)),
+                ),
+            ],
+          ),
+        ),
+        const ListTile(
+          key: ValueKey('regional-first-day-of-week'),
+          enabled: false,
+          title: Text('First day of week'),
+          subtitle: Text(
+            'Choose which day the week starts on. Not available yet.',
+          ),
+          isThreeLine: true,
+          trailing: Text('Coming soon'),
+        ),
+        _SectionHeader(title: 'Language'),
+        const ListTile(
+          key: ValueKey('regional-language-placeholder'),
+          enabled: false,
+          title: Text('App language'),
+          subtitle: Text(
+            'Choose the language of the app’s interface. Full localization is '
+            'not available yet.',
+          ),
+          isThreeLine: true,
+          trailing: Text('Coming soon'),
         ),
       ],
     );

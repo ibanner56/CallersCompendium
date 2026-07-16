@@ -9,9 +9,11 @@ import 'src/data/app_theme_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
+import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
+import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
 import 'src/data/soft_delete_retention.dart';
@@ -86,6 +88,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     false,
   );
   final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
+  final ValueNotifier<DateFormatPref> _dateFormatNotifier = ValueNotifier(
+    DateFormatPref.system,
+  );
   late final CustomThemesController _customThemes;
   late final DialectLibraryController _dialectLibrary;
 
@@ -167,6 +172,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (confirmBeforeDelete is bool) {
       _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
     }
+    // Load the regional-format preference (ROADMAP G.8), defaulting to System
+    // when unset. Defensive: a read failure or garbage token resolves to the
+    // safe System default via the resolver.
+    final dateFormat = await _appData.repositories.settings
+        .get(kDateFormatKey)
+        .catchError((_) => null);
+    _dateFormatNotifier.value = dateFormatPrefFromStored(dateFormat);
     // Load any locally-saved custom themes and the active one (if set).
     await _customThemes.load();
   }
@@ -180,6 +192,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _reduceMotionNotifier.dispose();
     _verboseFigureRenderingNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
+    _dateFormatNotifier.dispose();
     _customThemes.dispose();
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
@@ -261,7 +274,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
                             notifier: _verboseFigureRenderingNotifier,
                             child: ConfirmBeforeDeleteScope(
                               notifier: _confirmBeforeDeleteNotifier,
-                              child: child!,
+                              child: DateFormatScope(
+                                notifier: _dateFormatNotifier,
+                                child: child!,
+                              ),
                             ),
                           ),
                         ),
