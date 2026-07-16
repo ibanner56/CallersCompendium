@@ -789,8 +789,11 @@ void main() {
     await _pumpScreen(tester, repos);
     await tester.pumpAndSettle();
 
-    // An unterminated FTS phrase is a MATCH syntax error at query time.
-    await _search(tester, '"');
+    // Simulate a backend failure at query time: close the database so the
+    // next search throws. (User input can no longer trigger an FTS syntax
+    // error now that queries are sanitized, so we fault the store directly.)
+    await repos.db.close();
+    await _search(tester, 'chase');
 
     expect(
       find.text('Something went wrong running the search.'),
@@ -799,6 +802,24 @@ void main() {
     // The stale count is cleared so the live region matches the error state.
     expect(find.text('0 dances'), findsOneWidget);
     expect(find.byType(DanceListTile), findsNothing);
+  });
+
+  testWidgets('punctuation-only query degrades to no-match, not an error', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    // A lone double quote used to be an FTS MATCH syntax error; sanitized
+    // queries now match nothing gracefully instead of surfacing an error.
+    await _search(tester, '"');
+
+    expect(find.text('Something went wrong running the search.'), findsNothing);
+    expect(find.text('No dances match your search.'), findsOneWidget);
+    expect(find.text('0 dances'), findsOneWidget);
   });
 
   testWidgets('tapping a dance navigates to its detail screen', (tester) async {

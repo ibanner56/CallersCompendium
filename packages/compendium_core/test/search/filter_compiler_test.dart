@@ -65,7 +65,8 @@ void main() {
         pred(const FullTextFilter('swing')),
         'id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)',
       );
-      expect(c.binds, ['swing']);
+      // The bind is the sanitized FTS5 phrase, not the raw term.
+      expect(c.binds, ['"swing"']);
     });
 
     test('Author', () {
@@ -440,7 +441,7 @@ void main() {
         'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
         'ORDER BY bm25(dance_fts)',
       );
-      expect(c.binds, ['reel']);
+      expect(c.binds, ['"reel"']);
     });
 
     test('relevance on a non-bare tree degrades to title order', () {
@@ -458,7 +459,8 @@ void main() {
       final c = FilterCompiler(
         Dialect.larksRobins,
       ).compile(const FullTextFilter('robins allemande'));
-      expect(c.binds.single, 'role2s allemande');
+      // Canonicalized to role tokens, then each token sanitized to a phrase.
+      expect(c.binds.single, '"role2s" "allemande"');
     });
 
     test('role-valued figure params are canonicalized', () {

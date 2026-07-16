@@ -48,8 +48,13 @@ class NotFilter extends DanceFilter {
 }
 
 /// Full-text search over `dance_fts`. [query] is canonicalized (dialect role
-/// terms rewritten) at the compiler boundary before becoming the `MATCH`
-/// bind; FTS operators the user typed (`AND`, `"…"`, `*`) are preserved.
+/// terms rewritten) at the compiler boundary and then sanitized into a safe
+/// `MATCH` bind: each whitespace-delimited token is wrapped as a quoted FTS5
+/// phrase (embedded `"` doubled). This means ordinary punctuated terms like
+/// `do-si-do` or `O'Neill` match instead of raising `fts5: syntax error`, but
+/// it also **neutralizes** user-typed FTS operators — `AND`/`OR`/`NOT`/`NEAR`,
+/// prefix `*`, and explicit `"…"` grouping are treated as literal text, not
+/// query syntax. Callers must not rely on advanced FTS expression support here.
 @immutable
 class FullTextFilter extends DanceFilter {
   const FullTextFilter(this.query);

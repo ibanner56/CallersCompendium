@@ -184,6 +184,59 @@ void main() {
       expect(await dances.search(const FullTextFilter('Petronella')), ['a']);
     });
 
+    group('FullText tolerates punctuation and operator-like text', () {
+      test('hyphenated terms match instead of throwing', () async {
+        await dances.create(
+          _dance(
+            id: 'a',
+            title: 'Do-Si-Do Delight',
+            figures: [
+              Figure(move: 'do_si_do', params: const {'beats': 8}),
+            ],
+          ),
+        );
+        await dances.create(_dance(id: 'b', title: 'Unrelated'));
+        // Raw hyphens would be FTS5 syntax; the sanitizer makes this a phrase.
+        expect(await dances.search(const FullTextFilter('do-si-do')), ['a']);
+        expect(
+          await dances.search(const FullTextFilter('right-and-left')),
+          isEmpty,
+        );
+      });
+
+      test('apostrophes match instead of throwing', () async {
+        await dances.create(_dance(id: 'a', title: "O'Neill's Reel"));
+        await dances.create(_dance(id: 'b', title: 'Plain'));
+        expect(await dances.search(const FullTextFilter("O'Neill")), ['a']);
+      });
+
+      test('bare boolean keywords are literal, not operators', () async {
+        await dances.create(_dance(id: 'a', title: 'Right and Left'));
+        await dances.create(_dance(id: 'b', title: 'Solo'));
+        // A trailing/standalone AND used to throw a syntax error.
+        expect(await dances.search(const FullTextFilter('AND')), ['a']);
+      });
+
+      test('an unbalanced double quote does not throw', () async {
+        await dances.create(_dance(id: 'a', title: 'Foo Bar'));
+        expect(await dances.search(const FullTextFilter('foo"')), ['a']);
+      });
+
+      test(
+        'empty / whitespace-only text returns no rows, never throws',
+        () async {
+          await dances.create(_dance(id: 'a', title: 'Anything'));
+          expect(await dances.search(const FullTextFilter('   ')), isEmpty);
+        },
+      );
+
+      test('repository.searchText is sanitized too', () async {
+        await dances.create(_dance(id: 'a', title: 'Do-Si-Do Delight'));
+        expect(await dances.searchText('do-si-do'), ['a']);
+        expect(await dances.searchText('foo"'), isEmpty);
+      });
+    });
+
     test('Source: matches dances citing a source by title or author', () async {
       final sources = PublishedSourceRepository(db);
       await sources.upsert(

@@ -2,6 +2,7 @@ import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../model/enums.dart';
 import 'filter.dart';
+import 'fts_query.dart';
 import 'search_sort.dart';
 
 /// A compiled search: one parameterized SQL statement plus its ordered bind
@@ -65,7 +66,7 @@ class FilterCompiler {
   }
 
   CompiledFilter _compileRelevance(FullTextFilter filter) {
-    final query = canonicalizeText(filter.query, dialect);
+    final query = toFtsMatchQuery(canonicalizeText(filter.query, dialect));
     const sql =
         'SELECT dance_fts.dance_id FROM dance_fts '
         'JOIN dances ON dances.id = dance_fts.dance_id '
@@ -107,7 +108,7 @@ class FilterCompiler {
       case NotFilter(:final child):
         return 'NOT (${_dance(child, binds)})';
       case FullTextFilter(:final query):
-        binds.add(canonicalizeText(query, dialect));
+        binds.add(toFtsMatchQuery(canonicalizeText(query, dialect)));
         return 'id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)';
       case AuthorFilter(:final choreographerId):
         binds.add(choreographerId);
