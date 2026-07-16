@@ -7,8 +7,8 @@ import '../utils/confirm_delete.dart';
 import '../widgets/program_list_tile.dart';
 import 'app_shell_search_scope.dart';
 import 'program_editor_screen.dart';
+import 'program_summary_screen.dart';
 import 'programs_recently_deleted_screen.dart';
-import 'programs_shell.dart';
 
 /// How the Programs list is ordered (`docs/design/ux.md` §4).
 enum ProgramSort {

@@ -8,6 +8,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
