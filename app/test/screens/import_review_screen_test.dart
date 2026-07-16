@@ -520,6 +520,43 @@ void main() {
       expect(fetchCalls, 0);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('switching source clears stale URL provenance', (tester) async {
+      final repos = openTestRepositories();
+      final adapter = _CapturingAdapter();
+      // A generic-JSON source using a provenance-capturing adapter, plus the
+      // Caller's Box source. Fetch under Caller's Box, then switch back to
+      // generic and plan: the previous fetch URL must NOT be reattached.
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: [
+          ImportSource(label: 'test JSON', adapterFactory: () => adapter),
+          ImportSource(
+            label: "The Caller's Box",
+            adapterFactory: CallersBoxAdapter.new,
+            urlBuilder: buildCallersBoxJsonUrl,
+          ),
+        ],
+        fetcher: (url) async => 'body',
+      );
+
+      await selectCallersBox(tester);
+      await _fetch(tester, '1');
+
+      // Switch back to the generic JSON source.
+      await tester.tap(find.byKey(const ValueKey('import-source-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('test JSON').last);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+
+      // Provenance was dropped on the switch, so it plans as a paste.
+      expect(adapter.lastRequest?.uri, isNull);
+    });
   });
 
   group('fetchImportUrl (default seam)', () {

@@ -420,9 +420,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     if (source == null) return;
                     setState(() {
                       _selected = source;
-                      // Selecting a new source drops any stale fetch error; the
-                      // typed input may now be valid (or invalid) for it.
+                      // Selecting a new source drops any stale fetch error and
+                      // URL provenance: the fetched-from URL belonged to the
+                      // previous source/adapter, so carrying it onto the next
+                      // plan would misattribute provenance. The payload is left
+                      // for the user (they may re-fetch or paste); it plans as
+                      // a paste (uri == null) until a fresh fetch sets it.
                       _fetchError = null;
+                      _sourceUri = null;
                     });
                   },
             items: [
