@@ -28,6 +28,8 @@ import 'src/screens/app_shell.dart';
 import 'src/screens/settings_screen.dart'
     show kAppThemeKey, kRequirePerformedForHistoryKey, kSortIgnoreArticlesKey;
 import 'src/theme/app_theme.dart';
+import 'src/update/update_controller.dart';
+import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
 
 Future<void> main() async {
@@ -139,6 +141,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
   late final CustomThemesController _customThemes;
   late final DialectLibraryController _dialectLibrary;
 
+  /// Owns the update-check preferences and latest check result (ADR-002 §4/§5).
+  /// Loaded during bootstrap; the auto-check (opt-in, default off) is kicked off
+  /// once per launch after preferences load.
+  late final UpdateController _updateController;
+
   /// Result of the once-per-launch [_runIntegrityCheck]. `false` means the
   /// `PRAGMA quick_check` probe failed, so the ready app surfaces a (non-fatal)
   /// corruption warning. Guarded by [_corruptionBannerShown] so the banner is
@@ -156,6 +163,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // consumer) via [_syncActiveDialect], so the rest of the app is unchanged.
     _dialectLibrary = DialectLibraryController(_appData.repositories.settings);
     _dialectLibrary.addListener(_syncActiveDialect);
+    _updateController = UpdateController(_appData.repositories.settings);
     _bootstrap = _startupSequence();
   }
 
@@ -216,6 +224,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
       );
     }
     await _loadPreferences();
+    // Kick off the automatic background update check once per launch. It is a
+    // no-op unless the user opted in (default off) and never blocks startup or
+    // surfaces an error — fire-and-forget per the ADR-002 §5 privacy contract.
+    unawaited(_updateController.maybeAutoCheck());
   }
 
   /// Loads every persisted preference and app-local controller from the
@@ -277,6 +289,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dateFormatNotifier.value = dateFormatPrefFromStored(dateFormat);
     // Load any locally-saved custom themes and the active one (if set).
     await _customThemes.load();
+    // Load the update-check preferences (beta opt-in, auto-check opt-in, and
+    // the dismissed banner version), all defaulting to the safe off/none state.
+    await _updateController.load();
   }
 
   /// Re-reads all preferences and app-local controllers from the (freshly
@@ -302,6 +317,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _customThemes.dispose();
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
+    _updateController.dispose();
     widget.windowService.dispose();
     // dispose() can't be async; explicitly mark the close as fire-and-forget
     // rather than silently dropping an unawaited Future (unawaited_futures).
@@ -400,31 +416,34 @@ class _CompendiumAppState extends State<CompendiumApp> {
           themeMode: themeMode,
           builder: (context, child) => RepositoriesScope(
             repositories: _appData.repositories,
-            child: AppThemeScope(
-              notifier: _themeNotifier,
-              child: CustomThemesScope(
-                controller: _customThemes,
-                child: DialectLibraryScope(
-                  controller: _dialectLibrary,
-                  child: ActiveDialectScope(
-                    notifier: _dialectNotifier,
-                    child: RequirePerformedForHistoryScope(
-                      notifier: _requirePerformedForHistoryNotifier,
-                      child: SortIgnoreArticlesScope(
-                        notifier: _sortIgnoreArticlesNotifier,
-                        child: ReduceMotionScope(
-                          notifier: _reduceMotionNotifier,
-                          child: VerboseFigureRenderingScope(
-                            notifier: _verboseFigureRenderingNotifier,
-                            child: ConfirmBeforeDeleteScope(
-                              notifier: _confirmBeforeDeleteNotifier,
-                              child: DateFormatScope(
-                                notifier: _dateFormatNotifier,
-                                child: BackupControllerScope(
-                                  onRestored: reloadFromSettings,
-                                  child: CollectionRefreshScope(
-                                    revision: _collectionRefreshNotifier,
-                                    child: child!,
+            child: UpdateScope(
+              controller: _updateController,
+              child: AppThemeScope(
+                notifier: _themeNotifier,
+                child: CustomThemesScope(
+                  controller: _customThemes,
+                  child: DialectLibraryScope(
+                    controller: _dialectLibrary,
+                    child: ActiveDialectScope(
+                      notifier: _dialectNotifier,
+                      child: RequirePerformedForHistoryScope(
+                        notifier: _requirePerformedForHistoryNotifier,
+                        child: SortIgnoreArticlesScope(
+                          notifier: _sortIgnoreArticlesNotifier,
+                          child: ReduceMotionScope(
+                            notifier: _reduceMotionNotifier,
+                            child: VerboseFigureRenderingScope(
+                              notifier: _verboseFigureRenderingNotifier,
+                              child: ConfirmBeforeDeleteScope(
+                                notifier: _confirmBeforeDeleteNotifier,
+                                child: DateFormatScope(
+                                  notifier: _dateFormatNotifier,
+                                  child: BackupControllerScope(
+                                    onRestored: reloadFromSettings,
+                                    child: CollectionRefreshScope(
+                                      revision: _collectionRefreshNotifier,
+                                      child: child!,
+                                    ),
                                   ),
                                 ),
                               ),
