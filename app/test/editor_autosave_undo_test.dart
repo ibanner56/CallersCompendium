@@ -640,7 +640,9 @@ void main() {
       expect(await repos.settings.contains('editor_draft:new'), isFalse);
     });
 
-    testWidgets('draft cleared on back navigation', (tester) async {
+    testWidgets('back navigation on a dirty editor prompts before discarding', (
+      tester,
+    ) async {
       final repos = openTestRepositories();
       await _pumpEditor(tester, repos);
 
@@ -651,11 +653,63 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
       expect(await repos.settings.contains('editor_draft:new'), isTrue);
 
-      // Use pageBack() (taps the AppBar BackButton → maybePop → PopScope handler
-      // → _clearDraft() + programmatic Navigator.pop).
+      // Backing out no longer silently discards: it shows the same
+      // 'Discard changes?' confirmation the program editor uses.
       await tester.pageBack();
       await tester.pumpAndSettle();
 
+      expect(find.text('Discard changes?'), findsOneWidget);
+      // Still on the editor, and the draft is preserved until the user
+      // explicitly confirms the discard — no silent data loss.
+      expect(find.byKey(const ValueKey('title-field')), findsOneWidget);
+      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+    });
+
+    testWidgets(
+      "'Keep editing' cancels the back navigation and preserves the draft",
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpEditor(tester, repos);
+
+        await tester.enterText(
+          find.byKey(const ValueKey('title-field')),
+          'Keep Me',
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('discard-cancel')));
+        await tester.pumpAndSettle();
+
+        // Dialog dismissed, still editing, draft intact.
+        expect(find.text('Discard changes?'), findsNothing);
+        expect(find.byKey(const ValueKey('title-field')), findsOneWidget);
+        expect(await repos.settings.contains('editor_draft:new'), isTrue);
+      },
+    );
+
+    testWidgets("'Discard' clears the draft and leaves the editor", (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpEditor(tester, repos);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Will Discard',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(await repos.settings.contains('editor_draft:new'), isTrue);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('discard-confirm')));
+      await tester.pumpAndSettle();
+
+      // Editor popped back to the launcher and the draft was cleared.
+      expect(find.byKey(const ValueKey('title-field')), findsNothing);
+      expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
       expect(await repos.settings.contains('editor_draft:new'), isFalse);
     });
 

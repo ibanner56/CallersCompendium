@@ -104,6 +104,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   Object? _loadError;
   bool _saving = false;
 
+  /// `true` once the user has made an unsaved edit. Drives the unsaved-changes
+  /// guard (`PopScope`/[_confirmDiscard]) so backing out of a dirty editor
+  /// prompts before discarding, mirroring [ProgramEditorScreen]. Reset on a
+  /// successful save.
+  bool _dirty = false;
+
   // ---- Undo / redo ----
   final _undoStack = EditorUndoStack();
 
@@ -483,6 +489,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       }
       // Clear the autosave draft — work is now committed.
       await _clearDraft();
+      _dirty = false;
       if (mounted) Navigator.of(context).pop(dance.id);
     } catch (error) {
       if (!mounted) return;
@@ -684,8 +691,16 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   /// Debounces autosave writes (500 ms after last change).
   void _scheduleAutosave() {
+    _markDirty();
     _autosaveTimer?.cancel();
     _autosaveTimer = Timer(const Duration(milliseconds: 500), _saveDraft);
+  }
+
+  /// Flags the editor as having unsaved changes. Called from the shared
+  /// [_scheduleAutosave] chokepoint (every edit path runs through it) so the
+  /// unsaved-changes guard stays in sync. Matches [ProgramEditorScreen].
+  void _markDirty() {
+    if (!_dirty) setState(() => _dirty = true);
   }
 
   void _undo() {
@@ -770,6 +785,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       // the user cannot "undo the restore" back to the pre-restore state.
       _undoStack.clear();
       _undoStack.push(_captureSnapshot());
+      // Restored content is unsaved work: guard the back gesture so it can't
+      // be silently discarded.
+      _dirty = true;
       setState(() {});
     } else {
       await _repos.settings.remove(_draftKey);
@@ -788,11 +806,32 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     await _repos.settings.remove(_draftKey);
   }
 
-  /// Called when the user navigates back without saving (Back button /
-  /// system gesture). Clears the draft and then pops programmatically.
-  Future<void> _clearAndPop() async {
-    await _clearDraft();
-    if (mounted) Navigator.of(context).pop();
+  /// Prompts before discarding unsaved edits when the user backs out of a dirty
+  /// editor. Returns `true` when it is safe to leave (no unsaved changes, or the
+  /// user confirmed the discard). Mirrors [ProgramEditorScreen._confirmDiscard]
+  /// so the two editors share the same 'Discard changes?' affordance.
+  Future<bool> _confirmDiscard() async {
+    if (!_dirty) return true;
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Discard changes?'),
+        content: const Text('You have unsaved changes to this dance.'),
+        actions: [
+          TextButton(
+            key: const ValueKey('discard-cancel'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep editing'),
+          ),
+          FilledButton(
+            key: const ValueKey('discard-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    return discard ?? false;
   }
 
   List<CustomFieldValue> _collectCustomFields() {
@@ -826,12 +865,20 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      // canPop: false — Back button / system gesture is intercepted so we can
-      // clear the autosave draft before leaving.  Programmatic Navigator.pop()
-      // (called by _save) bypasses canPop and is not affected.
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) unawaited(_clearAndPop());
+      // canPop mirrors ProgramEditorScreen: when there are unsaved changes the
+      // Back button / system gesture is intercepted so we can confirm before
+      // discarding (and only then delete the autosave draft). Programmatic
+      // Navigator.pop() (called by _save) bypasses canPop and is not affected.
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final ok = await _confirmDiscard();
+        if (!ok) return;
+        // User confirmed the discard: drop the autosave draft so it can't
+        // resurface, then pop.
+        await _clearDraft();
+        if (!context.mounted) return;
+        Navigator.of(context).pop();
       },
       child: Shortcuts(
         shortcuts: {
