@@ -41,9 +41,12 @@ jobs:
       # ADR-001: the domain core must stay free of Flutter. Resolution/dependency
       # based guard (replaces a brittle grep that false-positived on comments):
       #   1. no Flutter package is reachable in compendium_core's resolved
-      #      dependency graph (`dart pub deps --json`), and
-      #   2. no lib/test/benchmark Dart file has a real import/export directive
-      #      targeting package:flutter* (comments and strings are stripped first).
+      #      dependency graph (`dart pub deps --json`) — this is the authoritative
+      #      check and catches a real import or transitive dependency, and
+      #   2. a comment-safe source scan of lib/test/benchmark for an actual
+      #      import/export directive targeting package:flutter* (comments are
+      #      stripped first; the directive regex requires a full quoted URI and a
+      #      trailing semicolon so it won't fire on a string-literal line).
       - name: Guard compendium_core against Flutter (ADR-001)
         run: |
           python3 <<'PY'
@@ -83,11 +86,17 @@ jobs:
                   + ", ".join(reachable)
               )
 
-          # 2. Comment-safe source scan of lib/test/benchmark.
+          # 2. Source scan of lib/test/benchmark. Comments are stripped first,
+          #    and the directive regex requires a complete quoted package:flutter
+          #    URI closed by the same quote and a trailing semicolon on one line,
+          #    so a string literal that merely starts with `import 'package:...`
+          #    won't match. The dependency-closure check above is the
+          #    authoritative backstop for anything a source scan could miss.
           block = re.compile(r"/\*.*?\*/", re.DOTALL)
           line = re.compile(r"//.*")
           directive = re.compile(
-              r"""^\s*(?:import|export)\s+['"]package:(flutter[\w]*)/""",
+              r"""^[ \t]*(?:import|export)[ \t]+(['"])package:(flutter[\w]*)/"""
+              r"""[^'"\n]*\1[^;\n]*;""",
               re.MULTILINE,
           )
           scanned = 0
@@ -99,7 +108,7 @@ jobs:
                   scanned += 1
                   src = line.sub("", block.sub("", dart.read_text(encoding="utf-8")))
                   for m in directive.finditer(src):
-                      failures.append(f"{dart}: imports package:{m.group(1)} (ADR-001)")
+                      failures.append(f"{dart}: imports package:{m.group(2)} (ADR-001)")
 
           if failures:
               for f in failures:
@@ -199,14 +208,19 @@ jobs:
         if: matrix.target == 'macos' || matrix.target == 'ios'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
+          # Cache only the CocoaPods spec repo / CDN download cache, which are
+          # the slow parts and always exist after a pod install. The per-project
+          # app/*/Pods dir is fast to regenerate and is target-specific, so it is
+          # deliberately not cached (avoids "path not found" on the target that
+          # doesn't build it). The repo commits no Podfile.lock, so the key is
+          # derived from the committed root pubspec.lock — the authoritative
+          # source for plugin (and therefore pod) versions — so the cache
+          # invalidates whenever dependencies change.
           path: |
             ~/.cocoapods
             ~/Library/Caches/CocoaPods
-            app/ios/Pods
-            app/macos/Pods
-          key: pods-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('app/ios/Podfile.lock', 'app/macos/Podfile.lock') }}
+          key: pods-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
           restore-keys: |
-            pods-${{ runner.os }}-${{ matrix.target }}-
             pods-${{ runner.os }}-
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
