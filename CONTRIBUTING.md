@@ -167,3 +167,30 @@ discussion.
 
 Use the issue templates. For dance-notation questions, include the dance's
 source (book/site/id) so we can look at the original.
+
+## Feedback & beta
+
+Caller's Compendium runs a beta program for real callers, and community feedback
+is one of the most valuable ways to help — no code required. Everything here is
+**voluntary and goes through GitHub**; the app itself is local-first and has **no
+telemetry**, so nothing is ever collected automatically. You decide what to share.
+
+- **New to the beta?** Start with the [Beta guide](docs/beta/beta-guide.md) — what
+  the beta is, how to join, and how to send feedback — then skim the
+  [test charter](docs/beta/test-charter.md) for concrete things to try, all
+  centered on calling a real dance from **Perform mode**.
+- **Filing something?** The **Bug report** and **Feature request** forms are
+  always on the
+  [new-issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose).
+  As the beta program rolls out, beta-specific forms join them: **General feedback**
+  for rough edges, **Beta check-in** to report how a session or gig went, and
+  **Import source problem** when a dance imports wrong. For open-ended ideas, start a
+  [Discussion](https://github.com/ibanner56/CallersCompendium/discussions).
+- **Curious what happens next?** Maintainers sort every report using the
+  [triage rubric](docs/beta/triage-rubric.md), which maps to the label taxonomy in
+  [`.github/labels.yml`](.github/labels.yml) so you can follow an issue from
+  `status: triage` to `status: fixed-pending-release`.
+- **Worried about your data?** Don't be — export a backup from
+  **Settings → General** first. Backup and restore are built in, so testing a
+  pre-release build never puts your collection at risk.
+
