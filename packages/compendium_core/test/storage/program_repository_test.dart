@@ -176,6 +176,43 @@ void main() {
     });
   });
 
+  group('listIdsAndTitles', () {
+    test(
+      'returns id+title pairs ordered by title, excluding soft-deleted',
+      () async {
+        await repo.create(sampleProgram(id: 'p2', title: 'Zesty Night'));
+        await repo.create(sampleProgram(id: 'p1', title: 'Autumn Ball'));
+        await repo.create(
+          sampleProgram(
+            id: 'p3',
+            title: 'Deleted Program',
+            deletedAt: DateTime.utc(2026, 1, 2),
+          ),
+        );
+
+        final pairs = await repo.listIdsAndTitles();
+        expect(pairs, [
+          (id: 'p1', title: 'Autumn Ball'),
+          (id: 'p2', title: 'Zesty Night'),
+        ]);
+
+        final withDeleted = await repo.listIdsAndTitles(includeDeleted: true);
+        expect(withDeleted.map((p) => p.title), [
+          'Autumn Ball',
+          'Deleted Program',
+          'Zesty Night',
+        ]);
+      },
+    );
+
+    test('breaks equal-title ties deterministically by id', () async {
+      await repo.create(sampleProgram(id: 'p2', title: 'Same Night'));
+      await repo.create(sampleProgram(id: 'p1', title: 'Same Night'));
+      final pairs = await repo.listIdsAndTitles();
+      expect(pairs.map((p) => p.id), ['p1', 'p2']);
+    });
+  });
+
   group('soft delete / restore / purge', () {
     test('soft delete then restore clears deletedAt', () async {
       final program = sampleProgram();

@@ -280,6 +280,55 @@ void main() {
     );
   });
 
+  group('listIdsTitlesAndForms', () {
+    test(
+      'returns id+title+form records ordered by title, excluding soft-deleted',
+      () async {
+        await dances.create(
+          sampleDance(
+            id: 'd2',
+            title: 'Zesty Zephyr',
+          ).copyWith(form: DanceForm.square),
+        );
+        await dances.create(
+          sampleDance(
+            id: 'd1',
+            title: 'Airplane',
+          ).copyWith(form: DanceForm.ecd),
+        );
+        await dances.create(
+          sampleDance(
+            id: 'd3',
+            title: 'Deleted Dance',
+            deletedAt: DateTime.utc(2026, 1, 2),
+          ),
+        );
+
+        final records = await dances.listIdsTitlesAndForms();
+        expect(records, [
+          (id: 'd1', title: 'Airplane', form: DanceForm.ecd),
+          (id: 'd2', title: 'Zesty Zephyr', form: DanceForm.square),
+        ]);
+
+        final withDeleted = await dances.listIdsTitlesAndForms(
+          includeDeleted: true,
+        );
+        expect(withDeleted.map((r) => r.title), [
+          'Airplane',
+          'Deleted Dance',
+          'Zesty Zephyr',
+        ]);
+      },
+    );
+
+    test('breaks equal-title ties deterministically by id', () async {
+      await dances.create(sampleDance(id: 'd2', title: 'Same Dance'));
+      await dances.create(sampleDance(id: 'd1', title: 'Same Dance'));
+      final records = await dances.listIdsTitlesAndForms();
+      expect(records.map((r) => r.id), ['d1', 'd2']);
+    });
+  });
+
   group('soft delete / restore / purge', () {
     test('soft delete then restore clears deletedAt', () async {
       final dance = sampleDance();
