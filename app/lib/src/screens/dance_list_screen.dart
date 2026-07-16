@@ -1,13 +1,14 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:flutter/foundation.dart' show ValueListenable, listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
+import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
@@ -114,6 +115,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// in [didChangeDependencies] and updated live when the user changes it.
   Dialect _dialect = Dialect.larksRobins;
 
+  /// Always-on search enrichment built from the union of every saved dialect
+  /// (presets + custom), so a role/move term configured in *any* saved dialect
+  /// resolves regardless of which one is active (mirrors the built-in legacy
+  /// synonyms). Rebuilt in [didChangeDependencies] when the library changes.
+  SearchEnrichment _enrichment = SearchEnrichment.empty;
+
+  /// The dialect list the current [_enrichment] was built from, used to detect
+  /// library changes and avoid rebuilding/re-searching when nothing changed.
+  List<Dialect> _enrichmentDialects = const [];
+
   /// Whether the title sort ignores a leading article — read from
   /// [SortIgnoreArticlesScope] in [didChangeDependencies] and updated live when
   /// the user toggles the General setting.
@@ -186,6 +197,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final dialectChanged = _started && newDialect != _dialect;
     _dialect = newDialect;
 
+    // Build the always-on enrichment from the union of every saved dialect
+    // (presets + custom). Registers a rebuild dependency on the library so a
+    // dialect add/edit/delete re-runs the search live.
+    final library = DialectLibraryScope.maybeOf(context);
+    final newDialects = library?.all ?? const <Dialect>[];
+    final dialectsChanged = !listEquals(newDialects, _enrichmentDialects);
+    if (dialectsChanged) {
+      _enrichmentDialects = newDialects;
+      _enrichment = SearchEnrichment.fromDialects(newDialects);
+    }
+    final enrichmentChanged = _started && dialectsChanged;
+
     // Read the sort-ignore-articles setting (registers a rebuild dependency so
     // this fires again when the user toggles it).
     final newIgnoreArticles = SortIgnoreArticlesScope.of(context);
@@ -199,7 +222,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _online = widget.callersBoxOnline ?? CallersBoxOnline();
       widget.refreshTrigger?.addListener(_onRefreshTriggered);
       _boot();
-    } else if (dialectChanged || ignoreArticlesChanged) {
+    } else if (dialectChanged || ignoreArticlesChanged || enrichmentChanged) {
       _runSearch();
     }
 
@@ -333,6 +356,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         filter,
         sort: _sort.searchSort,
         dialect: _dialect,
+        enrichment: _enrichment,
         ignoreLeadingArticles: _sortIgnoreArticles,
       );
       if (!mounted || seq != _searchSeq) return;

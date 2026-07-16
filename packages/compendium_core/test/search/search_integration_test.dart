@@ -905,6 +905,79 @@ void main() {
     });
   });
 
+  group('union search enrichment (all saved dialects, always-on)', () {
+    // Regression for the reported bug: search resolved known-canonical/legacy
+    // terms (e.g. "ladies") regardless of the active dialect, but NOT terms
+    // from a user's OWN saved dialect overrides unless that dialect happened to
+    // be active. Enrichment now unions every saved dialect's role/move terms,
+    // always-on, exactly like the legacy synonyms.
+    late SearchEnrichment enrichment;
+    setUp(() async {
+      // A saved dialect the user is NOT actively using: follows → role2.
+      final follows = Dialect(
+        name: 'Leads/Follows (saved)',
+        roles: const {'role1': RoleTerm('lead'), 'role2': RoleTerm('follow')},
+      );
+      enrichment = SearchEnrichment.fromDialects([follows]);
+      await dances.create(
+        _dance(
+          id: 'chain',
+          title: 'Chain Dance',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'role2s', 'beats': 8}),
+          ],
+        ),
+      );
+    });
+
+    test(
+      '"follows" hits the same dance as "ladies" / "role2s" (active: Larks/Robins)',
+      () async {
+        final byCanonical = await dances.search(
+          const FullTextFilter('role2s'),
+          dialect: Dialect.larksRobins,
+          enrichment: enrichment,
+        );
+        final byLegacy = await dances.search(
+          const FullTextFilter('ladies'),
+          dialect: Dialect.larksRobins,
+          enrichment: enrichment,
+        );
+        final byOwnDialect = await dances.search(
+          const FullTextFilter('follows'),
+          dialect: Dialect.larksRobins,
+          enrichment: enrichment,
+        );
+        expect(byCanonical, ['chain']);
+        expect(byLegacy, ['chain']);
+        expect(byOwnDialect, ['chain']);
+      },
+    );
+
+    test(
+      'without enrichment, "follows" does NOT resolve (the old bug)',
+      () async {
+        // Same active dialect, no union enrichment: "follows" is neither a
+        // Larks/Robins term nor a legacy synonym, so it must not match.
+        expect(
+          await dances.search(
+            const FullTextFilter('follows'),
+            dialect: Dialect.larksRobins,
+          ),
+          isEmpty,
+        );
+        // "ladies" still resolves via the always-on legacy synonyms.
+        expect(
+          await dances.search(
+            const FullTextFilter('ladies'),
+            dialect: Dialect.larksRobins,
+          ),
+          ['chain'],
+        );
+      },
+    );
+  });
+
   group('sort options', () {
     test('title (default) case-insensitive', () async {
       await dances.create(_dance(id: 'b', title: 'banana'));
