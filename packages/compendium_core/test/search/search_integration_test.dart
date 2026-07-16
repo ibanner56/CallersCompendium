@@ -236,7 +236,9 @@ void main() {
             ),
           );
           // A lone `(` / `)` is FTS5 grouping syntax; unbalanced it is a syntax
-          // error. Sanitized, the token collapses to the literal phrase 'swing'.
+          // error. Quoting ("(swing") makes FTS5 read a phrase literal, not
+          // grouping; at match time the tokenizer drops the paren, so the
+          // phrase reduces to the term `swing`.
           expect(await dances.search(const FullTextFilter('(swing')), ['a']);
           expect(await dances.search(const FullTextFilter('swing)')), ['a']);
         },
@@ -282,12 +284,16 @@ void main() {
               ],
             ),
           );
-          // `*` (prefix) and `^` (first-token) collapse to the literal 'swing'.
+          // Quoting each token ("swing*", "^swing") stops FTS5 reading `*` as a
+          // prefix query or `^` as a first-token match; the tokenizer then
+          // drops the punctuation so the phrase matches the term `swing`.
           expect(await dances.search(const FullTextFilter('swing*')), ['a']);
           expect(await dances.search(const FullTextFilter('^swing')), ['a']);
           // A raw column filter on a non-existent column would be an FTS5
-          // 'no such column: foo' error; sanitized it is the literal phrase
-          // 'foo swing', which simply matches nothing.
+          // 'no such column: foo' error; quoting ("foo:swing") makes FTS5 parse
+          // a phrase literal instead, which the tokenizer splits into `foo` +
+          // `swing`, so it matches only a row with that adjacent phrase (none
+          // here).
           expect(
             await dances.search(const FullTextFilter('foo:swing')),
             isEmpty,
