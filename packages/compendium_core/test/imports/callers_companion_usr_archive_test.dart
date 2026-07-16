@@ -13,6 +13,10 @@ import 'package:test/test.dart';
 /// and `SetItem` foreign keys reference the *field* values (in the real file,
 /// Dance record 5430 carries `zk_Dance_ID=4`, and `SetItem.zk_Dance_ID=4` points
 /// at it) — so the join logic must key on the CC ids, not the record ids.
+///
+/// Provenance: the table names, column names and the `record id ≠ zk_*_ID`
+/// relationship are copied from the schema observed in the real
+/// `CallersCompanion2.USR` (FileMaker Pro 12); the values are illustrative.
 FmpDatabase _ccDatabase() {
   final dance = FmpTable(
     1,

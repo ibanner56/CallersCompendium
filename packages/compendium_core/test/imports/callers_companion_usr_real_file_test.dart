@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:compendium_core/src/imports/callers_companion_programs.dart';
 import 'package:compendium_core/src/imports/callers_companion_usr_archive.dart';
+import 'package:compendium_core/src/imports/fmp/fmp_reader.dart';
 import 'package:test/test.dart';
 
 /// End-to-end validation of the CC `.USR` path against a **real** Caller's
@@ -25,9 +26,100 @@ void main() {
   final fixture = File('test/imports/support/fmp_local/CallersCompanion2.USR');
 
   group('Caller\'s Companion real .USR (local-only)', () {
+    test(
+      'reader recovers the expected CC table and field names',
+      () {
+        final db = readFmp12(fixture.readAsBytesSync());
+        expect(db.versionNum, 12);
+
+        // Table names are read from the file's catalog, not fabricated.
+        expect(
+          db.tables.map((t) => t.name),
+          containsAll(<String>[
+            'Dance',
+            'Author',
+            'Set',
+            'SetItem',
+            'Venue',
+            'Term',
+            'Dance_Related',
+            'Phrase',
+          ]),
+        );
+
+        List<String> cols(String table) =>
+            db.tableNamed(table)!.columns.map((c) => c.name).toList();
+
+        // Every Dance field the mapper keys off is present under its real name.
+        expect(
+          cols('Dance'),
+          containsAll(<String>[
+            'Name',
+            'Author1',
+            'Author2',
+            'Type',
+            'SubType',
+            'Formation',
+            'ContraForm',
+            'Progression',
+            'Level',
+            'Music',
+            'Credits',
+            'DateComposed',
+            'DateRevised',
+            'Rating',
+            'A1',
+            'A2',
+            'B1',
+            'B2',
+            'C1',
+            'C2',
+            'UserDefined_1',
+            'UserDefined_1_Name',
+          ]),
+        );
+
+        // Set is identified by Date/Location (there is deliberately NO title
+        // column — the program title is derived from Location downstream).
+        final setCols = cols('Set');
+        expect(
+          setCols,
+          containsAll(<String>[
+            'zk_Set_ID',
+            'Date',
+            'Location',
+            'Notes',
+            'Band',
+            'DancerLevel',
+            'Caller',
+          ]),
+        );
+        expect(
+          setCols.any((c) => c.toLowerCase() == 'title'),
+          isFalse,
+          reason: 'CC Sets have no Title column',
+        );
+
+        expect(
+          cols('SetItem'),
+          containsAll(<String>[
+            'zk_Set_ID',
+            'zk_Dance_ID',
+            'Order',
+            'Break',
+            'AlternateDance',
+            'Caller',
+            'Time',
+          ]),
+        );
+      },
+      skip: fixture.existsSync() ? false : 'no local CC .USR fixture present',
+    );
+
     late CcUsrArchive archive;
 
     setUp(() {
+      if (!fixture.existsSync()) return;
       archive = readCcUsrArchive(fixture.readAsBytesSync());
     });
 

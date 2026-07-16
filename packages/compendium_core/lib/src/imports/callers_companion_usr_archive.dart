@@ -157,10 +157,14 @@ List<CcDanceEntry> _extractDances(FmpDatabase db, List<String> warnings) {
   }
   // CC references dances by its own `zk_Dance_ID` field value, not the FileMaker
   // record id, so that is the join/dedupe identity we expose.
-  final danceIdCol = _findColumnByTokens(table, [
-    ['dance', 'id'],
-    ['danceid'],
-  ]);
+  final danceIdCol = _resolveColumn(
+    table,
+    ['zk_Dance_ID'],
+    [
+      ['dance', 'id'],
+      ['danceid'],
+    ],
+  );
   final entries = <CcDanceEntry>[];
   var missingIdCount = 0;
   for (final rec in table.records) {
@@ -281,25 +285,37 @@ List<CcSet> _extractSets(FmpDatabase db, List<String> warnings) {
   // CC joins SetItem→Set on the `zk_Set_ID` *field* value (not the FileMaker
   // record id), so we key each set by its own `zk_Set_ID` and group items by
   // the matching SetItem foreign key.
-  final setIdCol = _findColumnByTokens(setTable, [
-    ['set', 'id'],
-    ['setid'],
-  ]);
+  final setIdCol = _resolveColumn(
+    setTable,
+    ['zk_Set_ID'],
+    [
+      ['set', 'id'],
+      ['setid'],
+    ],
+  );
   // CC Sets have no title/name column; the program title is derived downstream
   // from Location/Date.
 
   final items = <String, List<CcSetItem>>{};
   if (itemTable != null) {
-    final setFk = _findColumnByTokens(itemTable, [
-      ['set', 'id'],
-      ['setid'],
-      ['set'],
-    ]);
-    final danceFk = _findColumnByTokens(itemTable, [
-      ['dance', 'id'],
-      ['danceid'],
-      ['dance'],
-    ]);
+    final setFk = _resolveColumn(
+      itemTable,
+      ['zk_Set_ID'],
+      [
+        ['set', 'id'],
+        ['setid'],
+        ['set'],
+      ],
+    );
+    final danceFk = _resolveColumn(
+      itemTable,
+      ['zk_Dance_ID'],
+      [
+        ['dance', 'id'],
+        ['danceid'],
+        ['dance'],
+      ],
+    );
     for (final rec in itemTable.records) {
       final cols = _CiColumns(_rowColumns(itemTable, rec));
       final setId = setFk == null ? null : cols.get(setFk)?.trim();
@@ -356,6 +372,25 @@ FmpTable? _findTable(FmpDatabase db, List<String> candidateNames) {
     if (t != null) return t;
   }
   return null;
+}
+
+/// Resolves a column by its **known exact CC name** first (confirmed against the
+/// real `CallersCompanion2.USR` schema), falling back to tolerant token-matching
+/// only if a differently-named build omits it. Preferring the exact name avoids
+/// substring ambiguity — e.g. both `zk_Set_ID` and `zk_SetItem_ID` contain the
+/// `set`+`id` tokens, but the FK we want is exactly `zk_Set_ID`.
+String? _resolveColumn(
+  FmpTable table,
+  List<String> exactNames,
+  List<List<String>> tokenSets,
+) {
+  for (final name in exactNames) {
+    final col = table.columns.firstWhereOrNull(
+      (c) => c.name.toLowerCase() == name.toLowerCase(),
+    );
+    if (col != null) return col.name;
+  }
+  return _findColumnByTokens(table, tokenSets);
 }
 
 /// Finds a column whose normalised (lowercased, non-alphanumeric-stripped) name
