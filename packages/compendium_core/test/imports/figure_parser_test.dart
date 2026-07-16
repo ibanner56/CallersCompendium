@@ -120,7 +120,6 @@ void main() {
       'partners chain',
       'neighbors chain across',
       // Trailing prose the recogniser cannot consume.
-      'chain to neighbor',
       'swing to partner',
       // Moves outside the first-cut coverage.
       'hey for four',
@@ -216,5 +215,92 @@ void main() {
         expect(f.params['beats'], 8);
       },
     );
+  });
+
+  group('parseFigureLine — TCB dialect/formatting normalization', () {
+    // Each case cites The Caller's Box (TCB) formatting the existing
+    // recognizers previously missed. Structured expectations only.
+    final cases = <String, ({String move, Map<String, Object?> params})>{
+      // 1. "1 & 1/2" rotation (TCB dance ids 952, 2370, 133 —
+      //    "Men allemande left 1 & 1/2"). `&`→"and", bridged to 1.5.
+      'Men allemande left 1 & 1/2': (
+        move: 'allemande',
+        params: {'who': 'role1s', 'hand': 'left', 'turn': 1.5},
+      ),
+      'Allemande right 1 and 1/4': (
+        move: 'allemande',
+        params: {'hand': 'right', 'turn': 1.25},
+      ),
+      // 2. Parenthetical annotations stripped for recognition (TCB appends
+      //    "(NR)"/"(PR)" to pass through exclusively).
+      'Pass through (NR)': (move: 'pass_through', params: {}),
+      // 3. N-prefix dancer mapping (Tier B): "N2 neighbor" → nextNeighbors.
+      'N2 neighbor allemande right': (
+        move: 'allemande',
+        params: {'who': 'nextNeighbors', 'hand': 'right'},
+      ),
+      'N1 balance': (move: 'balance', params: {'who': 'neighbors'}),
+      // 4. shadow → shadows (Tier B).
+      'Shadow allemande left': (
+        move: 'allemande',
+        params: {'who': 'shadows', 'hand': 'left'},
+      ),
+      // 5. Leading "In" in long lines (TCB writes this exclusively).
+      'In long lines, go forward and back': (move: 'long_lines', params: {}),
+      // 6. "balance ring" without "the" (TCB).
+      'Balance ring': (move: 'balance_the_ring', params: {}),
+      // 7. Promenade direction (recognizer previously never consumed it).
+      'Promenade across': (move: 'promenade', params: {'dir': 'across'}),
+      // 8. right-left-through "with X" (TCB writes this exclusively).
+      'Right and left through with partner': (
+        move: 'right_left_through',
+        params: {},
+      ),
+      // 10. hands-across star grip (TCB: "Hands-across star right").
+      'Hands-across star right': (
+        move: 'star',
+        params: {'hand': 'right', 'grip': 'handsAcross'},
+      ),
+      // 11. shift → slide_along_set (Tier B).
+      'Shift left': (move: 'slide_along_set', params: {'slide': 'left'}),
+      'Shift right': (move: 'slide_along_set', params: {'slide': 'right'}),
+    };
+
+    cases.forEach((line, expected) {
+      test('"$line" → ${expected.move}', () {
+        final f = parseFigureLine(line);
+        expect(f, isNotNull, reason: line);
+        expect(f!.isCustom, isFalse, reason: line);
+        expect(f.move, expected.move, reason: line);
+        expected.params.forEach((k, v) {
+          expect(f.params[k], v, reason: '$line param $k');
+        });
+      });
+    });
+
+    // 9. chain "to neighbor/partner" → structured chain + Figure NOTE (TCB
+    //    writes "Ladies chain to neighbor/partner" exclusively).
+    test('"Ladies chain to neighbor" structures + preserves note', () {
+      final f = parseFigureLine('Ladies chain to neighbor');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'chain');
+      expect(f.params['who'], 'role2s');
+      expect(f.note, 'to neighbor');
+    });
+
+    test('"Ladies chain to partner" preserves the partner note', () {
+      final f = parseFigureLine('Ladies chain to partner');
+      expect(f!.move, 'chain');
+      expect(f.note, 'to partner');
+    });
+
+    // 2. The custom fallback keeps the original parenthetical annotation
+    //    (stripping is for RECOGNITION only, so nothing is lost).
+    test('unrecognized line keeps its parenthetical annotation in custom '
+        'text', () {
+      final f = parseFigureLine('hey for four (from the top)');
+      expect(f!.isCustom, isTrue);
+      expect(_text(f), 'hey for four (from the top)');
+    });
   });
 }
