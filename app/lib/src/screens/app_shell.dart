@@ -275,7 +275,7 @@ class _RailHelpButton extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.menu_book_outlined,
+                  Icons.help_outline,
                   color: scheme.onSecondaryContainer,
                 ),
               ),

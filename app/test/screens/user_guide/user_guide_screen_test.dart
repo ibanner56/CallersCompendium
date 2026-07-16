@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show AssetManifest, rootBundle;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
+import 'package:compendium_app/src/screens/user_guide/user_guide_doc_view.dart';
 
 import '../../support/fake_url_launcher.dart';
 
@@ -109,5 +110,53 @@ void main() {
       launcher.lastLaunchedUrl,
       contains('/blob/main/docs/design/dialect.md'),
     );
+  });
+
+  testWidgets('an image reference renders its alt text as a caption', (
+    tester,
+  ) async {
+    // The guide ships text-only: instead of loading an asset, an image renders
+    // its alt text as a subtle caption so the prose stays readable and nothing
+    // is fetched. Exercise the doc view directly with an inline image so the
+    // caption is built regardless of where it falls in a scrolled guide.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: UserGuideDocView(
+            docId: 'getting-started.md',
+            data: '![A wireframe of the Collection screen](../design/x.svg)',
+            onTapLink: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('A wireframe of the Collection screen'),
+      findsOneWidget,
+    );
+    // Text-only: no image widgets are ever built for the reference.
+    expect(find.byType(Image), findsNothing);
+  });
+
+  testWidgets('the bundle ships text-only (no image assets)', (tester) async {
+    // Proves the offline bundle carries only Markdown guides — no SVGs or
+    // raster images — so the text-only guide can never depend on a bundled
+    // image asset.
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final docAssets = manifest
+        .listAssets()
+        .where((key) => key.startsWith('assets/docs/'))
+        .toList();
+
+    expect(docAssets, isNotEmpty);
+    for (final key in docAssets) {
+      expect(
+        key.toLowerCase().endsWith('.md'),
+        isTrue,
+        reason: 'Bundled doc asset should be Markdown-only, found: $key',
+      );
+    }
   });
 }

@@ -1,12 +1,15 @@
 # Standalone drift-check for the in-app User Guide's bundled docs.
 #
-# The primary gate lives in _checks.yml (so it runs on every code PR and on the
-# reusable release path). But ci.yml skips entirely for Markdown-only changes
-# (`paths-ignore: '**.md'`), and the guide sources under docs/user/ are
-# Markdown — so a docs-only PR that edits docs/user/ without regenerating
-# app/assets/docs/ would slip past the main gate. This lightweight workflow has
-# no such ignore and triggers precisely on the files that affect drift, closing
-# that gap without altering the main CI/release triggers.
+# The in-app User Guide renders docs bundled under app/assets/docs/, mirrored
+# from docs/user/ by tools/ci/sync_user_docs.py. This is the sole gate that the
+# committed bundle stays in sync with docs/user/ (the single source of truth).
+# It lives in its own workflow — rather than the shared _checks.yml — because
+# ci.yml skips entirely for Markdown-only changes (`paths-ignore: '**.md'`), and
+# the guide sources under docs/user/ are Markdown; a docs-only PR that edits
+# docs/user/ without regenerating app/assets/docs/ would slip past a gate that
+# only ran inside ci.yml. This workflow's path filters (below) trigger precisely
+# on the files that affect drift — for both docs-only and code PRs — closing
+# that gap without touching the main CI/release triggers.
 #
 # It is intentionally cheap (plain python3, no Flutter setup) and is not marked
 # a required status, so it never runs on unrelated PRs and never leaves a

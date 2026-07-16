@@ -4,22 +4,21 @@
 The app renders its user documentation fully offline, from assets bundled into
 the Flutter package (``app/``). The canonical source of that documentation lives
 at the repo root under ``docs/user/`` — outside the Flutter package — so Flutter
-cannot bundle it directly. This script mirrors the user-facing guides (and the
-images they embed) into ``app/assets/docs/`` so they ship with the app, keeping
-``docs/user/`` the single source of truth.
+cannot bundle it directly. This script mirrors the user-facing guides into
+``app/assets/docs/`` so they ship with the app, keeping ``docs/user/`` the
+single source of truth.
 
 What gets mirrored, from ``docs/`` into ``app/assets/docs/`` (paths preserved):
 
   * every ``docs/user/*.md`` guide **except** ``style-guide.md`` (a contributor
-    authoring-conventions doc, not user-facing), and
-  * every local image each of those guides embeds — resolved relative to the
-    guide and copied by its path under ``docs/`` (e.g. a guide's
-    ``../design/wireframes/x.svg`` lands at ``assets/docs/design/wireframes/x.svg``,
-    so the same relative reference resolves against the bundled copy).
+    authoring-conventions doc, not user-facing).
 
-Guides and their image references are **discovered**, never hard-coded, so a new
-``docs/user/*.md`` guide (or a new illustration) is picked up automatically and
-the drift-check then enforces that the committed bundle stays in sync.
+The guide is **text-only** for now: images embedded in the guides are rendered
+in-app as alt-text captions rather than bundled, so no image assets are copied.
+
+Guides are **discovered**, never hard-coded, so a new ``docs/user/*.md`` guide
+is picked up automatically and the drift-check then enforces that the committed
+bundle stays in sync.
 
 Modes:
 
@@ -35,9 +34,6 @@ from __future__ import annotations
 
 import argparse
 import filecmp
-import ntpath
-import posixpath
-import re
 import shutil
 import sys
 import tempfile
@@ -50,12 +46,6 @@ BUNDLE_DIR = REPO_ROOT / "app" / "assets" / "docs"
 
 # Contributor-only authoring conventions doc — deliberately not user-facing.
 EXCLUDED_GUIDES = {"style-guide.md"}
-
-# Inline Markdown image: ``![alt](target "optional title")``. The target is
-# captured up to the first whitespace or closing paren so an optional title is
-# dropped. Reference-style images (``![alt][id]``) and HTML <img> are not used
-# by these guides; if they ever are, this guard would miss them — revisit then.
-_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(\s*([^)\s]+)")
 
 
 def _fail(msg: str, code: int = 2) -> None:
@@ -78,77 +68,12 @@ def discover_guides() -> list[Path]:
     return guides
 
 
-def _local_image_refs(markdown: str) -> list[str]:
-    """Local (non-web) image targets embedded in ``markdown``, in order."""
-    refs: list[str] = []
-    for raw in _IMAGE_RE.findall(markdown):
-        target = raw.split("#", 1)[0].strip()
-        if not target:
-            continue
-        lowered = target.lower()
-        if lowered.startswith(("http://", "https://", "data:", "//")):
-            continue
-        refs.append(target)
-    return refs
-
-
-def _resolve_under_docs(guide: Path, ref: str) -> Path:
-    """Resolve image ``ref`` (relative to ``guide``) to a path under ``docs/``.
-
-    Errors out if the reference escapes ``docs/`` or points at a missing file,
-    so a bad or out-of-tree image reference fails loudly instead of silently
-    dropping an illustration from the bundle.
-    """
-    guide_dir_rel = guide.parent.relative_to(DOCS_ROOT).as_posix()
-    # Reject absolute or Windows-style references before joining. ``posixpath.join``
-    # discards the guide's directory when ``ref`` is absolute (e.g. ``/etc/passwd``
-    # or ``C:/x``), which would let ``resolved`` escape ``docs/`` entirely; and a
-    # backslash would be a path separator on Windows. Bundled guides must use
-    # forward-slashed relative references.
-    if (
-        posixpath.isabs(ref)
-        or ntpath.isabs(ref)
-        or ntpath.splitdrive(ref)[0]
-        or "\\" in ref
-    ):
-        _fail(
-            f"{guide.relative_to(REPO_ROOT)} embeds a non-relative image "
-            f"reference: '{ref}'. Bundled guides may only reference images with "
-            f"forward-slashed relative paths under docs/."
-        )
-    joined = posixpath.normpath(posixpath.join(guide_dir_rel, ref))
-    if joined == ".." or joined.startswith("../"):
-        _fail(
-            f"{guide.relative_to(REPO_ROOT)} embeds an image outside docs/: "
-            f"'{ref}'. Bundled guides may only reference images under docs/."
-        )
-    resolved = DOCS_ROOT / joined
-    # Defense in depth against symlink escapes: the real, fully-resolved location
-    # must still live under the real docs/ root.
-    docs_real = DOCS_ROOT.resolve()
-    resolved_real = resolved.resolve()
-    if resolved_real != docs_real and docs_real not in resolved_real.parents:
-        _fail(
-            f"{guide.relative_to(REPO_ROOT)} references an image that resolves "
-            f"outside docs/: '{ref}' -> {resolved_real}."
-        )
-    if not resolved.is_file():
-        _fail(
-            f"{guide.relative_to(REPO_ROOT)} references a missing image: "
-            f"'{ref}' (resolved to {resolved.relative_to(REPO_ROOT)})."
-        )
-    return resolved
-
-
 def _collect_sources() -> dict[str, Path]:
     """Map of bundle-relative path -> source file for everything to mirror."""
     mapping: dict[str, Path] = {}
     for guide in discover_guides():
         rel = guide.relative_to(DOCS_ROOT).as_posix()
         mapping[rel] = guide
-        for ref in _local_image_refs(guide.read_text(encoding="utf-8")):
-            image = _resolve_under_docs(guide, ref)
-            mapping[image.relative_to(DOCS_ROOT).as_posix()] = image
     return mapping
 
 

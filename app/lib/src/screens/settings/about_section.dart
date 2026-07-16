@@ -38,7 +38,7 @@ class _AboutView extends StatelessWidget {
         SectionHeader(title: 'Help'),
         ListTile(
           key: const ValueKey('about-user-guide'),
-          leading: const Icon(Icons.menu_book_outlined),
+          leading: const Icon(Icons.help_outline),
           title: const Text('User guide'),
           subtitle: const Text(
             'Read the built-in guides — getting started, dialects, imports, '

@@ -91,35 +91,4 @@ void main() {
       );
     });
   });
-
-  group('resolveImageAsset', () {
-    test('a wireframe SVG resolves to its bundled asset key', () {
-      final key = docs.resolveImageAsset(
-        'getting-started.md',
-        '../design/wireframes/1-collection.svg',
-      );
-      expect(key, 'assets/docs/design/wireframes/1-collection.svg');
-    });
-
-    test('an image within the user docs resolves under assets/docs/user', () {
-      final key = docs.resolveImageAsset(
-        'README.md',
-        'images/collection-search.png',
-      );
-      expect(key, 'assets/docs/user/images/collection-search.png');
-    });
-
-    test('a remote image is not bundled (returns null)', () {
-      final key = docs.resolveImageAsset(
-        'README.md',
-        'https://example.com/x.png',
-      );
-      expect(key, isNull);
-    });
-
-    test('an image escaping the docs tree is refused (returns null)', () {
-      final key = docs.resolveImageAsset('README.md', '../../secret.png');
-      expect(key, isNull);
-    });
-  });
 }

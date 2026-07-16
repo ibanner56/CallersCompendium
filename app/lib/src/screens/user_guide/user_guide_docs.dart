@@ -8,10 +8,6 @@ import '../../app_metadata.dart';
 /// by `tools/ci/sync_user_docs.py`). Doc ids are paths relative to this dir.
 const String _userDocsAssetDir = 'assets/docs/user';
 
-/// Asset prefix that mirrors the repo `docs/` root (`assets/docs/…` ⇄
-/// `docs/…`), used to turn a resolved repo path into an asset key.
-const String _docsAssetPrefix = 'assets';
-
 /// The repo path the bundled guides are mirrored from. Link resolution happens
 /// in this virtual space so a guide's relative links behave as they do in-repo.
 const String _userDocsRepoDir = 'docs/user';
@@ -71,9 +67,9 @@ class GuideExternalLink extends GuideLink {
 ///
 /// The available guides are **discovered** from the asset manifest (not
 /// hard-coded), so a new `docs/user/*.md` guide is picked up automatically once
-/// bundled. Link and image targets are resolved in the repo's `docs/` path
-/// space so the guides' relative references (`./imports.md`,
-/// `../design/wireframes/x.svg`, `./README.md#glossary`) behave as authored.
+/// bundled. Link targets are resolved in the repo's `docs/` path space so the
+/// guides' relative references (`./imports.md`, `../design/dialect.md`,
+/// `./README.md#glossary`) behave as authored.
 class UserGuideDocs {
   UserGuideDocs._(this._docIds, this._bundle);
 
@@ -161,21 +157,6 @@ class UserGuideDocs {
       fragment == null
       ? '$_repoBlobBase/$repoPath'
       : '$_repoBlobBase/$repoPath#$fragment';
-
-  /// Resolves an image [src] referenced from [fromDocId] to a bundled asset
-  /// key, or `null` for a remote image (guides bundle their images locally).
-  String? resolveImageAsset(String fromDocId, String src) {
-    final trimmed = src.trim();
-    if (trimmed.isEmpty) return null;
-    final parsed = Uri.tryParse(trimmed);
-    if (parsed != null && parsed.hasScheme) return null;
-    final resolved = _resolveRepoPath(fromDocId, _splitFragment(trimmed).$1);
-    if (!resolved.startsWith('docs/')) {
-      // Never escape the bundled docs tree.
-      return null;
-    }
-    return '$_docsAssetPrefix/$resolved';
-  }
 
   /// Splits `path#fragment` into its path and (optional) fragment parts.
   static (String, String?) _splitFragment(String href) {

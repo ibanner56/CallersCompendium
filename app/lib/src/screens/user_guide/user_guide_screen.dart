@@ -137,7 +137,6 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
           );
         }
         return UserGuideDocView(
-          docs: docs,
           docId: _current,
           data: data,
           onTapLink: _openLink,
@@ -165,7 +164,7 @@ class _UnavailableState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.menu_book_outlined,
+              Icons.help_outline,
               size: 48,
               color: theme.colorScheme.onSurfaceVariant,
             ),
