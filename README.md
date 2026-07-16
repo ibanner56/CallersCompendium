@@ -57,9 +57,9 @@ Are you a caller? We're running a beta program and would love your feedback. The
 to send feedback — all voluntary, all through GitHub, with no telemetry and
 nothing collected automatically. File a report from the
 [issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose) —
-the **Bug report** and **Feature request** forms are always there, with
-general-feedback and beta check-in forms joining them as the beta program rolls
-out — or start a conversation in
+the **Bug report** and **Feature request** forms are always there, with the
+**General feedback** and **Beta check-in** forms joining them as the beta program
+rolls out — or start a conversation in
 [Discussions](https://github.com/ibanner56/CallersCompendium/discussions).
 
 ## Supporting
