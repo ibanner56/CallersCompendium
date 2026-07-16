@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -21,6 +23,7 @@ import '../widgets/batch_tag_dialog.dart';
 import '../widgets/by_phrase_panel.dart';
 import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
+import '../widgets/online_result_tile.dart';
 import '../widgets/skeleton.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
@@ -45,6 +48,16 @@ import 'dance_editor_screen.dart';
 ///
 /// [refreshTrigger] allows a parent widget to request a full list reload by
 /// incrementing the notifier value (e.g. after a detail-pane delete/restore).
+///
+/// **Caller's Box online search** (`docs/design/callersbox.md`): when the user
+/// turns on the "Online search" switch inside the Advanced panel, the search
+/// text becomes a live query against The Caller's Box and [OnlineResultTile]
+/// rows replace the local results. In split-pane mode the shell passes
+/// [onSelectOnlineDance] so a tapped online result previews in the detail pane;
+/// when null (narrow mode) the list pushes a preview route itself.
+/// [selectedOnlineId] highlights the currently previewed online row.
+/// [callersBoxOnline] is the (injectable) orchestration service; tests pass a
+/// seam-backed instance so nothing hits the network.
 class DanceListScreen extends StatefulWidget {
   const DanceListScreen({
     super.key,
@@ -52,6 +65,9 @@ class DanceListScreen extends StatefulWidget {
     this.selectedDanceId,
     this.refreshTrigger,
     this.onImport,
+    this.onSelectOnlineDance,
+    this.selectedOnlineId,
+    this.callersBoxOnline,
   });
 
   /// Called with the tapped dance's id when the split-pane shell needs to
@@ -73,6 +89,20 @@ class DanceListScreen extends StatefulWidget {
   /// import view in a detail pane (wide) or push it as a route (narrow), so the
   /// list itself stays layout-agnostic (mirrors [onSelectDance]).
   final VoidCallback? onImport;
+
+  /// Called with a tapped online (Caller's Box) result when the split-pane
+  /// shell owns the preview pane. Null ⇒ the list pushes its own preview route
+  /// (narrow mode).
+  final void Function(CallersBoxSearchResult result)? onSelectOnlineDance;
+
+  /// Caller's Box `id` of the currently previewed online result, for row
+  /// highlighting in split-pane mode. Has no effect when [onSelectOnlineDance]
+  /// is null.
+  final String? selectedOnlineId;
+
+  /// Online search + direct-import orchestration. Injected in tests with a
+  /// seam-backed instance; defaults to a network-backed [CallersBoxOnline].
+  final CallersBoxOnline? callersBoxOnline;
 
   @override
   State<DanceListScreen> createState() => _DanceListScreenState();
@@ -124,6 +154,22 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Object? _searchError;
   int _searchSeq = 0;
 
+  /// Online (Caller's Box) search state. Active only while [_onlineEnabled].
+  late CallersBoxOnline _online;
+  bool _onlineEnabled = false;
+  List<CallersBoxSearchResult> _onlineResults = const [];
+  bool _onlineSearching = false;
+  String? _onlineError;
+  int _onlineSeq = 0;
+
+  /// Guards the narrow-mode direct-import commit so a rapid double-tap of the
+  /// preview Import button cannot commit the same plan twice.
+  bool _importing = false;
+
+  /// Online search runs on a longer debounce than local FTS so a live query
+  /// isn't fired against The Caller's Box on every keystroke.
+  static const Duration _onlineDebounce = Duration(milliseconds: 500);
+
   /// Batch multi-select (Collection batch-tag, `docs/design/ux.md` §1).
   bool _selectionMode = false;
   final Set<String> _selectedIds = {};
@@ -149,6 +195,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
+      _online = widget.callersBoxOnline ?? CallersBoxOnline();
       widget.refreshTrigger?.addListener(_onRefreshTriggered);
       _boot();
     } else if (dialectChanged || ignoreArticlesChanged) {
@@ -172,6 +219,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (oldWidget.refreshTrigger != widget.refreshTrigger) {
       oldWidget.refreshTrigger?.removeListener(_onRefreshTriggered);
       widget.refreshTrigger?.addListener(_onRefreshTriggered);
+    }
+    if (!identical(widget.callersBoxOnline, oldWidget.callersBoxOnline)) {
+      // Sync when the injected service changes, including when it is removed
+      // (non-null -> null) so we revert to the default network-backed instance
+      // rather than keeping the stale one.
+      _online = widget.callersBoxOnline ?? CallersBoxOnline();
     }
   }
 
@@ -303,9 +356,25 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   void _onFtsChanged(String _) {
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(_debounce, _runSearch);
-    // Reflect relevance availability immediately (before the debounce fires).
+    if (_onlineEnabled) {
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      _debounceTimer = Timer(_debounce, _runSearch);
+    }
+    // Reflect relevance availability / clear-button immediately (before the
+    // debounce fires).
     setState(() {});
+  }
+
+  /// Fires the current search immediately (on keyboard "search" / enter). In
+  /// online mode this skips the debounce so submitting runs the query now.
+  void _onFtsSubmitted(String _) {
+    _debounceTimer?.cancel();
+    if (_onlineEnabled) {
+      _runOnlineSearch();
+    } else {
+      _runSearch();
+    }
   }
 
   void _onFacetsChanged() {
@@ -323,7 +392,183 @@ class _DanceListScreenState extends State<DanceListScreen> {
     _runSearch();
   }
 
+  /// Toggles online (Caller's Box) search mode. Turning it on runs an immediate
+  /// search if a query is present; turning it off clears the online results and
+  /// restores the local list.
+  void _onOnlineToggled(bool value) {
+    _debounceTimer?.cancel();
+    setState(() {
+      _onlineEnabled = value;
+      _onlineError = null;
+      if (!value) {
+        _onlineResults = const [];
+        _onlineSearching = false;
+      }
+    });
+    if (value) {
+      if (_ftsController.text.trim().isNotEmpty) _runOnlineSearch();
+    } else {
+      _runSearch();
+    }
+  }
+
+  /// Runs a live Caller's Box search for the current query text. Guarded by a
+  /// sequence number so a slow response can't overwrite a newer query.
+  Future<void> _runOnlineSearch() async {
+    final query = _ftsController.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _onlineResults = const [];
+        _onlineError = null;
+        _onlineSearching = false;
+      });
+      return;
+    }
+    final seq = ++_onlineSeq;
+    setState(() {
+      _onlineSearching = true;
+      _onlineError = null;
+    });
+    try {
+      final results = await _online.search(query);
+      if (!mounted || seq != _onlineSeq) return;
+      setState(() {
+        _onlineResults = results;
+        _onlineSearching = false;
+      });
+    } on UrlFetchException catch (error) {
+      if (!mounted || seq != _onlineSeq) return;
+      setState(() {
+        _onlineError = error.message;
+        _onlineResults = const [];
+        _onlineSearching = false;
+      });
+    } catch (_) {
+      if (!mounted || seq != _onlineSeq) return;
+      setState(() {
+        _onlineError = "Couldn't search The Caller's Box. Please try again.";
+        _onlineResults = const [];
+        _onlineSearching = false;
+      });
+    }
+  }
+
+  /// Handles a tap on an online result. In split-pane mode the shell owns the
+  /// preview pane ([onSelectOnlineDance]); in narrow mode the list fetches the
+  /// dance and pushes a preview route itself.
+  void _onOnlineResultTap(CallersBoxSearchResult result) {
+    final onSelect = widget.onSelectOnlineDance;
+    if (onSelect != null) {
+      onSelect(result);
+    } else {
+      _pushOnlinePreview(result);
+    }
+  }
+
+  Future<void> _pushOnlinePreview(CallersBoxSearchResult result) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    // A blocking loader while the tapped dance's JSON is fetched + parsed.
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(
+          key: ValueKey('online-preview-loading'),
+        ),
+      ),
+    );
+    CallersBoxPreview preview;
+    try {
+      preview = await _online.loadPreview(_repos, result);
+    } on UrlFetchException catch (error) {
+      if (mounted) navigator.pop();
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      return;
+    } catch (_) {
+      if (mounted) navigator.pop();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text("Couldn't load that dance from The Caller's Box."),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    navigator.pop();
+    // The preview route pops with the import result once the user taps Import
+    // (see [_importOnline]); a plain back gesture pops with null.
+    final imported = await navigator.push<CallersBoxImportResult>(
+      MaterialPageRoute<CallersBoxImportResult>(
+        builder: (_) => DanceDetailScreen.preview(
+          data: preview.detail,
+          onImport: () => _importOnline(preview),
+        ),
+      ),
+    );
+    if (!mounted || imported == null) return;
+    // Land the user on the now-persisted dance (full collection actions) rather
+    // than leaving them to hunt for it in the list. For an unresolved re-import
+    // (no id) we just confirm with the snackbar.
+    final danceId = imported.danceId;
+    if (danceId != null) {
+      navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => DanceDetailScreen(danceId: danceId),
+        ),
+      );
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('online-import-snackbar'),
+        content: Text(callersBoxImportMessage(imported)),
+      ),
+    );
+  }
+
+  /// Directly imports the previewed online dance into the local collection
+  /// (dedup-aware). On success it pops the preview route, returning the outcome
+  /// to [_pushOnlinePreview], which lands the user on the persisted dance. An
+  /// [_importing] guard blocks a rapid double-tap before the commit resolves.
+  Future<void> _importOnline(CallersBoxPreview preview) async {
+    if (_importing) return;
+    _importing = true;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    try {
+      final result = await _online.import(_repos, preview.plan);
+      if (!mounted) return;
+      if (result.kind == CallersBoxImportKind.created) {
+        CollectionRefreshScope.bump(context);
+        _boot();
+      }
+      // Hand the result back to the preview route's awaiter, which navigates to
+      // the imported dance and shows the confirmation snackbar.
+      if (navigator.canPop()) {
+        navigator.pop(result);
+      } else {
+        messenger.showSnackBar(
+          SnackBar(
+            key: const ValueKey('online-import-snackbar'),
+            content: Text(callersBoxImportMessage(result)),
+          ),
+        );
+      }
+    } on UrlFetchException catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Couldn't import that dance.")),
+      );
+    } finally {
+      _importing = false;
+    }
+  }
+
   void _clearAll() {
+    _debounceTimer?.cancel();
     setState(() {
       _ftsController.clear();
       _facets.clear();
@@ -331,8 +576,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _advancedRoot.children.clear();
       _advancedRoot.kind = GroupKind.all;
       _advancedEnabled = false;
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineSearching = false;
     });
-    _runSearch();
+    if (!_onlineEnabled) _runSearch();
   }
 
   bool get _hasActiveQuery =>
@@ -665,17 +913,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
       return const SkeletonListView();
     }
 
-    if (data.dancesById.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.lg),
-          child: Text(
-            'Your collection is empty. Add or import a dance to get started.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
+    // A brand-new user with no local dances still needs the search UI so they
+    // can reach the "Online search" toggle (in the Advanced panel) and import
+    // their first dance from The Caller's Box — so the empty-collection message
+    // now renders inside the results area rather than replacing the whole body.
+    final collectionEmpty = data.dancesById.isEmpty;
 
     return Column(
       children: [
@@ -687,13 +929,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
             0,
           ),
           child: TextField(
+            key: const ValueKey('collection-search-field'),
             controller: _ftsController,
             onChanged: _onFtsChanged,
+            onSubmitted: _onFtsSubmitted,
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              labelText: 'Search dances',
-              hintText: 'Search titles, authors, figures, notes…',
-              prefixIcon: const Icon(Icons.search),
+              labelText: _onlineEnabled
+                  ? "Search The Caller's Box"
+                  : 'Search dances',
+              hintText: _onlineEnabled
+                  ? 'Search online dances by title…'
+                  : 'Search titles, authors, figures, notes…',
+              prefixIcon: Icon(
+                _onlineEnabled ? Icons.cloud_outlined : Icons.search,
+              ),
               suffixIcon: _hasActiveQuery
                   ? IconButton(
                       tooltip: 'Clear search and filters',
@@ -709,18 +959,44 @@ class _DanceListScreenState extends State<DanceListScreen> {
             slivers: [
               SliverList(
                 delegate: SliverChildListDelegate([
-                  _buildFiltersPanel(data),
-                  _buildByPhrasePanel(data),
+                  // Local facet panels don't apply to online search (and there's
+                  // nothing to filter in an empty collection), so they're hidden
+                  // in those cases. The Advanced panel stays — it hosts the
+                  // "Online search" toggle, which must always be reachable.
+                  if (!_onlineEnabled && !collectionEmpty) ...[
+                    _buildFiltersPanel(data),
+                    _buildByPhrasePanel(data),
+                  ],
                   _buildAdvancedPanel(data),
-                  _buildResultCount(),
+                  if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
                   const Divider(height: 1),
                 ]),
               ),
-              _buildResultsSliver(),
+              if (_onlineEnabled)
+                _buildOnlineResultsSliver()
+              else if (collectionEmpty)
+                _buildEmptyCollectionSliver()
+              else
+                _buildResultsSliver(),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildEmptyCollectionSliver() {
+    return const SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.all(AppSpacing.lg),
+        child: Center(
+          child: Text(
+            'Your collection is empty. Add or import a dance to get started — '
+            "or turn on Online search above to import from The Caller's Box.",
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
     );
   }
 
@@ -810,6 +1086,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
       ),
       children: [
         SwitchListTile(
+          key: const ValueKey('online-search-enable'),
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.cloud_outlined),
+          title: const Text('Online search'),
+          subtitle: const Text(
+            "Search The Caller's Box online and import dances directly "
+            '(requires internet). Local filters do not apply.',
+          ),
+          value: _onlineEnabled,
+          onChanged: _onOnlineToggled,
+        ),
+        SwitchListTile(
           key: const ValueKey('advanced-enable'),
           contentPadding: EdgeInsets.zero,
           title: const Text('Use advanced query'),
@@ -817,12 +1105,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
             'Combine figures and sequences with all / any / none groups.',
           ),
           value: _advancedEnabled,
-          onChanged: (value) {
-            setState(() => _advancedEnabled = value);
-            _runSearch();
-          },
+          // Disabled while online search is active — the advanced query is a
+          // local-only facet that can't apply to Caller's Box results.
+          onChanged: _onlineEnabled
+              ? null
+              : (value) {
+                  setState(() => _advancedEnabled = value);
+                  _runSearch();
+                },
         ),
-        if (_advancedEnabled)
+        if (_advancedEnabled && !_onlineEnabled)
           AdvancedQueryBuilder(
             root: _advancedRoot,
             taxonomy: data.taxonomy,
@@ -834,7 +1126,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Widget _buildResultCount() {
-    final count = _results.length;
+    final bool online = _onlineEnabled;
+    final int count = online ? _onlineResults.length : _results.length;
+    final bool busy = online ? _onlineSearching : _searching;
+    final String label = online
+        ? '$count online ${count == 1 ? 'result' : 'results'}'
+        : '$count ${count == 1 ? 'dance' : 'dances'}';
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -849,12 +1146,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
           children: [
             Semantics(
               liveRegion: true,
-              child: Text(
-                '$count ${count == 1 ? 'dance' : 'dances'}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              child: Text(label, style: Theme.of(context).textTheme.bodySmall),
             ),
-            if (_searching) ...[
+            if (busy) ...[
               const SizedBox(width: AppSpacing.xs),
               const SizedBox(
                 width: 12,
@@ -865,6 +1159,76 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  /// Results sliver for online (Caller's Box) mode: a loading placeholder while
+  /// searching, a clear inline error on fetch failure, an empty-query hint, a
+  /// "no matches" message, or the [OnlineResultTile] rows.
+  Widget _buildOnlineResultsSliver() {
+    if (_onlineError != null) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Center(
+            child: Text(
+              _onlineError!,
+              key: const ValueKey('online-error'),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+    if (_onlineSearching && _onlineResults.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    if (_ftsController.text.trim().isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: Center(
+            child: Text(
+              "Type a title to search The Caller's Box.",
+              key: ValueKey('online-empty-query'),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+    if (_onlineResults.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: Center(
+            child: Text(
+              "No dances on The Caller's Box match your search.",
+              key: ValueKey('online-no-results'),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+    return SliverList.builder(
+      itemCount: _onlineResults.length,
+      itemBuilder: (context, index) {
+        final result = _onlineResults[index];
+        return OnlineResultTile(
+          key: ValueKey('online-result-${result.id}'),
+          result: result,
+          selected:
+              widget.onSelectOnlineDance != null &&
+              widget.selectedOnlineId == result.id,
+          onTap: () => _onOnlineResultTap(result),
+        );
+      },
     );
   }
 

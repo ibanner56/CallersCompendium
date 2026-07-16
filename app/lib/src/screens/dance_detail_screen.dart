@@ -49,9 +49,36 @@ class DanceDetailScreen extends StatefulWidget {
     this.onRestored,
     this.onDeleted,
     this.onNavigateTo,
-  });
+  }) : previewData = null,
+       onImport = null;
 
-  final String danceId;
+  /// Preview mode for a **non-persisted** dance (e.g. an online Caller's Box
+  /// search result before it is imported). Renders [data] directly with the
+  /// same body as a saved dance, but hides the collection-only actions (dialect
+  /// switch, Perform, Export, Duplicate, Add-to-program, Delete) and the calling
+  /// history, and swaps the Edit FAB for an **Import** FAB wired to [onImport].
+  const DanceDetailScreen.preview({
+    super.key,
+    required DanceDetailData data,
+    required this.onImport,
+  }) : danceId = null,
+       previewData = data,
+       onRestored = null,
+       onDeleted = null,
+       onNavigateTo = null;
+
+  /// Id of the persisted dance to load, or `null` in preview mode (see
+  /// [DanceDetailScreen.preview]).
+  final String? danceId;
+
+  /// In-memory detail data to render instead of loading from the database.
+  /// Non-null only in preview mode.
+  final DanceDetailData? previewData;
+
+  /// Called when the preview-mode Import FAB is tapped. Non-null only in
+  /// preview mode; the caller performs the direct import (and its snackbar /
+  /// collection refresh).
+  final Future<void> Function()? onImport;
 
   /// Optional callback invoked after a soft-delete is undone (restored).
   /// The Collection screen passes `() => _boot()` here so the list reloads.
@@ -84,6 +111,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   late CompendiumRepositories _repos;
   Future<DanceDetailData?>? _future;
 
+  /// Whether this screen is rendering a non-persisted preview dance (online
+  /// Caller's Box result) rather than a saved one. Guards all collection-only
+  /// behavior (loading, reload-on-setting-change, app-bar actions, delete/etc).
+  bool get _isPreview => widget.previewData != null;
+
   /// The last-seen value of the "require mark-performed for calling history"
   /// setting (ROADMAP G.2). Tracked so [didChangeDependencies] can reload the
   /// calling history when the setting is toggled while this screen is open.
@@ -108,6 +140,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Preview mode renders in-memory data directly and reads no scopes (repos,
+    // calling-history setting) — none of the collection-only paths apply.
+    if (_isPreview) {
+      _future ??= Future.value(widget.previewData);
+      return;
+    }
     final requirePerformed = RequirePerformedForHistoryScope.of(context);
     // Only load once, but reload if the calling-history setting changed: this
     // callback also fires for unrelated ancestor changes (Theme/MediaQuery/
@@ -146,7 +184,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
     return DanceDetailData.load(
       _repos,
-      widget.danceId,
+      widget.danceId!,
       performedOnly: _requirePerformedForHistory,
     );
   }
@@ -183,7 +221,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _openEditor() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => DanceEditorScreen(danceId: widget.danceId),
+        builder: (_) => DanceEditorScreen(danceId: widget.danceId!),
       ),
     );
     if (mounted) _reload();
@@ -208,7 +246,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _duplicate() async {
     final now = DateTime.now().toUtc();
     final copy = await _repos.dances.duplicate(
-      id: widget.danceId,
+      id: widget.danceId!,
       newId: uuidV4(),
       now: now,
     );
@@ -248,7 +286,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
     if (!mounted) return;
     final now = DateTime.now().toUtc();
-    await _repos.dances.softDelete(widget.danceId, at: now);
+    await _repos.dances.softDelete(widget.danceId!, at: now);
     if (!mounted) return;
     // Capture ScaffoldMessengerState before any navigation/callback so we
     // don't read a deactivating context after the widget is removed.
@@ -264,7 +302,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           label: 'Undo',
           onPressed: () async {
             await _repos.dances.restore(
-              widget.danceId,
+              widget.danceId!,
               at: DateTime.now().toUtc(),
             );
             widget.onRestored?.call();
@@ -287,7 +325,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _addToProgram(String danceTitle) => showAddToProgramSheet(
     context,
     repositories: _repos,
-    danceId: widget.danceId,
+    danceId: widget.danceId!,
     danceTitle: danceTitle,
   );
 
@@ -503,16 +541,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           appBar: AppBar(
             title: const Text('Dance'),
             actions: [
-              FutureBuilder<DanceDetailData?>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if (snapshot.data == null) return const SizedBox.shrink();
-                  final detail = snapshot.data!;
-                  return compact
-                      ? _compactActions(context, detail)
-                      : _fullActions(context, detail);
-                },
-              ),
+              if (!_isPreview)
+                FutureBuilder<DanceDetailData?>(
+                  future: _future,
+                  builder: (context, snapshot) {
+                    if (snapshot.data == null) return const SizedBox.shrink();
+                    final detail = snapshot.data!;
+                    return compact
+                        ? _compactActions(context, detail)
+                        : _fullActions(context, detail);
+                  },
+                ),
             ],
           ),
           body: FutureBuilder<DanceDetailData?>(
@@ -531,10 +570,22 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           // Edit mirrors the program preview's builder affordance: a bottom-right
           // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
           // so opening the editor is consistent across the dance and program views.
+          // In preview mode the same slot becomes an Import button.
           floatingActionButton: FutureBuilder<DanceDetailData?>(
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.data == null) return const SizedBox.shrink();
+              if (_isPreview) {
+                return FloatingActionButton.extended(
+                  key: const ValueKey('import-dance'),
+                  heroTag: 'import-dance',
+                  onPressed: widget.onImport == null
+                      ? null
+                      : () => widget.onImport!(),
+                  icon: const Icon(Icons.library_add_outlined),
+                  label: const Text('Import'),
+                );
+              }
               return FloatingActionButton.extended(
                 key: const ValueKey('edit-dance'),
                 heroTag: 'edit-dance',
@@ -709,28 +760,32 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               child: Text('${field.label}: ${field.value}'),
             ),
         ],
-        const SizedBox(height: AppSpacing.lg),
-        Text('Calling history', style: theme.textTheme.titleMedium),
-        const SizedBox(height: AppSpacing.xxs),
-        if (detail.callingHistory.isEmpty)
-          Padding(
-            key: const ValueKey('calling-history-empty'),
-            // intentional: 2px optical inset, below the 4px AppSpacing grid
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Text(
-              'Not yet included in any program.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+        // Calling history is a collection-only concept — hidden for a
+        // not-yet-imported online preview.
+        if (!_isPreview) ...[
+          const SizedBox(height: AppSpacing.lg),
+          Text('Calling history', style: theme.textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.xxs),
+          if (detail.callingHistory.isEmpty)
+            Padding(
+              key: const ValueKey('calling-history-empty'),
+              // intentional: 2px optical inset, below the 4px AppSpacing grid
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                'Not yet included in any program.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          )
-        else
-          for (final record in detail.callingHistory)
-            _CallingHistoryRow(
-              key: ValueKey('calling-history-${record.slotId}'),
-              record: record,
-              onTap: () => _openProgram(record.programId),
-            ),
+            )
+          else
+            for (final record in detail.callingHistory)
+              _CallingHistoryRow(
+                key: ValueKey('calling-history-${record.slotId}'),
+                record: record,
+                onTap: () => _openProgram(record.programId),
+              ),
+        ],
       ],
     );
   }
