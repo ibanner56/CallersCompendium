@@ -153,17 +153,23 @@ class ImportSource {
   final bool Function(Uri uri)? matchesUrl;
 }
 
-/// The host used to build a Caller's Box JSON endpoint from a **bare id**.
-/// Confirmed live: `dance.php?id=1&format=JSON` returns real TCB JSON. A pasted
-/// full URL keeps its own host (so the surveyed `ibiblio.org` mirror also
-/// works); only bare-id input needs a host supplied here.
-const String callersBoxHost = 'www.thecallersbox.com';
+/// The host used to build a Caller's Box JSON endpoint from a **bare id**. The
+/// Caller's Box is served from ibiblio.org under [callersBoxPathPrefix].
+/// Confirmed live: `.../thecallersbox/dance.php?id=1&format=JSON` returns real
+/// TCB JSON. A pasted full URL keeps its own host; only bare-id input needs a
+/// host supplied here.
+const String callersBoxHost = 'www.ibiblio.org';
+
+/// The path prefix under which [callersBoxHost] serves The Caller's Box: both
+/// the `index.php` title search and the per-dance `dance.php` JSON endpoint live
+/// beneath it (e.g. `/contradance/thecallersbox/dance.php?id=N&format=JSON`).
+const String callersBoxPathPrefix = '/contradance/thecallersbox';
 
 /// Builds the Caller's Box per-dance JSON endpoint from what the user typed.
 ///
 /// The Caller's Box serves per-dance JSON at `dance.php?id=N&format=JSON`. This
 /// accepts either:
-/// - a **bare numeric id** (`"1"`) → `https://www.thecallersbox.com/dance.php?id=1&format=JSON`;
+/// - a **bare numeric id** (`"1"`) → `https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1&format=JSON`;
 /// - a pasted **http(s) URL** with an `id` query param (`.../dance.php?id=N`,
 ///   with or without an existing `format=…`) → the same URL with `format=JSON`
 ///   set (any existing `format` is overwritten, so it is never doubled and an
@@ -182,7 +188,7 @@ String buildCallersBoxJsonUrl(String input) {
 
   // Bare numeric id: build the canonical endpoint from scratch.
   if (RegExp(r'^\d+$').hasMatch(trimmed)) {
-    return Uri.https(callersBoxHost, '/dance.php', {
+    return Uri.https(callersBoxHost, '$callersBoxPathPrefix/dance.php', {
       'id': trimmed,
       'format': 'JSON',
     }).toString();
@@ -226,10 +232,11 @@ typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 
 /// Builds the Caller's Box title-search URL for [title].
 ///
-/// The Caller's Box search surface is an HTTP GET to the site root with a
-/// `title` query param (confirmed live; the site also accepts `author`,
-/// `formation`, `progression`, but this app searches by title). Returns
-/// `https://www.thecallersbox.com/?title=<encoded>`.
+/// The Caller's Box search surface is an HTTP GET to `index.php` (under
+/// [callersBoxPathPrefix]) with a `title` query param (confirmed live; the site
+/// also accepts `author`, `formation`, `progression`, but this app searches by
+/// title). Returns
+/// `https://www.ibiblio.org/contradance/thecallersbox/index.php?title=<encoded>`.
 ///
 /// Throws a [UrlFetchException] (message safe to show) when [title] is empty.
 String buildCallersBoxSearchUrl(String title, {String host = callersBoxHost}) {
@@ -237,7 +244,9 @@ String buildCallersBoxSearchUrl(String title, {String host = callersBoxHost}) {
   if (trimmed.isEmpty) {
     throw const UrlFetchException("Enter a title to search The Caller's Box.");
   }
-  return Uri.https(host, '/', {'title': trimmed}).toString();
+  return Uri.https(host, '$callersBoxPathPrefix/index.php', {
+    'title': trimmed,
+  }).toString();
 }
 
 /// Caller's Box HTML pages are served as `windows-1252`. The 0x80–0x9F range is

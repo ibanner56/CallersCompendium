@@ -56,11 +56,11 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('buildCallersBoxSearchUrl', () {
-    test('encodes the title and targets the site root', () {
+    test('encodes the title and targets the search endpoint', () {
       final url = buildCallersBoxSearchUrl('Money Musk');
       final uri = Uri.parse(url);
-      expect(uri.host, 'www.thecallersbox.com');
-      expect(uri.path, '/');
+      expect(uri.host, 'www.ibiblio.org');
+      expect(uri.path, '/contradance/thecallersbox/index.php');
       expect(uri.queryParameters['title'], 'Money Musk');
     });
 
@@ -76,6 +76,7 @@ void main() {
         buildCallersBoxSearchUrl('x', host: 'www.ibiblio.org'),
       );
       expect(uri.host, 'www.ibiblio.org');
+      expect(uri.path, '/contradance/thecallersbox/index.php');
     });
 
     test('empty title throws a UrlFetchException', () {
@@ -113,7 +114,7 @@ void main() {
         return http.Response.bytes(bytes, 200);
       });
       final body = await fetchCallersBoxSearch(
-        'https://www.thecallersbox.com/?title=x',
+        'https://www.ibiblio.org/contradance/thecallersbox/index.php?title=x',
         client: client,
       );
       expect(body, 'Money\u2019s');
@@ -123,7 +124,7 @@ void main() {
       final client = MockClient((_) async => http.Response('nope', 503));
       expect(
         () => fetchCallersBoxSearch(
-          'https://www.thecallersbox.com/?title=x',
+          'https://www.ibiblio.org/contradance/thecallersbox/index.php?title=x',
           client: client,
         ),
         throwsA(isA<UrlFetchException>()),
@@ -134,7 +135,7 @@ void main() {
       final client = MockClient((_) async => http.Response('', 200));
       expect(
         () => fetchCallersBoxSearch(
-          'https://www.thecallersbox.com/?title=x',
+          'https://www.ibiblio.org/contradance/thecallersbox/index.php?title=x',
           client: client,
         ),
         throwsA(isA<UrlFetchException>()),

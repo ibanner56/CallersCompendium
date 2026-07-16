@@ -6,12 +6,12 @@ void main() {
     test('a bare numeric id builds the canonical JSON endpoint', () {
       expect(
         buildCallersBoxJsonUrl('1'),
-        'https://www.thecallersbox.com/dance.php?id=1&format=JSON',
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1&format=JSON',
       );
       // Surrounding whitespace is tolerated.
       expect(
         buildCallersBoxJsonUrl('  42 '),
-        'https://www.thecallersbox.com/dance.php?id=42&format=JSON',
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=42&format=JSON',
       );
     });
 
