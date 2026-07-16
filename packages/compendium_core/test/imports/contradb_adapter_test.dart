@@ -147,6 +147,26 @@ void main() {
         expect(swing.note, 'scoop them up');
         expect(swing.progression, isTrue);
       });
+
+      test('choice params match separator-insensitively', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              figures: [
+                _fig('down the hall', [
+                  'everyone',
+                  'forward_then_backward',
+                  'turn_couple',
+                  8,
+                ]),
+              ],
+            ),
+          ),
+        );
+        final dth = _figureFor(draft, 'down_the_hall');
+        expect(dth.params['facing'], 'forwardThenBackward');
+        expect(dth.params['ender'], 'turnCouple');
+      });
     });
 
     group('term migration & aliases', () {
@@ -253,6 +273,24 @@ void main() {
           expect(fig.isCustom, isTrue);
           expect(fig.params['text'], 'do a thing');
           expect(fig.params['beats'], 6);
+        },
+      );
+
+      test(
+        'custom move takes beats from a trailing positional value',
+        () async {
+          final draft = await _importOne(
+            jsonEncode(
+              _dance(
+                figures: [
+                  _fig('custom', const [8], customFigure: 'do a thing'),
+                ],
+              ),
+            ),
+          );
+          final fig = draft.dance.figures.single;
+          expect(fig.params['text'], 'do a thing');
+          expect(fig.params['beats'], 8);
         },
       );
 

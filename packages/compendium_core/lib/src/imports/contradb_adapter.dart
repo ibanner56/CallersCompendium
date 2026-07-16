@@ -269,7 +269,7 @@ class ContraDbAdapter implements SourceAdapter {
             );
       return customFigure(
         reconstructed,
-        beats: explicitBeats ?? 0,
+        beats: explicitBeats ?? _trailingBeats(paramList) ?? 0,
         progression: progression,
       );
     }
@@ -363,10 +363,13 @@ class ContraDbAdapter implements SourceAdapter {
 
     // A `custom_figure` sub-field fills the `custom` text param when the
     // positional table declares one and it was not already set positionally.
+    // Guard the cast so the adapter stays parse-never-fails even if a future
+    // mapping ever populates `custom` with a non-String value.
+    final existingCustom = params['custom'];
     if (customFigureField != null &&
         customFigureField.isNotEmpty &&
         mapping.positional.any((p) => p.name == 'custom') &&
-        (params['custom'] == null || (params['custom'] as String).isEmpty)) {
+        (existingCustom is! String || existingCustom.isEmpty)) {
       params['custom'] = customFigureField;
     }
 
@@ -635,12 +638,11 @@ Object? _hand(Object? raw) {
 Object? _shoulder(Object? raw) => _hand(raw);
 
 Object? _spin(Object? raw) {
-  final s = _asString(raw)?.trim().toLowerCase();
+  final s = _asString(raw);
   if (s == null) return null;
-  if (s == 'clockwise' || s == 'cw') return 'clockwise';
-  if (s == 'counterclockwise' || s == 'ccw' || s == 'counter clockwise') {
-    return 'counterclockwise';
-  }
+  final n = _stripSeparators(s);
+  if (n == 'clockwise' || n == 'cw') return 'clockwise';
+  if (n == 'counterclockwise' || n == 'ccw') return 'counterclockwise';
   return null;
 }
 
@@ -724,20 +726,25 @@ Object? Function(Object?) _beatsConv() =>
     (raw) => _asBeats(raw);
 
 /// A choice converter over a fixed allowed set, with optional ContraDB→ours
-/// [aliases]. Matching is case- and separator-insensitive.
+/// [aliases]. Matching is case- and separator-insensitive (spaces, `_`, and
+/// `-` are all ignored), so `forward_then_backward` and `forward then
+/// backward` both match.
 _Conv _choice(Set<String> allowed, {Map<String, String> aliases = const {}}) {
   final norm = <String, String>{
-    for (final a in allowed) a.toLowerCase(): a,
-    for (final e in aliases.entries) e.key.toLowerCase(): e.value,
+    for (final a in allowed) _stripSeparators(a): a,
+    for (final e in aliases.entries) _stripSeparators(e.key): e.value,
   };
   return (raw) {
-    final s = _asString(
-      raw,
-    )?.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    final s = _asString(raw);
     if (s == null) return null;
-    return norm[s];
+    return norm[_stripSeparators(s)];
   };
 }
+
+/// Lowercases and removes separators (whitespace, `_`, `-`) for
+/// separator-insensitive vocabulary matching.
+String _stripSeparators(String s) =>
+    s.toLowerCase().replaceAll(RegExp(r'[\s_-]+'), '');
 
 /// The positional→named conversion table per ContraDB move (keys normalized by
 /// [_normalizeMove]). Positional order is the **assumed** `defineFigure` order;
