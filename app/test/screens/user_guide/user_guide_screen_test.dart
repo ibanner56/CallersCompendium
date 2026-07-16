@@ -74,6 +74,44 @@ void main() {
     expect(_title(tester), 'User guide');
   });
 
+  testWidgets(
+    'an offscreen (inactive) guide ignores a back press handled elsewhere',
+    (tester) async {
+      // Reproduces the kept-alive-guide hazard: a sibling PopScope that blocks
+      // the pop makes the route report didPop == false to *every* registered
+      // PopScope — including an offscreen guide's. An inactive guide must not
+      // rewind its in-panel stack in that case.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                PopScope(
+                  canPop: false,
+                  onPopInvokedWithResult: (_, _) {},
+                  child: const SizedBox.shrink(),
+                ),
+                const Expanded(child: UserGuideScreen(isActive: false)),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Build in-panel history on the (visible but inactive) guide.
+      _tapLink(tester, 'imports.md');
+      await tester.pumpAndSettle();
+      expect(_title(tester), 'Imports');
+
+      // A system back press is blocked by the sibling PopScope; the inactive
+      // guide keeps its stack rather than rewinding to the hub.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(_title(tester), 'Imports');
+    },
+  );
+
   testWidgets('a not-yet-written guide surfaces a message, not navigation', (
     tester,
   ) async {

@@ -100,7 +100,10 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
       // guide never intercepts, so back behaves normally on other destinations.
       canPop: !(widget.isActive && _canGoBackInPanel),
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && _canGoBackInPanel) {
+        // Only the active guide consumes back to rewind its in-panel stack; an
+        // offscreen (kept-alive) instance must ignore back presses handled by
+        // another destination so it never mutates its stack while hidden.
+        if (!didPop && widget.isActive && _canGoBackInPanel) {
           setState(() => _stack.removeLast());
         }
       },

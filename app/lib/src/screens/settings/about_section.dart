@@ -56,7 +56,15 @@ class _AboutView extends StatelessWidget {
               onOpenGuide ??
               () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const UserGuideScreen(),
+                  // Standalone fallback (no shell to host the guide as a
+                  // destination): the guide is embeddable and no longer
+                  // self-hosts a Scaffold, so give the pushed route its own
+                  // chrome — an AppBar (for a back affordance), a Scaffold (so
+                  // ScaffoldMessenger can show SnackBars), and a SafeArea.
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(title: const Text('User guide')),
+                    body: const SafeArea(child: UserGuideScreen()),
+                  ),
                 ),
               ),
         ),
