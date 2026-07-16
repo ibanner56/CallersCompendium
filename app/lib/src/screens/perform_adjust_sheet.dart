@@ -200,40 +200,35 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   }
 
   Future<void> _openInsertPicker() async {
+    // A modal picker: use the standard drag-handle bottom sheet for
+    // consistency with the app's other pickers (e.g. Perform's jump-to-slot),
+    // rather than a hand-built header with a close button.
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.85,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Column(
+        final maxHeight = MediaQuery.of(sheetContext).size.height * 0.85;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Column(
               children: [
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const SizedBox(width: 16),
-                    Text(
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
                       'Insert a dance',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: Theme.of(sheetContext).textTheme.titleMedium,
                     ),
-                    const Spacer(),
-                    IconButton(
-                      key: const ValueKey('adjust-insert-close'),
-                      tooltip: 'Close',
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                    ),
-                  ],
+                  ),
                 ),
                 Expanded(
                   child: CollectionPicker(
                     key: const ValueKey('adjust-picker'),
                     data: widget.data,
                     dialect: widget.dialect,
-                    scrollController: scrollController,
                     onAddDance: (id) {
                       _insertDance(id);
                       Navigator.of(sheetContext).pop();
@@ -241,8 +236,8 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
                   ),
                 ),
               ],
-            );
-          },
+            ),
+          ),
         );
       },
     );

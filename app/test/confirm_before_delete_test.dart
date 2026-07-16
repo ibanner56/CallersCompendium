@@ -179,6 +179,9 @@ void main() {
         find.byKey(const ValueKey('confirm-delete-dialog')),
         findsOneWidget,
       );
+      // Confirmations render as an AlertDialog (not a hand-built sheet), for
+      // consistency across the app's destructive-action flows.
+      expect(find.byType(AlertDialog), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('confirm-delete-cancel')));
       await tester.pumpAndSettle();
 

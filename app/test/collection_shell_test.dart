@@ -138,6 +138,25 @@ void main() {
       expect(find.byType(DanceDetailScreen), findsNothing);
     });
 
+    testWidgets('empty-detail pane body text uses onSurfaceVariant (AA)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      const bodyText = 'Choose a dance from the list to view its details.';
+      final finder = find.text(bodyText);
+      expect(finder, findsOneWidget);
+
+      // Body text must use a text color role (onSurfaceVariant, ≥4.5:1) rather
+      // than the hairline outlineVariant role it previously used.
+      final textWidget = tester.widget<Text>(finder);
+      final scheme = Theme.of(tester.element(finder)).colorScheme;
+      expect(textWidget.style?.color, scheme.onSurfaceVariant);
+      expect(textWidget.style?.color, isNot(scheme.outlineVariant));
+    });
+
     testWidgets('selecting a dance shows detail pane without pushing a route', (
       tester,
     ) async {

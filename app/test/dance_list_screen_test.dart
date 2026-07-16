@@ -15,6 +15,7 @@ import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
+import 'package:compendium_app/src/widgets/skeleton.dart';
 
 import 'support/test_repositories.dart';
 
@@ -131,12 +132,15 @@ Future<void> _addPhraseMove(
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
-  testWidgets('shows a loading indicator before data resolves', (tester) async {
+  testWidgets('shows a loading skeleton before data resolves', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
 
     await _pumpScreen(tester, repos);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    // Content-shaped skeleton (not a bare spinner) with a "Loading…" label for
+    // screen readers while the collection loads.
+    expect(find.byType(SkeletonListView), findsOneWidget);
+    expect(find.bySemanticsLabel('Loading\u2026'), findsOneWidget);
 
     await tester.pumpAndSettle();
     expect(find.text('Chase the Squirrel'), findsOneWidget);
@@ -976,6 +980,13 @@ void main() {
 
     // The shared add-to-program sheet lists the existing program.
     expect(find.byKey(const ValueKey('program-pick-p1')), findsOneWidget);
+    // Modal pickers use a standard drag-handle bottom sheet (no hand-built
+    // header/close button) for consistency across the app's picker flows.
+    expect(
+      tester.widget<BottomSheet>(find.byType(BottomSheet)).showDragHandle,
+      isTrue,
+    );
+    expect(find.byKey(const ValueKey('add-to-program-close')), findsNothing);
   });
 
   // ── Recently Deleted navigation ────────────────────────────────────────────

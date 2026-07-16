@@ -106,12 +106,7 @@ class _AppShellState extends State<AppShell> {
                   labelType: NavigationRailLabelType.all,
                   leading: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: IconButton.filledTonal(
-                      key: const ValueKey('global-search-button'),
-                      icon: const Icon(Icons.search),
-                      tooltip: 'Search (Ctrl/Cmd-K)',
-                      onPressed: _openSearch,
-                    ),
+                    child: _RailSearchButton(onPressed: _openSearch),
                   ),
                   destinations: [
                     for (final d in _destinations)
@@ -153,6 +148,85 @@ class _AppShellState extends State<AppShell> {
           ),
         );
       },
+    );
+  }
+}
+
+/// The desktop nav-rail global-search affordance. Unlike a bare icon button it
+/// carries a visible "Search" label and a platform-appropriate keyboard hint
+/// (⌘K on Apple platforms, Ctrl K elsewhere) so the feature — and its
+/// Ctrl/Cmd-K shortcut — is discoverable rather than hidden behind a glyph
+/// (`docs/design/ux-modernization.md` §6). Keeps the `global-search-button`
+/// key and tooltip so existing wiring and tests are preserved.
+class _RailSearchButton extends StatelessWidget {
+  const _RailSearchButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isApple =
+        theme.platform == TargetPlatform.macOS ||
+        theme.platform == TargetPlatform.iOS;
+    final hint = isApple ? '\u2318K' : 'Ctrl K';
+    return Tooltip(
+      message: 'Search ($hint)',
+      child: InkWell(
+        key: const ValueKey('global-search-button'),
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: scheme.secondaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.search, color: scheme.onSecondaryContainer),
+              ),
+              const SizedBox(height: 4),
+              Text('Search', style: theme.textTheme.labelMedium),
+              const SizedBox(height: 2),
+              _ShortcutHint(hint),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small keyboard-key style chip showing a shortcut hint (e.g. "⌘K").
+class _ShortcutHint extends StatelessWidget {
+  const _ShortcutHint(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      key: const ValueKey('global-search-shortcut-hint'),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
     );
   }
 }

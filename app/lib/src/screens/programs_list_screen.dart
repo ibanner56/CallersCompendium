@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../data/repositories_scope.dart';
 import '../utils/confirm_delete.dart';
 import '../widgets/program_list_tile.dart';
+import '../widgets/skeleton.dart';
 import 'app_shell_search_scope.dart';
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
@@ -291,9 +292,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
 
     final programs = _programs;
     if (programs == null) {
-      return const Center(
-        child: CircularProgressIndicator(semanticsLabel: 'Loading programs'),
-      );
+      return const SkeletonListView();
     }
 
     if (programs.isEmpty) {
