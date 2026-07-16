@@ -40,7 +40,7 @@ Being upfront about the deal keeps expectations healthy:
 
 **Testers get:**
 
-- Early hands on a tool built specifically for callers.
+- Early hands-on time with a tool built specifically for callers.
 - Real influence on the first release — their feedback shapes it directly.
 - A safety net: the app's built-in **backup/restore** means their data is theirs
   and portable from day one.

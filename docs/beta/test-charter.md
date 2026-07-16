@@ -24,8 +24,11 @@ event. For each session:
    that felt slow, confusing, or wrong. A note like "couldn't find where to add an
    alt" is plenty.
 4. **Report back** using the channels in the [beta guide](./beta-guide.md#how-to-give-feedback):
-   the **Beta check-in** form for how a session went overall, the **Bug report**
-   form for anything broken, **General feedback** for awkward moments.
+   the **Bug report** form (always available) for anything broken, plus the **Beta
+   check-in** form for how a session went overall and **General feedback** for
+   awkward moments as those beta forms roll out. A
+   [Discussion](https://github.com/ibanner56/CallersCompendium/discussions) always
+   works too.
 
 ### A charter reads like this
 

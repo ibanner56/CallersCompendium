@@ -127,8 +127,13 @@ Pick the channel that fits:
 
 All of the issue forms live on the
 [new-issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose).
-Not sure which to pick? Start a Discussion — we will sort it out together. Once you
-file something, a maintainer sorts it using the
+The **Bug report** and **Feature request** forms are always available there; the
+beta-specific forms above (**General feedback**, **Beta check-in**, and **Import
+source problem**) join them as the beta program rolls out. If a form you are
+looking for is not on the chooser yet, a **Bug report** or a
+[Discussion](https://github.com/ibanner56/CallersCompendium/discussions) always
+works in the meantime. Not sure which to pick? Start a Discussion — we will sort it
+out together. Once you file something, a maintainer sorts it using the
 [triage rubric](./triage-rubric.md), so you can see how reports move from "just
 arrived" to "fixed."
 
