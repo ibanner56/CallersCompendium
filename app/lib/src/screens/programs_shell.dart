@@ -106,6 +106,7 @@ class _ProgramsShellState extends State<ProgramsShell> {
                       _listRefresh.value++;
                       setState(() => _selectedProgramId = id);
                     },
+                    onProgramMutated: () => _listRefresh.value++,
                   )
                 : const _EmptyEditorPane(),
           ),
