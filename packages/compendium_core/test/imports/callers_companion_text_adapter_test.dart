@@ -81,23 +81,30 @@ void main() {
       expect(dance.composedOn, PartialDate(2004));
       expect(dance.callingNotes, contains('Music: any good 32-bar reels'));
 
-      // Every figure is custom (design §2) and carries its beats + section.
+      // Figures carry their beats + section; recognised moves now structure,
+      // and the shared parser dialect-scrubs the text (design §2 fallback still
+      // applies to anything unrecognised, e.g. the closing hey).
       expect(dance.figures, hasLength(6));
-      expect(dance.figures.every((f) => f.isCustom), isTrue);
+      expect(dance.figures.where((f) => f.isCustom), hasLength(1));
       expect(dance.figures.first.beats, 8);
-      expect(
-        dance.figures.first.params['text'],
-        'A1: Neighbor balance and swing',
-      );
+      // "Neighbor balance and swing" → structured swing (balance prefix).
+      expect(dance.figures.first.move, 'swing');
+      expect(dance.figures.first.params['who'], 'neighbors');
+      expect(dance.figures.first.params['prefix'], 'balance');
       final swing = dance.figures[2];
       expect(swing.beats, 16);
-      expect(swing.params['text'], 'A2: Partner balance and swing');
+      expect(swing.move, 'swing');
+      expect(swing.params['who'], 'partners');
+      // "Hey for four" is out of the recognised cut → custom fallback.
+      expect(dance.figures.last.isCustom, isTrue);
+      expect(dance.figures.last.params['text'], 'B2: Hey for four');
     });
 
-    test('quality is fully custom for a CC dance', () async {
+    test('quality reflects the mix of structured + custom figures', () async {
       final draft = (await _importAll(adapter, _fullDance)).single;
-      expect(draft.quality.isFullyCustom, isTrue);
-      expect(draft.quality.score, 0.0);
+      // Most lines now structure, so the dance is no longer fully custom.
+      expect(draft.quality.isFullyCustom, isFalse);
+      expect(draft.quality.score, greaterThan(0.0));
     });
 
     test('author name surfaces as an unresolved-author issue', () async {
@@ -119,8 +126,9 @@ A1 Balance the ring
 ''';
       final draft = (await _importAll(adapter, text)).single;
       expect(draft.dance.figures, hasLength(2));
+      // "Balance the ring" → structured balance_the_ring, no beats prefix → 0.
       expect(draft.dance.figures[0].beats, 0);
-      expect(draft.dance.figures[0].params['text'], 'A1: Balance the ring');
+      expect(draft.dance.figures[0].move, 'balance_the_ring');
       expect(draft.dance.figures[1].beats, 8);
     });
 

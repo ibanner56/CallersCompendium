@@ -5,7 +5,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
-import 'figure_text_scrub.dart';
+import 'figure_parser.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -296,12 +296,10 @@ class CallersBoxAdapter implements SourceAdapter {
       beats = int.tryParse(match.group(1)!) ?? 0;
       text = match.group(2)!.trim();
     }
-    final scrubbed = scrubFigureText(text);
-    if (scrubbed.isEmpty) return null;
-    final withLabel = (label == null || label.isEmpty)
-        ? scrubbed
-        : '$label: $scrubbed';
-    return customFigure(withLabel, beats: beats);
+    // Route through the shared parser: recognised moves become structured
+    // figures; the rest fall back to custom (with the section label prefixed,
+    // as before). Returns null when the line is empty after scrubbing.
+    return parseFigureLine(text, beats: beats, label: label);
   }
 
   // --- Formation -------------------------------------------------------------
