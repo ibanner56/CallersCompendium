@@ -1,0 +1,28 @@
+# Android upload-keystore configuration — TEMPLATE (safe to commit).
+#
+# Copy this file to `key.properties` (same directory, `app/android/`) and fill
+# in the real values to build a SIGNED release APK locally:
+#
+#     cp key.properties.example key.properties
+#
+# The real `key.properties` — and any `*.jks` / `*.keystore` file — is GITIGNORED
+# (see app/android/.gitignore); never commit your keystore or its passwords.
+# When `key.properties` is absent, `app/android/app/build.gradle.kts` falls back
+# to the debug signing config, so release builds still work without a keystore.
+#
+# In CI the forthcoming release job (see docs/dev/releasing.md, "Android (signed
+# APK)") reconstructs this file from repository secrets — the keystore is decoded
+# from ANDROID_KEYSTORE_BASE64 and the fields below map to the matching secrets.
+#
+# Fields (all four are required when signing a release):
+#
+#   storePassword  Password for the keystore file          (CI: ANDROID_KEYSTORE_PASSWORD)
+#   keyPassword    Password for the key entry / alias       (CI: ANDROID_KEY_PASSWORD)
+#   keyAlias       Alias of the key inside the keystore     (CI: ANDROID_KEY_ALIAS)
+#   storeFile      Path to the keystore file (.jks)         (decoded from ANDROID_KEYSTORE_BASE64)
+#                  A relative path is resolved from app/android/.
+
+storePassword=your-keystore-password
+keyPassword=your-key-password
+keyAlias=upload
+storeFile=callerscompendium-upload.jks

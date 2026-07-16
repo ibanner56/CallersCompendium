@@ -565,6 +565,7 @@ taxonomy are unchanged.
 
 - [ ] 7.1 Packaging/signing for all platforms; update channel
   - Distribution & update-channel architecture — [ADR-002](adr/002-distribution-and-update-channels.md)
+  - Signed Android APK: signing-config groundwork is in place (release `signingConfig` with debug fallback in `app/android/app/build.gradle.kts`, see [releasing.md](dev/releasing.md#android-signed-apk)); still requires (a) the maintainer to generate the upload keystore and add the four CI secrets, and (b) the `release.yml` Android build+sign+stage job (part 2).
 - [ ] 7.2 User documentation
 - [ ] 7.3 Beta program with real callers; feedback triage
 

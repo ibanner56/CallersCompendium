@@ -47,8 +47,12 @@ The **release notes** (the draft's body) are generated from `app/CHANGELOG.md`
 by `tools/release/gen_release_notes.py` — see
 [CHANGELOG-driven release notes](#changelog-driven-release-notes) below.
 
-Deferred this wave: Linux/Windows **arm64**, **Android** (needs a keystore
-secret), and **iOS** (needs Apple signing).
+Deferred this wave: Linux/Windows **arm64** and **iOS** (needs Apple signing).
+**Android** signing groundwork now exists (a proper `release` signingConfig in
+`app/android/app/build.gradle.kts`, see
+[Android (signed APK)](#android-signed-apk) below), but the release-workflow
+Android build+sign+stage job and the upload-keystore CI secrets are still
+outstanding — so no Android artifact is produced by the pipeline yet.
 
 ## Safety model
 
@@ -210,6 +214,66 @@ gh workflow run release.yml
 > whose core matches the pubspec (e.g. `v0.1.0-rc.1`) — a tag push runs the
 > workflow from the tagged commit and produces a **draft** (never public);
 > delete the draft release and the tag afterward.
+
+## Android (signed APK)
+
+Unlike the desktop artifacts (which are **unsigned** this wave), Android's first
+beta ships as a **self-signed** sideload APK. Android refuses to install an
+unsigned APK, so the `release` build type is wired to a real upload keystore via
+the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.kts`.
+
+> **Status.** This is groundwork only. The signing **config** is in place with a
+> **debug fallback**: when `app/android/key.properties` is absent (contributors,
+> the CI `apk --debug` build, `flutter build apk --release` without a keystore)
+> the `release` build type signs with the debug keys, so nothing breaks. The
+> release-workflow Android **build+sign+stage job is still PENDING** (a separate
+> follow-up PR wires it into `.github/workflows/release.yml`), and the upload
+> keystore + CI secrets below are a **maintainer action** not yet done — so the
+> pipeline does **not** produce an Android artifact yet.
+
+### `key.properties` fields
+
+`app/android/key.properties` is **gitignored** (along with `**/*.jks` /
+`**/*.keystore`) and must never be committed. A committed template lives at
+`app/android/key.properties.example`; copy it and fill in real values to build a
+signed APK locally:
+
+| Field | Meaning |
+|-------|---------|
+| `storePassword` | Password for the keystore file |
+| `keyPassword` | Password for the key entry / alias |
+| `keyAlias` | Alias of the key inside the keystore (e.g. `upload`) |
+| `storeFile` | Path to the `.jks` keystore (relative paths resolve from `app/android/`) |
+
+### Maintainer: generate the upload keystore (one-time, out-of-band)
+
+```sh
+keytool -genkey -v -keystore callerscompendium-upload.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+Keep this `.jks` and its passwords secret and backed up **outside** the repo —
+losing the upload key means users can no longer receive in-place updates of an
+APK signed with it.
+
+### Maintainer: GitHub Actions secrets (for the forthcoming release job)
+
+The pending Android release job will reconstruct `key.properties` (and decode the
+keystore) from four repository secrets:
+
+| Secret | Contents |
+|--------|----------|
+| `ANDROID_KEYSTORE_BASE64` | The `.jks` keystore, base64-encoded (`base64 < callerscompendium-upload.jks \| tr -d '\n'` — portable across macOS/Linux and single-line) |
+| `ANDROID_KEYSTORE_PASSWORD` | → `storePassword` |
+| `ANDROID_KEY_PASSWORD` | → `keyPassword` |
+| `ANDROID_KEY_ALIAS` | → `keyAlias` |
+
+### Sideload install note (for release notes / users)
+
+The Android APK is **self-signed**, *not* "unsigned" like the desktop builds — it
+carries a valid signature, just not one from Google Play. To sideload it a user
+enables **"install unknown apps"** for their browser/file manager, then opens the
+downloaded APK. Verify the download against `SHA256SUMS` as with every artifact.
 
 ## Packaging tooling notes
 
