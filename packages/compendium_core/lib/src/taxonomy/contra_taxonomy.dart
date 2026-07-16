@@ -740,19 +740,22 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         // Which pair starts in the center (ContraDB ladles -> role2s).
         'pass1': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
+        // Full set of ContraDB named hey-length durations. The dynamic
+        // dancer%%N meeting encodings remain out of scope. Ordered ahead of
+        // `pass2` because callers almost always set the hey length, whereas
+        // `pass2` usually stays 'unspecified' — surfacing length in the inline
+        // (first-3) fields saves a trip into "More options".
+        'length': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'half',
+          choices: ['lessThanHalf', 'half', 'betweenHalfAndFull', 'full'],
+        ),
+        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
         // The ends pair, or 'unspecified' (ContraDB chooser_pairz_or_unspecified).
         'pass2': ParamSpec(
           ParamKind.dancerSet,
           defaultValue: 'unspecified',
           choices: _heyPass2Choices,
-        ),
-        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
-        // Full set of ContraDB named hey-length durations. The dynamic
-        // dancer%%N meeting encodings remain out of scope.
-        'length': ParamSpec(
-          ParamKind.choice,
-          defaultValue: 'half',
-          choices: ['lessThanHalf', 'half', 'betweenHalfAndFull', 'full'],
         ),
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         // Four ricochet flags: (1st/2nd meeting) x (center/ends dancers).

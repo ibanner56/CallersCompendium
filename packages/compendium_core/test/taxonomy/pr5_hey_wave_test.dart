@@ -89,6 +89,26 @@ void main() {
       expect(defaults['length'], 'half');
     });
 
+    test('length is surfaced before pass2 in the entry-form field order', () {
+      // The dance-entry form renders params in MoveDef.params insertion order
+      // (figure_list_editor _buildParams: first 3 inline, rest behind "More
+      // options"). `length` is almost always set; `pass2` rarely is, so it must
+      // sit ahead of `pass2` — and within the inline first-3 group.
+      final keys = tax.resolve('hey')!.params.keys.toList();
+      final lengthIdx = keys.indexOf('length');
+      final pass2Idx = keys.indexOf('pass2');
+      expect(
+        lengthIdx,
+        lessThan(pass2Idx),
+        reason: 'length must precede pass2',
+      );
+      expect(
+        lengthIdx,
+        lessThan(3),
+        reason: 'length must be in the inline first-3 fields',
+      );
+    });
+
     test('out-of-domain length value is rejected', () {
       expect(
         tax
