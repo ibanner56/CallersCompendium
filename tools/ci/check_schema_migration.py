@@ -38,7 +38,9 @@ DB_PATH = "packages/compendium_core/lib/src/storage/database.dart"
 MIGRATION_TEST = "packages/compendium_core/test/storage/migration_test.dart"
 FIXTURES_DIR = "packages/compendium_core/test/storage/fixtures/"
 
-_SCHEMA_RE = re.compile(r"int\s+get\s+schemaVersion\s*=>\s*(?P<v>\d+)\s*;")
+_GETTER_RE = re.compile(
+    r"int\s+get\s+schemaVersion\s*=>\s*(?P<rhs>[A-Za-z_$][\w$]*|\d+)\s*;"
+)
 
 
 def _fail(msg: str, code: int = 2) -> None:
@@ -52,16 +54,31 @@ def _git(*args: str) -> subprocess.CompletedProcess:
     )
 
 
+def _const_int(source: str, name: str) -> int | None:
+    """Resolve a top-level ``const int <name> = <digits>;`` in ``source``."""
+    m = re.search(
+        r"const\s+int\s+" + re.escape(name) + r"\s*=\s*(?P<v>\d+)\s*;", source
+    )
+    return int(m.group("v")) if m else None
+
+
 def _schema_version_at(ref: str) -> int | None:
     """Return schemaVersion in DB_PATH at ``ref``, or None if unreadable there."""
     res = _git("show", f"{ref}:{DB_PATH}")
     if res.returncode != 0:
         # File absent at that ref (e.g. brand-new file) — treat as "no prior".
         return None
-    m = _SCHEMA_RE.search(res.stdout)
+    m = _GETTER_RE.search(res.stdout)
     if not m:
         return None
-    return int(m.group("v"))
+    rhs = m.group("rhs")
+    if rhs.isdigit():
+        # Getter returns a numeric literal directly: `=> 9;`.
+        return int(rhs)
+    # Single-source pattern: the getter defers to a named constant
+    # (`=> kCompendiumSchemaVersion;`), so resolve that constant's value from
+    # the same file (`const int kCompendiumSchemaVersion = 9;`).
+    return _const_int(res.stdout, rhs)
 
 
 def _changed_paths(base: str, head: str) -> list[str]:
