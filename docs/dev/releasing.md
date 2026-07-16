@@ -68,11 +68,12 @@ secret), **iOS** (needs Apple signing), and an SBOM.
 
 ## Dry run (no release created)
 
-Use the manual dispatch to build + package without creating any release — the
-packaged artifacts are uploaded as **workflow run artifacts** instead:
+A manual dispatch builds + packages without creating any release (the `publish`
+job only runs on a tag push) — the packaged artifacts are uploaded as
+**workflow run artifacts** instead:
 
 ```sh
-gh workflow run release.yml -f dry_run=true
+gh workflow run release.yml
 ```
 
 > `workflow_dispatch` only works once `release.yml` is on the default branch.

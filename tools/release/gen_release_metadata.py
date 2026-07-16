@@ -95,15 +95,22 @@ def build_metadata(
     candidates: dict[tuple[str, str], list[tuple[int, dict]]] = {}
 
     for path in binaries:
+        parsed = _parse_asset(path.name, version)
+        if parsed is None:
+            # A prefix match that doesn't satisfy the contract must fail the
+            # release rather than land in SHA256SUMS but not the manifest —
+            # that split is exactly the integrity drift this file guards.
+            raise SystemExit(
+                f"::error::artifact does not match the "
+                f"CallersCompendium-{version}-<platform>-<arch>.<ext> "
+                f"name contract: {path.name}"
+            )
+        platform, arch, ext = parsed
+
         digest = _sha256(path)
         size = path.stat().st_size
         sums_lines.append(f"{digest}  {path.name}")
 
-        parsed = _parse_asset(path.name, version)
-        if parsed is None:
-            print(f"::warning::skipping unparseable asset name: {path.name}")
-            continue
-        platform, arch, ext = parsed
         entry = {
             "platform": platform,
             "arch": arch,

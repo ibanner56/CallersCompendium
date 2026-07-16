@@ -10,9 +10,9 @@
 #   * Every job is guarded to the canonical repo on a tag ref (or a manual
 #     dispatch), so forks / PRs can never trigger a release or mint an elevated
 #     token.
-#   * `publish` runs only for a real tag push — a `workflow_dispatch` dry-run
-#     builds + packages and uploads the results as workflow artifacts WITHOUT
-#     creating any release.
+#   * `publish` runs only for a real tag push. A manual `workflow_dispatch` run
+#     therefore always builds + packages and uploads the results as workflow
+#     artifacts WITHOUT creating any release (a build-only dry run).
 #
 # The Flutter version is derived from .fvmrc (single source of truth) via
 # subosito/flutter-action, exactly like ci.yml / _checks.yml.
@@ -21,12 +21,10 @@ name: Release
 on:
   push:
     tags: ['v*']
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        description: 'Build & package only; upload as workflow artifacts, do NOT create a release.'
-        type: boolean
-        default: true
+  # Manual, build-only dry run: builds + packages on all three OSes and uploads
+  # the artifacts to the run, but never creates a release (the publish job is
+  # gated to tag pushes). To actually cut a release, push a `v*` tag.
+  workflow_dispatch: {}
 
 # Don't cancel an in-flight release (a half-uploaded draft is worse than a
 # queued run); serialize per ref instead.
