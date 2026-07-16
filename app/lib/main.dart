@@ -25,35 +25,44 @@ import 'src/theme/app_theme.dart';
 import 'src/widgets/app_bootstrap.dart';
 
 Future<void> main() async {
-  // The DB must be open before [runApp] so the desktop window service can read
-  // the persisted frame; [AppData] is opened once here and handed to
-  // [CompendiumApp] (which owns disposal) so we never open the database twice.
   WidgetsFlutterBinding.ensureInitialized();
+  // [AppData] is opened once here and handed to [CompendiumApp] (which owns
+  // disposal) so we never open the database twice. The database itself opens
+  // lazily on first use: the desktop window restore (which reads the persisted
+  // frame) and the startup sweep both run inside [CompendiumApp]'s bootstrap
+  // future, so a database that won't open (corrupt/locked) surfaces on the
+  // AppBootstrap error/retry screen instead of throwing out of `main` before
+  // `runApp` — which would leave a blank window with no way to recover.
   final appData = AppData(openAppDatabase());
-  // Restore the last-known desktop window size/position (no-op off desktop).
   final windowService = WindowService(appData.repositories.settings);
-  await windowService.initialize();
   runApp(CompendiumApp(appData: appData, windowService: windowService));
 }
 
-/// Root widget. Opens the on-device database once, runs any pending schema
-/// migration / derived-index back-fill via
+/// Root widget. The on-device database is opened once (in [main]) and injected;
+/// this widget's bootstrap future ([_startupSequence]) then, in order: restores
+/// the desktop window frame (no-op off desktop; forces the DB open), runs any
+/// pending schema migration / derived-index back-fill via
 /// [CompendiumRepositories.ensureMigrated] (schema-v2 `dance_figures.section`),
-/// then performs a startup purge sweep that hard-deletes soft-deleted dances
-/// past the configured retention window ([DanceRepository.purgeDeleted]); the
+/// runs a fast `PRAGMA quick_check` integrity probe once per launch
+/// ([CompendiumDatabase.quickCheck]; a failure warns the user but still opens
+/// the app), then performs a startup purge sweep that hard-deletes soft-deleted
+/// dances AND programs past the configured retention window
+/// ([DanceRepository.purgeDeleted] / [ProgramRepository.purgeDeleted]); the
 /// window is user-configurable (30 / 90 days / never — ROADMAP G.4), defaulting
 /// to 30 days, and the sweep is skipped entirely when set to never. The app
 /// then hands the repositories facade down to the Collection screen via
 /// [RepositoriesScope].
 ///
-/// Startup is gated on the migration + purge by [AppBootstrap]: the app shows a
-/// loading screen until both complete so no screen reads stale data (an error
-/// screen with retry is shown if either fails).
+/// Startup is gated by [AppBootstrap]: the app shows a loading screen until the
+/// bootstrap future completes so no screen reads stale data, and an error
+/// screen with retry is shown if any step fails — including a database that
+/// won't open during the window restore.
 class CompendiumApp extends StatefulWidget {
   const CompendiumApp({
     super.key,
     required this.appData,
     required this.windowService,
+    this.integrityCheck,
   });
 
   /// The already-opened database + repositories facade. Injected from [main]
@@ -63,6 +72,12 @@ class CompendiumApp extends StatefulWidget {
 
   /// The desktop window service to tear down on dispose (no-op off desktop).
   final WindowService windowService;
+
+  /// Fast, once-per-launch data-integrity probe run during bootstrap. Returns
+  /// `true` when the database is healthy; `false` triggers a (non-fatal)
+  /// corruption warning. Defaults to [CompendiumDatabase.quickCheck]; injected
+  /// in tests to exercise the warning path.
+  final Future<bool> Function()? integrityCheck;
 
   @override
   State<CompendiumApp> createState() => _CompendiumAppState();
@@ -89,6 +104,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
   late final CustomThemesController _customThemes;
   late final DialectLibraryController _dialectLibrary;
 
+  /// Result of the once-per-launch [_runIntegrityCheck]. `false` means the
+  /// `PRAGMA quick_check` probe failed, so the ready app surfaces a (non-fatal)
+  /// corruption warning. Guarded by [_corruptionBannerShown] so the banner is
+  /// only shown once per successful bootstrap.
+  bool _dataIntegrityOk = true;
+  bool _corruptionBannerShown = false;
+
   @override
   void initState() {
     super.initState();
@@ -109,7 +131,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
   }
 
   Future<void> _startupSequence() async {
+    // Restore the last-known desktop window size/position (no-op off desktop).
+    // This reads the persisted frame, which forces the database open, so it
+    // runs here — inside the bootstrapped future gated by [AppBootstrap] —
+    // rather than before `runApp`. A corrupt/locked database therefore surfaces
+    // on the error/retry screen instead of throwing out of `main` and leaving a
+    // blank window with no way to recover (Stage 1.6).
+    await widget.windowService.initialize();
     await _appData.repositories.ensureMigrated();
+    // Fast, once-per-launch integrity probe (SQLite `PRAGMA quick_check`, per
+    // `docs/design/storage.md` "Durability"). A failure is advisory — the app
+    // still opens, but [build] surfaces a corruption warning so the user can
+    // restore from a backup (Stage 1.7).
+    _dataIntegrityOk = await _runIntegrityCheck();
     // Resolve the configured soft-delete retention window (ROADMAP G.4),
     // defaulting to 30 days when unset. A `null` window means "never
     // auto-purge", so the startup sweep is skipped entirely.
@@ -117,8 +151,17 @@ class _CompendiumAppState extends State<CompendiumApp> {
       await _appData.repositories.settings.get(kSoftDeleteRetentionKey),
     );
     if (retention != null) {
+      // Share one `now` so dances and programs are swept against the same
+      // cutoff. Both honor the retention promise shown in their Recently-Deleted
+      // screens ("Auto-deleted in N days"); previously only dances were purged,
+      // so soft-deleted programs accumulated forever (Stage 1.2).
+      final now = DateTime.now().toUtc();
       await _appData.repositories.dances.purgeDeleted(
-        now: DateTime.now().toUtc(),
+        now: now,
+        retention: retention,
+      );
+      await _appData.repositories.programs.purgeDeleted(
+        now: now,
         retention: retention,
       );
     }
@@ -190,8 +233,46 @@ class _CompendiumAppState extends State<CompendiumApp> {
     super.dispose();
   }
 
+  /// Runs the once-per-launch data-integrity probe, using the injected
+  /// [CompendiumApp.integrityCheck] when provided (tests) or the database's
+  /// [CompendiumDatabase.quickCheck] otherwise.
+  Future<bool> _runIntegrityCheck() =>
+      (widget.integrityCheck ?? _appData.db.quickCheck)();
+
   void _retry() {
-    setState(() => _bootstrap = _startupSequence());
+    setState(() {
+      _corruptionBannerShown = false;
+      _bootstrap = _startupSequence();
+    });
+  }
+
+  /// Content shown once the bootstrap future succeeds. When the integrity probe
+  /// failed, schedules a one-time dismissible warning banner (the app still
+  /// opens — the failure is advisory).
+  Widget _buildReadyApp(BuildContext context) {
+    if (!_dataIntegrityOk && !_corruptionBannerShown) {
+      _corruptionBannerShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.showMaterialBanner(
+          MaterialBanner(
+            content: const Text(
+              'A database integrity check failed. Your local data may be '
+              'corrupt — consider restoring from a backup.',
+            ),
+            leading: const Icon(Icons.warning_amber_outlined),
+            actions: [
+              TextButton(
+                onPressed: messenger.hideCurrentMaterialBanner,
+                child: const Text('Dismiss'),
+              ),
+            ],
+          ),
+        );
+      });
+    }
+    return const AppShell();
   }
 
   @override
@@ -275,7 +356,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
           home: AppBootstrap(
             future: _bootstrap,
             onRetry: _retry,
-            builder: (_) => const AppShell(),
+            builder: _buildReadyApp,
           ),
         );
       },
