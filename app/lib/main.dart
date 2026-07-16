@@ -149,8 +149,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // still opens, but [build] surfaces a corruption warning so the user can
     // restore from a backup (Stage 1.7). A thrown probe (not just a `false`
     // result) is treated as a failed check too, so startup continues and warns
-    // rather than blocking the whole app on the error/retry screen.
-    _dataIntegrityOk = await _runIntegrityCheck().catchError((_) => false);
+    // rather than blocking the whole app on the error/retry screen. (This is
+    // deliberately distinct from a DB-open failure during the window restore
+    // above, which stays fatal and routes to the error/retry screen.)
+    try {
+      _dataIntegrityOk = await _runIntegrityCheck();
+    } catch (_) {
+      _dataIntegrityOk = false;
+    }
     // Resolve the configured soft-delete retention window (ROADMAP G.4),
     // defaulting to 30 days when unset. A `null` window means "never
     // auto-purge", so the startup sweep is skipped entirely.

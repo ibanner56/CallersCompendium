@@ -149,6 +149,42 @@ void main() {
     expect(find.byType(AppShell), findsOneWidget);
   });
 
+  testWidgets(
+    'a THROWN integrity check is advisory: warns but still opens the app, '
+    'not the error screen (Stage 1.7)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          // Throw *synchronously* (before any Future is returned). This escapes
+          // a `.catchError` on the probe's result — the throw happens before
+          // there is a Future to attach the handler to — so it is the clearest
+          // regression against the old guard and is only handled by the
+          // try/catch around the probe.
+          integrityCheck: () => throw StateError('quick_check failed to run'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // A thrown probe is caught and treated as a failed (advisory) check: the
+      // warning is shown and the collection still opens. It must NOT reach the
+      // error/retry screen — that path is reserved for a genuine DB-open
+      // failure during window restore (Stage 1.6).
+      expect(find.textContaining('integrity check failed'), findsOneWidget);
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(
+        find.textContaining('Could not prepare the collection'),
+        findsNothing,
+      );
+    },
+  );
+
   testWidgets('a healthy database opens without a corruption warning', (
     tester,
   ) async {
