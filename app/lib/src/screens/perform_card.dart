@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 
 /// Shared large-print rendering for Performance mode (`docs/design/ux.md` §5).
 ///
@@ -93,7 +94,9 @@ class PerformCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 renderer.renderFreeText(dance.callingNotes, dialect),
-                style: Theme.of(context).textTheme.headlineSmall,
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.merge(AppTypography.performBody),
               ),
             ],
           ],
@@ -474,7 +477,12 @@ class _Header extends StatelessWidget {
         ),
         if (authorNames.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(authorNames.join(', '), style: theme.textTheme.headlineSmall),
+          Text(
+            authorNames.join(', '),
+            style: theme.textTheme.headlineSmall?.merge(
+              AppTypography.performBody,
+            ),
+          ),
         ],
         const SizedBox(height: 12),
         _MetaRow(icon: Icons.grid_view, text: formationLabel(dance.formation)),
@@ -503,7 +511,9 @@ class _MetaRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = theme.textTheme.headlineSmall;
+    final style = theme.textTheme.headlineSmall?.merge(
+      AppTypography.performBody,
+    );
     final iconSize =
         (style?.fontSize ?? 24) * MediaQuery.textScalerOf(context).scale(1);
     return Row(
@@ -529,10 +539,12 @@ class _SectionTitle extends StatelessWidget {
       header: true,
       child: Text(
         text,
-        style: theme.textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: theme.colorScheme.primary,
-        ),
+        style: theme.textTheme.headlineMedium
+            ?.merge(AppTypography.performSectionHeader)
+            .copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.primary,
+            ),
       ),
     );
   }
@@ -559,7 +571,10 @@ class _Figures extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     if (figures.isEmpty) {
-      return Text('No figures yet.', style: theme.textTheme.headlineSmall);
+      return Text(
+        'No figures yet.',
+        style: theme.textTheme.headlineSmall?.merge(AppTypography.performBody),
+      );
     }
 
     final sectioned = deriveSections(figures, phraseStructure);
@@ -577,10 +592,12 @@ class _Figures extends StatelessWidget {
               header: true,
               child: Text(
                 sf.label,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
+                style: theme.textTheme.headlineMedium
+                    ?.merge(AppTypography.performSectionHeader)
+                    .copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
               ),
             ),
           ),
@@ -634,7 +651,9 @@ class _FigureRow extends StatelessWidget {
       beatsLabel,
       if (note != null && note!.trim().isNotEmpty) 'note: ${note!.trim()}',
     ].join(', ');
-    final textStyle = theme.textTheme.headlineSmall;
+    final textStyle = theme.textTheme.headlineSmall?.merge(
+      AppTypography.performBody,
+    );
     return Semantics(
       label: semanticsLabel,
       excludeSemantics: true,
