@@ -229,7 +229,7 @@ recognise, then flip back to your own.
 - [Perform mode](./perform.md) — call live, with the dialect and canonical
   controls close at hand.
 - [Settings](./README.md#settings) — where the dialect manager and display defaults live.
-- [Collection & search](./README.md#collection--search) — searching works whatever dialect you
+- [Collection & search](./collection.md) — searching works whatever dialect you
   use.
 - [Imports & migration](./imports.md) — bring in dances written in other words.
 - [Glossary](./README.md#glossary) — plain definitions of the terms used here.
