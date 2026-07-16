@@ -17,6 +17,24 @@ Future<void> _pumpGuide(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Pumps frames until [finder] matches at least one widget, or the bounded
+/// budget of [maxAttempts] × [step] elapses. Returns as soon as the match
+/// appears rather than waiting a fixed duration, so an async-triggered widget
+/// (e.g. a SnackBar whose entrance frame timing varies across CI runners) is
+/// awaited robustly without waiting its full display window. Fails fast if the
+/// widget never appears (the caller's expectation then reports the miss).
+Future<void> _pumpUntilFound(
+  WidgetTester tester,
+  Finder finder, {
+  int maxAttempts = 40,
+  Duration step = const Duration(milliseconds: 50),
+}) async {
+  for (var i = 0; i < maxAttempts; i++) {
+    await tester.pump(step);
+    if (finder.evaluate().isNotEmpty) return;
+  }
+}
+
 /// The current in-content header title.
 String _title(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(const ValueKey('user-guide-title'))).data!;
@@ -124,8 +142,11 @@ void main() {
     // break the test. `labelForDoc` renders it in sentence case ("Not a real
     // guide") for the coming-soon message.
     _tapLink(tester, './not-a-real-guide.md');
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    // The "coming soon" SnackBar is shown when the tap is handled, but its
+    // build/entrance frame timing varies across CI runners — a fixed-duration
+    // pump can miss it. Wait until the message is actually present (bounded, so
+    // a genuine failure still fails fast) instead.
+    await _pumpUntilFound(tester, find.textContaining("isn't available yet"));
 
     expect(find.textContaining('Not a real guide'), findsWidgets);
     expect(find.textContaining("isn't available yet"), findsOneWidget);
