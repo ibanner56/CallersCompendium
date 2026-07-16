@@ -50,6 +50,16 @@ We'd love your help — especially from callers and dance-community developers.
 Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
 [Code of Conduct](CODE_OF_CONDUCT.md).
 
+## Feedback & beta
+
+Are you a caller? We're running a beta program and would love your feedback. The
+[Beta guide](docs/beta/beta-guide.md) explains how to join, what to try, and how
+to send feedback — all voluntary, all through GitHub, with no telemetry and
+nothing collected automatically. File a report from the
+[issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose)
+(bug reports, general feedback, and beta check-ins) or start a conversation in
+[Discussions](https://github.com/ibanner56/CallersCompendium/discussions).
+
 ## Supporting
 
 This project is made available free-of-charge (free of a kind, the birds and the frees, Staying Alive by the Free-Gees, etc.) under the GNU Affero General Public License, because the developer does not believe in putting financial barriers between aspiring callers and accessible calling resources[^1] and because Open Source Software has always been the one true path forward in the modern digital era. 
