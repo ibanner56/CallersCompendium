@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for importing dances from a URL (Caller's Box / ContraDB / generic JSON). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Caller's Compendium"
         android:name="${applicationName}"
