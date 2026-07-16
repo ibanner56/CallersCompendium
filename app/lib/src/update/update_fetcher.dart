@@ -36,7 +36,8 @@ Future<String?> fetchUpdateManifest(
   UpdateChannel channel, {
   http.Client? client,
 }) async {
-  final uri = Uri.parse(manifestUrlForChannel(channel));
+  final uri = Uri.tryParse(manifestUrlForChannel(channel));
+  if (uri == null) return null;
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   try {
@@ -50,8 +51,9 @@ Future<String?> fetchUpdateManifest(
   } on TimeoutException {
     return null;
   } on Object {
-    // Any transport failure (offline, DNS, TLS, malformed URL) is a silent
-    // no-op per the privacy contract — never surfaced as an error.
+    // Any transport failure (offline, DNS, TLS) is a silent no-op per the
+    // privacy contract — never surfaced as an error. A malformed URL is caught
+    // earlier by the Uri.tryParse guard above.
     return null;
   } finally {
     if (ownClient) effectiveClient.close();

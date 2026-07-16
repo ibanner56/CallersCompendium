@@ -134,12 +134,18 @@ class UpdateController extends ChangeNotifier {
     _status = UpdateCheckStatus.checking;
     notifyListeners();
 
+    final requestedChannel = channel;
     final result = await _service.check(
-      channel: channel,
+      channel: requestedChannel,
       currentVersion: currentVersion,
       platform: _platform,
       arch: _arch,
     );
+
+    // The user switched channels while this check was in flight — the result
+    // belongs to the old channel, so drop it (setBetaChannel already reset the
+    // state for the new channel) to avoid a stale cross-channel banner.
+    if (requestedChannel != channel) return;
 
     _available = result;
     _status = result == null
