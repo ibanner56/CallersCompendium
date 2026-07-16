@@ -227,8 +227,10 @@ class ContraDbHtmlAdapter implements SourceAdapter {
   /// is `(section-label, beats, figure-text)`; the last non-empty section label
   /// is carried forward onto continuation rows (empty label cell). `<u>` and `⁋`
   /// progression markers are stripped from the text and captured via the
-  /// figure's progression flag. Parse-never-fails: any odd row is still imported
-  /// as custom.
+  /// figure's progression flag. A row with no usable figure cell or only blank
+  /// figure text is **skipped** (there is nothing to store); every remaining row
+  /// is imported as a [customFigure] (the parse-never-fails invariant — figure
+  /// content never throws).
   List<Figure> _parseFigures(dom.Element? table, List<ImportIssue> issues) {
     if (table == null) return const [];
     final figures = <Figure>[];
@@ -242,15 +244,16 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       if (rawLabel.isNotEmpty) lastLabel = rawLabel;
       final label = rawLabel.isNotEmpty ? rawLabel : lastLabel;
 
-      final beatsCell = _beatsCell(cells);
-      final beats = _parseBeats(beatsCell, index, issues);
-
       final figureCell = _figureCell(cells);
       if (figureCell == null) continue;
       final hasProgression = _hasProgression(figureCell);
       final rawText = figureCell.text;
       final scrubbed = _scrub(_stripProgressionMarkers(rawText)).trim();
       if (scrubbed.isEmpty) continue;
+
+      // Parse beats only once the row is known to emit a figure, so a beats
+      // issue's figureIndex points at this figure (not the next imported one).
+      final beats = _parseBeats(_beatsCell(cells), index, issues);
 
       final withLabel = label.isEmpty ? scrubbed : '$label: $scrubbed';
       figures.add(

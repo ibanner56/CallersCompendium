@@ -251,10 +251,10 @@ String buildContraDbUrl(String input) {
   }
   final id = match.group(1)!;
   // Preserve the pasted scheme/host/port; canonicalize the path and drop any
-  // query/fragment so the fetched URL is exactly the dance page.
+  // query/fragment. User-info (credentials) is intentionally dropped — it is
+  // never needed to fetch /dances/N and could leak via logs or the UI.
   return Uri(
     scheme: uri.scheme,
-    userInfo: uri.userInfo.isEmpty ? null : uri.userInfo,
     host: uri.host,
     port: uri.hasPort ? uri.port : null,
     path: '/dances/$id',

@@ -105,6 +105,12 @@ void main() {
       expect(uri.path, '/dances/9');
     });
 
+    test('user-info credentials are dropped from the canonical URL', () {
+      final url = buildContraDbUrl('https://user:pass@contradb.com/dances/5');
+      expect(url, 'https://contradb.com/dances/5');
+      expect(Uri.parse(url).userInfo, isEmpty);
+    });
+
     test('empty input throws a UrlFetchException', () {
       expect(() => buildContraDbUrl('   '), throwsA(isA<UrlFetchException>()));
     });
