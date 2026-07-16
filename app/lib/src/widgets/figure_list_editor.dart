@@ -220,7 +220,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
   void _openDraft(String id) {
     setState(() => _openDraftId = id);
     // Focus lands on the Move field via MoveAutocomplete.autofocus when the
-    // editor mounts. We intentionally do NOT scroll the list into view on
+    // editor mounts, but only for a blank or `stand_still` draft (genuine new
+    // entry); opening an already-set figure leaves focus alone so the caller can
+    // adjust its params. We intentionally do NOT scroll the list into view on
     // expand: the tapped/activated row is already visible, and an animated
     // viewport jump on every open is disorienting. (The Add flow still scrolls
     // its freshly-appended figure into view via _ensureVisibleSoon.)
@@ -1131,16 +1133,19 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Move picker FIRST, full width, autofocused on open. Keyed by
-              // index only (not move text) so selecting a move doesn't remount
-              // the field and re-pop the options overlay over the editor.
+              // Move picker FIRST, full width. Keyed by index only (not move
+              // text) so selecting a move doesn't remount the field and re-pop
+              // the options overlay over the editor. Autofocus is gated to genuine
+              // new entry — a blank draft or the `stand_still` placeholder — so
+              // opening an already-set figure to tweak its params doesn't steal
+              // focus to the Move text field.
               MoveAutocomplete(
                 key: ValueKey('figure-${widget.index}-move'),
                 fieldKey: 'figure-${widget.index}-move',
                 taxonomy: widget.taxonomy,
                 dialect: widget.dialect,
                 initialText: moveText,
-                autofocus: true,
+                autofocus: move == null || move == _standStillMove,
                 onSelected: (option) => _selectMove(option.id),
                 onCustomSubmitted: _createCustom,
                 onCleared: _clearMove,

@@ -1592,6 +1592,9 @@ void main() {
       ),
     );
     expect(editable.controller.text, 'swing');
+    // An already-set move opens for PARAM edits, not re-entry: the Move text
+    // field must NOT steal focus (autofocus is gated to blank/stand_still).
+    expect(editable.focusNode.hasFocus, isFalse);
   });
 
   testWidgets(
