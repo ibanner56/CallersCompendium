@@ -105,7 +105,7 @@ From here you can:
 
 Selecting a dance opens its detail view, with the full figure-by-figure
 breakdown, notes, and links. Learn more in the
-[Collection & search guide](./README.md#collection--search).
+[Collection & search guide](./collection.md).
 
 ### Programs — set lists for your events
 
@@ -128,7 +128,7 @@ is a low-fidelity layout sketch, not the finished app.*
 Each program also has a **[matrix](./README.md#glossary)** — a figures-by-dances
 grid worked out from the choreography — so you can see the shape and variety of
 your evening at a glance and avoid calling three swings-into-a-hey in a row. The
-[Programs & matrix guide](./README.md#programs--matrix) covers building programs
+[Programs & matrix guide](./programs.md) covers building programs
 and reading the matrix in full.
 
 ### Perform — the calling view
@@ -157,8 +157,7 @@ This is a low-fidelity layout sketch, not the finished app.*
 ![Wireframe sketch of Perform mode, showing a full-screen dark card with very large text, edge next/previous arrows, a slot indicator, and adjust and exit controls](../design/wireframes/6-perform.svg)
 
 A full walkthrough — from getting set up before the music starts to making
-changes mid-gig — is coming in the [Perform mode guide](./perform.md)
-*(coming soon)*.
+changes mid-gig — is in the [Perform mode guide](./perform.md).
 
 ### Settings — make the app yours
 
@@ -233,9 +232,9 @@ editing individual moves, and live previews — see the
 ## Where to go next
 
 - **Fill out your library:** [Imports & migration](./imports.md) ·
-  [Collection & search](./README.md#collection--search)
-- **Build an evening:** [Programs & matrix](./README.md#programs--matrix)
-- **Call it:** [Perform mode](./perform.md) *(coming soon)*
+  [Collection & search](./collection.md)
+- **Build an evening:** [Programs & matrix](./programs.md)
+- **Call it:** [Perform mode](./perform.md)
 - **Make it yours:** [Dialect](./dialects.md) ·
   [Settings](./README.md#settings) ·
   [Backup & portability](./README.md#backup--portability)
