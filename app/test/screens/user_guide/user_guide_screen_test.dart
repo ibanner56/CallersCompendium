@@ -117,11 +117,17 @@ void main() {
   ) async {
     await _pumpGuide(tester);
 
-    _tapLink(tester, './perform.md');
+    // Use a sibling guide that is guaranteed never to be bundled, rather than a
+    // real-but-not-yet-written filename: this test loads the *actual* asset
+    // bundle, so any guide a future docs PR adds (as #239 did for perform.md)
+    // would otherwise silently turn this "missing" case into a navigation and
+    // break the test. `labelForDoc` renders it in sentence case ("Not a real
+    // guide") for the coming-soon message.
+    _tapLink(tester, './not-a-real-guide.md');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.textContaining("Perform"), findsWidgets);
+    expect(find.textContaining('Not a real guide'), findsWidgets);
     expect(find.textContaining("isn't available yet"), findsOneWidget);
     // Still on the hub — no navigation happened.
     expect(_title(tester), 'User guide');
