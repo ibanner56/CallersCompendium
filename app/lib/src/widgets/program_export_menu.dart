@@ -9,6 +9,18 @@ import '../export/program_pdf.dart';
 /// Actions offered by the [ProgramExportMenu].
 enum _ExportAction { shareText, copyText, pdf }
 
+/// Hands the shareable set list to the OS share sheet. Defaults to
+/// [SharePlus.instance.share]; overridable so tests can force a failure.
+typedef ShareInvoker = Future<void> Function(ShareParams params);
+
+/// Hands a generated PDF to the OS print/save dialog. Defaults to
+/// [Printing.layoutPdf]; overridable so tests can force a failure.
+typedef PdfLayouter =
+    Future<void> Function({
+      required String name,
+      required LayoutCallback onLayout,
+    });
+
 /// A labeled, keyboard-reachable export control for a [Program] (ROADMAP §4.3).
 ///
 /// Renders a [PopupMenuButton] (icon + tooltip "Export") with three actions:
@@ -26,10 +38,18 @@ class ProgramExportMenu extends StatelessWidget {
     super.key,
     required this.program,
     required this.titleFor,
+    this.shareInvoker,
+    this.pdfLayouter,
   });
 
   final Program program;
   final String? Function(String danceId) titleFor;
+
+  /// Test seam for the share call; defaults to [SharePlus.instance.share].
+  final ShareInvoker? shareInvoker;
+
+  /// Test seam for the print/save call; defaults to [Printing.layoutPdf].
+  final PdfLayouter? pdfLayouter;
 
   String _formatDate(BuildContext context, DateTime date) =>
       MaterialLocalizations.of(context).formatMediumDate(date);
@@ -41,9 +61,8 @@ class ProgramExportMenu extends StatelessWidget {
   );
 
   Future<void> _shareText(BuildContext context) async {
-    await SharePlus.instance.share(
-      ShareParams(text: _plainText(context), subject: program.title),
-    );
+    final share = shareInvoker ?? SharePlus.instance.share;
+    await share(ShareParams(text: _plainText(context), subject: program.title));
   }
 
   Future<void> _copyText(BuildContext context) async {
@@ -56,7 +75,8 @@ class ProgramExportMenu extends StatelessWidget {
 
   Future<void> _exportPdf(BuildContext context) async {
     final localizations = MaterialLocalizations.of(context);
-    await Printing.layoutPdf(
+    final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
+    await layoutPdf(
       name: program.title,
       onLayout: (format) => buildProgramPdf(
         program,
@@ -67,13 +87,38 @@ class ProgramExportMenu extends StatelessWidget {
   }
 
   Future<void> _onSelected(BuildContext context, _ExportAction action) async {
+    final messenger = ScaffoldMessenger.of(context);
     switch (action) {
       case _ExportAction.shareText:
-        await _shareText(context);
+        await _guard(
+          messenger,
+          "Couldn't share this set list",
+          () => _shareText(context),
+        );
       case _ExportAction.copyText:
         await _copyText(context);
       case _ExportAction.pdf:
-        await _exportPdf(context);
+        await _guard(
+          messenger,
+          "Couldn't export this set list",
+          () => _exportPdf(context),
+        );
+    }
+  }
+
+  /// Runs [action], surfacing [failureMessage] as a [SnackBar] if it throws.
+  ///
+  /// A user who simply cancels a share/print sheet surfaces as a normal
+  /// (non-throwing) result, so only genuine failures are reported.
+  Future<void> _guard(
+    ScaffoldMessengerState messenger,
+    String failureMessage,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action();
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
 
