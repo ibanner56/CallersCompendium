@@ -286,10 +286,10 @@ class _RailSearchButton extends StatelessWidget {
 /// "User guide" entry reads as a peer of the search affordance rather than a
 /// bare glyph. Selects the offline in-app User Guide destination.
 ///
-/// Unlike search (an action that is always available), the guide is a
-/// *destination*, so the tile follows the Material 3 nav-selection model: a
-/// filled tertiary indicator when it is the current destination, and a plain,
-/// unfilled icon otherwise.
+/// The tile is always filled with the guide's tertiary accent — a persistent
+/// colored affordance that mirrors the always-on search tile above it. The
+/// help/help_outline glyph still swaps to signal when the guide is the active
+/// destination.
 class _RailHelpButton extends StatelessWidget {
   const _RailHelpButton({required this.onPressed, this.selected = false});
 
@@ -317,16 +317,12 @@ class _RailHelpButton extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: selected
-                      ? scheme.tertiaryContainer
-                      : Colors.transparent,
+                  color: scheme.tertiaryContainer,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   selected ? Icons.help : Icons.help_outline,
-                  color: selected
-                      ? scheme.onTertiaryContainer
-                      : scheme.onSurfaceVariant,
+                  color: scheme.onTertiaryContainer,
                 ),
               ),
               const SizedBox(height: 4),
