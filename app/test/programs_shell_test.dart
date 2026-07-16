@@ -8,6 +8,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
@@ -45,6 +46,31 @@ Future<void> _pumpWide(
   CompendiumRepositories repos,
 ) async {
   tester.view.physicalSize = const Size(1400, 900);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+  await tester.pumpWidget(
+    MaterialApp(
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(
+          notifier: ValueNotifier<Dialect>(Dialect.canonical),
+          child: child!,
+        ),
+      ),
+      home: const ProgramsShell(),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pumpNarrow(
+  WidgetTester tester,
+  CompendiumRepositories repos,
+) async {
+  tester.view.physicalSize = const Size(600, 1200);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(() {
     tester.view.resetPhysicalSize();
@@ -445,5 +471,108 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
+  });
+
+  group('narrow read-focused summary', () {
+    testWidgets(
+      'tapping a saved program opens a read-focused summary (not the edit '
+      'builder) with a Perform-first action reachable in <=2 taps, without '
+      'entering edit mode',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(id: 'd1', title: 'Chase the Squirrel'),
+        );
+        await repos.programs.create(
+          Program(
+            id: 'p1',
+            title: 'Barn Dance',
+            status: ProgramStatus.draft,
+            slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+
+        await _pumpNarrow(tester, repos);
+
+        // Tap 1: open the program.
+        await tester.tap(find.text('Barn Dance'));
+        await tester.pumpAndSettle();
+
+        // A read-focused summary — never the edit builder.
+        expect(find.byType(ProgramSummaryScreen), findsOneWidget);
+        expect(find.byType(ProgramEditorScreen), findsNothing);
+
+        // A prominent, full-width Perform action plus an Edit action.
+        expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
+        expect(find.text('Perform this program'), findsOneWidget);
+        expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
+        expect(find.text('Edit program'), findsOneWidget);
+
+        // Tap 2: Perform — reachable without entering edit mode.
+        await tester.tap(find.byKey(const ValueKey('summary-perform')));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(PerformProgramScreen), findsOneWidget);
+        expect(find.byType(ProgramEditorScreen), findsNothing);
+        expect(find.text('Chase the Squirrel'), findsOneWidget);
+      },
+    );
+
+    testWidgets('the summary Edit action opens the full-screen builder', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
+
+      await _pumpNarrow(tester, repos);
+
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ProgramEditorScreen), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('open-builder')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProgramEditorScreen), findsOneWidget);
+    });
+
+    testWidgets(
+      'the prominent Perform action is disabled for a program with no slots',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
+
+        await _pumpNarrow(tester, repos);
+
+        await tester.tap(find.text('Barn Dance'));
+        await tester.pumpAndSettle();
+
+        final finder = find.byKey(const ValueKey('summary-perform'));
+        expect(finder, findsOneWidget);
+        // A dead-button guard: present but disabled (no tap action), never
+        // absent-and-tappable.
+        expect(tester.widget<FilledButton>(finder).onPressed, isNull);
+
+        // The explanatory tooltip is still reachable (wraps the button).
+        expect(
+          find.byTooltip('Add at least one slot to perform this program'),
+          findsOneWidget,
+        );
+
+        final handle = tester.ensureSemantics();
+        expect(
+          tester.getSemantics(finder),
+          isSemantics(
+            isButton: true,
+            isEnabled: false,
+            hasEnabledState: true,
+            hasTapAction: false,
+          ),
+        );
+        handle.dispose();
+      },
+    );
   });
 }

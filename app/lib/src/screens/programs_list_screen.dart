@@ -7,6 +7,7 @@ import '../utils/confirm_delete.dart';
 import '../widgets/program_list_tile.dart';
 import 'app_shell_search_scope.dart';
 import 'program_editor_screen.dart';
+import 'program_summary_screen.dart';
 import 'programs_recently_deleted_screen.dart';
 
 /// How the Programs list is ordered (`docs/design/ux.md` §4).
@@ -139,10 +140,17 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       widget.onSelectProgram!(id);
       return;
     }
-    final result = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => ProgramEditorScreen(programId: id)),
+    // Narrow (single-pane) mode: open the read-focused, Perform-first summary
+    // rather than dropping the caller straight into the edit builder. Mirrors
+    // the dance side's narrow list → [DanceDetailScreen] flow; Edit lives
+    // behind the summary. Always reload on return since the summary can mutate
+    // the program (edit / duplicate / delete / mark performed).
+    await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => ProgramSummaryScreen(programId: id),
+      ),
     );
-    if (mounted && result != null) await _load();
+    if (mounted) await _load();
   }
 
   Future<void> _openRecentlyDeleted() async {
