@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../screens/dance_detail_screen.dart';
 import '../screens/program_editor_screen.dart';
 import '../theme/app_spacing.dart';
+import '../update/update_banner.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/command_palette.dart';
 import 'app_shell_search_scope.dart';
@@ -129,7 +130,18 @@ class _AppShellState extends State<AppShell> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= AppShell.railBreakpoint;
-        final body = IndexedStack(index: _index, children: _buildPages());
+        // The app-wide update banner sits above the active tab's content so a
+        // newer version surfaces on any destination (Collection, Programs,
+        // Settings, Guide). It renders nothing unless an update is available
+        // and not dismissed, so it adds no chrome in the common case.
+        final body = Column(
+          children: [
+            const UpdateBanner(),
+            Expanded(
+              child: IndexedStack(index: _index, children: _buildPages()),
+            ),
+          ],
+        );
 
         if (wide) {
           return Scaffold(

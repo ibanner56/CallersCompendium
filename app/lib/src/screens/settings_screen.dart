@@ -9,6 +9,7 @@ import 'settings/defaults_section.dart';
 import 'settings/dialect_section.dart';
 import 'settings/general_section.dart';
 import 'settings/regional_section.dart';
+import 'settings/updates_section.dart';
 
 /// Re-exported so existing consumers (`main.dart`, the Perform screens, tests)
 /// can keep importing the persistence keys from `settings_screen.dart`.
@@ -78,6 +79,7 @@ enum _SettingsSection {
   dialect('Dialect', Icons.groups_outlined, Icons.groups),
   regional('Language & region', Icons.translate_outlined, Icons.translate),
   defaults('Defaults', Icons.settings_suggest_outlined, Icons.settings_suggest),
+  updates('Updates', Icons.system_update_alt_outlined, Icons.system_update_alt),
   about('About', Icons.info_outline, Icons.info);
 
   const _SettingsSection(this.label, this.icon, this.selectedIcon);
@@ -110,6 +112,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       case _SettingsSection.defaults:
         return const DefaultsSection();
+      case _SettingsSection.updates:
+        return const UpdatesSection();
       case _SettingsSection.about:
         return AboutSection(onOpenGuide: widget.onOpenGuide);
     }

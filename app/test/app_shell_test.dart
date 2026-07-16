@@ -12,6 +12,9 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
+import 'package:compendium_app/src/update/update_controller.dart';
+import 'package:compendium_app/src/update/update_scope.dart';
+import 'package:compendium_app/src/update/update_service.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
@@ -34,19 +37,30 @@ Future<void> _pump(
   final customThemes = CustomThemesController(repos.settings);
   await customThemes.load();
   addTearDown(customThemes.dispose);
+  // The shell hosts the app-wide UpdateBanner, which reads an UpdateScope. Wire
+  // one with a no-network fetcher so the banner stays hidden (no update found)
+  // and no real HTTP is attempted during shell tests.
+  final updateController = UpdateController(
+    repos.settings,
+    service: UpdateService(fetcher: (_, {client}) async => null),
+  );
+  addTearDown(updateController.dispose);
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: AppThemeScope(
-          notifier: themeNotifier,
-          child: CustomThemesScope(
-            controller: customThemes,
-            child: ActiveDialectScope(
-              notifier: notifier,
-              child: RequirePerformedForHistoryScope(
-                notifier: requirePerformedNotifier,
-                child: child!,
+        child: UpdateScope(
+          controller: updateController,
+          child: AppThemeScope(
+            notifier: themeNotifier,
+            child: CustomThemesScope(
+              controller: customThemes,
+              child: ActiveDialectScope(
+                notifier: notifier,
+                child: RequirePerformedForHistoryScope(
+                  notifier: requirePerformedNotifier,
+                  child: child!,
+                ),
               ),
             ),
           ),
