@@ -6,10 +6,18 @@
 # `flutter-version-file`. Bumping .fvmrc therefore updates every job at once.
 name: CI
 
+# Docs-only changes (Markdown) don't affect the build/test/analyze pipeline, so
+# skip CI when a push or PR touches nothing but *.md files. These checks are not
+# required status checks in branch protection, so skipping them here can't leave
+# a Markdown-only PR stuck waiting on a check that never reports.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
   pull_request:
+    paths-ignore:
+      - '**.md'
 
 # Cancel superseded in-flight runs for the same PR (or ref, for pushes) so a
 # new push doesn't leave stale, redundant builds burning runner minutes.
