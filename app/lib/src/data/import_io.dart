@@ -214,6 +214,100 @@ String buildCallersBoxJsonUrl(String input) {
   return uri.replace(queryParameters: params).toString();
 }
 
+/// Fetches a **Caller's Box** search results page and returns its decoded HTML,
+/// or throws a [UrlFetchException] with a user-presentable message. See
+/// [fetchCallersBoxSearch] for the default implementation; tests override this
+/// seam to return a canned results page (or throw) so no real network call is
+/// made.
+///
+/// Kept separate from [UrlFetcher] because the search page is `windows-1252`
+/// (not the JSON import path's UTF-8) and must be decoded from raw bytes.
+typedef CallersBoxSearchFetcher = Future<String> Function(String url);
+
+/// Builds the Caller's Box title-search URL for [title].
+///
+/// The Caller's Box search surface is an HTTP GET to the site root with a
+/// `title` query param (confirmed live; the site also accepts `author`,
+/// `formation`, `progression`, but this app searches by title). Returns
+/// `https://www.thecallersbox.com/?title=<encoded>`.
+///
+/// Throws a [UrlFetchException] (message safe to show) when [title] is empty.
+String buildCallersBoxSearchUrl(String title, {String host = callersBoxHost}) {
+  final trimmed = title.trim();
+  if (trimmed.isEmpty) {
+    throw const UrlFetchException("Enter a title to search The Caller's Box.");
+  }
+  return Uri.https(host, '/', {'title': trimmed}).toString();
+}
+
+/// Caller's Box HTML pages are served as `windows-1252`. The 0x80–0x9F range is
+/// where windows-1252 differs from ISO-8859-1 (latin1); every other byte maps
+/// to the identical code point. Undefined windows-1252 slots (0x81, 0x8D, 0x8F,
+/// 0x90, 0x9D) pass through as their byte value (latin1 behavior).
+const List<int> _cp1252High = <int>[
+  0x20AC, 0x0081, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021, // 80-87
+  0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x008D, 0x017D, 0x008F, // 88-8F
+  0x0090, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014, // 90-97
+  0x02DC, 0x2122, 0x0161, 0x203A, 0x0153, 0x009D, 0x017E, 0x0178, // 98-9F
+];
+
+/// Decodes [bytes] as `windows-1252` (CP1252) into a Dart string. Used for the
+/// Caller's Box search results page; hand-rolled so no charset dependency is
+/// needed (`dart:convert` ships latin1/utf8 but not windows-1252).
+String decodeWindows1252(List<int> bytes) {
+  final units = List<int>.generate(bytes.length, (i) {
+    final b = bytes[i] & 0xFF;
+    return (b >= 0x80 && b <= 0x9F) ? _cp1252High[b - 0x80] : b;
+  }, growable: false);
+  return String.fromCharCodes(units);
+}
+
+/// Default [CallersBoxSearchFetcher]: validates the URL, performs an HTTP GET
+/// (with an [importFetchTimeout]), and returns the `windows-1252`-decoded
+/// response body. Throws a [UrlFetchException] with a clear, user-presentable
+/// message for an invalid URL, a network failure, a timeout, a non-2xx status,
+/// or an empty body.
+///
+/// [client] is an injection point for tests (e.g. `package:http`'s
+/// `MockClient`); production callers omit it and a one-shot client is used.
+Future<String> fetchCallersBoxSearch(String url, {http.Client? client}) async {
+  final trimmed = url.trim();
+  final uri = Uri.tryParse(trimmed);
+  if (trimmed.isEmpty ||
+      uri == null ||
+      !uri.hasScheme ||
+      (!uri.isScheme('http') && !uri.isScheme('https'))) {
+    throw const UrlFetchException("Couldn't build a valid search URL.");
+  }
+
+  final ownClient = client == null;
+  final effectiveClient = client ?? http.Client();
+  final http.Response response;
+  try {
+    response = await effectiveClient.get(uri).timeout(importFetchTimeout);
+  } on TimeoutException {
+    throw UrlFetchException(
+      'The search timed out after ${importFetchTimeout.inSeconds}s. Check your '
+      'connection, then try again.',
+    );
+  } on Object catch (e) {
+    throw UrlFetchException("Couldn't reach The Caller's Box: $e");
+  } finally {
+    if (ownClient) effectiveClient.close();
+  }
+
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw UrlFetchException(
+      "The Caller's Box responded with HTTP ${response.statusCode}.",
+    );
+  }
+  final body = decodeWindows1252(response.bodyBytes);
+  if (body.trim().isEmpty) {
+    throw const UrlFetchException("The Caller's Box returned an empty page.");
+  }
+  return body;
+}
+
 /// The host used to build a ContraDB dance URL from a **bare id**. ContraDB
 /// serves the dance page as server-rendered HTML at `contradb.com/dances/N`
 /// (there is no JSON endpoint — `dances/N.json` → HTTP 406). A pasted full URL

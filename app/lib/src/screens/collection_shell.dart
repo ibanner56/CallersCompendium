@@ -1,6 +1,11 @@
+import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../data/callersbox_online.dart';
+import '../data/collection_refresh_scope.dart';
 import '../data/import_io.dart';
+import '../data/repositories_scope.dart';
+import '../theme/app_spacing.dart';
 import 'dance_detail_screen.dart';
 import 'dance_list_screen.dart';
 import 'import_review_screen.dart';
@@ -32,6 +37,7 @@ class CollectionShell extends StatefulWidget {
     this.importPicker,
     this.urlFetcher,
     this.importSources,
+    this.callersBoxOnline,
   });
 
   /// Test seam for choosing an import file; forwarded to [ImportReviewScreen].
@@ -47,6 +53,11 @@ class CollectionShell extends StatefulWidget {
   /// fake source list without real file-picking / network.
   final List<ImportSource>? importSources;
 
+  /// Online search + direct-import orchestration, shared by the list pane and
+  /// the detail-pane preview. Injected in tests with a seam-backed instance;
+  /// defaults to a network-backed [CallersBoxOnline].
+  final CallersBoxOnline? callersBoxOnline;
+
   /// Breakpoint (logical pixels) at which the split-pane layout activates.
   static const double splitBreakpoint = 900;
 
@@ -60,11 +71,13 @@ class CollectionShell extends StatefulWidget {
 class _CollectionShellState extends State<CollectionShell> {
   String? _selectedDanceId;
 
-  /// Whether the wide-layout detail pane currently shows the import view
-  /// (instead of a [DanceDetailScreen] / the empty placeholder). Toggled by the
-  /// app-bar Import action and cleared when the user selects a dance or closes
-  /// the embedded import view.
-  bool _showImport = false;
+  /// Which non-dance view (if any) the wide-layout detail pane currently shows,
+  /// instead of a [DanceDetailScreen] / the empty placeholder. The states are
+  /// mutually exclusive: opening one clears the others. When [_DetailMode.none],
+  /// the pane shows the selected dance (or the empty placeholder). Generalizes
+  /// the earlier `_showImport` bool so the online preview is a first-class third
+  /// state.
+  _DetailMode _detailMode = _DetailMode.none;
 
   /// Incrementing this value triggers [DanceListScreen] to reload via its
   /// [refreshTrigger] parameter.
@@ -79,6 +92,26 @@ class _CollectionShellState extends State<CollectionShell> {
   late final List<ImportSource> _importSources =
       widget.importSources ?? defaultImportSources();
 
+  late final CallersBoxOnline _online =
+      widget.callersBoxOnline ?? CallersBoxOnline();
+
+  /// Messenger for the detail pane. Snackbars from the online Import button must
+  /// be shown here (not via the shell's own context, which sits above the two
+  /// per-pane [ScaffoldMessenger]s and would find no Scaffold to attach to).
+  final _detailMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  /// The currently previewed online (Caller's Box) dance in the detail pane,
+  /// plus its loading/error state. Meaningful only while [_detailMode] is
+  /// [_DetailMode.onlinePreview].
+  CallersBoxPreview? _onlinePreview;
+  bool _onlinePreviewLoading = false;
+  String? _onlinePreviewError;
+  int _onlineSeq = 0;
+
+  /// Guards the direct-import commit so a rapid double-tap (or re-tap) of the
+  /// preview Import button cannot commit the same plan twice.
+  bool _importing = false;
+
   @override
   void dispose() {
     _listRefresh.dispose();
@@ -86,22 +119,26 @@ class _CollectionShellState extends State<CollectionShell> {
   }
 
   void _onSelectDance(String danceId) {
-    // Selecting a dance always exits import mode and shows that dance.
     setState(() {
       _selectedDanceId = danceId;
-      _showImport = false;
+      // A fresh local selection exits import mode and clears any online preview.
+      _detailMode = _DetailMode.none;
+      _clearOnlinePreview();
     });
   }
 
   /// Wide layout: swap the detail pane over to the embedded import view.
   void _onImport() {
-    setState(() => _showImport = true);
+    setState(() {
+      _detailMode = _DetailMode.importReview;
+      _clearOnlinePreview();
+    });
   }
 
   /// Wide layout: leave the embedded import view, returning to the previously
   /// selected dance (or the empty placeholder).
   void _onImportClose() {
-    setState(() => _showImport = false);
+    setState(() => _detailMode = _DetailMode.none);
   }
 
   /// Narrow layout: push the import view as a full-screen route (it has its own
@@ -116,6 +153,96 @@ class _CollectionShellState extends State<CollectionShell> {
         ),
       ),
     );
+  }
+
+  /// Resets the online-preview sub-state. Call when leaving the online preview.
+  void _clearOnlinePreview() {
+    _onlinePreview = null;
+    _onlinePreviewLoading = false;
+    _onlinePreviewError = null;
+  }
+
+  /// Fetches the tapped online result's full record and shows it in the detail
+  /// pane. Guarded by a sequence number so a slow fetch can't overwrite a newer
+  /// selection.
+  Future<void> _onSelectOnlineDance(CallersBoxSearchResult result) async {
+    final repos = RepositoriesScope.of(context);
+    final seq = ++_onlineSeq;
+    setState(() {
+      _selectedDanceId = null;
+      _detailMode = _DetailMode.onlinePreview;
+      _onlinePreview = null;
+      _onlinePreviewError = null;
+      _onlinePreviewLoading = true;
+    });
+    try {
+      final preview = await _online.loadPreview(repos, result);
+      if (!mounted || seq != _onlineSeq) return;
+      setState(() {
+        _onlinePreview = preview;
+        _onlinePreviewLoading = false;
+      });
+    } on UrlFetchException catch (error) {
+      if (!mounted || seq != _onlineSeq) return;
+      setState(() {
+        _onlinePreviewError = error.message;
+        _onlinePreviewLoading = false;
+      });
+    } catch (_) {
+      if (!mounted || seq != _onlineSeq) return;
+      setState(() {
+        _onlinePreviewError = "Couldn't load that dance from The Caller's Box.";
+        _onlinePreviewLoading = false;
+      });
+    }
+  }
+
+  /// Directly imports the previewed online dance into the local collection
+  /// (dedup-aware) and, on success, lands the user on the now-persisted dance in
+  /// the detail pane (a full [DanceDetailScreen], not the preview) so they need
+  /// not hunt for it in the list. An exact re-import opens the existing matching
+  /// dance when its id is known. Reports the outcome via a detail-pane snackbar.
+  ///
+  /// Navigating away from the preview also removes its Import button, so the
+  /// commit can't be repeated; an [_importing] guard additionally blocks a rapid
+  /// double-tap before the first commit resolves.
+  Future<void> _importOnline(CallersBoxPreview preview) async {
+    if (_importing) return;
+    _importing = true;
+    final messenger = _detailMessengerKey.currentState;
+    final repos = RepositoriesScope.of(context);
+    try {
+      final result = await _online.import(repos, preview.plan);
+      if (!mounted) return;
+      if (result.kind == CallersBoxImportKind.created) {
+        CollectionRefreshScope.bump(context);
+        _listRefresh.value++;
+      }
+      final danceId = result.danceId;
+      if (danceId != null) {
+        setState(() {
+          _selectedDanceId = danceId;
+          _detailMode = _DetailMode.none;
+          _clearOnlinePreview();
+        });
+      }
+      messenger?.showSnackBar(
+        SnackBar(
+          key: const ValueKey('online-import-snackbar'),
+          content: Text(callersBoxImportMessage(result)),
+        ),
+      );
+    } on UrlFetchException catch (error) {
+      if (!mounted) return;
+      messenger?.showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (_) {
+      if (!mounted) return;
+      messenger?.showSnackBar(
+        const SnackBar(content: Text("Couldn't import that dance.")),
+      );
+    } finally {
+      _importing = false;
+    }
   }
 
   /// Called by the embedded [DanceDetailScreen] after a successful soft-delete.
@@ -135,7 +262,11 @@ class _CollectionShellState extends State<CollectionShell> {
   /// Refreshes the list (so the copy appears) and selects the new id.
   void _onNavigateTo(String danceId) {
     _listRefresh.value++;
-    setState(() => _selectedDanceId = danceId);
+    setState(() {
+      _selectedDanceId = danceId;
+      _detailMode = _DetailMode.none;
+      _clearOnlinePreview();
+    });
   }
 
   @override
@@ -146,20 +277,25 @@ class _CollectionShellState extends State<CollectionShell> {
           return _buildSplitPane();
         }
         // Narrow: standard single-pane list with existing push navigation.
-        // Import pushes its own full-screen route (there is no detail pane).
-        return DanceListScreen(onImport: _pushImportRoute);
+        // Import pushes its own full-screen route (there is no detail pane); the
+        // list likewise pushes its own preview route for online results (its
+        // onSelectOnlineDance is left null), sharing the online service so the
+        // same seam is used in tests.
+        return DanceListScreen(
+          onImport: _pushImportRoute,
+          callersBoxOnline: _online,
+        );
       },
     );
   }
 
   Widget _buildSplitPane() {
-    final selectedId = _selectedDanceId;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Each pane gets its own ScaffoldMessenger so snackbars from the list
-        // (e.g. swipe-to-delete) and the detail pane (delete/undo) appear in
-        // the correct pane and are never duplicated across both.
+        // (e.g. swipe-to-delete) and the detail pane (delete/undo/import) appear
+        // in the correct pane and are never duplicated across both.
         SizedBox(
           width: CollectionShell.listPaneWidth,
           child: ScaffoldMessenger(
@@ -168,29 +304,80 @@ class _CollectionShellState extends State<CollectionShell> {
               selectedDanceId: _selectedDanceId,
               refreshTrigger: _listRefresh,
               onImport: _onImport,
+              onSelectOnlineDance: _onSelectOnlineDance,
+              selectedOnlineId: _onlinePreview?.result.id,
+              callersBoxOnline: _online,
             ),
           ),
         ),
         const VerticalDivider(width: 1, thickness: 1),
-        Expanded(child: ScaffoldMessenger(child: _buildDetailPane(selectedId))),
+        Expanded(
+          child: ScaffoldMessenger(
+            key: _detailMessengerKey,
+            child: _buildDetailPane(),
+          ),
+        ),
       ],
     );
   }
 
-  /// The wide-layout detail pane: the embedded import view when import mode is
-  /// active, otherwise the selected [DanceDetailScreen] or the empty
-  /// placeholder.
-  Widget _buildDetailPane(String? selectedId) {
-    if (_showImport) {
-      return ImportReviewScreen(
-        // Keyed so switching in/out of import mode fully resets the flow.
-        key: const ValueKey('collection-import'),
-        sources: _importSources,
-        picker: widget.importPicker,
-        fetcher: widget.urlFetcher,
-        onClose: _onImportClose,
-      );
+  /// The wide-layout detail pane. Shows, in precedence order: the online preview
+  /// (with its loading/error sub-states) when [_detailMode] is
+  /// [_DetailMode.onlinePreview]; the embedded import review when
+  /// [_DetailMode.importReview]; otherwise the selected [DanceDetailScreen], or
+  /// the empty-state placeholder when nothing is selected.
+  Widget _buildDetailPane() {
+    switch (_detailMode) {
+      case _DetailMode.onlinePreview:
+        {
+          if (_onlinePreviewLoading) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(
+                  key: ValueKey('online-preview-loading'),
+                ),
+              ),
+            );
+          }
+          if (_onlinePreviewError != null) {
+            return Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Text(
+                    _onlinePreviewError!,
+                    key: const ValueKey('online-preview-error'),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            );
+          }
+          final preview = _onlinePreview;
+          if (preview != null) {
+            return DanceDetailScreen.preview(
+              key: ValueKey('online-preview-${preview.result.id}'),
+              data: preview.detail,
+              onImport: () => _importOnline(preview),
+            );
+          }
+        }
+        // No explicit fall-through in Dart 3; an empty preview state falls out
+        // of the switch to the selected-dance / empty-pane logic below.
+        break;
+      case _DetailMode.importReview:
+        return ImportReviewScreen(
+          // Keyed so switching in/out of import mode fully resets the flow.
+          key: const ValueKey('collection-import'),
+          sources: _importSources,
+          picker: widget.importPicker,
+          fetcher: widget.urlFetcher,
+          onClose: _onImportClose,
+        );
+      case _DetailMode.none:
+        break;
     }
+    final selectedId = _selectedDanceId;
     if (selectedId != null) {
       return DanceDetailScreen(
         // Keyed on the dance id so the screen fully resets when the
@@ -205,6 +392,10 @@ class _CollectionShellState extends State<CollectionShell> {
     return const _EmptyDetailPane();
   }
 }
+
+/// The mutually-exclusive non-dance views the wide-layout detail pane can show.
+/// [none] means the pane shows the selected dance (or the empty placeholder).
+enum _DetailMode { none, importReview, onlinePreview }
 
 /// Placeholder shown in the detail pane before the user selects a dance.
 class _EmptyDetailPane extends StatelessWidget {

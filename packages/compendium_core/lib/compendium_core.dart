@@ -17,6 +17,7 @@ export 'src/imports/callers_companion_programs.dart';
 export 'src/imports/callers_companion_usr_adapter.dart';
 export 'src/imports/callers_companion_usr_archive.dart';
 export 'src/imports/callersbox_adapter.dart';
+export 'src/imports/callersbox_search.dart';
 export 'src/imports/callers_companion_text_adapter.dart';
 export 'src/imports/dedupe.dart';
 export 'src/imports/contradb_adapter.dart';
