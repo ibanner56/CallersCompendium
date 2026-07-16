@@ -500,6 +500,19 @@ taxonomy are unchanged.
   dancerLevel, ALT flags, guest caller, timing), `Author` → Choreographers,
   `Venue` → venue entity, `Term` → glossary, `Dance_Related` → related links.
   Free-text figures import as `custom` (see design/imports.md §2).
+  - **Clipboard/text migration adapter delivered** (part 1 of 2):
+    `CallersCompanionTextAdapter` (pure-Dart CORE `SourceAdapter`,
+    `ProvenanceSource.callersCompanion`) imports **dances** from CC's "copy
+    formatted dance" clipboard/text export through the standard import pipeline
+    (discover → fetch → parse → dedupe → commit). CC records map into our model
+    via a source-agnostic `mapCallersCompanionDance` unit (`callers_companion_
+    mapping.dart`) — header fields → title/level/formation/progression/dates,
+    free-text body `(beats) text` lines → `custom` figures (design §2;
+    opportunistic structuring deferred until the TCB grammar parser lands),
+    author names surfaced for review (no fabricated ids). No stable CC id →
+    fuzzy title/author dedupe. The headline FileMaker-12 binary `.USR` parser
+    (the primary migration path) and `Set`/`SetItem` → Programs land in a
+    follow-up PR that **reuses** this mapping unit, so this box stays open.
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
