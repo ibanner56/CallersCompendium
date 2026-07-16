@@ -9,11 +9,15 @@ import '../user_guide/user_guide_screen.dart';
 
 /// The About settings section (routing wrapper).
 class AboutSection extends StatelessWidget {
-  const AboutSection({super.key});
+  const AboutSection({super.key, this.onOpenGuide});
+
+  /// Selects the shell's User Guide destination. When `null` the "User guide"
+  /// tile falls back to pushing the guide as a full-screen route.
+  final VoidCallback? onOpenGuide;
 
   @override
   Widget build(BuildContext context) {
-    return const _AboutView();
+    return _AboutView(onOpenGuide: onOpenGuide);
   }
 }
 
@@ -27,7 +31,9 @@ class AboutSection extends StatelessWidget {
 /// The brand header at the top carries the app's identity and version; the
 /// remaining entries build the structure and the compliance content.
 class _AboutView extends StatelessWidget {
-  const _AboutView();
+  const _AboutView({this.onOpenGuide});
+
+  final VoidCallback? onOpenGuide;
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +52,21 @@ class _AboutView extends StatelessWidget {
           ),
           trailing: const Icon(Icons.chevron_right),
           isThreeLine: true,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const UserGuideScreen()),
-          ),
+          onTap:
+              onOpenGuide ??
+              () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  // Standalone fallback (no shell to host the guide as a
+                  // destination): the guide is embeddable and no longer
+                  // self-hosts a Scaffold, so give the pushed route its own
+                  // chrome — an AppBar (for a back affordance), a Scaffold (so
+                  // ScaffoldMessenger can show SnackBars), and a SafeArea.
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(title: const Text('User guide')),
+                    body: const SafeArea(child: UserGuideScreen()),
+                  ),
+                ),
+              ),
         ),
         SectionHeader(title: 'License'),
         const _AboutParagraph(

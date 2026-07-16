@@ -28,6 +28,7 @@ class SettingsScreen extends StatefulWidget {
     this.backupPicker,
     this.importPicker,
     this.urlFetcher,
+    this.onOpenGuide,
   });
 
   /// Test seam for delivering an exported backup file; defaults to
@@ -45,6 +46,12 @@ class SettingsScreen extends StatefulWidget {
   /// Test seam for fetching an import URL; defaults to [fetchImportUrl] (real
   /// HTTP GET). Forwarded to [ImportReviewScreen].
   final UrlFetcher? urlFetcher;
+
+  /// Selects the shell's User Guide destination instead of the About section
+  /// pushing a full-screen guide route. Supplied by [AppShell]; when `null`
+  /// (e.g. Settings shown standalone in a test) the About tile falls back to
+  /// pushing the guide.
+  final VoidCallback? onOpenGuide;
 
   /// Viewport width (logical px) at/above which the sidebar and content sit
   /// side by side instead of the sidebar pushing a detail page.
@@ -104,7 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case _SettingsSection.defaults:
         return const DefaultsSection();
       case _SettingsSection.about:
-        return const AboutSection();
+        return AboutSection(onOpenGuide: widget.onOpenGuide);
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/main.dart';
@@ -82,6 +83,14 @@ AppData _openAppData() {
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+  // Booting the full app mounts [AppShell], which now keeps the User Guide
+  // alive as a shell destination — so its doc FutureBuilder builds (offstage)
+  // on startup. The root bundle caches parsed results as `SynchronousFuture`s
+  // after the first load, which stalls that FutureBuilder (leaving its spinner
+  // animating so `pumpAndSettle` never settles); clearing the cache before each
+  // test makes the guide load fresh and settle.
+  setUp(rootBundle.clear);
 
   testWidgets(
     'startup sweep purges programs soft-deleted past the retention window '

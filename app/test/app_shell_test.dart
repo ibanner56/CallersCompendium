@@ -61,6 +61,13 @@ Future<void> _pump(
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
+  // The guide is now a kept-alive shell destination, so its doc FutureBuilder
+  // builds (offstage) in every test. The root bundle caches parsed results as
+  // `SynchronousFuture`s after the first load, which stalls that FutureBuilder
+  // (leaving its spinner animating so `pumpAndSettle` never settles); clearing
+  // the cache before each test makes the guide load fresh and settle.
+  setUp(rootBundle.clear);
+
   testWidgets('narrow layout uses a bottom NavigationBar', (tester) async {
     final repos = openTestRepositories();
     await _pump(tester, repos, size: const Size(500, 900));
@@ -146,12 +153,15 @@ void main() {
     expect(find.text('Nav Target Program'), findsNothing);
   });
 
-  testWidgets('exposes three destinations including Settings', (tester) async {
+  testWidgets('exposes four destinations including Settings and Guide', (
+    tester,
+  ) async {
     final repos = openTestRepositories();
     await _pump(tester, repos, size: const Size(500, 900));
 
-    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(find.byType(NavigationDestination), findsNWidgets(4));
     expect(find.text('Settings'), findsWidgets);
+    expect(find.text('Guide'), findsWidgets);
   });
 
   testWidgets('selecting Settings shows the settings content inline', (
@@ -194,34 +204,94 @@ void main() {
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
   });
 
-  testWidgets('the rail hosts a bottom Help affordance that opens the guide', (
+  testWidgets(
+    'the rail hosts a bottom Help affordance that selects the guide inline',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, size: const Size(1200, 900));
+
+      // The Help/User-guide button lives in the rail on wide layouts.
+      final helpButton = find.byKey(const ValueKey('user-guide-button'));
+      expect(
+        find.descendant(of: find.byType(NavigationRail), matching: helpButton),
+        findsOneWidget,
+      );
+
+      await tester.tap(helpButton);
+      await tester.pumpAndSettle();
+
+      // It selects the offline guide as a destination rendered in the content
+      // area — the rail chrome (and its search affordance) stays visible.
+      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('global-search-button')),
+        findsOneWidget,
+      );
+      expect(find.byType(UserGuideScreen), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('user-guide-title')))
+            .data,
+        'User guide',
+      );
+      // Selecting the guide is not a pushed route, so there is no back button.
+      expect(find.byType(BackButton), findsNothing);
+    },
+  );
+
+  testWidgets('the rail Guide button shows a selected state when active', (
     tester,
   ) async {
     final repos = openTestRepositories();
     await _pump(tester, repos, size: const Size(1200, 900));
 
-    // The Help/User-guide button lives in the rail on wide layouts.
-    final helpButton = find.byKey(const ValueKey('user-guide-button'));
+    // Unselected: the guide icon is the outline variant.
     expect(
-      find.descendant(of: find.byType(NavigationRail), matching: helpButton),
+      find.descendant(
+        of: find.byKey(const ValueKey('user-guide-button')),
+        matching: find.byIcon(Icons.help_outline),
+      ),
       findsOneWidget,
     );
 
-    await tester.tap(helpButton);
+    await tester.tap(find.byKey(const ValueKey('user-guide-button')));
     await tester.pumpAndSettle();
 
-    // It opens the offline in-app user guide at the hub.
-    expect(find.byType(UserGuideScreen), findsOneWidget);
-    expect(find.widgetWithText(AppBar, 'User guide'), findsOneWidget);
+    // Selected: the icon switches to the filled variant (active indicator).
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('user-guide-button')),
+        matching: find.byIcon(Icons.help),
+      ),
+      findsOneWidget,
+    );
+    // The core rail destinations are deselected while the guide is showing.
+    expect(
+      tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
+      isNull,
+    );
   });
 
-  testWidgets('the narrow layout has no rail Help button', (tester) async {
+  testWidgets('the narrow layout selects the guide from the bottom bar', (
+    tester,
+  ) async {
     final repos = openTestRepositories();
     await _pump(tester, repos, size: const Size(500, 900));
 
-    // The rail Help button is desktop-only; mobile reaches the guide from
-    // Settings ▸ About instead.
+    // The rail Help button is desktop-only; the guide is a bottom-bar
+    // destination on narrow layouts instead.
     expect(find.byKey(const ValueKey('user-guide-button')), findsNothing);
+
+    await tester.tap(find.text('Guide').last);
+    await tester.pumpAndSettle();
+
+    // The guide renders inline and the bottom bar stays visible.
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(UserGuideScreen), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('user-guide-title'))).data,
+      'User guide',
+    );
   });
 
   testWidgets('the app-bar search action opens the palette (narrow)', (
