@@ -61,6 +61,14 @@ class DanceDetailScreen extends StatefulWidget {
   /// [Navigator.pushReplacement] instead.
   final void Function(String danceId)? onNavigateTo;
 
+  /// App-bar action layout breakpoint (logical pixels). Below this width the
+  /// screen collapses its secondary actions (dialect switch, Export, Duplicate,
+  /// Delete) into a single overflow menu so the bar never overflows on a phone;
+  /// at or above it the full action row is shown. 600 mirrors Material 3's
+  /// compact window-size-class cutoff, so phones get the decluttered layout
+  /// while tablets/desktop keep the one-tap row.
+  static const double compactActionsBreakpoint = 600;
+
   @override
   State<DanceDetailScreen> createState() => _DanceDetailScreenState();
 }
@@ -540,89 +548,182 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
+  // --- App-bar actions -------------------------------------------------------
+  // The dance-detail bar carries seven affordances (dialect switch, Perform,
+  // Export, Duplicate, Add-to-program, Delete, plus the Edit FAB). On a phone
+  // that full row clips, so below [DanceDetailScreen.compactActionsBreakpoint]
+  // we keep the primary one-tap actions (Perform, Add-to-program; Edit stays
+  // the FAB) and fold the secondary actions into a single overflow menu. Every
+  // action keeps its key, tooltip/label and behaviour in both layouts.
+
+  Widget _performButton(_DanceDetail detail) => IconButton(
+    key: const ValueKey('perform-dance'),
+    tooltip: 'Perform this dance',
+    icon: const Icon(Icons.slideshow),
+    onPressed: () => _perform(detail),
+  );
+
+  Widget _addToProgramButton(_DanceDetail detail) => IconButton(
+    key: const ValueKey('add-dance-to-program'),
+    tooltip: 'Add to program',
+    icon: const Icon(Icons.playlist_add),
+    onPressed: () => _addToProgram(detail.dance.title),
+  );
+
+  DanceExportMenu _exportMenu(BuildContext context, _DanceDetail detail) =>
+      DanceExportMenu(
+        dance: detail.dance,
+        dialect: ActiveDialectScope.of(context),
+        authorNames: detail.authorNames,
+        formationLabel: formationLabel(detail.dance.formation),
+        levelLabel: _levelLabel(detail.dance),
+        statusLabel: danceStatusLabel(detail.dance.status),
+        renderer: _renderer,
+      );
+
+  /// Wide layout: the full one-tap action row.
+  Widget _fullActions(BuildContext context, _DanceDetail detail) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      const DialectQuickSwitch(),
+      _performButton(detail),
+      _exportMenu(context, detail),
+      IconButton(
+        key: const ValueKey('duplicate-dance'),
+        tooltip: 'Duplicate dance',
+        icon: const Icon(Icons.copy_all_outlined),
+        onPressed: _duplicate,
+      ),
+      _addToProgramButton(detail),
+      IconButton(
+        key: const ValueKey('delete-dance'),
+        tooltip: 'Delete dance',
+        icon: const Icon(Icons.delete_outline),
+        onPressed: _delete,
+      ),
+    ],
+  );
+
+  /// Narrow layout: primary actions stay as icon buttons; the rest collapse
+  /// into the overflow menu.
+  Widget _compactActions(BuildContext context, _DanceDetail detail) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      _performButton(detail),
+      _addToProgramButton(detail),
+      _overflowMenu(context, detail),
+    ],
+  );
+
+  /// Single "⋮" menu holding the secondary actions on narrow widths. The
+  /// dialect switch and Export controls are their own popup menus, so they are
+  /// hosted verbatim inside menu rows (their tooltips act as the accessible
+  /// label); Duplicate and Delete call the same handlers as the wide layout.
+  Widget _overflowMenu(BuildContext context, _DanceDetail detail) =>
+      PopupMenuButton<void>(
+        key: const ValueKey('dance-actions-overflow'),
+        tooltip: 'More actions',
+        icon: const Icon(Icons.more_vert),
+        itemBuilder: (context) => [
+          PopupMenuItem<void>(
+            child: Row(
+              children: const [
+                DialectQuickSwitch(),
+                SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Switch dialect',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem<void>(
+            child: Row(
+              children: [
+                _exportMenu(context, detail),
+                const SizedBox(width: 8),
+                const Flexible(
+                  child: Text('Export', overflow: TextOverflow.ellipsis),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem<void>(
+            onTap: _duplicate,
+            child: const ListTile(
+              key: ValueKey('duplicate-dance'),
+              leading: Icon(Icons.copy_all_outlined),
+              title: Text('Duplicate dance'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem<void>(
+            onTap: _delete,
+            child: const ListTile(
+              key: ValueKey('delete-dance'),
+              leading: Icon(Icons.delete_outline),
+              title: Text('Delete dance'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        ],
+      );
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dance'),
-        actions: [
-          const DialectQuickSwitch(),
-          FutureBuilder<_DanceDetail?>(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            constraints.maxWidth < DanceDetailScreen.compactActionsBreakpoint;
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Dance'),
+            actions: [
+              FutureBuilder<_DanceDetail?>(
+                future: _future,
+                builder: (context, snapshot) {
+                  if (snapshot.data == null) return const SizedBox.shrink();
+                  final detail = snapshot.data!;
+                  return compact
+                      ? _compactActions(context, detail)
+                      : _fullActions(context, detail);
+                },
+              ),
+            ],
+          ),
+          body: FutureBuilder<_DanceDetail?>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final detail = snapshot.data;
+              if (detail == null) {
+                return const Center(child: Text('Dance not found.'));
+              }
+              return _buildBody(detail);
+            },
+          ),
+          // Edit mirrors the program preview's builder affordance: a bottom-right
+          // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
+          // so opening the editor is consistent across the dance and program views.
+          floatingActionButton: FutureBuilder<_DanceDetail?>(
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.data == null) return const SizedBox.shrink();
-              final detail = snapshot.data!;
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    key: const ValueKey('perform-dance'),
-                    tooltip: 'Perform this dance',
-                    icon: const Icon(Icons.slideshow),
-                    onPressed: () => _perform(detail),
-                  ),
-                  DanceExportMenu(
-                    dance: detail.dance,
-                    dialect: ActiveDialectScope.of(context),
-                    authorNames: detail.authorNames,
-                    formationLabel: formationLabel(detail.dance.formation),
-                    levelLabel: _levelLabel(detail.dance),
-                    statusLabel: danceStatusLabel(detail.dance.status),
-                    renderer: _renderer,
-                  ),
-                  IconButton(
-                    key: const ValueKey('duplicate-dance'),
-                    tooltip: 'Duplicate dance',
-                    icon: const Icon(Icons.copy_all_outlined),
-                    onPressed: _duplicate,
-                  ),
-                  IconButton(
-                    key: const ValueKey('add-dance-to-program'),
-                    tooltip: 'Add to program',
-                    icon: const Icon(Icons.playlist_add),
-                    onPressed: () => _addToProgram(detail.dance.title),
-                  ),
-                  IconButton(
-                    key: const ValueKey('delete-dance'),
-                    tooltip: 'Delete dance',
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: _delete,
-                  ),
-                ],
+              return FloatingActionButton.extended(
+                key: const ValueKey('edit-dance'),
+                heroTag: 'edit-dance',
+                onPressed: _openEditor,
+                icon: const Icon(Icons.edit_note),
+                label: const Text('Edit'),
               );
             },
           ),
-        ],
-      ),
-      body: FutureBuilder<_DanceDetail?>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final detail = snapshot.data;
-          if (detail == null) {
-            return const Center(child: Text('Dance not found.'));
-          }
-          return _buildBody(detail);
-        },
-      ),
-      // Edit mirrors the program preview's builder affordance: a bottom-right
-      // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
-      // so opening the editor is consistent across the dance and program views.
-      floatingActionButton: FutureBuilder<_DanceDetail?>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.data == null) return const SizedBox.shrink();
-          return FloatingActionButton.extended(
-            key: const ValueKey('edit-dance'),
-            heroTag: 'edit-dance',
-            onPressed: _openEditor,
-            icon: const Icon(Icons.edit_note),
-            label: const Text('Edit'),
-          );
-        },
-      ),
+        );
+      },
     );
   }
 
