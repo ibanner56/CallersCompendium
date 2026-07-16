@@ -36,6 +36,7 @@ void main() {
     String? permission,
     String? license,
     List<String> authorNames = const [],
+    List<String> authorIds = const [],
   }) => {
     'id': id,
     'title': title,
@@ -43,6 +44,7 @@ void main() {
     'permission': ?permission,
     'license': ?license,
     'authorNames': authorNames,
+    'authorIds': authorIds,
     'figures': figures,
   };
 
@@ -422,6 +424,29 @@ void main() {
         );
         expect(session.createdChoreographerIds, isEmpty);
       });
+
+      test(
+        'preserves draft authorIds when no author names are carried',
+        () async {
+          // The generic archive/JSON adapter ships canonical authorIds in the
+          // draft and sets no authorNames; commit must NOT clear them.
+          await choreographers.upsert(
+            Choreographer(id: 'canon', name: 'Canonical Author'),
+          );
+          final adapter = FakeSourceAdapter([
+            record('fake-1', 'A Dance', authorIds: ['canon']),
+          ]);
+          final session = await pipeline.commit(
+            await pipeline.plan(adapter, const ImportRequest()),
+            now: now,
+            newId: nextId,
+          );
+          final id = session.insertedDanceIds.single;
+          expect((await dances.getById(id))!.authorIds, ['canon']);
+          expect(session.createdChoreographerIds, isEmpty);
+          expect(session.records.single.authorResolutions, isEmpty);
+        },
+      );
 
       test('reimport replaces the resolved authors', () async {
         final first = FakeSourceAdapter([

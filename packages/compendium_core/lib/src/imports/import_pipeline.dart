@@ -331,9 +331,14 @@ class ImportPipeline {
           newId: newId,
           createdChoreographerIds: createdChoreographerIds,
         );
-        final authorIds = [
-          for (final r in authorResolutions) r.choreographerId,
-        ];
+        // Only override authorIds when the draft actually carried author NAMES
+        // to resolve (the free-text adapters). Drafts that ship canonical
+        // authorIds directly and no names (e.g. the generic archive/JSON
+        // adapter) keep their own ids — `null` makes `_rebuildWithIdentity`
+        // fall back to `src.authorIds`, avoiding data loss.
+        final authorIds = plan.draft.authorNames.isEmpty
+            ? null
+            : [for (final r in authorResolutions) r.choreographerId];
 
         final prov = _provenanceFrom(plan.draft, now);
         if (action == CommitAction.create || action == CommitAction.duplicate) {
@@ -544,8 +549,11 @@ class ImportPipeline {
   /// reassign an import's id (fresh insert) or re-target it onto an existing
   /// dance (re-import/link) without the caller having to reconstruct every
   /// field. All content fields are carried over verbatim, except [authorIds]
-  /// which may be overridden with the pipeline's resolved ids (the draft's own
-  /// authorIds are always empty — names are resolved at commit).
+  /// which may be overridden with the pipeline's resolved ids. When
+  /// [authorIds] is null the draft's own ids are kept — free-text adapters
+  /// resolve names at commit and pass the resolved list, while adapters that
+  /// ship canonical ids directly (e.g. the generic archive/JSON adapter) pass
+  /// null to preserve them.
   Dance _rebuildWithIdentity(
     Dance src, {
     required String id,
