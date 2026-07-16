@@ -33,7 +33,7 @@ Future<void> _pumpScreen(
     MaterialApp(
       builder: (context, child) =>
           RepositoriesScope(repositories: repos, child: child!),
-      home: const RecentlyDeletedScreen(),
+      home: RecentlyDeletedScreen.dances(),
     ),
   );
   await tester.pumpAndSettle();

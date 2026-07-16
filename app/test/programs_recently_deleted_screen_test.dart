@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
-import 'package:compendium_app/src/screens/programs_recently_deleted_screen.dart';
+import 'package:compendium_app/src/screens/recently_deleted_screen.dart';
 
 import 'support/test_repositories.dart';
 
@@ -20,7 +20,7 @@ Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
     MaterialApp(
       builder: (context, child) =>
           RepositoriesScope(repositories: repos, child: child!),
-      home: const ProgramsRecentlyDeletedScreen(),
+      home: RecentlyDeletedScreen.programs(),
     ),
   );
   await tester.pumpAndSettle();

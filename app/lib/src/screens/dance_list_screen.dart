@@ -578,7 +578,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   Future<void> _openRecentlyDeleted() async {
     await Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const RecentlyDeletedScreen()),
+      MaterialPageRoute<void>(builder: (_) => RecentlyDeletedScreen.dances()),
     );
     // Reload so any restored dances re-appear in the collection.
     if (mounted) await _boot();
