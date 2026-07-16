@@ -13,7 +13,7 @@ import 'support/test_repositories.dart';
 /// the extracted controller in isolation.
 ///
 /// The controller's debounce timers are real 500 ms [Timer]s, so tests wait a
-/// little past that window (`_settleDebounce`) to let them fire.
+/// little past that window (`settleDebounce`) to let them fire.
 void main() {
   final now = DateTime.utc(2026, 1, 1);
 
