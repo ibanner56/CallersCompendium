@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../data/repositories_scope.dart';
 import '../utils/confirm_delete.dart';
 import '../widgets/program_list_tile.dart';
-import 'app_shell.dart';
+import 'app_shell_search_scope.dart';
 import 'program_editor_screen.dart';
 import 'programs_recently_deleted_screen.dart';
 

@@ -21,7 +21,7 @@ import '../widgets/dance_list_tile.dart';
 import '../widgets/facet_panel.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
-import 'app_shell.dart';
+import 'app_shell_search_scope.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../screens/dance_detail_screen.dart';
 import '../screens/program_editor_screen.dart';
 import '../widgets/command_palette.dart';
+import 'app_shell_search_scope.dart';
 import 'collection_shell.dart';
 import 'programs_shell.dart';
 import 'settings_screen.dart';
@@ -154,35 +155,4 @@ class _AppShellState extends State<AppShell> {
       },
     );
   }
-}
-
-/// Exposes the shell's global-search callback ([AppShell] `_openSearch`) to
-/// nested screens so they can surface a 1-tap search affordance in their app
-/// bars.
-///
-/// It is intentionally provided **only in the narrow (phone) layout**, where
-/// the bottom-right FAB slot is reserved for each screen's "New"
-/// FAB.extended. In the wide layout search lives in the [NavigationRail], so
-/// no scope is inserted and `of(context)` returns `null` — nested list screens
-/// then omit their in-app-bar search action to avoid duplicating the rail
-/// affordance.
-class AppShellSearchScope extends InheritedWidget {
-  const AppShellSearchScope({
-    required this.openSearch,
-    required super.child,
-    super.key,
-  });
-
-  /// Opens the global command palette. Mirrors the Ctrl/Cmd-K shortcut and the
-  /// wide layout's rail search button.
-  final Future<void> Function() openSearch;
-
-  /// Returns the nearest scope, or `null` when search is not surfaced in the
-  /// app bar (i.e. the wide layout, where the rail owns search).
-  static AppShellSearchScope? of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<AppShellSearchScope>();
-
-  @override
-  bool updateShouldNotify(AppShellSearchScope oldWidget) =>
-      openSearch != oldWidget.openSearch;
 }
