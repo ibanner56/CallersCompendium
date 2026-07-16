@@ -188,6 +188,68 @@ void main() {
       expect(text, isNotNull);
       expect(text, contains('Status: Deprecated'));
     });
+
+    testWidgets('surfaces a SnackBar when sharing throws', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance(),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  shareInvoker: (params) async =>
+                      throw Exception('no share target'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share dance (text)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't share this dance"), findsOneWidget);
+    });
+
+    testWidgets('surfaces a SnackBar when the PDF export throws', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance(),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  pdfLayouter: ({required name, required onLayout}) async =>
+                      throw Exception('no printer'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't export this dance"), findsOneWidget);
+    });
   });
 
   group('buildDancePdf', () {

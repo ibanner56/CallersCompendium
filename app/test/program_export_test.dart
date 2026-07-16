@@ -100,6 +100,62 @@ void main() {
       expect(clipboardText, contains('1. Rory O\'More'));
       expect(find.text('Set list copied to clipboard.'), findsOneWidget);
     });
+
+    testWidgets('surfaces a SnackBar when sharing throws', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                ProgramExportMenu(
+                  program: _program(),
+                  titleFor: _titles,
+                  shareInvoker: (params) async =>
+                      throw Exception('no share target'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share set list (text)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't share this set list"), findsOneWidget);
+    });
+
+    testWidgets('surfaces a SnackBar when the PDF export throws', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                ProgramExportMenu(
+                  program: _program(),
+                  titleFor: _titles,
+                  pdfLayouter: ({required name, required onLayout}) async =>
+                      throw Exception('no printer'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't export this set list"), findsOneWidget);
+    });
   });
 
   group('buildProgramPdf', () {
