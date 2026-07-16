@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import ntpath
 import posixpath
 import re
 import shutil
@@ -99,6 +100,22 @@ def _resolve_under_docs(guide: Path, ref: str) -> Path:
     dropping an illustration from the bundle.
     """
     guide_dir_rel = guide.parent.relative_to(DOCS_ROOT).as_posix()
+    # Reject absolute or Windows-style references before joining. ``posixpath.join``
+    # discards the guide's directory when ``ref`` is absolute (e.g. ``/etc/passwd``
+    # or ``C:/x``), which would let ``resolved`` escape ``docs/`` entirely; and a
+    # backslash would be a path separator on Windows. Bundled guides must use
+    # forward-slashed relative references.
+    if (
+        posixpath.isabs(ref)
+        or ntpath.isabs(ref)
+        or ntpath.splitdrive(ref)[0]
+        or "\\" in ref
+    ):
+        _fail(
+            f"{guide.relative_to(REPO_ROOT)} embeds a non-relative image "
+            f"reference: '{ref}'. Bundled guides may only reference images with "
+            f"forward-slashed relative paths under docs/."
+        )
     joined = posixpath.normpath(posixpath.join(guide_dir_rel, ref))
     if joined == ".." or joined.startswith("../"):
         _fail(
@@ -106,6 +123,15 @@ def _resolve_under_docs(guide: Path, ref: str) -> Path:
             f"'{ref}'. Bundled guides may only reference images under docs/."
         )
     resolved = DOCS_ROOT / joined
+    # Defense in depth against symlink escapes: the real, fully-resolved location
+    # must still live under the real docs/ root.
+    docs_real = DOCS_ROOT.resolve()
+    resolved_real = resolved.resolve()
+    if resolved_real != docs_real and docs_real not in resolved_real.parents:
+        _fail(
+            f"{guide.relative_to(REPO_ROOT)} references an image that resolves "
+            f"outside docs/: '{ref}' -> {resolved_real}."
+        )
     if not resolved.is_file():
         _fail(
             f"{guide.relative_to(REPO_ROOT)} references a missing image: "

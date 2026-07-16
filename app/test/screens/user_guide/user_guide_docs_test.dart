@@ -51,6 +51,18 @@ void main() {
       expect((link as GuideMissingLink).label, 'Perform');
     });
 
+    test('a deliberately-excluded guide opens on GitHub, not "missing"', () {
+      // style-guide.md exists in the repo but is intentionally not bundled
+      // (contributor-only), so it should open externally rather than claim to
+      // be a not-yet-written guide.
+      final link = docs.resolveLink('README.md', 'style-guide.md');
+      expect(link, isA<GuideExternalLink>());
+      expect(
+        (link as GuideExternalLink).url,
+        '$kSourceRepoUrl/blob/main/docs/user/style-guide.md',
+      );
+    });
+
     test('a multi-word missing guide gets a readable label', () {
       final link = docs.resolveLink('imports.md', './backup-portability.md');
       expect((link as GuideMissingLink).label, 'Backup portability');

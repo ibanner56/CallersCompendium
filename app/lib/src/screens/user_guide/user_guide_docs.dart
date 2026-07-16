@@ -19,6 +19,13 @@ const String _userDocsRepoDir = 'docs/user';
 /// The guide the panel opens on: the documentation hub / table of contents.
 const String kUserGuideHomeDoc = 'README.md';
 
+/// Guides that intentionally are **not** bundled into the app — they exist in
+/// the repo but aren't user-facing (mirrors `EXCLUDED_GUIDES` in
+/// `tools/ci/sync_user_docs.py`; keep the two in sync). An in-app link to one
+/// opens the repo copy on GitHub rather than showing a misleading
+/// "isn't available yet" message.
+const Set<String> kBundleExcludedGuides = {'style-guide.md'};
+
 /// The base ref used when a guide links to a repo file that isn't bundled
 /// (e.g. a design doc); such links open on GitHub rather than in the panel.
 const String _repoBlobBase = '$kSourceRepoUrl/blob/main';
@@ -134,16 +141,26 @@ class UserGuideDocs {
       if (has(docId)) {
         return GuideInternalLink(docId, fragment: fragment);
       }
+      if (kBundleExcludedGuides.contains(docId)) {
+        // Deliberately unbundled (e.g. the contributor style guide): it exists
+        // in the repo but isn't user-facing, so open the GitHub copy rather
+        // than claim it's missing.
+        return GuideExternalLink(_repoBlobUrl(resolved, fragment));
+      }
       return GuideMissingLink(labelForDoc(docId));
     }
 
     // A repo file outside the bundled guides (e.g. a design doc): open on
     // GitHub so the link still works, but only when the user taps it.
-    final url = fragment == null
-        ? '$_repoBlobBase/$resolved'
-        : '$_repoBlobBase/$resolved#$fragment';
-    return GuideExternalLink(url);
+    return GuideExternalLink(_repoBlobUrl(resolved, fragment));
   }
+
+  /// Builds the GitHub blob URL for a repo-relative [repoPath] (+ optional
+  /// [fragment]) — used for links that leave the bundled guide set.
+  static String _repoBlobUrl(String repoPath, String? fragment) =>
+      fragment == null
+      ? '$_repoBlobBase/$repoPath'
+      : '$_repoBlobBase/$repoPath#$fragment';
 
   /// Resolves an image [src] referenced from [fromDocId] to a bundled asset
   /// key, or `null` for a remote image (guides bundle their images locally).
