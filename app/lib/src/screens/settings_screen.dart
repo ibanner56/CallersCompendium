@@ -68,6 +68,7 @@ class SettingsScreen extends StatefulWidget {
     this.backupSaver,
     this.backupPicker,
     this.importPicker,
+    this.urlFetcher,
   });
 
   /// Test seam for delivering an exported backup file; defaults to
@@ -81,6 +82,10 @@ class SettingsScreen extends StatefulWidget {
   /// Test seam for choosing an import file; defaults to [pickImportFile]
   /// (native open-file dialog). Forwarded to [ImportReviewScreen].
   final ImportPicker? importPicker;
+
+  /// Test seam for fetching an import URL; defaults to [fetchImportUrl] (real
+  /// HTTP GET). Forwarded to [ImportReviewScreen].
+  final UrlFetcher? urlFetcher;
 
   /// Viewport width (logical px) at/above which the sidebar and content sit
   /// side by side instead of the sidebar pushing a detail page.
@@ -344,6 +349,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           adapterFactory: GenericJsonAdapter.new,
           sourceLabel: "a Caller's Compendium JSON file",
           picker: widget.importPicker,
+          fetcher: widget.urlFetcher,
         ),
       ),
     );
