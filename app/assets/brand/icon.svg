@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Caller's Compendium">
+  <rect width="128" height="128" rx="28.4" fill="#121A24"/>
+  <g fill="#FFB784">
+    <rect x="38" y="44" width="18" height="56" rx="9"/>
+    <rect x="72" y="28" width="18" height="56" rx="9"/>
+  </g>
+</svg>

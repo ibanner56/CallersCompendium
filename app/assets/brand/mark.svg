@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="currentColor" role="img" aria-label="Caller's Compendium mark">
+  <!-- Glyph only, no tile. Source of truth for the in-app BrandMark painter
+       (app/lib/src/widgets/brand_mark.dart), which uses this same 128-unit
+       geometry. Recolor via `color` / currentColor. -->
+  <rect x="38" y="44" width="18" height="56" rx="9"/>
+  <rect x="72" y="28" width="18" height="56" rx="9"/>
+</svg>
