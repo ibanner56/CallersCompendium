@@ -33,8 +33,8 @@ class _AppShellState extends State<AppShell> {
 
   static const _destinations = [
     (
-      icon: Icons.library_music_outlined,
-      selectedIcon: Icons.library_music,
+      icon: Icons.auto_stories_outlined,
+      selectedIcon: Icons.auto_stories,
       label: 'Collection',
     ),
     (
