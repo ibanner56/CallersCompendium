@@ -84,7 +84,7 @@ text zoom — the same audience the app itself is built for. Model good practice
   not skip levels or fake a heading with bold text. Screen-reader users navigate
   by heading.
 - **Write descriptive link text.** Link the words that describe the destination
-  ("see the [import guide](./README.md#imports--migration)"), never "click here"
+  ("see the [import guide](./imports.md)"), never "click here"
   or a bare URL.
 - **Don't rely on color or symbols alone.** The status legend in the hub pairs
   every emoji with a word (✅ done, ✍️ drafting, 🔒 blocked); do the same anywhere
