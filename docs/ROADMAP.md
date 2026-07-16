@@ -550,6 +550,7 @@ taxonomy are unchanged.
 ## Phase 7 — Release
 
 - [ ] 7.1 Packaging/signing for all platforms; update channel
+  - Distribution & update-channel architecture — [ADR-002](adr/002-distribution-and-update-channels.md)
 - [ ] 7.2 User documentation
 - [ ] 7.3 Beta program with real callers; feedback triage
 
