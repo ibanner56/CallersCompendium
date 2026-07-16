@@ -4,33 +4,121 @@ import 'package:flutter/material.dart';
 import '../data/repositories_scope.dart';
 import '../data/soft_delete_retention.dart';
 
-/// Shows soft-deleted dances with their purge-ETA and individual Restore and
+/// Per-entity configuration for [RecentlyDeletedScreen].
+///
+/// Captures everything that differs between the dances and programs
+/// "Recently Deleted" screens — the entity accessors, the repository calls,
+/// the retention window, and the copy — so the screen itself stays generic and
+/// the two entry points ([RecentlyDeletedScreen.dances] /
+/// [RecentlyDeletedScreen.programs]) are thin wrappers over the shared shape.
+@immutable
+class RecentlyDeletedConfig<T> {
+  const RecentlyDeletedConfig({
+    required this.pluralNoun,
+    required this.initialRetention,
+    this.loadRetention,
+    required this.loadDeleted,
+    required this.restore,
+    required this.permanentlyDelete,
+    required this.idOf,
+    required this.titleOf,
+    required this.deletedAtOf,
+    required this.restoredMessage,
+  });
+
+  /// Lower-case plural entity noun ("dances" / "programs") used in the loading
+  /// semantics label and the empty-state copy.
+  final String pluralNoun;
+
+  /// Retention window shown on the first frame, before [loadRetention] (if any)
+  /// resolves. `null` means "never auto-purge" (no countdown).
+  final Duration? initialRetention;
+
+  /// Optional resolver for the user-configurable retention window. When `null`
+  /// the [initialRetention] is used unchanged (a fixed window).
+  final Future<Duration?> Function(CompendiumRepositories repos)? loadRetention;
+
+  /// Loads the soft-deleted items (those with a non-null `deletedAt`).
+  ///
+  /// Contract: implementations MUST filter out non-deleted items — the screen
+  /// renders each item's purge-ETA from its `deletedAt` and asserts it is
+  /// non-null.
+  final Future<List<T>> Function(CompendiumRepositories repos) loadDeleted;
+
+  /// Restores [item] to the active collection.
+  final Future<void> Function(CompendiumRepositories repos, T item) restore;
+
+  /// Hard-deletes [item] via the standard purge machinery.
+  final Future<void> Function(CompendiumRepositories repos, T item)
+  permanentlyDelete;
+
+  final String Function(T item) idOf;
+  final String Function(T item) titleOf;
+
+  /// The item's soft-delete timestamp. Guaranteed non-null for every item
+  /// [loadDeleted] returns; the screen asserts this before using it.
+  final DateTime? Function(T item) deletedAtOf;
+
+  /// Snackbar copy shown after a successful restore, given the item title.
+  final String Function(String title) restoredMessage;
+}
+
+/// Shows soft-deleted items with their purge-ETA and individual Restore and
 /// Permanently delete actions (`docs/design/ux.md` cross-cutting rule:
 /// "undo/soft-delete everywhere, restore within the retention window").
 ///
-/// The retention window is the user-configurable one (ROADMAP G.4): 30 / 90
-/// days, or "Never" (kept until manually removed). The purge-ETA and empty-state
-/// copy reflect the configured window so they never contradict what the startup
-/// sweep actually does.
+/// A single generic implementation backs both the dances
+/// ([RecentlyDeletedScreen.dances]) and programs
+/// ([RecentlyDeletedScreen.programs]) screens; the per-entity differences live
+/// in [RecentlyDeletedConfig].
 ///
-/// Reachable from the Collection screen app bar via the
-/// `restore_from_trash_outlined` icon button (`recently-deleted` key).
-/// An empty state is shown when no dances are pending deletion.
-class RecentlyDeletedScreen extends StatefulWidget {
-  const RecentlyDeletedScreen({super.key});
+/// For dances the retention window is the user-configurable one (ROADMAP G.4):
+/// 30 / 90 days, or "Never" (kept until manually removed). The purge-ETA and
+/// empty-state copy reflect the configured window so they never contradict what
+/// the startup sweep actually does. Programs use a fixed 30-day window.
+///
+/// An empty state is shown when no items are pending deletion.
+class RecentlyDeletedScreen<T> extends StatefulWidget {
+  const RecentlyDeletedScreen({super.key, required this.config});
+
+  final RecentlyDeletedConfig<T> config;
+
+  /// The dances "Recently Deleted" screen.
+  static RecentlyDeletedScreen<Dance> dances({Key? key}) =>
+      RecentlyDeletedScreen<Dance>(
+        key: key,
+        config: danceRecentlyDeletedConfig,
+      );
+
+  /// The programs "Recently Deleted" screen.
+  static RecentlyDeletedScreen<Program> programs({Key? key}) =>
+      RecentlyDeletedScreen<Program>(
+        key: key,
+        config: programRecentlyDeletedConfig,
+      );
 
   @override
-  State<RecentlyDeletedScreen> createState() => _RecentlyDeletedScreenState();
+  State<RecentlyDeletedScreen<T>> createState() =>
+      _RecentlyDeletedScreenState<T>();
 }
 
-class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
+class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
   /// The configured retention window, or `null` for "never auto-purge". Seeded
-  /// with the historical 30-day default so the first frame is correct for the
-  /// common case; replaced once the persisted setting resolves.
-  Duration? _retention = const Duration(days: kSoftDeleteRetentionDefaultDays);
+  /// with [RecentlyDeletedConfig.initialRetention] so the first frame is
+  /// correct for the common case; replaced once the persisted setting resolves
+  /// (when the config supplies a resolver).
+  Duration? _retention;
 
   late CompendiumRepositories _repos;
-  Future<List<Dance>>? _future;
+  Future<List<T>>? _future;
+
+  RecentlyDeletedConfig<T> get _config => widget.config;
+
+  @override
+  void initState() {
+    super.initState();
+    _retention = widget.config.initialRetention;
+  }
 
   @override
   void didChangeDependencies() {
@@ -43,42 +131,42 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   }
 
   void _loadRetention() {
-    _repos.settings
-        .get(kSoftDeleteRetentionKey)
-        .then((stored) {
+    final loader = _config.loadRetention;
+    if (loader == null) return;
+    loader(_repos)
+        .then((resolved) {
           if (!mounted) return;
-          setState(() => _retention = softDeleteRetentionFromStored(stored));
+          setState(() => _retention = resolved);
         })
         .catchError((_) {
-          /* keep the 30-day default */
+          /* keep the seeded default */
         });
   }
 
   void _reload() {
-    final future = _repos.dances
-        .listAll(includeDeleted: true)
-        .then((all) => all.where((d) => d.deletedAt != null).toList());
+    final future = _config.loadDeleted(_repos);
     setState(() {
       _future = future;
     });
   }
 
-  Future<void> _restore(Dance dance) async {
-    await _repos.dances.restore(dance.id, at: DateTime.now().toUtc());
+  Future<void> _restore(T item) async {
+    await _config.restore(_repos, item);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${dance.title}" restored to your collection.')),
+      SnackBar(content: Text(_config.restoredMessage(_config.titleOf(item)))),
     );
     _reload();
   }
 
-  Future<void> _permanentDelete(Dance dance) async {
+  Future<void> _permanentDelete(T item) async {
+    final title = _config.titleOf(item);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete permanently?'),
         content: Text(
-          '"${dance.title}" will be deleted immediately and cannot be recovered.',
+          '"$title" will be deleted immediately and cannot be recovered.',
         ),
         actions: [
           TextButton(
@@ -97,16 +185,11 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    // Purge by setting deletedAt well in the past (beyond retention), then
-    // calling purgeDeleted. This is the safe path that goes through the
-    // existing purge machinery (FK cascade, FTS cleanup, slot nulling).
-    final longAgo = DateTime.utc(1970);
-    await _repos.dances.softDelete(dance.id, at: longAgo);
-    await _repos.dances.purgeDeleted(now: DateTime.now().toUtc());
+    await _config.permanentlyDelete(_repos, item);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${dance.title}" permanently deleted.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('"$title" permanently deleted.')));
     _reload();
   }
 
@@ -114,17 +197,18 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Recently Deleted')),
-      body: FutureBuilder<List<Dance>>(
+      body: FutureBuilder<List<T>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(
-                semanticsLabel: 'Loading recently deleted dances',
+                semanticsLabel:
+                    'Loading recently deleted ${_config.pluralNoun}',
               ),
             );
           }
-          final deleted = snapshot.data ?? [];
+          final deleted = snapshot.data ?? <T>[];
           if (deleted.isEmpty) {
             final retention = _retention;
             return Center(
@@ -133,10 +217,11 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
                 padding: const EdgeInsets.all(24),
                 child: Text(
                   retention == null
-                      ? 'Nothing in the trash. Deleted dances are kept here '
-                            'until you remove them.'
-                      : 'Nothing in the trash. Deleted dances appear here for '
-                            '${retention.inDays} days before being removed.',
+                      ? 'Nothing in the trash. Deleted ${_config.pluralNoun} '
+                            'are kept here until you remove them.'
+                      : 'Nothing in the trash. Deleted ${_config.pluralNoun} '
+                            'appear here for ${retention.inDays} days before '
+                            'being removed.',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -144,12 +229,28 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
           }
           return ListView.builder(
             itemCount: deleted.length,
-            itemBuilder: (context, index) => _DeletedDanceTile(
-              dance: deleted[index],
-              retention: _retention,
-              onRestore: () => _restore(deleted[index]),
-              onPermanentDelete: () => _permanentDelete(deleted[index]),
-            ),
+            itemBuilder: (context, index) {
+              final item = deleted[index];
+              final deletedAt = _config.deletedAtOf(item);
+              // Invariant: loadDeleted only ever yields soft-deleted items, so
+              // deletedAt is non-null here. Assert (debug-only) so a
+              // misconfigured config surfaces with a clear message in dev/tests
+              // instead of an opaque null-check crash.
+              assert(
+                deletedAt != null,
+                'RecentlyDeletedConfig.loadDeleted must return only '
+                'soft-deleted items (deletedAt != null); got a '
+                '${_config.pluralNoun} item with a null deletedAt.',
+              );
+              return _DeletedItemTile(
+                title: _config.titleOf(item),
+                id: _config.idOf(item),
+                deletedAt: deletedAt!,
+                retention: _retention,
+                onRestore: () => _restore(item),
+                onPermanentDelete: () => _permanentDelete(item),
+              );
+            },
           );
         },
       ),
@@ -157,15 +258,71 @@ class _RecentlyDeletedScreenState extends State<RecentlyDeletedScreen> {
   }
 }
 
-class _DeletedDanceTile extends StatelessWidget {
-  const _DeletedDanceTile({
-    required this.dance,
+/// Config for the dances "Recently Deleted" screen. Dances honor the
+/// user-configurable retention window (ROADMAP G.4), so [loadRetention] reads
+/// the persisted setting.
+final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
+    RecentlyDeletedConfig<Dance>(
+      pluralNoun: 'dances',
+      initialRetention: const Duration(days: kSoftDeleteRetentionDefaultDays),
+      loadRetention: (repos) => repos.settings
+          .get(kSoftDeleteRetentionKey)
+          .then(softDeleteRetentionFromStored),
+      loadDeleted: (repos) => repos.dances
+          .listAll(includeDeleted: true)
+          .then((all) => all.where((d) => d.deletedAt != null).toList()),
+      restore: (repos, dance) =>
+          repos.dances.restore(dance.id, at: DateTime.now().toUtc()),
+      permanentlyDelete: (repos, dance) async {
+        // Purge by setting deletedAt well in the past (beyond retention), then
+        // calling purgeDeleted. This is the safe path that goes through the
+        // existing purge machinery (FK cascade, FTS cleanup, slot nulling).
+        await repos.dances.softDelete(dance.id, at: DateTime.utc(1970));
+        await repos.dances.purgeDeleted(now: DateTime.now().toUtc());
+      },
+      idOf: (dance) => dance.id,
+      titleOf: (dance) => dance.title,
+      deletedAtOf: (dance) => dance.deletedAt,
+      restoredMessage: (title) => '"$title" restored to your collection.',
+    );
+
+/// Config for the programs "Recently Deleted" screen. Programs use a fixed
+/// 30-day retention window (no user-configurable setting), so [loadRetention]
+/// is omitted and the seeded [initialRetention] is used unchanged.
+final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
+    RecentlyDeletedConfig<Program>(
+      pluralNoun: 'programs',
+      initialRetention: const Duration(days: 30),
+      loadDeleted: (repos) => repos.programs
+          .listAll(includeDeleted: true)
+          .then((all) => all.where((p) => p.deletedAt != null).toList()),
+      restore: (repos, program) =>
+          repos.programs.restore(program.id, at: DateTime.now().toUtc()),
+      permanentlyDelete: (repos, program) async {
+        // Push deletedAt beyond retention, then run the standard purge (FK
+        // cascade handles slots) — same safe path the dances screen uses.
+        await repos.programs.softDelete(program.id, at: DateTime.utc(1970));
+        await repos.programs.purgeDeleted(now: DateTime.now().toUtc());
+      },
+      idOf: (program) => program.id,
+      titleOf: (program) => program.title,
+      deletedAtOf: (program) => program.deletedAt,
+      restoredMessage: (title) => '"$title" restored.',
+    );
+
+class _DeletedItemTile extends StatelessWidget {
+  const _DeletedItemTile({
+    required this.title,
+    required this.id,
+    required this.deletedAt,
     required this.retention,
     required this.onRestore,
     required this.onPermanentDelete,
   });
 
-  final Dance dance;
+  final String title;
+  final String id;
+  final DateTime deletedAt;
 
   /// The configured retention window, or `null` when auto-purge is off
   /// ("Never") — in which case no countdown is shown.
@@ -183,7 +340,7 @@ class _DeletedDanceTile extends StatelessWidget {
       purgeLabel = 'Kept until you delete it';
       urgent = false;
     } else {
-      final purgeAt = dance.deletedAt!.add(retention);
+      final purgeAt = deletedAt.add(retention);
       final daysLeft = purgeAt.difference(DateTime.now().toUtc()).inDays;
       purgeLabel = daysLeft > 0
           ? 'Auto-deleted in $daysLeft ${daysLeft == 1 ? "day" : "days"}'
@@ -192,7 +349,7 @@ class _DeletedDanceTile extends StatelessWidget {
     }
 
     return ListTile(
-      title: Text(dance.title),
+      title: Text(title),
       subtitle: Text(
         purgeLabel,
         style: theme.textTheme.bodySmall?.copyWith(
@@ -205,12 +362,12 @@ class _DeletedDanceTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextButton(
-            key: ValueKey('restore-${dance.id}'),
+            key: ValueKey('restore-$id'),
             onPressed: onRestore,
             child: const Text('Restore'),
           ),
           IconButton(
-            key: ValueKey('permanent-delete-${dance.id}'),
+            key: ValueKey('permanent-delete-$id'),
             tooltip: 'Delete permanently',
             icon: Icon(
               Icons.delete_forever_outlined,
