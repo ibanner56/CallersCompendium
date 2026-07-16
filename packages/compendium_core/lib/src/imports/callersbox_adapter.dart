@@ -388,6 +388,18 @@ class CallersBoxAdapter implements SourceAdapter {
   /// single-line "balance and swing" / meltdown swing / already-balanced move).
   static Figure? _foldBalanceIntoMove(Figure balance, Figure move) {
     if (!_balanceMergeMoves.contains(move.move)) return null;
+    // Mismatched-who guard: a structured balance line carries its own `who`
+    // (e.g. "Neighbor balance" → who: neighbors). Only fold when the dancers
+    // agree — if BOTH the balance and the move name an explicit, DIFFERING
+    // `who`, they are distinct figures ("Neighbor balance" then "Partner
+    // swing"), so merging would silently drop the balance's choreography.
+    // Either side without a `who` (custom balance forms, balance_the_ring,
+    // petronella) still merges.
+    final balanceWho = balance.params['who'];
+    final moveWho = move.params['who'];
+    if (balanceWho != null && moveWho != null && balanceWho != moveWho) {
+      return null;
+    }
     final beats = _sumBeats(balance, move);
     if (move.move == 'swing') {
       final prefix = move.params['prefix'];

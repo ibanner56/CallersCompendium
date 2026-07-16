@@ -563,6 +563,33 @@ void main() {
         expect(figures.single.params['beats'], 16); // 4 + 12
       });
 
+      test('matching who folds (neighbor balance → neighbor swing)', () async {
+        final figures = await figuresFor([
+          '(4) Neighbor balance',
+          '(12) Neighbor swing',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'swing');
+        expect(figures.single.params['who'], 'neighbors');
+        expect(figures.single.params['prefix'], 'balance');
+      });
+
+      test('a who conflict blocks the fold (neighbor balance / partner '
+          'swing stay separate)', () async {
+        final figures = await figuresFor([
+          '(4) Neighbor balance',
+          '(12) Partner swing',
+        ]);
+        // The balance names a different dancer than the swing, so folding would
+        // drop the neighbor balance — leave both as their own figures.
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'balance');
+        expect(figures[0].params['who'], 'neighbors');
+        expect(figures[1].move, 'swing');
+        expect(figures[1].params['who'], 'partners');
+        expect(figures[1].params['prefix'], isNull);
+      });
+
       test(
         'balance → petronella sets balance true with summed beats',
         () async {
@@ -583,7 +610,10 @@ void main() {
       });
 
       test('balance → box_the_gnat sets the new balance flag', () async {
-        final figures = await figuresFor(['(4) Balance', '(4) Box the gnat']);
+        final figures = await figuresFor([
+          '(4) Partner balance',
+          '(4) Box the gnat',
+        ]);
         expect(figures, hasLength(1));
         expect(figures.single.move, 'box_the_gnat');
         expect(figures.single.params['balance'], isTrue);
@@ -591,7 +621,10 @@ void main() {
       });
 
       test('balance → swat_the_flea sets the inherited balance flag', () async {
-        final figures = await figuresFor(['(4) Balance', '(4) Swat the flea']);
+        final figures = await figuresFor([
+          '(4) Partner balance',
+          '(4) Swat the flea',
+        ]);
         expect(figures, hasLength(1));
         expect(figures.single.move, 'swat_the_flea');
         expect(figures.single.params['balance'], isTrue);
