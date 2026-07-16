@@ -27,11 +27,13 @@ import '../data/verbose_figure_rendering_scope.dart';
 import '../models/dance_list_entry.dart' show formationShapeLabel;
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
 import '../theme/color_schemes.dart';
 import '../utils/launch_external_url.dart';
 import '../widgets/figure_list_editor.dart';
 import '../widgets/figure_param_editors.dart';
 import '../widgets/move_autocomplete.dart';
+import '../widgets/section_header.dart';
 import 'dialect_editor_screen.dart';
 import 'import_review_screen.dart';
 import 'theme_editor_screen.dart';
@@ -966,7 +968,7 @@ class _SettingsSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       children: [
         for (final s in _SettingsSection.values)
           ListTile(
@@ -999,17 +1001,22 @@ class _AppearanceView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       children: [
-        _SectionHeader(title: 'Theme'),
+        SectionHeader(title: 'Theme'),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: _ThemeGallery(
             selected: themeSelected,
             onSelected: onThemeSelected,
           ),
         ),
-        _SectionHeader(title: 'Custom themes'),
+        SectionHeader(title: 'Custom themes'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.lg,
+          ),
           child: _CustomThemesSection(
             controller: customThemes,
             seedScheme: seedScheme,
@@ -1152,9 +1159,9 @@ class _DialectLibrarySection extends StatelessWidget {
     final activeName = controller.active.name;
     return ListView(
       children: [
-        _SectionHeader(title: 'Dialects'),
+        SectionHeader(title: 'Dialects'),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Wrap(
             spacing: 12,
             runSpacing: 4,
@@ -1196,7 +1203,7 @@ class _DialectLibrarySection extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.lg),
       ],
     );
   }
@@ -1232,7 +1239,10 @@ class _DialectRow extends StatelessWidget {
       title: Row(
         children: [
           Flexible(child: Text(dialect.name)),
-          if (isPreset) ...[const SizedBox(width: 8), _presetBadge(theme)],
+          if (isPreset) ...[
+            const SizedBox(width: AppSpacing.xs),
+            _presetBadge(theme),
+          ],
         ],
       ),
       subtitle: _dialectSubtitle(dialect),
@@ -1270,7 +1280,11 @@ class _DialectRow extends StatelessWidget {
   Widget _presetBadge(ThemeData theme) {
     return Container(
       key: ValueKey('dialect-preset-badge-${dialect.name}'),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        // intentional: 2px optical inset, below the 4px AppSpacing grid
+        vertical: 2,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(8),
@@ -1394,7 +1408,7 @@ class _RegionalView extends StatelessWidget {
     );
     return ListView(
       children: [
-        _SectionHeader(title: 'Formats'),
+        SectionHeader(title: 'Formats'),
         ListTile(
           title: const Text('Date format'),
           subtitle: Text('How program event dates appear. Example: $example'),
@@ -1424,7 +1438,7 @@ class _RegionalView extends StatelessWidget {
           isThreeLine: true,
           trailing: Text('Coming soon'),
         ),
-        _SectionHeader(title: 'Language'),
+        SectionHeader(title: 'Language'),
         const ListTile(
           key: ValueKey('regional-language-placeholder'),
           enabled: false,
@@ -1505,7 +1519,7 @@ class _GeneralView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       children: [
-        _SectionHeader(title: 'Library'),
+        SectionHeader(title: 'Library'),
         SwitchListTile(
           key: const ValueKey('general-sort-ignore-articles'),
           value: sortIgnoreArticles,
@@ -1518,7 +1532,7 @@ class _GeneralView extends StatelessWidget {
           ),
           isThreeLine: true,
         ),
-        _SectionHeader(title: 'Performance'),
+        SectionHeader(title: 'Performance'),
         SwitchListTile(
           key: const ValueKey('settings-auto-size-perform'),
           title: const Text('Auto-size Perform cards'),
@@ -1529,7 +1543,7 @@ class _GeneralView extends StatelessWidget {
           value: autoSizePerform,
           onChanged: onAutoSizeChanged,
         ),
-        _SectionHeader(title: 'Calling history'),
+        SectionHeader(title: 'Calling history'),
         SwitchListTile(
           key: const ValueKey('general-require-performed-for-history'),
           value: requirePerformedForHistory,
@@ -1542,7 +1556,7 @@ class _GeneralView extends StatelessWidget {
           ),
           isThreeLine: true,
         ),
-        _SectionHeader(title: 'Accessibility'),
+        SectionHeader(title: 'Accessibility'),
         SwitchListTile(
           key: const ValueKey('general-reduce-motion'),
           value: reduceMotion,
@@ -1576,7 +1590,7 @@ class _GeneralView extends StatelessWidget {
           ),
           isThreeLine: true,
         ),
-        _SectionHeader(title: 'Deleted items'),
+        SectionHeader(title: 'Deleted items'),
         ListTile(
           title: const Text('Keep deleted dances for'),
           subtitle: const Text(
@@ -1600,7 +1614,7 @@ class _GeneralView extends StatelessWidget {
             ],
           ),
         ),
-        _SectionHeader(title: 'Import'),
+        SectionHeader(title: 'Import'),
         ListTile(
           title: const Text('Import dances'),
           subtitle: const Text(
@@ -1615,7 +1629,7 @@ class _GeneralView extends StatelessWidget {
             label: const Text('Import…'),
           ),
         ),
-        _SectionHeader(title: 'Backup & restore'),
+        SectionHeader(title: 'Backup & restore'),
         ..._buildBackupSection(context),
       ],
     );
@@ -1692,7 +1706,12 @@ class _GeneralView extends StatelessWidget {
       if (overdue)
         Padding(
           key: const ValueKey('backup-overdue-hint'),
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: Row(
             children: [
               Icon(
@@ -1700,7 +1719,7 @@ class _GeneralView extends StatelessWidget {
                 size: 18,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
                   "It's been a while since your last backup — consider "
@@ -1766,14 +1785,14 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
               'collection, programs, dialects, themes, and settings — with the '
               "backup's contents. This cannot be undone.",
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
             OutlinedButton.icon(
               key: const ValueKey('restore-choose-file'),
               onPressed: _picking ? null : _chooseFile,
               icon: const Icon(Icons.folder_open_outlined),
               label: const Text('Choose file…'),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sm),
             TextField(
               key: const ValueKey('restore-paste-field'),
               controller: _controller,
@@ -1806,26 +1825,6 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        title,
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.primary,
-        ),
-      ),
-    );
-  }
-}
-
 /// The About section: app identity, the AGPL-3.0 notice with the corresponding
 /// source offer (an AGPL conveyance obligation), attribution for the bundled
 /// fonts, the "inspired by" theme note, and the dance-data provenance — plus a
@@ -1843,14 +1842,14 @@ class _AboutView extends StatelessWidget {
     final theme = Theme.of(context);
     return ListView(
       children: [
-        _SectionHeader(title: 'About'),
+        SectionHeader(title: 'About'),
         const ListTile(
           key: ValueKey('about-app-version'),
           leading: Icon(Icons.info_outline),
           title: Text(kAppName),
           subtitle: Text('Version $kAppVersion'),
         ),
-        _SectionHeader(title: 'License'),
+        SectionHeader(title: 'License'),
         const _AboutParagraph(
           "Caller's Compendium is free software, licensed under the GNU "
           'Affero General Public License, version 3 (AGPL-3.0). You are free '
@@ -1866,7 +1865,7 @@ class _AboutView extends StatelessWidget {
           trailing: const Icon(Icons.open_in_new),
           onTap: () => launchExternalUrl(context, kSourceRepoUrl),
         ),
-        _SectionHeader(title: 'Fonts'),
+        SectionHeader(title: 'Fonts'),
         const _AboutParagraph(
           'This app bundles the following typefaces under the SIL Open Font '
           'License 1.1. Their full license texts are available under '
@@ -1902,20 +1901,20 @@ class _AboutView extends StatelessWidget {
           ),
           isThreeLine: true,
         ),
-        _SectionHeader(title: 'Themes'),
+        SectionHeader(title: 'Themes'),
         const _AboutParagraph(
           'Several optional color themes are inspired by popular code-editor '
           'palettes — One Dark, Dracula, Nord, Tokyo Night, Gruvbox, and '
           'Catppuccin among them — re-derived and contrast-tuned for this app. '
           'Theme names are used only to credit that inspiration.',
         ),
-        _SectionHeader(title: 'Dance data'),
+        SectionHeader(title: 'Dance data'),
         const _AboutParagraph(
           'Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), '
           'whose collection is published under the Creative Commons '
           'Attribution-NonCommercial license (CC BY-NC), with gratitude.',
         ),
-        _SectionHeader(title: 'Licenses'),
+        SectionHeader(title: 'Licenses'),
         ListTile(
           key: const ValueKey('about-view-licenses'),
           leading: const Icon(Icons.description_outlined),
@@ -1933,9 +1932,14 @@ class _AboutView extends StatelessWidget {
                 'Licensed under AGPL-3.0.',
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.md,
+          ),
           child: Text(
             '$kAppName · Version $kAppVersion · $kAppLicenseSpdx',
             style: theme.textTheme.bodySmall?.copyWith(
@@ -1949,7 +1953,7 @@ class _AboutView extends StatelessWidget {
 }
 
 /// A left-aligned block of explanatory prose used throughout [_AboutView],
-/// matching the section's `_SectionHeader` rhythm and padding.
+/// matching the section's `SectionHeader` rhythm and padding.
 class _AboutParagraph extends StatelessWidget {
   const _AboutParagraph(this.text);
 
@@ -1959,7 +1963,12 @@ class _AboutParagraph extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.xxs,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
       child: Text(text, style: theme.textTheme.bodyMedium),
     );
   }
@@ -1970,7 +1979,7 @@ class _AboutParagraph extends StatelessWidget {
 /// **Program defaults** subsection (ROADMAP G.3) and the **Display defaults**
 /// subsection (ROADMAP G.6). A later PR adds the sibling **Dance-authoring
 /// defaults** subsection (DD.1–DD.3, below Display defaults), introduced by its
-/// own [_SectionHeader], so extending this is a drop-in, not a rewrite. No
+/// own [SectionHeader], so extending this is a drop-in, not a rewrite. No
 /// empty subsection is stubbed until it is wired.
 class _DefaultsView extends StatelessWidget {
   const _DefaultsView({
@@ -2062,9 +2071,14 @@ class _DefaultsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       children: [
-        _SectionHeader(title: 'Program defaults'),
+        SectionHeader(title: 'Program defaults'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xxs,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: TextField(
             key: const ValueKey('defaults-program-caller'),
             controller: programCallerController,
@@ -2078,7 +2092,12 @@ class _DefaultsView extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xxs,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: TextField(
             key: const ValueKey('defaults-program-band'),
             controller: programBandController,
@@ -2091,7 +2110,7 @@ class _DefaultsView extends StatelessWidget {
             ),
           ),
         ),
-        _SectionHeader(title: 'Display defaults'),
+        SectionHeader(title: 'Display defaults'),
         ListTile(
           title: const Text('Collection sort order'),
           subtitle: const Text(
@@ -2126,7 +2145,7 @@ class _DefaultsView extends StatelessWidget {
           ),
           isThreeLine: true,
         ),
-        _SectionHeader(title: 'Dance-authoring defaults'),
+        SectionHeader(title: 'Dance-authoring defaults'),
         ListTile(
           title: const Text('Form'),
           subtitle: const Text(
@@ -2191,7 +2210,12 @@ class _DefaultsView extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
           child: TextField(
             key: const ValueKey('defaults-dance-phrase'),
             controller: dancePhraseController,
@@ -2206,7 +2230,12 @@ class _DefaultsView extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2214,7 +2243,7 @@ class _DefaultsView extends StatelessWidget {
                 'Starting figures',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xxs),
               Text(
                 'The figures a new dance starts with. Defaults to a single '
                 'stand still (8 beats); clear it for a blank new dance. Editable '
@@ -2225,7 +2254,7 @@ class _DefaultsView extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: FigureListEditor(
             drafts: danceFigureTemplateDrafts,
             taxonomy: contraTaxonomy,
@@ -2239,7 +2268,12 @@ class _DefaultsView extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2247,7 +2281,7 @@ class _DefaultsView extends StatelessWidget {
                 'Move defaults',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xxs),
               Text(
                 'Preferred parameter values applied when you insert a move '
                 'while entering a dance. These override that move\'s built-in '
@@ -2260,7 +2294,7 @@ class _DefaultsView extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: _MoveDefaultsEditor(
             overrides: moveParamOverrides,
             shownMoveIds: shownMoveDefaults,
@@ -2310,7 +2344,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
         Align(
           alignment: Alignment.centerLeft,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             child: OutlinedButton.icon(
               key: const ValueKey('move-defaults-add'),
               icon: const Icon(Icons.add),
@@ -2341,9 +2375,14 @@ class _MoveDefaultsEditor extends StatelessWidget {
     final moveOverrides = overrides[moveId] ?? const <String, Object?>{};
     return Card(
       key: ValueKey('move-default-card-$moveId'),
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 8, 12),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.sm,
+          AppSpacing.xs,
+          AppSpacing.xs,
+          AppSpacing.sm,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2457,7 +2496,10 @@ class _ThemeGallery extends StatelessWidget {
       if (options.isEmpty) continue;
       groups.add(
         Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: 8),
+          padding: const EdgeInsets.only(
+            top: AppSpacing.sm,
+            bottom: AppSpacing.xs,
+          ),
           child: Text(
             group.label,
             style: theme.textTheme.titleSmall?.copyWith(
@@ -2543,13 +2585,13 @@ class _ThemePreviewCard extends StatelessWidget {
                   width: selected ? 2.5 : 1,
                 ),
               ),
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _sample(scheme, fonts),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.xs),
                   Row(
                     children: [
                       Icon(
@@ -2559,7 +2601,7 @@ class _ThemePreviewCard extends StatelessWidget {
                             ? appTheme.colorScheme.primary
                             : appTheme.colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
                           option.label,
@@ -2593,7 +2635,7 @@ class _ThemePreviewCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: scheme.outlineVariant),
       ),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -2602,18 +2644,19 @@ class _ThemePreviewCard extends StatelessWidget {
             'Aa Preview',
             style: fonts.titleMedium?.copyWith(color: scheme.onSurface),
           ),
+          // intentional: 2px optical inset, below the 4px AppSpacing grid
           const SizedBox(height: 2),
           Text(
             'Body text sample',
             style: fonts.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Row(
             children: [
               _chip(scheme.primary, scheme.onPrimary),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSpacing.xs),
               _chip(scheme.secondary, scheme.onSecondary),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSpacing.xs),
               _chip(scheme.tertiary, scheme.onTertiary),
               const Spacer(),
               // Focus-ring demo: a control with the palette's focus outline.
@@ -2738,7 +2781,7 @@ class _CustomThemesSection extends StatelessWidget {
         ),
         if (themes.isEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
             child: Text(
               'Copy the current theme and tune any color. Custom themes are '
               'saved on this device.',
@@ -2749,7 +2792,7 @@ class _CustomThemesSection extends StatelessWidget {
           )
         else
           Padding(
-            padding: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
             child: Wrap(
               spacing: 12,
               runSpacing: 12,
@@ -2824,13 +2867,13 @@ class _CustomThemeCard extends StatelessWidget {
                   width: selected ? 2.5 : 1,
                 ),
               ),
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _sample(scheme, fonts),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.xs),
                   Row(
                     children: [
                       Icon(
@@ -2840,7 +2883,7 @@ class _CustomThemeCard extends StatelessWidget {
                             ? appTheme.colorScheme.primary
                             : appTheme.colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
                           theme.name,
@@ -2888,7 +2931,7 @@ class _CustomThemeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: scheme.outlineVariant),
       ),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -2897,18 +2940,19 @@ class _CustomThemeCard extends StatelessWidget {
             'Aa Preview',
             style: fonts.titleMedium?.copyWith(color: scheme.onSurface),
           ),
+          // intentional: 2px optical inset, below the 4px AppSpacing grid
           const SizedBox(height: 2),
           Text(
             'Body text sample',
             style: fonts.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Row(
             children: [
               _chip(scheme.primary, scheme.onPrimary),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSpacing.xs),
               _chip(scheme.secondary, scheme.onSecondary),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSpacing.xs),
               _chip(scheme.tertiary, scheme.onTertiary),
             ],
           ),

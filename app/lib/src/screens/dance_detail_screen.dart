@@ -12,6 +12,7 @@ import '../data/require_performed_for_history_scope.dart';
 import '../export/dance_pdf.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
 import '../widgets/add_to_program_sheet.dart';
@@ -624,49 +625,49 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final dialect = _canonicalView ? Dialect.canonical : activeDialect;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.md),
       children: [
         Card(
           color: theme.colorScheme.surfaceContainer,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(dance.title, style: theme.textTheme.headlineMedium),
                 if (detail.authorNames.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     detail.authorNames.join(', '),
                     style: theme.textTheme.bodyLarge,
                   ),
                 ],
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     const Icon(formationIcon, size: 18),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSpacing.xs),
                     Expanded(child: Text(formationLabel(dance.formation))),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xxs),
                 Row(
                   children: [
                     const Icon(progressionIcon, size: 18),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(progressionLabel(dance.progression)),
                   ],
                 ),
                 if (dance.status != DanceStatus.active) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.sm),
                   _StatusBanner(status: dance.status),
                 ],
                 if (dance.provenance != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.xs),
                   _ProvenanceLine(provenance: dance.provenance!),
                 ],
                 if (dance.hook.isNotEmpty) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                   _CrossReferenceText(
                     text: dance.hook,
                     style: theme.textTheme.bodyLarge,
@@ -679,7 +680,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
         ),
         if (detail.tagNames.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           Wrap(
             spacing: 8,
             children: [
@@ -691,7 +692,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             ],
           ),
         ],
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.lg),
         Row(
           children: [
             Text('Figures', style: theme.textTheme.titleMedium),
@@ -713,9 +714,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           dialect: dialect,
         ),
         if (dance.callingNotes.isNotEmpty) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           Text('Calling notes', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
             text: _renderer.renderFreeText(dance.callingNotes, dialect),
             style: theme.textTheme.bodyMedium,
@@ -724,13 +725,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
         ],
         if (dance.tunes.isNotEmpty) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           Text('Tunes', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           Text(dance.tunes.join(', ')),
         ],
         if (dance.links.isNotEmpty) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           Text('Links', style: theme.textTheme.titleMedium),
           for (final link in dance.links)
             _LinkRow(
@@ -754,7 +755,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             ),
         ],
         if (dance.sourceCitations.isNotEmpty) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           Text('Published sources', style: theme.textTheme.titleMedium),
           for (final citation in dance.sourceCitations)
             _SourceCitationRow(
@@ -764,21 +765,23 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             ),
         ],
         if (detail.customFields.isNotEmpty) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
           Text('Custom fields', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           for (final field in detail.customFields)
             Padding(
+              // intentional: 2px optical inset, below the 4px AppSpacing grid
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text('${field.label}: ${field.value}'),
             ),
         ],
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.lg),
         Text('Calling history', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xxs),
         if (detail.callingHistory.isEmpty)
           Padding(
             key: const ValueKey('calling-history-empty'),
+            // intentional: 2px optical inset, below the 4px AppSpacing grid
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Text(
               'Not yet included in any program.',
@@ -862,7 +865,7 @@ class _StatusBanner extends StatelessWidget {
       ),
     };
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(AppSpacing.xs),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
@@ -870,7 +873,7 @@ class _StatusBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: 18, color: color),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             danceStatusLabel(status),
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -899,7 +902,7 @@ class _ProvenanceLine extends StatelessWidget {
     return Row(
       children: [
         const Icon(Icons.source_outlined, size: 16),
-        const SizedBox(width: 6),
+        const SizedBox(width: AppSpacing.xs),
         Expanded(
           child: Text(
             text,
@@ -981,11 +984,12 @@ class _LinkRow extends StatelessWidget {
             onTap: () => launchExternalUrl(context, externalUrl),
             child: ExcludeSemantics(
               child: Padding(
+                // intentional: 2px optical inset, below the 4px AppSpacing grid
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Row(
                   children: [
                     Icon(icon, size: 16),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSpacing.xs),
                     Expanded(child: Text(display)),
                     const Icon(Icons.open_in_new, size: 16),
                   ],
@@ -998,11 +1002,12 @@ class _LinkRow extends StatelessWidget {
     }
 
     Widget content = Padding(
+      // intentional: 2px optical inset, below the 4px AppSpacing grid
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
           Icon(icon, size: 16),
-          const SizedBox(width: 6),
+          const SizedBox(width: AppSpacing.xs),
           Expanded(child: Text(display)),
           if (onTap != null) const Icon(Icons.chevron_right, size: 16),
         ],
@@ -1052,11 +1057,11 @@ class _CallingHistoryRow extends StatelessWidget {
           onTap: onTap,
           child: ExcludeSemantics(
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
               child: Row(
                 children: [
                   const Icon(Icons.event_note_outlined, size: 16),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1138,7 +1143,7 @@ class _SourceCitationRow extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.xxs),
                     Icon(
                       Icons.open_in_new,
                       size: 14,
@@ -1156,15 +1161,16 @@ class _SourceCitationRow extends StatelessWidget {
     );
 
     final row = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
+            // intentional: 2px optical inset, below the 4px AppSpacing grid
             padding: EdgeInsets.only(top: 2),
             child: Icon(Icons.menu_book_outlined, size: 16),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: AppSpacing.xs),
           Expanded(child: infoColumn),
         ],
       ),

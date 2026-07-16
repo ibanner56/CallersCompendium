@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 
@@ -76,12 +77,12 @@ class PerformCard extends StatelessWidget {
     return MediaQuery(
       data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Header(dance: dance, authorNames: authorNames),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             _Figures(
               figures: dance.figures,
               phraseStructure: dance.phraseStructure,
@@ -89,9 +90,9 @@ class PerformCard extends StatelessWidget {
               dialect: dialect,
             ),
             if (dance.callingNotes.isNotEmpty) ...[
-              const SizedBox(height: 28),
+              const SizedBox(height: AppSpacing.lg),
               _SectionTitle('Calling notes'),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 renderer.renderFreeText(dance.callingNotes, dialect),
                 style: Theme.of(
@@ -142,7 +143,7 @@ class PerformTextCard extends StatelessWidget {
     return MediaQuery(
       data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -476,7 +477,7 @@ class _Header extends StatelessWidget {
           ),
         ),
         if (authorNames.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             authorNames.join(', '),
             style: theme.textTheme.headlineSmall?.merge(
@@ -484,17 +485,17 @@ class _Header extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sm),
         _MetaRow(icon: formationIcon, text: formationLabel(dance.formation)),
         if (level != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           _MetaRow(
             icon: Icons.signal_cellular_alt,
             text: danceLevelLabel(level),
           ),
         ],
         if (dance.status != DanceStatus.active) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           _StatusBanner(status: dance.status),
         ],
       ],
@@ -520,7 +521,7 @@ class _MetaRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, size: iconSize.clamp(24.0, 96.0)),
-        const SizedBox(width: 12),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(child: Text(text, style: style)),
       ],
     );
@@ -585,8 +586,8 @@ class _Figures extends StatelessWidget {
         children.add(
           Padding(
             padding: EdgeInsets.only(
-              top: lastLabel == null ? 0 : 20,
-              bottom: 8,
+              top: lastLabel == null ? 0 : AppSpacing.lg,
+              bottom: AppSpacing.xs,
             ),
             child: Semantics(
               header: true,
@@ -658,7 +659,7 @@ class _FigureRow extends StatelessWidget {
       label: semanticsLabel,
       excludeSemantics: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -693,7 +694,7 @@ class _FigureRow extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             Text(
               beatsLabel,
               textAlign: TextAlign.end,
@@ -734,7 +735,7 @@ class _StatusBanner extends StatelessWidget {
     final iconSize =
         (style?.fontSize ?? 22) * MediaQuery.textScalerOf(context).scale(1);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
@@ -742,7 +743,7 @@ class _StatusBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: iconSize.clamp(22.0, 72.0), color: color),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.sm),
           Text(danceStatusLabel(status), style: style),
         ],
       ),

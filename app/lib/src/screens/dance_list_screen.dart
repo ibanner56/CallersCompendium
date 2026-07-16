@@ -13,6 +13,7 @@ import '../data/sort_ignore_articles_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
+import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
@@ -635,9 +636,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             const Text('Could not load the collection.'),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             FilledButton(onPressed: _retryLoad, child: const Text('Retry')),
           ],
         ),
@@ -652,7 +653,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (data.dancesById.isEmpty) {
       return const Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(AppSpacing.lg),
           child: Text(
             'Your collection is empty. Add or import a dance to get started.',
             textAlign: TextAlign.center,
@@ -664,7 +665,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            0,
+          ),
           child: TextField(
             controller: _ftsController,
             onChanged: _onFtsChanged,
@@ -711,7 +717,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
       title: Text(
         activeCount == 0 ? 'Filters' : 'Filters ($activeCount active)',
       ),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      childrenPadding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        AppSpacing.sm,
+      ),
       children: [
         FacetPanel(
           facets: _facets,
@@ -743,7 +754,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
       title: Text(
         activeCount == 0 ? 'By phrase' : 'By phrase ($activeCount active)',
       ),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      childrenPadding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        AppSpacing.sm,
+      ),
       children: [
         ByPhrasePanel(
           selections: _byPhrase,
@@ -771,7 +787,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
       key: const ValueKey('advanced-panel'),
       leading: const Icon(Icons.account_tree_outlined),
       title: const Text('Advanced'),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      childrenPadding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        AppSpacing.sm,
+      ),
       children: [
         SwitchListTile(
           key: const ValueKey('advanced-enable'),
@@ -800,7 +821,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Widget _buildResultCount() {
     final count = _results.length;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.xs,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Row(
@@ -814,7 +840,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
               ),
             ),
             if (_searching) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.xs),
               const SizedBox(
                 width: 12,
                 height: 12,
@@ -831,7 +857,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (_searchError != null) {
       return const SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(AppSpacing.lg),
           child: Center(
             child: Text('Something went wrong running the search.'),
           ),
@@ -841,7 +867,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (_results.isEmpty) {
       return const SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: EdgeInsets.all(AppSpacing.lg),
           child: Center(child: Text('No dances match your search.')),
         ),
       );
@@ -926,7 +952,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           background: Container(
             alignment: Alignment.centerRight,
             color: Theme.of(context).colorScheme.errorContainer,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: Icon(
               Icons.delete_outline,
               color: Theme.of(context).colorScheme.onErrorContainer,
