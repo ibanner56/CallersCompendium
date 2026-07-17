@@ -27,6 +27,7 @@ class CollectionPicker extends StatefulWidget {
     super.key,
     required this.data,
     required this.dialect,
+    required this.enrichment,
     required this.onAddDance,
     this.scrollController,
   });
@@ -37,6 +38,12 @@ class CollectionPicker extends StatefulWidget {
 
   /// Active dialect for search canonicalization.
   final Dialect dialect;
+
+  /// Always-on search enrichment built by the parent from the union of every
+  /// saved dialect (presets + custom), so a role/move term configured in *any*
+  /// saved dialect resolves regardless of which one is active — matching the
+  /// main Collection search. Pass [SearchEnrichment.empty] for no enrichment.
+  final SearchEnrichment enrichment;
 
   /// Called with the tapped dance's id to add it to the program.
   final void Function(String danceId) onAddDance;
@@ -81,8 +88,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
   @override
   void didUpdateWidget(CollectionPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // The active dialect can change while the picker is open.
-    if (oldWidget.dialect != widget.dialect) _runSearch();
+    // The active dialect or the saved-dialect enrichment can change while the
+    // picker is open (e.g. the user edits their dialect library).
+    if (oldWidget.dialect != widget.dialect ||
+        oldWidget.enrichment != widget.enrichment) {
+      _runSearch();
+    }
   }
 
   @override
@@ -107,7 +118,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
         byPhrase: _byPhrase,
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
       );
-      final ids = await _repos.dances.search(filter, dialect: widget.dialect);
+      final ids = await _repos.dances.search(
+        filter,
+        dialect: widget.dialect,
+        enrichment: widget.enrichment,
+      );
       if (!mounted || seq != _searchSeq) return;
       setState(() {
         _results = [

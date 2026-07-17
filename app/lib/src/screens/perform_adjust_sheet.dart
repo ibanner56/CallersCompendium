@@ -24,6 +24,7 @@ class PerformAdjustSheet extends StatefulWidget {
     required this.currentSlotId,
     required this.data,
     required this.dialect,
+    required this.enrichment,
   });
 
   final Program program;
@@ -40,6 +41,13 @@ class PerformAdjustSheet extends StatefulWidget {
 
   /// Active dialect for the quick-search picker's canonicalization.
   final Dialect dialect;
+
+  /// Always-on search enrichment (union of every saved dialect) for the
+  /// quick-search picker, so its search resolves saved-dialect vocabulary
+  /// regardless of the active dialect — parity with the main Collection search.
+  /// Built by the parent so it crosses the modal bottom sheet's navigator
+  /// boundary reliably (mirrors [dialect]).
+  final SearchEnrichment enrichment;
 
   @override
   State<PerformAdjustSheet> createState() => _PerformAdjustSheetState();
@@ -229,6 +237,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
                     key: const ValueKey('adjust-picker'),
                     data: widget.data,
                     dialect: widget.dialect,
+                    enrichment: widget.enrichment,
                     onAddDance: (id) {
                       _insertDance(id);
                       Navigator.of(sheetContext).pop();

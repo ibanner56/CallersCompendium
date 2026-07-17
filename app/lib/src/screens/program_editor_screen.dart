@@ -1,10 +1,12 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:printing/printing.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/date_format_scope.dart';
+import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
@@ -89,6 +91,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Dialect _dialect = Dialect.larksRobins;
 
+  /// Always-on search enrichment for the embedded [CollectionPicker], built
+  /// from the union of every saved dialect (presets + custom) so the picker's
+  /// search resolves saved-dialect vocabulary regardless of the active dialect
+  /// — parity with the main Collection search. Rebuilt in
+  /// [didChangeDependencies] when the library changes.
+  SearchEnrichment _enrichment = SearchEnrichment.empty;
+
+  /// The dialect list [_enrichment] was built from, used to avoid rebuilding
+  /// the union when nothing changed.
+  List<Dialect> _enrichmentDialects = const [];
+
   @override
   void initState() {
     super.initState();
@@ -107,6 +120,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final scope = context
         .dependOnInheritedWidgetOfExactType<ActiveDialectScope>();
     if (scope?.notifier != null) _dialect = scope!.notifier!.value;
+
+    // Build the always-on enrichment from the union of every saved dialect
+    // (presets + custom). Registers a rebuild dependency on the library so a
+    // dialect add/edit/delete updates the picker's search live.
+    final library = DialectLibraryScope.maybeOf(context);
+    final newDialects = library?.all ?? const <Dialect>[];
+    if (!listEquals(newDialects, _enrichmentDialects)) {
+      _enrichmentDialects = newDialects;
+      _enrichment = SearchEnrichment.fromDialects(newDialects);
+    }
 
     if (!_loaded && _loadError == null && _data == null) {
       _repos = RepositoriesScope.of(context);
@@ -702,6 +725,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   key: const ValueKey('inline-picker'),
                   data: data,
                   dialect: _dialect,
+                  enrichment: _enrichment,
                   onAddDance: _addDanceSlot,
                 ),
               ),
@@ -916,6 +940,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     key: const ValueKey('sheet-picker'),
                     data: data,
                     dialect: _dialect,
+                    enrichment: _enrichment,
                     scrollController: scrollController,
                     // Keep the sheet open so callers can add several dances.
                     onAddDance: _addDanceSlot,

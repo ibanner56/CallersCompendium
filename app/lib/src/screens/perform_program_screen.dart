@@ -6,6 +6,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/dialect_library_scope.dart';
 import '../data/repositories_scope.dart';
 import '../search/collection_data.dart';
 import '../widgets/dialect_quick_switch.dart';
@@ -380,6 +381,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// performed) and returns the edited program on close; we then apply it live
   /// with undo. Returning null (no change / dismissed) is a no-op.
   Future<void> _openAdjustSheet() async {
+    // Build the picker's search enrichment from the full saved-dialect library
+    // (presets + custom) so its search resolves saved-dialect vocabulary
+    // regardless of the active dialect — parity with the main Collection
+    // search. Passed as a param so it crosses the modal navigator boundary
+    // (mirrors how `dialect` is threaded). A non-listening snapshot read: this
+    // handler only needs the library's current state, not a rebuild dependency.
+    final library = DialectLibraryScope.maybeControllerOf(context);
+    final enrichment = SearchEnrichment.fromDialects(
+      library?.all ?? const <Dialect>[],
+    );
     final edited = await showModalBottomSheet<Program>(
       context: context,
       isScrollControlled: true,
@@ -392,6 +403,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         dialect: _canonicalView
             ? Dialect.canonical
             : ActiveDialectScope.of(context),
+        enrichment: enrichment,
       ),
     );
     if (edited == null || !mounted) return;
