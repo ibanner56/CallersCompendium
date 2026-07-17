@@ -347,7 +347,11 @@ final List<_Recognizer> _recognizers = [
   _allemande,
   _doSiDo,
   _boxTheGnat,
+  _boxCirculate,
   _circle,
+  // Must precede _starPromenade / _star so the shared "star" lead phrase
+  // resolves "star through" to this move before the bare-star recognizers.
+  _starThrough,
   // Must precede _star so the shared "star" lead phrase resolves to the more
   // specific "star promenade" move before the bare-star recognizer.
   _starPromenade,
@@ -362,6 +366,7 @@ final List<_Recognizer> _recognizers = [
   _turnAlone,
   _poussette,
   _californiaTwirl,
+  _weaveTheLine,
   _squareThrough,
   _pullBy,
   // Appended at the lowest precedence. End placement is safe because these
@@ -483,6 +488,34 @@ _Match? _boxTheGnat(List<String> w) {
   if (w.isNotEmpty) return null;
   final moveId = swat ? 'swat_the_flea' : 'box_the_gnat';
   return _Match(moveId, {'who': who2 ?? 'partners'});
+}
+
+// ContraDB `box circulate`. A single "box circulate" line states no balance, so
+// the `balance` flag is left absent (neutral); the CallersBox cross-line merge
+// folds a preceding balance line in as true. `hand` stays on the taxonomy
+// default (ContraDB right_hand_spin) — TCB does not write it inline.
+_Match? _boxCirculate(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['box', 'circulate'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('box_circulate', {'who': who2 ?? 'partners'});
+}
+
+// `star through`: a balance+twirl figure modeled on california_twirl + a
+// balance flag. A single line states no balance, so `balance` is left absent
+// (the CallersBox merge folds a preceding balance line in as true). No inline
+// hand — star through's handedness is role-fixed. `_normalize` maps thru →
+// through, so "star thru" reaches here too. Ordered before the bare-star
+// recognizers so the shared "star" lead resolves here first.
+_Match? _starThrough(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['star', 'through'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('star_through', {'who': who2 ?? 'partners'});
 }
 
 _Match? _circle(List<String> w) {
@@ -674,6 +707,20 @@ _Match? _californiaTwirl(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('california_twirl', {'who': ?who2});
+}
+
+// "Weave the line" is a caller synonym for the existing (ContraDB-sourced)
+// `zig_zag` move (ratified in D4). It carries no separate turn/ender on the
+// line, so those stay at zig_zag's inherent taxonomy defaults (there is no
+// cross-line turn/ender fold for zig_zag). An optional leading/trailing dancer
+// set maps to `who`; any other leftover token forces the custom fallback.
+_Match? _weaveTheLine(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['weave', 'the', 'line'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('zig_zag', {'who': ?who2});
 }
 
 /// Tier A: TCB writes "Partner star promenade 1/2" (dance id 30 "Mad Gypsy").

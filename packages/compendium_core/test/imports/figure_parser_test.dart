@@ -64,6 +64,31 @@ void main() {
       'Promenade': (move: 'promenade', params: {}),
       'Box the gnat': (move: 'box_the_gnat', params: {'who': 'partners'}),
       'Swat the flea': (move: 'swat_the_flea', params: {'who': 'partners'}),
+      // box_circulate (v11, ContraDB-sourced). A standalone line states no
+      // balance, so `balance` is left absent (the CallersBox merge folds a
+      // preceding balance line in as true); `hand`/`who` fall to MoveDef
+      // defaults.
+      'Box circulate': (move: 'box_circulate', params: {'who': 'partners'}),
+      'Partners box circulate': (
+        move: 'box_circulate',
+        params: {'who': 'partners'},
+      ),
+      'Neighbors box circulate': (
+        move: 'box_circulate',
+        params: {'who': 'neighbors'},
+      ),
+      // star_through (v11): modeled on california_twirl + a balance flag; a
+      // standalone line states no balance.
+      'Star through': (move: 'star_through', params: {'who': 'partners'}),
+      'Neighbors star through': (
+        move: 'star_through',
+        params: {'who': 'neighbors'},
+      ),
+      // "star thru" folds to "star through" in _normalize.
+      'Star thru': (move: 'star_through', params: {'who': 'partners'}),
+      // "Weave the line" is a D4-ratified synonym for the existing zig_zag move.
+      'Weave the line': (move: 'zig_zag', params: {}),
+      'Partners weave the line': (move: 'zig_zag', params: {'who': 'partners'}),
       'Meltdown swing': (
         move: 'swing',
         params: {'who': 'partners', 'prefix': 'meltdown'},
@@ -182,6 +207,23 @@ void main() {
       // Moves outside the first-cut coverage.
       'hey for four',
       'contra corners',
+      // Dropped from PR5 (no ContraDB source) — must stay custom, never
+      // fabricated into a structured move.
+      'Grand right and left',
+      'Grand right & left',
+      'Flutterwheel',
+      'Flutter wheel',
+      // A bare "circulate" without the "box" anchor is not box_circulate.
+      'circulate',
+      // box_circulate with trailing prose it cannot consume stays custom.
+      'box circulate and swing',
+      // "star through" with trailing prose it cannot consume stays custom.
+      'star through the door',
+      // "weave the ring" is a DIFFERENT figure (backlog, out of scope) and must
+      // NOT be swept into the weave-the-line → zig_zag alias.
+      'weave the ring',
+      // weave the line with trailing prose it cannot consume stays custom.
+      'weave the line and swing',
       // "down/up the hall" IS recognised now, but a descriptor that changes the
       // move leaves leftover tokens, so these near-misses stay custom:
       //   "four in line" (a formation detail the taxonomy can't carry) and

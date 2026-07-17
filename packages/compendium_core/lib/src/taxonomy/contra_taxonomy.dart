@@ -30,7 +30,17 @@ import 'taxonomy.dart';
 ///     additive: no existing figure's derived output changes, and box_the_gnat
 ///     stays on the continuous-beat-rule deferral (no `paramBeats`). Distinct
 ///     from CompendiumDatabase.schemaVersion — no DB migration is implied.
-const int contraTaxonomyVersion = 10;
+/// v11: adds `box_circulate` (ContraDB-sourced; modeled on `box_the_gnat`) and
+///     `star_through` (a balance+twirl figure modeled on `california_twirl` +
+///     a balance flag), plus the `weave the line` → `zig_zag` recognizer alias.
+///     Both new moves carry a neutral `balance` flag (default false) that the
+///     CallersBox cross-line merge upgrades to true; like `box_the_gnat` their
+///     balanced beat count comes only from that merge sum, so neither takes a
+///     `paramBeats`. `box_circulate` carries no places param (ContraDB lists it
+///     under moveCaresAboutPlaces for angle display only). Additive: no existing
+///     figure's derived output changes; distinct from schemaVersion — no DB
+///     migration is implied.
+const int contraTaxonomyVersion = 11;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -154,6 +164,26 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // v10: a preceding balance line folds in here via the CallersBox
         // cross-line merge (swat_the_flea inherits this through its target).
         // No paramBeats: box_the_gnat's beats stay on the deferral list.
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+      },
+      renderTemplate: '{who} {move}',
+      goodBeats: [4],
+    ),
+    // ContraDB `box circulate` (figure.js): params who / balance / hand (right
+    // hand spin) / beats, boxCirculateGoodBeats `beats === (bal ? 8 : 4)`.
+    // Modeled 1:1 on box_the_gnat: the `balance` flag defaults FALSE (neutral —
+    // a standalone line states no balance; a preceding CallersBox "balance" line
+    // folds in as true, and the balanced 8-beat count comes only from that merge
+    // sum, so — like box_the_gnat — no `paramBeats`). ContraDB lists box
+    // circulate under moveCaresAboutPlaces for angle DISPLAY only; it carries no
+    // places param here.
+    const MoveDef(
+      id: 'box_circulate',
+      displayName: 'box circulate',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },
@@ -287,6 +317,25 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'California twirl',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'beats': _beats4,
+      },
+      renderTemplate: '{who} {move}',
+      goodBeats: [4],
+    ),
+    // `star_through`: a balance+twirl-family figure (like box_the_gnat /
+    // swat_the_flea / california_twirl). ContraDB does not model it, so per the
+    // product owner it is modeled on california_twirl PLUS a `balance` flag. No
+    // `hand` param — star through's handedness is role-fixed (like california
+    // twirl); no corpus evidence it is called handed. The `balance` flag is
+    // neutral (default false): a standalone line states no balance, and — like
+    // box_the_gnat / box_circulate — its balanced beat count comes only from the
+    // CallersBox cross-line merge sum, so no `paramBeats`.
+    const MoveDef(
+      id: 'star_through',
+      displayName: 'star through',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': _beats4,
       },
       renderTemplate: '{who} {move}',

@@ -309,6 +309,12 @@ class CallersBoxAdapter implements SourceAdapter {
     'rory_o_more',
     'box_the_gnat',
     'swat_the_flea',
+    // v11 balance+twirl-family moves: a preceding balance line folds in as
+    // `balance: true` and the summed beats (balance 4 + move 4 = 8) supply the
+    // balanced beat count — the same single-source-of-truth pattern box_the_gnat
+    // uses, which is why neither move carries a `paramBeats`.
+    'box_circulate',
+    'star_through',
   };
 
   /// Folds figures that The Caller's Box writes as separate lines into a single

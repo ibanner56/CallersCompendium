@@ -631,6 +631,28 @@ void main() {
         expect(figures.single.params['beats'], 8);
       });
 
+      test('balance → box_circulate sets the balance flag (v11)', () async {
+        final figures = await figuresFor([
+          '(4) Partner balance',
+          '(4) Box circulate',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'box_circulate');
+        expect(figures.single.params['balance'], isTrue);
+        expect(figures.single.params['beats'], 8); // 4 + 4
+      });
+
+      test('balance → star_through sets the balance flag (v11)', () async {
+        final figures = await figuresFor([
+          '(4) Partner balance',
+          '(4) Star through',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'star_through');
+        expect(figures.single.params['balance'], isTrue);
+        expect(figures.single.params['beats'], 8); // 4 + 4
+      });
+
       test(
         'a varied custom balance form (long wave) folds into a swing',
         () async {

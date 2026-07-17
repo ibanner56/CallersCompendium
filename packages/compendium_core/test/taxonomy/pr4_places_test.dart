@@ -41,8 +41,16 @@ void main() {
       });
     }
 
-    test('box_circulate is intentionally NOT part of the places family', () {
-      expect(tax.resolve('box_circulate'), isNull);
+    test('box_circulate is registered but carries no places param (v11)', () {
+      final def = tax.resolve('box_circulate');
+      expect(def, isNotNull, reason: 'box_circulate added in v11');
+      expect(
+        def!.params.containsKey('places'),
+        isFalse,
+        reason:
+            'ContraDB lists box circulate under places for angle display '
+            'only; it takes no places param',
+      );
     });
   });
 
