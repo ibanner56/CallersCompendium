@@ -4,21 +4,22 @@
 
 > **Finding your way around these words.** On-screen buttons and screens are written in **bold** — like **Settings**, **Appearance**, and **Defaults**. The first time a dance term appears it links to the [Glossary](./glossary.md), so you can get a plain-language definition without losing your place.
 
-*Wireframe sketch of the Settings screen: a section list on the left (General, Appearance, Dialect, Language & region, Defaults, About) beside the settings for the chosen section. This is a low-fidelity layout sketch, not the finished app.*
+*Wireframe sketch of the Settings screen: a section list on the left (General, Appearance, Dialect, Language & region, Defaults, Updates, About) beside the settings for the chosen section. This is a low-fidelity layout sketch, not the finished app.*
 ![Wireframe sketch of the Settings screen showing the section list beside the controls for the selected section](../design/wireframes/7-settings.svg)
 
 ## Finding Settings
 
 **Settings** is a top-level destination, marked with a gear icon and labelled **Settings**. On a narrow screen (like a phone) it's a tab in the bottom navigation; on a wide screen (a tablet or desktop) it's in the side navigation rail.
 
-Inside, a list of sections sits beside the controls for the section you've chosen. On a narrow screen you pick a section and it opens as its own page, then you step back to switch sections. There are six sections, always in this order:
+Inside, a list of sections sits beside the controls for the section you've chosen. On a narrow screen you pick a section and it opens as its own page, then you step back to switch sections. There are seven sections, always in this order:
 
 1. **General**
 2. **Appearance**
 3. **Dialect**
 4. **Language & region**
 5. **Defaults**
-6. **About**
+6. **Updates**
+7. **About**
 
 ## General
 
@@ -112,6 +113,20 @@ These help if you write your own dances. Keep in mind you can override any of th
 - **Move defaults** — preferred parameter values applied automatically when you insert a [move](./glossary.md#move) while writing.
 
 For writing and editing dances, see [Collection & search](./collection.md).
+
+## Updates
+
+The **Updates** section lets the app tell you when a newer version is out — and, on desktop, help you install it. Nothing here happens behind your back: the app never updates itself automatically, and no update is ever downloaded or installed without you choosing to.
+
+- **Check for updates** — check right now, any time. It shows the version you're on and whether a newer one is available. If it can't reach the update service it simply reports that no update was found, so a checkup never interrupts you with an error.
+- **Beta channel** (off by default) — turn this on to be offered pre-release beta versions. Left off, you're only offered stable releases.
+- **Check automatically** (off by default) — when on, the app quietly checks for a newer version as it starts up. Left off, checking only happens when you ask.
+
+When an update is available, a dismissible banner points you to the release so you can read what's new before deciding.
+
+On **desktop**, once an update is found you can **Download & install update**: the app downloads it, verifies it hasn't been tampered with, then hands it to your system's installer to finish — it never replaces itself in place. On phones and tablets, the banner's link takes you to the release to download it the usual way for your platform.
+
+Your privacy is built in: an update check downloads a small version file over a secure connection and nothing else. No information about you, your device, or how you use the app is ever sent.
 
 ## About
 

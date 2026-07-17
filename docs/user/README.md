@@ -44,7 +44,7 @@ down this page, so nothing here is a dead end.
 | [Perform mode](perform.md) | ✅ done | Call live with a stage-ready, large-print view |
 | [Backup & portability](backup-portability.md) | ✅ done | Save everything to one file and move it anywhere |
 | [Accessibility](accessibility.md) | ✅ done | Screen readers, large text, high contrast, keyboard use |
-| [Settings](settings.md) | ✅ done | Dialects, data sources, custom fields, appearance, backup |
+| [Settings](settings.md) | ✅ done | Dialects, data sources, custom fields, appearance, backup, updates |
 | [Installation](#installation) | 🔒 blocked | Downloading and installing on each platform |
 | [FAQ & troubleshooting](faq.md) | ✅ done | Common questions and fixes for common snags |
 | [Glossary](glossary.md) | ✅ done | Plain definitions of the terms used throughout |
@@ -56,10 +56,10 @@ turn ✅ and its title will link to the new page.
 
 ### Installation
 
-🔒 *Blocked on packaging.* Step-by-step installation for Linux, macOS, Windows,
-Android, and iOS/iPadOS. This guide is waiting on the release packaging and signing
-work (roadmap **Phase 7.1**); it will be written once there are installable builds
-to point you at.
+🔒 *Waiting on our first published build.* Step-by-step installation for Linux,
+macOS, Windows, Android, and iOS/iPadOS. The release pipeline that produces
+downloadable builds is now in place (roadmap **Phase 7.1**); this guide will be
+written as soon as the first beta build is published for you to download.
 
 ## Looking deeper
 
