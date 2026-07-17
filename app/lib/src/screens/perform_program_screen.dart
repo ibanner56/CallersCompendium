@@ -385,8 +385,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     // (presets + custom) so its search resolves saved-dialect vocabulary
     // regardless of the active dialect — parity with the main Collection
     // search. Passed as a param so it crosses the modal navigator boundary
-    // (mirrors how `dialect` is threaded), read here before pushing the sheet.
-    final library = DialectLibraryScope.maybeOf(context);
+    // (mirrors how `dialect` is threaded). A non-listening snapshot read: this
+    // handler only needs the library's current state, not a rebuild dependency.
+    final library = DialectLibraryScope.maybeControllerOf(context);
     final enrichment = SearchEnrichment.fromDialects(
       library?.all ?? const <Dialect>[],
     );
