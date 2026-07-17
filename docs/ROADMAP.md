@@ -564,11 +564,40 @@ taxonomy are unchanged.
 ## Phase 7 — Release
 
 - [ ] 7.1 Packaging/signing for all platforms; update channel
-  - Distribution & update-channel architecture — [ADR-002](adr/002-distribution-and-update-channels.md)
-  - Update manifest hosting (A11c) is wired: the release pipeline publishes each channel's `stable.json` / `beta.json` to the `gh-pages` branch so the in-app update client's fixed URL resolves (cross-channel-preserving; see [releasing.md](dev/releasing.md#publishing-the-update-manifest-github-pages)). Enabling GitHub Pages is a one-time maintainer step (the client 404s gracefully until then).
-  - Signed Android APK: the release pipeline now builds, signs, and stages a universal APK (release `signingConfig` with debug fallback in `app/android/app/build.gradle.kts` + the `release.yml` android build+sign+stage leg, see [releasing.md](dev/releasing.md#android-signed-apk)). The only remaining maintainer step is generating the upload keystore and adding the four CI secrets; until then the android leg is a clean no-op that stages no artifact.
+  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: builds ship **unsigned** and hosting/signing await one-time maintainer setup.
+  - **Delivered**
+    - Reusable CI (`_checks.yml` via `workflow_call`) with a thin `ci.yml` caller (#228).
+    - Release pipeline `release.yml` (#230): a `v*` tag reuses the checks gate, then a build matrix produces a **draft** GitHub Release of **unsigned** desktop artifacts — Linux x64 (AppImage + tar.gz), macOS universal (dmg + zip), Windows x64 (installer + zip) — under deterministic `CallersCompendium-<ver>-<platform>-<arch>.<ext>` names, plus a `SHA256SUMS` manifest, keyless SLSA build-provenance + artifact attestation, and the per-channel `stable.json` / `beta.json` update manifests. Least-privilege (global `contents: read`; only the publish job elevates), canonical-repo + tag guards, SHA-pinned actions.
+    - CHANGELOG-driven release notes (`tools/release/gen_release_notes.py`), channel-conditional — stable fails fast without a `## [x.y.z]` section; beta/rc degrade gracefully (#235).
+    - CycloneDX SBOM per release (`tools/release/gen_sbom.py`), folded into `SHA256SUMS` and attested (#242).
+    - In-app update client **Stage 1** (A11a, #245): pure-Dart manifest model + schema guard, SemVer compare, channel filter, a Settings About/Updates area (manual check + beta opt-in + auto-check; the last two default OFF), and a dismissible update banner linking the release page.
+    - **Stage 1.5** assisted download (A11b, #250): desktop-only, user-initiated download → mandatory sha256 verify → OS handoff (mobile stays link-only); fails loudly on every path.
+    - Update-manifest hosting (A11c, #249): the pipeline publishes each channel's manifest to a persistent `gh-pages` branch (cross-channel-preserving; [releasing.md](dev/releasing.md#publishing-the-update-manifest-github-pages)).
+    - Android release signing: Gradle `release` `signingConfig` from `key.properties` with a debug fallback in `app/android/app/build.gradle.kts` (#244) + a `release.yml` build+sign+stage universal-APK leg that is a clean no-op until the signing secrets exist (#251).
+  - **Remaining (maintainer — one-time, $0)**
+    - Enable GitHub Pages (Deploy from a branch → `gh-pages` → `/root`); the in-app update client 404s gracefully until then.
+    - Generate the Android upload keystore (`keytool`) and add the four `ANDROID_*` CI secrets; the android release leg stages nothing until then ([releasing.md](dev/releasing.md#android-signed-apk)).
+  - **Deferred** (later signing wave — needs paid developer accounts / a decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
+    - macOS Developer ID signing + notarization, Windows Authenticode/Store (MSIX) signing, iOS distribution (TestFlight/App Store) — desktop currently ships UNSIGNED, so users bypass OS trust prompts manually.
+    - Optional store distribution (Google Play, F-Droid, Flathub).
+    - Reconcile the bundle-id mismatch (Android `org.callerscompendium.compendium_app` vs Apple `org.callerscompendium.compendiumApp`) — blocks iOS/Play + update-check identity.
+    - Cutting the first beta tag (`v0.1.0-beta.1`) awaits an explicit maintainer GO.
 - [ ] 7.2 User documentation
+  - **Delivered** — the [user-guide hub](user/README.md) + [style guide](user/style-guide.md), and the guides: Getting Started, Dialect (flagship), Imports & migration, Backup & portability, Collection & search, Programs & matrix, Perform mode, Accessibility, Settings, FAQ & troubleshooting, and Glossary; plus an offline **in-app User Guide** (#233). (#219/#222/#223/#224/#229/#233/#239/#240/#243)
+  - **Remaining (blocked on other work)**
+    - Per-platform install page — unblocked now that 7.1 produces download links; still to draft.
+    - Screenshots pass — needs a runnable branded build.
+    - Beta-program page — tracked under 7.3.
+    - Optional hosted docs site — needs GitHub Pages enabled (see 7.1).
 - [ ] 7.3 Beta program with real callers; feedback triage
+  - **Delivered**
+    - Triage label taxonomy (`.github/labels.yml` + `label-sync.yml`) and structured issue forms — general feedback, import-source problem, beta check-in, plus revised bug/feature reports — with a Discussions + private-email contact config (#221).
+    - Beta docs: [beta guide](beta/beta-guide.md), [test charter](beta/test-charter.md), [triage rubric](beta/triage-rubric.md) (#227); a [beta-recruitment plan](product/beta-recruitment.md); and CONTRIBUTING/README feedback hooks.
+  - **Remaining (maintainer ops)**
+    - Enable GitHub Discussions + categories (the contact link 404s until then).
+    - Confirm the feedback email/alias (config currently routes to the maintainer's address).
+  - **Deferred / blocked**
+    - Beta execution — recruit → run → interview → GA — waits on 7.1 builds, 7.2 Getting Started, and real callers.
 
 ## Later milestones
 
