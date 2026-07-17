@@ -272,20 +272,24 @@ class CallersBoxAdapter implements SourceAdapter {
       for (final line in lines) {
         final text = _asString(line);
         if (text == null) continue;
-        final figure = _parseFigureLine(text);
-        if (figure != null) phraseFigures.add(figure);
+        phraseFigures.addAll(_parseFigureLine(text));
       }
       figures.addAll(_mergeCrossLineFigures(phraseFigures));
     }
     return figures;
   }
 
-  /// Parses one TCB figure line `(beats) text`. A missing prefix or `(0)` means
-  /// a 0-beat line (a formation label). The scrubbed dance prose is stored as
-  /// clean text — section grouping is not embedded in the text (it derives from
-  /// beats). Returns `null` only for a line that is empty after scrubbing
-  /// (nothing to store).
-  Figure? _parseFigureLine(String line) {
+  /// Parses one TCB figure line `(beats) text` into one or more figures. A
+  /// missing prefix or `(0)` means a 0-beat line (a formation label). The
+  /// scrubbed dance prose is stored as clean text — section grouping is not
+  /// embedded in the text (it derives from beats). Returns an empty list for a
+  /// line that is empty after scrubbing (nothing to store).
+  ///
+  /// A compound line joined by top-level `;` (`do A; then do B`) is split into
+  /// one figure per clause by [parseFigureLines], which keeps the whole line
+  /// custom unless every clause structures and preserves the source beats total
+  /// on the first clause. Single-clause lines behave exactly as before.
+  List<Figure> _parseFigureLine(String line) {
     final match = _beatsPrefix.firstMatch(line);
     int beats = 0;
     String text = line.trim();
@@ -294,9 +298,9 @@ class CallersBoxAdapter implements SourceAdapter {
       text = match.group(2)!.trim();
     }
     // Route through the shared parser: recognised moves become structured
-    // figures; the rest fall back to custom. Returns null when the line is
-    // empty after scrubbing.
-    return parseFigureLine(text, beats: beats);
+    // figures; the rest fall back to custom. Empty when the line is empty
+    // after scrubbing.
+    return parseFigureLines(text, beats: beats);
   }
 
   // --- Cross-line merge (PR3b) -----------------------------------------------

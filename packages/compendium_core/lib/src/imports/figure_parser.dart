@@ -82,6 +82,131 @@ Figure? parseFigureLine(
   }
 }
 
+/// Parses a compound figure line, splitting it on TOP-LEVEL `;` separators and
+/// returning one [Figure] per clause. This is how CallersBox writes "do A; then
+/// do B" compounds (e.g. `Pass through across (PR); turn alone`). A line with no
+/// top-level `;` yields exactly what [parseFigureLine] would (a single-element
+/// list, or an empty list when the line is empty after scrubbing), so callers
+/// can route every line through this without changing single-line behaviour.
+///
+/// Fidelity guards (per the CallersBox dialect rulings):
+/// - **All-or-nothing.** Every clause must independently structure to a taxonomy
+///   move. If ANY clause degrades to custom (or is empty), the WHOLE line is
+///   kept as a single custom figure carrying the original text — never
+///   partially structured. Most `;` compounds pair a move with an
+///   unstructurable formation/facing note (`…; form a wave of four`, `…; face
+///   up`); structuring the move alone would drop the note, and structuring the
+///   note would fabricate a move, so those correctly stay whole-custom.
+/// - **`||` (simultaneity) stays custom.** Any line containing a top-level `||`
+///   (`A || B`) is left whole-custom: the model cannot represent two moves at
+///   once, so structuring it would fabricate a relationship.
+/// - **Lossless beats.** [deriveSections] sums each figure's `beats`
+///   cumulatively to place section labels, so a split MUST preserve the source
+///   line's TOTAL beats exactly — no more (double-count) and no less (section
+///   underflow/drift). The source states only one combined total for the whole
+///   compound (never per-move beats), so that total rides on the FIRST clause
+///   and the remaining clauses are beats-absent. The cumulative beat total is
+///   then byte-identical to the un-split compound, and nothing the source
+///   actually stated is dropped or invented.
+List<Figure> parseFigureLines(
+  String rawText, {
+  int beats = 0,
+  bool progression = false,
+  Taxonomy? taxonomy,
+  String Function(String)? scrub,
+}) {
+  Figure? whole() => parseFigureLine(
+    rawText,
+    beats: beats,
+    progression: progression,
+    taxonomy: taxonomy,
+    scrub: scrub,
+  );
+
+  List<Figure> wholeAsList() {
+    final f = whole();
+    return f == null ? const [] : [f];
+  }
+
+  // Simultaneity is not modelled → keep the whole line custom (never split).
+  if (_hasTopLevel(rawText, '||')) return wholeAsList();
+
+  final clauses = _splitTopLevel(rawText, ';');
+  if (clauses.length < 2) return wholeAsList();
+  // An empty clause means a malformed / degenerate separator run (`A;;B`,
+  // `A; ;B`) or a leading/trailing `;` (`A;`). We do NOT silently drop it — that
+  // would be a lossy split. Instead we decline to split and re-parse the whole
+  // line: `A;` structures via the normal edge-`;` strip, while a genuinely
+  // malformed `A;;B` reaches no recognizer and stays honestly custom.
+  if (clauses.any((c) => c.isEmpty)) return wholeAsList();
+
+  final parsed = <Figure>[];
+  for (var i = 0; i < clauses.length; i++) {
+    // Option A beats distribution: the source's combined total rides on the
+    // first clause; every later clause is beats-absent so the cumulative total
+    // equals the original compound (no double-count, no section drift).
+    final clauseBeats = i == 0 ? beats : 0;
+    final f = parseFigureLine(
+      clauses[i],
+      beats: clauseBeats,
+      // Progression is a whole-line marker; conventionally the dance progresses
+      // at the end of the sequence, so it rides on the last clause. (CallersBox
+      // never sets it, so this is defensive.)
+      progression: progression && i == clauses.length - 1,
+      taxonomy: taxonomy,
+      scrub: scrub,
+    );
+    // All-or-nothing: any clause that fails to structure (null/empty or custom)
+    // collapses the whole line back to a single custom figure.
+    if (f == null || f.isCustom) return wholeAsList();
+    parsed.add(f);
+  }
+  return parsed;
+}
+
+/// Whether [sep] occurs at bracket depth 0 in [t] (outside any `()`/`[]`). Used
+/// to find genuine clause separators while ignoring separators inside CallersBox
+/// annotations like a hey's `(PR;WL;NR;ML)` pass list.
+bool _hasTopLevel(String t, String sep) {
+  var depth = 0;
+  for (var i = 0; i < t.length; i++) {
+    final c = t.codeUnitAt(i);
+    if (c == 0x28 || c == 0x5B) {
+      depth++;
+    } else if (c == 0x29 || c == 0x5D) {
+      if (depth > 0) depth--;
+    } else if (depth == 0 && t.startsWith(sep, i)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// Splits [t] on top-level (bracket-depth-0) occurrences of [sep], trimming each
+/// piece. Empty pieces are RETAINED (not dropped) so the caller can detect a
+/// malformed/degenerate separator run and decline to split rather than lose a
+/// clause. `(…)`/`[…]` annotations are treated as opaque so their internal
+/// separators never split a line.
+List<String> _splitTopLevel(String t, String sep) {
+  final out = <String>[];
+  var depth = 0;
+  var start = 0;
+  for (var i = 0; i < t.length; i++) {
+    final c = t.codeUnitAt(i);
+    if (c == 0x28 || c == 0x5B) {
+      depth++;
+    } else if (c == 0x29 || c == 0x5D) {
+      if (depth > 0) depth--;
+    } else if (depth == 0 && t.startsWith(sep, i)) {
+      out.add(t.substring(start, i));
+      start = i + sep.length;
+      i += sep.length - 1;
+    }
+  }
+  out.add(t.substring(start));
+  return out.map((s) => s.trim()).toList();
+}
+
 /// A recognised move: its taxonomy [moveId] and the params extracted from the
 /// text (never including `beats`, which the caller layers on from the source).
 class _Match {
