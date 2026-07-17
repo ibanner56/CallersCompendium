@@ -366,6 +366,7 @@ final List<_Recognizer> _recognizers = [
   _turnAlone,
   _poussette,
   _californiaTwirl,
+  _weaveTheLine,
   _squareThrough,
   _pullBy,
   // Appended at the lowest precedence. End placement is safe because these
@@ -706,6 +707,20 @@ _Match? _californiaTwirl(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('california_twirl', {'who': ?who2});
+}
+
+// "Weave the line" is a caller synonym for the existing (ContraDB-sourced)
+// `zig_zag` move (ratified in D4). It carries no separate turn/ender on the
+// line, so those stay at zig_zag's inherent taxonomy defaults (there is no
+// cross-line turn/ender fold for zig_zag). An optional leading/trailing dancer
+// set maps to `who`; any other leftover token forces the custom fallback.
+_Match? _weaveTheLine(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['weave', 'the', 'line'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('zig_zag', {'who': ?who2});
 }
 
 /// Tier A: TCB writes "Partner star promenade 1/2" (dance id 30 "Mad Gypsy").

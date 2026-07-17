@@ -86,6 +86,9 @@ void main() {
       ),
       // "star thru" folds to "star through" in _normalize.
       'Star thru': (move: 'star_through', params: {'who': 'partners'}),
+      // "Weave the line" is a D4-ratified synonym for the existing zig_zag move.
+      'Weave the line': (move: 'zig_zag', params: {}),
+      'Partners weave the line': (move: 'zig_zag', params: {'who': 'partners'}),
       'Meltdown swing': (
         move: 'swing',
         params: {'who': 'partners', 'prefix': 'meltdown'},
@@ -216,6 +219,11 @@ void main() {
       'box circulate and swing',
       // "star through" with trailing prose it cannot consume stays custom.
       'star through the door',
+      // "weave the ring" is a DIFFERENT figure (backlog, out of scope) and must
+      // NOT be swept into the weave-the-line → zig_zag alias.
+      'weave the ring',
+      // weave the line with trailing prose it cannot consume stays custom.
+      'weave the line and swing',
       // "down/up the hall" IS recognised now, but a descriptor that changes the
       // move leaves leftover tokens, so these near-misses stay custom:
       //   "four in line" (a formation detail the taxonomy can't carry) and
