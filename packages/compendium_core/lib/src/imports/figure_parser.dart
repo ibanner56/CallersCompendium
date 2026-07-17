@@ -872,13 +872,26 @@ const Map<String, String> _heyLength = {
 };
 
 /// The highest reachable ricochet slot for a hey [length]. Ricochets fall on
-/// the same-role center passes, of which a hey has as many as its length
-/// physically allows: `lessThanHalf`/`half` are a single meeting (up to two
-/// same-role passes → rico1/rico2), while `betweenHalfAndFull`/`full` are two
-/// meetings (up to four → rico3/rico4). A ricochet that would need a slot the
-/// length can't reach forces the custom fallback.
-int _heyMaxRicoSlot(String length) =>
-    (length == 'lessThanHalf' || length == 'half') ? 2 : 4;
+/// the same-role center passes, and how far a hey progresses caps which ones
+/// can occur: each named length reaches one more slot than the previous —
+/// `lessThanHalf` → rico1, `half` (incl. the unspecified default) → rico2,
+/// `betweenHalfAndFull` → rico3, `full`/`whole` → rico4. A ricochet whose
+/// positional slot exceeds this cap is an internal contradiction (e.g. a rico3
+/// in a half hey) and forces the custom fallback — we never infer length from
+/// the pass count, so the stated/default length is authoritative.
+int _heyMaxRicoSlot(String length) {
+  switch (length) {
+    case 'lessThanHalf':
+      return 1;
+    case 'betweenHalfAndFull':
+      return 3;
+    case 'full':
+      return 4;
+    case 'half':
+    default:
+      return 2;
+  }
+}
 
 String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
 

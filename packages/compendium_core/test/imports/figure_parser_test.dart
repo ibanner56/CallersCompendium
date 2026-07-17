@@ -233,6 +233,17 @@ void main() {
       // most two same-role passes, so a ricochet at the 3rd (pos5) -> rico3 is
       // unreachable -> custom.
       'Hey 1/2 (ML;PR;WL;PR;M ricochet)',
+      // Length bound (finer per-length cap): the effective length caps the
+      // reachable rico slot (1/4->rico1, 1/2->rico2, 3/4->rico3, full->rico4).
+      // A pos5 ricochet is rico3, above a half hey's max of rico2 -> custom.
+      'Hey 1/2 (ML;NR;WL;PR;M ricochet;PR;WL)',
+      // A half hey with all-four ricochet positions: rico3/rico4 exceed max2.
+      'Hey 1/2 (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
+      // Unspecified length defaults to half, so a pos5 ricochet (rico3) still
+      // exceeds max2 -> custom (we never infer length from the pass count).
+      'Hey (ML;NR;WL;PR;M ricochet;PR;WL)',
+      // 3/4 caps at rico3, so a pos7 ricochet (rico4) exceeds it -> custom.
+      'Hey 3/4 (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
     ];
 
     for (final line in mustStayCustom) {
@@ -312,6 +323,13 @@ void main() {
       final p = parse('Full hey (ML;NR;WL;PR;M ricochet;PR;WL)')!;
       expect(p.params['rico3'], true);
       expect(p.params['rico1'], isNull);
+    });
+
+    test('betweenHalfAndFull (3/4) reaches rico3 but not rico4', () {
+      // 3/4 caps at rico3: a pos5 ricochet (rico3) is reachable...
+      final p = parse('Hey 3/4 (ML;NR;WL;PR;M ricochet;PR;WL)')!;
+      expect(p.params['rico3'], true);
+      // ...but a pos7 ricochet (rico4) exceeds the cap -> custom (see negatives).
     });
 
     test('all four ricochets set rico1-4 (full hey)', () {
