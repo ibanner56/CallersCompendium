@@ -782,4 +782,88 @@ void main() {
       expect(f!.isCustom, isTrue);
     });
   });
+
+  group('parseFigureLines — compound `;` split', () {
+    test('a line with no top-level `;` yields the single figure unchanged', () {
+      final fs = parseFigureLines('Neighbor swing', beats: 16);
+      expect(fs, hasLength(1));
+      expect(fs.single.move, 'swing');
+      expect(fs.single.params['beats'], 16);
+    });
+
+    test('an empty line yields an empty list (nothing to store)', () {
+      expect(parseFigureLines('   '), isEmpty);
+    });
+
+    test('both clauses structure → one figure each, in order', () {
+      final fs = parseFigureLines(
+        'Pass through across (PR); turn alone',
+        beats: 4,
+      );
+      expect(fs.map((f) => f.move), ['pass_through', 'turn_alone']);
+      expect(fs.every((f) => !f.isCustom), isTrue);
+    });
+
+    test('the source total beats ride on the FIRST clause; the rest are '
+        'beats-absent, so the cumulative total is preserved (no drift)', () {
+      final fs = parseFigureLines('Circle left 3/4; turn alone', beats: 8);
+      expect(fs, hasLength(2));
+      expect(fs[0].beats, 8);
+      expect(fs[1].beats, 0);
+      final total = fs.fold<int>(0, (a, f) => a + f.beats);
+      expect(total, 8, reason: 'cumulative beats must equal the source total');
+    });
+
+    test('all-or-nothing: a clause that cannot structure keeps the WHOLE line '
+        'as a single custom figure with the full text + source beats', () {
+      final fs = parseFigureLines(
+        'Star right 3/4; form wave of four',
+        beats: 8,
+      );
+      expect(fs, hasLength(1));
+      final only = fs.single;
+      expect(only.isCustom, isTrue);
+      expect(only.beats, 8);
+      // Lossless: both clauses survive verbatim in the custom text.
+      expect(only.params['text'], contains('Star right 3/4'));
+      expect(only.params['text'], contains('form wave of four'));
+    });
+
+    test(
+      'a facing/note second clause is not a move → whole line stays custom',
+      () {
+        final fs = parseFigureLines('Partner swing; face N3', beats: 8);
+        expect(fs, hasLength(1));
+        expect(fs.single.isCustom, isTrue);
+      },
+    );
+
+    test('a top-level `||` (simultaneity) keeps the whole line custom, never '
+        'split', () {
+      final fs = parseFigureLines(
+        'Balance the ring || California twirl',
+        beats: 8,
+      );
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.params['text'], contains('||'));
+    });
+
+    test('a `;` inside a parenthetical annotation does not split the line '
+        '(hey pass lists are opaque)', () {
+      final fs = parseFigureLines('Hey for four (PR;WL;NR;ML)', beats: 16);
+      expect(fs, hasLength(1));
+      // Whether it structures as a hey or stays custom, it is never split on
+      // the annotation-internal `;`.
+      expect(fs.single.params['beats'], 16);
+    });
+
+    test('the split is lossless: joining the structured clauses reconstructs '
+        'the original clause sequence', () {
+      const line = 'Circle left 1; turn alone';
+      final fs = parseFigureLines(line, beats: 8);
+      expect(fs, hasLength(2));
+      expect(fs.every((f) => !f.isCustom), isTrue);
+    });
+  });
 }
