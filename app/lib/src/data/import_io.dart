@@ -526,6 +526,68 @@ String buildContraDbUrl(String input) {
   ).toString();
 }
 
+/// The ContraDB JSON search endpoint. ContraDB (a Rails app) exposes
+/// `POST https://contradb.com/api/v1/dances` (Content-Type application/json);
+/// the controller does `skip_before_action :verify_authenticity_token`, so no
+/// CSRF token / login / cookie is required. The request body is built by
+/// [buildContraDbSearchBody] and the JSON response is parsed by
+/// [parseContraDbSearchResults]. Verified live 2026-07-17.
+const String contraDbSearchUrl = 'https://contradb.com/api/v1/dances';
+
+/// Fetches **ContraDB** title-search results and returns the raw JSON body, or
+/// throws a [UrlFetchException] with a user-presentable message. See
+/// [fetchContraDbSearch] for the default implementation; tests override this
+/// seam to return a canned JSON response (or throw) so no real network call is
+/// made.
+///
+/// Takes the raw title [query] (not a URL, unlike [CallersBoxSearchFetcher]):
+/// ContraDB search is a POST to a single fixed endpoint whose JSON body carries
+/// the query, so the transport — not the caller — assembles the request.
+typedef ContraDbSearchFetcher = Future<String> Function(String query);
+
+/// Default [ContraDbSearchFetcher]: POSTs the [query] as a ContraDB title-search
+/// JSON body to [contraDbSearchUrl] (with an [importFetchTimeout]) and returns
+/// the response body. Throws a [UrlFetchException] with a clear, user-presentable
+/// message for a network failure, a timeout, a non-2xx status, or an empty body.
+///
+/// [client] is an injection point for tests (e.g. `package:http`'s
+/// `MockClient`); production callers omit it and a one-shot client is used.
+Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
+  final uri = Uri.parse(contraDbSearchUrl);
+  final ownClient = client == null;
+  final effectiveClient = client ?? http.Client();
+  final http.Response response;
+  try {
+    response = await effectiveClient
+        .post(
+          uri,
+          headers: const {'Content-Type': 'application/json'},
+          body: buildContraDbSearchBody(query),
+        )
+        .timeout(importFetchTimeout);
+  } on TimeoutException {
+    throw UrlFetchException(
+      'The search timed out after ${importFetchTimeout.inSeconds}s. Check your '
+      'connection, then try again.',
+    );
+  } on Object catch (e) {
+    throw UrlFetchException("Couldn't reach ContraDB: $e");
+  } finally {
+    if (ownClient) effectiveClient.close();
+  }
+
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw UrlFetchException(
+      'ContraDB responded with HTTP ${response.statusCode}.',
+    );
+  }
+  final body = response.body;
+  if (body.trim().isEmpty) {
+    throw const UrlFetchException('ContraDB returned an empty response.');
+  }
+  return body;
+}
+
 /// Hosts serving The Caller's Box directly.
 const Set<String> _callersBoxHosts = {
   'thecallersbox.com',
