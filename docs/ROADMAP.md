@@ -564,7 +564,7 @@ taxonomy are unchanged.
 ## Phase 7 — Release
 
 - [ ] 7.1 Packaging/signing for all platforms; update channel
-  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: builds ship **unsigned** and hosting/signing await one-time maintainer setup.
+  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run), but **desktop** builds still ship **unsigned** (deferred signing wave) and update-manifest hosting still awaits enabling GitHub Pages.
   - **Delivered**
     - Reusable CI (`_checks.yml` via `workflow_call`) with a thin `ci.yml` caller (#228).
     - Release pipeline `release.yml` (#230): a `v*` tag reuses the checks gate, then a build matrix produces a **draft** GitHub Release of **unsigned** desktop artifacts — Linux x64 (AppImage + tar.gz), macOS universal (dmg + zip), Windows x64 (installer + zip) — under deterministic `CallersCompendium-<ver>-<platform>-<arch>.<ext>` names, plus a `SHA256SUMS` manifest, keyless SLSA build-provenance + artifact attestation, and the per-channel `stable.json` / `beta.json` update manifests. Least-privilege (global `contents: read`; only the publish job elevates), canonical-repo + tag guards, SHA-pinned actions.
@@ -573,10 +573,10 @@ taxonomy are unchanged.
     - In-app update client **Stage 1** (A11a, #245): pure-Dart manifest model + schema guard, SemVer compare, channel filter, a dedicated Settings **Updates** section (manual check + beta opt-in + auto-check; the last two default OFF), and a dismissible update banner linking the release page.
     - **Stage 1.5** assisted download (A11b, #250): desktop-only, user-initiated download → mandatory sha256 verify → OS handoff (mobile stays link-only); fails loudly on every path.
     - Update-manifest hosting (A11c, #249): the pipeline publishes each channel's manifest to a persistent `gh-pages` branch (cross-channel-preserving; [releasing.md](dev/releasing.md#publishing-the-update-manifest-github-pages)).
-    - Android release signing: Gradle `release` `signingConfig` from `key.properties` with a debug fallback in `app/android/app/build.gradle.kts` (#244) + a `release.yml` build+sign+stage universal-APK leg that is a clean no-op until the signing secrets exist (#251).
+    - Android release signing **complete**: Gradle `release` `signingConfig` from `key.properties` with a debug fallback in `app/android/app/build.gradle.kts` (#244) + a `release.yml` build+sign+stage universal-APK leg (#251). The upload keystore and all four `ANDROID_*` CI secrets are now configured, and a release run built + signed `CallersCompendium-<ver>-android-universal.apk` end-to-end (the JDK-21 fix in #265 keeps release lint enabled). Users can sideload the signed APK from GitHub Releases — no Play Store required.
   - **Remaining (maintainer — one-time, $0)**
     - Enable GitHub Pages (Deploy from a branch → `gh-pages` → `/ (root)`); the in-app update client 404s gracefully until then.
-    - Generate the Android upload keystore (`keytool`) and add the four `ANDROID_*` CI secrets; the android release leg stages nothing until then ([releasing.md](dev/releasing.md#android-signed-apk)).
+    - Document Android upload-keystore custody (owner, secure backup, rotation policy) — the key is generated and wired into CI, so this is governance, not a build blocker (see [ADR-002](adr/002-distribution-and-update-channels.md) §6).
   - **Deferred** (later signing wave — needs paid developer accounts / a decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
     - macOS Developer ID signing + notarization, Windows Authenticode/Store (MSIX) signing, iOS distribution (TestFlight/App Store) — desktop currently ships UNSIGNED, so users bypass OS trust prompts manually.
     - Optional store distribution (Google Play, F-Droid, Flathub).
