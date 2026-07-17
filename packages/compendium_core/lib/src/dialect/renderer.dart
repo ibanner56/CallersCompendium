@@ -50,22 +50,6 @@ class FigureRenderer {
   /// Display summary for [figure] under [dialect]: the terse [render] (or
   /// [renderVerbose], when [verbose]) text plus the ContraDB-parity secondary
   /// modifiers the terse `renderTemplate` deliberately omits — down/up-the-hall
-  /// and zig-zag `ender`, and hey `length`. These params otherwise render as
-  /// nothing (enders) or drop the length, so a caller reading the summary loses
-  /// information ContraDB's params→description rendering surfaces.
-  ///
-  /// This is a display-only path layered on top of [_render]; [renderCanonical]
-  /// (which feeds storage/search/dedupe) never calls it and stays byte-for-byte
-  /// unchanged. The appended wording is copied verbatim from ContraDB's
-  /// `libfigure` (`param.js` string functions), except `bendTheLine` — a
-  /// CallersBox-origin ender not present in ContraDB — which uses CallersBox's
-  /// own "bend the line" phrasing (see `docs/research/callersbox.md`). The
-  /// modifier phrases are fixed structural vocabulary (not role/move tokens),
-  /// so they are dialect-independent; the dialect-aware part is the [_render]
-  /// base, which already maps roles and move names under [dialect].
-  /// Display summary for [figure] under [dialect]: the terse [render] (or
-  /// [renderVerbose], when [verbose]) text plus the ContraDB-parity secondary
-  /// modifiers the terse `renderTemplate` deliberately omits — down/up-the-hall
   /// and zig-zag `ender`, hey `length`, the `balance` flag (a "balance &"
   /// prefix), and long-lines `goBack`. These params otherwise render as nothing
   /// (enders, balance) or drop information (hey length, hall direction), so a
@@ -100,15 +84,18 @@ class FigureRenderer {
         } else {
           // after-who: the balance token follows the subject and immediately
           // precedes the move name, so splice it in front of the move token.
+          // The move name is normalized the same way [_render] normalizes the
+          // base line (`_collapseSpaces`) so a dialect substitution with stray
+          // double spaces still matches; if it somehow can't be located we fall
+          // back to the leading form rather than silently dropping the balance.
           final alias = taxonomy.aliases[figure.move];
           final displayName = alias?.displayName ?? def.displayName;
-          final moveName = _renderMoveName(
-            def.id,
-            displayName,
-            params,
-            dialect,
+          final moveName = _collapseSpaces(
+            _renderMoveName(def.id, displayName, params, dialect),
           );
-          out = out.replaceFirst(moveName, '$connective $moveName');
+          out = out.contains(moveName)
+              ? out.replaceFirst(moveName, '$connective $moveName')
+              : '$connective $out';
         }
       }
     }
