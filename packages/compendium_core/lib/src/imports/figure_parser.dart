@@ -875,10 +875,11 @@ const Map<String, String> _heyLength = {
 /// the same-role center passes, and how far a hey progresses caps which ones
 /// can occur: each named length reaches one more slot than the previous —
 /// `lessThanHalf` → rico1, `half` (incl. the unspecified default) → rico2,
-/// `betweenHalfAndFull` → rico3, `full`/`whole` → rico4. A ricochet whose
-/// positional slot exceeds this cap is an internal contradiction (e.g. a rico3
-/// in a half hey) and forces the custom fallback — we never infer length from
-/// the pass count, so the stated/default length is authoritative.
+/// `betweenHalfAndFull` → rico3, `full` → rico4 (the "whole" input token is
+/// decoded to `full` before it reaches here). A ricochet whose positional slot
+/// exceeds this cap is an internal contradiction (e.g. a rico3 in a half hey)
+/// and forces the custom fallback — we never infer length from the pass count,
+/// so the stated/default length is authoritative.
 int _heyMaxRicoSlot(String length) {
   switch (length) {
     case 'lessThanHalf':

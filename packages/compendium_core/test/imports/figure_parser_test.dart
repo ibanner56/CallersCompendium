@@ -329,7 +329,13 @@ void main() {
       // 3/4 caps at rico3: a pos5 ricochet (rico3) is reachable...
       final p = parse('Hey 3/4 (ML;NR;WL;PR;M ricochet;PR;WL)')!;
       expect(p.params['rico3'], true);
-      // ...but a pos7 ricochet (rico4) exceeds the cap -> custom (see negatives).
+      // ...but a pos7 ricochet (rico4) exceeds the cap -> custom (null here).
+      expect(
+        parse(
+          'Hey 3/4 (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
+        ),
+        isNull,
+      );
     });
 
     test('all four ricochets set rico1-4 (full hey)', () {
