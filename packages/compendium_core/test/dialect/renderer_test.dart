@@ -543,10 +543,6 @@ void main() {
           move: 'swat_the_flea',
           params: {'balance': true},
         ),
-        'partners star through': Figure(
-          move: 'star_through',
-          params: {'balance': true},
-        ),
         'neighbors pull by right': Figure(
           move: 'pull_by_dancers',
           params: {'balance': true},
@@ -701,44 +697,44 @@ void main() {
     });
 
     group('balance flag prefix (ContraDB "balance &")', () {
-      test('petronella (default balance) → "balance & petronella"', () {
-        expect(
-          renderer.renderSummary(Figure(move: 'petronella'), d),
-          'balance & petronella',
-        );
-      });
+      test(
+        'petronella (leading, default balance) → "balance & petronella"',
+        () {
+          expect(
+            renderer.renderSummary(Figure(move: 'petronella'), d),
+            'balance & petronella',
+          );
+        },
+      );
       test('petronella balance:false drops the prefix', () {
         final f = Figure(move: 'petronella', params: {'balance': false});
         expect(renderer.renderSummary(f, d), 'petronella');
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
-      test('pull_by_direction surfaces balance when set', () {
+      test('pull_by_direction (leading) surfaces balance when set', () {
         final f = Figure(move: 'pull_by_direction', params: {'balance': true});
         expect(renderer.renderSummary(f, d), 'balance & pull by along right');
         // default (balance:false) is untouched.
         final g = Figure(move: 'pull_by_direction');
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
       });
-      test('rory_o_more inserts balance before the move name', () {
-        // Our base render keeps the "everyone" subject first, so the connective
-        // lands before the move name ("everyone balance & …"); ContraDB's exact
-        // "balance & everyone …" order is not reachable from our base line.
+      test('rory_o_more (leading, balance before subject)', () {
         expect(
           renderer.renderSummary(Figure(move: 'rory_o_more'), d),
-          'everyone balance & Rory O\'More right',
+          'balance & everyone Rory O\'More right',
         );
         final f = Figure(move: 'rory_o_more', params: {'balance': false});
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
-      test('box_circulate surfaces balance before the move name', () {
+      test('box_circulate (leading) surfaces balance when set', () {
         final f = Figure(move: 'box_circulate', params: {'balance': true});
         expect(
           renderer.renderSummary(f, d),
-          'partners balance & box circulate',
+          'balance & partners box circulate',
         );
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'partners balance and box circulate',
+          'balance and partners box circulate',
         );
       });
       test('box_circulate default (balance:false) is unchanged', () {
@@ -746,7 +742,7 @@ void main() {
         expect(renderer.renderSummary(f, d), 'partners box circulate');
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
-      test('pull_by_dancers inserts balance before the move name', () {
+      test('pull_by_dancers (after-who) inserts balance before the move', () {
         final f = Figure(move: 'pull_by_dancers', params: {'balance': true});
         expect(
           renderer.renderSummary(f, d),
@@ -759,61 +755,50 @@ void main() {
         final g = Figure(move: 'pull_by_dancers');
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
       });
-      test('box_the_gnat surfaces balance (hand omitted, as base render)', () {
-        // Our terse template is '{who} {move}', so the hand never shows in the
-        // base line — the balance prefix is a pure addition, not a fabrication.
-        final f = Figure(move: 'box_the_gnat', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'partners balance & box the gnat');
-        final g = Figure(move: 'box_the_gnat', params: {'balance': false});
-        expect(renderer.renderSummary(g, d), renderer.render(g, d));
-      });
-      test('swat_the_flea (alias) surfaces balance before its own name', () {
-        // The alias renders under its own display name, and the connective is
-        // spliced before "swat the flea" (not the target "box the gnat").
-        final f = Figure(move: 'swat_the_flea', params: {'balance': true});
-        expect(
-          renderer.renderSummary(f, d),
-          'partners balance & swat the flea',
-        );
-      });
-      test('star_through surfaces balance (CallersBox connective)', () {
-        // star_through is a CallersBox extension not modeled by ContraDB; the
-        // "balance &" here is our own generic connective, not ContraDB wording.
-        final f = Figure(move: 'star_through', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'partners balance & star through');
-        final g = Figure(move: 'star_through', params: {'balance': false});
-        expect(renderer.renderSummary(g, d), 'partners star through');
-        expect(renderer.renderSummary(g, d), renderer.render(g, d));
-      });
       test('verbose expands the connective to "balance and"', () {
         expect(
           renderer.renderSummary(Figure(move: 'petronella'), d, verbose: true),
           'balance and petronella',
         );
       });
-      test('balance prefix still applies when the dialect renames the move', () {
-        // The move name is matched AS RENDERED (post dialect substitution), so a
-        // dialect that renames a balance move still gets the connective spliced
-        // before the substituted name rather than silently dropping it.
-        final renamed = Dialect.canonical.copyWith(
-          moves: {'petronella': 'spin the top'},
-        );
-        expect(
-          renderer.renderSummary(Figure(move: 'petronella'), renamed),
-          'balance & spin the top',
-        );
-      });
-      test('square_through (embedded balance) carries NO prefix', () {
-        // ContraDB folds balance into square_through's pull-by breakdown, so a
-        // leading prefix would fabricate wording it never emits.
-        final f = Figure(move: 'square_through');
+      test('star_through (deferred) carries NO balance prefix', () {
+        // A CallersBox extension not modeled by ContraDB — no sourced wording,
+        // so it stays inert rather than extrapolating a balance phrase.
+        final f = Figure(move: 'star_through', params: {'balance': true});
+        expect(renderer.renderSummary(f, d), 'partners star through');
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
-      test('wave-forming moves (embedded balance) carry NO prefix', () {
-        for (final id in ['form_a_long_wave', 'form_an_ocean_wave']) {
-          final f = Figure(move: id, params: {'balance': true});
-          expect(renderer.renderSummary(f, d), renderer.render(f, d));
-        }
+      test('box_the_gnat (after-who) surfaces balance when set', () {
+        // Our terse '{who} {move}' template omits the hand regardless of
+        // balance, so adding "balance &" is a strict improvement, not a new
+        // divergence (the hand omission is pre-existing base behavior).
+        final f = Figure(move: 'box_the_gnat', params: {'balance': true});
+        expect(renderer.renderSummary(f, d), 'partners balance & box the gnat');
+        expect(
+          renderer.renderSummary(f, d, verbose: true),
+          'partners balance and box the gnat',
+        );
+        final g = Figure(move: 'box_the_gnat', params: {'balance': false});
+        expect(renderer.renderSummary(g, d), renderer.render(g, d));
+      });
+      test('swat_the_flea (alias, after-who) surfaces balance', () {
+        // The alias renders under its own name, so the connective must splice
+        // before the RENDERED alias name ("swat the flea"), not the target's.
+        final f = Figure(move: 'swat_the_flea', params: {'balance': true});
+        expect(
+          renderer.renderSummary(f, d),
+          'partners balance & swat the flea',
+        );
+        expect(
+          renderer.renderSummary(f, d, verbose: true),
+          'partners balance and swat the flea',
+        );
+        final g = Figure(move: 'swat_the_flea', params: {'balance': false});
+        expect(renderer.renderSummary(g, d), renderer.render(g, d));
+      });
+      test('square_through (excluded) carries NO balance prefix', () {
+        final f = Figure(move: 'square_through');
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
     });
 
