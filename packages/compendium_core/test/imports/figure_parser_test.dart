@@ -245,7 +245,7 @@ void main() {
       // ContraDB gate is facing-only (up/down/in/out, fixed 8 beats). The
       // domains are DISJOINT (0/62 TCB lines map to `face`), so a `_gate`
       // recognizer would match nothing or fabricate a `face` value the line
-      // never states — forbidden by the source-fidelity rule (dance id 519).
+      // never stated. For import fidelity it stays custom (dance id 519).
       'N2 neighbor gate counterclockwise 1/2',
       // A poussette with an unmappable leftover ("draw") stays custom.
       'Neighbor draw poussette clockwise 1/2',

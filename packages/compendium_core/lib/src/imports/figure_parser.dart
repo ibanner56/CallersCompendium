@@ -365,12 +365,12 @@ final List<_Recognizer> _recognizers = [
   _slice,
   _turnAlone,
   _poussette,
-  // No `_gate` recognizer — deliberately. TCB gate = clockwise/counterclockwise/
-  // mirror + turn fraction (+ optional orbit-side); ContraDB gate = facing
-  // up/down/in/out, fixed 8 beats. The domains are disjoint (0/62 surveyed TCB
-  // gate lines map to `face`), so a recognizer would match nothing or fabricate
-  // a `face` the line never states — forbidden by the source-fidelity rule. TCB
-  // gate stays custom until a source-backed model exists.
+  // No `_gate` recognizer — deliberately. TCB gate = clockwise or
+  // counterclockwise or mirror + turn fraction (+ optional which-pair-forward
+  // note); ContraDB gate = facing up/down/in/out, fixed 8 beats. The domains are
+  // disjoint (0/62 surveyed TCB gate lines map to `face`), so a recognizer would
+  // match nothing or fabricate a `face` the line never stated. For import
+  // fidelity, TCB gate stays custom until a source-backed model exists.
   _californiaTwirl,
   _weaveTheLine,
   _squareThrough,
