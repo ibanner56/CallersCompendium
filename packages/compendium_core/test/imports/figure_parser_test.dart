@@ -865,5 +865,64 @@ void main() {
       expect(fs, hasLength(2));
       expect(fs.every((f) => !f.isCustom), isTrue);
     });
+
+    test('Option A invariant: cumulative beats and deriveSections labels are '
+        'IDENTICAL before vs after the split, and a beats=0 structured clause '
+        'is accepted downstream', () {
+      // A 64-beat dance whose second line is the compound. "before" carries the
+      // compound as one custom figure (beats 8); "after" splits it.
+      final head = parseFigureLine('Neighbor swing', beats: 16)!; // A1 @ 0
+      final tailA = parseFigureLine('Partner swing', beats: 16)!; // @ 24
+      final tailB = parseFigureLine('Neighbor allemande right 1', beats: 24)!;
+
+      final before = <Figure>[
+        head,
+        customFigure('Circle left 3/4; turn alone', beats: 8),
+        tailA,
+        tailB,
+      ];
+      final after = <Figure>[
+        head,
+        ...parseFigureLines('Circle left 3/4; turn alone', beats: 8),
+        tailA,
+        tailB,
+      ];
+
+      // The split emits a structured clause with beats == 0 (Option A).
+      expect(after.any((f) => !f.isCustom && f.beats == 0), isTrue);
+
+      final beforeIssues = <ValidationIssue>[];
+      final afterIssues = <ValidationIssue>[];
+      final beforeSections = deriveSections(
+        before,
+        PhraseStructure.standard,
+        issues: beforeIssues,
+      );
+      final afterSections = deriveSections(
+        after,
+        PhraseStructure.standard,
+        issues: afterIssues,
+      );
+
+      int total(List<Figure> fs) => fs.fold(0, (a, f) => a + f.beats);
+      // Cumulative total is byte-identical and still reconciles to 64.
+      expect(total(after), total(before));
+      expect(total(after), 64);
+      // No underflow/overflow warning either way (a beats=0 clause is fine).
+      expect(beforeIssues, isEmpty);
+      expect(afterIssues, isEmpty);
+
+      // The shared trailing figures land on the SAME startBeat + label; the
+      // split neither shifts nor relabels anything downstream.
+      SectionedFigure sfFor(List<SectionedFigure> s, String move) =>
+          s.firstWhere((e) => e.figure.move == move);
+      final beforeTail = beforeSections.last;
+      final afterTail = afterSections.last;
+      expect(afterTail.startBeat, beforeTail.startBeat);
+      expect(afterTail.label, beforeTail.label);
+      // The A2 clause figures sit inside the same section as the custom
+      // compound did (startBeat 16 → A2).
+      expect(sfFor(afterSections, 'circle').label, 'A2');
+    });
   });
 }
