@@ -93,10 +93,10 @@ String buildContraDbSearchBody(
 /// maps each entry to a [ContraDbSearchResult].
 ///
 /// This is **pure** (no I/O): the app layer performs the POST and passes the
-/// decoded JSON string here.
+/// raw JSON response body here.
 ///
 /// Robustness (mirrors the tolerant TCB parser): malformed JSON, a non-object
-/// payload, a missing/`non-list `dances`, or individual non-object/idless rows
+/// payload, a missing/non-list `dances` array, or individual non-object/idless rows
 /// are skipped rather than throwing — the caller renders an empty list as "no
 /// results". Extra fields are ignored and missing string fields default to
 /// empty, so a partial row still imports its title/id.
