@@ -24,7 +24,13 @@ import 'taxonomy.dart';
 ///     ContraDB-sourced. The `meltdown_swing` alias now derives 16 beats.
 ///     Moves with continuous angle/ratio beat rules (allemande, do_si_do,
 ///     shoulder_round, circle/star family, box_the_gnat) remain deferred.
-const int contraTaxonomyVersion = 9;
+/// v10: cross-line merge support — `box_the_gnat` gains a `balance` flag
+///     (default false; swat_the_flea inherits it via its box_the_gnat target)
+///     and the down/up-the-hall `ender` gains a `bendTheLine` value. Both are
+///     additive: no existing figure's derived output changes, and box_the_gnat
+///     stays on the continuous-beat-rule deferral (no `paramBeats`). Distinct
+///     from CompendiumDatabase.schemaVersion — no DB migration is implied.
+const int contraTaxonomyVersion = 10;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -40,6 +46,9 @@ const _downTheHallEnders = [
   'threadNeedle',
   'rightHandHigh',
   'slidingDoors',
+  // v10: TCB writes the bend-the-line as a separate following line; the
+  // CallersBox cross-line merge folds it into a preceding hall as this ender.
+  'bendTheLine',
 ];
 
 // hey's second pass may be any pair OR left unspecified (ContraDB
@@ -142,6 +151,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        // v10: a preceding balance line folds in here via the CallersBox
+        // cross-line merge (swat_the_flea inherits this through its target).
+        // No paramBeats: box_the_gnat's beats stay on the deferral list.
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },
       renderTemplate: '{who} {move}',

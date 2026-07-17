@@ -402,7 +402,7 @@ void main() {
 
     group('parse — figures + dialect scrubbing', () {
       test(
-        'full permission: (beats) text → structured figures with source beats',
+        'full permission: a balance line folds into the following swing',
         () async {
           final draft = await _importOne(
             jsonEncode(
@@ -416,16 +416,15 @@ void main() {
               ),
             ),
           );
-          expect(draft.dance.figures, hasLength(2));
-          // Both lines are recognised moves now, so they structure (no custom
-          // text, no in-text label — section is derived from beats).
-          expect(draft.dance.figures.every((f) => f.isCustom), isFalse);
-          expect(draft.dance.figures[0].move, 'balance');
-          expect(draft.dance.figures[0].params['who'], 'neighbors');
-          expect(draft.dance.figures[0].params['beats'], 4);
-          expect(draft.dance.figures[1].move, 'swing');
-          expect(draft.dance.figures[1].params['who'], 'neighbors');
-          expect(draft.dance.figures[1].params['beats'], 12);
+          // PR3b cross-line merge: the preceding balance line folds into the
+          // swing as its `balance` prefix, so the two source lines become one
+          // structured figure carrying the summed beats (4 + 12 = 16).
+          expect(draft.dance.figures, hasLength(1));
+          expect(draft.dance.figures.single.isCustom, isFalse);
+          expect(draft.dance.figures.single.move, 'swing');
+          expect(draft.dance.figures.single.params['who'], 'neighbors');
+          expect(draft.dance.figures.single.params['prefix'], 'balance');
+          expect(draft.dance.figures.single.params['beats'], 16);
         },
       );
 
@@ -544,6 +543,224 @@ void main() {
       });
     });
 
+    group('parse — cross-line balance + bend merge (PR3b)', () {
+      Future<List<Figure>> figuresFor(List<String> lines) async {
+        final draft = await _importOne(
+          jsonEncode(_dance(phrases: [_phrase('A1', lines)])),
+        );
+        return draft.dance.figures;
+      }
+
+      test('balance → swing folds into a balance-prefixed swing', () async {
+        final figures = await figuresFor([
+          '(4) Neighbor balance',
+          '(12) Neighbor swing',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'swing');
+        expect(figures.single.params['prefix'], 'balance');
+        expect(figures.single.params['who'], 'neighbors');
+        expect(figures.single.params['beats'], 16); // 4 + 12
+      });
+
+      test('matching who folds (neighbor balance → neighbor swing)', () async {
+        final figures = await figuresFor([
+          '(4) Neighbor balance',
+          '(12) Neighbor swing',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'swing');
+        expect(figures.single.params['who'], 'neighbors');
+        expect(figures.single.params['prefix'], 'balance');
+      });
+
+      test('a who conflict blocks the fold (neighbor balance / partner '
+          'swing stay separate)', () async {
+        final figures = await figuresFor([
+          '(4) Neighbor balance',
+          '(12) Partner swing',
+        ]);
+        // The balance names a different dancer than the swing, so folding would
+        // drop the neighbor balance — leave both as their own figures.
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'balance');
+        expect(figures[0].params['who'], 'neighbors');
+        expect(figures[1].move, 'swing');
+        expect(figures[1].params['who'], 'partners');
+        expect(figures[1].params['prefix'], isNull);
+      });
+
+      test(
+        'balance → petronella sets balance true with summed beats',
+        () async {
+          final figures = await figuresFor(['(4) Balance', '(4) Petronella']);
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'petronella');
+          expect(figures.single.params['balance'], isTrue);
+          expect(figures.single.params['beats'], 8); // 4 + 4
+        },
+      );
+
+      test('balance → rory_o_more flips the neutral false to true', () async {
+        final figures = await figuresFor(['(4) Balance', '(4) Rory O\'More']);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'rory_o_more');
+        expect(figures.single.params['balance'], isTrue);
+        expect(figures.single.params['beats'], 8);
+      });
+
+      test('balance → box_the_gnat sets the new balance flag', () async {
+        final figures = await figuresFor([
+          '(4) Partner balance',
+          '(4) Box the gnat',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'box_the_gnat');
+        expect(figures.single.params['balance'], isTrue);
+        expect(figures.single.params['beats'], 8);
+      });
+
+      test('balance → swat_the_flea sets the inherited balance flag', () async {
+        final figures = await figuresFor([
+          '(4) Partner balance',
+          '(4) Swat the flea',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'swat_the_flea');
+        expect(figures.single.params['balance'], isTrue);
+        expect(figures.single.params['beats'], 8);
+      });
+
+      test(
+        'a varied custom balance form (long wave) folds into a swing',
+        () async {
+          final figures = await figuresFor([
+            '(4) Balance the long wave',
+            '(12) Partner swing',
+          ]);
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'swing');
+          expect(figures.single.params['prefix'], 'balance');
+          expect(figures.single.params['beats'], 16);
+        },
+      );
+
+      test('a "wave of four" custom balance folds into a swing', () async {
+        final figures = await figuresFor([
+          '(4) Balance the wave of four',
+          '(12) Neighbor swing',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'swing');
+        expect(figures.single.params['prefix'], 'balance');
+      });
+
+      test('bend the line → down_the_hall upgrades the ender', () async {
+        final figures = await figuresFor([
+          '(8) Go down the hall',
+          '(4) Bend the line',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'down_the_hall');
+        expect(figures.single.params['ender'], 'bendTheLine');
+        expect(figures.single.params['beats'], 12); // 8 + 4
+      });
+
+      test('bend the line → up_the_hall upgrades the ender', () async {
+        final figures = await figuresFor([
+          '(8) Go up the hall',
+          '(4) Bend the line',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'up_the_hall');
+        expect(figures.single.params['ender'], 'bendTheLine');
+        expect(figures.single.params['beats'], 12);
+      });
+
+      test('a non-adjacent balance is NOT merged into a later swing', () async {
+        final figures = await figuresFor([
+          '(4) Neighbor balance',
+          '(8) Circle left 3/4',
+          '(12) Neighbor swing',
+        ]);
+        expect(figures, hasLength(3));
+        expect(figures[0].move, 'balance');
+        expect(figures[1].move, 'circle');
+        expect(figures[2].move, 'swing');
+        expect(figures[2].params['prefix'], isNull);
+      });
+
+      test(
+        'a balance with no following mergeable move stays separate',
+        () async {
+          final figures = await figuresFor([
+            '(4) Neighbor balance',
+            '(8) Circle left 3/4',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].move, 'balance');
+          expect(figures[0].params['beats'], 4);
+          expect(figures[1].move, 'circle');
+        },
+      );
+
+      test('a bend the line not adjacent to a hall stays custom', () async {
+        final figures = await figuresFor([
+          '(12) Neighbor swing',
+          '(4) Bend the line',
+        ]);
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'swing');
+        expect(figures[1].isCustom, isTrue);
+        expect(_text(figures[1]), 'Bend the line');
+      });
+
+      test('a bend never folds into a custom (unrecognised) hall', () async {
+        final figures = await figuresFor([
+          '(6) In a line of four, go down the hall',
+          '(2) Bend the line',
+        ]);
+        expect(figures, hasLength(2));
+        expect(figures[0].isCustom, isTrue);
+        expect(figures[1].isCustom, isTrue);
+        expect(_text(figures[1]), 'Bend the line');
+      });
+
+      test('a fold never crosses a phrase (section) boundary', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              phrases: [
+                _phrase('A1', ['(4) Neighbor balance']),
+                _phrase('A2', ['(12) Neighbor swing']),
+              ],
+            ),
+          ),
+        );
+        // Balance ends A1 and the swing opens A2 — different sections, so they
+        // are left as two separate figures.
+        expect(draft.dance.figures, hasLength(2));
+        expect(draft.dance.figures[0].move, 'balance');
+        expect(draft.dance.figures[1].move, 'swing');
+        expect(draft.dance.figures[1].params['prefix'], isNull);
+      });
+
+      test('a single-line "balance and swing" is not double-folded', () async {
+        final figures = await figuresFor([
+          '(4) Neighbor balance',
+          '(16) Neighbor balance and swing',
+        ]);
+        // The second line already structures as a balance-prefixed swing; the
+        // preceding standalone balance line has no *unbalanced* move to fold
+        // into, so both survive (the swing keeps its own 16 beats).
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'balance');
+        expect(figures[1].move, 'swing');
+        expect(figures[1].params['prefix'], 'balance');
+        expect(figures[1].params['beats'], 16);
+      });
+    });
+
     group('parse — permission tiers', () {
       test('search tier → metadata-only, no figures + warning', () async {
         final draft = await _importOne(
@@ -593,21 +810,24 @@ void main() {
         expect(draft.dance.authorIds, isEmpty);
         expect(draft.authorNames, ['Gene Hubert']);
         expect(draft.dance.callingNotes, isNot(contains('Gene Hubert')));
-        // 10 figure lines across A1/A2/B1/B2.
-        expect(draft.dance.figures, hasLength(10));
-        // Recognised lines now structure (balance, swings, circle, star, and
-        // the chain-to-neighbor line — PR2 D3); only A2's
-        // hall/turn-as-couples/bend lines stay custom.
+        // 9 figures: A1's balance folds into the following swing (PR3b), so the
+        // 10 source lines across A1/A2/B1/B2 collapse to 9.
+        expect(draft.dance.figures, hasLength(9));
+        // Recognised lines structure (the balance-and-swing, swings, circle,
+        // star, and the chain-to-neighbor line); only A2's four
+        // hall/turn-as-couples/bend lines stay custom (its halls carry an "in a
+        // line of four" prefix → custom → no bend fold).
         expect(draft.dance.figures.where((f) => f.isCustom), hasLength(4));
         // "Ladies chain to neighbor" (phrase B2) now structures as a chain with
         // the "to neighbor" target preserved as a Figure note.
         final chain = draft.dance.figures.firstWhere((f) => f.move == 'chain');
         expect(chain.params['who'], 'role2s');
         expect(chain.note, 'to neighbor');
-        // The first figure is a recognised balance carrying its source beats.
-        expect(draft.dance.figures.first.move, 'balance');
-        // Beats preserved from the (N) prefixes.
-        expect(draft.dance.figures.first.params['beats'], 4);
+        // The first figure is A1's balance-and-swing: the balance line folded
+        // into the swing as its prefix, carrying the summed beats (4 + 12).
+        expect(draft.dance.figures.first.move, 'swing');
+        expect(draft.dance.figures.first.params['prefix'], 'balance');
+        expect(draft.dance.figures.first.params['beats'], 16);
       });
 
       test('sourceVersion carries the download_date', () async {

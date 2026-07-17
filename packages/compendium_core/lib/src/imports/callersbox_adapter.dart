@@ -210,9 +210,7 @@ class CallersBoxAdapter implements SourceAdapter {
     final permission = (_asString(dance['Permission'])?.trim() ?? '')
         .toLowerCase();
     final isFull = permission == 'full';
-    final figures = isFull
-        ? _parseFigures(dance['phrases'], issues)
-        : const <Figure>[];
+    final figures = isFull ? _parseFigures(dance['phrases']) : const <Figure>[];
     if (!isFull) {
       issues.add(
         ImportIssue(
@@ -258,23 +256,26 @@ class CallersBoxAdapter implements SourceAdapter {
   /// figure text (labels derive from cumulative beats), so the phrase `name` is
   /// no longer prefixed. Parse-never-fails: any odd line is still imported as
   /// custom.
-  List<Figure> _parseFigures(Object? phrases, List<ImportIssue> issues) {
+  ///
+  /// The cross-line merge ([_mergeCrossLineFigures]) runs PER-PHRASE, so a fold
+  /// never crosses a section boundary: TCB phrase entries map to the A1/A2/…
+  /// sections, and the balance+move / hall+bend pairs it folds are always
+  /// written within a single phrase entry.
+  List<Figure> _parseFigures(Object? phrases) {
     if (phrases is! List) return const [];
     final figures = <Figure>[];
-    var index = 0;
     for (final phrase in phrases) {
       if (phrase is! Map) continue;
       final lines = phrase['figures'];
       if (lines is! List) continue;
+      final phraseFigures = <Figure>[];
       for (final line in lines) {
         final text = _asString(line);
         if (text == null) continue;
-        final figure = _parseFigureLine(text, index, issues);
-        if (figure != null) {
-          figures.add(figure);
-          index++;
-        }
+        final figure = _parseFigureLine(text);
+        if (figure != null) phraseFigures.add(figure);
       }
+      figures.addAll(_mergeCrossLineFigures(phraseFigures));
     }
     return figures;
   }
@@ -284,7 +285,7 @@ class CallersBoxAdapter implements SourceAdapter {
   /// clean text — section grouping is not embedded in the text (it derives from
   /// beats). Returns `null` only for a line that is empty after scrubbing
   /// (nothing to store).
-  Figure? _parseFigureLine(String line, int index, List<ImportIssue> issues) {
+  Figure? _parseFigureLine(String line) {
     final match = _beatsPrefix.firstMatch(line);
     int beats = 0;
     String text = line.trim();
@@ -296,6 +297,148 @@ class CallersBoxAdapter implements SourceAdapter {
     // figures; the rest fall back to custom. Returns null when the line is
     // empty after scrubbing.
     return parseFigureLine(text, beats: beats);
+  }
+
+  // --- Cross-line merge (PR3b) -----------------------------------------------
+
+  /// Moves a preceding balance LINE folds into (D1). `swing` takes the balance
+  /// as its `prefix`; the rest take it as a `balance: true` flag.
+  static const _balanceMergeMoves = {
+    'swing',
+    'petronella',
+    'rory_o_more',
+    'box_the_gnat',
+    'swat_the_flea',
+  };
+
+  /// Folds figures that The Caller's Box writes as separate lines into a single
+  /// structured move, flipping PR3a's neutral cross-line values to real ones:
+  ///  - a balance LINE immediately preceding a swing / petronella /
+  ///    rory_o_more / box_the_gnat / swat_the_flea folds into that move (swing →
+  ///    `prefix: 'balance'`; the others → `balance: true`, upgrading rory's
+  ///    neutral `false`);
+  ///  - a bend-the-line LINE immediately following a structured down/up the hall
+  ///    folds in as `ender: 'bendTheLine'` (upgrading the neutral `'none'`).
+  ///
+  /// Adjacency-consume: a single left-to-right walk that advances by two on a
+  /// merge, so each line is consumed at most once, only immediately-adjacent
+  /// lines fold, and a balance/bend line with no mergeable neighbour is kept as
+  /// its own figure (choreography is never dropped). Merged beats are the SUM of
+  /// the two consumed lines (source timing preserved). The caller passes one
+  /// phrase's figures, so folds never cross a section boundary.
+  static List<Figure> _mergeCrossLineFigures(List<Figure> figures) {
+    final merged = <Figure>[];
+    var i = 0;
+    while (i < figures.length) {
+      final current = figures[i];
+      final next = i + 1 < figures.length ? figures[i + 1] : null;
+      if (next != null) {
+        // Fold 1: balance line → following mergeable move.
+        if (_isBalanceLine(current)) {
+          final folded = _foldBalanceIntoMove(current, next);
+          if (folded != null) {
+            merged.add(folded);
+            i += 2;
+            continue;
+          }
+        }
+        // Fold 2: structured hall → following bend-the-line line.
+        if (_isHall(current) && _isBendLine(next)) {
+          merged.add(_foldBendIntoHall(current, next));
+          i += 2;
+          continue;
+        }
+      }
+      merged.add(current);
+      i += 1;
+    }
+    return merged;
+  }
+
+  /// A balance line: the structured `balance` / `balance_the_ring` moves, or a
+  /// custom figure whose scrubbed text leads with "balance" (the varied
+  /// non-dancer forms `Balance diamond` / `Balance long wave` /
+  /// `Balance wave of four`; `X balance`, `Balance ring` and `X balance (hand)`
+  /// already recognise as structured balance / balance_the_ring).
+  static bool _isBalanceLine(Figure f) {
+    if (f.move == 'balance' || f.move == 'balance_the_ring') return true;
+    if (!f.isCustom) return false;
+    final words = _figureWords(f);
+    return words.isNotEmpty && words.first == 'balance';
+  }
+
+  /// A bend-the-line line: a custom figure whose scrubbed text is "bend the
+  /// line" (or the bare "bend" / "bend line" shorthands). Bend never recognises
+  /// as a structured move, so it is always custom here.
+  static bool _isBendLine(Figure f) {
+    if (!f.isCustom) return false;
+    final words = _figureWords(f);
+    if (words.isEmpty || words.first != 'bend') return false;
+    return words.length == 1 ||
+        (words.length == 2 && words[1] == 'line') ||
+        (words.length == 3 && words[1] == 'the' && words[2] == 'line');
+  }
+
+  static bool _isHall(Figure f) =>
+      f.move == 'down_the_hall' || f.move == 'up_the_hall';
+
+  /// Returns [move] with the preceding [balance] folded in, or `null` when
+  /// [move] is not a mergeable target (leaving both as separate figures) or
+  /// already carries the balance (guarding against a double-fold of a
+  /// single-line "balance and swing" / meltdown swing / already-balanced move).
+  static Figure? _foldBalanceIntoMove(Figure balance, Figure move) {
+    if (!_balanceMergeMoves.contains(move.move)) return null;
+    // Mismatched-who guard: a structured balance line carries its own `who`
+    // (e.g. "Neighbor balance" → who: neighbors). Only fold when the dancers
+    // agree — if BOTH the balance and the move name an explicit, DIFFERING
+    // `who`, they are distinct figures ("Neighbor balance" then "Partner
+    // swing"), so merging would silently drop the balance's choreography.
+    // Either side without a `who` (custom balance forms, balance_the_ring,
+    // petronella) still merges.
+    final balanceWho = balance.params['who'];
+    final moveWho = move.params['who'];
+    if (balanceWho != null && moveWho != null && balanceWho != moveWho) {
+      return null;
+    }
+    final beats = _sumBeats(balance, move);
+    if (move.move == 'swing') {
+      final prefix = move.params['prefix'];
+      if (prefix != null && prefix != 'none') return null;
+      return move.copyWith(
+        params: {...move.params, 'prefix': 'balance', 'beats': ?beats},
+      );
+    }
+    if (move.params['balance'] == true) return null;
+    return move.copyWith(
+      params: {...move.params, 'balance': true, 'beats': ?beats},
+    );
+  }
+
+  static Figure _foldBendIntoHall(Figure hall, Figure bend) {
+    final beats = _sumBeats(hall, bend);
+    return hall.copyWith(
+      params: {...hall.params, 'ender': 'bendTheLine', 'beats': ?beats},
+    );
+  }
+
+  /// Sum of the two figures' beats, or `null` when neither carries beats (so a
+  /// merged beats-free pair does not gain a spurious `0`).
+  static int? _sumBeats(Figure a, Figure b) {
+    final total = a.beats + b.beats;
+    return total > 0 ? total : null;
+  }
+
+  /// The lowercased, punctuation-split words of a custom figure's stored text
+  /// (empty for a structured figure, which has no `text` param).
+  static List<String> _figureWords(Figure f) {
+    final text = f.params['text'];
+    if (text is! String) return const [];
+    return text
+        .toLowerCase()
+        .replaceAll(RegExp(r'[(){}\[\]]'), ' ')
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
   }
 
   // --- Formation -------------------------------------------------------------
