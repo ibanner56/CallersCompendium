@@ -387,9 +387,9 @@ rm upload.key.pem upload.cert.pem
 > Export Password from step 2) — a differing key password will fail the CI signing
 > step. The alias is `upload` (from `-name upload`), i.e. `ANDROID_KEY_ALIAS=upload`.
 
-CI signs on Temurin JDK 17, which reads OpenSSL 3.x PKCS12 keystores natively. (If
-you ever move signing to a much older JDK that rejects the modern PKCS12
-encryption, regenerate step 2 with `-legacy` added.)
+CI signs on Temurin JDK 21 (see [Toolchain: build on JDK 21](#toolchain-build-on-jdk-21)),
+which reads OpenSSL 3.x PKCS12 keystores natively. (If you ever move signing to a much
+older JDK that rejects the modern PKCS12 encryption, regenerate step 2 with `-legacy` added.)
 
 ### Maintainer: GitHub Actions secrets (the last step to enable Android)
 
