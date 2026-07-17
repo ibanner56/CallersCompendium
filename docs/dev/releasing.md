@@ -338,6 +338,42 @@ Keep this `.jks` and its passwords secret and backed up **outside** the repo —
 losing the upload key means users can no longer receive in-place updates of an
 APK signed with it.
 
+#### No JDK? Generate the keystore with OpenSSL instead
+
+`keytool` ships with the JDK. If you don't have Java installed you can build the
+same keystore with **OpenSSL** — Android/Gradle reads a **PKCS12** keystore
+natively (modern `keytool` even creates PKCS12 by default; the `.jks` filename is
+just a name and the format is auto-detected):
+
+```sh
+# 1. Private key + self-signed cert, valid ~27 years (10000 days, matching the
+#    keytool command above).
+openssl req -x509 -newkey rsa:2048 -sha256 -days 10000 -nodes \
+  -keyout upload.key.pem -out upload.cert.pem \
+  -subj "/CN=Caller's Compendium/O=ibanner56"
+
+# 2. Bundle the key + cert into a PKCS12 keystore with alias "upload". The
+#    "Export Password" it prompts for becomes your keystore password.
+openssl pkcs12 -export \
+  -inkey upload.key.pem -in upload.cert.pem \
+  -name upload \
+  -out callerscompendium-upload.jks
+
+# 3. Remove the intermediate PEMs — the private key now lives inside the keystore.
+rm upload.key.pem upload.cert.pem
+```
+
+> **A PKCS12 keystore uses a single password.** Unlike a keytool-generated JKS
+> (which can carry a separate store and key password), PKCS12 protects the key
+> entry with the store password. So when you add the secrets below, set
+> **`ANDROID_KEY_PASSWORD` to the same value as `ANDROID_KEYSTORE_PASSWORD`** (the
+> Export Password from step 2) — a differing key password will fail the CI signing
+> step. The alias is `upload` (from `-name upload`), i.e. `ANDROID_KEY_ALIAS=upload`.
+
+CI signs on Temurin JDK 17, which reads OpenSSL 3.x PKCS12 keystores natively. (If
+you ever move signing to a much older JDK that rejects the modern PKCS12
+encryption, regenerate step 2 with `-legacy` added.)
+
 ### Maintainer: GitHub Actions secrets (the last step to enable Android)
 
 The android release leg reconstructs `key.properties` (and decodes the keystore)
