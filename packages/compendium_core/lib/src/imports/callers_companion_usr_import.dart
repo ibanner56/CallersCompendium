@@ -17,10 +17,10 @@ import 'structured_draft.dart';
 /// `SetItem` rows and persisted alongside them.
 ///
 /// This is the single handle passed to [CallersCompanionUsrImporter.undo] so a
-/// whole CC import — dances **and** programs — reverts atomically and
-/// symmetrically. Keeping the program bookkeeping here (rather than on the
-/// source-agnostic, dance-only [ImportSession]) keeps [ImportPipeline] free of
-/// any `Program`/CC knowledge.
+/// whole CC import — dances **and** programs — reverts symmetrically (the
+/// programs are removed, then the dances). Keeping the program bookkeeping here
+/// (rather than on the source-agnostic, dance-only [ImportSession]) keeps
+/// [ImportPipeline] free of any `Program`/CC knowledge.
 class CcUsrImportResult {
   CcUsrImportResult({
     required this.danceSession,
@@ -110,8 +110,21 @@ class CallersCompanionUsrImporter {
       now: now,
     );
 
-    for (final program in built.programs) {
-      await _programs.create(program);
+    // Persist the programs. If any insert fails the dances are already
+    // committed, so compensate before rethrowing — remove the programs written
+    // so far and revert the dance commit — keeping the import all-or-nothing
+    // from the caller's perspective (they never get a partial DB with no undo
+    // handle).
+    final persisted = <String>[];
+    try {
+      for (final program in built.programs) {
+        await _programs.create(program);
+        persisted.add(program.id);
+      }
+    } catch (_) {
+      await _programs.hardDelete(persisted);
+      await _pipeline.undo(danceSession);
+      rethrow;
     }
 
     return CcUsrImportResult(
@@ -122,9 +135,12 @@ class CallersCompanionUsrImporter {
   }
 
   /// Convenience end-to-end import of a `.USR` [bytes] payload: reads the
-  /// archive once, [plan]s and [commit]s in one call using default dedupe
-  /// handling (ambiguous records are skipped, never guessed — the pipeline
-  /// default). The app's review flow can instead call [plan]/[commit]
+  /// archive for the program build, then [plan]s and [commit]s in one call
+  /// using default dedupe handling (ambiguous records are skipped, never
+  /// guessed — the pipeline default). The dance side re-parses [bytes] through
+  /// the adapter during [plan], so the file is decoded twice; that keeps the
+  /// dances on the exact shared pipeline path and the cost is negligible next
+  /// to the DB writes. The app's review flow can instead call [plan]/[commit]
   /// separately to let the user resolve ambiguous dances.
   Future<CcUsrImportResult> import(
     Uint8List bytes, {

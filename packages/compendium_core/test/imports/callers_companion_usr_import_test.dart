@@ -228,4 +228,36 @@ void main() {
       expect(await dances.listAll(includeDeleted: true), isEmpty);
     });
   });
+
+  group('commit (compensating rollback)', () {
+    test(
+      'a program-persist failure reverts the already-committed dances',
+      () async {
+        final failing = _FailingProgramRepository(db);
+        final rollbackImporter = CallersCompanionUsrImporter(pipeline, failing);
+
+        await expectLater(
+          rollbackImporter.import(_ccUsrBytes(), now: now, newId: nextId),
+          throwsA(isA<StateError>()),
+        );
+
+        // The dances committed before the failure were rolled back, so the DB is
+        // left clean (all-or-nothing).
+        expect(await dances.listAll(includeDeleted: true), isEmpty);
+        expect(await programs.listAll(includeDeleted: true), isEmpty);
+      },
+    );
+  });
+}
+
+/// A [ProgramRepository] whose [create] always throws, to exercise the
+/// importer's compensating rollback when program persistence fails after the
+/// dances have already committed. [hardDelete] (used by the rollback) keeps its
+/// real behavior.
+class _FailingProgramRepository extends ProgramRepository {
+  _FailingProgramRepository(super.db);
+
+  @override
+  Future<void> create(Program program) async =>
+      throw StateError('simulated program persist failure');
 }
