@@ -1,0 +1,172 @@
+import 'package:compendium_core/compendium_core.dart';
+
+import '../search/dance_detail_data.dart';
+import 'import_io.dart';
+import 'online_search.dart';
+
+/// App-layer orchestration for the **ContraDB online search + direct import**
+/// feature. The ContraDB parallel to `CallersBoxOnline`: it ties together the
+/// JSON search transport ([ContraDbSearchFetcher]), the pure results parser
+/// ([parseContraDbSearchResults]), the per-dance HTML fetch ([UrlFetcher]) +
+/// [ContraDbHtmlAdapter] parse (via [ImportPipeline]), and the dedup-aware
+/// commit.
+///
+/// Implements the source-neutral [OnlineSearchService] so the screen / shell can
+/// drive it interchangeably with `CallersBoxOnline`.
+///
+/// Two transport differences from the Caller's Box flow:
+/// - **search** is an HTTP POST with a JSON body (ContraDB's `/api/v1/dances`),
+///   not a GET — handled by [fetchContraDbSearch]. ContraDB search is title-only
+///   ([OnlineSource.contraDb] has `supportsByPhrase == false`), so
+///   [OnlineSearchQuery.phrases] is ignored.
+/// - **import** reuses the EXISTING `contradb.com/dances/{id}` HTML-scrape path
+///   ([buildContraDbUrl] + [ContraDbHtmlAdapter]); ContraDB serves no per-dance
+///   JSON. The search result's id bridges search→import.
+///
+/// I/O is injected via seams so widget/unit tests never touch the network:
+/// [searchFetcher] returns canned results JSON and [htmlFetcher] returns canned
+/// per-dance HTML.
+class ContraDbOnline implements OnlineSearchService {
+  ContraDbOnline({
+    ContraDbSearchFetcher? searchFetcher,
+    UrlFetcher? htmlFetcher,
+  }) : _searchFetcher = searchFetcher ?? fetchContraDbSearch,
+       _htmlFetcher = htmlFetcher ?? fetchImportUrl;
+
+  final ContraDbSearchFetcher _searchFetcher;
+  final UrlFetcher _htmlFetcher;
+
+  @override
+  OnlineSource get source => OnlineSource.contraDb;
+
+  /// Searches ContraDB by [OnlineSearchQuery.title] (case-insensitive substring
+  /// match, server side) and returns the parsed result rows. Throws a
+  /// [UrlFetchException] (message safe to show) on any fetch failure, or when
+  /// there is nothing to search.
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
+    final title = query.title.trim();
+    if (title.isEmpty) {
+      throw const UrlFetchException('Enter a title to search ContraDB.');
+    }
+    final body = await _searchFetcher(title);
+    return [
+      for (final r in parseContraDbSearchResults(body))
+        OnlineSearchResultRow(
+          source: OnlineSource.contraDb,
+          id: r.id,
+          name: r.name,
+          author: r.author,
+          formation: r.formation,
+        ),
+    ];
+  }
+
+  /// Fetches the per-dance HTML for [result], parses it with
+  /// [ContraDbHtmlAdapter], and builds an [OnlinePreview] (detail data + dedupe
+  /// plan). Throws a [UrlFetchException] on a fetch failure or when the dance
+  /// can't be parsed.
+  @override
+  Future<OnlinePreview> loadPreview(
+    CompendiumRepositories repos,
+    OnlineSearchResultRow result, {
+    DateTime? now,
+  }) async {
+    final url = buildContraDbUrl(result.id);
+    final payload = await _htmlFetcher(url);
+
+    final pipeline = ImportPipeline(repos.dances, repos.choreographers);
+    final batch = await pipeline.plan(
+      ContraDbHtmlAdapter(),
+      ImportRequest(payload: payload, uri: url),
+    );
+    if (batch.records.isEmpty) {
+      final reason = batch.errors.isNotEmpty
+          ? batch.errors.first.message
+          : 'ContraDB returned no importable dance.';
+      throw UrlFetchException(reason);
+    }
+
+    final plan = batch.records.first;
+    final detail = _detailFor(plan.draft, now: now ?? DateTime.now().toUtc());
+    return OnlinePreview(result: result, detail: detail, plan: plan);
+  }
+
+  /// Commits [plan] into the local collection using the dedup-aware default
+  /// (identical policy to [CallersBoxOnline.import]): a brand-new dance is
+  /// created; an exact re-import match is reported as already-in-collection
+  /// (nothing written); a fuzzy near-match is imported as a new dance (the user
+  /// explicitly asked for this ContraDB dance).
+  ///
+  /// This is a strictly SINGLE-dance import (one previewed [plan]); the returned
+  /// [OnlineImportResult.danceCount] reflects that.
+  @override
+  Future<OnlineImportResult> import(
+    CompendiumRepositories repos,
+    ImportRecordPlan plan, {
+    DateTime? now,
+  }) async {
+    final title = plan.draft.dance.title;
+    if (plan.verdict.kind == DedupeKind.reimport) {
+      return OnlineImportResult(
+        kind: OnlineImportKind.alreadyInCollection,
+        title: title,
+        danceId: plan.verdict.targetDanceId,
+        danceCount: 1,
+      );
+    }
+
+    final resolutions = plan.verdict.kind == DedupeKind.ambiguous
+        ? {0: DedupeResolution.duplicate()}
+        : const <int, DedupeResolution>{};
+
+    final pipeline = ImportPipeline(repos.dances, repos.choreographers);
+    final session = await pipeline.commit(
+      ImportBatchResult(records: [plan]),
+      now: now ?? DateTime.now().toUtc(),
+      newId: uuidV4,
+      resolutions: resolutions,
+    );
+
+    final record = session.records.first;
+    if (!record.succeeded || record.danceId == null) {
+      throw UrlFetchException(
+        record.error?.message ?? "The ContraDB dance couldn't be imported.",
+      );
+    }
+    return OnlineImportResult(
+      kind: OnlineImportKind.created,
+      title: title,
+      danceId: record.danceId,
+      danceCount: session.committedCount,
+    );
+  }
+
+  /// Builds [DanceDetailData] for a non-persisted online dance from its parsed
+  /// [draft], attaching a synthetic ContraDB [Provenance] so the detail's
+  /// provenance line shows the "via ContraDB" attribution (the pipeline only
+  /// attaches provenance at commit, so the parsed dance carries none yet).
+  /// Mirrors [CallersBoxOnline]'s detail builder.
+  DanceDetailData _detailFor(StructuredDraft draft, {required DateTime now}) {
+    final raw = draft.raw;
+    final dance = draft.dance.copyWith(
+      provenance: Provenance(
+        source: raw.source,
+        externalId: raw.externalId,
+        importedAt: now,
+        permission: raw.permission,
+        license: raw.license,
+      ),
+    );
+    return DanceDetailData(
+      dance: dance,
+      authorNames: const [],
+      tagNames: const [],
+      customFields: const [],
+      relatedDanceTitles: const {},
+      sourcesById: const {},
+      callingHistory: const [],
+      crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
+    );
+  }
+}

@@ -8,9 +8,11 @@ import 'package:flutter/semantics.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
+import '../data/contradb_online.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/import_io.dart';
+import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -70,6 +72,7 @@ class DanceListScreen extends StatefulWidget {
     this.onSelectOnlineDance,
     this.selectedOnlineId,
     this.callersBoxOnline,
+    this.contraDbOnline,
   });
 
   /// Called with the tapped dance's id when the split-pane shell needs to
@@ -92,19 +95,21 @@ class DanceListScreen extends StatefulWidget {
   /// list itself stays layout-agnostic (mirrors [onSelectDance]).
   final VoidCallback? onImport;
 
-  /// Called with a tapped online (Caller's Box) result when the split-pane
-  /// shell owns the preview pane. Null ⇒ the list pushes its own preview route
-  /// (narrow mode).
-  final void Function(CallersBoxSearchResult result)? onSelectOnlineDance;
+  /// Called with a tapped online result when the split-pane shell owns the
+  /// preview pane. Null ⇒ the list pushes its own preview route (narrow mode).
+  final void Function(OnlineSearchResultRow result)? onSelectOnlineDance;
 
-  /// Caller's Box `id` of the currently previewed online result, for row
-  /// highlighting in split-pane mode. Has no effect when [onSelectOnlineDance]
-  /// is null.
+  /// Id of the currently previewed online result, for row highlighting in
+  /// split-pane mode. Has no effect when [onSelectOnlineDance] is null.
   final String? selectedOnlineId;
 
-  /// Online search + direct-import orchestration. Injected in tests with a
-  /// seam-backed instance; defaults to a network-backed [CallersBoxOnline].
+  /// The Caller's Box online search + direct-import service. Injected in tests
+  /// with a seam-backed instance; defaults to a network-backed [CallersBoxOnline].
   final CallersBoxOnline? callersBoxOnline;
+
+  /// The ContraDB online search + direct-import service. Injected in tests with
+  /// a seam-backed instance; defaults to a network-backed [ContraDbOnline].
+  final ContraDbOnline? contraDbOnline;
 
   @override
   State<DanceListScreen> createState() => _DanceListScreenState();
@@ -166,13 +171,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Object? _searchError;
   int _searchSeq = 0;
 
-  /// Online (Caller's Box) search state. Active only while [_onlineEnabled].
-  late CallersBoxOnline _online;
+  /// Online search state. Active only while [_onlineEnabled]. Two services are
+  /// held so the source selector can switch between them without re-injection;
+  /// [_online] resolves the currently selected one.
+  late CallersBoxOnline _callersBox;
+  late ContraDbOnline _contraDb;
+  OnlineSource _onlineSource = OnlineSource.callersBox;
   bool _onlineEnabled = false;
-  List<CallersBoxSearchResult> _onlineResults = const [];
+  List<OnlineSearchResultRow> _onlineResults = const [];
   bool _onlineSearching = false;
   String? _onlineError;
   int _onlineSeq = 0;
+
+  /// The online service for the currently selected [_onlineSource].
+  OnlineSearchService get _online =>
+      _onlineSource == OnlineSource.contraDb ? _contraDb : _callersBox;
 
   /// Guards the narrow-mode direct-import commit so a rapid double-tap of the
   /// preview Import button cannot commit the same plan twice.
@@ -219,7 +232,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
-      _online = widget.callersBoxOnline ?? CallersBoxOnline();
+      _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
+      _contraDb = widget.contraDbOnline ?? ContraDbOnline();
       widget.refreshTrigger?.addListener(_onRefreshTriggered);
       _boot();
     } else if (dialectChanged || ignoreArticlesChanged || enrichmentChanged) {
@@ -248,7 +262,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
       // Sync when the injected service changes, including when it is removed
       // (non-null -> null) so we revert to the default network-backed instance
       // rather than keeping the stale one.
-      _online = widget.callersBoxOnline ?? CallersBoxOnline();
+      _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
+    }
+    if (!identical(widget.contraDbOnline, oldWidget.contraDbOnline)) {
+      _contraDb = widget.contraDbOnline ?? ContraDbOnline();
     }
   }
 
@@ -422,9 +439,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
   }
 
-  /// Toggles online (Caller's Box) search mode. Turning it on runs an immediate
-  /// search if a query is present; turning it off clears the online results and
-  /// restores the local list.
+  /// Toggles online search mode. Turning it on runs an immediate search if a
+  /// query is present; turning it off clears the online results and restores the
+  /// local list.
   void _onOnlineToggled(bool value) {
     _debounceTimer?.cancel();
     setState(() {
@@ -436,11 +453,29 @@ class _DanceListScreenState extends State<DanceListScreen> {
       }
     });
     if (value) {
-      if (_ftsController.text.trim().isNotEmpty || _onlinePhrases() != null) {
+      if (_ftsController.text.trim().isNotEmpty ||
+          _effectivePhrases() != null) {
         _runOnlineSearch();
       }
     } else {
       _runSearch();
+    }
+  }
+
+  /// Switches the active online source (e.g. via the source selector). Clears
+  /// the current source's results/error and re-runs the search against the new
+  /// source when a query is present.
+  void _onOnlineSourceChanged(OnlineSource source) {
+    if (source == _onlineSource) return;
+    _debounceTimer?.cancel();
+    setState(() {
+      _onlineSource = source;
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineSearching = false;
+    });
+    if (_ftsController.text.trim().isNotEmpty || _effectivePhrases() != null) {
+      _runOnlineSearch();
     }
   }
 
@@ -457,13 +492,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
     return phrases.isEmpty ? null : phrases;
   }
 
-  /// Runs a live Caller's Box search for the current query text and/or by-phrase
-  /// figures. Guarded by a sequence number so a slow response can't overwrite a
-  /// newer query.
+  /// By-phrase criteria that actually apply to the active online source: `null`
+  /// for title-only sources ([OnlineSource.supportsByPhrase] == false, e.g.
+  /// ContraDB), so any residual by-phrase selection can't leak into a ContraDB
+  /// query or keep an empty search "active".
+  CallersBoxPhraseQuery? _effectivePhrases() =>
+      _onlineSource.supportsByPhrase ? _onlinePhrases() : null;
+
+  /// Runs a live search against the active online source for the current query
+  /// text and/or by-phrase figures. Guarded by a sequence number so a slow
+  /// response can't overwrite a newer query.
   Future<void> _runOnlineSearch() async {
-    final query = _ftsController.text.trim();
-    final phrases = _onlinePhrases();
-    if (query.isEmpty && phrases == null) {
+    final title = _ftsController.text.trim();
+    final phrases = _effectivePhrases();
+    if (title.isEmpty && phrases == null) {
       setState(() {
         _onlineResults = const [];
         _onlineError = null;
@@ -477,7 +519,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _onlineError = null;
     });
     try {
-      final results = await _online.search(query, phrases: phrases);
+      final results = await _online.search(
+        OnlineSearchQuery(title: title, phrases: phrases),
+      );
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlineResults = results;
@@ -493,7 +537,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     } catch (_) {
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
-        _onlineError = "Couldn't search The Caller's Box. Please try again.";
+        _onlineError =
+            "Couldn't search ${_onlineSource.label}. Please try again.";
         _onlineResults = const [];
         _onlineSearching = false;
       });
@@ -503,7 +548,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// Handles a tap on an online result. In split-pane mode the shell owns the
   /// preview pane ([onSelectOnlineDance]); in narrow mode the list fetches the
   /// dance and pushes a preview route itself.
-  void _onOnlineResultTap(CallersBoxSearchResult result) {
+  void _onOnlineResultTap(OnlineSearchResultRow result) {
     final onSelect = widget.onSelectOnlineDance;
     if (onSelect != null) {
       onSelect(result);
@@ -512,9 +557,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
   }
 
-  Future<void> _pushOnlinePreview(CallersBoxSearchResult result) async {
+  Future<void> _pushOnlinePreview(OnlineSearchResultRow result) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final sourceLabel = _onlineSource.label;
     // A blocking loader while the tapped dance's JSON is fetched + parsed.
     showDialog<void>(
       context: context,
@@ -525,7 +571,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       ),
     );
-    CallersBoxPreview preview;
+    OnlinePreview preview;
     try {
       preview = await _online.loadPreview(_repos, result);
     } on UrlFetchException catch (error) {
@@ -535,9 +581,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     } catch (_) {
       if (mounted) navigator.pop();
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text("Couldn't load that dance from The Caller's Box."),
-        ),
+        SnackBar(content: Text("Couldn't load that dance from $sourceLabel.")),
       );
       return;
     }
@@ -545,8 +589,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     navigator.pop();
     // The preview route pops with the import result once the user taps Import
     // (see [_importOnline]); a plain back gesture pops with null.
-    final imported = await navigator.push<CallersBoxImportResult>(
-      MaterialPageRoute<CallersBoxImportResult>(
+    final imported = await navigator.push<OnlineImportResult>(
+      MaterialPageRoute<OnlineImportResult>(
         builder: (_) => DanceDetailScreen.preview(
           data: preview.detail,
           onImport: () => _importOnline(preview),
@@ -570,7 +614,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     messenger.showSnackBar(
       SnackBar(
         key: const ValueKey('online-import-snackbar'),
-        content: Text(callersBoxImportMessage(imported)),
+        content: Text(onlineImportMessage(imported)),
       ),
     );
   }
@@ -579,7 +623,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// (dedup-aware). On success it pops the preview route, returning the outcome
   /// to [_pushOnlinePreview], which lands the user on the persisted dance. An
   /// [_importing] guard blocks a rapid double-tap before the commit resolves.
-  Future<void> _importOnline(CallersBoxPreview preview) async {
+  Future<void> _importOnline(OnlinePreview preview) async {
     if (_importing) return;
     _importing = true;
     final messenger = ScaffoldMessenger.of(context);
@@ -587,7 +631,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     try {
       final result = await _online.import(_repos, preview.plan);
       if (!mounted) return;
-      if (result.kind == CallersBoxImportKind.created) {
+      if (result.kind == OnlineImportKind.created) {
         CollectionRefreshScope.bump(context);
         _boot();
       }
@@ -599,7 +643,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         messenger.showSnackBar(
           SnackBar(
             key: const ValueKey('online-import-snackbar'),
-            content: Text(callersBoxImportMessage(result)),
+            content: Text(onlineImportMessage(result)),
           ),
         );
       }
@@ -985,7 +1029,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               labelText: _onlineEnabled
-                  ? "Search The Caller's Box"
+                  ? 'Search ${_onlineSource.label}'
                   : 'Search dances',
               hintText: _onlineEnabled
                   ? 'Search online dances by title…'
@@ -1012,13 +1056,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
                   // nothing to filter in an empty collection), so they're hidden
                   // in those cases. The Advanced panel stays — it hosts the
                   // "Online search" toggle, which must always be reachable.
-                  // Local facet filters can't apply to Caller's Box results, so
-                  // the Filters panel stays local-only. By-phrase, however, maps
-                  // onto TCB's own "search by phrase" fields, so it's offered in
-                  // online mode too (even with an empty local collection).
+                  // Local facet filters can't apply to online results, so the
+                  // Filters panel stays local-only. By-phrase maps onto TCB's
+                  // own "search by phrase" fields, so it's offered for the
+                  // Caller's Box source (even with an empty local collection);
+                  // it's hidden for title-only sources (ContraDB).
                   if (!_onlineEnabled && !collectionEmpty)
                     _buildFiltersPanel(data),
-                  if (_onlineEnabled || !collectionEmpty)
+                  if ((_onlineEnabled && _onlineSource.supportsByPhrase) ||
+                      (!_onlineEnabled && !collectionEmpty))
                     _buildByPhrasePanel(data),
                   _buildAdvancedPanel(data),
                   if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
@@ -1053,7 +1099,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
               const SizedBox(height: AppSpacing.md),
               const Text(
                 'Your collection is empty. Add or import a dance to get started — '
-                "or turn on Online search above to import from The Caller's Box.",
+                'or turn on Online search above to import from an online source.',
                 textAlign: TextAlign.center,
               ),
             ],
@@ -1154,12 +1200,36 @@ class _DanceListScreenState extends State<DanceListScreen> {
           secondary: const Icon(Icons.cloud_outlined),
           title: const Text('Online search'),
           subtitle: const Text(
-            "Search The Caller's Box online and import dances directly "
-            '(requires internet). Local filters do not apply.',
+            'Search online and import dances directly (requires internet). '
+            'Local filters do not apply.',
           ),
           value: _onlineEnabled,
           onChanged: _onOnlineToggled,
         ),
+        if (_onlineEnabled)
+          Padding(
+            padding: const EdgeInsets.only(
+              top: AppSpacing.xs,
+              bottom: AppSpacing.sm,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: SegmentedButton<OnlineSource>(
+                key: const ValueKey('online-source-selector'),
+                segments: [
+                  for (final source in OnlineSource.values)
+                    ButtonSegment<OnlineSource>(
+                      value: source,
+                      label: Text(source.label),
+                    ),
+                ],
+                selected: {_onlineSource},
+                showSelectedIcon: false,
+                onSelectionChanged: (selection) =>
+                    _onOnlineSourceChanged(selection.first),
+              ),
+            ),
+          ),
         SwitchListTile(
           key: const ValueKey('advanced-enable'),
           contentPadding: EdgeInsets.zero,
@@ -1225,9 +1295,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
-  /// Results sliver for online (Caller's Box) mode: a loading placeholder while
-  /// searching, a clear inline error on fetch failure, an empty-query hint, a
-  /// "no matches" message, or the [OnlineResultTile] rows.
+  /// Results sliver for online mode: a loading placeholder while searching, a
+  /// clear inline error on fetch failure, an empty-query hint, a "no matches"
+  /// message, or the [OnlineResultTile] rows.
   Widget _buildOnlineResultsSliver() {
     if (_onlineError != null) {
       return SliverToBoxAdapter(
@@ -1251,14 +1321,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (_ftsController.text.trim().isEmpty && _onlinePhrases() == null) {
-      return const SliverToBoxAdapter(
+    if (_ftsController.text.trim().isEmpty && _effectivePhrases() == null) {
+      final hint = _onlineSource.supportsByPhrase
+          ? 'Type a title or add by-phrase figures to search '
+                '${_onlineSource.label}.'
+          : 'Type a title to search ${_onlineSource.label}.';
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(
             child: Text(
-              "Type a title or add by-phrase figures to search The Caller's Box.",
-              key: ValueKey('online-empty-query'),
+              hint,
+              key: const ValueKey('online-empty-query'),
               textAlign: TextAlign.center,
             ),
           ),
@@ -1266,13 +1340,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
       );
     }
     if (_onlineResults.isEmpty) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(
             child: Text(
-              "No dances on The Caller's Box match your search.",
-              key: ValueKey('online-no-results'),
+              'No dances on ${_onlineSource.label} match your search.',
+              key: const ValueKey('online-no-results'),
               textAlign: TextAlign.center,
             ),
           ),

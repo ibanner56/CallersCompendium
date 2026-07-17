@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
+import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/search/collection_query.dart'
     show ByPhraseSelections;
 import 'package:compendium_core/compendium_core.dart';
@@ -297,8 +298,11 @@ void main() {
   group('CallersBoxOnline.search', () {
     test('fetches and parses the results page', () async {
       final online = CallersBoxOnline(searchFetcher: (_) async => _resultsHtml);
-      final results = await online.search('Money Musk');
+      final results = await online.search(
+        const OnlineSearchQuery(title: 'Money Musk'),
+      );
       expect(results, hasLength(1));
+      expect(results.single.source, OnlineSource.callersBox);
       expect(results.single.id, '10600');
       expect(results.single.name, 'Money Musk');
       expect(results.single.author, 'Traditional');
@@ -309,7 +313,10 @@ void main() {
       final online = CallersBoxOnline(
         searchFetcher: (_) async => throw const UrlFetchException('offline'),
       );
-      expect(online.search('x'), throwsA(isA<UrlFetchException>()));
+      expect(
+        online.search(const OnlineSearchQuery(title: 'x')),
+        throwsA(isA<UrlFetchException>()),
+      );
     });
   });
 
@@ -319,8 +326,9 @@ void main() {
       jsonFetcher: (_) async => json,
     );
 
-    CallersBoxSearchResult result({String id = '10600'}) =>
-        CallersBoxSearchResult(
+    OnlineSearchResultRow result({String id = '10600'}) =>
+        OnlineSearchResultRow(
+          source: OnlineSource.callersBox,
           id: id,
           name: 'Money Musk',
           author: 'Traditional',
@@ -351,7 +359,7 @@ void main() {
       final preview = await online.loadPreview(repos, result());
 
       final imported = await online.import(repos, preview.plan);
-      expect(imported.kind, CallersBoxImportKind.created);
+      expect(imported.kind, OnlineImportKind.created);
       expect(imported.danceId, isNotNull);
       // Single-dance import: the count guards the UI auto-open behavior.
       expect(imported.danceCount, 1);
@@ -373,7 +381,7 @@ void main() {
       expect(second.alreadyInCollection, isTrue);
 
       final imported = await online.import(repos, second.plan);
-      expect(imported.kind, CallersBoxImportKind.alreadyInCollection);
+      expect(imported.kind, OnlineImportKind.alreadyInCollection);
       expect(imported.danceCount, 1);
 
       // No silent duplicate was written.
@@ -382,21 +390,21 @@ void main() {
     });
   });
 
-  group('callersBoxImportMessage', () {
+  group('onlineImportMessage', () {
     test('created vs already-in-collection wording', () {
       expect(
-        callersBoxImportMessage(
-          const CallersBoxImportResult(
-            kind: CallersBoxImportKind.created,
+        onlineImportMessage(
+          const OnlineImportResult(
+            kind: OnlineImportKind.created,
             title: 'Money Musk',
           ),
         ),
         'Imported "Money Musk".',
       );
       expect(
-        callersBoxImportMessage(
-          const CallersBoxImportResult(
-            kind: CallersBoxImportKind.alreadyInCollection,
+        onlineImportMessage(
+          const OnlineImportResult(
+            kind: OnlineImportKind.alreadyInCollection,
             title: 'Money Musk',
           ),
         ),

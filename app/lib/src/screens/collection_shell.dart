@@ -1,9 +1,10 @@
-import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
+import '../data/contradb_online.dart';
 import '../data/import_io.dart';
+import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
@@ -39,6 +40,7 @@ class CollectionShell extends StatefulWidget {
     this.urlFetcher,
     this.importSources,
     this.callersBoxOnline,
+    this.contraDbOnline,
   });
 
   /// Test seam for choosing an import file; forwarded to [ImportReviewScreen].
@@ -54,10 +56,15 @@ class CollectionShell extends StatefulWidget {
   /// fake source list without real file-picking / network.
   final List<ImportSource>? importSources;
 
-  /// Online search + direct-import orchestration, shared by the list pane and
-  /// the detail-pane preview. Injected in tests with a seam-backed instance;
+  /// The Caller's Box online service, shared by the list pane and the
+  /// detail-pane preview. Injected in tests with a seam-backed instance;
   /// defaults to a network-backed [CallersBoxOnline].
   final CallersBoxOnline? callersBoxOnline;
+
+  /// The ContraDB online service, shared by the list pane and the detail-pane
+  /// preview. Injected in tests with a seam-backed instance; defaults to a
+  /// network-backed [ContraDbOnline].
+  final ContraDbOnline? contraDbOnline;
 
   /// Breakpoint (logical pixels) at which the split-pane layout activates.
   static const double splitBreakpoint = 900;
@@ -93,18 +100,25 @@ class _CollectionShellState extends State<CollectionShell> {
   late final List<ImportSource> _importSources =
       widget.importSources ?? defaultImportSources();
 
-  late final CallersBoxOnline _online =
+  late final CallersBoxOnline _callersBox =
       widget.callersBoxOnline ?? CallersBoxOnline();
+  late final ContraDbOnline _contraDb =
+      widget.contraDbOnline ?? ContraDbOnline();
+
+  /// Resolves the online service for a given [source], so a tapped result / its
+  /// preview is loaded and imported through the source it came from.
+  OnlineSearchService _serviceFor(OnlineSource source) =>
+      source == OnlineSource.contraDb ? _contraDb : _callersBox;
 
   /// Messenger for the detail pane. Snackbars from the online Import button must
   /// be shown here (not via the shell's own context, which sits above the two
   /// per-pane [ScaffoldMessenger]s and would find no Scaffold to attach to).
   final _detailMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
-  /// The currently previewed online (Caller's Box) dance in the detail pane,
-  /// plus its loading/error state. Meaningful only while [_detailMode] is
+  /// The currently previewed online dance in the detail pane, plus its
+  /// loading/error state. Meaningful only while [_detailMode] is
   /// [_DetailMode.onlinePreview].
-  CallersBoxPreview? _onlinePreview;
+  OnlinePreview? _onlinePreview;
   bool _onlinePreviewLoading = false;
   String? _onlinePreviewError;
   int _onlineSeq = 0;
@@ -166,7 +180,7 @@ class _CollectionShellState extends State<CollectionShell> {
   /// Fetches the tapped online result's full record and shows it in the detail
   /// pane. Guarded by a sequence number so a slow fetch can't overwrite a newer
   /// selection.
-  Future<void> _onSelectOnlineDance(CallersBoxSearchResult result) async {
+  Future<void> _onSelectOnlineDance(OnlineSearchResultRow result) async {
     final repos = RepositoriesScope.of(context);
     final seq = ++_onlineSeq;
     setState(() {
@@ -177,7 +191,9 @@ class _CollectionShellState extends State<CollectionShell> {
       _onlinePreviewLoading = true;
     });
     try {
-      final preview = await _online.loadPreview(repos, result);
+      final preview = await _serviceFor(
+        result.source,
+      ).loadPreview(repos, result);
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlinePreview = preview;
@@ -192,7 +208,8 @@ class _CollectionShellState extends State<CollectionShell> {
     } catch (_) {
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
-        _onlinePreviewError = "Couldn't load that dance from The Caller's Box.";
+        _onlinePreviewError =
+            "Couldn't load that dance from ${result.source.label}.";
         _onlinePreviewLoading = false;
       });
     }
@@ -207,15 +224,17 @@ class _CollectionShellState extends State<CollectionShell> {
   /// Navigating away from the preview also removes its Import button, so the
   /// commit can't be repeated; an [_importing] guard additionally blocks a rapid
   /// double-tap before the first commit resolves.
-  Future<void> _importOnline(CallersBoxPreview preview) async {
+  Future<void> _importOnline(OnlinePreview preview) async {
     if (_importing) return;
     _importing = true;
     final messenger = _detailMessengerKey.currentState;
     final repos = RepositoriesScope.of(context);
     try {
-      final result = await _online.import(repos, preview.plan);
+      final result = await _serviceFor(
+        preview.result.source,
+      ).import(repos, preview.plan);
       if (!mounted) return;
-      if (result.kind == CallersBoxImportKind.created) {
+      if (result.kind == OnlineImportKind.created) {
         CollectionRefreshScope.bump(context);
         _listRefresh.value++;
       }
@@ -234,7 +253,7 @@ class _CollectionShellState extends State<CollectionShell> {
       messenger?.showSnackBar(
         SnackBar(
           key: const ValueKey('online-import-snackbar'),
-          content: Text(callersBoxImportMessage(result)),
+          content: Text(onlineImportMessage(result)),
         ),
       );
     } on UrlFetchException catch (error) {
@@ -288,7 +307,8 @@ class _CollectionShellState extends State<CollectionShell> {
         // same seam is used in tests.
         return DanceListScreen(
           onImport: _pushImportRoute,
-          callersBoxOnline: _online,
+          callersBoxOnline: _callersBox,
+          contraDbOnline: _contraDb,
         );
       },
     );
@@ -311,7 +331,8 @@ class _CollectionShellState extends State<CollectionShell> {
               onImport: _onImport,
               onSelectOnlineDance: _onSelectOnlineDance,
               selectedOnlineId: _onlinePreview?.result.id,
-              callersBoxOnline: _online,
+              callersBoxOnline: _callersBox,
+              contraDbOnline: _contraDb,
             ),
           ),
         ),

@@ -1,12 +1,16 @@
-import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../data/online_search.dart';
 import '../theme/app_spacing.dart';
 
-/// One online **Caller's Box** search result row: the dance title, its author
-/// and formation, and a subtle "From The Caller's Box (online)" attribution.
+/// One online search result row: the dance title, its author and formation, and
+/// a subtle per-source "From … (online)" attribution.
 ///
-/// Deliberately simpler than the collection [DanceListTile]: an online result is
+/// Source-agnostic: it renders any [OnlineSearchResultRow] (Caller's Box or
+/// ContraDB) and takes its attribution line from [OnlineSource.attribution], so
+/// a new source needs no tile change.
+///
+/// Deliberately simpler than the collection `DanceListTile`: an online result is
 /// not yet in the collection, so it has no delete / duplicate / add-to-program
 /// actions. Tapping it ([onTap]) previews the dance (the caller fetches its full
 /// record and shows it in the detail pane / a preview route). [selected]
@@ -19,7 +23,7 @@ class OnlineResultTile extends StatelessWidget {
     this.selected = false,
   });
 
-  final CallersBoxSearchResult result;
+  final OnlineSearchResultRow result;
   final VoidCallback? onTap;
 
   /// Whether this row is the currently previewed result (split-pane highlight).
@@ -43,7 +47,7 @@ class OnlineResultTile extends StatelessWidget {
           if (subtitleParts.isNotEmpty) Text(subtitleParts.join(' • ')),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            "From The Caller's Box (online)",
+            result.source.attribution,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

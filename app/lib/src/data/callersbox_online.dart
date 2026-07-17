@@ -2,73 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 
 import '../search/dance_detail_data.dart';
 import 'import_io.dart';
-
-/// What a direct online import ended up doing (drives the result snackbar).
-enum CallersBoxImportKind {
-  /// A brand-new dance was written to the collection.
-  created,
-
-  /// The exact Caller's Box dance was already imported before; nothing written.
-  alreadyInCollection,
-}
-
-/// Outcome of [CallersBoxOnline.import].
-class CallersBoxImportResult {
-  const CallersBoxImportResult({
-    required this.kind,
-    required this.title,
-    this.danceId,
-    this.danceCount = 1,
-  });
-
-  final CallersBoxImportKind kind;
-  final String title;
-
-  /// Id of the imported dance for [CallersBoxImportKind.created], or the id of
-  /// the existing matching dance for [CallersBoxImportKind.alreadyInCollection]
-  /// when it can be resolved (an exact re-import carries its target id). `null`
-  /// when no dance id is available (e.g. an unresolved already-in-collection).
-  final String? danceId;
-
-  /// Number of dances this import created or matched. Always `1` for the
-  /// single-dance online-preview flow (it commits exactly one previewed dance).
-  /// The UI auto-opens the imported dance ONLY when this is exactly `1`, so the
-  /// "land on the imported dance" behavior can never fire for a multi-dance
-  /// result — multi-dance batch/URL imports go through `ImportReviewScreen`,
-  /// which keeps its result summary + Done affordance instead.
-  final int danceCount;
-}
-
-/// User-facing snackbar message for an online import [result]. Shared by the
-/// split-pane shell and the narrow-mode list so both report imports identically.
-String callersBoxImportMessage(CallersBoxImportResult result) =>
-    result.kind == CallersBoxImportKind.alreadyInCollection
-    ? '"${result.title}" is already in your collection.'
-    : 'Imported "${result.title}".';
-
-/// A Caller's Box dance loaded for preview in the detail pane, plus the planned
-/// import decision so the Import button can commit it without re-fetching.
-class CallersBoxPreview {
-  const CallersBoxPreview({
-    required this.result,
-    required this.detail,
-    required this.plan,
-  });
-
-  final CallersBoxSearchResult result;
-
-  /// Detail data for the (non-persisted) online dance, ready for
-  /// `DanceDetailScreen.preview`.
-  final DanceDetailData detail;
-
-  /// The dedup-aware plan (draft + verdict) for this dance.
-  final ImportRecordPlan plan;
-
-  /// Whether the exact Caller's Box dance is already in the local collection
-  /// (an exact `(source, externalId)` re-import match). The Import button uses
-  /// this to short-circuit to an "already in your collection" message.
-  bool get alreadyInCollection => plan.verdict.kind == DedupeKind.reimport;
-}
+import 'online_search.dart';
 
 /// App-layer orchestration for the **Caller's Box online search + direct import**
 /// feature. Ties together the search transport ([CallersBoxSearchFetcher]), the
@@ -76,10 +10,14 @@ class CallersBoxPreview {
 /// fetch ([UrlFetcher]) + [CallersBoxAdapter] parse (via [ImportPipeline]), and
 /// the dedup-aware commit.
 ///
+/// Implements the source-neutral [OnlineSearchService] so the screen / shell can
+/// drive it interchangeably with `ContraDbOnline`; the outcome and preview types
+/// ([OnlineImportResult] / [OnlinePreview]) are shared across sources.
+///
 /// I/O is injected via seams so widget/unit tests never touch the network:
 /// [searchFetcher] returns canned results HTML and [jsonFetcher] returns canned
 /// per-dance JSON.
-class CallersBoxOnline {
+class CallersBoxOnline implements OnlineSearchService {
   CallersBoxOnline({
     CallersBoxSearchFetcher? searchFetcher,
     UrlFetcher? jsonFetcher,
@@ -89,25 +27,37 @@ class CallersBoxOnline {
   final CallersBoxSearchFetcher _searchFetcher;
   final UrlFetcher _jsonFetcher;
 
-  /// Searches The Caller's Box by [title] and/or by-phrase figure [phrases] and
-  /// returns the parsed result rows. Title and phrase criteria combine (TCB
-  /// accepts both in one request). Throws a [UrlFetchException] (message safe to
-  /// show) on any fetch failure, or when there is nothing to search.
-  Future<List<CallersBoxSearchResult>> search(
-    String title, {
-    CallersBoxPhraseQuery? phrases,
-  }) async {
-    final url = buildCallersBoxSearchUrl(title, phrases: phrases);
+  @override
+  OnlineSource get source => OnlineSource.callersBox;
+
+  /// Searches The Caller's Box by [OnlineSearchQuery.title] and/or by-phrase
+  /// figure [OnlineSearchQuery.phrases] and returns the parsed result rows.
+  /// Title and phrase criteria combine (TCB accepts both in one request). Throws
+  /// a [UrlFetchException] (message safe to show) on any fetch failure, or when
+  /// there is nothing to search.
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
+    final url = buildCallersBoxSearchUrl(query.title, phrases: query.phrases);
     final html = await _searchFetcher(url);
-    return parseCallersBoxSearchResults(html);
+    return [
+      for (final r in parseCallersBoxSearchResults(html))
+        OnlineSearchResultRow(
+          source: OnlineSource.callersBox,
+          id: r.id,
+          name: r.name,
+          author: r.author,
+          formation: r.formation,
+        ),
+    ];
   }
 
-  /// Fetches the per-dance JSON for [result], parses it, and builds a
-  /// [CallersBoxPreview] (detail data + dedupe plan). Throws a
-  /// [UrlFetchException] on a fetch failure or when the dance can't be parsed.
-  Future<CallersBoxPreview> loadPreview(
+  /// Fetches the per-dance JSON for [result], parses it, and builds an
+  /// [OnlinePreview] (detail data + dedupe plan). Throws a [UrlFetchException]
+  /// on a fetch failure or when the dance can't be parsed.
+  @override
+  Future<OnlinePreview> loadPreview(
     CompendiumRepositories repos,
-    CallersBoxSearchResult result, {
+    OnlineSearchResultRow result, {
     DateTime? now,
   }) async {
     final jsonUrl = buildCallersBoxJsonUrl(result.id);
@@ -127,7 +77,7 @@ class CallersBoxOnline {
 
     final plan = batch.records.first;
     final detail = _detailFor(plan.draft, now: now ?? DateTime.now().toUtc());
-    return CallersBoxPreview(result: result, detail: detail, plan: plan);
+    return OnlinePreview(result: result, detail: detail, plan: plan);
   }
 
   /// Commits [plan] into the local collection using the dedup-aware default:
@@ -138,19 +88,18 @@ class CallersBoxOnline {
   ///   for this Caller's Box dance).
   ///
   /// This is a strictly SINGLE-dance import (one previewed [plan]); the returned
-  /// [CallersBoxImportResult.danceCount] reflects that so the UI can guard its
-  /// "land on the imported dance" behavior on a single-dance import. Multi-dance
-  /// batch/URL imports are not handled here — they go through the
-  /// [ImportPipeline] + `ImportReviewScreen` report flow.
-  Future<CallersBoxImportResult> import(
+  /// [OnlineImportResult.danceCount] reflects that so the UI can guard its
+  /// "land on the imported dance" behavior on a single-dance import.
+  @override
+  Future<OnlineImportResult> import(
     CompendiumRepositories repos,
     ImportRecordPlan plan, {
     DateTime? now,
   }) async {
     final title = plan.draft.dance.title;
     if (plan.verdict.kind == DedupeKind.reimport) {
-      return CallersBoxImportResult(
-        kind: CallersBoxImportKind.alreadyInCollection,
+      return OnlineImportResult(
+        kind: OnlineImportKind.alreadyInCollection,
         title: title,
         // The exact re-import verdict carries the existing dance's id so the UI
         // can open it in the detail pane instead of leaving the user to hunt.
@@ -179,8 +128,8 @@ class CallersBoxOnline {
         record.error?.message ?? "The Caller's Box dance couldn't be imported.",
       );
     }
-    return CallersBoxImportResult(
-      kind: CallersBoxImportKind.created,
+    return OnlineImportResult(
+      kind: OnlineImportKind.created,
       title: title,
       danceId: record.danceId,
       // Committed exactly this one previewed dance (single-record batch).

@@ -1,14 +1,16 @@
+import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
-import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-CallersBoxSearchResult _result({
+OnlineSearchResultRow _result({
+  OnlineSource source = OnlineSource.callersBox,
   String id = '10600',
   String name = 'Money Musk',
   String author = 'Traditional',
   String formation = 'Triple Minor - Proper',
-}) => CallersBoxSearchResult(
+}) => OnlineSearchResultRow(
+  source: source,
   id: id,
   name: name,
   author: author,
@@ -30,6 +32,18 @@ void main() {
     expect(find.text('Money Musk'), findsOneWidget);
     expect(find.text('Traditional • Triple Minor - Proper'), findsOneWidget);
     expect(find.text("From The Caller's Box (online)"), findsOneWidget);
+  });
+
+  testWidgets('renders the ContraDB attribution for a ContraDB row', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      OnlineResultTile(result: _result(source: OnlineSource.contraDb)),
+    );
+
+    expect(find.text('Money Musk'), findsOneWidget);
+    expect(find.text('From ContraDB (online)'), findsOneWidget);
   });
 
   testWidgets('omits the middle line when author and formation are empty', (
