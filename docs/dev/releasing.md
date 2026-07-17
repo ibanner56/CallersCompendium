@@ -313,6 +313,23 @@ the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.
 > job never changes the current release output and never publishes a
 > debug-signed APK.
 
+### Toolchain: build on JDK 21
+
+Build the signed release APK with **JDK 21**, not JDK 17. AGP 9.3.x's bundled
+Android Lint (IntelliJ `intellij-core` 32.3.x) ships a `JavaDocParser` that calls
+the JDK 21 API `java.util.List.removeLast()` (JEP 431, `SequencedCollection`) but is
+compiled to Java 8 bytecode, so the release-only `lintVitalAnalyzeRelease` gate
+throws `NoSuchMethodError` on **JDK < 21** while analyzing a dependency's inline
+Javadoc (e.g. the `file_selector_android` plugin) — which fails `flutter build apk
+--release`. Running Gradle on JDK 21 lets release lint run to completion.
+
+The release workflow's android leg pins JDK 21 for exactly this reason, so a
+maintainer building a signed release APK **locally** must likewise run on JDK 21
+(e.g. `JAVA_HOME=/path/to/jdk-21 flutter build apk --release`). The app still targets
+Java 17 bytecode (`sourceCompatibility`/`targetCompatibility`/`jvmTarget` = 17); only
+the JVM that runs Gradle/lint needs to be 21. Upstream:
+<https://issuetracker.google.com/issues/522845800>.
+
 ### `key.properties` fields
 
 `app/android/key.properties` is **gitignored** (along with `**/*.jks` /

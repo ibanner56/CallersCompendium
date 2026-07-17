@@ -191,14 +191,25 @@ jobs:
           sudo apt-get install -y ninja-build libgtk-3-dev
 
       # subosito/flutter-action does NOT install a JDK, and an Android Gradle
-      # build needs JDK 17. Only set it up when we're actually going to build a
-      # signed APK (android + secrets present).
-      - name: Set up JDK 17 (Temurin)
+      # build needs one. We pin JDK 21 (not 17) specifically because the release
+      # leg runs Android Lint's release-only `lintVitalAnalyzeRelease` task: AGP
+      # 9.3.x bundles a lint whose IntelliJ platform (intellij-core 32.3.x) ships
+      # a JavaDocParser that calls java.util.List.removeLast() — a JDK 21 API
+      # (JEP 431, SequencedCollection) — yet is compiled to Java 8 bytecode. It
+      # links but throws NoSuchMethodError on JDK < 21 while parsing any inline
+      # Javadoc tag (e.g. in the file_selector_android plugin), which is exactly
+      # what crashed `flutter build apk --release` here. Running Gradle on JDK 21
+      # resolves the method so release lint stays ENABLED and completes. See
+      # https://issuetracker.google.com/issues/522845800. The app still targets
+      # Java 17 bytecode (app/android/app/build.gradle.kts is unchanged); only the
+      # JVM that runs Gradle/lint is bumped. Only set it up when we're actually
+      # going to build a signed APK (android + secrets present).
+      - name: Set up JDK 21 (Temurin)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
