@@ -74,6 +74,12 @@ and produces no Android artifact.
 
 ## Cutting a release
 
+> **Before you tag, work through the [Release Checklist](release-checklist.md).**
+> Copy it into the release PR/issue (or the tracking notes) for the tag and check
+> every gate — version/metadata, data-safety migrations, Android signing, update
+> manifest, licensing, and a smoke test on a real build — or mark items N/A with a
+> reason. The steps below are the mechanics; the checklist is the gate.
+
 1. **Update `app/CHANGELOG.md`** so the release has real notes (this is what the
    draft's body is generated from — see
    [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Promote
