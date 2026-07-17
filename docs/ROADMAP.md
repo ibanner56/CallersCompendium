@@ -645,7 +645,7 @@ Motivating plugins (concrete asks driving the design):
   integration, so it requires the user to be **logged in to their ContraDB
   account** — unlike our read-only search + import, which needs no auth.
   ContraDB today runs plain Devise session auth with **no delegated-auth
-  surface** (no OAuth/OpenID provider, no token or API-key system; the only API
+  surface** (no OAuth/OIDC provider, no token or API-key system; the only API
   is anonymous read-only). So a publish plugin would either depend on an
   **upstream ContraDB change** to add OAuth/scoped tokens (the clean path) or
   fall back to insecure credential custody (password/session handling) — which
