@@ -364,6 +364,8 @@ final List<_Recognizer> _recognizers = [
   _longLines,
   _slice,
   _turnAlone,
+  _contraCorners,
+  _giveAndTake,
   _poussette,
   // No `_gate` recognizer — deliberately. TCB gate = clockwise or
   // counterclockwise or mirror + turn fraction (+ optional which-pair-forward
@@ -634,13 +636,61 @@ _Match? _promenade(List<String> w) {
   return _Match('promenade', {'who': ?who2, 'dir': ?dir});
 }
 
-/// Tier B: TCB writes "Shift left/right" for a slide along the set.
+/// Tier B: TCB writes "Shift left/right" *and* "Slide left/right" for a slide
+/// along the set (the Becket slide to the next couple). Both are the same
+/// `slide_along_set` move; TCB's "Slide right (past N)" spells the passed dancer
+/// in a `(past …)` annotation, which `_normalize` strips (all 25 surveyed
+/// "Slide" lines are this Becket slide, never a progression/other sense). A
+/// direction is required — a bare "shift"/"slide" is too ambiguous → custom.
 _Match? _shift(List<String> w) {
-  if (!_consumePhrase(w, ['shift'])) return null;
+  if (!_consumePhrase(w, ['shift']) && !_consumePhrase(w, ['slide'])) {
+    return null;
+  }
   final slide = _takeSide(w);
   _dropFiller(w);
   if (slide == null || w.isNotEmpty) return null;
   return _Match('slide_along_set', {'slide': slide});
+}
+
+/// Tier A: TCB writes "Men give-and-take partner" / "Men give-and-take
+/// neighbor" (hyphenated; TCB never spells the "give & take only" variant, so
+/// `give` stays on its `true` default). The LEADING role is the giver (`who`,
+/// restricted to role1s/role2s) and the TRAILING relationship is the target
+/// (`whom`). Both are stated in-text — nothing is defaulted from an annotation.
+/// A leading dancer outside role1s/role2s (or no leading role at all, which
+/// would misread the target as the giver) is rejected → custom rather than
+/// silently dropping choreography.
+_Match? _giveAndTake(List<String> w) {
+  final who = _takeDancer(w); // leading giver role
+  final isGiveTake =
+      _consumePhrase(w, ['give-and-take']) ||
+      _consumePhrase(w, ['give', 'and', 'take']);
+  if (!isGiveTake) return null;
+  final whom = _takeDancer(w); // trailing target relationship
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  // The giver's domain is role1s/role2s only. An explicit dancer outside that
+  // domain (or the accidental capture of the target as the giver when no role
+  // leads) must NOT be silently coerced to the default → fall back to custom.
+  if (who != null && who != 'role1s' && who != 'role2s') return null;
+  return _Match('give_and_take', {'who': ?who, 'whom': ?whom});
+}
+
+/// Tier A: TCB writes "Ones/Twos turn contra corners" (16 beats) — it ALWAYS
+/// names the turning couple. The leading dancer set maps to `who` and the
+/// identifying "turn" lead word is consumed. TCB never spells the embedded
+/// turning figure inline, so contra_corners' `custom` text stays empty (its
+/// taxonomy default). An explicit dancer set is REQUIRED: a bare "contra
+/// corners" is not an attested form, so defaulting `who` would fabricate the
+/// couple — it stays custom instead. Any leftover token also forces custom.
+_Match? _contraCorners(List<String> w) {
+  final who = _takeDancer(w);
+  _consumePhrase(w, ['turn']); // optional identifying "turn contra corners"
+  if (!_consumePhrase(w, ['contra', 'corners'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (who2 == null || w.isNotEmpty) return null;
+  return _Match('contra_corners', {'who': who2});
 }
 
 _Match? _longLines(List<String> w) {
