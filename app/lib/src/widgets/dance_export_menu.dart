@@ -74,9 +74,15 @@ class DanceExportMenu extends StatelessWidget {
     renderer: renderer,
   );
 
-  Future<void> _shareText() async {
+  Future<void> _shareText(Rect? origin) async {
     final share = shareInvoker ?? SharePlus.instance.share;
-    await share(ShareParams(text: _plainText(), subject: dance.title));
+    await share(
+      ShareParams(
+        text: _plainText(),
+        subject: dance.title,
+        sharePositionOrigin: origin,
+      ),
+    );
   }
 
   Future<void> _copyText(BuildContext context) async {
@@ -105,9 +111,22 @@ class DanceExportMenu extends StatelessWidget {
 
   Future<void> _onSelected(BuildContext context, _ExportAction action) async {
     final messenger = ScaffoldMessenger.of(context);
+    // Capture the button's screen position before any await: on desktop
+    // `share_plus` needs a `sharePositionOrigin` to anchor the native share
+    // popover, and the render tree may have moved on by the time the async
+    // gap resumes. A null box (e.g. not yet laid out) degrades gracefully —
+    // the share is still attempted, just without an anchor.
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null && box.hasSize
+        ? (box.localToGlobal(Offset.zero) & box.size)
+        : null;
     switch (action) {
       case _ExportAction.shareText:
-        await _guard(messenger, "Couldn't share this dance", _shareText);
+        await _guard(
+          messenger,
+          "Couldn't share this dance",
+          () => _shareText(origin),
+        );
       case _ExportAction.copyText:
         await _copyText(context);
       case _ExportAction.pdf:
@@ -126,7 +145,8 @@ class DanceExportMenu extends StatelessWidget {
   ) async {
     try {
       await action();
-    } on Exception catch (_) {
+    } on Exception catch (e, st) {
+      debugPrint('$failureMessage: $e\n$st');
       messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }

@@ -193,7 +193,8 @@ class _GeneralSectionState extends State<GeneralSection> {
   }
 
   /// Builds the whole-app backup and hands it to the save/share seam, then
-  /// stamps the last-backup time on success.
+  /// stamps the last-backup time on success. If the user cancels the native
+  /// save/share dialog, this is a clean no-op: no snackbar, no stamped time.
   Future<void> _onExportBackup() async {
     final messenger = ScaffoldMessenger.of(context);
     final repos = RepositoriesScope.of(context);
@@ -202,7 +203,8 @@ class _GeneralSectionState extends State<GeneralSection> {
       final service = BackupService(repos);
       final now = DateTime.now();
       final json = await service.exportToJson(createdAt: now);
-      await saver(json, _backupFileName(now));
+      final delivered = await saver(json, _backupFileName(now));
+      if (!delivered) return;
       await service.recordBackup(now);
       if (!mounted) return;
       setState(() {
@@ -210,7 +212,8 @@ class _GeneralSectionState extends State<GeneralSection> {
         _lastBackupAt = now.toUtc();
       });
       messenger.showSnackBar(const SnackBar(content: Text('Backup exported.')));
-    } on Exception catch (_) {
+    } on Exception catch (e, st) {
+      debugPrint('Backup export failed: $e\n$st');
       messenger.showSnackBar(
         const SnackBar(content: Text("Couldn't export a backup.")),
       );
@@ -258,7 +261,8 @@ class _GeneralSectionState extends State<GeneralSection> {
           ),
         ),
       );
-    } on Exception catch (_) {
+    } on Exception catch (e, st) {
+      debugPrint('Backup restore failed: $e\n$st');
       messenger.showSnackBar(
         const SnackBar(content: Text("Couldn't restore the backup.")),
       );

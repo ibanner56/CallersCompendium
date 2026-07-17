@@ -77,7 +77,10 @@ void main() {
     await _pumpGeneral(
       tester,
       repos,
-      saver: (json, name) async => capturedJson = json,
+      saver: (json, name) async {
+        capturedJson = json;
+        return true;
+      },
     );
 
     final button = find.byKey(const ValueKey('backup-export-button'));
@@ -94,6 +97,34 @@ void main() {
     );
     expect(find.text('Backup exported.'), findsOneWidget);
   });
+
+  testWidgets(
+    'cancelling the save/share dialog is a no-op (no snackbar, no stamp)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('d1', 'A Dance'));
+
+      var saverCalled = false;
+      await _pumpGeneral(
+        tester,
+        repos,
+        saver: (json, name) async {
+          saverCalled = true;
+          return false;
+        },
+      );
+
+      final button = find.byKey(const ValueKey('backup-export-button'));
+      expect(button, findsOneWidget);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+
+      expect(saverCalled, isTrue);
+      expect(find.text('Backup exported.'), findsNothing);
+      expect(find.text("Couldn't export a backup."), findsNothing);
+      expect(await repos.settings.get(kLastBackupAtKey), isNull);
+    },
+  );
 
   testWidgets('restore via pasted JSON replaces content and refreshes', (
     tester,
