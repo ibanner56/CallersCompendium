@@ -201,9 +201,9 @@ jobs:
       # what crashed `flutter build apk --release` here. Running Gradle on JDK 21
       # resolves the method so release lint stays ENABLED and completes. See
       # https://issuetracker.google.com/issues/522845800. The app still targets
-      # Java 17 bytecode (app/build.gradle.kts is unchanged); only the JVM that
-      # runs Gradle/lint is bumped. Only set it up when we're actually going to
-      # build a signed APK (android + secrets present).
+      # Java 17 bytecode (app/android/app/build.gradle.kts is unchanged); only the
+      # JVM that runs Gradle/lint is bumped. Only set it up when we're actually
+      # going to build a signed APK (android + secrets present).
       - name: Set up JDK 21 (Temurin)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
