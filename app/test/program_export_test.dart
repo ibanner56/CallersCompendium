@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
@@ -126,6 +127,36 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text("Couldn't share this set list"), findsOneWidget);
+    });
+
+    testWidgets('share receives a non-null sharePositionOrigin', (
+      tester,
+    ) async {
+      ShareParams? captured;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                ProgramExportMenu(
+                  program: _program(),
+                  titleFor: _titles,
+                  shareInvoker: (params) async => captured = params,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share set list (text)'));
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      expect(captured!.sharePositionOrigin, isNotNull);
     });
 
     testWidgets('surfaces a SnackBar when the PDF export throws', (

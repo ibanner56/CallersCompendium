@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/dance_pdf.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
@@ -217,6 +218,39 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text("Couldn't share this dance"), findsOneWidget);
+    });
+
+    testWidgets('share receives a non-null sharePositionOrigin', (
+      tester,
+    ) async {
+      ShareParams? captured;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance(),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  shareInvoker: (params) async => captured = params,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share dance (text)'));
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      expect(captured!.sharePositionOrigin, isNotNull);
     });
 
     testWidgets('surfaces a SnackBar when the PDF export throws', (
