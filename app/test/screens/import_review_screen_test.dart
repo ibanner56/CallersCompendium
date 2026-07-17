@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
@@ -7,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../support/fmp_fixture_builder.dart';
 import '../support/test_repositories.dart';
 
 Dance _dance(
@@ -36,6 +39,7 @@ Future<void> _pump(
   SourceAdapter Function()? adapterFactory,
   List<ImportSource>? sources,
   UrlFetcher? fetcher,
+  ImportBytePicker? bytePicker,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1000, 1600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -53,6 +57,7 @@ Future<void> _pump(
                 ),
               ],
           picker: () async => payload,
+          bytePicker: bytePicker,
           fetcher: fetcher,
         ),
       ),
@@ -731,6 +736,200 @@ void main() {
       // …then pastes a Caller's Box URL: the manual choice wins, no auto-flip.
       await typeUrl(tester, 'https://www.thecallersbox.com/dance.php?id=1');
       expect(selectedSource(tester).label, 'ContraDB');
+    });
+  });
+
+  group("Caller's Companion .USR import", () {
+    // A minimal but structurally real CC `.USR` byte image: two dances
+    // (external ids 4/7 → "Simplicity Swing", "Petronella"), one set whose
+    // Location becomes the program title ("Grange Hall"), and a SetItem
+    // referencing an absent dance (99) so a program note is produced.
+    Uint8List ccUsrBytes() => buildFmp12Fixture([
+      FmpFixtureTable(
+        index: 1,
+        name: 'Dance',
+        columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
+        rows: [
+          MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
+          MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
+        ],
+      ),
+      FmpFixtureTable(
+        index: 2,
+        name: 'Set',
+        columnNames: [
+          'zk_Set_ID',
+          'Date',
+          'Location',
+          'Band',
+          'Caller',
+          'Notes',
+        ],
+        rows: [
+          MapEntry(20, {
+            1: '1',
+            2: '3/14/2020',
+            3: 'Grange Hall',
+            4: 'The Band',
+            5: 'Jane',
+            6: 'a good night',
+          }),
+        ],
+      ),
+      FmpFixtureTable(
+        index: 3,
+        name: 'SetItem',
+        columnNames: [
+          'zk_Set_ID',
+          'zk_SetItem_ID',
+          'zk_Dance_ID',
+          'Order',
+          'Time',
+          'Break',
+        ],
+        rows: [
+          MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
+          MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
+          MapEntry(32, {1: '1', 2: '103', 4: '3', 6: 'Waltz break'}),
+          MapEntry(33, {1: '1', 2: '104', 3: '99', 4: '4'}),
+        ],
+      ),
+    ]);
+
+    List<ImportSource> sourcesFor(ImportBytePicker picker) => [
+      ImportSource(label: 'test JSON', adapterFactory: GenericJsonAdapter.new),
+      ImportSource(
+        label: "a Caller's Companion .USR file",
+        adapterFactory: CallersCompanionUsrAdapter.new,
+        bytePicker: picker,
+      ),
+    ];
+
+    Future<void> selectUsr(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('import-source-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("a Caller's Companion .USR file").last);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> chooseAndReview(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-continue')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the byte source shows a .USR file button, not URL/paste', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => ccUsrBytes()),
+        bytePicker: () async => ccUsrBytes(),
+      );
+
+      await selectUsr(tester);
+
+      expect(
+        find.byKey(const ValueKey('import-choose-usr-file')),
+        findsOneWidget,
+      );
+      // Text-only affordances are hidden for a binary source.
+      expect(find.byKey(const ValueKey('import-url-field')), findsNothing);
+      expect(find.byKey(const ValueKey('import-paste-field')), findsNothing);
+      expect(find.byKey(const ValueKey('import-choose-file')), findsNothing);
+    });
+
+    testWidgets('planning lists the .USR dances for review', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => ccUsrBytes()),
+        bytePicker: () async => ccUsrBytes(),
+      );
+
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+
+      expect(find.text('Simplicity Swing'), findsOneWidget);
+      expect(find.text('Petronella'), findsOneWidget);
+      expect(find.text('2 of 2 will be imported'), findsOneWidget);
+    });
+
+    testWidgets('committing persists dances AND programs and surfaces the '
+        'program names + notes', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => ccUsrBytes()),
+        bytePicker: () async => ccUsrBytes(),
+      );
+
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      // Result dialog surfaces both dances and programs.
+      expect(
+        find.byKey(const ValueKey('import-result-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('Created: 2'), findsOneWidget);
+      expect(find.text('Programs: 1'), findsOneWidget);
+      // Program name-level confirmation (the Set's Location).
+      expect(find.text('• Grange Hall'), findsOneWidget);
+      // The SetItem referencing an absent dance (99) produced a note.
+      expect(
+        find.byKey(const ValueKey('import-program-notes')),
+        findsOneWidget,
+      );
+
+      // Both dances and the program are actually in the database.
+      final dances = await repos.dances.listAll();
+      expect(
+        dances.map((d) => d.title),
+        containsAll(<String>['Simplicity Swing', 'Petronella']),
+      );
+      final programs = await repos.programs.listAll();
+      expect(programs, hasLength(1));
+      expect(programs.single.title, 'Grange Hall');
+    });
+
+    testWidgets('Undo reverts the imported dances AND programs', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => ccUsrBytes()),
+        bytePicker: () async => ccUsrBytes(),
+      );
+
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('import-undone-snackbar')),
+        findsOneWidget,
+      );
+      expect(await repos.dances.listAll(), isEmpty);
+      expect(await repos.programs.listAll(), isEmpty);
     });
   });
 
