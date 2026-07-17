@@ -443,6 +443,27 @@ int? _takePlaces(List<String> w) {
       }
     }
   }
+  // Compound "N & 1/4|1/2|3/4" turn amount (TCB writes "1 & 1/2"; `_normalize`
+  // maps `&`→"and"). `places` is an integer quarter-count (a full turn is 4),
+  // so places = N*4 + fractionPlaces. Only quarter fractions land on a whole
+  // place; eighth-turns ("1 & 1/8", "7/8") have no integer place and are left
+  // for the custom fallback — the place count is never rounded or fabricated.
+  const quarterPlaces = {'1/4': 1, '2/4': 2, '1/2': 2, '3/4': 3};
+  for (var i = 0; i + 1 < w.length; i++) {
+    final whole = int.tryParse(w[i]);
+    if (whole == null || whole < 1) continue;
+    // Bridge the "and" that `_normalize` leaves between whole and fraction.
+    final fracIdx = w[i + 1] == 'and' ? i + 2 : i + 1;
+    if (fracIdx >= w.length) continue;
+    final frac = quarterPlaces[w[fracIdx]];
+    if (frac == null) continue;
+    final places = whole * 4 + frac;
+    if (places < 1 || places > 10) continue;
+    var end = fracIdx + 1;
+    if (end < w.length && (w[end] == 'places' || w[end] == 'place')) end++;
+    w.removeRange(i, end);
+    return places;
+  }
   const byToken = {
     '1/4': 1,
     '2/4': 2,

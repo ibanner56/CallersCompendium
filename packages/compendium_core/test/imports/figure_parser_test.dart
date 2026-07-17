@@ -960,4 +960,98 @@ void main() {
       expect(sfFor(afterSections, 'circle').label, 'A2');
     });
   });
+
+  group('parseFigureLine — compound fraction places (integer-landing only)', () {
+    // TCB writes circle/star turn amounts as "N & 1/4|1/2|3/4" (`&`→"and" in
+    // `_normalize`). `places` is an integer quarter-count (a full turn is 4), so
+    // the amount maps to N*4 + fractionPlaces — pure arithmetic on the existing
+    // integer model. A line is structured ONLY when the amount lands on a whole
+    // place in 1..10; eighth-turns and over-range amounts stay custom (the place
+    // count is never rounded or clamped).
+    final structured = <String, ({String move, Map<String, Object?> params})>{
+      // 1 & 1/4 = 5 places (TCB "Star right 1 & 1/4 [with N2]"; bracket
+      // stripped for recognition).
+      'Star right 1 & 1/4 [with N2]': (
+        move: 'star',
+        params: {'hand': 'right', 'places': 5},
+      ),
+      'Star left 1 & 1/4': (
+        move: 'star',
+        params: {'hand': 'left', 'places': 5},
+      ),
+      // The un-abbreviated "and" spelling structures identically.
+      'Circle left 1 and 1/4': (
+        move: 'circle',
+        params: {'turn': 'left', 'places': 5},
+      ),
+      // 1 & 1/2 = 6 places.
+      'Circle left 1 & 1/2': (
+        move: 'circle',
+        params: {'turn': 'left', 'places': 6},
+      ),
+      // 1 & 3/4 = 7 places.
+      'Star right 1 & 3/4': (
+        move: 'star',
+        params: {'hand': 'right', 'places': 7},
+      ),
+      // 2 & 1/2 = 10 places — the top of the representable range.
+      'Circle left 2 & 1/2': (
+        move: 'circle',
+        params: {'turn': 'left', 'places': 10},
+      ),
+    };
+
+    structured.forEach((line, expected) {
+      test(
+        '"$line" → ${expected.move} places=${expected.params['places']}',
+        () {
+          final f = parseFigureLine(line);
+          expect(f, isNotNull, reason: line);
+          expect(f!.isCustom, isFalse, reason: line);
+          expect(f.move, expected.move, reason: line);
+          expected.params.forEach((k, v) {
+            expect(f.params[k], v, reason: '$line param $k');
+          });
+        },
+      );
+    });
+
+    // An eighth-turn ("1 & 1/8") has no integer place, so the amount is NOT
+    // recognized and the line stays custom — never rounded to a nearby place.
+    test('"Star left 1 & 1/8" (eighth-turn) → custom', () {
+      final f = parseFigureLine('Star left 1 & 1/8');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // A bare eighth fraction is likewise never mapped to a place.
+    test('"Star right 5/8" (eighth-turn) → custom', () {
+      final f = parseFigureLine('Star right 5/8');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // 3 & 1/2 = 14 places, past the 1..10 range: the amount is left unconsumed
+    // (never clamped to 10) so the line stays custom.
+    test('"Circle left 3 & 1/2" (over-range) → custom', () {
+      final f = parseFigureLine('Circle left 3 & 1/2');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // Regression: a bare quarter fraction still maps to a single place.
+    test('"Circle left 3/4" (single fraction) → 3 places', () {
+      final f = parseFigureLine('Circle left 3/4');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'circle');
+      expect(f.params['places'], 3);
+    });
+
+    // Regression: the allemande/do-si-do turn amount is a `turn` (double), not
+    // a `places` — the compound-places path must not bleed into it.
+    test('"Neighbor allemande left 1 & 1/2" stays a turn, no places', () {
+      final f = parseFigureLine('Neighbor allemande left 1 & 1/2');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'allemande');
+      expect(f.params['turn'], 1.5);
+      expect(f.params.containsKey('places'), isFalse);
+    });
+  });
 }
