@@ -872,11 +872,25 @@ void main() {
     );
 
     test('a malformed empty clause (`A;;B`) is NOT silently dropped — the line '
-        'declines to split and stays custom', () {
+        'declines to split and stays custom with full text preserved', () {
       final fs = parseFigureLines('Circle left 3/4;; turn alone', beats: 8);
       expect(fs, hasLength(1));
       expect(fs.single.isCustom, isTrue);
       expect(fs.single.beats, 8);
+      // Both would-be clauses survive verbatim in the custom text (nothing lost
+      // to the degenerate separator).
+      expect(fs.single.params['text'], contains('Circle left 3/4'));
+      expect(fs.single.params['text'], contains('turn alone'));
+    });
+
+    test('a whitespace-only middle clause (`A; ;B`) is likewise not dropped — '
+        'the line stays custom with full text preserved', () {
+      final fs = parseFigureLines('Circle left 3/4; ; turn alone', beats: 8);
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.beats, 8);
+      expect(fs.single.params['text'], contains('Circle left 3/4'));
+      expect(fs.single.params['text'], contains('turn alone'));
     });
 
     test('a lone trailing `;` is not a compound — the whole line structures as '
