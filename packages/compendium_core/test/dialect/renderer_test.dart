@@ -525,6 +525,21 @@ void main() {
         'everyone up the hall forward': Figure(move: 'up_the_hall'),
         'role2s hey right': Figure(move: 'hey'),
         'partners zig zag left': Figure(move: 'zig_zag'),
+        'petronella': Figure(move: 'petronella'),
+        'everyone Rory O\'More right': Figure(move: 'rory_o_more'),
+        'pull by along right': Figure(
+          move: 'pull_by_direction',
+          params: {'balance': true},
+        ),
+        'partners box circulate': Figure(
+          move: 'box_circulate',
+          params: {'balance': true},
+        ),
+        'neighbors pull by right': Figure(
+          move: 'pull_by_dancers',
+          params: {'balance': true},
+        ),
+        'long lines': Figure(move: 'long_lines'),
       };
       cases.forEach((expected, figure) {
         test('"$expected"', () {
@@ -669,6 +684,111 @@ void main() {
             d,
           ),
           'partners zig zag left, trailing two catching hands',
+        );
+      });
+    });
+
+    group('balance flag prefix (ContraDB "balance &")', () {
+      test(
+        'petronella (leading, default balance) → "balance & petronella"',
+        () {
+          expect(
+            renderer.renderSummary(Figure(move: 'petronella'), d),
+            'balance & petronella',
+          );
+        },
+      );
+      test('petronella balance:false drops the prefix', () {
+        final f = Figure(move: 'petronella', params: {'balance': false});
+        expect(renderer.renderSummary(f, d), 'petronella');
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      });
+      test('pull_by_direction (leading) surfaces balance when set', () {
+        final f = Figure(move: 'pull_by_direction', params: {'balance': true});
+        expect(renderer.renderSummary(f, d), 'balance & pull by along right');
+        // default (balance:false) is untouched.
+        final g = Figure(move: 'pull_by_direction');
+        expect(renderer.renderSummary(g, d), renderer.render(g, d));
+      });
+      test('rory_o_more (leading, balance before subject)', () {
+        expect(
+          renderer.renderSummary(Figure(move: 'rory_o_more'), d),
+          'balance & everyone Rory O\'More right',
+        );
+        final f = Figure(move: 'rory_o_more', params: {'balance': false});
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      });
+      test('box_circulate (leading) surfaces balance when set', () {
+        final f = Figure(move: 'box_circulate', params: {'balance': true});
+        expect(
+          renderer.renderSummary(f, d),
+          'balance & partners box circulate',
+        );
+        expect(
+          renderer.renderSummary(f, d, verbose: true),
+          'balance and partners box circulate',
+        );
+      });
+      test('box_circulate default (balance:false) is unchanged', () {
+        final f = Figure(move: 'box_circulate');
+        expect(renderer.renderSummary(f, d), 'partners box circulate');
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      });
+      test('pull_by_dancers (after-who) inserts balance before the move', () {
+        final f = Figure(move: 'pull_by_dancers', params: {'balance': true});
+        expect(
+          renderer.renderSummary(f, d),
+          'neighbors balance & pull by right',
+        );
+        expect(
+          renderer.renderSummary(f, d, verbose: true),
+          'neighbors balance and pull by right',
+        );
+        final g = Figure(move: 'pull_by_dancers');
+        expect(renderer.renderSummary(g, d), renderer.render(g, d));
+      });
+      test('verbose expands the connective to "balance and"', () {
+        expect(
+          renderer.renderSummary(Figure(move: 'petronella'), d, verbose: true),
+          'balance and petronella',
+        );
+      });
+      test('star_through (deferred) carries NO balance prefix', () {
+        final f = Figure(move: 'star_through', params: {'balance': true});
+        expect(renderer.renderSummary(f, d), 'partners star through');
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      });
+      test('box_the_gnat (deferred) carries NO balance prefix', () {
+        final f = Figure(move: 'box_the_gnat', params: {'balance': true});
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      });
+      test('square_through (excluded) carries NO balance prefix', () {
+        final f = Figure(move: 'square_through');
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      });
+    });
+
+    group('long_lines goBack direction', () {
+      test('default (goBack:true) reads "forward & back"', () {
+        expect(
+          renderer.renderSummary(Figure(move: 'long_lines'), d),
+          'long lines forward & back',
+        );
+      });
+      test('goBack:false reads "forward"', () {
+        final f = Figure(move: 'long_lines', params: {'goBack': false});
+        expect(renderer.renderSummary(f, d), 'long lines forward');
+      });
+      test('verbose swaps "&" for the spoken "and"', () {
+        expect(
+          renderer.renderSummary(Figure(move: 'long_lines'), d, verbose: true),
+          'long lines forward and back',
+        );
+        // "forward" has no connective, so both paths match.
+        final f = Figure(move: 'long_lines', params: {'goBack': false});
+        expect(
+          renderer.renderSummary(f, d, verbose: true),
+          renderer.renderSummary(f, d),
         );
       });
     });
