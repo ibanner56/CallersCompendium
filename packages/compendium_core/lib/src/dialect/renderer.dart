@@ -40,6 +40,78 @@ class FigureRenderer {
   String renderVerbose(Figure figure, Dialect dialect) =>
       _render(figure, dialect, verbose: true);
 
+  /// Display summary for [figure] under [dialect]: the terse [render] (or
+  /// [renderVerbose], when [verbose]) text plus the ContraDB-parity secondary
+  /// modifiers the terse `renderTemplate` deliberately omits — down/up-the-hall
+  /// and zig-zag `ender`, and hey `length`. These params otherwise render as
+  /// nothing (enders) or drop the length, so a caller reading the summary loses
+  /// information ContraDB's params→description rendering surfaces.
+  ///
+  /// This is a display-only path layered on top of [_render]; [renderCanonical]
+  /// (which feeds storage/search/dedupe) never calls it and stays byte-for-byte
+  /// unchanged. The appended wording is copied verbatim from ContraDB's
+  /// `libfigure` (`param.js` string functions), except `bendTheLine` — a
+  /// CallersBox-origin ender not present in ContraDB — which uses CallersBox's
+  /// own "bend the line" phrasing (see `docs/research/callersbox.md`). The
+  /// modifier phrases are fixed structural vocabulary (not role/move tokens),
+  /// so they are dialect-independent; the dialect-aware part is the [_render]
+  /// base, which already maps roles and move names under [dialect].
+  String renderSummary(Figure figure, Dialect dialect, {bool verbose = false}) {
+    final base = _render(figure, dialect, verbose: verbose);
+    if (figure.isCustom) return base;
+    if (taxonomy.resolve(figure.move) == null) return base;
+    final params = taxonomy.effectiveParams(figure);
+    final suffix = _summarySuffix(figure.move, params, verbose);
+    return suffix.isEmpty ? base : '$base$suffix';
+  }
+
+  /// The trailing secondary-modifier clause (connective included) appended by
+  /// [renderSummary] for [moveId], or the empty string when nothing is
+  /// surfaced. Only non-`none` enders and set hey lengths produce a clause.
+  /// For hey `half`/`full`, the visible path shows a compact parenthetical and
+  /// the spoken [verbose] path expands to ContraDB's "half hey"/"full hey"
+  /// comma clause (avoiding a "hey … hey" repetition on screen).
+  String _summarySuffix(
+    String moveId,
+    Map<String, Object?> params,
+    bool verbose,
+  ) {
+    switch (moveId) {
+      case 'down_the_hall':
+      case 'up_the_hall':
+        // ContraDB `upOrDownTheHallWords`: `words(..., sfacing, "and", sender)`.
+        final ender = params['ender'];
+        final label = ender is String ? _hallEnderLabels[ender] : null;
+        return label == null ? '' : ' and $label';
+      case 'zig_zag':
+        // ContraDB `zigZagWords`: a comma precedes the allemande ender only.
+        final ender = params['ender'];
+        if (ender == 'ring') return ' into a ring';
+        if (ender == 'allemande') return ', trailing two catching hands';
+        return '';
+      case 'hey':
+        // ContraDB renders `full`/`half` as a "half hey"/"full hey" phrase and
+        // the partial lengths as a trailing "until…" clause. On screen the
+        // half/full label is a compact parenthetical to avoid repeating "hey";
+        // the spoken path expands to the full ContraDB phrase. The "until…"
+        // clauses are identical in both paths.
+        switch (params['length']) {
+          case 'half':
+            return verbose ? ', half hey' : ' (half)';
+          case 'full':
+            return verbose ? ', full hey' : ' (full)';
+          case 'lessThanHalf':
+            return ' until someone meets';
+          case 'betweenHalfAndFull':
+            return ' until someone meets the second time';
+          default:
+            return '';
+        }
+      default:
+        return '';
+    }
+  }
+
   String _render(Figure figure, Dialect dialect, {bool verbose = false}) {
     if (figure.isCustom) {
       final text = (figure.params['text'] as String?)?.trim() ?? '';
@@ -217,9 +289,29 @@ class FigureRenderer {
     ).apply(text);
   }
 
+  /// ContraDB `libfigure` down/up-the-hall ender wording
+  /// (`param.js` `stringParamDownTheHallEnder`), keyed by our taxonomy token.
+  /// `none` is intentionally absent (renders no clause). `bendTheLine` is a
+  /// CallersBox-origin ender absent from ContraDB, so it uses CallersBox's
+  /// "bend the line" wording (`docs/research/callersbox.md`).
+  static const Map<String, String> _hallEnderLabels = {
+    'turnCouple': 'turn as a couple',
+    'turnAlone': 'turn alone',
+    'circle': 'bend into a ring',
+    'cozy': 'form a cozy line',
+    'cloverleaf': 'bend into a cloverleaf',
+    'threadNeedle': 'thread the needle',
+    'rightHandHigh': 'right hand high, left hand low',
+    'slidingDoors': 'slide doors',
+    'bendTheLine': 'bend the line',
+  };
+
+  /// ContraDB `libfigure` hey-length wording is emitted inline by
+  /// [_summarySuffix] (compact parenthetical on screen, "half hey"/"full hey"
+  /// or the "until…" clause when spoken), so no lookup table is needed here.
+
   static String _humanize(String token) =>
       token.replaceAll(_camelBoundary, ' ').toLowerCase();
-
   static String _collapseSpaces(String s) =>
       s.replaceAll(RegExp(r'\s+'), ' ').trim();
 
