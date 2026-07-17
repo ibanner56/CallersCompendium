@@ -13,7 +13,7 @@ issue, PR, or discussion for something exploitable.
   advisory. This keeps the report confidential and threads the whole
   conversation in one place.
 - **Fallback:** if you can't use that (or aren't sure it's enabled yet), email
-  the maintainer at **ibanner56@gmail.com** with "SECURITY" in the subject.
+  the maintainer at **isaac@banner.is** with "SECURITY" in the subject.
 
 Helpful things to include: what you found, how to reproduce it, the affected
 platform/version, and the impact you think it has. A proof of concept is great
