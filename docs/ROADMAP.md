@@ -566,7 +566,7 @@ taxonomy are unchanged.
 - [ ] 7.1 Packaging/signing for all platforms; update channel
   - Distribution & update-channel architecture — [ADR-002](adr/002-distribution-and-update-channels.md)
   - Update manifest hosting (A11c) is wired: the release pipeline publishes each channel's `stable.json` / `beta.json` to the `gh-pages` branch so the in-app update client's fixed URL resolves (cross-channel-preserving; see [releasing.md](dev/releasing.md#publishing-the-update-manifest-github-pages)). Enabling GitHub Pages is a one-time maintainer step (the client 404s gracefully until then).
-  - Signed Android APK: signing-config groundwork is in place (release `signingConfig` with debug fallback in `app/android/app/build.gradle.kts`, see [releasing.md](dev/releasing.md#android-signed-apk)); still requires (a) the maintainer to generate the upload keystore and add the four CI secrets, and (b) the `release.yml` Android build+sign+stage job (part 2).
+  - Signed Android APK: the release pipeline now builds, signs, and stages a universal APK (release `signingConfig` with debug fallback in `app/android/app/build.gradle.kts` + the `release.yml` android build+sign+stage leg, see [releasing.md](dev/releasing.md#android-signed-apk)). The only remaining maintainer step is generating the upload keystore and adding the four CI secrets; until then the android leg is a clean no-op that stages no artifact.
 - [ ] 7.2 User documentation
 - [ ] 7.3 Beta program with real callers; feedback triage
 
