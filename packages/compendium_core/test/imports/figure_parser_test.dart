@@ -134,6 +134,23 @@ void main() {
       'Go up the hall': (move: 'up_the_hall', params: {'ender': 'none'}),
       'Up the hall': (move: 'up_the_hall', params: {'ender': 'none'}),
       'Up hall': (move: 'up_the_hall', params: {'ender': 'none'}),
+      // TCB frames a foursome as "In a line of four, go down/up the hall
+      // (M1-W2-M2-W1)": the "(…)" dancer-order annotation is stripped by
+      // normalization, and the leading "In a line of four" formation clause is
+      // consumed (a line of four is the default hall formation, so dropping it
+      // does not change the move). "cozy" is an accepted qualifier.
+      'In a line of four, go down the hall (M1-W2-M2-W1)': (
+        move: 'down_the_hall',
+        params: {'ender': 'none'},
+      ),
+      'In a line of four, go up the hall (W2-W1-M1-M2)': (
+        move: 'up_the_hall',
+        params: {'ender': 'none'},
+      ),
+      'In a cozy line of four, go up the hall (M1-W2-M2-W1)': (
+        move: 'up_the_hall',
+        params: {'ender': 'none'},
+      ),
     };
 
     cases.forEach((line, expected) {
@@ -234,6 +251,17 @@ void main() {
       'down the hall four in line',
       'go down the hall and back',
       'up the hall and back',
+      // The "In a line of four" hall prefix is only consumed when it LEADS the
+      // line. A non-leading "line of four" (an unattested trailing form) is not
+      // stripped, so leftover tokens keep the line custom.
+      'go down the hall in a line of four',
+      // The leading "In a line of four" hall prefix IS consumed now, but the
+      // "forward and back" formation variants are DELIBERATELY excluded: a big
+      // ring and lines-of-four are distinct formations from long lines, so
+      // folding them into `long_lines` would assert a formation the source did
+      // not state. They stay custom pending a source-justified model.
+      'In a big ring, go forward and back',
+      'In lines of four, go forward and back',
       // "Rory O'More" IS recognised now, but trailing structure (a second move)
       // or an out-of-domain dancer set forces custom:
       "Rory O'More and swing",

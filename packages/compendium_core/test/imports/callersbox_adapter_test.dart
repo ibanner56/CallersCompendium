@@ -437,7 +437,7 @@ void main() {
           jsonEncode(
             _dance(
               phrases: [
-                _phrase('A2', ['(6) In a line of four, go down the hall']),
+                _phrase('A2', ['(6) In a big ring, go forward and back']),
                 _phrase('B2', ['(2) Bend the line', '(8) Star left 1']),
               ],
             ),
@@ -446,7 +446,7 @@ void main() {
         expect(draft.dance.figures[0].isCustom, isTrue);
         expect(
           _text(draft.dance.figures[0]),
-          'In a line of four, go down the hall',
+          'In a big ring, go forward and back',
         );
         expect(draft.dance.figures[1].isCustom, isTrue);
         expect(_text(draft.dance.figures[1]), 'Bend the line');
@@ -744,7 +744,7 @@ void main() {
 
       test('a bend never folds into a custom (unrecognised) hall', () async {
         final figures = await figuresFor([
-          '(6) In a line of four, go down the hall',
+          '(6) Go down the hall and back',
           '(2) Bend the line',
         ]);
         expect(figures, hasLength(2));
@@ -837,14 +837,15 @@ void main() {
         expect(draft.dance.authorIds, isEmpty);
         expect(draft.authorNames, ['Gene Hubert']);
         expect(draft.dance.callingNotes, isNot(contains('Gene Hubert')));
-        // 9 figures: A1's balance folds into the following swing (PR3b), so the
-        // 10 source lines across A1/A2/B1/B2 collapse to 9.
-        expect(draft.dance.figures, hasLength(9));
+        // 8 figures: A1's balance folds into the following swing (PR3b), and in
+        // A2 both "in a line of four" halls now structure (PR3) with the
+        // trailing "Bend the line" folding into the up-the-hall (PR3b), so the
+        // 10 source lines across A1/A2/B1/B2 collapse to 8.
+        expect(draft.dance.figures, hasLength(8));
         // Recognised lines structure (the balance-and-swing, swings, circle,
-        // star, and the chain-to-neighbor line); only A2's four
-        // hall/turn-as-couples/bend lines stay custom (its halls carry an "in a
-        // line of four" prefix → custom → no bend fold).
-        expect(draft.dance.figures.where((f) => f.isCustom), hasLength(4));
+        // star, chain-to-neighbor, and both A2 halls with their "in a line of
+        // four" prefix). Only A2's "Neighbor turn as couples" stays custom.
+        expect(draft.dance.figures.where((f) => f.isCustom), hasLength(1));
         // "Ladies chain to neighbor" (phrase B2) now structures as a chain with
         // the "to neighbor" target preserved as a Figure note.
         final chain = draft.dance.figures.firstWhere((f) => f.move == 'chain');

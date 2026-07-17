@@ -905,12 +905,39 @@ _Match? _roryOMore(List<String> w) {
   });
 }
 
+/// Consumes an optional LEADING "[In] [a] [cozy] line of four" formation clause
+/// that TCB puts before a down/up-the-hall figure (across the corpus:
+/// "In a line of four, go down the hall (M1-W2-M2-W1)"). A line of four is the
+/// DEFAULT formation for a hall figure, so — exactly like the stripped
+/// dancer-order annotation "(M1-W2-M2-W1)" — dropping it does not change the
+/// move (down_the_hall/up_the_hall carry no formation param). The clause is
+/// stripped ONLY when it leads the line: every token before "line of four" must
+/// be part of the allowed framing (in / a / an / the / cozy). A "line of four"
+/// that appears mid-line (belonging to some other construction) is left in
+/// place, so the recognizer never structures a line it wasn't meant to cover.
+void _consumeLineOfFour(List<String> w) {
+  const framing = {'in', 'a', 'an', 'the', 'cozy'};
+  var i = 0;
+  while (i < w.length && framing.contains(w[i])) {
+    i++;
+  }
+  if (i + 3 <= w.length &&
+      w[i] == 'line' &&
+      w[i + 1] == 'of' &&
+      w[i + 2] == 'four') {
+    w.removeRange(0, i + 3);
+  }
+}
+
 /// Tier A: TCB writes "Go down the hall" / "Down the hall" (dance ids 10945,
-/// 11239, 12001). An optional leading "go" and an optional dancer set are
-/// consumed. The "the" is optional, so the shorter alias "down hall" is also
-/// accepted. A descriptor that changes the move — "and back"
-/// (forward-then-backward) or "four in line" — is left as leftover, so those
-/// lines stay custom.
+/// 11239, 12001), and frames a foursome as "In a line of four, go down the
+/// hall" — the optional leading formation clause is consumed by
+/// [_consumeLineOfFour] (a line of four is the default hall formation). An
+/// optional leading "go" and an optional dancer set are also consumed, and the
+/// "the" is optional so the shorter alias "down hall" is accepted. A TRAILING
+/// descriptor that changes the move — "and back" (forward-then-backward) or a
+/// "four in line" that is not the leading "line of four" clause — is left as
+/// leftover, so those lines stay custom.
 ///
 /// We emit `ender: 'none'` EXPLICITLY for import fidelity. TCB writes the ender
 /// as a SEPARATE following line (the bend-the-line cross-line proof, ids
@@ -920,6 +947,7 @@ _Match? _roryOMore(List<String> w) {
 /// ender when it IS on the next line. `none` = "ender not determined on this
 /// line"; PR3b's cross-line merge upgrades `none`→`bendTheLine`.
 _Match? _downTheHall(List<String> w) {
+  _consumeLineOfFour(w);
   final who = _takeDancer(w);
   _consumePhrase(w, ['go']);
   if (!_consumePhrase(w, ['down', 'the', 'hall']) &&
@@ -938,6 +966,7 @@ _Match? _downTheHall(List<String> w) {
 /// same reason (up_the_hall's MoveDef defaults `circle`; DO NOT restore that
 /// default here — PR3b's merge sets the real ender).
 _Match? _upTheHall(List<String> w) {
+  _consumeLineOfFour(w);
   final who = _takeDancer(w);
   _consumePhrase(w, ['go']);
   if (!_consumePhrase(w, ['up', 'the', 'hall']) &&
