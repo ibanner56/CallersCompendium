@@ -59,6 +59,9 @@
 - name: "area: collection"
   color: "0E8A16"
   description: "The dance collection / library"
+- name: "area: dance_entry"
+  color: "216E39"
+  description: "Dance editor and figure entry UX"
 - name: "area: programs"
   color: "18A02A"
   description: "Building and managing dance programs"
@@ -109,6 +112,9 @@
 - name: "status: wont-fix"
   color: "C9B6F5"
   description: "Valid but will not be addressed"
+- name: "status: duplicate"
+  color: "7E57D6"
+  description: "Already tracked by another issue or PR"
 
 # --- platform: OS-specific reports (teal/cyan) -------------------------------
 - name: "platform: linux"
@@ -143,3 +149,16 @@
 - name: "good first issue"
   color: "7057FF"
   description: "Good for newcomers / first-time contributors"
+- name: "help wanted"
+  color: "E3A008"
+  description: "Extra attention or a contributor is welcome"
+
+# --- automation: dependency & CI maintenance (neutral gray) ------------------
+# Applied by Dependabot (or manually) to update PRs; hueless so they read as
+# routine maintenance rather than triage signal.
+- name: "dependencies"
+  color: "CFD3D7"
+  description: "Automated dependency updates"
+- name: "github_actions"
+  color: "CFD3D7"
+  description: "GitHub Actions workflow updates"
