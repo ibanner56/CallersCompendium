@@ -1,5 +1,9 @@
+import 'package:collection/collection.dart';
+
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart' show roleTokens;
+
+const MapEquality<Object?, Object?> _mapEq = MapEquality<Object?, Object?>();
 
 /// Always-on, dialect-agnostic reverse-synonym maps used to enrich a *search*
 /// query so a user's saved-dialect vocabulary resolves regardless of which
@@ -72,6 +76,16 @@ class SearchEnrichment {
       moveSynonyms: moves.build(),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is SearchEnrichment &&
+      _mapEq.equals(other.roleSynonyms, roleSynonyms) &&
+      _mapEq.equals(other.moveSynonyms, moveSynonyms);
+
+  @override
+  int get hashCode =>
+      Object.hash(_mapEq.hash(roleSynonyms), _mapEq.hash(moveSynonyms));
 }
 
 /// Accumulates `display → canonical` mappings across dialects, dropping any
