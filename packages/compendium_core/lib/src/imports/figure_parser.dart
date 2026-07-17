@@ -916,6 +916,10 @@ _Match? _hey(String scrubbed) {
       sawHey = true;
       continue;
     }
+    // "Ricochet hey" names the variant; the actual ricochet flags are decoded
+    // from the pass list, so a leading/standalone "ricochet" word here carries
+    // no extra structure and is ignored.
+    if (word == 'ricochet') continue;
     if (_filler.contains(word)) continue;
     final len = _heyLength[word];
     if (len != null) {

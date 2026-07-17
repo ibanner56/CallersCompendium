@@ -322,6 +322,39 @@ void main() {
       expect(p.params['pass2'], 'neighbors'); // pos2 NR
       expect(p.params['shoulder'], 'left'); // pos2 even, R => base left
     });
+
+    // Real TCB fixtures (dances 16101 / 10394): "Ricochet hey" names the
+    // variant, the ricochet lands at pass position 3 => rico2.
+    test('real TCB fixture: Ricochet hey 1/2 (ML;PR;W ricochet)', () {
+      final f = parseFigureLine('Ricochet hey 1/2 (ML;PR;W ricochet)');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'hey');
+      expect(f.params['length'], 'half');
+      expect(f.params['pass1'], 'role1s'); // ML
+      expect(f.params['shoulder'], 'left'); // code1 L
+      expect(f.params['pass2'], 'partners'); // PR
+      expect(f.params['rico2'], true);
+      for (final r in ['rico1', 'rico3', 'rico4']) {
+        expect(f.params[r], isNull, reason: r);
+      }
+    });
+
+    test(
+      'real TCB fixture: Ricochet hey 1/2 (WR;PL;M ricochet;PL~) — ~ dropped',
+      () {
+        final f = parseFigureLine('Ricochet hey 1/2 (WR;PL;M ricochet;PL~)');
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'hey');
+        expect(f.params['length'], 'half');
+        expect(f.params['pass1'], 'role2s'); // WR
+        expect(f.params['shoulder'], 'right'); // code1 R
+        expect(f.params['pass2'], 'partners'); // PL
+        expect(f.params['rico2'], true); // M ricochet at pos3
+        for (final r in ['rico1', 'rico3', 'rico4']) {
+          expect(f.params[r], isNull, reason: r);
+        }
+      },
+    );
   });
 
   group('parseFigureLine — preservation', () {
