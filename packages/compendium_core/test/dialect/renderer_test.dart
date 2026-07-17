@@ -529,7 +529,10 @@ void main() {
       cases.forEach((expected, figure) {
         test('"$expected"', () {
           expect(renderer.renderCanonical(figure), expected);
-          // The summary adds display-only text but the canonical text stays put.
+          // Exercising the display summary (both flavors) must not disturb the
+          // canonical text that feeds search/dedupe.
+          renderer.renderSummary(figure, d);
+          renderer.renderSummary(figure, d, verbose: true);
           expect(renderer.renderCanonical(figure), expected);
         });
       });
@@ -622,6 +625,17 @@ void main() {
         expect(
           s('betweenHalfAndFull'),
           'role2s hey right - until someone meets the second time',
+        );
+      });
+      test('verbose path uses a spoken comma, not a dash', () {
+        final f = Figure(move: 'hey', params: {'length': 'full'});
+        expect(
+          renderer.renderSummary(f, d, verbose: true),
+          isNot(contains(' - ')),
+        );
+        expect(
+          renderer.renderSummary(f, d, verbose: true),
+          'role2s hey right, full hey',
         );
       });
     });

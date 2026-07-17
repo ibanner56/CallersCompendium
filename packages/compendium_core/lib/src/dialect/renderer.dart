@@ -61,14 +61,20 @@ class FigureRenderer {
     if (figure.isCustom) return base;
     if (taxonomy.resolve(figure.move) == null) return base;
     final params = taxonomy.effectiveParams(figure);
-    final suffix = _summarySuffix(figure.move, params);
+    final suffix = _summarySuffix(figure.move, params, verbose);
     return suffix.isEmpty ? base : '$base$suffix';
   }
 
   /// The trailing secondary-modifier clause (connective included) appended by
   /// [renderSummary] for [moveId], or the empty string when nothing is
   /// surfaced. Only non-`none` enders and set hey lengths produce a clause.
-  String _summarySuffix(String moveId, Map<String, Object?> params) {
+  /// [verbose] swaps the hey length's ContraDB-matching `-` separator for a
+  /// spoken-friendly comma so a screen reader doesn't announce "dash".
+  String _summarySuffix(
+    String moveId,
+    Map<String, Object?> params,
+    bool verbose,
+  ) {
     switch (moveId) {
       case 'down_the_hall':
       case 'up_the_hall':
@@ -86,9 +92,11 @@ class FigureRenderer {
         // ContraDB renders `full`/`half` as a "half hey"/"full hey" phrase and
         // the partial lengths as a trailing "until…" clause; the terse template
         // can't reorder, so the exact wording is appended after the base line.
+        // The visible path keeps ContraDB's `-` separator; the spoken/verbose
+        // path uses a comma pause instead.
         final length = params['length'];
         final label = length is String ? _heyLengthLabels[length] : null;
-        return label == null ? '' : ' - $label';
+        return label == null ? '' : '${verbose ? ',' : ' -'} $label';
       default:
         return '';
     }
