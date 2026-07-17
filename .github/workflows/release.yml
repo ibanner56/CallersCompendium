@@ -145,17 +145,60 @@ jobs:
           - platform: windows
             arch: x64
             os: windows-latest
+          # Android ships a single signed universal (fat) APK. The name matches
+          # the client's UpdateArch.universal and gen_release_metadata's
+          # _EXT_PRIORITY['android']==['apk'], so the manifest entry + SHA256SUMS
+          # are produced automatically. This leg is a clean NO-OP that still
+          # succeeds when the signing secrets are absent (see the gate below), so
+          # merging never changes the current release output and never publishes
+          # a debug-signed APK.
+          - platform: android
+            arch: universal
+            os: ubuntu-latest
     runs-on: ${{ matrix.os }}
     env:
       VERSION: ${{ needs.meta.outputs.version }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
+      # Android signing gate. `secrets` context is NOT allowed in a step-level
+      # `if:`, so read the keystore secret via `env:` here and export a plain
+      # step output (`signing=configured|missing`) that the android build/package
+      # steps below gate on. When the secret is absent (secrets not yet added by
+      # the maintainer) the android leg is a clean no-op: it stages NO apk and
+      # still succeeds. `mkdir -p dist` keeps the shared "List/Upload" steps happy
+      # on that skip path.
+      - name: Determine Android signing availability
+        if: matrix.platform == 'android'
+        id: android_signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "signing=configured" >> "$GITHUB_OUTPUT"
+            echo "Android signing secrets configured; building + staging a signed APK."
+          else
+            echo "signing=missing" >> "$GITHUB_OUTPUT"
+            echo "::notice::Android signing secrets not configured; skipping Android release artifact"
+          fi
+
       - name: Install Linux desktop dependencies
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgtk-3-dev
+
+      # subosito/flutter-action does NOT install a JDK, and an Android Gradle
+      # build needs JDK 17. Only set it up when we're actually going to build a
+      # signed APK (android + secrets present).
+      - name: Set up JDK 17 (Temurin)
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
@@ -280,6 +323,58 @@ jobs:
             packaging\windows\CallersCompendium.iss
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
 
+      # --- Android: signed universal APK -----------------------------------
+      # Reconstruct the upload keystore + key.properties from repo secrets at
+      # runtime, under app/android/ (already gitignored). Secrets are passed via
+      # `env:` and never interpolated into the `run:` script, so they can't leak
+      # into the build log. app/android/app/build.gradle.kts then picks up the
+      # release signingConfig because key.properties now exists (each field is
+      # `?: error(...)`, so a misconfigured secret fails the build loudly rather
+      # than silently producing a debug-signed APK).
+      - name: Reconstruct Android signing config
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          # If the keystore secret is configured, all four must be present — fail
+          # fast with a clear message rather than writing an empty field that
+          # would surface as a confusing Gradle signing error later. (The message
+          # names only the variable, never the value.)
+          : "${ANDROID_KEYSTORE_PASSWORD:?ANDROID_KEYSTORE_PASSWORD secret is empty/unset}"
+          : "${ANDROID_KEY_PASSWORD:?ANDROID_KEY_PASSWORD secret is empty/unset}"
+          : "${ANDROID_KEY_ALIAS:?ANDROID_KEY_ALIAS secret is empty/unset}"
+          # storeFile is relative, so build.gradle.kts (rootProject.file) anchors
+          # it at app/android/ next to key.properties.
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > app/android/callerscompendium-upload.jks
+          # key.properties is a java.util.Properties file, where backslashes are
+          # escape chars; double them so a value with a backslash round-trips
+          # verbatim. Output is redirected to the file (never echoed to the log).
+          esc() { printf '%s' "$1" | sed 's/\\/\\\\/g'; }
+          {
+            printf '%s\n' "storeFile=callerscompendium-upload.jks"
+            printf '%s\n' "storePassword=$(esc "$ANDROID_KEYSTORE_PASSWORD")"
+            printf '%s\n' "keyPassword=$(esc "$ANDROID_KEY_PASSWORD")"
+            printf '%s\n' "keyAlias=$(esc "$ANDROID_KEY_ALIAS")"
+          } > app/android/key.properties
+
+      - name: Build Android release APK (signed)
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        working-directory: app
+        run: flutter build apk --release
+
+      - name: Package Android (signed APK)
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        run: |
+          set -euo pipefail
+          # `flutter build apk --release` emits a universal (fat) APK here.
+          apk="app/build/app/outputs/flutter-apk/app-release.apk"
+          mkdir -p dist
+          cp "$apk" "dist/CallersCompendium-${VERSION}-android-universal.apk"
+
       - name: List packaged artifacts
         run: ls -l dist
 
@@ -288,7 +383,10 @@ jobs:
         with:
           name: dist-${{ matrix.platform }}
           path: dist/
-          if-no-files-found: error
+          # Desktop legs must always stage binaries (error on empty). The android
+          # leg is a no-op when signing secrets are absent, so it tolerates an
+          # empty dist/ (no dist-android artifact is uploaded, step still passes).
+          if-no-files-found: ${{ matrix.platform == 'android' && 'ignore' || 'error' }}
           retention-days: 7
 
   # Draft-release publish. ONLY this job gets write scopes, and it runs ONLY for

@@ -3,12 +3,14 @@
 This is the operator runbook for cutting a desktop release. It documents the
 `.github/workflows/release.yml` pipeline added in Wave-1 (ADR-002 layers A6/A7).
 
-> **Scope of this wave.** Builds are **UNSIGNED** and **free** — no secrets, no
-> code-signing, no paid accounts. macOS notarization, Windows Authenticode, and a
-> real Android upload keystore are deliberately deferred to a later signing wave
+> **Scope of this wave.** Desktop builds are **UNSIGNED** and **free** — no
+> secrets, no code-signing, no paid accounts. macOS notarization and Windows
+> Authenticode are deliberately deferred to a later signing wave
 > (see [ADR-002 §6](../adr/002-distribution-and-update-channels.md)). Until then
 > users bypass OS trust prompts manually (macOS Gatekeeper right-click-Open,
-> Windows SmartScreen "More info → Run anyway").
+> Windows SmartScreen "More info → Run anyway"). **Android is the exception:** it
+> ships a **self-signed** APK via a real upload keystore once the maintainer adds
+> the CI secrets — see [Android (signed APK)](#android-signed-apk).
 
 ## What the pipeline produces
 
@@ -50,11 +52,12 @@ by `tools/release/gen_release_notes.py` — see
 [CHANGELOG-driven release notes](#changelog-driven-release-notes) below.
 
 Deferred this wave: Linux/Windows **arm64** and **iOS** (needs Apple signing).
-**Android** signing groundwork now exists (a proper `release` signingConfig in
-`app/android/app/build.gradle.kts`, see
-[Android (signed APK)](#android-signed-apk) below), but the release-workflow
-Android build+sign+stage job and the upload-keystore CI secrets are still
-outstanding — so no Android artifact is produced by the pipeline yet.
+**Android** now builds a **signed universal APK** in the release pipeline (a real
+`release` signingConfig in `app/android/app/build.gradle.kts` + the workflow's
+android build+sign+stage leg, see [Android (signed APK)](#android-signed-apk)
+below). The only remaining maintainer step is generating the upload keystore and
+adding the four CI secrets; until those exist the android leg is a clean no-op
+and produces no Android artifact.
 
 ## Safety model
 
@@ -291,14 +294,24 @@ beta ships as a **self-signed** sideload APK. Android refuses to install an
 unsigned APK, so the `release` build type is wired to a real upload keystore via
 the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.kts`.
 
-> **Status.** This is groundwork only. The signing **config** is in place with a
-> **debug fallback**: when `app/android/key.properties` is absent (contributors,
-> the CI `apk --debug` build, `flutter build apk --release` without a keystore)
-> the `release` build type signs with the debug keys, so nothing breaks. The
-> release-workflow Android **build+sign+stage job is still PENDING** (a separate
-> follow-up PR wires it into `.github/workflows/release.yml`), and the upload
-> keystore + CI secrets below are a **maintainer action** not yet done — so the
-> pipeline does **not** produce an Android artifact yet.
+> **Status.** The release pipeline now **builds, signs, and stages** the Android
+> APK. On a `v*` tag the `build` matrix's android leg reconstructs the upload
+> keystore + `key.properties` from repo secrets, runs `flutter build apk
+> --release`, and stages `CallersCompendium-<version>-android-universal.apk` into
+> `dist/` — so it flows into `SHA256SUMS`, the channel manifest, provenance, and
+> the draft release exactly like the desktop binaries.
+>
+> The signing **config** keeps its **debug fallback**: when
+> `app/android/key.properties` is absent (contributors, `flutter build apk
+> --release` without a keystore) the `release` build type signs with the debug
+> keys, so local builds still work.
+>
+> **The only remaining maintainer action** is generating the upload keystore and
+> adding the four CI secrets below. Until those secrets exist the android leg is
+> a **clean no-op** — it logs "Android signing secrets not configured; skipping
+> Android release artifact", stages no APK, and still succeeds — so merging this
+> job never changes the current release output and never publishes a
+> debug-signed APK.
 
 ### `key.properties` fields
 
@@ -325,10 +338,11 @@ Keep this `.jks` and its passwords secret and backed up **outside** the repo —
 losing the upload key means users can no longer receive in-place updates of an
 APK signed with it.
 
-### Maintainer: GitHub Actions secrets (for the forthcoming release job)
+### Maintainer: GitHub Actions secrets (the last step to enable Android)
 
-The pending Android release job will reconstruct `key.properties` (and decode the
-keystore) from four repository secrets:
+The android release leg reconstructs `key.properties` (and decodes the keystore)
+from four repository secrets. Add all four and the pipeline starts producing a
+signed APK on the next tag; omit them and the leg stays a no-op:
 
 | Secret | Contents |
 |--------|----------|
@@ -336,6 +350,14 @@ keystore) from four repository secrets:
 | `ANDROID_KEYSTORE_PASSWORD` | → `storePassword` |
 | `ANDROID_KEY_PASSWORD` | → `keyPassword` |
 | `ANDROID_KEY_ALIAS` | → `keyAlias` |
+
+The workflow decodes `ANDROID_KEYSTORE_BASE64` to
+`app/android/callerscompendium-upload.jks` and writes `key.properties` with
+`storeFile=callerscompendium-upload.jks` at build time; both are gitignored and
+are never uploaded as artifacts (only the APK is staged). The secrets are passed
+via step `env:` (never interpolated into a `run:` line) so they can't leak into
+logs, and they are only available to the canonical repo's tag-triggered run — not
+to forks or PRs.
 
 ### Sideload install note (for release notes / users)
 
