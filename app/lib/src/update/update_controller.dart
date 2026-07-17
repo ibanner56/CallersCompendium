@@ -11,10 +11,17 @@
 /// every failure is a silent no-op.
 library;
 
+import 'dart:async';
+import 'dart:io';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../app_metadata.dart';
+import 'artifact_downloader.dart';
+import 'artifact_handoff.dart';
+import 'artifact_verifier.dart';
 import 'current_platform.dart';
 import 'semver.dart';
 import 'update_config.dart';
@@ -39,6 +46,36 @@ enum UpdateCheckStatus {
   updateAvailable,
 }
 
+/// The state of the desktop assisted-download flow (ADR-002 "Stage 1.5"):
+/// download → mandatory sha256 verify → OS-handoff. Surfaced by the banner and
+/// Settings so the user sees progress and — unlike the silent check — a clear
+/// error on failure.
+enum AssistedDownloadStatus {
+  /// No download has been started (or a terminal state was cleared by a fresh
+  /// check).
+  idle,
+
+  /// The artifact is streaming to a temp file.
+  downloading,
+
+  /// The download finished and its sha256 is being verified.
+  verifying,
+
+  /// Verification passed; the verified file is being handed to the OS installer.
+  handingOff,
+
+  /// The OS-handoff was initiated — the user finishes installing from here.
+  completed,
+
+  /// The download, verification, or handoff failed. [UpdateController.downloadError]
+  /// holds a user-facing message; a verification failure has already deleted the
+  /// file.
+  failed,
+
+  /// The user cancelled an in-flight download.
+  cancelled,
+}
+
 /// Owns update prefs + the latest check result.
 class UpdateController extends ChangeNotifier {
   UpdateController(
@@ -47,16 +84,32 @@ class UpdateController extends ChangeNotifier {
     SemVer? currentVersion,
     UpdatePlatform? platform,
     UpdateArch? arch,
+    ArtifactDownloader? downloader,
+    ArtifactVerifier? verifier,
+    ArtifactHandoff? handoff,
+    Future<Directory> Function()? temporaryDirectoryProvider,
   }) : _service = service ?? UpdateService(),
        currentVersion =
            currentVersion ??
            (SemVer.tryParse(kAppVersion) ??
                const SemVer(major: 0, minor: 0, patch: 0)),
        _platform = platform ?? currentUpdatePlatform(),
-       _arch = arch ?? currentUpdateArch();
+       _arch = arch ?? currentUpdateArch(),
+       _downloader = downloader ?? downloadArtifact,
+       _verifier = verifier ?? verifyArtifactSha256,
+       _handoff = handoff ?? handoffArtifactToOs,
+       _temporaryDirectoryProvider =
+           temporaryDirectoryProvider ?? getTemporaryDirectory;
 
   final SettingsRepository _settings;
   final UpdateService _service;
+
+  /// The assisted-download seams (ADR-002 "Stage 1.5"), all injectable so the
+  /// flow is unit-testable without a real network, disk hash, or OS launch.
+  final ArtifactDownloader _downloader;
+  final ArtifactVerifier _verifier;
+  final ArtifactHandoff _handoff;
+  final Future<Directory> Function() _temporaryDirectoryProvider;
 
   /// The running app version (parsed from [kAppVersion]) that manifest versions
   /// are compared against.
@@ -70,6 +123,12 @@ class UpdateController extends ChangeNotifier {
   SemVer? _dismissedVersion;
   UpdateAvailable? _available;
   UpdateCheckStatus _status = UpdateCheckStatus.idle;
+
+  AssistedDownloadStatus _downloadStatus = AssistedDownloadStatus.idle;
+  DownloadProgress? _downloadProgress;
+  String? _downloadError;
+  DownloadCancelToken? _cancelToken;
+  int _lastNotifiedProgressTick = -1;
 
   /// Whether the user has opted into the beta channel (default off → stable).
   bool get betaChannel => _betaChannel;
@@ -102,6 +161,202 @@ class UpdateController extends ChangeNotifier {
     final dismissed = _dismissedVersion;
     if (dismissed != null && !found.version.isNewerThan(dismissed)) return null;
     return found;
+  }
+
+  /// The status of the desktop assisted-download flow.
+  AssistedDownloadStatus get downloadStatus => _downloadStatus;
+
+  /// The latest download progress snapshot while [downloadStatus] is
+  /// [AssistedDownloadStatus.downloading], else `null`.
+  DownloadProgress? get downloadProgress => _downloadProgress;
+
+  /// A user-facing error when [downloadStatus] is
+  /// [AssistedDownloadStatus.failed], else `null`.
+  String? get downloadError => _downloadError;
+
+  /// Whether an assisted download/verify/handoff is currently in flight (so the
+  /// UI shows progress + a cancel affordance and suppresses a second start).
+  bool get isDownloadInFlight =>
+      _downloadStatus == AssistedDownloadStatus.downloading ||
+      _downloadStatus == AssistedDownloadStatus.verifying ||
+      _downloadStatus == AssistedDownloadStatus.handingOff;
+
+  /// The artifact the assisted-download flow would fetch, or `null` when the
+  /// flow is unavailable: only on **desktop** (ADR-002 "Stage 1.5" is
+  /// desktop-only; mobile stays a link) and only when the found update actually
+  /// carries an artifact for this platform/arch. The banner/Settings offer
+  /// "Download & install" exactly when this is non-null.
+  UpdateArtifact? get downloadableArtifact {
+    if (!isDesktopUpdatePlatform(_platform)) return null;
+    return _available?.artifact;
+  }
+
+  /// Whether the "Download & install" affordance should be offered.
+  bool get canAssistDownload => downloadableArtifact != null;
+
+  /// Runs the desktop assisted-download flow for the found update's artifact:
+  /// stream it to a temp file → **mandatory sha256 verification** → OS-handoff.
+  /// A concurrent call is ignored while one is in flight. Never throws — every
+  /// failure resolves to [AssistedDownloadStatus.failed] with a user-facing
+  /// [downloadError] (a verification mismatch also deletes the file). This is
+  /// deliberately **not** a silent no-op like the check: it is a security gate
+  /// (ADR-002 §6, "Stage 1.5").
+  Future<void> startAssistedDownload() async {
+    if (isDownloadInFlight) return;
+    final artifact = downloadableArtifact;
+    if (artifact == null) return;
+
+    final token = DownloadCancelToken();
+    _cancelToken = token;
+    _downloadError = null;
+    _downloadProgress = null;
+    _lastNotifiedProgressTick = -1;
+    _downloadStatus = AssistedDownloadStatus.downloading;
+    notifyListeners();
+
+    final Directory dir;
+    try {
+      dir = await _temporaryDirectoryProvider();
+    } on Object {
+      _failDownload('Could not prepare a place to download the update.');
+      return;
+    }
+    final destination = File('${dir.path}/${downloadFileName(artifact.url)}');
+
+    final outcome = await _downloader(
+      artifact,
+      destination: destination,
+      onProgress: _onDownloadProgress,
+      cancelToken: token,
+    );
+
+    if (token.isCancelled || outcome.kind == DownloadResultKind.cancelled) {
+      _cancelDownloadState(outcome.file);
+      return;
+    }
+    if (!outcome.isSuccess || outcome.file == null) {
+      _failDownload(_downloadFailureMessage(outcome.kind));
+      return;
+    }
+    final file = outcome.file!;
+
+    _downloadStatus = AssistedDownloadStatus.verifying;
+    _downloadProgress = null;
+    notifyListeners();
+
+    final verified = await _verifier(file, artifact.sha256);
+    if (token.isCancelled) {
+      _cancelDownloadState(file);
+      return;
+    }
+    if (!verified) {
+      await _deleteQuietly(file);
+      _failDownload(
+        'The downloaded update failed its security (sha256) check and was '
+        'deleted. Try again, or use "View release" to download it manually.',
+      );
+      return;
+    }
+
+    _downloadStatus = AssistedDownloadStatus.handingOff;
+    notifyListeners();
+
+    final handedOff = await _handoff(file, _platform);
+    _cancelToken = null;
+    if (!handedOff) {
+      _failDownload(
+        'The update was downloaded and verified, but could not be opened '
+        'automatically. Use "View release" to finish installing.',
+      );
+      return;
+    }
+
+    _downloadStatus = AssistedDownloadStatus.completed;
+    _downloadProgress = null;
+    notifyListeners();
+  }
+
+  /// Requests cancellation of an in-flight assisted download. A no-op when
+  /// nothing is running; the flow resolves to [AssistedDownloadStatus.cancelled]
+  /// and the partial file is deleted.
+  void cancelDownload() => _cancelToken?.cancel();
+
+  /// Clears a terminal download state (completed/failed/cancelled) back to idle
+  /// so the affordance re-arms — e.g. after the user reads an error and wants to
+  /// retry.
+  void resetDownload() {
+    if (isDownloadInFlight) return;
+    _downloadStatus = AssistedDownloadStatus.idle;
+    _downloadProgress = null;
+    _downloadError = null;
+    notifyListeners();
+  }
+
+  void _onDownloadProgress(DownloadProgress progress) {
+    _downloadProgress = progress;
+    // Throttle rebuilds: notify only when the whole-percent (or, when the total
+    // is unknown, each ~256 KiB) advances, so a fast stream does not spam the
+    // banner/Settings with a rebuild per chunk.
+    final fraction = progress.fraction;
+    final tick = fraction != null
+        ? (fraction * 100).floor()
+        : progress.bytesReceived ~/ (256 * 1024);
+    if (tick != _lastNotifiedProgressTick) {
+      _lastNotifiedProgressTick = tick;
+      notifyListeners();
+    }
+  }
+
+  void _cancelDownloadState(File? file) {
+    if (file != null) unawaited(_deleteQuietly(file));
+    _downloadStatus = AssistedDownloadStatus.cancelled;
+    _downloadProgress = null;
+    _downloadError = null;
+    _cancelToken = null;
+    notifyListeners();
+  }
+
+  void _failDownload(String message) {
+    _downloadStatus = AssistedDownloadStatus.failed;
+    _downloadError = message;
+    _downloadProgress = null;
+    _cancelToken = null;
+    notifyListeners();
+  }
+
+  String _downloadFailureMessage(DownloadResultKind kind) {
+    switch (kind) {
+      case DownloadResultKind.sizeMismatch:
+        return 'The download was incomplete and was deleted. Please try again, '
+            'or use "View release".';
+      case DownloadResultKind.networkError:
+      case DownloadResultKind.success:
+      case DownloadResultKind.cancelled:
+        return 'The update could not be downloaded. Check your connection and '
+            'try again, or use "View release".';
+    }
+  }
+
+  Future<void> _deleteQuietly(File file) async {
+    try {
+      if (await file.exists()) await file.delete();
+    } on Object {
+      // Best-effort cleanup.
+    }
+  }
+
+  /// Clears a terminal (or idle) download state when a fresh check result comes
+  /// in, so a newly-found version re-arms the affordance. Leaves an in-flight
+  /// download untouched.
+  void _resetDownloadForNewResult() {
+    if (isDownloadInFlight) return;
+    if (_downloadStatus == AssistedDownloadStatus.idle &&
+        _downloadError == null) {
+      return;
+    }
+    _downloadStatus = AssistedDownloadStatus.idle;
+    _downloadProgress = null;
+    _downloadError = null;
   }
 
   /// Loads the persisted prefs into memory. Defensive: any read failure or
@@ -148,6 +403,7 @@ class UpdateController extends ChangeNotifier {
     if (requestedChannel != channel) return;
 
     _available = result;
+    _resetDownloadForNewResult();
     _status = result == null
         ? UpdateCheckStatus.noUpdate
         : UpdateCheckStatus.updateAvailable;
@@ -169,6 +425,7 @@ class UpdateController extends ChangeNotifier {
     _betaChannel = value;
     _available = null;
     _status = UpdateCheckStatus.idle;
+    _resetDownloadForNewResult();
     notifyListeners();
     await _settings.set(kUpdateBetaChannelKey, value);
   }

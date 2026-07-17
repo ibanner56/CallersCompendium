@@ -136,9 +136,36 @@ Two channels: **stable** and **beta**.
 **Stage 1 (baseline, universal, no signing required).** An in-app
 "Check for updates" action fetches the channel manifest, compares versions, and
 — if newer — shows a banner whose action **opens the release download page via
-`launchExternalUrl`**. It does not download or install anything. This works on
-every desktop (including Linux, where no auto-update framework is assumed) and
-on mobile (deep-link to the store/release page), and requires no code signing.
+`launchExternalUrl`**. The baseline check itself downloads and installs nothing
+(the manifest fetch aside); it merely links the user to the release page. This
+works on every desktop (including Linux, where no auto-update framework is
+assumed) and on mobile (deep-link to the store/release page), and requires no
+code signing.
+
+**Stage 1.5 (assisted download, desktop-only, no signing required).** A tier
+*between* the Stage-1 link and Stage-2 auto-update that gives desktop users a
+first-class download without any of Sparkle/WinSparkle's signing prerequisites.
+When a newer version is found on **macOS/Windows/Linux**, the banner and
+Settings ▸ Updates additionally offer a **"Download & install"** action that:
+
+1. **Downloads** the manifest-selected `UpdateArtifact` (via the same injected
+   `http.Client` seam as the check) to a **temp file**, with progress reporting
+   and user **cancel**.
+2. **Verifies** the file's **sha256 against `UpdateArtifact.sha256`** — a
+   **mandatory** integrity gate. A mismatch **fails loudly**: the temp file is
+   deleted and a clear error is surfaced (never a silent no-op).
+3. **Hands the verified file off to the OS** so the user completes the install
+   themselves — macOS opens the `.dmg`, Windows launches the installer `.exe`,
+   Linux marks the `.AppImage` executable / reveals it. It **never replaces the
+   running binary in place** — that self-update behavior is Stage 2 and stays
+   gated on code-signing.
+
+The download is always **explicit and user-initiated** (there is no automatic
+background download), the "View release" link remains available as a fallback,
+and A11a's dismiss/`dismissedVersion` behavior is preserved. **Mobile
+(Android/iOS) does not get assisted download** — it keeps the Stage-1 link only.
+The download/verify/handoff logic lives behind injectable, Flutter-free seams
+(per §8 / ADR-001), mirroring the Stage-1 fetch seam.
 
 **Stage 2 (true auto-update, gated on code-signing).** Later, desktop gains real
 in-app update via the **`auto_updater`** package (leanflutter — the **same
@@ -160,7 +187,13 @@ The check is a **plain HTTPS `GET` of the static manifest** and nothing more:
   done *client-side* after the manifest is fetched — the server never learns it.
 - **Manual "Check for updates" is always available.**
 - **Automatic background check is opt-in, default OFF.**
-- On the baseline path there is **no auto-download and no auto-install**.
+- On the baseline (Stage-1) path there is **no download and no install** — only
+  a link out. **Stage 1.5** adds an **explicit, user-initiated** download +
+  mandatory sha256 verification + OS-handoff on desktop; there is still **no
+  *automatic* download and no *auto-install* / self-replacement**, and every
+  §5 privacy guarantee above (no query params, no fingerprinting, no ids, no
+  telemetry, client-side platform selection) applies unchanged to the artifact
+  download.
 - A newer version surfaces as a **dismissible, non-modal banner** (never a modal
   interrupt during a gig).
 - The client honors a stored **`dismissedVersion`**: once a user dismisses a
@@ -276,6 +309,14 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
   pattern** in `app/lib/src/data/import_io.dart` (injectable `http.Client`,
   short timeout, message-safe failures). `package:http` is already an app
   dependency, so no new dependency is needed for Stage 1.
+- **Stage 1.5's** download, sha256-verify, and OS-handoff steps are each their
+  own **injectable, Flutter-free seam** (`artifact_downloader.dart`,
+  `artifact_verifier.dart`, `artifact_handoff.dart`) in `app/lib/src/update/`,
+  composed by `UpdateController`. This keeps the orchestration unit-testable with
+  fakes (no real network, filesystem race, or OS launch) exactly like the
+  Stage-1 fetch seam. Verification promotes **`package:crypto`** (sha256) from a
+  transitive to a **direct** app dependency — the one dependency Stage 1.5 needs
+  — with no `pubspec.lock` version change.
 
 ## Rationale
 
