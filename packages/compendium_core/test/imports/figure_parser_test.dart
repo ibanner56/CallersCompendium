@@ -229,6 +229,10 @@ void main() {
       'Hey (ML;N ricochet;ML;PR)',
       // A ricochet at an even position (only odd positions are center passes).
       'Hey (ML;M ricochet;WL;PR)',
+      // A ricochet whose slot the hey length can't reach: a half hey has at
+      // most two same-role passes, so a ricochet at the 3rd (pos5) -> rico3 is
+      // unreachable -> custom.
+      'Hey 1/2 (ML;PR;WL;PR;M ricochet)',
     ];
 
     for (final line in mustStayCustom) {
@@ -304,15 +308,15 @@ void main() {
       }
     });
 
-    test('ricochet at pos5 maps to rico3', () {
-      final p = parse('Hey (ML;NR;WL;PR;M ricochet;PR;WL)')!;
+    test('ricochet at pos5 maps to rico3 (full hey reaches it)', () {
+      final p = parse('Full hey (ML;NR;WL;PR;M ricochet;PR;WL)')!;
       expect(p.params['rico3'], true);
       expect(p.params['rico1'], isNull);
     });
 
-    test('all four ricochets set rico1-4', () {
+    test('all four ricochets set rico1-4 (full hey)', () {
       final p = parse(
-        'Hey (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
+        'Full hey (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
       )!;
       expect(p.params['rico1'], true);
       expect(p.params['rico2'], true);

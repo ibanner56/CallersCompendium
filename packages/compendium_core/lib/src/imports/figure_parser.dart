@@ -837,7 +837,9 @@ _Match? _upTheHall(List<String> w) {
 //   * shoulder  <- the initial-pass shoulder (position-parity base; see below),
 //   * pass2     <- the *who* of the 2nd pass code (else the MoveDef default
 //                  `unspecified`),
-//   * rico1..4  <- ricochet tokens at odd pass positions 1/3/5/7.
+//   * rico1..4  <- ricochet flags, assigned SEQUENTIALLY to the 1st/2nd/3rd/4th
+//                  same-role center pass (the odd pass-list positions), capped
+//                  by what the hey length can physically reach.
 // The `~` partial-last-pass marker is dropped (informational only — not
 // representable, ratified). Any token the decoder cannot fully account for
 // forces `null` -> the custom fallback (parse-never-fails / prefer-custom).
@@ -869,17 +871,14 @@ const Map<String, String> _heyLength = {
   'whole': 'full',
 };
 
-/// Ricochet flag by 1-based ODD pass position. rico1..4 mark each same-role
-/// center pass, in order: pos1->rico1, 3->rico2, 5->rico3, 7->rico4. Only the
-/// center same-role dancers (M/W) ricochet; a ricochet at an even position, at
-/// an odd position beyond 7, or by a neighbor/partner is not representable and
-/// forces the custom fallback.
-const Map<int, String> _heyRicoSlot = {
-  1: 'rico1',
-  3: 'rico2',
-  5: 'rico3',
-  7: 'rico4',
-};
+/// The highest reachable ricochet slot for a hey [length]. Ricochets fall on
+/// the same-role center passes, of which a hey has as many as its length
+/// physically allows: `lessThanHalf`/`half` are a single meeting (up to two
+/// same-role passes → rico1/rico2), while `betweenHalfAndFull`/`full` are two
+/// meetings (up to four → rico3/rico4). A ricochet that would need a slot the
+/// length can't reach forces the custom fallback.
+int _heyMaxRicoSlot(String length) =>
+    (length == 'lessThanHalf' || length == 'half') ? 2 : 4;
 
 String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
 
@@ -936,6 +935,7 @@ _Match? _hey(String scrubbed) {
   if (cells.isEmpty || cells.any((c) => c.isEmpty)) return null;
 
   final params = <String, Object?>{'length': length};
+  final maxRicoSlot = _heyMaxRicoSlot(length);
   String? shoulderBase; // the shoulder implied at ODD positions.
   String? pass1;
   String? pass2;
@@ -950,9 +950,15 @@ _Match? _hey(String scrubbed) {
       final who = _heyPeople[people];
       // Only center same-role dancers ricochet — never neighbor/partner/etc.
       if (who != 'role1s' && who != 'role2s') return null;
-      final slot = _heyRicoSlot[position];
-      if (slot == null) return null; // even position / beyond pos7 -> custom.
-      params[slot] = true;
+      // The same-role center passes are the odd pass-list positions; enumerate
+      // them in order (pos1 = 1st, pos3 = 2nd, ...) to pick the ricochet slot.
+      // An even position is not a center pass, so it can't ricochet.
+      if (position.isEven) return null;
+      final slotIndex = (position + 1) ~/ 2; // 1st/2nd/3rd/4th center pass.
+      // The length must physically reach this slot (e.g. a half hey has at
+      // most two same-role passes, so rico3/rico4 are unreachable → custom).
+      if (slotIndex > maxRicoSlot) return null;
+      params['rico$slotIndex'] = true;
       if (position == 1) pass1 = who;
       continue;
     }
