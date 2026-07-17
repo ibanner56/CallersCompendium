@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
@@ -11,18 +13,22 @@ import '../data/repositories_scope.dart';
 /// resolve any ambiguous matches, commit, and offer an undo.
 ///
 /// The screen takes a list of selectable [ImportSource]s so it is not tied to
-/// any one source; this PR wires two — the generic [GenericJsonAdapter]
-/// ("Caller's Compendium JSON", the default) and the [CallersBoxAdapter]
-/// ("The Caller's Box"), which rewrites a pasted dance URL / bare id into the
-/// `&format=JSON` endpoint before fetching. The user picks the source
-/// explicitly (a dropdown) so a bare id — which has no host to auto-detect —
-/// routes unambiguously. A fresh adapter is built per plan because adapters may
-/// hold per-discovery state.
+/// any one source; this wires the generic [GenericJsonAdapter] ("Caller's
+/// Compendium JSON", the default), the [CallersBoxAdapter] ("The Caller's Box"),
+/// the [ContraDbHtmlAdapter] ("ContraDB"), and the byte-based
+/// [CallersCompanionUsrAdapter] ("a Caller's Companion .USR file"). The `.USR`
+/// source picks a binary file (bytes, not text) and — uniquely — commits and
+/// undoes **programs** alongside dances via [CallersCompanionUsrImporter]; every
+/// other source is dance-only text. The user picks the source explicitly (a
+/// dropdown) so a bare id — which has no host to auto-detect — routes
+/// unambiguously. A fresh adapter is built per plan because adapters may hold
+/// per-discovery state.
 class ImportReviewScreen extends StatefulWidget {
   const ImportReviewScreen({
     super.key,
     required this.sources,
     this.picker,
+    this.bytePicker,
     this.fetcher,
     this.onClose,
   }) : assert(sources.length > 0, 'at least one import source is required');
@@ -33,6 +39,11 @@ class ImportReviewScreen extends StatefulWidget {
   /// Test seam for choosing a file; defaults to [pickImportFile] (native
   /// open-file dialog). Widget tests inject canned text.
   final ImportPicker? picker;
+
+  /// Test seam for choosing a **binary** file (byte sources such as Caller's
+  /// Companion `.USR`); overrides the selected [ImportSource.bytePicker] when
+  /// provided. Widget tests inject canned bytes so no real picker plugin runs.
+  final ImportBytePicker? bytePicker;
 
   /// Test seam for fetching a URL; defaults to [fetchImportUrl] (real HTTP
   /// GET). Widget tests inject canned text or a throwing fake so no real
@@ -88,6 +99,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   bool _picking = false;
   bool _fetching = false;
 
+  /// The bytes of a picked binary payload for a byte source (Caller's Companion
+  /// `.USR`), or `null` when none is chosen / the source is text-based. Byte
+  /// sources plan/commit from these bytes instead of [_pasteController]'s text.
+  Uint8List? _payloadBytes;
+
+  /// True when the selected source imports from a picked binary file rather than
+  /// pasted/fetched text (governs the input UI and which plan path runs).
+  bool get _isByteSource => _selected.bytePicker != null;
+
   /// The source URL the current payload was fetched from, stashed on
   /// [ImportRequest.uri] for provenance. Cleared whenever the payload is
   /// replaced by a file pick or a manual paste edit so it never goes stale;
@@ -139,6 +159,23 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
+  /// Picks the raw bytes of a binary payload for a byte source (Caller's
+  /// Companion `.USR`). Uses the screen-level [ImportReviewScreen.bytePicker]
+  /// test seam when provided, else the selected source's own
+  /// [ImportSource.bytePicker].
+  Future<void> _chooseUsrFile() async {
+    final picker = widget.bytePicker ?? _selected.bytePicker;
+    if (picker == null) return;
+    setState(() => _picking = true);
+    try {
+      final bytes = await picker();
+      if (!mounted || bytes == null) return;
+      setState(() => _payloadBytes = bytes);
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
+  }
+
   Future<void> _fetchFromUrl() async {
     final fetcher = widget.fetcher ?? fetchImportUrl;
     final input = _urlController.text.trim();
@@ -177,7 +214,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   Future<void> _plan() async {
     final payload = _pasteController.text;
-    if (payload.trim().isEmpty) return;
+    final bytes = _payloadBytes;
+    if (_isByteSource) {
+      if (bytes == null) return;
+    } else if (payload.trim().isEmpty) {
+      return;
+    }
     setState(() {
       _phase = _Phase.planning;
       _planError = null;
@@ -185,9 +227,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     try {
       final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
       final index = await pipeline.buildDedupeIndex();
+      // Byte sources (Caller's Companion `.USR`) carry the raw file on
+      // `options['bytes']`; text sources carry the pasted/fetched payload.
+      final request = _isByteSource
+          ? ImportRequest(options: {'bytes': bytes!})
+          : ImportRequest(payload: payload, uri: _sourceUri);
       final batch = await pipeline.plan(
         _selected.adapterFactory(),
-        ImportRequest(payload: payload, uri: _sourceUri),
+        request,
         index: index,
       );
       final titles = {
@@ -275,20 +322,51 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final (commitBatch, resolutions, skipped) = _buildCommitBatch();
     setState(() => _phase = _Phase.committing);
     final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
+    // Commit/undo routing is gated on the concrete adapter type — NOT on
+    // `_isByteSource` — so only Caller's Companion `.USR` persists/undoes
+    // programs. A hypothetical future dance-only byte source would fall through
+    // to the shared dance path and never touch programs.
+    final adapter = _selected.adapterFactory();
     try {
-      final session = await pipeline.commit(
-        commitBatch,
-        now: DateTime.now().toUtc(),
-        newId: uuidV4,
-        resolutions: resolutions,
-      );
-      if (!mounted) return;
-      // Leave the progress phase before showing the (awaited) result dialog so
-      // no indeterminate spinner animates behind it.
-      setState(() => _phase = _Phase.review);
-      // Refresh the live Collection so imported dances appear immediately.
-      CollectionRefreshScope.bump(context);
-      await _showResult(pipeline, session, skipped);
+      if (adapter is CallersCompanionUsrAdapter) {
+        final importer = CallersCompanionUsrImporter(pipeline, _repos.programs);
+        final archive = readCcUsrArchive(_payloadBytes!);
+        final result = await importer.commit(
+          commitBatch,
+          archive,
+          now: DateTime.now().toUtc(),
+          newId: uuidV4,
+          newSlotId: uuidV4,
+          resolutions: resolutions,
+        );
+        if (!mounted) return;
+        setState(() => _phase = _Phase.review);
+        CollectionRefreshScope.bump(context);
+        await _showResult(
+          session: result.danceSession,
+          skipped: skipped,
+          onUndo: () => importer.undo(result),
+          ccResult: result,
+        );
+      } else {
+        final session = await pipeline.commit(
+          commitBatch,
+          now: DateTime.now().toUtc(),
+          newId: uuidV4,
+          resolutions: resolutions,
+        );
+        if (!mounted) return;
+        // Leave the progress phase before showing the (awaited) result dialog so
+        // no indeterminate spinner animates behind it.
+        setState(() => _phase = _Phase.review);
+        // Refresh the live Collection so imported dances appear immediately.
+        CollectionRefreshScope.bump(context);
+        await _showResult(
+          session: session,
+          skipped: skipped,
+          onUndo: () => pipeline.undo(session),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _phase = _Phase.review);
@@ -301,11 +379,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
-  Future<void> _showResult(
-    ImportPipeline pipeline,
-    ImportSession session,
-    int skipped,
-  ) async {
+  Future<void> _showResult({
+    required ImportSession session,
+    required int skipped,
+    required Future<void> Function() onUndo,
+    CcUsrImportResult? ccResult,
+  }) async {
     var created = 0, reimported = 0, linked = 0, duplicated = 0;
     final errors = <ImportError>[];
     for (final r in session.records) {
@@ -326,44 +405,86 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           break;
       }
     }
+    // Program outcomes only exist for a Caller's Companion `.USR` import; a
+    // text import leaves [ccResult] null and the dialog stays dance-only.
+    final programs = ccResult?.programs ?? const [];
+    final programNames = [
+      for (final p in programs)
+        (p.title.trim().isEmpty ? 'Untitled program' : p.title.trim()),
+    ];
+    final programIssues = ccResult?.programIssues ?? const [];
     var undone = false;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: const ValueKey('import-result-dialog'),
         title: const Text('Import complete'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _summaryLine('Created', created),
-            _summaryLine('Re-imported', reimported),
-            _summaryLine('Linked', linked),
-            _summaryLine('Duplicated', duplicated),
-            _summaryLine('Skipped', skipped),
-            if (errors.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                '${errors.length} record(s) failed to import:',
-                style: Theme.of(dialogContext).textTheme.labelLarge,
-              ),
-              for (final e in errors)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text('• ${e.message}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _summaryLine('Created', created),
+              _summaryLine('Re-imported', reimported),
+              _summaryLine('Linked', linked),
+              _summaryLine('Duplicated', duplicated),
+              _summaryLine('Skipped', skipped),
+              if (ccResult != null) ...[
+                const SizedBox(height: 8),
+                _summaryLine('Programs', programs.length),
+                if (programNames.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Column(
+                      key: const ValueKey('import-program-names'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final name in programNames) Text('• $name'),
+                      ],
+                    ),
+                  ),
+                if (programIssues.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '${programIssues.length} program note(s):',
+                    key: const ValueKey('import-program-notes'),
+                    style: Theme.of(dialogContext).textTheme.labelLarge,
+                  ),
+                  for (final issue in programIssues)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('• ${issue.message}'),
+                    ),
+                ],
+              ],
+              if (errors.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '${errors.length} record(s) failed to import:',
+                  style: Theme.of(dialogContext).textTheme.labelLarge,
                 ),
+                for (final e in errors)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('• ${e.message}'),
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
         actions: [
           TextButton(
             key: const ValueKey('import-undo-button'),
             onPressed: () async {
-              await pipeline.undo(session);
+              await onUndo();
               undone = true;
               if (dialogContext.mounted) Navigator.of(dialogContext).pop();
             },
-            child: const Text('Undo'),
+            child: Text(
+              ccResult != null
+                  ? 'Undo (removes the imported dances and programs)'
+                  : 'Undo',
+            ),
           ),
           FilledButton(
             key: const ValueKey('import-done-button'),
@@ -430,7 +551,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Widget _buildInput(BuildContext context) {
-    final hasContent = _pasteController.text.trim().isNotEmpty;
+    final hasContent = _isByteSource
+        ? _payloadBytes != null
+        : _pasteController.text.trim().isNotEmpty;
     // While a file pick or URL fetch is in flight, lock every input so a
     // late-completing pick/fetch can't overwrite the payload or clobber
     // `_sourceUri` under the user, and so planning can't start on stale input.
@@ -463,6 +586,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                       // a paste (uri == null) until a fresh fetch sets it.
                       _fetchError = null;
                       _sourceUri = null;
+                      // Binary payloads belong to a specific byte source; drop
+                      // them when switching so a `.USR` can't plan through a
+                      // text adapter (or vice versa).
+                      _payloadBytes = null;
                     });
                   },
             items: [
@@ -475,119 +602,155 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
           const SizedBox(height: 16),
         ],
-        Text(
-          'Import dances from ${_selected.label}.',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Choose a file, paste its contents, or fetch it from a URL. Nothing '
-          'is added to your collection until you review and confirm.',
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          key: const ValueKey('import-choose-file'),
-          onPressed: busy ? null : _chooseFile,
-          icon: const Icon(Icons.folder_open_outlined),
-          label: const Text('Choose file…'),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: TextField(
-                key: const ValueKey('import-url-field'),
-                controller: _urlController,
-                keyboardType: TextInputType.url,
-                autocorrect: false,
-                enabled: !busy,
-                onChanged: (value) {
-                  final detected = _sourceManuallySelected
-                      ? null
-                      : detectSourceForUrl(value, widget.sources);
-                  final clearError = _fetchError != null;
-                  if (detected != null && detected != _selected) {
-                    // Auto-flip the source selector to match the pasted URL's
-                    // host (manual selection would have short-circuited above).
-                    setState(() {
-                      _selected = detected;
-                      _fetchError = null;
-                      _sourceUri = null;
-                    });
-                  } else if (clearError) {
-                    setState(() => _fetchError = null);
-                  }
-                },
-                onSubmitted: (_) => busy ? null : _fetchFromUrl(),
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  labelText: isUrlSource
-                      ? 'Dance URL or id'
-                      : 'Import from URL',
-                  hintText: isUrlSource
-                      ? 'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1  · or · 1'
-                      : 'https://…',
-                ),
+        if (_isByteSource) ...[
+          Text(
+            'Import from ${_selected.label}.',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Choose the Caller\'s Companion .USR file to migrate its dances and '
+            'program history. Nothing is added to your collection until you '
+            'review and confirm.',
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            key: const ValueKey('import-choose-usr-file'),
+            onPressed: busy ? null : _chooseUsrFile,
+            icon: const Icon(Icons.folder_open_outlined),
+            label: const Text('Choose .USR file…'),
+          ),
+          if (_payloadBytes != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                key: const ValueKey('import-usr-chosen'),
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text('File ready (${_payloadBytes!.length} bytes).'),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-            FilledButton.tonalIcon(
-              key: const ValueKey('import-fetch-url'),
-              onPressed: busy ? null : _fetchFromUrl,
-              icon: _fetching
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.download_outlined),
-              label: const Text('Fetch'),
-            ),
-          ],
-        ),
-        if (_fetchError != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Row(
-              key: const ValueKey('import-url-error'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    _fetchError!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+        ] else ...[
+          Text(
+            'Import dances from ${_selected.label}.',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Choose a file, paste its contents, or fetch it from a URL. Nothing '
+            'is added to your collection until you review and confirm.',
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            key: const ValueKey('import-choose-file'),
+            onPressed: busy ? null : _chooseFile,
+            icon: const Icon(Icons.folder_open_outlined),
+            label: const Text('Choose file…'),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('import-url-field'),
+                  controller: _urlController,
+                  keyboardType: TextInputType.url,
+                  autocorrect: false,
+                  enabled: !busy,
+                  onChanged: (value) {
+                    final detected = _sourceManuallySelected
+                        ? null
+                        : detectSourceForUrl(value, widget.sources);
+                    final clearError = _fetchError != null;
+                    if (detected != null && detected != _selected) {
+                      // Auto-flip the source selector to match the pasted URL's
+                      // host (manual selection would have short-circuited above).
+                      setState(() {
+                        _selected = detected;
+                        _fetchError = null;
+                        _sourceUri = null;
+                      });
+                    } else if (clearError) {
+                      setState(() => _fetchError = null);
+                    }
+                  },
+                  onSubmitted: (_) => busy ? null : _fetchFromUrl(),
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: isUrlSource
+                        ? 'Dance URL or id'
+                        : 'Import from URL',
+                    hintText: isUrlSource
+                        ? 'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1  · or · 1'
+                        : 'https://…',
                   ),
                 ),
-              ],
+              ),
+              const SizedBox(width: 8),
+              FilledButton.tonalIcon(
+                key: const ValueKey('import-fetch-url'),
+                onPressed: busy ? null : _fetchFromUrl,
+                icon: _fetching
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download_outlined),
+                label: const Text('Fetch'),
+              ),
+            ],
+          ),
+          if (_fetchError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                key: const ValueKey('import-url-error'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _fetchError!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('import-paste-field'),
+            controller: _pasteController,
+            minLines: 4,
+            maxLines: 10,
+            enabled: !busy,
+            onChanged: (_) {
+              // Editing the payload by hand drops any URL provenance so the
+              // import is recorded as a paste (uri == null).
+              _sourceUri = null;
+              setState(() {});
+            },
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Or paste JSON',
             ),
           ),
-        const SizedBox(height: 12),
-        TextField(
-          key: const ValueKey('import-paste-field'),
-          controller: _pasteController,
-          minLines: 4,
-          maxLines: 10,
-          enabled: !busy,
-          onChanged: (_) {
-            // Editing the payload by hand drops any URL provenance so the
-            // import is recorded as a paste (uri == null).
-            _sourceUri = null;
-            setState(() {});
-          },
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            labelText: 'Or paste JSON',
-          ),
-        ),
+        ],
         const SizedBox(height: 16),
         FilledButton.icon(
           key: const ValueKey('import-continue'),

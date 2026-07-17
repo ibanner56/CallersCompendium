@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:file_selector/file_selector.dart';
@@ -33,6 +34,36 @@ Future<String?> pickImportFile() async {
   final file = await openFile(acceptedTypeGroups: const [jsonGroup]);
   if (file == null) return null;
   return file.readAsString();
+}
+
+/// Prompts the user to choose a **binary** source file for an import and returns
+/// its raw bytes, or `null` if they cancelled. See [pickImportUsrFile] for the
+/// default implementation; widget tests override this seam (via
+/// [ImportSource.bytePicker]) to return canned bytes so no real picker plugin is
+/// invoked.
+///
+/// Distinct from [ImportPicker] because binary sources (Caller's Companion
+/// `.USR`, a FileMaker 12 database) must be read as bytes, not decoded as text.
+typedef ImportBytePicker = Future<Uint8List?> Function();
+
+/// Default [ImportBytePicker]: opens the native open-file dialog (via
+/// `file_selector`), restricted to `.usr`, and reads the chosen file's bytes.
+/// Returns `null` when the user cancels.
+///
+/// Wired for the Caller's Companion `.USR` migration (`docs/ROADMAP.md` 6.5):
+/// the `.USR` is a binary FileMaker 12 container, so the review flow needs the
+/// raw bytes to hand to `CallersCompanionUsrAdapter` (via `options['bytes']`),
+/// not a decoded string.
+Future<Uint8List?> pickImportUsrFile() async {
+  const usrGroup = XTypeGroup(
+    label: "Caller's Companion .USR",
+    extensions: ['usr'],
+    // FileMaker's `.usr` has no registered UTI/MIME; match on extension only.
+    uniformTypeIdentifiers: ['public.data'],
+  );
+  final file = await openFile(acceptedTypeGroups: const [usrGroup]);
+  if (file == null) return null;
+  return file.readAsBytes();
 }
 
 /// Fetches the text body of an import source over HTTP and returns it, or
@@ -130,6 +161,7 @@ class ImportSource {
     required this.adapterFactory,
     this.urlBuilder,
     this.matchesUrl,
+    this.bytePicker,
   });
 
   /// Human-readable name, e.g. "Caller's Compendium JSON" or "The Caller's Box".
@@ -153,6 +185,18 @@ class ImportSource {
   /// Box is also mirrored on ibiblio.org under a `/thecallersbox/` path, which
   /// a host-only match cannot express.
   final bool Function(Uri uri)? matchesUrl;
+
+  /// When non-null, this source imports from a **binary file** the user picks
+  /// (its bytes are handed to [adapterFactory]'s adapter via
+  /// `ImportRequest.options['bytes']`), rather than from pasted/fetched text.
+  /// This governs the **input** concern only — the picker shown and how the
+  /// payload is carried. It deliberately does **not** decide how commit/undo is
+  /// routed (that is gated on the concrete adapter type, so a future byte source
+  /// can't accidentally inherit Caller's Companion program persistence).
+  ///
+  /// The only byte source today is Caller's Companion `.USR` (see
+  /// [defaultImportSources]).
+  final ImportBytePicker? bytePicker;
 }
 
 /// The host used to build a Caller's Box JSON endpoint from a **bare id**. The
@@ -602,9 +646,11 @@ const Set<String> _ibiblioHosts = {'ibiblio.org', 'www.ibiblio.org'};
 const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
 
 /// The canonical, ordered list of selectable import sources
-/// (`docs/ROADMAP.md` Phase 6.3/6.4): the generic [GenericJsonAdapter]
+/// (`docs/ROADMAP.md` Phase 6.3/6.4/6.5): the generic [GenericJsonAdapter]
 /// ("a Caller's Compendium JSON file", the default), the [CallersBoxAdapter]
-/// ("The Caller's Box"), and the [ContraDbHtmlAdapter] ("ContraDB").
+/// ("The Caller's Box"), the [ContraDbHtmlAdapter] ("ContraDB"), and the
+/// [CallersCompanionUsrAdapter] ("a Caller's Companion .USR file", a binary
+/// FileMaker 12 migration that also imports the program history).
 ///
 /// Extracted here so every launch point (Settings and the Collection blade)
 /// shares one definition and the two can never drift. `picker`/`fetcher`
@@ -628,6 +674,11 @@ List<ImportSource> defaultImportSources() => [
     adapterFactory: ContraDbHtmlAdapter.new,
     urlBuilder: buildContraDbUrl,
     matchesUrl: (uri) => _contraDbHosts.contains(uri.host.toLowerCase()),
+  ),
+  ImportSource(
+    label: "a Caller's Companion .USR file",
+    adapterFactory: CallersCompanionUsrAdapter.new,
+    bytePicker: pickImportUsrFile,
   ),
 ];
 

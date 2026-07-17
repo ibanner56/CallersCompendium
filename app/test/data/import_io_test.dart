@@ -135,18 +135,25 @@ void main() {
   });
 
   group('defaultImportSources', () {
-    test('returns the canonical [GenericJson, CallersBox, ContraDB] list', () {
+    test('returns the canonical [GenericJson, CallersBox, ContraDB, CC .USR] '
+        'list', () {
       final sources = defaultImportSources();
-      expect(sources, hasLength(3));
+      expect(sources, hasLength(4));
       expect(sources[0].label, "a Caller's Compendium JSON file");
       expect(sources[1].label, "The Caller's Box");
       expect(sources[2].label, 'ContraDB');
+      expect(sources[3].label, "a Caller's Companion .USR file");
       // Only the URL-backed sources carry a urlBuilder / matchesUrl; the
       // generic-JSON default is file/paste only.
       expect(sources[0].urlBuilder, isNull);
       expect(sources[0].matchesUrl, isNull);
       expect(sources[1].urlBuilder, isNotNull);
       expect(sources[2].urlBuilder, isNotNull);
+      // The CC source is the only byte-based source (a binary .USR picker);
+      // it has no URL affordances.
+      expect(sources[3].bytePicker, isNotNull);
+      expect(sources[3].urlBuilder, isNull);
+      expect(sources[3].matchesUrl, isNull);
     });
   });
 
