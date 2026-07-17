@@ -176,6 +176,12 @@ class CallersCompanionUsrImporter {
   /// so the map is a direct association with **no** dependence on the original
   /// batch's ordering or index alignment. Skips, errors, and records with a
   /// missing external id or dance id contribute nothing.
+  ///
+  /// Duplicate-externalId policy: a CC archive's `zk_Dance_ID` is expected to be
+  /// unique, so normally each external id appears once. If two committed records
+  /// ever share one, this is **last-wins** — records are visited in commit
+  /// (discovery) order and a later assignment overwrites an earlier one, so
+  /// `SetItem` FKs resolve to the most recently committed dance for that id.
   Map<String, String> _danceIdByCcRowId(ImportSession session) {
     final map = <String, String>{};
     for (final record in session.records) {
@@ -183,7 +189,7 @@ class CallersCompanionUsrImporter {
       final externalId = record.externalId;
       if (!record.succeeded || danceId == null) continue;
       if (externalId == null || externalId.isEmpty) continue;
-      map[externalId] = danceId;
+      map[externalId] = danceId; // last-wins on the rare duplicate id
     }
     return map;
   }
