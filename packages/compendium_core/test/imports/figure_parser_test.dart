@@ -212,6 +212,27 @@ void main() {
       // back", so they degrade to custom rather than a half-described figure.
       'long lines back',
       'long lines forward',
+      // --- hey (PR4): stays custom when the pass list can't be decoded ------
+      // Bare "hey for four" carries no pass list (no pass1/shoulder source).
+      'hey 1/2',
+      'full hey',
+      'hey',
+      // dolphin hey is a different move — never matched by the hey recognizer.
+      'dolphin hey (WR;PL)',
+      // Trailing extra move after a decodable pass list.
+      'Hey 1/2 (WR;PL) and swing',
+      // An unmappable people code in the pass list.
+      'Hey 1/2 (XR;PL)',
+      // Non-alternating shoulders (both right) — malformed/ambiguous.
+      'Hey 1/2 (WR;PR)',
+      // Neighbor/partner ricochet is not representable.
+      'Hey (ML;N ricochet;ML;PR)',
+      // A ricochet at an even position (only odd positions are center passes).
+      'Hey (ML;M ricochet;WL;PR)',
+      // A ricochet whose slot the hey length can't reach: a half hey has at
+      // most two same-role passes, so a ricochet at the 3rd (pos5) -> rico3 is
+      // unreachable -> custom.
+      'Hey 1/2 (ML;PR;WL;PR;M ricochet)',
     ];
 
     for (final line in mustStayCustom) {
@@ -221,6 +242,123 @@ void main() {
         expect(f!.isCustom, isTrue, reason: line);
       });
     }
+  });
+
+  group('parseFigureLine — hey (TCB pass lists)', () {
+    ({String move, Map<String, Object?> params})? parse(String line) {
+      final f = parseFigureLine(line);
+      if (f == null || f.isCustom) return null;
+      return (move: f.move, params: f.params);
+    }
+
+    test('decodes the canonical fixture line (~ dropped)', () {
+      final f = parseFigureLine('Hey 1/2 (WR;PL;MR;N2L~)');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'hey');
+      expect(f.params['length'], 'half');
+      expect(f.params['pass1'], 'role2s'); // code1 WR -> W = role2s
+      expect(f.params['shoulder'], 'right'); // code1 R
+      expect(f.params['pass2'], 'partners'); // code2 PL -> P
+      // No ricochet flags are set on a plain hey.
+      for (final r in ['rico1', 'rico2', 'rico3', 'rico4']) {
+        expect(f.params[r], isNull, reason: r);
+      }
+    });
+
+    test('length decodes from the fraction (all four + default)', () {
+      expect(parse('Hey 1/4 (WR;PL)')!.params['length'], 'lessThanHalf');
+      expect(parse('Hey 1/2 (WR;PL)')!.params['length'], 'half');
+      expect(parse('Hey 3/4 (WR;PL)')!.params['length'], 'betweenHalfAndFull');
+      expect(parse('Full hey (WR;PL)')!.params['length'], 'full');
+      expect(parse('Whole hey (WR;PL)')!.params['length'], 'full');
+      // Unspecified length defaults to half.
+      expect(parse('Hey (WR;PL)')!.params['length'], 'half');
+      // Unicode ½ folds to 1/2.
+      expect(parse('Hey ½ (WR;PL)')!.params['length'], 'half');
+    });
+
+    test('pass1/shoulder/pass2 come from the first two codes', () {
+      final p = parse('Hey (ML;PR)')!;
+      expect(p.params['pass1'], 'role1s'); // M
+      expect(p.params['shoulder'], 'left'); // code1 L
+      expect(p.params['pass2'], 'partners'); // P
+    });
+
+    test('shoulder alternates by position parity across four codes', () {
+      // WR;PL;MR;N2L => R,L,R,L is consistent (base = right at odd positions).
+      final p = parse('Hey 1/2 (WR;PL;MR;N2L)')!;
+      expect(p.params['shoulder'], 'right');
+    });
+
+    test('a lone code leaves pass2 unspecified (MoveDef default applies)', () {
+      final f = parseFigureLine('Hey (WR)');
+      expect(f!.isCustom, isFalse);
+      expect(f.params.containsKey('pass2'), isFalse);
+      expect(contraTaxonomy.effectiveParams(f)['pass2'], 'unspecified');
+    });
+
+    test('ricochet maps by odd pass position (pos3 -> rico2)', () {
+      final p = parse('Hey (ML;PR;W ricochet)')!;
+      expect(p.params['rico2'], true);
+      expect(p.params['pass1'], 'role1s');
+      expect(p.params['pass2'], 'partners');
+      expect(p.params['shoulder'], 'left');
+      for (final r in ['rico1', 'rico3', 'rico4']) {
+        expect(p.params[r], isNull, reason: r);
+      }
+    });
+
+    test('ricochet at pos5 maps to rico3 (full hey reaches it)', () {
+      final p = parse('Full hey (ML;NR;WL;PR;M ricochet;PR;WL)')!;
+      expect(p.params['rico3'], true);
+      expect(p.params['rico1'], isNull);
+    });
+
+    test('all four ricochets set rico1-4 (full hey)', () {
+      final p = parse(
+        'Full hey (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
+      )!;
+      expect(p.params['rico1'], true);
+      expect(p.params['rico2'], true);
+      expect(p.params['rico3'], true);
+      expect(p.params['rico4'], true);
+      expect(p.params['pass1'], 'role1s'); // pos1 M ricochet
+      expect(p.params['pass2'], 'neighbors'); // pos2 NR
+      expect(p.params['shoulder'], 'left'); // pos2 even, R => base left
+    });
+
+    // Real TCB fixtures (dances 16101 / 10394): "Ricochet hey" names the
+    // variant, the ricochet lands at pass position 3 => rico2.
+    test('real TCB fixture: Ricochet hey 1/2 (ML;PR;W ricochet)', () {
+      final f = parseFigureLine('Ricochet hey 1/2 (ML;PR;W ricochet)');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'hey');
+      expect(f.params['length'], 'half');
+      expect(f.params['pass1'], 'role1s'); // ML
+      expect(f.params['shoulder'], 'left'); // code1 L
+      expect(f.params['pass2'], 'partners'); // PR
+      expect(f.params['rico2'], true);
+      for (final r in ['rico1', 'rico3', 'rico4']) {
+        expect(f.params[r], isNull, reason: r);
+      }
+    });
+
+    test(
+      'real TCB fixture: Ricochet hey 1/2 (WR;PL;M ricochet;PL~) — ~ dropped',
+      () {
+        final f = parseFigureLine('Ricochet hey 1/2 (WR;PL;M ricochet;PL~)');
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'hey');
+        expect(f.params['length'], 'half');
+        expect(f.params['pass1'], 'role2s'); // WR
+        expect(f.params['shoulder'], 'right'); // code1 R
+        expect(f.params['pass2'], 'partners'); // PL
+        expect(f.params['rico2'], true); // M ricochet at pos3
+        for (final r in ['rico1', 'rico3', 'rico4']) {
+          expect(f.params[r], isNull, reason: r);
+        }
+      },
+    );
   });
 
   group('parseFigureLine — preservation', () {

@@ -97,6 +97,15 @@ class _Match {
 /// Attempts to recognise [scrubbed] as one covered move. Returns `null` when no
 /// recognizer accounts for the whole line (→ custom fallback).
 _Match? _recognize(String scrubbed) {
+  // The hey recognizer runs FIRST and on the RAW scrubbed text, not the
+  // normalized word list: a TCB hey carries its structured payload (the pass
+  // list) INSIDE parentheses, which `_normalize` strips as a non-structural
+  // annotation for every other move. `_hey` is highly specific — it requires
+  // the `hey` anchor plus a fully decodable pass list and rejects `dolphin
+  // hey` — so running it ahead of the generic recognizers cannot shadow them.
+  final hey = _hey(scrubbed);
+  if (hey != null) return hey;
+
   final words = _normalize(scrubbed);
   if (words.isEmpty) return null;
 
@@ -814,4 +823,177 @@ _Match? _upTheHall(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('up_the_hall', {'who': ?who2, 'ender': 'none'});
+}
+
+// --- Hey (TCB pass-list) recognizer ------------------------------------------
+//
+// TCB writes heys as an optional fraction plus a `;`-separated pass list inside
+// parentheses: "Hey 1/2 (WR;PL;MR;N2L~)", "Full hey (ML;PR)". This is the ONE
+// recognizer that reads parenthetical content, because the pass list is the
+// hey's structured payload rather than a droppable annotation (see the note in
+// `_recognize`). It decodes onto the existing `hey` MoveDef:
+//   * length   <- the fraction (default `half` when unspecified),
+//   * pass1     <- the *who* of the 1st pass code,
+//   * shoulder  <- the initial-pass shoulder (position-parity base; see below),
+//   * pass2     <- the *who* of the 2nd pass code (else the MoveDef default
+//                  `unspecified`),
+//   * rico1..4  <- ricochet flags, assigned SEQUENTIALLY to the 1st/2nd/3rd/4th
+//                  same-role center pass (the odd pass-list positions), capped
+//                  by what the hey length can physically reach.
+// The `~` partial-last-pass marker is dropped (informational only — not
+// representable, ratified). Any token the decoder cannot fully account for
+// forces `null` -> the custom fallback (parse-never-fails / prefer-custom).
+
+/// TCB pass-list people codes -> canonical dancer set (TCB glossary, see
+/// docs/research/callersbox.md). Post-scrub these compact codes survive intact
+/// (they are not word-boundary role terms), so map them here.
+const Map<String, String> _heyPeople = {
+  'm': 'role1s',
+  'w': 'role2s',
+  'p': 'partners',
+  'n': 'neighbors',
+  'n0': 'prevNeighbors',
+  'n2': 'nextNeighbors',
+  'n3': 'thirdNeighbors',
+  'n4': 'fourthNeighbors',
+  's': 'shadows',
+  '1': 'ones',
+  '2': 'twos',
+};
+
+/// A hey fraction token -> `length`. Absent => `half` (ratified default). The
+/// length is read from the FRACTION, not the pass count (officially ambiguous).
+const Map<String, String> _heyLength = {
+  '1/4': 'lessThanHalf',
+  '1/2': 'half',
+  '3/4': 'betweenHalfAndFull',
+  'full': 'full',
+  'whole': 'full',
+};
+
+/// The highest reachable ricochet slot for a hey [length]. Ricochets fall on
+/// the same-role center passes, of which a hey has as many as its length
+/// physically allows: `lessThanHalf`/`half` are a single meeting (up to two
+/// same-role passes → rico1/rico2), while `betweenHalfAndFull`/`full` are two
+/// meetings (up to four → rico3/rico4). A ricochet that would need a slot the
+/// length can't reach forces the custom fallback.
+int _heyMaxRicoSlot(String length) =>
+    (length == 'lessThanHalf' || length == 'half') ? 2 : 4;
+
+String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
+
+_Match? _hey(String scrubbed) {
+  final lower = scrubbed.toLowerCase();
+  // dolphin_hey is a DIFFERENT move; never match it here.
+  if (lower.contains('dolphin')) return null;
+
+  // A hey is only structured when it carries a parenthetical pass list — that
+  // is the sole source of pass1/shoulder. No pass list -> custom.
+  final open = lower.indexOf('(');
+  if (open == -1) return null;
+  final close = lower.indexOf(')', open + 1);
+  if (close == -1) return null;
+  final passText = lower.substring(open + 1, close);
+  final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
+
+  // The non-paren remainder must be exactly {hey, optional fraction, filler};
+  // anything else (a trailing move, a second parenthetical, ...) -> custom.
+  final outWords = outside
+      .replaceAll('½', ' 1/2 ')
+      .replaceAll('¼', ' 1/4 ')
+      .replaceAll('¾', ' 3/4 ')
+      .split(RegExp(r'\s+'))
+      .map(_stripEdgePunct)
+      .where((w) => w.isNotEmpty)
+      .toList();
+
+  var sawHey = false;
+  var length = 'half';
+  var sawFraction = false;
+  for (final word in outWords) {
+    if (word == 'hey') {
+      sawHey = true;
+      continue;
+    }
+    // "Ricochet hey" names the variant; the actual ricochet flags are decoded
+    // from the pass list, so a leading/standalone "ricochet" word here carries
+    // no extra structure and is ignored.
+    if (word == 'ricochet') continue;
+    if (_filler.contains(word)) continue;
+    final len = _heyLength[word];
+    if (len != null) {
+      if (sawFraction) return null; // two fractions -> ambiguous
+      length = len;
+      sawFraction = true;
+      continue;
+    }
+    return null; // unexplained token -> custom
+  }
+  if (!sawHey) return null;
+
+  final cells = passText.split(';').map((c) => c.trim()).toList();
+  if (cells.isEmpty || cells.any((c) => c.isEmpty)) return null;
+
+  final params = <String, Object?>{'length': length};
+  final maxRicoSlot = _heyMaxRicoSlot(length);
+  String? shoulderBase; // the shoulder implied at ODD positions.
+  String? pass1;
+  String? pass2;
+
+  for (var i = 0; i < cells.length; i++) {
+    final position = i + 1; // 1-based pass position.
+    final cell = cells[i].replaceAll('~', '').trim(); // drop the `~` marker.
+    if (cell.isEmpty) return null;
+
+    if (cell.endsWith('ricochet')) {
+      final people = cell.substring(0, cell.length - 'ricochet'.length).trim();
+      final who = _heyPeople[people];
+      // Only center same-role dancers ricochet — never neighbor/partner/etc.
+      if (who != 'role1s' && who != 'role2s') return null;
+      // The same-role center passes are the odd pass-list positions; enumerate
+      // them in order (pos1 = 1st, pos3 = 2nd, ...) to pick the ricochet slot.
+      // An even position is not a center pass, so it can't ricochet.
+      if (position.isEven) return null;
+      final slotIndex = (position + 1) ~/ 2; // 1st/2nd/3rd/4th center pass.
+      // The length must physically reach this slot (e.g. a half hey has at
+      // most two same-role passes, so rico3/rico4 are unreachable → custom).
+      if (slotIndex > maxRicoSlot) return null;
+      params['rico$slotIndex'] = true;
+      if (position == 1) pass1 = who;
+      continue;
+    }
+
+    // Normal pass code: a trailing R/L shoulder plus a people-code prefix.
+    final shoulderChar = cell[cell.length - 1];
+    final shoulder = shoulderChar == 'r'
+        ? 'right'
+        : shoulderChar == 'l'
+        ? 'left'
+        : null;
+    if (shoulder == null) return null;
+    final who = _heyPeople[cell.substring(0, cell.length - 1)];
+    if (who == null) return null;
+
+    // Shoulders alternate by position parity: odd positions share the base
+    // shoulder, even positions the opposite. Derive the base from the first
+    // shouldered code, then require every later code to agree — a pass list
+    // that does not alternate is malformed/ambiguous -> custom.
+    final impliedBase = position.isOdd ? shoulder : _otherShoulder(shoulder);
+    if (shoulderBase == null) {
+      shoulderBase = impliedBase;
+    } else if (shoulderBase != impliedBase) {
+      return null;
+    }
+
+    if (position == 1) pass1 = who;
+    if (position == 2) pass2 = who;
+  }
+
+  if (shoulderBase == null) return null; // no shouldered code -> can't decode.
+  if (pass1 == null) return null;
+
+  params['pass1'] = pass1;
+  params['shoulder'] = shoulderBase;
+  if (pass2 != null) params['pass2'] = pass2;
+  return _Match('hey', params);
 }
