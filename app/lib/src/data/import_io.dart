@@ -4,6 +4,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:http/http.dart' as http;
 
+import '../search/collection_query.dart' show ByPhraseSelections;
+
 /// Prompts the user to choose a source file for an import and returns its
 /// contents, or `null` if they cancelled. See [pickImportFile] for the default
 /// implementation; widget tests override this seam to return canned text so no
@@ -230,23 +232,171 @@ String buildCallersBoxJsonUrl(String input) {
 /// (not the JSON import path's UTF-8) and must be decoded from raw bytes.
 typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 
-/// Builds the Caller's Box title-search URL for [title].
+/// Builds the Caller's Box title-search URL for [title], optionally combined
+/// with by-phrase figure criteria ([phrases]).
 ///
 /// The Caller's Box search surface is an HTTP GET to `index.php` (under
-/// [callersBoxPathPrefix]) with a `title` query param (confirmed live; the site
-/// also accepts `author`, `formation`, `progression`, but this app searches by
-/// title). Returns
+/// [callersBoxPathPrefix]). It accepts a `title` query param (confirmed live;
+/// the site also accepts `author`, `formation`, `progression`, but this app
+/// searches by title) plus a set of figure-line fields for "search by phrase"
+/// (verified live against the TCB search form, 2026):
+///
+/// - Global (any-phrase) figure match: `pos_lines`/`pos_mode` ("figures match")
+///   and `neg_lines`/`neg_mode` ("but do not match").
+/// - Per-phrase, indexed `phr1..phr4` (= the standard phrases A1, A2, B1, B2):
+///   `phrN_pos_lines`/`phrN_pos_mode` and `phrN_neg_lines`/`phrN_neg_mode`.
+///
+/// Each `*_lines` value is a newline-separated list of figure lines. The mode
+/// values are `all_any` for positives ("all of these lines, in any order" — the
+/// dance must contain EVERY selected figure, order irrelevant) and `any_any`
+/// for negatives ("any of these lines" — exclude if any appears). These mirror
+/// the local by-phrase semantics (AND the matches, negate the excludes).
+///
+/// Title and phrase criteria are non-exclusive: TCB accepts both in one
+/// request, so a title box and phrase figures combine.
+///
+/// LIMITATION (v1): [CallersBoxPhraseQuery.fromSelections] maps each selected
+/// move to its taxonomy display name as the TCB figure line. TCB uses its own
+/// figure vocabulary and recommends one word per figure, so a display name may
+/// over- or under-match (e.g. our "star through" vs TCB "star thru"). There is
+/// no curated compatibility table yet; this is accepted for v1.
+///
+/// Returns e.g.
 /// `https://www.ibiblio.org/contradance/thecallersbox/index.php?title=<encoded>`.
 ///
-/// Throws a [UrlFetchException] (message safe to show) when [title] is empty.
-String buildCallersBoxSearchUrl(String title, {String host = callersBoxHost}) {
+/// Throws a [UrlFetchException] (message safe to show) when there is nothing to
+/// search — an empty [title] and no effective [phrases].
+String buildCallersBoxSearchUrl(
+  String title, {
+  CallersBoxPhraseQuery? phrases,
+  String host = callersBoxHost,
+}) {
   final trimmed = title.trim();
-  if (trimmed.isEmpty) {
-    throw const UrlFetchException("Enter a title to search The Caller's Box.");
+  final hasPhrases = phrases != null && !phrases.isEmpty;
+  if (trimmed.isEmpty && !hasPhrases) {
+    throw const UrlFetchException(
+      "Enter a title or by-phrase figures to search The Caller's Box.",
+    );
   }
-  return Uri.https(host, '$callersBoxPathPrefix/index.php', {
-    'title': trimmed,
-  }).toString();
+
+  final params = <String, String>{};
+  if (trimmed.isNotEmpty) params['title'] = trimmed;
+  if (hasPhrases) {
+    if (phrases.globalPos.isNotEmpty) {
+      params['pos_lines'] = phrases.globalPos.join('\n');
+      params['pos_mode'] = _tcbPosMode;
+    }
+    if (phrases.globalNeg.isNotEmpty) {
+      params['neg_lines'] = phrases.globalNeg.join('\n');
+      params['neg_mode'] = _tcbNegMode;
+    }
+    phrases.phrasePos.forEach((slot, lines) {
+      if (lines.isEmpty) return;
+      params['phr${slot}_pos_lines'] = lines.join('\n');
+      params['phr${slot}_pos_mode'] = _tcbPosMode;
+    });
+    phrases.phraseNeg.forEach((slot, lines) {
+      if (lines.isEmpty) return;
+      params['phr${slot}_neg_lines'] = lines.join('\n');
+      params['phr${slot}_neg_mode'] = _tcbNegMode;
+    });
+  }
+
+  return Uri.https(host, '$callersBoxPathPrefix/index.php', params).toString();
+}
+
+/// TCB positive figure-match mode: "all of these lines, in any order" — the
+/// dance must contain EVERY selected figure (order irrelevant). Confirmed
+/// against TCB's own search help (2026): the "all of these lines, in any order"
+/// option requires every listed figure to be present.
+const String _tcbPosMode = 'all_any';
+
+/// TCB negative figure mode: "any of these lines, in any order" — exclude the
+/// dance if ANY of the do-not-match figures appears.
+const String _tcbNegMode = 'any_any';
+
+/// The four TCB online "search by phrase" slots (`phr1..phr4`) correspond to the
+/// standard contra phrases A1, A2, B1, B2 (verified live against the TCB search
+/// form, 2026). Selections on any other (non-standard) phrase label can't target
+/// a slot, so [CallersBoxPhraseQuery.fromSelections] folds them into the global
+/// any-phrase figure fields rather than dropping them.
+const Map<String, int> _tcbPhraseSlots = {'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4};
+
+/// Resolved TCB by-phrase figure criteria, ready to serialize into the search
+/// request by [buildCallersBoxSearchUrl]. Lines are already resolved to figure
+/// text (not move ids). [globalPos]/[globalNeg] carry any-phrase figures;
+/// [phrasePos]/[phraseNeg] map a 1-based TCB phrase slot (`phr1..phr4`) to its
+/// per-phrase figure lines.
+class CallersBoxPhraseQuery {
+  const CallersBoxPhraseQuery({
+    this.globalPos = const [],
+    this.globalNeg = const [],
+    this.phrasePos = const {},
+    this.phraseNeg = const {},
+  });
+
+  final List<String> globalPos;
+  final List<String> globalNeg;
+  final Map<int, List<String>> phrasePos;
+  final Map<int, List<String>> phraseNeg;
+
+  /// True when nothing would be sent to TCB (no positive or negative lines).
+  bool get isEmpty =>
+      globalPos.isEmpty &&
+      globalNeg.isEmpty &&
+      phrasePos.values.every((l) => l.isEmpty) &&
+      phraseNeg.values.every((l) => l.isEmpty);
+
+  /// Builds a query from local by-phrase [selections], resolving each move id to
+  /// its [taxonomy] display name (falling back to the raw id) as the TCB figure
+  /// line. Standard phrase labels (A1/A2/B1/B2) target their `phr1..phr4` slot;
+  /// any other label's figures are aggregated into the global any-phrase fields
+  /// so non-standard programs degrade gracefully instead of losing selections.
+  factory CallersBoxPhraseQuery.fromSelections(
+    ByPhraseSelections selections,
+    Taxonomy taxonomy,
+  ) {
+    List<String> toLines(List<String> moveIds) {
+      final out = <String>[];
+      for (final id in moveIds) {
+        final line = (taxonomy.resolve(id)?.displayName ?? id).trim();
+        if (line.isNotEmpty) out.add(line);
+      }
+      return out;
+    }
+
+    final phrasePos = <int, List<String>>{};
+    final phraseNeg = <int, List<String>>{};
+    final globalPos = <String>[];
+    final globalNeg = <String>[];
+
+    void distribute(
+      Map<String, List<String>> source,
+      Map<int, List<String>> perSlot,
+      List<String> global,
+    ) {
+      source.forEach((label, moves) {
+        final lines = toLines(moves);
+        if (lines.isEmpty) return;
+        final slot = _tcbPhraseSlots[label];
+        if (slot != null) {
+          (perSlot[slot] ??= <String>[]).addAll(lines);
+        } else {
+          global.addAll(lines);
+        }
+      });
+    }
+
+    distribute(selections.match, phrasePos, globalPos);
+    distribute(selections.exclude, phraseNeg, globalNeg);
+
+    return CallersBoxPhraseQuery(
+      globalPos: globalPos,
+      globalNeg: globalNeg,
+      phrasePos: phrasePos,
+      phraseNeg: phraseNeg,
+    );
+  }
 }
 
 /// Caller's Box HTML pages are served as `windows-1252`. The 0x80–0x9F range is

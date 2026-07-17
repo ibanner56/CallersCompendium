@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
+import 'package:compendium_app/src/search/collection_query.dart'
+    show ByPhraseSelections;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -84,6 +86,148 @@ void main() {
         () => buildCallersBoxSearchUrl('   '),
         throwsA(isA<UrlFetchException>()),
       );
+    });
+
+    test('an empty title with effective phrases does NOT throw', () {
+      final url = buildCallersBoxSearchUrl(
+        '   ',
+        phrases: const CallersBoxPhraseQuery(
+          phrasePos: {
+            1: ['swing'],
+          },
+        ),
+      );
+      final params = Uri.parse(url).queryParameters;
+      expect(params.containsKey('title'), isFalse);
+      expect(params['phr1_pos_lines'], 'swing');
+    });
+
+    test('empty title and empty phrases throws', () {
+      expect(
+        () => buildCallersBoxSearchUrl(
+          '',
+          phrases: const CallersBoxPhraseQuery(),
+        ),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('per-phrase figures map onto phr1..phr4 with the right modes', () {
+      final url = buildCallersBoxSearchUrl(
+        '',
+        phrases: const CallersBoxPhraseQuery(
+          phrasePos: {
+            1: ['swing', 'balance'],
+            3: ['allemande'],
+          },
+          phraseNeg: {
+            4: ['petronella'],
+          },
+        ),
+      );
+      final params = Uri.parse(url).queryParameters;
+      // Positive lines are newline-joined; positive mode = all_any (must contain
+      // every figure), negative mode = any_any (exclude if any appears).
+      expect(params['phr1_pos_lines'], 'swing\nbalance');
+      expect(params['phr1_pos_mode'], 'all_any');
+      expect(params['phr3_pos_lines'], 'allemande');
+      expect(params['phr3_pos_mode'], 'all_any');
+      expect(params['phr4_neg_lines'], 'petronella');
+      expect(params['phr4_neg_mode'], 'any_any');
+      // No phr2 selections → no phr2 params emitted.
+      expect(params.keys.where((k) => k.startsWith('phr2')), isEmpty);
+    });
+
+    test('global (any-phrase) figures map onto pos_lines/neg_lines', () {
+      final url = buildCallersBoxSearchUrl(
+        '',
+        phrases: const CallersBoxPhraseQuery(
+          globalPos: ['star thru', 'chain'],
+          globalNeg: ['hey'],
+        ),
+      );
+      final params = Uri.parse(url).queryParameters;
+      expect(params['pos_lines'], 'star thru\nchain');
+      expect(params['pos_mode'], 'all_any');
+      expect(params['neg_lines'], 'hey');
+      expect(params['neg_mode'], 'any_any');
+    });
+
+    test('title and phrase criteria combine in one request', () {
+      final url = buildCallersBoxSearchUrl(
+        'Money Musk',
+        phrases: const CallersBoxPhraseQuery(
+          phrasePos: {
+            2: ['swing'],
+          },
+        ),
+      );
+      final params = Uri.parse(url).queryParameters;
+      expect(params['title'], 'Money Musk');
+      expect(params['phr2_pos_lines'], 'swing');
+      expect(params['phr2_pos_mode'], 'all_any');
+    });
+  });
+
+  group('CallersBoxPhraseQuery.fromSelections', () {
+    test('standard labels A1/A2/B1/B2 map to phr1..phr4 via display names', () {
+      final selections = ByPhraseSelections();
+      selections.match['A1'] = ['swing'];
+      selections.match['B1'] = ['balance_the_ring'];
+      selections.exclude['B2'] = ['allemande'];
+
+      final query = CallersBoxPhraseQuery.fromSelections(
+        selections,
+        contraTaxonomy,
+      );
+
+      expect(query.phrasePos[1], ['swing']);
+      // Move id → taxonomy display name ("balance the ring", not the raw id).
+      expect(query.phrasePos[3], ['balance the ring']);
+      expect(query.phraseNeg[4], ['allemande']);
+      expect(query.globalPos, isEmpty);
+      expect(query.globalNeg, isEmpty);
+      expect(query.isEmpty, isFalse);
+    });
+
+    test('non-standard phrase labels fall back to the global fields', () {
+      final selections = ByPhraseSelections();
+      selections.match['C1'] = ['swing'];
+      selections.exclude['C2'] = ['balance'];
+
+      final query = CallersBoxPhraseQuery.fromSelections(
+        selections,
+        contraTaxonomy,
+      );
+
+      expect(query.phrasePos, isEmpty);
+      expect(query.phraseNeg, isEmpty);
+      expect(query.globalPos, ['swing']);
+      expect(query.globalNeg, ['balance']);
+    });
+
+    test('an unknown move id falls back to the raw id as its line', () {
+      final selections = ByPhraseSelections();
+      selections.match['A1'] = ['not_a_real_move'];
+
+      final query = CallersBoxPhraseQuery.fromSelections(
+        selections,
+        contraTaxonomy,
+      );
+
+      expect(query.phrasePos[1], ['not_a_real_move']);
+    });
+
+    test('no selected figures yields an empty query', () {
+      final selections = ByPhraseSelections();
+      selections.match['A1'] = [];
+
+      final query = CallersBoxPhraseQuery.fromSelections(
+        selections,
+        contraTaxonomy,
+      );
+
+      expect(query.isEmpty, isTrue);
     });
   });
 

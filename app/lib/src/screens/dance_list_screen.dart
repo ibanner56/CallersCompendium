@@ -414,7 +414,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   void _onByPhraseChanged() {
     setState(() {});
-    _runSearch();
+    if (_onlineEnabled) {
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      _runSearch();
+    }
   }
 
   /// Toggles online (Caller's Box) search mode. Turning it on runs an immediate
@@ -431,17 +436,34 @@ class _DanceListScreenState extends State<DanceListScreen> {
       }
     });
     if (value) {
-      if (_ftsController.text.trim().isNotEmpty) _runOnlineSearch();
+      if (_ftsController.text.trim().isNotEmpty || _onlinePhrases() != null) {
+        _runOnlineSearch();
+      }
     } else {
       _runSearch();
     }
   }
 
-  /// Runs a live Caller's Box search for the current query text. Guarded by a
-  /// sequence number so a slow response can't overwrite a newer query.
+  /// Resolves the current by-phrase selections into a TCB phrase query, or
+  /// `null` when there's nothing to send (no data loaded yet, or no figures
+  /// selected). Reused by the online search runner and the toggle.
+  CallersBoxPhraseQuery? _onlinePhrases() {
+    final data = _data;
+    if (data == null || _byPhrase.isEmpty) return null;
+    final phrases = CallersBoxPhraseQuery.fromSelections(
+      _byPhrase,
+      data.taxonomy,
+    );
+    return phrases.isEmpty ? null : phrases;
+  }
+
+  /// Runs a live Caller's Box search for the current query text and/or by-phrase
+  /// figures. Guarded by a sequence number so a slow response can't overwrite a
+  /// newer query.
   Future<void> _runOnlineSearch() async {
     final query = _ftsController.text.trim();
-    if (query.isEmpty) {
+    final phrases = _onlinePhrases();
+    if (query.isEmpty && phrases == null) {
       setState(() {
         _onlineResults = const [];
         _onlineError = null;
@@ -455,7 +477,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _onlineError = null;
     });
     try {
-      final results = await _online.search(query);
+      final results = await _online.search(query, phrases: phrases);
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlineResults = results;
@@ -990,10 +1012,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
                   // nothing to filter in an empty collection), so they're hidden
                   // in those cases. The Advanced panel stays — it hosts the
                   // "Online search" toggle, which must always be reachable.
-                  if (!_onlineEnabled && !collectionEmpty) ...[
+                  // Local facet filters can't apply to Caller's Box results, so
+                  // the Filters panel stays local-only. By-phrase, however, maps
+                  // onto TCB's own "search by phrase" fields, so it's offered in
+                  // online mode too (even with an empty local collection).
+                  if (!_onlineEnabled && !collectionEmpty)
                     _buildFiltersPanel(data),
+                  if (_onlineEnabled || !collectionEmpty)
                     _buildByPhrasePanel(data),
-                  ],
                   _buildAdvancedPanel(data),
                   if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
                   const Divider(height: 1),
@@ -1225,13 +1251,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (_ftsController.text.trim().isEmpty) {
+    if (_ftsController.text.trim().isEmpty && _onlinePhrases() == null) {
       return const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.all(AppSpacing.lg),
           child: Center(
             child: Text(
-              "Type a title to search The Caller's Box.",
+              "Type a title or add by-phrase figures to search The Caller's Box.",
               key: ValueKey('online-empty-query'),
               textAlign: TextAlign.center,
             ),
