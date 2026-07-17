@@ -247,19 +247,18 @@ CcDanceMapping mapCallersCompanionDance(
   ]);
 
   // Body → figures (design §2). Each `(beats) text` line is routed through the
-  // shared [parseFigureLines]: recognised moves become structured figures, the
-  // rest fall back to custom (parse-never-fails). A top-level `;` compound
-  // splits into one figure per clause (all-or-nothing + Option A beats);
-  // single-clause lines are unchanged. Figure text is dialect-scrubbed via
-  // [scrubFn]. Section labels are NOT embedded in the figure text (they derive
-  // from cumulative beats), so the section label is not prefixed.
+  // shared [parseFigureLine]: recognised moves become structured figures, the
+  // rest fall back to custom (parse-never-fails). Figure text is dialect-
+  // scrubbed via [scrubFn]. Section labels are NOT embedded in the figure text
+  // (they derive from cumulative beats), so the section label is not prefixed.
   final figures = <Figure>[];
   for (final section in record.body) {
     for (final rawLine in section.lines) {
       final line = rawLine.trim();
       if (line.isEmpty) continue;
       final (beats, text) = _splitBeats(line);
-      figures.addAll(parseFigureLines(text, beats: beats, scrub: scrubFn));
+      final figure = parseFigureLine(text, beats: beats, scrub: scrubFn);
+      if (figure != null) figures.add(figure);
     }
   }
 
