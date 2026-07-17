@@ -761,13 +761,18 @@ void main() {
           'balance and petronella',
         );
       });
-      test('star_through (deferred) carries NO balance prefix', () {
-        // A CallersBox extension not modeled by ContraDB — no sourced wording,
-        // so it stays inert rather than extrapolating a balance phrase.
-        final f = Figure(move: 'star_through', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'partners star through');
-        expect(renderer.renderSummary(f, d), renderer.render(f, d));
-      });
+      test(
+        'star_through carries no balance summary (not ContraDB-sourced)',
+        () {
+          // star_through is a CallersBox extension not modeled by ContraDB and,
+          // as of taxonomy v12, its MoveDef declares no `balance` param (it
+          // mirrors california_twirl). A plain star_through therefore never
+          // surfaces a balance prefix — renderSummary matches render exactly.
+          final f = Figure(move: 'star_through', params: {'who': 'partners'});
+          expect(renderer.renderSummary(f, d), 'partners star through');
+          expect(renderer.renderSummary(f, d), renderer.render(f, d));
+        },
+      );
       test('box_the_gnat (after-who) surfaces balance when set', () {
         // Our terse '{who} {move}' template omits the hand regardless of
         // balance, so adding "balance &" is a strict improvement, not a new
