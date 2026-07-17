@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import '../model/enums.dart';
 import '../model/program.dart';
 import '../storage/repositories/program_repository.dart';
 import '../util/uuid.dart';
@@ -26,23 +27,47 @@ class CcUsrImportResult {
     required this.danceSession,
     required List<Program> programs,
     required List<ImportIssue> programIssues,
+    List<String> insertedProgramIds = const [],
+    List<Program> updatedProgramPriorStates = const [],
   }) : programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
-       insertedProgramIds = List.unmodifiable([for (final p in programs) p.id]);
+       insertedProgramIds = List.unmodifiable(insertedProgramIds),
+       updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates);
 
   /// The dance-side session (inserted dance ids, updated-dance prior states,
   /// created choreographer ids) — reverted via [ImportPipeline.undo].
   final ImportSession danceSession;
 
-  /// The programs built from the archive and persisted by this import.
+  /// Every program this import persisted — both newly inserted and updated
+  /// (re-imported) — carrying its final id (an updated program keeps the id of
+  /// the program it deduped onto). Ordered as the archive's `Set`s were built.
   final List<Program> programs;
 
-  /// Ids of the programs inserted by this import; removed on [undo].
+  /// Ids of the programs **inserted** by this import (no prior existed); these
+  /// are hard-deleted on [undo]. Programs that deduped onto an existing one are
+  /// not here — they are in [updatedProgramPriorStates] instead.
   final List<String> insertedProgramIds;
+
+  /// Prior snapshots of the programs this import **updated in place** because a
+  /// re-import matched their `(source, externalId)` provenance key. Restored
+  /// verbatim on [undo] so a re-import reverts losslessly (mirrors the dance
+  /// pipeline's `updatedDancePriorStates`).
+  final List<Program> updatedProgramPriorStates;
 
   /// Non-fatal issues raised while building the programs (unresolved dance
   /// references, unparseable dates, skipped empty slots) — never fatal.
   final List<ImportIssue> programIssues;
+
+  /// Ids of the programs updated in place (re-imported) by this import.
+  List<String> get updatedProgramIds => [
+    for (final p in updatedProgramPriorStates) p.id,
+  ];
+
+  /// Count of programs newly inserted by this import.
+  int get insertedProgramCount => insertedProgramIds.length;
+
+  /// Count of programs updated in place (deduped/re-imported) by this import.
+  int get updatedProgramCount => updatedProgramPriorStates.length;
 
   /// True once [CallersCompanionUsrImporter.undo] has reverted this import.
   bool get isUndone => _undone;
@@ -110,27 +135,63 @@ class CallersCompanionUsrImporter {
       now: now,
     );
 
-    // Persist the programs. If any insert fails the dances are already
-    // committed, so compensate before rethrowing — remove the programs written
-    // so far and revert the dance commit — keeping the import all-or-nothing
-    // from the caller's perspective (they never get a partial DB with no undo
-    // handle).
-    final persisted = <String>[];
+    // Persist the programs, deduping on provenance. A built program whose
+    // `(callersCompanion, zk_Set_ID)` key already exists is a re-import: update
+    // that program in place (preserving its id + createdAt, capturing its prior
+    // state for undo) rather than inserting a duplicate. Others are inserted.
+    //
+    // If any write fails the dances are already committed, so compensate before
+    // rethrowing — remove the inserted programs, restore the updated ones, and
+    // revert the dance commit — keeping the import all-or-nothing from the
+    // caller's perspective (they never get a partial DB with no undo handle).
+    final existingByExternalId = await _programs.externalIdToProgramId(
+      ProvenanceSource.callersCompanion,
+    );
+    final insertedIds = <String>[];
+    final priorStates = <Program>[];
+    final persisted = <Program>[];
     try {
       for (final program in built.programs) {
-        await _programs.create(program);
-        persisted.add(program.id);
+        final externalId = program.provenance?.externalId;
+        final existingId = (externalId == null || externalId.isEmpty)
+            ? null
+            : existingByExternalId[externalId];
+        final prior = existingId == null
+            ? null
+            : await _programs.getById(existingId, includeDeleted: true);
+        if (existingId == null || prior == null) {
+          // New program (no match, or a stale index entry whose program row is
+          // gone) — insert under its freshly minted id.
+          await _programs.create(program);
+          insertedIds.add(program.id);
+          persisted.add(program);
+        } else {
+          // Re-import: overwrite the matched program in place.
+          final target = _rebuildProgramWithId(
+            program,
+            id: existingId,
+            createdAt: prior.createdAt,
+          );
+          priorStates.add(prior);
+          await _programs.update(target);
+          persisted.add(target);
+        }
       }
     } catch (_) {
-      await _programs.hardDelete(persisted);
+      await _programs.hardDelete(insertedIds);
+      for (final prior in priorStates) {
+        await _programs.update(prior);
+      }
       await _pipeline.undo(danceSession);
       rethrow;
     }
 
     return CcUsrImportResult(
       danceSession: danceSession,
-      programs: built.programs,
+      programs: persisted,
       programIssues: built.issues,
+      insertedProgramIds: insertedIds,
+      updatedProgramPriorStates: priorStates,
     );
   }
 
@@ -153,21 +214,49 @@ class CallersCompanionUsrImporter {
     return commit(batch, archive, now: now, newId: newId, newSlotId: newSlotId);
   }
 
-  /// Reverts a committed [result]: hard-deletes the inserted programs (slots
-  /// cascade) **before** delegating to [ImportPipeline.undo] for the dances,
-  /// authors and updated-dance rollbacks. Idempotent — a second call is a
-  /// no-op.
+  /// Reverts a committed [result]: hard-deletes the **inserted** programs (slots
+  /// cascade) and restores every **updated** (re-imported) program to its
+  /// captured prior state, **before** delegating to [ImportPipeline.undo] for
+  /// the dances, authors and updated-dance rollbacks. Idempotent — a second
+  /// call is a no-op.
   ///
-  /// Programs are removed first so the revert is clean regardless of the
+  /// Programs are handled first so the revert is clean regardless of the
   /// `program_slots.dance_id → dances` foreign key (which is `SET NULL`, so the
   /// order is not strictly required for integrity, but removing programs first
   /// keeps the intent obvious).
   Future<void> undo(CcUsrImportResult result) async {
     if (result.isUndone) return;
     await _programs.hardDelete(result.insertedProgramIds);
+    for (final prior in result.updatedProgramPriorStates) {
+      await _programs.update(prior);
+    }
     await _pipeline.undo(result.danceSession);
     result._undone = true;
   }
+
+  /// Rebuilds [src] under an existing program [id] and [createdAt] (preserving
+  /// the matched program's identity/creation stamp on a re-import) while keeping
+  /// every other field — title, slots, event metadata, provenance, updatedAt —
+  /// from the freshly built program.
+  Program _rebuildProgramWithId(
+    Program src, {
+    required String id,
+    required DateTime createdAt,
+  }) => Program(
+    id: id,
+    title: src.title,
+    eventDate: src.eventDate,
+    venue: src.venue,
+    band: src.band,
+    caller: src.caller,
+    dancerLevel: src.dancerLevel,
+    notes: src.notes,
+    status: src.status,
+    slots: src.slots,
+    createdAt: createdAt,
+    updatedAt: src.updatedAt,
+    provenance: src.provenance,
+  );
 
   /// Builds the CC-dance-id → new-Compendium-dance-id map from the committed
   /// [session] alone. Each [CommittedRecord] carries its own

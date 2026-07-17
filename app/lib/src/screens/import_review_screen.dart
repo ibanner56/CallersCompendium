@@ -432,6 +432,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               if (ccResult != null) ...[
                 const SizedBox(height: 8),
                 _summaryLine('Programs', programs.length),
+                if (ccResult.updatedProgramCount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      '${ccResult.updatedProgramCount} updated (re-imported)',
+                      key: const ValueKey('import-programs-updated'),
+                    ),
+                  ),
                 if (programNames.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),

@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 
 import '../validation/validation.dart';
 import 'enums.dart';
+import 'provenance.dart';
 
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
 
@@ -155,6 +156,7 @@ class Program {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
+    this.provenance,
   }) : slots = List.unmodifiable(
          <ProgramSlot>[...slots]
            ..sort((a, b) => a.position.compareTo(b.position)),
@@ -187,6 +189,13 @@ class Program {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+
+  /// Import provenance: where this program came from (CC `.USR`), keyed on
+  /// `(source, externalId)` so a re-import dedupes onto the same program rather
+  /// than creating a duplicate. `null` for user-created programs, which never
+  /// dedupe. Mirrors [Dance.provenance]; like Dance, it is metadata *about the
+  /// import* and is deliberately excluded from value equality (`==`/[hashCode]).
+  final Provenance? provenance;
 
   bool get isDeleted => deletedAt != null;
 
@@ -277,12 +286,14 @@ class Program {
     List<ProgramSlot>? slots,
     DateTime? updatedAt,
     DateTime? deletedAt,
+    Provenance? provenance,
     bool clearEventDate = false,
     bool clearVenue = false,
     bool clearBand = false,
     bool clearCaller = false,
     bool clearDancerLevel = false,
     bool clearDeletedAt = false,
+    bool clearProvenance = false,
   }) => Program(
     id: id,
     title: title ?? this.title,
@@ -297,10 +308,13 @@ class Program {
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
+    provenance: clearProvenance ? null : (provenance ?? this.provenance),
   );
 
   /// Deep copy for "duplicate program": fresh ids everywhere, draft status,
   /// performance history cleared. [newSlotId] mints an id per copied slot.
+  /// Provenance is dropped (the copy is the user's own record, not an import),
+  /// mirroring [Dance.duplicate].
   Program duplicate({
     required String newId,
     required String Function() newSlotId,

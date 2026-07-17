@@ -1121,6 +1121,108 @@ void main() {
     );
   });
 
+  group('v9 -> v10 upgrade', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v10_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v9 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v9.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('creates the program_provenance table', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final tables = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name='program_provenance'",
+          )
+          .get();
+      expect(tables, hasLength(1));
+
+      await db.close();
+    });
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test('pre-existing programs survive with null provenance', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final program = await repos.programs.getById('prog-1');
+      expect(program, isNotNull);
+      expect(program!.title, 'Spring Contra 2026');
+      expect(program.slots, hasLength(2));
+      // The migration is purely additive — no back-fill — so an existing
+      // (user-created) program has no provenance and never dedupes.
+      expect(program.provenance, isNull);
+      expect(
+        await repos.programs.externalIdToProgramId(
+          ProvenanceSource.callersCompanion,
+        ),
+        isEmpty,
+      );
+
+      await db.close();
+    });
+
+    test('a CC program can be written and deduped after the upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      await repos.programs.create(
+        Program(
+          id: 'cc-prog',
+          title: 'Imported Set',
+          createdAt: DateTime.utc(2026, 2, 1),
+          updatedAt: DateTime.utc(2026, 2, 1),
+          provenance: Provenance(
+            source: ProvenanceSource.callersCompanion,
+            externalId: 'set-1',
+            importedAt: DateTime.utc(2026, 2, 1),
+            sourceVersion: 'cc-usr-1',
+          ),
+        ),
+      );
+
+      expect(
+        await repos.programs.externalIdToProgramId(
+          ProvenanceSource.callersCompanion,
+        ),
+        {'set-1': 'cc-prog'},
+      );
+
+      await db.close();
+    });
+  });
+
   test(
     'beforeOpen recreates dance_fts if missing from an existing database',
     () async {

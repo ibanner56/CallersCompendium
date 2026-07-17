@@ -1,6 +1,7 @@
 import 'package:compendium_core/src/imports/callers_companion_programs.dart';
 import 'package:compendium_core/src/imports/callers_companion_usr_archive.dart';
 import 'package:compendium_core/src/imports/structured_draft.dart';
+import 'package:compendium_core/src/model/enums.dart';
 import 'package:test/test.dart';
 
 /// Tests for [buildCcPrograms] — the pure Set/SetItem → Program builder. Built
@@ -194,5 +195,19 @@ void main() {
       ]),
     );
     expect(result.issues, everyElement(isA<ImportIssue>()));
+  });
+
+  test('stamps provenance keyed on the CC zk_Set_ID (recordId)', () {
+    final result = build(
+      _archive([
+        CcSet(recordId: '42', title: 'Friday Contra', items: const []),
+      ]),
+    );
+    final prov = result.programs.single.provenance;
+    expect(prov, isNotNull);
+    expect(prov!.source, ProvenanceSource.callersCompanion);
+    expect(prov.externalId, '42');
+    expect(prov.sourceVersion, ccUsrSourceVersion);
+    expect(prov.importedAt, DateTime.utc(2020));
   });
 }
