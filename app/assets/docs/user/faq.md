@@ -67,6 +67,15 @@ text or export a PDF. This is separate from a full backup. See
 [Collection & search](./collection.md) for dances and
 [Programs & matrix](./programs.md) for programs.
 
+### How do I get updates?
+
+The app can check for a newer version itself. Open **Settings › Updates** and
+choose **Check for updates** any time; on desktop it can download and install the
+update for you, and on phones and tablets it links you to the download. Nothing
+updates automatically unless you turn on **Check automatically**, and you can opt
+into pre-release builds with the **Beta channel** switch. See
+[Settings](./settings.md#updates).
+
 ## Troubleshooting
 
 ### Why can't I find a dance I imported?
