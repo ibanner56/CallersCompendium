@@ -240,9 +240,12 @@ void main() {
       "Neighbor Rory O'More",
       // "square through" spelled out (TCB uses a digit count) stays custom.
       'square through four',
-      // gate: SKIPPED this PR — every attested TCB gate carries a
-      // clockwise/counterclockwise/mirror qualifier + fraction the taxonomy's
-      // face (up/down/in/out) param cannot represent (dance id 519).
+      // gate: intentionally stays custom. Every surveyed TCB gate (62 lines)
+      // carries a clockwise/counterclockwise/mirror qualifier + turn fraction;
+      // ContraDB gate is facing-only (up/down/in/out, fixed 8 beats). The
+      // domains are DISJOINT (0/62 TCB lines map to `face`), so a `_gate`
+      // recognizer would match nothing or fabricate a `face` value the line
+      // never states — forbidden by the source-fidelity rule (dance id 519).
       'N2 neighbor gate counterclockwise 1/2',
       // A poussette with an unmappable leftover ("draw") stays custom.
       'Neighbor draw poussette clockwise 1/2',
