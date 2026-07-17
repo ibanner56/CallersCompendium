@@ -101,7 +101,7 @@ class CallersCompanionUsrImporter {
       resolutions: resolutions,
     );
 
-    final danceIdByCcRowId = _danceIdByCcRowId(batch, danceSession);
+    final danceIdByCcRowId = _danceIdByCcRowId(danceSession);
     final built = buildCcPrograms(
       archive,
       danceIdByCcRowId: danceIdByCcRowId,
@@ -170,24 +170,18 @@ class CallersCompanionUsrImporter {
   }
 
   /// Builds the CC-dance-id → new-Compendium-dance-id map from the committed
-  /// batch. [batch].records and [session].records are index-aligned (the
-  /// pipeline preserves order and never drops a record), so each committed
-  /// dance's [RawRecord.externalId] (the CC `zk_Dance_ID` value that `SetItem`
-  /// rows reference) maps to the id the commit wrote. Skips, errors, and
-  /// records with a missing external id contribute nothing.
-  Map<String, String> _danceIdByCcRowId(
-    ImportBatchResult batch,
-    ImportSession session,
-  ) {
+  /// [session] alone. Each [CommittedRecord] carries its own
+  /// [CommittedRecord.externalId] (the CC `zk_Dance_ID` value that `SetItem`
+  /// rows reference) alongside the [CommittedRecord.danceId] the commit minted,
+  /// so the map is a direct association with **no** dependence on the original
+  /// batch's ordering or index alignment. Skips, errors, and records with a
+  /// missing external id or dance id contribute nothing.
+  Map<String, String> _danceIdByCcRowId(ImportSession session) {
     final map = <String, String>{};
-    final count = batch.records.length < session.records.length
-        ? batch.records.length
-        : session.records.length;
-    for (var i = 0; i < count; i++) {
-      final committed = session.records[i];
-      final danceId = committed.danceId;
-      if (!committed.succeeded || danceId == null) continue;
-      final externalId = batch.records[i].draft.raw.externalId;
+    for (final record in session.records) {
+      final danceId = record.danceId;
+      final externalId = record.externalId;
+      if (!record.succeeded || danceId == null) continue;
       if (externalId == null || externalId.isEmpty) continue;
       map[externalId] = danceId;
     }

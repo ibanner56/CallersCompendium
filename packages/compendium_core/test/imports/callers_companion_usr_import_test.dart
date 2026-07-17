@@ -165,6 +165,65 @@ void main() {
   });
 
   group('commit (FK map robustness)', () {
+    test('a dance skipped mid-batch does not misalign the FK map', () async {
+      // Three dances planned in order; the MIDDLE one (id '7') is skipped at
+      // commit. A positional/index-aligned map would shift dance '13' into '7'
+      // s slot and mis-resolve the program FKs — this asserts the map is keyed
+      // by each committed record's own external id, so #1 and #3 stay correct.
+      final adapter = FakeSourceAdapter([
+        {'id': '4', 'title': 'Simplicity Swing'},
+        {'id': '7', 'title': 'Petronella'},
+        {'id': '13', 'title': 'Chorus Jig'},
+      ]);
+      final planned = await pipeline.plan(adapter, const ImportRequest());
+      final committing = ImportBatchResult(
+        records: [
+          planned.records[0],
+          ImportRecordPlan(
+            draft: planned.records[1].draft,
+            verdict: DedupeVerdict.ambiguous(const []),
+          ),
+          planned.records[2],
+        ],
+      );
+
+      final archive = CcUsrArchive(
+        dances: const [],
+        sets: [
+          CcSet(
+            recordId: '1',
+            location: 'Grange Hall',
+            items: [
+              CcSetItem(order: 1, danceRecordId: '4'),
+              CcSetItem(order: 2, danceRecordId: '7'),
+              CcSetItem(order: 3, danceRecordId: '13'),
+            ],
+          ),
+        ],
+        warnings: const [],
+      );
+
+      final result = await importer.commit(
+        committing,
+        archive,
+        now: now,
+        newId: nextId,
+      );
+
+      // Only '4' and '13' committed; '7' was skipped.
+      expect(result.danceSession.committedCount, 2);
+      final byExternal = await danceIdByExternalId(result.danceSession);
+      expect(byExternal.keys, containsAll(['4', '13']));
+      expect(byExternal.containsKey('7'), isFalse);
+
+      final program = result.programs.single;
+      // #1 and #3 resolve to the correct new ids; the skipped middle degrades.
+      expect(program.slots[0].danceId, byExternal['4']);
+      expect(program.slots[1].danceId, isNull);
+      expect(program.slots[1].text, contains('7'));
+      expect(program.slots[2].danceId, byExternal['13']);
+    });
+
     test('a dance skipped at commit is excluded from the map', () async {
       // Plan two dances through the real pipeline, then commit only the first —
       // the second is left ambiguous with no resolution, so it is skipped.
