@@ -55,7 +55,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Navigate Collection ⇄ Programs; Settings reachable.
 
 ## 7. Tag & publish
-- [ ] Release notes drafted (see the first-beta / recurring-beta guide) and reviewed.
+- [ ] Release notes drafted (see the [first-beta](release-notes-first-beta.md) / [recurring &amp; stable](release-notes-recurring.md) guide) and reviewed.
 - [ ] Annotated tag created on the exact reviewed commit: `v0.1.0-beta.1`.
 - [ ] GitHub Release created from the tag, marked "Pre-release", artifacts attached.
 - [ ] Post-publish: download each artifact FROM the release and re-launch once

@@ -128,6 +128,12 @@ and produces no Android artifact.
 
 ## CHANGELOG-driven release notes
 
+> **Writing the notes:** what goes *into* the `## [x.y.z]` CHANGELOG section is
+> shaped by our release-notes guides — [First Beta](release-notes-first-beta.md)
+> (introduction-style, for `v0.1.0-beta.1`) and
+> [Recurring &amp; Stable](release-notes-recurring.md) (changelog-style, from the
+> second tag on).
+
 The draft release body is produced by `tools/release/gen_release_notes.py`
 (plain `python3`, no deps) from `app/CHANGELOG.md`:
 
