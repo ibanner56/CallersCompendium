@@ -642,16 +642,21 @@ void main() {
         expect(figures.single.params['beats'], 8); // 4 + 4
       });
 
-      test('balance → star_through sets the balance flag (v11)', () async {
-        final figures = await figuresFor([
-          '(4) Partner balance',
-          '(4) Star through',
-        ]);
-        expect(figures, hasLength(1));
-        expect(figures.single.move, 'star_through');
-        expect(figures.single.params['balance'], isTrue);
-        expect(figures.single.params['beats'], 8); // 4 + 4
-      });
+      test(
+        'balance + star_through do NOT fold (v12: no balance param)',
+        () async {
+          final figures = await figuresFor([
+            '(4) Partner balance',
+            '(4) Star through',
+          ]);
+          // star_through was removed from the balance-merge set to mirror
+          // california_twirl, so the balance line stays a separate figure rather
+          // than folding in, and star_through carries no balance param.
+          expect(figures, hasLength(2));
+          final star = figures.firstWhere((f) => f.move == 'star_through');
+          expect(star.params.containsKey('balance'), isFalse);
+        },
+      );
 
       test(
         'a varied custom balance form (long wave) folds into a swing',

@@ -40,7 +40,13 @@ import 'taxonomy.dart';
 ///     under moveCaresAboutPlaces for angle display only). Additive: no existing
 ///     figure's derived output changes; distinct from schemaVersion — no DB
 ///     migration is implied.
-const int contraTaxonomyVersion = 11;
+/// v12: `star_through` drops its `balance` flag to mirror `california_twirl`
+///     (who + beats only) per product decision, and is removed from the
+///     CallersBox cross-line balance-merge set (box_circulate stays). Removing
+///     an unused default-false flag changes no existing figure's derived output
+///     (a bare `star_through` already rendered without balance) and is distinct
+///     from schemaVersion — no DB migration is implied.
+const int contraTaxonomyVersion = 12;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -322,20 +328,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move}',
       goodBeats: [4],
     ),
-    // `star_through`: a balance+twirl-family figure (like box_the_gnat /
-    // swat_the_flea / california_twirl). ContraDB does not model it, so per the
-    // product owner it is modeled on california_twirl PLUS a `balance` flag. No
-    // `hand` param — star through's handedness is role-fixed (like california
-    // twirl); no corpus evidence it is called handed. The `balance` flag is
-    // neutral (default false): a standalone line states no balance, and — like
-    // box_the_gnat / box_circulate — its balanced beat count comes only from the
-    // CallersBox cross-line merge sum, so no `paramBeats`.
+    // `star_through`: modeled on `california_twirl` — who + beats only, no
+    // `balance` and no `hand` param. Per product decision star through now
+    // mirrors california twirl exactly (aside from the name): its handedness is
+    // role-fixed like california twirl, and it carries no balance (ContraDB does
+    // not model star through, and CallersBox aligns it with california twirl).
     const MoveDef(
       id: 'star_through',
       displayName: 'star through',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': _beats4,
       },
       renderTemplate: '{who} {move}',

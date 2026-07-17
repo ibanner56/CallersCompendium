@@ -503,9 +503,9 @@ _Match? _boxCirculate(List<String> w) {
   return _Match('box_circulate', {'who': who2 ?? 'partners'});
 }
 
-// `star through`: a balance+twirl figure modeled on california_twirl + a
-// balance flag. A single line states no balance, so `balance` is left absent
-// (the CallersBox merge folds a preceding balance line in as true). No inline
+// `star through`: mirrors california_twirl — who only, no `balance` param,
+// and it does NOT take part in the balance cross-line merge (v12 dropped it
+// from the merge set to match california_twirl). No inline
 // hand — star through's handedness is role-fixed. `_normalize` maps thru →
 // through, so "star thru" reaches here too. Ordered before the bare-star
 // recognizers so the shared "star" lead resolves here first.
