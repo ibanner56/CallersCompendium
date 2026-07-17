@@ -308,4 +308,84 @@ void main() {
     expect(c.downloadStatus, AssistedDownloadStatus.idle);
     expect(c.downloadError, isNull);
   });
+
+  group('"never throws" contract (a throwing seam fails closed)', () {
+    test(
+      'a throwing downloader fails loudly instead of getting stuck',
+      () async {
+        final repos = openTestRepositories();
+        final c = controller(
+          repos,
+          manifestBody: _manifest(),
+          downloader:
+              (
+                artifact, {
+                required destination,
+                client,
+                onProgress,
+                cancelToken,
+              }) async => throw StateError('boom'),
+        );
+        addTearDown(c.dispose);
+        await c.load();
+        await c.checkNow();
+
+        await c.startAssistedDownload(); // must not rethrow
+
+        expect(c.downloadStatus, AssistedDownloadStatus.failed);
+        expect(c.downloadError, isNotNull);
+        expect(c.isDownloadInFlight, isFalse);
+      },
+    );
+
+    test('a throwing verifier fails loudly and deletes the file', () async {
+      final repos = openTestRepositories();
+      File? captured;
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        downloader:
+            (
+              artifact, {
+              required destination,
+              client,
+              onProgress,
+              cancelToken,
+            }) async {
+              captured = destination;
+              await destination.writeAsString('bytes');
+              return DownloadOutcome.success(destination);
+            },
+        verifier: (file, expected) async => throw StateError('crypto exploded'),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload(); // must not rethrow
+
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadError, isNotNull);
+      expect(c.isDownloadInFlight, isFalse);
+      expect(await captured!.exists(), isFalse); // partial file cleaned up
+    });
+
+    test('a throwing handoff fails loudly instead of getting stuck', () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        handoff: (file, platform) async => throw StateError('no such program'),
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload(); // must not rethrow
+
+      expect(c.downloadStatus, AssistedDownloadStatus.failed);
+      expect(c.downloadError, isNotNull);
+      expect(c.isDownloadInFlight, isFalse);
+    });
+  });
 }

@@ -140,6 +140,7 @@ Future<DownloadOutcome> downloadArtifact(
   IOSink? sink;
   var received = 0;
   var succeeded = false;
+  var sinkClosed = false;
 
   try {
     if (cancelToken != null && cancelToken.isCancelled) {
@@ -215,16 +216,31 @@ Future<DownloadOutcome> downloadArtifact(
     final outcome = await done.future;
     idle?.cancel();
     await sub.cancel();
+
+    // Flush + close the file BEFORE deciding success. A flush/close failure
+    // (disk full, permission, etc.) means the on-disk bytes are incomplete, so
+    // an otherwise-successful transfer must be downgraded to a failure — never
+    // hand a partial/corrupt file to sha256 verification or the OS handoff.
+    // (A non-success outcome already deletes the file below, so its kind is
+    // preserved even if the close also fails.)
+    sinkClosed = true;
+    try {
+      await sink.flush();
+      await sink.close();
+    } on Object catch (e) {
+      succeeded = false;
+      if (outcome.isSuccess) {
+        return DownloadOutcome.networkError(
+          'could not finish writing file: $e',
+        );
+      }
+      return outcome;
+    }
+
     succeeded = outcome.isSuccess;
     return outcome;
   } finally {
-    if (sink != null) {
-      try {
-        await sink.flush();
-      } on Object {
-        // A flush failure just means the file is incomplete; the cleanup below
-        // (on any non-success) removes it anyway.
-      }
+    if (sink != null && !sinkClosed) {
       try {
         await sink.close();
       } on Object {

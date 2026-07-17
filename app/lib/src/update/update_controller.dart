@@ -223,57 +223,72 @@ class UpdateController extends ChangeNotifier {
     }
     final destination = File('${dir.path}/${downloadFileName(artifact.url)}');
 
-    final outcome = await _downloader(
-      artifact,
-      destination: destination,
-      onProgress: _onDownloadProgress,
-      cancelToken: token,
-    );
-
-    if (token.isCancelled || outcome.kind == DownloadResultKind.cancelled) {
-      _cancelDownloadState(outcome.file);
-      return;
-    }
-    if (!outcome.isSuccess || outcome.file == null) {
-      _failDownload(_downloadFailureMessage(outcome.kind));
-      return;
-    }
-    final file = outcome.file!;
-
-    _downloadStatus = AssistedDownloadStatus.verifying;
-    _downloadProgress = null;
-    notifyListeners();
-
-    final verified = await _verifier(file, artifact.sha256);
-    if (token.isCancelled) {
-      _cancelDownloadState(file);
-      return;
-    }
-    if (!verified) {
-      await _deleteQuietly(file);
-      _failDownload(
-        'The downloaded update failed its security (sha256) check and was '
-        'deleted. Try again, or use "View release" to download it manually.',
+    File? downloaded;
+    try {
+      final outcome = await _downloader(
+        artifact,
+        destination: destination,
+        onProgress: _onDownloadProgress,
+        cancelToken: token,
       );
-      return;
-    }
 
-    _downloadStatus = AssistedDownloadStatus.handingOff;
-    notifyListeners();
+      if (token.isCancelled || outcome.kind == DownloadResultKind.cancelled) {
+        _cancelDownloadState(outcome.file);
+        return;
+      }
+      if (!outcome.isSuccess || outcome.file == null) {
+        _failDownload(_downloadFailureMessage(outcome.kind));
+        return;
+      }
+      final file = outcome.file!;
+      downloaded = file;
 
-    final handedOff = await _handoff(file, _platform);
-    _cancelToken = null;
-    if (!handedOff) {
+      _downloadStatus = AssistedDownloadStatus.verifying;
+      _downloadProgress = null;
+      notifyListeners();
+
+      final verified = await _verifier(file, artifact.sha256);
+      if (token.isCancelled) {
+        _cancelDownloadState(file);
+        return;
+      }
+      if (!verified) {
+        await _deleteQuietly(file);
+        _failDownload(
+          'The downloaded update failed its security (sha256) check and was '
+          'deleted. Try again, or use "View release" to download it manually.',
+        );
+        return;
+      }
+
+      _downloadStatus = AssistedDownloadStatus.handingOff;
+      notifyListeners();
+
+      final handedOff = await _handoff(file, _platform);
+      if (!handedOff) {
+        _failDownload(
+          'The update was downloaded and verified, but could not be opened '
+          'automatically. Use "View release" to finish installing.',
+        );
+        return;
+      }
+
+      _downloadStatus = AssistedDownloadStatus.completed;
+      _downloadProgress = null;
+      notifyListeners();
+    } on Object {
+      // The default seams are written to fail closed (return a result, never
+      // throw), but an injected seam or an unforeseen I/O error could throw.
+      // Honour this method's "never throws" contract: delete any partial file
+      // and surface a loud, actionable error instead of getting stuck in-flight.
+      await _deleteQuietly(downloaded ?? destination);
       _failDownload(
-        'The update was downloaded and verified, but could not be opened '
-        'automatically. Use "View release" to finish installing.',
+        'Something went wrong while installing the update. Try again, or use '
+        '"View release" to download it manually.',
       );
-      return;
+    } finally {
+      _cancelToken = null;
     }
-
-    _downloadStatus = AssistedDownloadStatus.completed;
-    _downloadProgress = null;
-    notifyListeners();
   }
 
   /// Requests cancellation of an in-flight assisted download. A no-op when

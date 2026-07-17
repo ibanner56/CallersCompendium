@@ -179,6 +179,26 @@ void main() {
     expect(outcome.kind, DownloadResultKind.success);
     expect(await dest.readAsString(), 'AB');
   });
+
+  test(
+    'a file flush/close failure downgrades success to a network error',
+    () async {
+      // Point the destination at an existing *directory*: bytes buffer fine, but
+      // flush()/close() fails (EISDIR). A partial/corrupt file must never be
+      // reported as a successful download and handed on to sha256 verification.
+      final collide = Directory('${tempDir.path}/collide')..createSync();
+
+      final client = _streamingClient([utf8.encode('AB')], contentLength: 2);
+      final outcome = await downloadArtifact(
+        _artifact(size: 2),
+        destination: File(collide.path),
+        client: client,
+      );
+
+      expect(outcome.kind, DownloadResultKind.networkError);
+      expect(outcome.message, contains('could not finish writing'));
+    },
+  );
 }
 
 /// A stand-in transport error (avoids importing `dart:io`'s `SocketException`
