@@ -1,3 +1,8 @@
+import 'dart:io';
+
+import 'package:compendium_app/src/update/artifact_downloader.dart';
+import 'package:compendium_app/src/update/artifact_handoff.dart';
+import 'package:compendium_app/src/update/artifact_verifier.dart';
 import 'package:compendium_app/src/update/semver.dart';
 import 'package:compendium_app/src/update/update_banner.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
@@ -182,5 +187,174 @@ void main() {
     await second.checkNow();
     await tester.pump();
     expect(find.byKey(const ValueKey('update-banner')), findsNothing);
+  });
+
+  group('assisted download (ADR-002 "Stage 1.5")', () {
+    late Directory tempDir;
+
+    setUp(() {
+      tempDir = Directory.systemTemp.createTempSync('banner_dl_test_');
+    });
+
+    tearDown(() {
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+
+    /// A controller wired to the given [platform] and (optional) fake seams.
+    UpdateController build(
+      CompendiumRepositories repos, {
+      required UpdatePlatform platform,
+      String platformWire = 'linux',
+      String arch = 'x64',
+      ArtifactDownloader? downloader,
+      ArtifactVerifier? verifier,
+      ArtifactHandoff? handoff,
+    }) {
+      final body =
+          '''
+{
+  "manifestSchemaVersion": 1,
+  "channel": "stable",
+  "version": "0.2.0",
+  "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.2.0",
+  "pubDate": "2026-08-01T00:00:00Z",
+  "artifacts": [
+    {"platform": "$platformWire", "arch": "$arch", "url": "https://example.com/a.dmg", "sha256": "abcd", "size": 4}
+  ]
+}
+''';
+      return UpdateController(
+        repos.settings,
+        service: UpdateService(
+          fetcher: (channel, {http.Client? client}) async => body,
+        ),
+        currentVersion: SemVer.tryParse('0.1.0'),
+        platform: platform,
+        arch: platform == UpdatePlatform.android
+            ? UpdateArch.universal
+            : UpdateArch.x64,
+        downloader:
+            downloader ??
+            (
+              artifact, {
+              required destination,
+              client,
+              onProgress,
+              cancelToken,
+            }) async => DownloadOutcome.success(destination),
+        verifier: verifier ?? (file, expected) async => true,
+        handoff: handoff ?? (file, platform) async => true,
+        temporaryDirectoryProvider: () async => tempDir,
+      );
+    }
+
+    testWidgets('desktop shows a Download & install action', (tester) async {
+      final repos = openTestRepositories();
+      final controller = build(repos, platform: UpdatePlatform.linux);
+      addTearDown(controller.dispose);
+
+      await _pump(tester, controller);
+      await controller.checkNow();
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('update-banner-download')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('update-banner-view')), findsOneWidget);
+      expect(find.text('Download & install'), findsOneWidget);
+    });
+
+    testWidgets('mobile does NOT show Download & install (link only)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final controller = build(
+        repos,
+        platform: UpdatePlatform.android,
+        platformWire: 'android',
+        arch: 'universal',
+      );
+      addTearDown(controller.dispose);
+
+      await _pump(tester, controller);
+      await controller.checkNow();
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('update-banner')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('update-banner-download')),
+        findsNothing,
+      );
+      // The link + dismiss remain the only actions.
+      expect(find.byKey(const ValueKey('update-banner-view')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('update-banner-dismiss')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a verify failure surfaces a clear error + Try again', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final controller = build(
+        repos,
+        platform: UpdatePlatform.linux,
+        verifier: (file, expected) async => false, // integrity mismatch
+      );
+      addTearDown(controller.dispose);
+
+      await _pump(tester, controller);
+      await controller.checkNow();
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('update-banner-download')),
+        findsOneWidget,
+      );
+      // Run the assisted-download flow on the real event loop (real file I/O).
+      await tester.runAsync(controller.startAssistedDownload);
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('update-banner-error')), findsOneWidget);
+      expect(find.textContaining('security'), findsOneWidget);
+      // "View release" stays available as the fallback, and retry is offered.
+      expect(find.byKey(const ValueKey('update-banner-view')), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
+    });
+
+    testWidgets('a successful flow hands off and shows a completion message', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      var handoffs = 0;
+      final controller = build(
+        repos,
+        platform: UpdatePlatform.linux,
+        handoff: (file, platform) async {
+          handoffs++;
+          return true;
+        },
+      );
+      addTearDown(controller.dispose);
+
+      await _pump(tester, controller);
+      await controller.checkNow();
+      await tester.pump();
+
+      await tester.runAsync(controller.startAssistedDownload);
+      await tester.pump();
+
+      expect(handoffs, 1);
+      expect(controller.downloadStatus, AssistedDownloadStatus.completed);
+      expect(find.textContaining('downloaded'), findsOneWidget);
+      // No download button once handed off; the link remains.
+      expect(
+        find.byKey(const ValueKey('update-banner-download')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('update-banner-view')), findsOneWidget);
+    });
   });
 }

@@ -15,6 +15,34 @@ const String kUpdateManifestBaseUrl =
 /// missing network must be a fast, silent no-op rather than a hang (ADR-002 §5).
 const Duration kUpdateCheckTimeout = Duration(seconds: 10);
 
+/// The **idle** timeout for an assisted download (ADR-002 "Stage 1.5"): the
+/// engine aborts if no bytes arrive within this window. It is an inter-chunk
+/// timeout (reset on every chunk), not a wall-clock cap, so a large artifact on
+/// a slow-but-alive connection is not cut off while a genuinely stalled
+/// connection still fails promptly. Longer than [kUpdateCheckTimeout] because a
+/// real transfer is expected here, unlike the fire-and-forget check.
+const Duration kUpdateDownloadTimeout = Duration(seconds: 60);
+
+/// Derives a safe local filename for a downloaded [artifactUrl]: the URL's last
+/// non-empty path segment (e.g. `CallersCompendium-0.2.0-macos-universal.dmg`),
+/// stripped of any path separators or characters that are unsafe in a filename,
+/// with a generic fallback when the URL carries no usable segment. Used to name
+/// the temp file the artifact streams into.
+String downloadFileName(String artifactUrl) {
+  final uri = Uri.tryParse(artifactUrl);
+  var name = '';
+  if (uri != null && uri.pathSegments.isNotEmpty) {
+    name = uri.pathSegments.lastWhere((s) => s.isNotEmpty, orElse: () => '');
+  }
+  // Defense-in-depth: never let a crafted URL segment escape the temp dir or
+  // inject shell-unsafe characters into the on-disk name.
+  name = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  if (name.isEmpty || name == '.' || name == '..') {
+    return 'CallersCompendium-update.download';
+  }
+  return name;
+}
+
 /// Builds the static-manifest URL for [channel]: `…/stable.json` (the default)
 /// or `…/beta.json` (only when the user has opted into beta). The request is a
 /// bare `GET` of this URL — no query params are ever appended (ADR-002 §5).

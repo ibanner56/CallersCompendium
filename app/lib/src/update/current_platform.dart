@@ -31,6 +31,22 @@ UpdatePlatform currentUpdatePlatform() {
   }
 }
 
+/// Whether [platform] is a desktop target eligible for the assisted-download
+/// flow (ADR-002 "Stage 1.5"). Desktop (linux/macos/windows) offers
+/// download → verify → OS-handoff; mobile (android/ios) stays on A11a's
+/// "open release page" link only.
+bool isDesktopUpdatePlatform(UpdatePlatform platform) {
+  switch (platform) {
+    case UpdatePlatform.linux:
+    case UpdatePlatform.macos:
+    case UpdatePlatform.windows:
+      return true;
+    case UpdatePlatform.android:
+    case UpdatePlatform.ios:
+      return false;
+  }
+}
+
 /// Derives the running [UpdateArch] from the SDK's [Abi.current]. Recognizes
 /// arm64 and x64 explicitly and defaults to [UpdateArch.x64] for anything else
 /// (32-bit/riscv targets the app does not ship a distinct artifact for). Note
