@@ -349,6 +349,9 @@ final List<_Recognizer> _recognizers = [
   _boxTheGnat,
   _boxCirculate,
   _circle,
+  // Must precede _starPromenade / _star so the shared "star" lead phrase
+  // resolves "star through" to this move before the bare-star recognizers.
+  _starThrough,
   // Must precede _star so the shared "star" lead phrase resolves to the more
   // specific "star promenade" move before the bare-star recognizer.
   _starPromenade,
@@ -497,6 +500,21 @@ _Match? _boxCirculate(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('box_circulate', {'who': who2 ?? 'partners'});
+}
+
+// `star through`: a balance+twirl figure modeled on california_twirl + a
+// balance flag. A single line states no balance, so `balance` is left absent
+// (the CallersBox merge folds a preceding balance line in as true). No inline
+// hand — star through's handedness is role-fixed. `_normalize` maps thru →
+// through, so "star thru" reaches here too. Ordered before the bare-star
+// recognizers so the shared "star" lead resolves here first.
+_Match? _starThrough(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['star', 'through'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('star_through', {'who': who2 ?? 'partners'});
 }
 
 _Match? _circle(List<String> w) {

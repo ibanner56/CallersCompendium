@@ -322,6 +322,25 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move}',
       goodBeats: [4],
     ),
+    // `star_through`: a balance+twirl-family figure (like box_the_gnat /
+    // swat_the_flea / california_twirl). ContraDB does not model it, so per the
+    // product owner it is modeled on california_twirl PLUS a `balance` flag. No
+    // `hand` param — star through's handedness is role-fixed (like california
+    // twirl); no corpus evidence it is called handed. The `balance` flag is
+    // neutral (default false): a standalone line states no balance, and — like
+    // box_the_gnat / box_circulate — its balanced beat count comes only from the
+    // CallersBox cross-line merge sum, so no `paramBeats`.
+    const MoveDef(
+      id: 'star_through',
+      displayName: 'star through',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        'beats': _beats4,
+      },
+      renderTemplate: '{who} {move}',
+      goodBeats: [4],
+    ),
     const MoveDef(
       id: 'stand_still',
       displayName: 'stand still',

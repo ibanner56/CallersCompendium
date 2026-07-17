@@ -72,4 +72,55 @@ void main() {
       expect(reparsed.params['who'], 'neighbors');
     });
   });
+
+  group('star_through', () {
+    test('registers as a california_twirl-style move + a balance flag', () {
+      final def = tax.resolve('star_through');
+      expect(def, isNotNull);
+      expect(def!.params.keys, containsAll(['who', 'balance', 'beats']));
+      expect(
+        def.params.containsKey('hand'),
+        isFalse,
+        reason: 'star through handedness is role-fixed, like california twirl',
+      );
+      final defaults = tax.effectiveParams(Figure(move: 'star_through'));
+      expect(defaults['who'], 'partners');
+      expect(defaults['balance'], false);
+      expect(defaults['beats'], 4);
+    });
+
+    test('default figure validates and renders', () {
+      expect(
+        tax.validateFigure(
+          Figure(
+            move: 'star_through',
+            params: {...tax.effectiveParams(Figure(move: 'star_through'))},
+          ),
+        ),
+        isEmpty,
+      );
+      expect(
+        renderer.renderCanonical(Figure(move: 'star_through')),
+        'partners star through',
+      );
+    });
+
+    test(
+      'has no paramBeats (balanced beats come from the cross-line merge)',
+      () {
+        expect(tax.resolve('star_through')!.paramBeats, isNull);
+        expect(tax.resolve('star_through')!.goodBeats, [4]);
+      },
+    );
+
+    test('render → re-parse round-trips the recognizer', () {
+      final f = Figure(move: 'star_through', params: {'who': 'neighbors'});
+      final text = renderer.renderCanonical(f);
+      final reparsed = parseFigureLine(text);
+      expect(reparsed, isNotNull);
+      expect(reparsed!.isCustom, isFalse);
+      expect(reparsed.move, 'star_through');
+      expect(reparsed.params['who'], 'neighbors');
+    });
+  });
 }

@@ -77,6 +77,15 @@ void main() {
         move: 'box_circulate',
         params: {'who': 'neighbors'},
       ),
+      // star_through (v11): modeled on california_twirl + a balance flag; a
+      // standalone line states no balance.
+      'Star through': (move: 'star_through', params: {'who': 'partners'}),
+      'Neighbors star through': (
+        move: 'star_through',
+        params: {'who': 'neighbors'},
+      ),
+      // "star thru" folds to "star through" in _normalize.
+      'Star thru': (move: 'star_through', params: {'who': 'partners'}),
       'Meltdown swing': (
         move: 'swing',
         params: {'who': 'partners', 'prefix': 'meltdown'},
@@ -205,6 +214,8 @@ void main() {
       'circulate',
       // box_circulate with trailing prose it cannot consume stays custom.
       'box circulate and swing',
+      // "star through" with trailing prose it cannot consume stays custom.
+      'star through the door',
       // "down/up the hall" IS recognised now, but a descriptor that changes the
       // move leaves leftover tokens, so these near-misses stay custom:
       //   "four in line" (a formation detail the taxonomy can't carry) and
