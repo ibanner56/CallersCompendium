@@ -372,10 +372,12 @@ final List<_Recognizer> _recognizers = [
   // Must precede _starPromenade / _star so the shared "star" lead phrase
   // resolves "star through" to this move before the bare-star recognizers.
   _starThrough,
-  // Must precede _star so the shared "star" lead phrase resolves to the more
-  // specific "facing star" / "star promenade" move before the bare-star
-  // recognizer.
+  // _facingStar leads with the distinct phrase "facing star" (not "star …"), so
+  // it is not affected by the bare-star ordering below; it is grouped with the
+  // star family here purely for locality.
   _facingStar,
+  // Must precede _star so the shared "star" lead phrase resolves to the more
+  // specific "star promenade" move before the bare-star recognizer.
   _starPromenade,
   _star,
   _chain,
