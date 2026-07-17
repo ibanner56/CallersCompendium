@@ -11,13 +11,6 @@ const Set<String> roleTokens = {'role1', 'role2', 'role1s', 'role2s'};
 final RegExp _placeholder = RegExp(r'\{(\w+)\}');
 final RegExp _camelBoundary = RegExp(r'(?<=[a-z])(?=[A-Z])');
 
-/// Where a move's `balance` flag renders relative to the terse base line, per
-/// ContraDB `libfigure` word order. [leading] prepends the "balance &" prefix
-/// to the whole line (ContraDB emits the balance token before any subject);
-/// [afterWho] splices it in front of the move name (ContraDB emits the subject,
-/// then balance, then the move).
-enum _BalancePlacement { leading, afterWho }
-
 /// Renders figures to text in two flavors: canonical (dialect-free, feeds
 /// search/FTS) and display (a chosen [Dialect] applied). Pure functions —
 /// golden-tested.
@@ -72,32 +65,29 @@ class FigureRenderer {
     if (def == null) return base;
     final params = taxonomy.effectiveParams(figure);
     var out = base;
-    // Balance flag → a "balance &" (visual) / "balance and" (verbose) prefix,
-    // positioned per ContraDB's per-move word order (see [_balancePlacement]).
-    if (params['balance'] == true) {
-      final placement = _balancePlacement[figure.move];
-      if (placement != null) {
-        final connective = _renderPrefix('balance', verbose);
-        if (placement == _BalancePlacement.leading) {
-          // ContraDB emits the balance token first (before any subject).
-          out = '$connective $out';
-        } else {
-          // after-who: the balance token follows the subject and immediately
-          // precedes the move name, so splice it in front of the move token.
-          // The move name is normalized the same way [_render] normalizes the
-          // base line (`_collapseSpaces`) so a dialect substitution with stray
-          // double spaces still matches; if it somehow can't be located we fall
-          // back to the leading form rather than silently dropping the balance.
-          final alias = taxonomy.aliases[figure.move];
-          final displayName = alias?.displayName ?? def.displayName;
-          final moveName = _collapseSpaces(
-            _renderMoveName(def.id, displayName, params, dialect),
-          );
-          out = out.contains(moveName)
-              ? out.replaceFirst(moveName, '$connective $moveName')
-              : '$connective $out';
-        }
-      }
+    // A `balance:true` flag → a "balance &" (visual) / "balance and" (verbose)
+    // connective placed immediately before the rendered move-name token, matching
+    // ContraDB's balance-prefix wording (`param.js` `stringParamBalance`). The
+    // rule is uniform across every balance-flag move so new balance moves inherit
+    // it automatically; the few moves whose ContraDB rendering embeds balance
+    // inside a longer breakdown ([_balanceEmbeddedMoves]) are excluded so we never
+    // fabricate a leading prefix ContraDB does not emit.
+    if (params['balance'] == true &&
+        !_balanceEmbeddedMoves.contains(figure.move)) {
+      final connective = _renderPrefix('balance', verbose);
+      // Match the move name AS RENDERED — dialect move-substitution applied and
+      // the alias display name (e.g. "swat the flea", not "box the gnat") — and
+      // normalized like the base line (`_collapseSpaces`) so a substitution with
+      // stray double spaces still matches. If the token somehow can't be located
+      // we fall back to a leading prefix rather than silently dropping balance.
+      final alias = taxonomy.aliases[figure.move];
+      final displayName = alias?.displayName ?? def.displayName;
+      final moveName = _collapseSpaces(
+        _renderMoveName(def.id, displayName, params, dialect),
+      );
+      out = out.contains(moveName)
+          ? out.replaceFirst(moveName, '$connective $moveName')
+          : '$connective $out';
     }
     final suffix = _summarySuffix(figure.move, params, verbose);
     return suffix.isEmpty ? out : '$out$suffix';
@@ -356,24 +346,17 @@ class FigureRenderer {
   /// [_summarySuffix] (compact parenthetical on screen, "half hey"/"full hey"
   /// or the "until…" clause when spoken), so no lookup table is needed here.
 
-  /// Where the `balance` flag's "balance &" prefix sits relative to the base
-  /// render, per each move's ContraDB `words` function word order (contradb
-  /// `app/javascript/libfigure/figure.js` @13f38a5). Only source-verified moves
-  /// appear; moves whose ContraDB rendering embeds balance elsewhere
-  /// (`square_through`, the wave moves) or that ContraDB does not model
-  /// (`star_through`) are intentionally absent, and moves needing extra
-  /// construction (`box_the_gnat`/`swat_the_flea` inject the hand when
-  /// balanced) are deferred.
-  static const Map<String, _BalancePlacement> _balancePlacement = {
-    // `words(sbalance, smove)` / `words(sbal, smove, …)` — balance first.
-    'petronella': _BalancePlacement.leading,
-    'pull_by_direction': _BalancePlacement.leading,
-    // `words(sbalance, swho2, smove, sdir)` — balance before the subject.
-    'rory_o_more': _BalancePlacement.leading,
-    // `words(sbal, smove, "-", details)` — balance first.
-    'box_circulate': _BalancePlacement.leading,
-    // `words(swho, sbal, smove, sspin)` — subject, then balance before move.
-    'pull_by_dancers': _BalancePlacement.afterWho,
+  /// Moves whose ContraDB `libfigure` rendering *embeds* the balance inside a
+  /// longer breakdown rather than emitting a leading "balance &" prefix, so
+  /// surfacing a prefix would fabricate wording ContraDB never produces.
+  /// `square_through` folds the balance into its pull-by breakdown; the
+  /// wave-forming moves render "- balance the wave" as part of a description our
+  /// terse template does not reproduce. These are excluded from the otherwise
+  /// uniform balance prefix applied by [renderSummary].
+  static const Set<String> _balanceEmbeddedMoves = {
+    'square_through',
+    'form_a_long_wave',
+    'form_an_ocean_wave',
   };
 
   static String _humanize(String token) =>
