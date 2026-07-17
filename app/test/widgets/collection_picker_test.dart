@@ -47,6 +47,7 @@ Future<void> _pumpPicker(
   WidgetTester tester,
   CompendiumRepositories repos, {
   required void Function(String danceId) onAddDance,
+  SearchEnrichment enrichment = SearchEnrichment.empty,
 }) async {
   // A tall surface so the search bar, filter/by-phrase/advanced panels and the
   // results list all lay out without scrolling, keeping control taps stable.
@@ -62,6 +63,7 @@ Future<void> _pumpPicker(
           child: CollectionPicker(
             data: data,
             dialect: Dialect.larksRobins,
+            enrichment: enrichment,
             onAddDance: onAddDance,
           ),
         ),
@@ -242,5 +244,76 @@ void main() {
     // The advanced tree compiles through buildCollectionFilter and re-runs the
     // search, so only the dance with the figure survives.
     expect(_titles(tester), ['Has Petronella']);
+  });
+
+  group('search enrichment (saved-dialect vocabulary)', () {
+    // A saved dialect the user is NOT actively using (active is Larks/Robins):
+    // maps role2 → follow, so "follows" should resolve to role2s via the union
+    // enrichment even though that dialect is inactive — parity with the main
+    // Collection search (search_integration_test's union-enrichment group).
+    SearchEnrichment savedFollows() => SearchEnrichment.fromDialects([
+      Dialect(
+        name: 'Leads/Follows (saved)',
+        roles: const {'role1': RoleTerm('lead'), 'role2': RoleTerm('follow')},
+      ),
+    ]);
+
+    Future<CompendiumRepositories> reposWithRole2Dance() async {
+      final repos = openTestRepositories();
+      // Canonical FTS stores 'role2s' for this dance's swing.
+      await repos.dances.create(
+        _dance(
+          id: 'chain',
+          title: 'Chain Dance',
+          figures: [
+            Figure(move: 'swing', params: const {'who': 'role2s', 'beats': 8}),
+          ],
+        ),
+      );
+      return repos;
+    }
+
+    testWidgets(
+      'a saved-dialect term ("follows") resolves in the picker via enrichment',
+      (tester) async {
+        final repos = await reposWithRole2Dance();
+        await _pumpPicker(
+          tester,
+          repos,
+          onAddDance: (_) {},
+          enrichment: savedFollows(),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const ValueKey('picker-search')),
+          'follows',
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Chain Dance']);
+      },
+    );
+
+    testWidgets(
+      'without enrichment the same saved-dialect term does not match',
+      (tester) async {
+        final repos = await reposWithRole2Dance();
+        // Default empty enrichment: "follows" is neither active-dialect nor
+        // legacy vocabulary, so it must not resolve to role2s.
+        await _pumpPicker(tester, repos, onAddDance: (_) {});
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const ValueKey('picker-search')),
+          'follows',
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), isEmpty);
+      },
+    );
   });
 }
