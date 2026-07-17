@@ -90,6 +90,15 @@ Uint8List buildFmp12Fixture(List<FmpFixtureTable> tables) {
 
   final body1 = Uint8List(_sectorSize);
   // Sector head is 20 bytes; nextId (offset +8) = 0 stops traversal.
+  const bodyCapacity = _sectorSize - 20;
+  if (chunks.length > bodyCapacity) {
+    throw StateError(
+      'FMP fixture chunk stream (${chunks.length} bytes) exceeds the single '
+      'body sector capacity ($bodyCapacity bytes). Shrink the fixture (fewer '
+      'tables/rows/shorter strings) or extend buildFmp12Fixture to emit '
+      'additional body sectors.',
+    );
+  }
   body1.setRange(20, 20 + chunks.length, chunks);
 
   final header = Uint8List(_sectorSize);
