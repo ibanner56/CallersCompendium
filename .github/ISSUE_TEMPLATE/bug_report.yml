@@ -18,6 +18,12 @@ body:
     validations:
       required: true
   - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
     id: steps
     attributes:
       label: Steps to reproduce
@@ -25,30 +31,6 @@ body:
         1. …
         2. …
         3. …
-    validations:
-      required: true
-  - type: textarea
-    id: expected
-    attributes:
-      label: What did you expect to happen?
-    validations:
-      required: true
-  - type: textarea
-    id: actual
-    attributes:
-      label: What actually happened?
-    validations:
-      required: true
-  - type: dropdown
-    id: severity
-    attributes:
-      label: Impact / severity
-      description: How bad is it? (A triager will confirm the matching severity label.)
-      options:
-        - "Critical — data loss, crash, or can't call at a gig (severity: critical)"
-        - "Major — broken workflow with no easy workaround (severity: major)"
-        - "Minor — limited impact, a workaround exists (severity: minor)"
-        - "Trivial — cosmetic or very low impact (severity: trivial)"
     validations:
       required: true
   - type: dropdown
