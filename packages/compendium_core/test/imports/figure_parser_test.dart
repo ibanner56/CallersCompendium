@@ -251,6 +251,10 @@ void main() {
       'down the hall four in line',
       'go down the hall and back',
       'up the hall and back',
+      // The "In a line of four" hall prefix is only consumed when it LEADS the
+      // line. A non-leading "line of four" (an unattested trailing form) is not
+      // stripped, so leftover tokens keep the line custom.
+      'go down the hall in a line of four',
       // The leading "In a line of four" hall prefix IS consumed now, but the
       // "forward and back" formation variants are DELIBERATELY excluded: a big
       // ring and lines-of-four are distinct formations from long lines, so

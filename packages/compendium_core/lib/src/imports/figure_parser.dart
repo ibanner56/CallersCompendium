@@ -905,18 +905,27 @@ _Match? _roryOMore(List<String> w) {
   });
 }
 
-/// Consumes an optional leading "[In] [a] [cozy] line of four" formation clause
+/// Consumes an optional LEADING "[In] [a] [cozy] line of four" formation clause
 /// that TCB puts before a down/up-the-hall figure (across the corpus:
 /// "In a line of four, go down the hall (M1-W2-M2-W1)"). A line of four is the
 /// DEFAULT formation for a hall figure, so — exactly like the stripped
 /// dancer-order annotation "(M1-W2-M2-W1)" — dropping it does not change the
-/// move (down_the_hall/up_the_hall carry no formation param). Only strips the
-/// "In"/"cozy" framing when the full "line of four" phrase is present, so it
-/// never spuriously eats an "in" that belongs to another clause.
+/// move (down_the_hall/up_the_hall carry no formation param). The clause is
+/// stripped ONLY when it leads the line: every token before "line of four" must
+/// be part of the allowed framing (in / a / an / the / cozy). A "line of four"
+/// that appears mid-line (belonging to some other construction) is left in
+/// place, so the recognizer never structures a line it wasn't meant to cover.
 void _consumeLineOfFour(List<String> w) {
-  if (_consumePhrase(w, ['line', 'of', 'four'])) {
-    _consumePhrase(w, ['in']); // leading "In a ..." ("a" is dropped as filler)
-    _consumePhrase(w, ['cozy']); // optional "cozy line of four"
+  const framing = {'in', 'a', 'an', 'the', 'cozy'};
+  var i = 0;
+  while (i < w.length && framing.contains(w[i])) {
+    i++;
+  }
+  if (i + 3 <= w.length &&
+      w[i] == 'line' &&
+      w[i + 1] == 'of' &&
+      w[i + 2] == 'four') {
+    w.removeRange(0, i + 3);
   }
 }
 
