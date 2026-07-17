@@ -614,8 +614,12 @@ class _Figures extends StatelessWidget {
       }
       children.add(
         _FigureRow(
-          text: renderer.render(sf.figure, dialect),
-          verboseText: renderer.renderVerbose(sf.figure, dialect),
+          text: renderer.renderSummary(sf.figure, dialect),
+          verboseText: renderer.renderSummary(
+            sf.figure,
+            dialect,
+            verbose: true,
+          ),
           beats: sf.figure.beats,
           progression: sf.figure.progression,
           note: sf.figure.note,

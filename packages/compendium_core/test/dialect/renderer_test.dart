@@ -514,4 +514,157 @@ void main() {
       );
     });
   });
+
+  group('renderSummary surfaces ContraDB secondary params', () {
+    final d = Dialect.canonical;
+
+    group('renderCanonical is unchanged (byte-identical)', () {
+      // renderSummary must never leak into the search/dedupe canonical text.
+      final cases = <String, Figure>{
+        'everyone down the hall forward': Figure(move: 'down_the_hall'),
+        'everyone up the hall forward': Figure(move: 'up_the_hall'),
+        'role2s hey right': Figure(move: 'hey'),
+        'partners zig zag left': Figure(move: 'zig_zag'),
+      };
+      cases.forEach((expected, figure) {
+        test('"$expected"', () {
+          expect(renderer.renderCanonical(figure), expected);
+          // The summary adds display-only text but the canonical text stays put.
+          expect(renderer.renderCanonical(figure), expected);
+        });
+      });
+
+      test('summary never mutates the canonical render', () {
+        final figures = [
+          Figure(move: 'down_the_hall', params: {'ender': 'circle'}),
+          Figure(move: 'hey', params: {'length': 'full'}),
+          Figure(move: 'zig_zag', params: {'ender': 'allemande'}),
+        ];
+        for (final f in figures) {
+          final before = renderer.renderCanonical(f);
+          renderer.renderSummary(f, d);
+          expect(renderer.renderCanonical(f), before);
+        }
+      });
+    });
+
+    group('down/up-the-hall ender', () {
+      test('default turn-couple ender is surfaced', () {
+        expect(
+          renderer.renderSummary(Figure(move: 'down_the_hall'), d),
+          'everyone down the hall forward and turn as a couple',
+        );
+      });
+
+      test('none ender adds no clause', () {
+        final f = Figure(move: 'down_the_hall', params: {'ender': 'none'});
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      });
+
+      test('circle ender reads "bend into a ring" (not "circle")', () {
+        final f = Figure(move: 'down_the_hall', params: {'ender': 'circle'});
+        expect(
+          renderer.renderSummary(f, d),
+          'everyone down the hall forward and bend into a ring',
+        );
+      });
+
+      test('bendTheLine (CallersBox-origin) reads "bend the line"', () {
+        final f = Figure(
+          move: 'down_the_hall',
+          params: {'ender': 'bendTheLine'},
+        );
+        expect(renderer.renderSummary(f, d), endsWith('and bend the line'));
+      });
+
+      test('every hall ender maps to its ContraDB string', () {
+        String s(String ender) => renderer.renderSummary(
+          Figure(move: 'down_the_hall', params: {'ender': ender}),
+          d,
+        );
+        expect(s('turnAlone'), endsWith('and turn alone'));
+        expect(s('cozy'), endsWith('and form a cozy line'));
+        expect(s('cloverleaf'), endsWith('and bend into a cloverleaf'));
+        expect(s('threadNeedle'), endsWith('and thread the needle'));
+        expect(
+          s('rightHandHigh'),
+          endsWith('and right hand high, left hand low'),
+        );
+        expect(s('slidingDoors'), endsWith('and slide doors'));
+      });
+
+      test('up the hall default circle ender is surfaced', () {
+        expect(
+          renderer.renderSummary(Figure(move: 'up_the_hall'), d),
+          'everyone up the hall forward and bend into a ring',
+        );
+      });
+    });
+
+    group('hey length', () {
+      String s(String length) => renderer.renderSummary(
+        Figure(move: 'hey', params: {'length': length}),
+        d,
+      );
+      test('half (default) reads "half hey"', () {
+        expect(
+          renderer.renderSummary(Figure(move: 'hey'), d),
+          'role2s hey right - half hey',
+        );
+      });
+      test('full reads "full hey"', () {
+        expect(s('full'), 'role2s hey right - full hey');
+      });
+      test('lessThanHalf reads "until someone meets"', () {
+        expect(s('lessThanHalf'), 'role2s hey right - until someone meets');
+      });
+      test('betweenHalfAndFull reads the second-time clause', () {
+        expect(
+          s('betweenHalfAndFull'),
+          'role2s hey right - until someone meets the second time',
+        );
+      });
+    });
+
+    group('zig-zag ender', () {
+      test('none (default) adds no clause', () {
+        final f = Figure(move: 'zig_zag');
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      });
+      test('ring reads "into a ring"', () {
+        expect(
+          renderer.renderSummary(
+            Figure(move: 'zig_zag', params: {'ender': 'ring'}),
+            d,
+          ),
+          'partners zig zag left into a ring',
+        );
+      });
+      test('allemande reads the comma-prefixed catching-hands clause', () {
+        expect(
+          renderer.renderSummary(
+            Figure(move: 'zig_zag', params: {'ender': 'allemande'}),
+            d,
+          ),
+          'partners zig zag left, trailing two catching hands',
+        );
+      });
+    });
+
+    test('moves without surfaced secondary params are unchanged', () {
+      // swing already carries its prefix via the render template.
+      final f = Figure(move: 'swing', params: {'prefix': 'balance'});
+      expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      expect(renderer.renderSummary(f, d), 'partners balance & swing');
+    });
+
+    test('summary is dialect-aware via its base render', () {
+      // The move/role tokens still honor the dialect; the appended ender is
+      // fixed structural vocabulary.
+      final f = Figure(move: 'hey', params: {'length': 'full'});
+      final larksSummary = renderer.renderSummary(f, Dialect.larksRobins);
+      expect(larksSummary, endsWith(' - full hey'));
+      expect(larksSummary, startsWith(renderer.render(f, Dialect.larksRobins)));
+    });
+  });
 }

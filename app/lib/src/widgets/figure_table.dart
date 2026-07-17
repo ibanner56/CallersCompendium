@@ -53,8 +53,12 @@ class FigureTable extends StatelessWidget {
       }
       rows.add(
         _FigureRow(
-          text: renderer.render(sf.figure, dialect),
-          verboseText: renderer.renderVerbose(sf.figure, dialect),
+          text: renderer.renderSummary(sf.figure, dialect),
+          verboseText: renderer.renderSummary(
+            sf.figure,
+            dialect,
+            verbose: true,
+          ),
           showVerbose: verbose,
           beats: sf.figure.beats,
           progression: sf.figure.progression,

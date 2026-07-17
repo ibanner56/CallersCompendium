@@ -843,10 +843,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final hasMove = figure != null;
     final renderer = FigureRenderer(widget.taxonomy);
     final sentence = hasMove
-        ? renderer.render(figure, widget.dialect)
+        ? renderer.renderSummary(figure, widget.dialect)
         : '(empty — choose a move)';
     final spoken = hasMove
-        ? renderer.renderVerbose(figure, widget.dialect)
+        ? renderer.renderSummary(figure, widget.dialect, verbose: true)
         : 'empty figure, choose a move';
     final note = draft.note.trim();
     final hasNote = note.isNotEmpty;
