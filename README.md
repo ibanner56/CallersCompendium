@@ -10,8 +10,8 @@ Squares) callers — on desktop, tablet, and phone.
 > migrating from Caller's Companion have landed (Phase 6). The release pipeline
 > (Phase 7) is largely in place — CI builds release artifacts for every platform,
 > generates release notes and a software bill of materials, and the app can check
-> for and download its own updates — with only one-time maintainer setup and
-> cutting the first beta tag still to go.
+> for updates (and, on desktop, download and install them) — with only one-time
+> maintainer setup and cutting the first beta tag still to go.
 > See [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed, item-by-item status.
 
 ## What it does
@@ -35,9 +35,9 @@ Squares) callers — on desktop, tablet, and phone.
   preset to customize, preview edits live, and quick-switch dialects per gig)_
 - **Imports** — bring dances in from community sources and migrate from
   Caller's Companion; everything is stored locally and the app is fully usable
-  offline. _(built: in-app import from The Caller's Box and ContraDB (by
-  link/id), Caller's Companion exports — both the formatted-text copy and the
-  binary `.USR` library file — and generic Compendium JSON, all through a
+  offline. _(built: in-app import from The Caller's Box and ContraDB by link/id,
+  from Caller's Companion — both its formatted-text copy and its binary `.USR`
+  library file — and from our own Compendium JSON, all through a
   review-and-commit queue.)_
 
 ## Design & decisions
