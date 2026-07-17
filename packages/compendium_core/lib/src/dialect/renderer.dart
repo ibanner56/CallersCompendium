@@ -68,8 +68,9 @@ class FigureRenderer {
   /// The trailing secondary-modifier clause (connective included) appended by
   /// [renderSummary] for [moveId], or the empty string when nothing is
   /// surfaced. Only non-`none` enders and set hey lengths produce a clause.
-  /// [verbose] swaps the hey length's ContraDB-matching `-` separator for a
-  /// spoken-friendly comma so a screen reader doesn't announce "dash".
+  /// For hey `half`/`full`, the visible path shows a compact parenthetical and
+  /// the spoken [verbose] path expands to ContraDB's "half hey"/"full hey"
+  /// comma clause (avoiding a "hey … hey" repetition on screen).
   String _summarySuffix(
     String moveId,
     Map<String, Object?> params,
@@ -90,13 +91,22 @@ class FigureRenderer {
         return '';
       case 'hey':
         // ContraDB renders `full`/`half` as a "half hey"/"full hey" phrase and
-        // the partial lengths as a trailing "until…" clause; the terse template
-        // can't reorder, so the exact wording is appended after the base line.
-        // The visible path keeps ContraDB's `-` separator; the spoken/verbose
-        // path uses a comma pause instead.
-        final length = params['length'];
-        final label = length is String ? _heyLengthLabels[length] : null;
-        return label == null ? '' : '${verbose ? ',' : ' -'} $label';
+        // the partial lengths as a trailing "until…" clause. On screen the
+        // half/full label is a compact parenthetical to avoid repeating "hey";
+        // the spoken path expands to the full ContraDB phrase. The "until…"
+        // clauses are identical in both paths.
+        switch (params['length']) {
+          case 'half':
+            return verbose ? ', half hey' : ' (half)';
+          case 'full':
+            return verbose ? ', full hey' : ' (full)';
+          case 'lessThanHalf':
+            return ' until someone meets';
+          case 'betweenHalfAndFull':
+            return ' until someone meets the second time';
+          default:
+            return '';
+        }
       default:
         return '';
     }
@@ -296,15 +306,9 @@ class FigureRenderer {
     'bendTheLine': 'bend the line',
   };
 
-  /// ContraDB `libfigure` hey-length wording (`param.js` `stringParamHeyLength`
-  /// + `heyWords`): `full`/`half` read as a "full hey"/"half hey" phrase, the
-  /// partial lengths as a trailing "until…" clause.
-  static const Map<String, String> _heyLengthLabels = {
-    'half': 'half hey',
-    'full': 'full hey',
-    'lessThanHalf': 'until someone meets',
-    'betweenHalfAndFull': 'until someone meets the second time',
-  };
+  /// ContraDB `libfigure` hey-length wording is emitted inline by
+  /// [_summarySuffix] (compact parenthetical on screen, "half hey"/"full hey"
+  /// or the "until…" clause when spoken), so no lookup table is needed here.
 
   static String _humanize(String token) =>
       token.replaceAll(_camelBoundary, ' ').toLowerCase();

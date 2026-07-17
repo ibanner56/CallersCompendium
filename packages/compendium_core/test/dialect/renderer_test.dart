@@ -609,33 +609,41 @@ void main() {
         Figure(move: 'hey', params: {'length': length}),
         d,
       );
-      test('half (default) reads "half hey"', () {
+      test('half (default) shows a compact "(half)" on screen', () {
         expect(
           renderer.renderSummary(Figure(move: 'hey'), d),
-          'role2s hey right - half hey',
+          'role2s hey right (half)',
         );
       });
-      test('full reads "full hey"', () {
-        expect(s('full'), 'role2s hey right - full hey');
+      test('full shows "(full)" on screen', () {
+        expect(s('full'), 'role2s hey right (full)');
       });
       test('lessThanHalf reads "until someone meets"', () {
-        expect(s('lessThanHalf'), 'role2s hey right - until someone meets');
+        expect(s('lessThanHalf'), 'role2s hey right until someone meets');
       });
       test('betweenHalfAndFull reads the second-time clause', () {
         expect(
           s('betweenHalfAndFull'),
-          'role2s hey right - until someone meets the second time',
+          'role2s hey right until someone meets the second time',
         );
       });
-      test('verbose path uses a spoken comma, not a dash', () {
-        final f = Figure(move: 'hey', params: {'length': 'full'});
+      test('verbose expands half/full to the spoken "hey" comma clause', () {
+        final half = Figure(move: 'hey');
+        final full = Figure(move: 'hey', params: {'length': 'full'});
         expect(
-          renderer.renderSummary(f, d, verbose: true),
-          isNot(contains(' - ')),
+          renderer.renderSummary(half, d, verbose: true),
+          'role2s hey right, half hey',
         );
         expect(
-          renderer.renderSummary(f, d, verbose: true),
+          renderer.renderSummary(full, d, verbose: true),
           'role2s hey right, full hey',
+        );
+      });
+      test('verbose "until…" clauses match the visible ones', () {
+        final f = Figure(move: 'hey', params: {'length': 'lessThanHalf'});
+        expect(
+          renderer.renderSummary(f, d, verbose: true),
+          renderer.renderSummary(f, d),
         );
       });
     });
@@ -677,7 +685,7 @@ void main() {
       // fixed structural vocabulary.
       final f = Figure(move: 'hey', params: {'length': 'full'});
       final larksSummary = renderer.renderSummary(f, Dialect.larksRobins);
-      expect(larksSummary, endsWith(' - full hey'));
+      expect(larksSummary, endsWith(' (full)'));
       expect(larksSummary, startsWith(renderer.render(f, Dialect.larksRobins)));
     });
   });
