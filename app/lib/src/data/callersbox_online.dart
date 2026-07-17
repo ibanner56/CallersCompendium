@@ -89,10 +89,15 @@ class CallersBoxOnline {
   final CallersBoxSearchFetcher _searchFetcher;
   final UrlFetcher _jsonFetcher;
 
-  /// Searches The Caller's Box by [title] and returns the parsed result rows.
-  /// Throws a [UrlFetchException] (message safe to show) on any fetch failure.
-  Future<List<CallersBoxSearchResult>> search(String title) async {
-    final url = buildCallersBoxSearchUrl(title);
+  /// Searches The Caller's Box by [title] and/or by-phrase figure [phrases] and
+  /// returns the parsed result rows. Title and phrase criteria combine (TCB
+  /// accepts both in one request). Throws a [UrlFetchException] (message safe to
+  /// show) on any fetch failure, or when there is nothing to search.
+  Future<List<CallersBoxSearchResult>> search(
+    String title, {
+    CallersBoxPhraseQuery? phrases,
+  }) async {
+    final url = buildCallersBoxSearchUrl(title, phrases: phrases);
     final html = await _searchFetcher(url);
     return parseCallersBoxSearchResults(html);
   }

@@ -112,6 +112,19 @@ void main() {
     expect(onlineY, lessThan(advancedY));
   });
 
+  testWidgets('the by-phrase panel is available in Online search mode', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpShell(tester, repos, _online());
+    await _enableOnline(tester);
+
+    // Un-gated for online: TCB supports its own "search by phrase" fields, so
+    // the panel stays reachable (only the local Filters panel is hidden online).
+    expect(find.byKey(const ValueKey('by-phrase-panel')), findsOneWidget);
+    expect(find.byKey(const ValueKey('filters-panel')), findsNothing);
+  });
+
   testWidgets('turning on Online search and typing shows online results', (
     tester,
   ) async {
