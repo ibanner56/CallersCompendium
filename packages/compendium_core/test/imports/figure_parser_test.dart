@@ -697,5 +697,31 @@ void main() {
       final f = parseFigureLine('Neighbor give-and-take partner');
       expect(f!.isCustom, isTrue);
     });
+
+    // The giver must LEAD: an unattested order where the role appears after the
+    // move ("give-and-take men partner") is not structured.
+    test('"give-and-take men partner" (giver not leading) → custom', () {
+      final f = parseFigureLine('give-and-take men partner');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // give-and-take requires a stated target; a bare giver + move is rejected.
+    test('"Men give-and-take" (no target) → custom', () {
+      final f = parseFigureLine('Men give-and-take');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // contra_corners requires the turning couple to LEAD: a trailing dancer set
+    // ("turn contra corners ones") is an unattested order → custom.
+    test('"turn contra corners ones" (couple not leading) → custom', () {
+      final f = parseFigureLine('turn contra corners ones');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // contra_corners requires the identifying "turn" keyword.
+    test('"Ones contra corners" (no "turn") → custom', () {
+      final f = parseFigureLine('Ones contra corners');
+      expect(f!.isCustom, isTrue);
+    });
   });
 }

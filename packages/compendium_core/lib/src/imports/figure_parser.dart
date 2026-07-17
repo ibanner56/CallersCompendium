@@ -228,6 +228,26 @@ String? _takeDancer(List<String> w) {
   return null;
 }
 
+/// Like [_takeDancer] but ONLY matches a dancer set at the FRONT of [w].
+/// Recognizers whose grammar requires a *leading* dancer ("Ones turn contra
+/// corners", "Men give-and-take partner") use this so an unattested word order
+/// where the dancer appears later in the line (e.g. "turn contra corners ones")
+/// is NOT structured — it falls through to custom instead.
+String? _takeLeadingDancer(List<String> w) {
+  if (w.isEmpty) return null;
+  final token = _dancerWords[w[0]];
+  if (token == null) return null;
+  final raw = w.removeAt(0);
+  // Mirror _takeDancer's "N2 neighbor" pair absorption for the leading slot.
+  if (raw.length == 2 &&
+      raw.startsWith('n') &&
+      w.isNotEmpty &&
+      (w[0] == 'neighbor' || w[0] == 'neighbors')) {
+    w.removeAt(0);
+  }
+  return token;
+}
+
 /// Removes and returns the first `left`/`right` word found, or null.
 String? _takeSide(List<String> w) {
   for (var i = 0; i < w.length; i++) {
@@ -657,40 +677,42 @@ _Match? _shift(List<String> w) {
 /// `give` stays on its `true` default). The LEADING role is the giver (`who`,
 /// restricted to role1s/role2s) and the TRAILING relationship is the target
 /// (`whom`). Both are stated in-text — nothing is defaulted from an annotation.
-/// A leading dancer outside role1s/role2s (or no leading role at all, which
-/// would misread the target as the giver) is rejected → custom rather than
-/// silently dropping choreography.
+/// The giver must LEAD and must be role1s/role2s, and the target must be
+/// present; anything else (no leading role, a giver outside role1s/role2s, a
+/// missing target, or leftover tokens) is rejected → custom rather than
+/// structuring an unattested word order or dropping choreography.
 _Match? _giveAndTake(List<String> w) {
-  final who = _takeDancer(w); // leading giver role
+  final who = _takeLeadingDancer(w); // leading giver role (must lead)
   final isGiveTake =
       _consumePhrase(w, ['give-and-take']) ||
       _consumePhrase(w, ['give', 'and', 'take']);
   if (!isGiveTake) return null;
-  final whom = _takeDancer(w); // trailing target relationship
+  final whom = _takeLeadingDancer(w); // target relationship (leads remainder)
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  // The giver's domain is role1s/role2s only. An explicit dancer outside that
-  // domain (or the accidental capture of the target as the giver when no role
-  // leads) must NOT be silently coerced to the default → fall back to custom.
-  if (who != null && who != 'role1s' && who != 'role2s') return null;
-  return _Match('give_and_take', {'who': ?who, 'whom': ?whom});
+  // The giver's domain is role1s/role2s only, and the target must be stated;
+  // otherwise fall back to custom (never coerce a default giver/target).
+  if (who != 'role1s' && who != 'role2s') return null;
+  if (whom == null) return null;
+  return _Match('give_and_take', {'who': who, 'whom': whom});
 }
 
 /// Tier A: TCB writes "Ones/Twos turn contra corners" (16 beats) — it ALWAYS
-/// names the turning couple. The leading dancer set maps to `who` and the
-/// identifying "turn" lead word is consumed. TCB never spells the embedded
-/// turning figure inline, so contra_corners' `custom` text stays empty (its
-/// taxonomy default). An explicit dancer set is REQUIRED: a bare "contra
-/// corners" is not an attested form, so defaulting `who` would fabricate the
-/// couple — it stays custom instead. Any leftover token also forces custom.
+/// names the turning couple and uses the identifying "turn" lead word. The
+/// LEADING dancer set maps to `who`; both the leading couple and the "turn"
+/// keyword are REQUIRED. TCB never spells the embedded turning figure inline,
+/// so contra_corners' `custom` text stays empty (its taxonomy default). A bare
+/// "contra corners", a missing "turn", a dancer that does not lead, or any
+/// leftover token all force the custom fallback (defaulting `who` would
+/// fabricate the couple).
 _Match? _contraCorners(List<String> w) {
-  final who = _takeDancer(w);
-  _consumePhrase(w, ['turn']); // optional identifying "turn contra corners"
+  final who = _takeLeadingDancer(w);
+  if (who == null) return null; // couple must be stated and lead
+  if (!_consumePhrase(w, ['turn'])) return null; // identifying "turn" keyword
   if (!_consumePhrase(w, ['contra', 'corners'])) return null;
-  final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
-  if (who2 == null || w.isNotEmpty) return null;
-  return _Match('contra_corners', {'who': who2});
+  if (w.isNotEmpty) return null;
+  return _Match('contra_corners', {'who': who});
 }
 
 _Match? _longLines(List<String> w) {
