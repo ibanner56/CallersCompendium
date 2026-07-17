@@ -47,7 +47,10 @@ because later Wave-1 PRs will *produce* it (a `release.yml` workflow) and
 
 GitHub Releases is the **sole artifact host**. Each release publishes a **static
 update manifest** — `stable.json` and `beta.json`, one document per channel —
-as a **release asset** (optionally mirrored to GitHub Pages for a stable URL).
+as a **release asset** and mirrors it to **GitHub Pages** for a stable
+per-channel URL (`https://ibanner56.github.io/CallersCompendium/<channel>.json`),
+which is what the in-app client actually fetches. (The Pages hosting is wired in
+A11c — see [releasing.md](../dev/releasing.md#publishing-the-update-manifest-github-pages).)
 The in-app update check is a plain HTTPS `GET` of that manifest.
 
 We do **not** query the GitHub REST API (`/releases/latest`) for the check.

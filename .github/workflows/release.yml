@@ -356,6 +356,19 @@ jobs:
             --pub-date "${{ needs.meta.outputs.pub_date }}" \
             --extra-file "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
 
+      # Hand the freshly-generated channel manifest to the `pages` job (A11c),
+      # which publishes it to the gh-pages branch so the client's fixed URL
+      # (kUpdateManifestBaseUrl) resolves. Uploading just this one file keeps the
+      # Pages publish decoupled from the release assets and lets `pages` run with
+      # contents:write ONLY (no id-token/attestations).
+      - name: Upload channel manifest for the Pages publish
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: channel-manifest
+          path: dist/${{ needs.meta.outputs.channel }}.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Attest build provenance (keyless SLSA)
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
@@ -420,3 +433,51 @@ jobs:
           fi
 
           echo "Draft release ready: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
+
+  # Publish the channel manifest (stable.json / beta.json) to the persistent
+  # `gh-pages` branch so the client's fixed URL resolves (A11c / ADR-002 §1):
+  #   https://ibanner56.github.io/CallersCompendium/<channel>.json
+  #
+  # CROSS-CHANNEL PRESERVATION: publish_pages_manifest.sh starts from the EXISTING
+  # gh-pages content and overwrites ONLY the current channel's file, so a stable
+  # release never erases beta.json and vice-versa (proven offline by
+  # tools/release/test_publish_pages_manifest.py). This uses the "Deploy from a
+  # branch" Pages source — NOT actions/deploy-pages, which replaces the whole
+  # site each deploy and would clobber the other channel.
+  #
+  # LEAST PRIVILEGE: contents:write ONLY (to push gh-pages) — no id-token /
+  # attestations. Same canonical-repo + tag-push guard as `publish`, so forks /
+  # PRs / manual dispatch can never publish the site. Enabling GitHub Pages is a
+  # one-time maintainer step (docs/dev/releasing.md); until then the client 404s
+  # gracefully, so shipping this before Pages is enabled is safe.
+  pages:
+    name: Publish update manifest to Pages
+    needs: [meta, publish]
+    if: >-
+      github.repository == 'ibanner56/CallersCompendium' &&
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # push the manifest to the gh-pages branch
+    steps:
+      # Provides the git remote + push credentials (persist-credentials) the
+      # publisher pushes gh-pages through; no new/third-party action is needed.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Download the channel manifest
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: channel-manifest
+          path: manifest
+
+      - name: Publish the channel manifest to gh-pages
+        env:
+          CHANNEL: ${{ needs.meta.outputs.channel }}
+          TAG: ${{ needs.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          bash tools/release/publish_pages_manifest.sh \
+            --manifest "manifest/${CHANNEL}.json" \
+            --channel "$CHANNEL" \
+            --tag "$TAG"
