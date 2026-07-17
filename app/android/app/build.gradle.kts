@@ -71,18 +71,6 @@ android {
             }
         }
     }
-
-    lint {
-        // Short-term unblock: AGP 9.3.0's release lint-vital gate
-        // (`lintVitalAnalyzeRelease`) crashes with a NoSuchMethodError in Lint's
-        // JavaDocParser while analyzing the third-party `file_selector_android`
-        // plugin, which fails `flutter build apk --release`. The crash is in a
-        // dependency's Lint analysis, not this app's code (Dart is covered by
-        // `flutter analyze`). Skip the release lint-vital gate so the signed
-        // release APK can build. Tracked for a root-cause toolchain fix that
-        // re-enables this release-lint gate.
-        checkReleaseBuilds = false
-    }
 }
 
 kotlin {
