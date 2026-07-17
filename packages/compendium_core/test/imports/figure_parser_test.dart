@@ -206,6 +206,9 @@ void main() {
       'swing to partner',
       // Moves outside the first-cut coverage.
       'hey for four',
+      // "contra corners" IS recognised now, but only with an explicit turning
+      // couple ("Ones/Twos turn contra corners"). A bare "contra corners" names
+      // no couple, and defaulting `who` would fabricate one, so it stays custom.
       'contra corners',
       // Dropped from PR5 (no ContraDB source) — must stay custom, never
       // fabricated into a structured move.
@@ -594,6 +597,42 @@ void main() {
         move: 'pull_by_dancers',
         params: {'who': 'neighbors', 'hand': 'right'},
       ),
+      // 19. slide → slide_along_set (TCB "Slide left/right (past N)" — the
+      //     Becket slide; the "(past …)" annotation is stripped). Same move as
+      //     "Shift left/right".
+      'Slide right (past N)': (
+        move: 'slide_along_set',
+        params: {'slide': 'right'},
+      ),
+      'Slide left (past P)': (
+        move: 'slide_along_set',
+        params: {'slide': 'left'},
+      ),
+      // 20. contra_corners (TCB "Ones/Twos turn contra corners", 16 beats).
+      'Ones turn contra corners': (
+        move: 'contra_corners',
+        params: {'who': 'ones'},
+      ),
+      'Twos turn contra corners': (
+        move: 'contra_corners',
+        params: {'who': 'twos'},
+      ),
+      // 21. give_and_take (TCB "Men give-and-take partner/neighbor",
+      //     hyphenated). Leading role = giver (`who`), trailing relationship =
+      //     target (`whom`); both stated in-text.
+      'Men give-and-take partner': (
+        move: 'give_and_take',
+        params: {'who': 'role1s', 'whom': 'partners'},
+      ),
+      'Men give-and-take neighbor': (
+        move: 'give_and_take',
+        params: {'who': 'role1s', 'whom': 'neighbors'},
+      ),
+      // Space-separated spelling is accepted too, with the role2 giver.
+      'Women give and take neighbor': (
+        move: 'give_and_take',
+        params: {'who': 'role2s', 'whom': 'neighbors'},
+      ),
     };
 
     cases.forEach((line, expected) {
@@ -642,6 +681,47 @@ void main() {
       expect(f!.isCustom, isFalse);
       expect(f.move, 'pull_by_direction');
       expect(f.params['dir'], 'across');
+    });
+
+    // give_and_take's giver domain is role1s/role2s. A give-and-take with no
+    // leading role would misread its target as the giver, so it falls back to
+    // custom rather than fabricating a giver.
+    test('"give-and-take partner" (no leading role) → custom', () {
+      final f = parseFigureLine('give-and-take partner');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // A give-and-take whose leading dancer is outside role1s/role2s is rejected
+    // rather than silently coerced to the default giver.
+    test('"Neighbor give-and-take partner" (bad giver domain) → custom', () {
+      final f = parseFigureLine('Neighbor give-and-take partner');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // The giver must LEAD: an unattested order where the role appears after the
+    // move ("give-and-take men partner") is not structured.
+    test('"give-and-take men partner" (giver not leading) → custom', () {
+      final f = parseFigureLine('give-and-take men partner');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // give-and-take requires a stated target; a bare giver + move is rejected.
+    test('"Men give-and-take" (no target) → custom', () {
+      final f = parseFigureLine('Men give-and-take');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // contra_corners requires the turning couple to LEAD: a trailing dancer set
+    // ("turn contra corners ones") is an unattested order → custom.
+    test('"turn contra corners ones" (couple not leading) → custom', () {
+      final f = parseFigureLine('turn contra corners ones');
+      expect(f!.isCustom, isTrue);
+    });
+
+    // contra_corners requires the identifying "turn" keyword.
+    test('"Ones contra corners" (no "turn") → custom', () {
+      final f = parseFigureLine('Ones contra corners');
+      expect(f!.isCustom, isTrue);
     });
   });
 }
