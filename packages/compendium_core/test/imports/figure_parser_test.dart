@@ -151,6 +151,25 @@ void main() {
         move: 'up_the_hall',
         params: {'ender': 'none'},
       ),
+      // TCB "Facing star clockwise 3/4 / 1" (e.g. "… free hand to partner").
+      // A facing star is inherently a four-person figure, so TCB never names
+      // the dancers — `who` is set EXPLICITLY to `everyone`. Both the rotation
+      // direction (clockwise) and the turn-amount ("3/4" -> 3 places, "1"/full
+      // -> 4 places) are stated in-line and structured; the ornamental
+      // "(MR, WL, free hand to partner)" hand-hold and "[with N2]" bracket are
+      // stripped by normalization.
+      'Facing star clockwise 3/4 (MR, WL, free hand to partner)': (
+        move: 'facing_star',
+        params: {'who': 'everyone', 'turn': 'clockwise', 'places': 3},
+      ),
+      'Facing star clockwise 3/4 [with N2] (ML, WR, free hand to partner)': (
+        move: 'facing_star',
+        params: {'who': 'everyone', 'turn': 'clockwise', 'places': 3},
+      ),
+      'Facing star clockwise 1 [with N3] (ML, WR, free hand to partner)': (
+        move: 'facing_star',
+        params: {'who': 'everyone', 'turn': 'clockwise', 'places': 4},
+      ),
     };
 
     cases.forEach((line, expected) {
@@ -280,6 +299,17 @@ void main() {
       'N2 neighbor gate counterclockwise 1/2',
       // A poussette with an unmappable leftover ("draw") stays custom.
       'Neighbor draw poussette clockwise 1/2',
+      // "facing star" IS recognised now, but ONLY when BOTH the rotation
+      // direction (clockwise/counterclockwise) AND the turn-amount are stated
+      // and the phrase LEADS the line. These near-misses stay custom:
+      //   - direction stated but no amount → never default `places`.
+      'Facing star clockwise',
+      //   - amount stated but no direction → never default `turn`.
+      'Facing star 3/4',
+      //   - a "form facing star" formation line does not lead with "facing
+      //     star" and carries no direction/amount, so it stays custom.
+      'form facing star',
+      'Women walk forward, form facing star',
       // A dancer-named pull-by with a trailing direction: pull_by_dancers has
       // no direction slot, so rather than silently drop "across" the line must
       // fall to custom (the direction is only valid on the direction-only form).

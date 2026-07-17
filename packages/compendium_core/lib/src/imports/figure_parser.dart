@@ -372,6 +372,10 @@ final List<_Recognizer> _recognizers = [
   // Must precede _starPromenade / _star so the shared "star" lead phrase
   // resolves "star through" to this move before the bare-star recognizers.
   _starThrough,
+  // _facingStar leads with the distinct phrase "facing star" (not "star …"), so
+  // it is not affected by the bare-star ordering below; it is grouped with the
+  // star family here purely for locality.
+  _facingStar,
   // Must precede _star so the shared "star" lead phrase resolves to the more
   // specific "star promenade" move before the bare-star recognizer.
   _starPromenade,
@@ -553,6 +557,48 @@ _Match? _circle(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('circle', {'turn': ?turn, 'places': ?places});
+}
+
+/// Tier A: TCB writes "Facing star clockwise 3/4" / "Facing star clockwise 1"
+/// (e.g. "… free hand to partner" dances). A facing star is an inherently
+/// four-person figure, so TCB never names the dancers — `who` is set EXPLICITLY
+/// to `everyone` (the whole set), never a fabricated pair/`ones` default. Both
+/// the rotation direction (clockwise / counterclockwise) AND the turn-amount
+/// ("3/4" -> 3 places, "1"/full -> 4 places) are load-bearing choreography (they
+/// determine who you end up facing) and MUST be stated in-line; if either is
+/// missing the line stays CUSTOM (never default `turn`/`places`). The ornamental
+/// hand-hold annotation ("(MR, WL, free hand to partner)") and the "[with N2]"
+/// bracket are stripped by `_normalize`. "Women walk forward; form facing star"
+/// / "form facing star" do not LEAD with "facing star" and carry no direction or
+/// amount, so they stay custom.
+_Match? _facingStar(List<String> w) {
+  // Leading-anchored: the line must START with "facing star" (after optional
+  // framing filler); a mid-line "facing star" is left for the custom fallback.
+  const framing = {'the', 'a', 'an'};
+  var i = 0;
+  while (i < w.length && framing.contains(w[i])) {
+    i++;
+  }
+  if (i + 2 > w.length || w[i] != 'facing' || w[i + 1] != 'star') return null;
+  w.removeRange(0, i + 2);
+  // Direction MUST be stated (never defaulted).
+  String? spin;
+  if (_consumePhrase(w, ['clockwise'])) {
+    spin = 'clockwise';
+  } else if (_consumePhrase(w, ['counterclockwise'])) {
+    spin = 'counterclockwise';
+  }
+  if (spin == null) return null;
+  // Turn-amount MUST be stated ("3/4" -> 3, "1"/full -> 4). Never defaulted.
+  final places = _takePlaces(w);
+  if (places == null) return null;
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('facing_star', {
+    'who': 'everyone',
+    'turn': spin,
+    'places': places,
+  });
 }
 
 _Match? _star(List<String> w) {
