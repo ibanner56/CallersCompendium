@@ -616,3 +616,42 @@ taxonomy are unchanged.
   entry. (Decision needed — may be declined in favor of dialect + taxonomy.)
 - **UI localization / multi-language** — CC ships ~12 runtime UI languages; we
   have no i18n plan yet. Scope an intl framework if community demand appears.
+
+### Plugin system (user-installable extensions)
+
+A user-installable **plugins folder** that lets the community extend the app
+without forking. A plugin is dropped into a known location, discovered and
+loaded by the app, and enabled by the user. Plugins can add net-new
+destinations to the main navigation rail or otherwise augment the app UX
+(buttons, panels, renderers). Local-first and opt-in: this keeps the core lean
+while giving power users and contributors a supported extension surface.
+
+Design questions to settle before committing (deferred):
+
+- **Extension surface / API contract** — which hooks a plugin may use: register
+  a rail destination, inject actions into the dance/program views, contribute a
+  renderer, and read/write collection data through a stable, sandboxed API.
+- **Trust, sandboxing, and distribution** — where plugins come from, how they're
+  vetted, and how much of the app/data (and network) a plugin may touch.
+  Publish/export plugins that need credentials and network access raise the
+  trust bar substantially.
+- **Packaging + versioning** — how a plugin declares compatibility with the
+  app's data model and taxonomy version so upgrades don't silently break it.
+
+Motivating plugins (concrete asks driving the design):
+
+- **ContraDB export / publication** — add buttons to the dance and program views
+  to export/publish a dance or program up to ContraDB. This is a *write*
+  integration, so it requires the user to be **logged in to their ContraDB
+  account** — unlike our read-only search + import, which needs no auth.
+  ContraDB today runs plain Devise session auth with **no delegated-auth
+  surface** (no OAuth/OpenID provider, no token or API-key system; the only API
+  is anonymous read-only). So a publish plugin would either depend on an
+  **upstream ContraDB change** to add OAuth/scoped tokens (the clean path) or
+  fall back to insecure credential custody (password/session handling) — which
+  we would not ship without that upstream capability. Tracked here so the auth
+  prerequisite is explicit.
+- **Dance visualization / rendering** (from
+  [dperelman](https://github.com/dperelman)) — a plugin that visualizes and
+  renders dances (spatial/animated choreography views) as a net-new view,
+  rather than baking it into core.
