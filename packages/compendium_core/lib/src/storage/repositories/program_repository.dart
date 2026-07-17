@@ -327,6 +327,22 @@ class ProgramRepository {
     );
   }
 
+  /// Hard-deletes the programs identified by [ids] outright (ignoring their
+  /// soft-delete state), removing each program's slots via the
+  /// `program_slots.program_id` cascade. Unknown ids are ignored; an empty
+  /// [ids] is a no-op. Runs in a single transaction.
+  ///
+  /// Intended for reverting a just-committed import batch (import-session undo,
+  /// e.g. [CallersCompanionUsrImporter.undo]); ordinary user deletes should go
+  /// through [softDelete].
+  Future<void> hardDelete(Iterable<String> ids) {
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value();
+    return _db.transaction(
+      () => (_db.delete(_db.programs)..where((t) => t.id.isIn(list))).go(),
+    );
+  }
+
   /// Hard-deletes soft-deleted programs whose `deletedAt` is older than
   /// [retention] (default 30 days per `docs/design/storage.md`). Slots
   /// cascade automatically (FK).

@@ -243,6 +243,47 @@ void main() {
     });
   });
 
+  group('hardDelete', () {
+    test(
+      'removes the named programs and their slots, ignoring others',
+      () async {
+        await dances.create(
+          Dance(
+            id: 'd1',
+            title: 'Chase the Squirrel',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await repo.create(
+          sampleProgram(
+            id: 'p1',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+        );
+        await repo.create(sampleProgram(id: 'p2', title: 'Keep me'));
+
+        await repo.hardDelete(['p1', 'does-not-exist']);
+
+        // p1 is gone even from the include-deleted view (true hard delete)...
+        expect(await repo.getById('p1', includeDeleted: true), isNull);
+        // ...its slots cascaded away...
+        final slotRows = await db
+            .customSelect('SELECT COUNT(*) AS n FROM program_slots')
+            .getSingle();
+        expect(slotRows.read<int>('n'), 0);
+        // ...and the unrelated program survives.
+        expect(await repo.getById('p2'), isNotNull);
+      },
+    );
+
+    test('an empty id list is a no-op', () async {
+      await repo.create(sampleProgram(id: 'p1'));
+      await repo.hardDelete(const []);
+      expect(await repo.getById('p1'), isNotNull);
+    });
+  });
+
   group('lastCalledByDance', () {
     Future<void> makeDance(String id) => dances.create(
       Dance(

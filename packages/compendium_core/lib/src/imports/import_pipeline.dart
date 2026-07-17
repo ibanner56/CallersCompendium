@@ -91,6 +91,7 @@ class CommittedRecord {
   const CommittedRecord({
     required this.action,
     this.danceId,
+    this.externalId,
     this.error,
     this.authorResolutions = const [],
   });
@@ -99,6 +100,13 @@ class CommittedRecord {
 
   /// The dance id written (for create/reimport/link/duplicate), else `null`.
   final String? danceId;
+
+  /// The source record's stable external id (e.g. the Caller's Companion
+  /// `zk_Dance_ID` value), copied from the planned draft's [RawRecord] so a
+  /// caller can map `externalId → danceId` from the session alone — without
+  /// re-aligning against the original batch by index. `null` when the source
+  /// record carried no external id.
+  final String? externalId;
 
   /// A commit error for this record, if it failed (the rest still commit).
   final ImportError? error;
@@ -316,7 +324,12 @@ class ImportPipeline {
       final (action, targetId) = _resolveAction(plan.verdict, resolution);
 
       if (action == CommitAction.skip) {
-        committed.add(const CommittedRecord(action: CommitAction.skip));
+        committed.add(
+          CommittedRecord(
+            action: CommitAction.skip,
+            externalId: plan.draft.raw.externalId,
+          ),
+        );
         continue;
       }
 
@@ -357,6 +370,7 @@ class ImportPipeline {
             CommittedRecord(
               action: action,
               danceId: id,
+              externalId: plan.draft.raw.externalId,
               authorResolutions: authorResolutions,
             ),
           );
@@ -368,6 +382,7 @@ class ImportPipeline {
             committed.add(
               CommittedRecord(
                 action: action,
+                externalId: plan.draft.raw.externalId,
                 error: commitError(
                   plan.draft.raw.source,
                   'Target dance "$id" no longer exists',
@@ -391,6 +406,7 @@ class ImportPipeline {
             CommittedRecord(
               action: action,
               danceId: id,
+              externalId: plan.draft.raw.externalId,
               authorResolutions: authorResolutions,
             ),
           );
@@ -399,6 +415,7 @@ class ImportPipeline {
         committed.add(
           CommittedRecord(
             action: action,
+            externalId: plan.draft.raw.externalId,
             error: commitError(
               plan.draft.raw.source,
               'Commit failed: $e',
