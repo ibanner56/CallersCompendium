@@ -131,7 +131,7 @@ List<Figure> parseFigureLines(
   // Simultaneity is not modelled → keep the whole line custom (never split).
   if (_hasTopLevel(rawText, '||')) return wholeAsList();
 
-  final clauses = _splitTopLevel(rawText, ';');
+  final clauses = _splitTopLevel(rawText, ';', dropEmpty: false);
   if (clauses.length < 2) return wholeAsList();
   // An empty clause means a malformed / degenerate separator run (`A;;B`,
   // `A; ;B`) or a leading/trailing `;` (`A;`). We do NOT silently drop it — that
@@ -183,11 +183,12 @@ bool _hasTopLevel(String t, String sep) {
 }
 
 /// Splits [t] on top-level (bracket-depth-0) occurrences of [sep], trimming each
-/// piece. Empty pieces are RETAINED (not dropped) so the caller can detect a
-/// malformed/degenerate separator run and decline to split rather than lose a
-/// clause. `(…)`/`[…]` annotations are treated as opaque so their internal
-/// separators never split a line.
-List<String> _splitTopLevel(String t, String sep) {
+/// piece. When [dropEmpty] is true (the default) empty pieces are discarded;
+/// [parseFigureLines] passes `dropEmpty: false` so it can SEE a malformed or
+/// degenerate separator run (`A;;B`, `A; ;B`) and decline to split rather than
+/// silently lose a clause. `(…)`/`[…]` annotations are treated as opaque so
+/// their internal separators never split a line.
+List<String> _splitTopLevel(String t, String sep, {bool dropEmpty = true}) {
   final out = <String>[];
   var depth = 0;
   var start = 0;
@@ -204,7 +205,8 @@ List<String> _splitTopLevel(String t, String sep) {
     }
   }
   out.add(t.substring(start));
-  return out.map((s) => s.trim()).toList();
+  final trimmed = out.map((s) => s.trim());
+  return (dropEmpty ? trimmed.where((s) => s.isNotEmpty) : trimmed).toList();
 }
 
 /// A recognised move: its taxonomy [moveId] and the params extracted from the

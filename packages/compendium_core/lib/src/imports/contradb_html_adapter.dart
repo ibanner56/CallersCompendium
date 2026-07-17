@@ -257,18 +257,19 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       final beats = _parseBeats(_beatsCell(cells), index, issues);
 
       // Route the (already-scrubbed) text through the shared parser: recognised
-      // moves become structured figures, the rest fall back to custom. The
-      // section label is not embedded in the text (it derives from beats).
-      // Non-null since `scrubbed` isn't empty.
-      figures.add(
-        parseFigureLine(
-          scrubbed,
-          beats: beats,
-          progression: hasProgression,
-          scrub: (s) => s,
-        )!,
+      // moves become structured figures, the rest fall back to custom. A
+      // top-level `;` compound splits into one figure per clause (all-or-nothing
+      // + Option A beats); single-clause rows are unchanged. The section label
+      // is not embedded in the text (it derives from beats). Non-empty since
+      // `scrubbed` isn't empty → at least one figure.
+      final rowFigures = parseFigureLines(
+        scrubbed,
+        beats: beats,
+        progression: hasProgression,
+        scrub: (s) => s,
       );
-      index++;
+      figures.addAll(rowFigures);
+      index += rowFigures.length;
     }
     return figures;
   }
