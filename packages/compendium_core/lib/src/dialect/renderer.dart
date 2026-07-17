@@ -11,6 +11,13 @@ const Set<String> roleTokens = {'role1', 'role2', 'role1s', 'role2s'};
 final RegExp _placeholder = RegExp(r'\{(\w+)\}');
 final RegExp _camelBoundary = RegExp(r'(?<=[a-z])(?=[A-Z])');
 
+/// Where a move's `balance` flag renders relative to the terse base line, per
+/// ContraDB `libfigure` word order. [leading] prepends the "balance &" prefix
+/// to the whole line (ContraDB emits the balance token before any subject);
+/// [afterWho] splices it in front of the move name (ContraDB emits the subject,
+/// then balance, then the move).
+enum _BalancePlacement { leading, afterWho }
+
 /// Renders figures to text in two flavors: canonical (dialect-free, feeds
 /// search/FTS) and display (a chosen [Dialect] applied). Pure functions —
 /// golden-tested.
@@ -43,14 +50,16 @@ class FigureRenderer {
   /// Display summary for [figure] under [dialect]: the terse [render] (or
   /// [renderVerbose], when [verbose]) text plus the ContraDB-parity secondary
   /// modifiers the terse `renderTemplate` deliberately omits — down/up-the-hall
-  /// and zig-zag `ender`, and hey `length`. These params otherwise render as
-  /// nothing (enders) or drop the length, so a caller reading the summary loses
-  /// information ContraDB's params→description rendering surfaces.
+  /// and zig-zag `ender`, hey `length`, the `balance` flag (a "balance &"
+  /// prefix), and long-lines `goBack`. These params otherwise render as nothing
+  /// (enders, balance) or drop information (hey length, hall direction), so a
+  /// caller reading the summary loses information ContraDB's params→description
+  /// rendering surfaces.
   ///
   /// This is a display-only path layered on top of [_render]; [renderCanonical]
   /// (which feeds storage/search/dedupe) never calls it and stays byte-for-byte
   /// unchanged. The appended wording is copied verbatim from ContraDB's
-  /// `libfigure` (`param.js` string functions), except `bendTheLine` — a
+  /// `libfigure` (`param.js`/`figure.js`), except `bendTheLine` — a
   /// CallersBox-origin ender not present in ContraDB — which uses CallersBox's
   /// own "bend the line" phrasing (see `docs/research/callersbox.md`). The
   /// modifier phrases are fixed structural vocabulary (not role/move tokens),
@@ -59,10 +68,39 @@ class FigureRenderer {
   String renderSummary(Figure figure, Dialect dialect, {bool verbose = false}) {
     final base = _render(figure, dialect, verbose: verbose);
     if (figure.isCustom) return base;
-    if (taxonomy.resolve(figure.move) == null) return base;
+    final def = taxonomy.resolve(figure.move);
+    if (def == null) return base;
     final params = taxonomy.effectiveParams(figure);
+    var out = base;
+    // Balance flag → a "balance &" (visual) / "balance and" (verbose) prefix,
+    // positioned per ContraDB's per-move word order (see [_balancePlacement]).
+    if (params['balance'] == true) {
+      final placement = _balancePlacement[figure.move];
+      if (placement != null) {
+        final connective = _renderPrefix('balance', verbose);
+        if (placement == _BalancePlacement.leading) {
+          // ContraDB emits the balance token first (before any subject).
+          out = '$connective $out';
+        } else {
+          // after-who: the balance token follows the subject and immediately
+          // precedes the move name, so splice it in front of the move token.
+          // The move name is normalized the same way [_render] normalizes the
+          // base line (`_collapseSpaces`) so a dialect substitution with stray
+          // double spaces still matches; if it somehow can't be located we fall
+          // back to the leading form rather than silently dropping the balance.
+          final alias = taxonomy.aliases[figure.move];
+          final displayName = alias?.displayName ?? def.displayName;
+          final moveName = _collapseSpaces(
+            _renderMoveName(def.id, displayName, params, dialect),
+          );
+          out = out.contains(moveName)
+              ? out.replaceFirst(moveName, '$connective $moveName')
+              : '$connective $out';
+        }
+      }
+    }
     final suffix = _summarySuffix(figure.move, params, verbose);
-    return suffix.isEmpty ? base : '$base$suffix';
+    return suffix.isEmpty ? out : '$out$suffix';
   }
 
   /// The trailing secondary-modifier clause (connective included) appended by
@@ -89,6 +127,14 @@ class FigureRenderer {
         if (ender == 'ring') return ' into a ring';
         if (ender == 'allemande') return ', trailing two catching hands';
         return '';
+      case 'long_lines':
+        // ContraDB `longLinesWords` always renders the direction: `forward`
+        // when `goBack` is false, else `forward & back` (spoken "and"). The
+        // param is always shown by ContraDB, so parity surfaces it in both the
+        // default and non-default case.
+        return params['goBack'] == false
+            ? ' forward'
+            : (verbose ? ' forward and back' : ' forward & back');
       case 'hey':
         // ContraDB renders `full`/`half` as a "half hey"/"full hey" phrase and
         // the partial lengths as a trailing "until…" clause. On screen the
@@ -309,6 +355,33 @@ class FigureRenderer {
   /// ContraDB `libfigure` hey-length wording is emitted inline by
   /// [_summarySuffix] (compact parenthetical on screen, "half hey"/"full hey"
   /// or the "until…" clause when spoken), so no lookup table is needed here.
+
+  /// Where the `balance` flag's "balance &" prefix sits relative to the base
+  /// render, per each move's ContraDB `words` function word order (contradb
+  /// `app/javascript/libfigure/figure.js` @13f38a5). Only source-verified
+  /// ContraDB moves appear; moves whose ContraDB rendering embeds balance
+  /// elsewhere (`square_through`, the wave moves) or that ContraDB does not
+  /// model (`star_through`, a CallersBox extension) are intentionally absent so
+  /// we never fabricate a prefix.
+  static const Map<String, _BalancePlacement> _balancePlacement = {
+    // `words(sbalance, smove)` / `words(sbal, smove, …)` — balance first.
+    'petronella': _BalancePlacement.leading,
+    'pull_by_direction': _BalancePlacement.leading,
+    // `words(sbalance, swho2, smove, sdir)` — balance before the subject.
+    'rory_o_more': _BalancePlacement.leading,
+    // `words(sbal, smove, "-", details)` — balance first.
+    'box_circulate': _BalancePlacement.leading,
+    // `words(swho, sbal, smove, sspin)` — subject, then balance before move.
+    'pull_by_dancers': _BalancePlacement.afterWho,
+    // `words(swho, thand, sbalance, smove)` — subject, (hand,) then balance
+    // before the move. Our terse '{who} {move}' template omits the hand
+    // regardless of balance, so the hand omission is pre-existing base behavior;
+    // the balance prefix is a strict addition, not a new divergence. The alias
+    // `swat_the_flea` (target box_the_gnat) needs its own key because
+    // `figure.move` is 'swat_the_flea' and it renders under its own name.
+    'box_the_gnat': _BalancePlacement.afterWho,
+    'swat_the_flea': _BalancePlacement.afterWho,
+  };
 
   static String _humanize(String token) =>
       token.replaceAll(_camelBoundary, ' ').toLowerCase();
