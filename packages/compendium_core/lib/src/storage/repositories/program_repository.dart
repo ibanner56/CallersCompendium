@@ -177,7 +177,9 @@ class ProgramRepository {
             ))
             .getSingleOrNull();
     if (row == null) return null;
-    return _toModel(row, await _slotsFor(id), await _provenanceFor(id));
+    final slots = _slotsFor(id);
+    final provenance = _provenanceFor(id);
+    return _toModel(row, await slots, await provenance);
   }
 
   Future<List<Program>> listAll({bool includeDeleted = false}) async {
@@ -187,9 +189,12 @@ class ProgramRepository {
       query.where((t) => t.deletedAt.isNull());
     }
     final rows = await query.get();
+    final provByProgram = await _provenanceForMany([
+      for (final r in rows) r.id,
+    ]);
     return [
       for (final row in rows)
-        _toModel(row, await _slotsFor(row.id), await _provenanceFor(row.id)),
+        _toModel(row, await _slotsFor(row.id), provByProgram[row.id]),
     ];
   }
 
@@ -412,6 +417,27 @@ class ProgramRepository {
       _db.programProvenance,
     )..where((t) => t.programId.equals(programId))).getSingleOrNull();
     if (row == null) return null;
+    return _provenanceFromRow(row);
+  }
+
+  /// Batched sibling of [_provenanceFor]: resolves provenance for many programs
+  /// in a SINGLE `program_provenance` query keyed by `programId IN (...)`,
+  /// returning a `programId → Provenance` map. Programs without a provenance
+  /// row are simply absent from the map. Used by [listAll] to avoid the per-row
+  /// `_provenanceFor` N+1 fan-out. Mirrors the batched `IN (...)` lookup used by
+  /// the dance derived-index rebuild.
+  Future<Map<String, model.Provenance>> _provenanceForMany(
+    Iterable<String> ids,
+  ) async {
+    final idList = ids.toList();
+    if (idList.isEmpty) return const {};
+    final rows = await (_db.select(
+      _db.programProvenance,
+    )..where((t) => t.programId.isIn(idList))).get();
+    return {for (final row in rows) row.programId: _provenanceFromRow(row)};
+  }
+
+  model.Provenance _provenanceFromRow(ProgramProvenanceRow row) {
     return model.Provenance(
       source: row.source,
       externalId: row.externalId,

@@ -678,6 +678,30 @@ void main() {
       expect(prov.sourceVersion, 'cc-usr-1');
     });
 
+    test('listAll rehydrates provenance for a mix of provenance and null '
+        'programs (batched map keys correctly)', () async {
+      await repo.create(
+        sampleProgram(
+          id: 'a-prog',
+          title: 'Alpha',
+        ).copyWith(provenance: ccProvenance(externalId: 'set-a')),
+      );
+      await repo.create(sampleProgram(id: 'b-prog', title: 'Bravo'));
+      await repo.create(
+        sampleProgram(
+          id: 'c-prog',
+          title: 'Charlie',
+        ).copyWith(provenance: ccProvenance(externalId: 'set-c')),
+      );
+
+      final all = await repo.listAll();
+      final byId = {for (final p in all) p.id: p};
+
+      expect(byId['a-prog']!.provenance!.externalId, 'set-a');
+      expect(byId['b-prog']!.provenance, isNull);
+      expect(byId['c-prog']!.provenance!.externalId, 'set-c');
+    });
+
     test('a program with no provenance reads back null', () async {
       await repo.create(sampleProgram());
       final read = await repo.getById('p1');
