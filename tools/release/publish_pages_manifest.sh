@@ -31,9 +31,9 @@ channel=""
 tag=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --manifest) manifest="$2"; shift 2 ;;
-    --channel)  channel="$2";  shift 2 ;;
-    --tag)      tag="$2";      shift 2 ;;
+    --manifest) [ "$#" -ge 2 ] || { echo "::error::--manifest requires a value" >&2; exit 2; }; manifest="$2"; shift 2 ;;
+    --channel)  [ "$#" -ge 2 ] || { echo "::error::--channel requires a value" >&2; exit 2; };  channel="$2";  shift 2 ;;
+    --tag)      [ "$#" -ge 2 ] || { echo "::error::--tag requires a value" >&2; exit 2; };      tag="$2";      shift 2 ;;
     *) echo "::error::unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -87,15 +87,19 @@ commit_manifest() {
   cp "$manifest_abs" "$worktree/$dest"
   touch "$worktree/.nojekyll"   # serve JSON verbatim; skip Jekyll processing.
 
-  git -C "$worktree" config user.name "$user_name"
-  git -C "$worktree" config user.email "$user_email"
   git -C "$worktree" add "$dest" .nojekyll
 
   if git -C "$worktree" diff --cached --quiet; then
     echo "No change to $dest for $tag; gh-pages already up to date (no-op)."
     return 1
   fi
-  git -C "$worktree" commit -m "release: publish $dest for $tag" >/dev/null
+  # Set the identity per-commit (`-c`) rather than `git config`, which would
+  # persist into the shared repo config and change a local maintainer's commit
+  # identity as a surprising side effect.
+  git -C "$worktree" \
+    -c "user.name=$user_name" \
+    -c "user.email=$user_email" \
+    commit -m "release: publish $dest for $tag" >/dev/null
   return 0
 }
 

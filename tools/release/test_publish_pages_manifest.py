@@ -188,6 +188,17 @@ def _cases() -> None:
         assert missing.returncode != 0
         assert "not found" in missing.stderr.lower()
 
+        # A flag with no value must fail with a CLEAR message, not a bare
+        # set -u "unbound variable" error.
+        env = dict(os.environ, REMOTE="origin", BRANCH=REMOTE_BRANCH,
+                   WORKTREE=str(tmp / "wtz"))
+        no_value = subprocess.run(
+            ["bash", str(SCRIPT), "--manifest"],
+            cwd=str(checkout), env=env, capture_output=True, text=True,
+        )
+        assert no_value.returncode != 0
+        assert "requires a value" in no_value.stderr.lower()
+
 
 def main() -> int:
     _cases()
