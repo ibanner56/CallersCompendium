@@ -1,18 +1,19 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
-/// PR5 (parser overhaul) — the new balance+twirl-family moves added in
-/// contraTaxonomyVersion 11: `box_circulate` (ContraDB-sourced, modeled on
-/// `box_the_gnat`) and `star_through` (modeled on `california_twirl` + a balance
-/// flag). Both carry a neutral `balance` flag whose balanced beat count comes
-/// only from the CallersBox cross-line merge, so neither takes `paramBeats`.
+/// PR5 (parser overhaul) added `box_circulate` (ContraDB-sourced, modeled on
+/// `box_the_gnat`) and `star_through` in contraTaxonomyVersion 11. `box_circulate`
+/// carries a neutral `balance` flag whose balanced beat count comes only from the
+/// CallersBox cross-line merge, so it takes no `paramBeats`. v12: `star_through`
+/// now mirrors `california_twirl` (who + beats only, no balance) per product
+/// decision.
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('contraTaxonomyVersion is 11', () {
-    expect(contraTaxonomyVersion, 11);
-    expect(tax.version, 11);
+  test('contraTaxonomyVersion is 12', () {
+    expect(contraTaxonomyVersion, 12);
+    expect(tax.version, 12);
   });
 
   group('box_circulate', () {
@@ -74,10 +75,15 @@ void main() {
   });
 
   group('star_through', () {
-    test('registers as a california_twirl-style move + a balance flag', () {
+    test('registers as a california_twirl-style move (no balance param)', () {
       final def = tax.resolve('star_through');
       expect(def, isNotNull);
-      expect(def!.params.keys, containsAll(['who', 'balance', 'beats']));
+      expect(def!.params.keys, containsAll(['who', 'beats']));
+      expect(
+        def.params.containsKey('balance'),
+        isFalse,
+        reason: 'v12: star through mirrors california twirl — no balance param',
+      );
       expect(
         def.params.containsKey('hand'),
         isFalse,
@@ -85,7 +91,7 @@ void main() {
       );
       final defaults = tax.effectiveParams(Figure(move: 'star_through'));
       expect(defaults['who'], 'partners');
-      expect(defaults['balance'], false);
+      expect(defaults.containsKey('balance'), isFalse);
       expect(defaults['beats'], 4);
     });
 
@@ -105,13 +111,18 @@ void main() {
       );
     });
 
-    test(
-      'has no paramBeats (balanced beats come from the cross-line merge)',
-      () {
-        expect(tax.resolve('star_through')!.paramBeats, isNull);
-        expect(tax.resolve('star_through')!.goodBeats, [4]);
-      },
-    );
+    test('has no paramBeats (fixed 4-beat move, like california twirl)', () {
+      expect(tax.resolve('star_through')!.paramBeats, isNull);
+      expect(tax.resolve('star_through')!.goodBeats, [4]);
+    });
+
+    test('a parsed "star through" carries no balance param', () {
+      final reparsed = parseFigureLine('star through');
+      expect(reparsed, isNotNull);
+      expect(reparsed!.isCustom, isFalse);
+      expect(reparsed.move, 'star_through');
+      expect(reparsed.params.containsKey('balance'), isFalse);
+    });
 
     test('render → re-parse round-trips the recognizer', () {
       final f = Figure(move: 'star_through', params: {'who': 'neighbors'});

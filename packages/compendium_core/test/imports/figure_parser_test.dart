@@ -77,8 +77,8 @@ void main() {
         move: 'box_circulate',
         params: {'who': 'neighbors'},
       ),
-      // star_through (v11): modeled on california_twirl + a balance flag; a
-      // standalone line states no balance.
+      // star_through (v12): mirrors california_twirl — who + beats only, no
+      // balance param.
       'Star through': (move: 'star_through', params: {'who': 'partners'}),
       'Neighbors star through': (
         move: 'star_through',
