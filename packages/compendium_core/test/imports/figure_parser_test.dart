@@ -858,12 +858,33 @@ void main() {
       expect(fs.single.params['beats'], 16);
     });
 
-    test('the split is lossless: joining the structured clauses reconstructs '
-        'the original clause sequence', () {
-      const line = 'Circle left 1; turn alone';
-      final fs = parseFigureLines(line, beats: 8);
-      expect(fs, hasLength(2));
-      expect(fs.every((f) => !f.isCustom), isTrue);
+    test(
+      'every clause is accounted for — a 3-clause line that fully structures '
+      'emits exactly one figure per clause, in order (no clause dropped)',
+      () {
+        final fs = parseFigureLines(
+          'Circle left 3/4; pass through across; turn alone',
+          beats: 8,
+        );
+        expect(fs.map((f) => f.move), ['circle', 'pass_through', 'turn_alone']);
+        expect(fs.every((f) => !f.isCustom), isTrue);
+      },
+    );
+
+    test('a malformed empty clause (`A;;B`) is NOT silently dropped — the line '
+        'declines to split and stays custom', () {
+      final fs = parseFigureLines('Circle left 3/4;; turn alone', beats: 8);
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.beats, 8);
+    });
+
+    test('a lone trailing `;` is not a compound — the whole line structures as '
+        'a single figure', () {
+      final fs = parseFigureLines('Neighbor swing;', beats: 16);
+      expect(fs, hasLength(1));
+      expect(fs.single.move, 'swing');
+      expect(fs.single.beats, 16);
     });
 
     test('Option A invariant: cumulative beats and deriveSections labels are '

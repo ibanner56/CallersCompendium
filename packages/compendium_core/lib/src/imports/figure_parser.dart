@@ -133,6 +133,12 @@ List<Figure> parseFigureLines(
 
   final clauses = _splitTopLevel(rawText, ';');
   if (clauses.length < 2) return wholeAsList();
+  // An empty clause means a malformed / degenerate separator run (`A;;B`,
+  // `A; ;B`) or a leading/trailing `;` (`A;`). We do NOT silently drop it — that
+  // would be a lossy split. Instead we decline to split and re-parse the whole
+  // line: `A;` structures via the normal edge-`;` strip, while a genuinely
+  // malformed `A;;B` reaches no recognizer and stays honestly custom.
+  if (clauses.any((c) => c.isEmpty)) return wholeAsList();
 
   final parsed = <Figure>[];
   for (var i = 0; i < clauses.length; i++) {
@@ -177,8 +183,10 @@ bool _hasTopLevel(String t, String sep) {
 }
 
 /// Splits [t] on top-level (bracket-depth-0) occurrences of [sep], trimming each
-/// piece and dropping empties. `(…)`/`[…]` annotations are treated as opaque so
-/// their internal separators never split a line.
+/// piece. Empty pieces are RETAINED (not dropped) so the caller can detect a
+/// malformed/degenerate separator run and decline to split rather than lose a
+/// clause. `(…)`/`[…]` annotations are treated as opaque so their internal
+/// separators never split a line.
 List<String> _splitTopLevel(String t, String sep) {
   final out = <String>[];
   var depth = 0;
@@ -196,7 +204,7 @@ List<String> _splitTopLevel(String t, String sep) {
     }
   }
   out.add(t.substring(start));
-  return out.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  return out.map((s) => s.trim()).toList();
 }
 
 /// A recognised move: its taxonomy [moveId] and the params extracted from the
