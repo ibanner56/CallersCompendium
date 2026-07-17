@@ -311,6 +311,28 @@ class Provenance extends Table {
   Set<Column> get primaryKey => {danceId};
 }
 
+/// Import provenance, one row per program (at most). Mirrors [Provenance]
+/// (the dance provenance table); added in schema v10 so re-importing a
+/// Caller's Companion `.USR` dedupes Sets onto the same program (keyed on
+/// `(source, externalId)`) instead of creating duplicates. `null`-provenance
+/// (user-created) programs simply have no row here and never dedupe.
+@DataClassName('ProgramProvenanceRow')
+class ProgramProvenance extends Table {
+  TextColumn get programId =>
+      text().references(Programs, #id, onDelete: KeyAction.cascade)();
+  TextColumn get source =>
+      text().map(const EnumNameConverter(ProvenanceSource.values))();
+  TextColumn get externalId => text().nullable()();
+  DateTimeColumn get importedAt => dateTime()();
+  TextColumn get permission => text().nullable()();
+  TextColumn get license => text().nullable()();
+  TextColumn get rawPayload => text().nullable()();
+  TextColumn get sourceVersion => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {programId};
+}
+
 /// Free-form app settings (dialect choice, prefs, source URLs), keyed by a
 /// stable string key; `valueJson` holds an arbitrary JSON-encoded value.
 @DataClassName('SettingRow')

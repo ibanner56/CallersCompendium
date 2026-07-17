@@ -7277,6 +7277,554 @@ class SnapshotsCompanion extends UpdateCompanion<SnapshotRow> {
   }
 }
 
+class $ProgramProvenanceTable extends ProgramProvenance
+    with TableInfo<$ProgramProvenanceTable, ProgramProvenanceRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProgramProvenanceTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _programIdMeta = const VerificationMeta(
+    'programId',
+  );
+  @override
+  late final GeneratedColumn<String> programId = GeneratedColumn<String>(
+    'program_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES programs (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<ProvenanceSource, String> source =
+      GeneratedColumn<String>(
+        'source',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ProvenanceSource>(
+        $ProgramProvenanceTable.$convertersource,
+      );
+  static const VerificationMeta _externalIdMeta = const VerificationMeta(
+    'externalId',
+  );
+  @override
+  late final GeneratedColumn<String> externalId = GeneratedColumn<String>(
+    'external_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _importedAtMeta = const VerificationMeta(
+    'importedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> importedAt = GeneratedColumn<DateTime>(
+    'imported_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _permissionMeta = const VerificationMeta(
+    'permission',
+  );
+  @override
+  late final GeneratedColumn<String> permission = GeneratedColumn<String>(
+    'permission',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _licenseMeta = const VerificationMeta(
+    'license',
+  );
+  @override
+  late final GeneratedColumn<String> license = GeneratedColumn<String>(
+    'license',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _rawPayloadMeta = const VerificationMeta(
+    'rawPayload',
+  );
+  @override
+  late final GeneratedColumn<String> rawPayload = GeneratedColumn<String>(
+    'raw_payload',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceVersionMeta = const VerificationMeta(
+    'sourceVersion',
+  );
+  @override
+  late final GeneratedColumn<String> sourceVersion = GeneratedColumn<String>(
+    'source_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    programId,
+    source,
+    externalId,
+    importedAt,
+    permission,
+    license,
+    rawPayload,
+    sourceVersion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'program_provenance';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProgramProvenanceRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('program_id')) {
+      context.handle(
+        _programIdMeta,
+        programId.isAcceptableOrUnknown(data['program_id']!, _programIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_programIdMeta);
+    }
+    if (data.containsKey('external_id')) {
+      context.handle(
+        _externalIdMeta,
+        externalId.isAcceptableOrUnknown(data['external_id']!, _externalIdMeta),
+      );
+    }
+    if (data.containsKey('imported_at')) {
+      context.handle(
+        _importedAtMeta,
+        importedAt.isAcceptableOrUnknown(data['imported_at']!, _importedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_importedAtMeta);
+    }
+    if (data.containsKey('permission')) {
+      context.handle(
+        _permissionMeta,
+        permission.isAcceptableOrUnknown(data['permission']!, _permissionMeta),
+      );
+    }
+    if (data.containsKey('license')) {
+      context.handle(
+        _licenseMeta,
+        license.isAcceptableOrUnknown(data['license']!, _licenseMeta),
+      );
+    }
+    if (data.containsKey('raw_payload')) {
+      context.handle(
+        _rawPayloadMeta,
+        rawPayload.isAcceptableOrUnknown(data['raw_payload']!, _rawPayloadMeta),
+      );
+    }
+    if (data.containsKey('source_version')) {
+      context.handle(
+        _sourceVersionMeta,
+        sourceVersion.isAcceptableOrUnknown(
+          data['source_version']!,
+          _sourceVersionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {programId};
+  @override
+  ProgramProvenanceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProgramProvenanceRow(
+      programId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}program_id'],
+      )!,
+      source: $ProgramProvenanceTable.$convertersource.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}source'],
+        )!,
+      ),
+      externalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}external_id'],
+      ),
+      importedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}imported_at'],
+      )!,
+      permission: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}permission'],
+      ),
+      license: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}license'],
+      ),
+      rawPayload: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}raw_payload'],
+      ),
+      sourceVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_version'],
+      ),
+    );
+  }
+
+  @override
+  $ProgramProvenanceTable createAlias(String alias) {
+    return $ProgramProvenanceTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<ProvenanceSource, String, String> $convertersource =
+      const EnumNameConverter(ProvenanceSource.values);
+}
+
+class ProgramProvenanceRow extends DataClass
+    implements Insertable<ProgramProvenanceRow> {
+  final String programId;
+  final ProvenanceSource source;
+  final String? externalId;
+  final DateTime importedAt;
+  final String? permission;
+  final String? license;
+  final String? rawPayload;
+  final String? sourceVersion;
+  const ProgramProvenanceRow({
+    required this.programId,
+    required this.source,
+    this.externalId,
+    required this.importedAt,
+    this.permission,
+    this.license,
+    this.rawPayload,
+    this.sourceVersion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['program_id'] = Variable<String>(programId);
+    {
+      map['source'] = Variable<String>(
+        $ProgramProvenanceTable.$convertersource.toSql(source),
+      );
+    }
+    if (!nullToAbsent || externalId != null) {
+      map['external_id'] = Variable<String>(externalId);
+    }
+    map['imported_at'] = Variable<DateTime>(importedAt);
+    if (!nullToAbsent || permission != null) {
+      map['permission'] = Variable<String>(permission);
+    }
+    if (!nullToAbsent || license != null) {
+      map['license'] = Variable<String>(license);
+    }
+    if (!nullToAbsent || rawPayload != null) {
+      map['raw_payload'] = Variable<String>(rawPayload);
+    }
+    if (!nullToAbsent || sourceVersion != null) {
+      map['source_version'] = Variable<String>(sourceVersion);
+    }
+    return map;
+  }
+
+  ProgramProvenanceCompanion toCompanion(bool nullToAbsent) {
+    return ProgramProvenanceCompanion(
+      programId: Value(programId),
+      source: Value(source),
+      externalId: externalId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(externalId),
+      importedAt: Value(importedAt),
+      permission: permission == null && nullToAbsent
+          ? const Value.absent()
+          : Value(permission),
+      license: license == null && nullToAbsent
+          ? const Value.absent()
+          : Value(license),
+      rawPayload: rawPayload == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawPayload),
+      sourceVersion: sourceVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceVersion),
+    );
+  }
+
+  factory ProgramProvenanceRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProgramProvenanceRow(
+      programId: serializer.fromJson<String>(json['programId']),
+      source: $ProgramProvenanceTable.$convertersource.fromJson(
+        serializer.fromJson<String>(json['source']),
+      ),
+      externalId: serializer.fromJson<String?>(json['externalId']),
+      importedAt: serializer.fromJson<DateTime>(json['importedAt']),
+      permission: serializer.fromJson<String?>(json['permission']),
+      license: serializer.fromJson<String?>(json['license']),
+      rawPayload: serializer.fromJson<String?>(json['rawPayload']),
+      sourceVersion: serializer.fromJson<String?>(json['sourceVersion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'programId': serializer.toJson<String>(programId),
+      'source': serializer.toJson<String>(
+        $ProgramProvenanceTable.$convertersource.toJson(source),
+      ),
+      'externalId': serializer.toJson<String?>(externalId),
+      'importedAt': serializer.toJson<DateTime>(importedAt),
+      'permission': serializer.toJson<String?>(permission),
+      'license': serializer.toJson<String?>(license),
+      'rawPayload': serializer.toJson<String?>(rawPayload),
+      'sourceVersion': serializer.toJson<String?>(sourceVersion),
+    };
+  }
+
+  ProgramProvenanceRow copyWith({
+    String? programId,
+    ProvenanceSource? source,
+    Value<String?> externalId = const Value.absent(),
+    DateTime? importedAt,
+    Value<String?> permission = const Value.absent(),
+    Value<String?> license = const Value.absent(),
+    Value<String?> rawPayload = const Value.absent(),
+    Value<String?> sourceVersion = const Value.absent(),
+  }) => ProgramProvenanceRow(
+    programId: programId ?? this.programId,
+    source: source ?? this.source,
+    externalId: externalId.present ? externalId.value : this.externalId,
+    importedAt: importedAt ?? this.importedAt,
+    permission: permission.present ? permission.value : this.permission,
+    license: license.present ? license.value : this.license,
+    rawPayload: rawPayload.present ? rawPayload.value : this.rawPayload,
+    sourceVersion: sourceVersion.present
+        ? sourceVersion.value
+        : this.sourceVersion,
+  );
+  ProgramProvenanceRow copyWithCompanion(ProgramProvenanceCompanion data) {
+    return ProgramProvenanceRow(
+      programId: data.programId.present ? data.programId.value : this.programId,
+      source: data.source.present ? data.source.value : this.source,
+      externalId: data.externalId.present
+          ? data.externalId.value
+          : this.externalId,
+      importedAt: data.importedAt.present
+          ? data.importedAt.value
+          : this.importedAt,
+      permission: data.permission.present
+          ? data.permission.value
+          : this.permission,
+      license: data.license.present ? data.license.value : this.license,
+      rawPayload: data.rawPayload.present
+          ? data.rawPayload.value
+          : this.rawPayload,
+      sourceVersion: data.sourceVersion.present
+          ? data.sourceVersion.value
+          : this.sourceVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProgramProvenanceRow(')
+          ..write('programId: $programId, ')
+          ..write('source: $source, ')
+          ..write('externalId: $externalId, ')
+          ..write('importedAt: $importedAt, ')
+          ..write('permission: $permission, ')
+          ..write('license: $license, ')
+          ..write('rawPayload: $rawPayload, ')
+          ..write('sourceVersion: $sourceVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    programId,
+    source,
+    externalId,
+    importedAt,
+    permission,
+    license,
+    rawPayload,
+    sourceVersion,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProgramProvenanceRow &&
+          other.programId == this.programId &&
+          other.source == this.source &&
+          other.externalId == this.externalId &&
+          other.importedAt == this.importedAt &&
+          other.permission == this.permission &&
+          other.license == this.license &&
+          other.rawPayload == this.rawPayload &&
+          other.sourceVersion == this.sourceVersion);
+}
+
+class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
+  final Value<String> programId;
+  final Value<ProvenanceSource> source;
+  final Value<String?> externalId;
+  final Value<DateTime> importedAt;
+  final Value<String?> permission;
+  final Value<String?> license;
+  final Value<String?> rawPayload;
+  final Value<String?> sourceVersion;
+  final Value<int> rowid;
+  const ProgramProvenanceCompanion({
+    this.programId = const Value.absent(),
+    this.source = const Value.absent(),
+    this.externalId = const Value.absent(),
+    this.importedAt = const Value.absent(),
+    this.permission = const Value.absent(),
+    this.license = const Value.absent(),
+    this.rawPayload = const Value.absent(),
+    this.sourceVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProgramProvenanceCompanion.insert({
+    required String programId,
+    required ProvenanceSource source,
+    this.externalId = const Value.absent(),
+    required DateTime importedAt,
+    this.permission = const Value.absent(),
+    this.license = const Value.absent(),
+    this.rawPayload = const Value.absent(),
+    this.sourceVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : programId = Value(programId),
+       source = Value(source),
+       importedAt = Value(importedAt);
+  static Insertable<ProgramProvenanceRow> custom({
+    Expression<String>? programId,
+    Expression<String>? source,
+    Expression<String>? externalId,
+    Expression<DateTime>? importedAt,
+    Expression<String>? permission,
+    Expression<String>? license,
+    Expression<String>? rawPayload,
+    Expression<String>? sourceVersion,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (programId != null) 'program_id': programId,
+      if (source != null) 'source': source,
+      if (externalId != null) 'external_id': externalId,
+      if (importedAt != null) 'imported_at': importedAt,
+      if (permission != null) 'permission': permission,
+      if (license != null) 'license': license,
+      if (rawPayload != null) 'raw_payload': rawPayload,
+      if (sourceVersion != null) 'source_version': sourceVersion,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProgramProvenanceCompanion copyWith({
+    Value<String>? programId,
+    Value<ProvenanceSource>? source,
+    Value<String?>? externalId,
+    Value<DateTime>? importedAt,
+    Value<String?>? permission,
+    Value<String?>? license,
+    Value<String?>? rawPayload,
+    Value<String?>? sourceVersion,
+    Value<int>? rowid,
+  }) {
+    return ProgramProvenanceCompanion(
+      programId: programId ?? this.programId,
+      source: source ?? this.source,
+      externalId: externalId ?? this.externalId,
+      importedAt: importedAt ?? this.importedAt,
+      permission: permission ?? this.permission,
+      license: license ?? this.license,
+      rawPayload: rawPayload ?? this.rawPayload,
+      sourceVersion: sourceVersion ?? this.sourceVersion,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (programId.present) {
+      map['program_id'] = Variable<String>(programId.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(
+        $ProgramProvenanceTable.$convertersource.toSql(source.value),
+      );
+    }
+    if (externalId.present) {
+      map['external_id'] = Variable<String>(externalId.value);
+    }
+    if (importedAt.present) {
+      map['imported_at'] = Variable<DateTime>(importedAt.value);
+    }
+    if (permission.present) {
+      map['permission'] = Variable<String>(permission.value);
+    }
+    if (license.present) {
+      map['license'] = Variable<String>(license.value);
+    }
+    if (rawPayload.present) {
+      map['raw_payload'] = Variable<String>(rawPayload.value);
+    }
+    if (sourceVersion.present) {
+      map['source_version'] = Variable<String>(sourceVersion.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProgramProvenanceCompanion(')
+          ..write('programId: $programId, ')
+          ..write('source: $source, ')
+          ..write('externalId: $externalId, ')
+          ..write('importedAt: $importedAt, ')
+          ..write('permission: $permission, ')
+          ..write('license: $license, ')
+          ..write('rawPayload: $rawPayload, ')
+          ..write('sourceVersion: $sourceVersion, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -7301,6 +7849,8 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $DanceSourcesTable danceSources = $DanceSourcesTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
   late final $SnapshotsTable snapshots = $SnapshotsTable(this);
+  late final $ProgramProvenanceTable programProvenance =
+      $ProgramProvenanceTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7322,6 +7872,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     danceSources,
     settings,
     snapshots,
+    programProvenance,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -7422,6 +7973,13 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('dance_sources', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'programs',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('program_provenance', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -9968,6 +10526,30 @@ final class $$ProgramsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<
+    $ProgramProvenanceTable,
+    List<ProgramProvenanceRow>
+  >
+  _programProvenanceRefsTable(_$CompendiumDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.programProvenance,
+        aliasName: 'programs__id__program_provenance__program_id',
+      );
+
+  $$ProgramProvenanceTableProcessedTableManager get programProvenanceRefs {
+    final manager = $$ProgramProvenanceTableTableManager(
+      $_db,
+      $_db.programProvenance,
+    ).filter((f) => f.programId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _programProvenanceRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$ProgramsTableFilterComposer
@@ -10056,6 +10638,31 @@ class $$ProgramsTableFilterComposer
           }) => $$ProgramSlotsTableFilterComposer(
             $db: $db,
             $table: $db.programSlots,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> programProvenanceRefs(
+    Expression<bool> Function($$ProgramProvenanceTableFilterComposer f) f,
+  ) {
+    final $$ProgramProvenanceTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.programProvenance,
+      getReferencedColumn: (t) => t.programId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProgramProvenanceTableFilterComposer(
+            $db: $db,
+            $table: $db.programProvenance,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -10207,6 +10814,32 @@ class $$ProgramsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> programProvenanceRefs<T extends Object>(
+    Expression<T> Function($$ProgramProvenanceTableAnnotationComposer a) f,
+  ) {
+    final $$ProgramProvenanceTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.programProvenance,
+          getReferencedColumn: (t) => t.programId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ProgramProvenanceTableAnnotationComposer(
+                $db: $db,
+                $table: $db.programProvenance,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ProgramsTableTableManager
@@ -10222,7 +10855,10 @@ class $$ProgramsTableTableManager
           $$ProgramsTableUpdateCompanionBuilder,
           (ProgramRow, $$ProgramsTableReferences),
           ProgramRow,
-          PrefetchHooks Function({bool programSlotsRefs})
+          PrefetchHooks Function({
+            bool programSlotsRefs,
+            bool programProvenanceRefs,
+          })
         > {
   $$ProgramsTableTableManager(_$CompendiumDatabase db, $ProgramsTable table)
     : super(
@@ -10303,35 +10939,63 @@ class $$ProgramsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({programSlotsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (programSlotsRefs) db.programSlots],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (programSlotsRefs)
-                    await $_getPrefetchedData<
-                      ProgramRow,
-                      $ProgramsTable,
-                      ProgramSlotRow
-                    >(
-                      currentTable: table,
-                      referencedTable: $$ProgramsTableReferences
-                          ._programSlotsRefsTable(db),
-                      managerFromTypedResult: (p0) => $$ProgramsTableReferences(
-                        db,
-                        table,
-                        p0,
-                      ).programSlotsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.programId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({programSlotsRefs = false, programProvenanceRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (programSlotsRefs) db.programSlots,
+                    if (programProvenanceRefs) db.programProvenance,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (programSlotsRefs)
+                        await $_getPrefetchedData<
+                          ProgramRow,
+                          $ProgramsTable,
+                          ProgramSlotRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProgramsTableReferences
+                              ._programSlotsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProgramsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).programSlotsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.programId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (programProvenanceRefs)
+                        await $_getPrefetchedData<
+                          ProgramRow,
+                          $ProgramsTable,
+                          ProgramProvenanceRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProgramsTableReferences
+                              ._programProvenanceRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProgramsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).programProvenanceRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.programId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -10348,7 +11012,10 @@ typedef $$ProgramsTableProcessedTableManager =
       $$ProgramsTableUpdateCompanionBuilder,
       (ProgramRow, $$ProgramsTableReferences),
       ProgramRow,
-      PrefetchHooks Function({bool programSlotsRefs})
+      PrefetchHooks Function({
+        bool programSlotsRefs,
+        bool programProvenanceRefs,
+      })
     >;
 typedef $$ProgramSlotsTableCreateCompanionBuilder =
     ProgramSlotsCompanion Function({
@@ -14086,6 +14753,407 @@ typedef $$SnapshotsTableProcessedTableManager =
       SnapshotRow,
       PrefetchHooks Function()
     >;
+typedef $$ProgramProvenanceTableCreateCompanionBuilder =
+    ProgramProvenanceCompanion Function({
+      required String programId,
+      required ProvenanceSource source,
+      Value<String?> externalId,
+      required DateTime importedAt,
+      Value<String?> permission,
+      Value<String?> license,
+      Value<String?> rawPayload,
+      Value<String?> sourceVersion,
+      Value<int> rowid,
+    });
+typedef $$ProgramProvenanceTableUpdateCompanionBuilder =
+    ProgramProvenanceCompanion Function({
+      Value<String> programId,
+      Value<ProvenanceSource> source,
+      Value<String?> externalId,
+      Value<DateTime> importedAt,
+      Value<String?> permission,
+      Value<String?> license,
+      Value<String?> rawPayload,
+      Value<String?> sourceVersion,
+      Value<int> rowid,
+    });
+
+final class $$ProgramProvenanceTableReferences
+    extends
+        BaseReferences<
+          _$CompendiumDatabase,
+          $ProgramProvenanceTable,
+          ProgramProvenanceRow
+        > {
+  $$ProgramProvenanceTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ProgramsTable _programIdTable(_$CompendiumDatabase db) =>
+      db.programs.createAlias('program_provenance__program_id__programs__id');
+
+  $$ProgramsTableProcessedTableManager get programId {
+    final $_column = $_itemColumn<String>('program_id')!;
+
+    final manager = $$ProgramsTableTableManager(
+      $_db,
+      $_db.programs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_programIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ProgramProvenanceTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $ProgramProvenanceTable> {
+  $$ProgramProvenanceTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<ProvenanceSource, ProvenanceSource, String>
+  get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get permission => $composableBuilder(
+    column: $table.permission,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get license => $composableBuilder(
+    column: $table.license,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawPayload => $composableBuilder(
+    column: $table.rawPayload,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceVersion => $composableBuilder(
+    column: $table.sourceVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProgramsTableFilterComposer get programId {
+    final $$ProgramsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.programId,
+      referencedTable: $db.programs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProgramsTableFilterComposer(
+            $db: $db,
+            $table: $db.programs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProgramProvenanceTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $ProgramProvenanceTable> {
+  $$ProgramProvenanceTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get permission => $composableBuilder(
+    column: $table.permission,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get license => $composableBuilder(
+    column: $table.license,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawPayload => $composableBuilder(
+    column: $table.rawPayload,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceVersion => $composableBuilder(
+    column: $table.sourceVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProgramsTableOrderingComposer get programId {
+    final $$ProgramsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.programId,
+      referencedTable: $db.programs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProgramsTableOrderingComposer(
+            $db: $db,
+            $table: $db.programs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProgramProvenanceTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $ProgramProvenanceTable> {
+  $$ProgramProvenanceTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<ProvenanceSource, String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get importedAt => $composableBuilder(
+    column: $table.importedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get permission => $composableBuilder(
+    column: $table.permission,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get license =>
+      $composableBuilder(column: $table.license, builder: (column) => column);
+
+  GeneratedColumn<String> get rawPayload => $composableBuilder(
+    column: $table.rawPayload,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sourceVersion => $composableBuilder(
+    column: $table.sourceVersion,
+    builder: (column) => column,
+  );
+
+  $$ProgramsTableAnnotationComposer get programId {
+    final $$ProgramsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.programId,
+      referencedTable: $db.programs,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProgramsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.programs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ProgramProvenanceTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $ProgramProvenanceTable,
+          ProgramProvenanceRow,
+          $$ProgramProvenanceTableFilterComposer,
+          $$ProgramProvenanceTableOrderingComposer,
+          $$ProgramProvenanceTableAnnotationComposer,
+          $$ProgramProvenanceTableCreateCompanionBuilder,
+          $$ProgramProvenanceTableUpdateCompanionBuilder,
+          (ProgramProvenanceRow, $$ProgramProvenanceTableReferences),
+          ProgramProvenanceRow,
+          PrefetchHooks Function({bool programId})
+        > {
+  $$ProgramProvenanceTableTableManager(
+    _$CompendiumDatabase db,
+    $ProgramProvenanceTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProgramProvenanceTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProgramProvenanceTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProgramProvenanceTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> programId = const Value.absent(),
+                Value<ProvenanceSource> source = const Value.absent(),
+                Value<String?> externalId = const Value.absent(),
+                Value<DateTime> importedAt = const Value.absent(),
+                Value<String?> permission = const Value.absent(),
+                Value<String?> license = const Value.absent(),
+                Value<String?> rawPayload = const Value.absent(),
+                Value<String?> sourceVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProgramProvenanceCompanion(
+                programId: programId,
+                source: source,
+                externalId: externalId,
+                importedAt: importedAt,
+                permission: permission,
+                license: license,
+                rawPayload: rawPayload,
+                sourceVersion: sourceVersion,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String programId,
+                required ProvenanceSource source,
+                Value<String?> externalId = const Value.absent(),
+                required DateTime importedAt,
+                Value<String?> permission = const Value.absent(),
+                Value<String?> license = const Value.absent(),
+                Value<String?> rawPayload = const Value.absent(),
+                Value<String?> sourceVersion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProgramProvenanceCompanion.insert(
+                programId: programId,
+                source: source,
+                externalId: externalId,
+                importedAt: importedAt,
+                permission: permission,
+                license: license,
+                rawPayload: rawPayload,
+                sourceVersion: sourceVersion,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ProgramProvenanceTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({programId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (programId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.programId,
+                                referencedTable:
+                                    $$ProgramProvenanceTableReferences
+                                        ._programIdTable(db),
+                                referencedColumn:
+                                    $$ProgramProvenanceTableReferences
+                                        ._programIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ProgramProvenanceTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $ProgramProvenanceTable,
+      ProgramProvenanceRow,
+      $$ProgramProvenanceTableFilterComposer,
+      $$ProgramProvenanceTableOrderingComposer,
+      $$ProgramProvenanceTableAnnotationComposer,
+      $$ProgramProvenanceTableCreateCompanionBuilder,
+      $$ProgramProvenanceTableUpdateCompanionBuilder,
+      (ProgramProvenanceRow, $$ProgramProvenanceTableReferences),
+      ProgramProvenanceRow,
+      PrefetchHooks Function({bool programId})
+    >;
 
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
@@ -14121,4 +15189,6 @@ class $CompendiumDatabaseManager {
       $$SettingsTableTableManager(_db, _db.settings);
   $$SnapshotsTableTableManager get snapshots =>
       $$SnapshotsTableTableManager(_db, _db.snapshots);
+  $$ProgramProvenanceTableTableManager get programProvenance =>
+      $$ProgramProvenanceTableTableManager(_db, _db.programProvenance);
 }

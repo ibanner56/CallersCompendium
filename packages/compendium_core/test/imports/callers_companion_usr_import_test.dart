@@ -307,6 +307,104 @@ void main() {
       },
     );
   });
+
+  group('program dedupe on re-import', () {
+    test('re-importing the same .USR updates in place (no duplicate)', () async {
+      final first = await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      expect(first.programs, hasLength(1));
+      expect(first.insertedProgramCount, 1);
+      expect(first.updatedProgramCount, 0);
+      final firstId = first.programs.single.id;
+
+      // Re-import the identical archive with a *fresh* id minter — a naive
+      // insert would mint a new program id and duplicate. Dedupe must reuse the
+      // existing program keyed on (callersCompanion, zk_Set_ID).
+      final second = await importer.import(
+        _ccUsrBytes(),
+        now: DateTime.utc(2026, 8, 1),
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+
+      expect(second.insertedProgramCount, 0);
+      expect(second.updatedProgramCount, 1);
+      expect(second.programs.single.id, firstId, reason: 'same program reused');
+
+      // Exactly one program in the DB, still carrying its provenance.
+      final all = await programs.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.id, firstId);
+      expect(all.single.provenance!.externalId, '1');
+      expect(all.single.provenance!.source, ProvenanceSource.callersCompanion);
+      // Dances also deduped via the pipeline: still just the two.
+      expect(await dances.listAll(), hasLength(2));
+    });
+
+    test('undo after a re-import restores the prior program state', () async {
+      await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      final before = (await programs.listAll()).single;
+
+      final second = await importer.import(
+        _ccUsrBytes(),
+        now: DateTime.utc(2026, 8, 1),
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+      expect(second.updatedProgramCount, 1);
+
+      await importer.undo(second);
+      expect(second.isUndone, isTrue);
+
+      // The program is restored (not deleted) to its pre-re-import state.
+      final restored = await programs.getById(before.id);
+      expect(restored, isNotNull);
+      expect(restored!.id, before.id);
+      expect(restored.title, before.title);
+      expect(restored.updatedAt, before.updatedAt);
+      expect(restored.createdAt, before.createdAt);
+      expect(restored.slots.length, before.slots.length);
+      // Dances the re-import updated are rolled back too; still the two.
+      expect(await dances.listAll(), hasLength(2));
+    });
+
+    test('a null-provenance user program is never matched', () async {
+      // A user-created program with no provenance must never be overwritten by
+      // a CC import, even if it shares a title/venue.
+      await programs.create(
+        Program(
+          id: 'user-prog',
+          title: 'Grange Hall',
+          createdAt: DateTime.utc(2025),
+          updatedAt: DateTime.utc(2025),
+        ),
+      );
+
+      final result = await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        newId: sequentialIds(),
+        newSlotId: sequentialIds(),
+      );
+
+      // The CC program was inserted fresh; the user program is untouched.
+      expect(result.insertedProgramCount, 1);
+      expect(result.updatedProgramCount, 0);
+      expect(await programs.listAll(), hasLength(2));
+      final user = await programs.getById('user-prog');
+      expect(user!.provenance, isNull);
+      expect(user.updatedAt, DateTime.utc(2025));
+    });
+  });
 }
 
 /// A [ProgramRepository] whose [create] always throws, to exercise the

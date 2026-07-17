@@ -655,4 +655,116 @@ void main() {
       );
     });
   });
+
+  group('provenance', () {
+    Provenance ccProvenance({String externalId = 'set-7'}) => Provenance(
+      source: ProvenanceSource.callersCompanion,
+      externalId: externalId,
+      importedAt: DateTime.utc(2026, 1, 1),
+      sourceVersion: 'cc-usr-1',
+    );
+
+    test('round-trips provenance on create and read', () async {
+      final program = sampleProgram().copyWith(provenance: ccProvenance());
+      await repo.create(program);
+
+      final read = await repo.getById(program.id);
+      expect(read, isNotNull);
+      final prov = read!.provenance;
+      expect(prov, isNotNull);
+      expect(prov!.source, ProvenanceSource.callersCompanion);
+      expect(prov.externalId, 'set-7');
+      expect(prov.importedAt, DateTime.utc(2026, 1, 1));
+      expect(prov.sourceVersion, 'cc-usr-1');
+    });
+
+    test('listAll rehydrates provenance for a mix of provenance and null '
+        'programs (batched map keys correctly)', () async {
+      await repo.create(
+        sampleProgram(
+          id: 'a-prog',
+          title: 'Alpha',
+        ).copyWith(provenance: ccProvenance(externalId: 'set-a')),
+      );
+      await repo.create(sampleProgram(id: 'b-prog', title: 'Bravo'));
+      await repo.create(
+        sampleProgram(
+          id: 'c-prog',
+          title: 'Charlie',
+        ).copyWith(provenance: ccProvenance(externalId: 'set-c')),
+      );
+
+      final all = await repo.listAll();
+      final byId = {for (final p in all) p.id: p};
+
+      expect(byId['a-prog']!.provenance!.externalId, 'set-a');
+      expect(byId['b-prog']!.provenance, isNull);
+      expect(byId['c-prog']!.provenance!.externalId, 'set-c');
+    });
+
+    test('a program with no provenance reads back null', () async {
+      await repo.create(sampleProgram());
+      final read = await repo.getById('p1');
+      expect(read!.provenance, isNull);
+    });
+
+    test('update can clear provenance (row is removed)', () async {
+      final program = sampleProgram().copyWith(provenance: ccProvenance());
+      await repo.create(program);
+      await repo.update(program.copyWith(clearProvenance: true));
+
+      expect((await repo.getById('p1'))!.provenance, isNull);
+      expect(
+        await repo.externalIdToProgramId(ProvenanceSource.callersCompanion),
+        isEmpty,
+      );
+    });
+
+    test(
+      'externalIdToProgramId maps only non-null external ids for the source',
+      () async {
+        await repo.create(
+          sampleProgram(id: 'p1').copyWith(provenance: ccProvenance()),
+        );
+        await repo.create(
+          sampleProgram(
+            id: 'p2',
+          ).copyWith(provenance: ccProvenance(externalId: 'set-9')),
+        );
+        // Null-provenance (user-created) program: never dedupes.
+        await repo.create(sampleProgram(id: 'p3'));
+
+        final map = await repo.externalIdToProgramId(
+          ProvenanceSource.callersCompanion,
+        );
+        expect(map, {'set-7': 'p1', 'set-9': 'p2'});
+      },
+    );
+
+    test('externalIdToProgramId includes soft-deleted programs', () async {
+      await repo.create(
+        sampleProgram(id: 'p1').copyWith(provenance: ccProvenance()),
+      );
+      await repo.softDelete('p1', at: DateTime.utc(2026, 2, 1));
+
+      final map = await repo.externalIdToProgramId(
+        ProvenanceSource.callersCompanion,
+      );
+      expect(map, {'set-7': 'p1'});
+    });
+
+    test('duplicate drops provenance', () async {
+      await repo.create(
+        sampleProgram(id: 'p1').copyWith(provenance: ccProvenance()),
+      );
+      final copy = await repo.duplicate(
+        id: 'p1',
+        newId: 'p2',
+        newSlotId: () => 's',
+        now: DateTime.utc(2026, 6, 1),
+      );
+      expect(copy.provenance, isNull);
+      expect((await repo.getById('p2'))!.provenance, isNull);
+    });
+  });
 }

@@ -49,7 +49,7 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 9;
+const int kCompendiumSchemaVersion = 10;
 
 /// The Caller's Compendium local database.
 ///
@@ -152,6 +152,7 @@ const int kCompendiumSchemaVersion = 9;
     DanceSources,
     Settings,
     Snapshots,
+    ProgramProvenance,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -264,6 +265,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
           [derivedRebuildRequiredKey, 'true'],
         );
+      }
+      if (from < 10) {
+        // Program import provenance. One brand-new table (`program_provenance`),
+        // no columns added to existing tables, no back-fill: existing programs
+        // simply have no provenance row (they are user-created and never
+        // dedupe). Programs don't feed the derived `dance_fts`/`dance_figures`
+        // indexes, so no derived rebuild is required.
+        await m.createTable(programProvenance);
       }
     },
     beforeOpen: (details) async {

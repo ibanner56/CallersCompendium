@@ -1,6 +1,8 @@
 import 'package:meta/meta.dart';
 
+import '../model/enums.dart';
 import '../model/program.dart';
+import '../model/provenance.dart';
 import '../util/uuid.dart';
 import 'callers_companion_usr_archive.dart';
 import 'structured_draft.dart';
@@ -127,6 +129,16 @@ CcProgramsResult buildCcPrograms(
         slots: slots,
         createdAt: timestamp,
         updatedAt: timestamp,
+        // Provenance keyed on the CC `zk_Set_ID` (carried as [CcSet.recordId]),
+        // so re-importing the same `.USR` dedupes onto this program instead of
+        // creating a duplicate. Mirrors the CC dance provenance stamped by the
+        // import pipeline (`source: callersCompanion`, `externalId: zk_*_ID`).
+        provenance: Provenance(
+          source: ProvenanceSource.callersCompanion,
+          externalId: set.recordId,
+          importedAt: timestamp,
+          sourceVersion: ccUsrSourceVersion,
+        ),
       ),
     );
   }

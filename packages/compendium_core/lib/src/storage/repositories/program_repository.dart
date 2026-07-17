@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
+import '../../model/enums.dart';
 import '../../model/program.dart';
+import '../../model/provenance.dart' as model;
 import '../database.dart';
 import '../utc_datetime.dart';
 
@@ -138,6 +140,30 @@ class ProgramRepository {
             ),
           );
     }
+    // Provenance is a single dependent row keyed on the program id: delete then
+    // (re)insert so an update refreshes it and a program that lost its
+    // provenance drops the row. Mirrors DanceRepository's provenance handling.
+    await (_db.delete(
+      _db.programProvenance,
+    )..where((t) => t.programId.equals(program.id))).go();
+    final prov = program.provenance;
+    if (prov != null) {
+      assertUtc(prov.importedAt, 'program.provenance.importedAt');
+      await _db
+          .into(_db.programProvenance)
+          .insert(
+            ProgramProvenanceCompanion.insert(
+              programId: program.id,
+              source: prov.source,
+              externalId: Value(prov.externalId),
+              importedAt: prov.importedAt,
+              permission: Value(prov.permission),
+              license: Value(prov.license),
+              rawPayload: Value(prov.rawPayload),
+              sourceVersion: Value(prov.sourceVersion),
+            ),
+          );
+    }
   });
 
   Future<Program?> getById(String id, {bool includeDeleted = false}) async {
@@ -151,7 +177,9 @@ class ProgramRepository {
             ))
             .getSingleOrNull();
     if (row == null) return null;
-    return _toModel(row, await _slotsFor(id));
+    final slots = _slotsFor(id);
+    final provenance = _provenanceFor(id);
+    return _toModel(row, await slots, await provenance);
   }
 
   Future<List<Program>> listAll({bool includeDeleted = false}) async {
@@ -161,7 +189,13 @@ class ProgramRepository {
       query.where((t) => t.deletedAt.isNull());
     }
     final rows = await query.get();
-    return [for (final row in rows) _toModel(row, await _slotsFor(row.id))];
+    final provByProgram = await _provenanceForMany([
+      for (final r in rows) r.id,
+    ]);
+    return [
+      for (final row in rows)
+        _toModel(row, await _slotsFor(row.id), provByProgram[row.id]),
+    ];
   }
 
   /// Lightweight `(id, title)` listing that reads only the two columns it needs
@@ -357,7 +391,11 @@ class ProgramRepository {
     )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).go();
   }
 
-  Program _toModel(ProgramRow row, List<ProgramSlot> slots) => Program(
+  Program _toModel(
+    ProgramRow row,
+    List<ProgramSlot> slots,
+    model.Provenance? provenance,
+  ) => Program(
     id: row.id,
     title: row.title,
     eventDate: asUtcOrNull(row.eventDate),
@@ -371,5 +409,66 @@ class ProgramRepository {
     createdAt: asUtc(row.createdAt),
     updatedAt: asUtc(row.updatedAt),
     deletedAt: asUtcOrNull(row.deletedAt),
+    provenance: provenance,
   );
+
+  Future<model.Provenance?> _provenanceFor(String programId) async {
+    final row = await (_db.select(
+      _db.programProvenance,
+    )..where((t) => t.programId.equals(programId))).getSingleOrNull();
+    if (row == null) return null;
+    return _provenanceFromRow(row);
+  }
+
+  /// Batched sibling of [_provenanceFor]: resolves provenance for many programs
+  /// in a SINGLE `program_provenance` query keyed by `programId IN (...)`,
+  /// returning a `programId → Provenance` map. Programs without a provenance
+  /// row are simply absent from the map. Used by [listAll] to avoid the per-row
+  /// `_provenanceFor` N+1 fan-out. Mirrors the batched `IN (...)` lookup used by
+  /// the dance derived-index rebuild.
+  Future<Map<String, model.Provenance>> _provenanceForMany(
+    Iterable<String> ids,
+  ) async {
+    final idList = ids.toList();
+    if (idList.isEmpty) return const {};
+    final rows = await (_db.select(
+      _db.programProvenance,
+    )..where((t) => t.programId.isIn(idList))).get();
+    return {for (final row in rows) row.programId: _provenanceFromRow(row)};
+  }
+
+  model.Provenance _provenanceFromRow(ProgramProvenanceRow row) {
+    return model.Provenance(
+      source: row.source,
+      externalId: row.externalId,
+      importedAt: asUtc(row.importedAt),
+      permission: row.permission,
+      license: row.license,
+      rawPayload: row.rawPayload,
+      sourceVersion: row.sourceVersion,
+    );
+  }
+
+  /// Maps each existing program's provenance external id → its program id, for
+  /// a single [source]. Only rows whose `externalId` is non-null are included
+  /// (null-provenance programs never dedupe). Used by
+  /// [CallersCompanionUsrImporter] to detect a re-import: a built CC program
+  /// whose `(source, externalId)` key is already present updates that program
+  /// in place instead of inserting a duplicate. Includes soft-deleted programs
+  /// so a re-import re-targets (and can resurrect) a program the user deleted,
+  /// rather than silently creating a second copy. Mirrors the dance
+  /// deduplicator's exact `(source, externalId)` matching in `dedupe.dart`.
+  Future<Map<String, String>> externalIdToProgramId(
+    ProvenanceSource source,
+  ) async {
+    final rows = await (_db.select(
+      _db.programProvenance,
+    )..where((t) => t.source.equalsValue(source))).get();
+    final map = <String, String>{};
+    for (final row in rows) {
+      final ext = row.externalId;
+      if (ext != null && ext.isNotEmpty) map[ext] = row.programId;
+    }
+    return map;
+  }
 }

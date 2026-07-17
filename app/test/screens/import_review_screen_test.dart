@@ -904,6 +904,54 @@ void main() {
       expect(programs.single.title, 'Grange Hall');
     });
 
+    testWidgets('re-importing a Set dedupes onto the existing program and '
+        'the dialog reports it as updated', (tester) async {
+      final repos = openTestRepositories();
+      // Pre-seed a CC-imported program whose provenance key matches the Set's
+      // zk_Set_ID ('1') — simulating a prior import of the same file.
+      await repos.programs.create(
+        Program(
+          id: 'existing-prog',
+          title: 'Old Title',
+          createdAt: DateTime.utc(2025, 1, 1),
+          updatedAt: DateTime.utc(2025, 1, 1),
+          provenance: Provenance(
+            source: ProvenanceSource.callersCompanion,
+            externalId: '1',
+            importedAt: DateTime.utc(2025, 1, 1),
+            sourceVersion: 'cc-usr-1',
+          ),
+        ),
+      );
+
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(() async => ccUsrBytes()),
+        bytePicker: () async => ccUsrBytes(),
+      );
+
+      await selectUsr(tester);
+      await chooseAndReview(tester);
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      // The dialog reports one program, surfaced as updated (re-imported).
+      expect(find.text('Programs: 1'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('import-programs-updated')),
+        findsOneWidget,
+      );
+      expect(find.text('1 updated (re-imported)'), findsOneWidget);
+
+      // No duplicate: the existing program was overwritten in place.
+      final programs = await repos.programs.listAll();
+      expect(programs, hasLength(1));
+      expect(programs.single.id, 'existing-prog');
+      expect(programs.single.title, 'Grange Hall');
+    });
+
     testWidgets('Undo reverts the imported dances AND programs', (
       tester,
     ) async {
