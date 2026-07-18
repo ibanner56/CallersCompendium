@@ -74,6 +74,12 @@ and produces no Android artifact.
 
 ## Cutting a release
 
+> **Before you tag, work through the [Release Checklist](release-checklist.md).**
+> Copy it into the release PR/issue (or the tracking notes) for the tag and check
+> every gate — version/metadata, data-safety migrations, Android signing, update
+> manifest, licensing, and a smoke test on a real build — or mark items N/A with a
+> reason. The steps below are the mechanics; the checklist is the gate.
+
 1. **Update `app/CHANGELOG.md`** so the release has real notes (this is what the
    draft's body is generated from — see
    [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Promote
@@ -121,6 +127,12 @@ and produces no Android artifact.
 6. **Publish** the draft manually when satisfied.
 
 ## CHANGELOG-driven release notes
+
+> **Writing the notes:** what goes *into* the `## [x.y.z]` CHANGELOG section is
+> shaped by our release-notes guides — [First Beta](release-notes-first-beta.md)
+> (introduction-style, for `v0.1.0-beta.1`) and
+> [Recurring &amp; Stable](release-notes-recurring.md) (changelog-style, from the
+> second tag on).
 
 The draft release body is produced by `tools/release/gen_release_notes.py`
 (plain `python3`, no deps) from `app/CHANGELOG.md`:
