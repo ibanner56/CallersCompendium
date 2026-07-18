@@ -54,9 +54,11 @@ const Map<String, int> _colourSeeds = {
 final List<String> _prefixOrder = _colourSeeds.keys.toList()
   ..sort((a, b) => b.length.compareTo(a.length));
 
-/// Splits [title] into lowercase alphabetic words, discarding digits,
-/// punctuation, and possessive markers ("Sharon's" → "sharon", "s" dropped as
-/// it is not a colour).
+/// Splits [title] into lowercase words, keeping only runs of ASCII letters
+/// `a`–`z`. Digits, punctuation, whitespace, hyphens, and possessive markers
+/// all act as separators ("Blue-Haired" → "blue", "haired"; "Sharon's" →
+/// "sharon", "s"). Non-ASCII letters (e.g. accented characters) split words
+/// too — acceptable here because the colour vocabulary is ASCII.
 Iterable<String> _words(String title) =>
     title.toLowerCase().split(RegExp(r'[^a-z]+')).where((w) => w.isNotEmpty);
 

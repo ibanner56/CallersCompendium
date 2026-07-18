@@ -22,37 +22,11 @@ class AppearanceSection extends StatefulWidget {
 }
 
 class _AppearanceSectionState extends State<AppearanceSection> {
-  /// The colour-tint easter egg toggle (#307). `null` until the persisted value
-  /// resolves; off (`false`) is the product default while loading and if unset.
-  bool? _colourDanceTheme;
-  bool _colourDanceThemeRequested = false;
-  bool _colourDanceThemeUserSet = false;
-
-  /// Lazily loads the persisted easter-egg preference the first time the
-  /// section builds, mirroring the async-load-race guard the other appearance
-  /// toggles use: a late read must not clobber a value the user set first.
-  void _ensureColourDanceThemeLoaded(BuildContext context) {
-    if (_colourDanceThemeRequested) return;
-    _colourDanceThemeRequested = true;
-    final repos = RepositoriesScope.of(context);
-    repos.settings
-        .get(kColourDanceThemeKey)
-        .then((value) {
-          if (!mounted || _colourDanceThemeUserSet) return;
-          setState(() => _colourDanceTheme = value is bool ? value : false);
-        })
-        .catchError((_) {
-          if (!mounted || _colourDanceThemeUserSet) return;
-          setState(() => _colourDanceTheme = false);
-        });
-  }
-
   Future<void> _onColourDanceThemeChanged(bool value) async {
-    setState(() {
-      _colourDanceThemeUserSet = true;
-      _colourDanceTheme = value;
-    });
-    // Update the live scope instantly so open dance views re-tint, then persist.
+    // Drive the live scope (loaded from settings at startup and kept current on
+    // restore) so the switch reflects the real state and open dance views
+    // re-tint instantly; then persist. Reading the scope in [build] means this
+    // rebuilds whenever the setting changes elsewhere.
     ColourDanceThemeScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kColourDanceThemeKey, value);
@@ -71,7 +45,6 @@ class _AppearanceSectionState extends State<AppearanceSection> {
 
   @override
   Widget build(BuildContext context) {
-    _ensureColourDanceThemeLoaded(context);
     final themeSelected = AppThemeScope.of(context);
     final customThemes = CustomThemesScope.of(context);
     final platformDark =
@@ -86,7 +59,7 @@ class _AppearanceSectionState extends State<AppearanceSection> {
       onThemeSelected: _onThemeChanged,
       customThemes: customThemes,
       seedScheme: seedScheme,
-      colourDanceTheme: _colourDanceTheme ?? false,
+      colourDanceTheme: ColourDanceThemeScope.of(context),
       onColourDanceThemeChanged: _onColourDanceThemeChanged,
     );
   }

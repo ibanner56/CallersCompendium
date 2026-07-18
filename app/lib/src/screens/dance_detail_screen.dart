@@ -534,68 +534,79 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth < DanceDetailScreen.compactActionsBreakpoint;
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Dance'),
-            actions: [
-              if (!_isPreview)
-                FutureBuilder<DanceDetailData?>(
+    // Wrap the whole screen (AppBar + body + FAB) so the colour tint covers the
+    // dance's entire view, consistent with the Perform screens. The title comes
+    // from the same cached [_future]; until it resolves the tint is a no-op.
+    return FutureBuilder<DanceDetailData?>(
+      future: _future,
+      builder: (context, titleSnapshot) {
+        return ColourDanceTheme(
+          title: titleSnapshot.data?.dance.title,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact =
+                  constraints.maxWidth <
+                  DanceDetailScreen.compactActionsBreakpoint;
+              return Scaffold(
+                appBar: AppBar(
+                  title: const Text('Dance'),
+                  actions: [
+                    if (!_isPreview)
+                      FutureBuilder<DanceDetailData?>(
+                        future: _future,
+                        builder: (context, snapshot) {
+                          if (snapshot.data == null) {
+                            return const SizedBox.shrink();
+                          }
+                          final detail = snapshot.data!;
+                          return compact
+                              ? _compactActions(context, detail)
+                              : _fullActions(context, detail);
+                        },
+                      ),
+                  ],
+                ),
+                body: FutureBuilder<DanceDetailData?>(
+                  future: _future,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const SkeletonDetailView();
+                    }
+                    final detail = snapshot.data;
+                    if (detail == null) {
+                      return const Center(child: Text('Dance not found.'));
+                    }
+                    return _buildBody(detail);
+                  },
+                ),
+                // Edit mirrors the program preview's builder affordance: a bottom-right
+                // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
+                // so opening the editor is consistent across the dance and program views.
+                // In preview mode the same slot becomes an Import button.
+                floatingActionButton: FutureBuilder<DanceDetailData?>(
                   future: _future,
                   builder: (context, snapshot) {
                     if (snapshot.data == null) return const SizedBox.shrink();
-                    final detail = snapshot.data!;
-                    return compact
-                        ? _compactActions(context, detail)
-                        : _fullActions(context, detail);
+                    if (_isPreview) {
+                      return FloatingActionButton.extended(
+                        key: const ValueKey('import-dance'),
+                        heroTag: 'import-dance',
+                        onPressed: widget.onImport == null
+                            ? null
+                            : () => widget.onImport!(),
+                        icon: const Icon(Icons.library_add_outlined),
+                        label: const Text('Import'),
+                      );
+                    }
+                    return FloatingActionButton.extended(
+                      key: const ValueKey('edit-dance'),
+                      heroTag: 'edit-dance',
+                      onPressed: _openEditor,
+                      icon: const Icon(Icons.edit_note),
+                      label: const Text('Edit'),
+                    );
                   },
                 ),
-            ],
-          ),
-          body: FutureBuilder<DanceDetailData?>(
-            future: _future,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const SkeletonDetailView();
-              }
-              final detail = snapshot.data;
-              if (detail == null) {
-                return const Center(child: Text('Dance not found.'));
-              }
-              return ColourDanceTheme(
-                title: detail.dance.title,
-                child: _buildBody(detail),
-              );
-            },
-          ),
-          // Edit mirrors the program preview's builder affordance: a bottom-right
-          // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
-          // so opening the editor is consistent across the dance and program views.
-          // In preview mode the same slot becomes an Import button.
-          floatingActionButton: FutureBuilder<DanceDetailData?>(
-            future: _future,
-            builder: (context, snapshot) {
-              if (snapshot.data == null) return const SizedBox.shrink();
-              if (_isPreview) {
-                return FloatingActionButton.extended(
-                  key: const ValueKey('import-dance'),
-                  heroTag: 'import-dance',
-                  onPressed: widget.onImport == null
-                      ? null
-                      : () => widget.onImport!(),
-                  icon: const Icon(Icons.library_add_outlined),
-                  label: const Text('Import'),
-                );
-              }
-              return FloatingActionButton.extended(
-                key: const ValueKey('edit-dance'),
-                heroTag: 'edit-dance',
-                onPressed: _openEditor,
-                icon: const Icon(Icons.edit_note),
-                label: const Text('Edit'),
               );
             },
           ),
