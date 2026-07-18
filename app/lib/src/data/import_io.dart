@@ -222,15 +222,20 @@ bool _isBlockedIpv4(List<int> b) {
 
 /// Validates a fetch [uri] against the SSRF guard and returns a fetch-safe copy.
 ///
-/// Rejects a non-http(s) scheme and any [isBlockedImportHost] host with a
+/// Requires an `https` scheme and rejects any [isBlockedImportHost] host with a
 /// generic [UrlFetchException] (the message never echoes the URL, so pasted
 /// credentials or internal hostnames can't leak into the UI). On success the
 /// returned URI has any embedded `userInfo` (credentials) stripped.
+///
+/// Requiring `https` (rather than allowing cleartext `http`) enforces encrypted
+/// transport at the import trust boundary: the supported community sources are
+/// all https, so this breaks nothing real while blocking a MITM on a cleartext
+/// import (OWASP A02 cryptographic failures / A08 data-integrity). Because
+/// [_sendGuarded] re-runs this guard on every redirect hop, it also refuses an
+/// `https` → `http` downgrade in a `30x` `Location`.
 Uri _guardFetchUri(Uri uri) {
-  if (!uri.isScheme('http') && !uri.isScheme('https')) {
-    throw const UrlFetchException(
-      "That doesn't look like a valid http(s) URL.",
-    );
+  if (!uri.isScheme('https')) {
+    throw const UrlFetchException('Imports must use a secure https:// URL.');
   }
   if (isBlockedImportHost(uri.host)) {
     throw const UrlFetchException(
@@ -855,26 +860,51 @@ typedef ContraDbSearchFetcher = Future<String> Function(String query);
 Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
   // Not subject to the SSRF host guard / _sendGuarded: this POSTs to the fixed
   // constant [contraDbSearchUrl] (a hard-coded public host), not a
-  // user-controlled URL, so there is no untrusted destination to validate.
+  // user-controlled URL, so there is no untrusted destination to validate. The
+  // response body is still read under the shared [importMaxResponseBytes] cap,
+  // so a compromised / MITM'd / misbehaving ContraDB response cannot exhaust
+  // memory (OWASP - uncontrolled resource consumption).
   final uri = Uri.parse(contraDbSearchUrl);
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   final http.Response response;
   try {
-    response = await effectiveClient
-        .post(
-          uri,
-          headers: const {'Content-Type': 'application/json'},
-          body: buildContraDbSearchBody(query),
-        )
+    final request = http.Request('POST', uri)
+      ..headers['Content-Type'] = 'application/json'
+      ..body = buildContraDbSearchBody(query);
+    final streamed = await effectiveClient
+        .send(request)
         .timeout(importFetchTimeout);
+    // Buffer with a running byte total checked before each add, so a single
+    // oversized chunk (or a lying/absent Content-Length) can't push the
+    // allocation past the cap.
+    final builder = BytesBuilder(copy: false);
+    await for (final chunk in streamed.stream) {
+      if (builder.length + chunk.length > importMaxResponseBytes) {
+        throw const UrlFetchException('That response was too large to import.');
+      }
+      builder.add(chunk);
+    }
+    response = http.Response.bytes(
+      builder.takeBytes(),
+      streamed.statusCode,
+      headers: streamed.headers,
+      request: streamed.request,
+      reasonPhrase: streamed.reasonPhrase,
+    );
+  } on UrlFetchException {
+    rethrow;
   } on TimeoutException {
     throw UrlFetchException(
       'The search timed out after ${importFetchTimeout.inSeconds}s. Check your '
       'connection, then try again.',
     );
-  } on Object catch (e) {
-    throw UrlFetchException("Couldn't reach ContraDB: $e");
+  } on Object {
+    // Never interpolate the error here: keep ContraDB's failure message generic
+    // and free of internal detail (matching the other guarded fetchers).
+    throw const UrlFetchException(
+      "Couldn't reach ContraDB. Check your connection, then try again.",
+    );
   } finally {
     if (ownClient) effectiveClient.close();
   }

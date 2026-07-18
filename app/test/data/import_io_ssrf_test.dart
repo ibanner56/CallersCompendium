@@ -152,6 +152,58 @@ void main() {
     });
   });
 
+  group('fetchImportUrl https-only enforcement', () {
+    test(
+      'rejects a cleartext http:// URL without calling the client',
+      () async {
+        var called = false;
+        final client = MockClient((_) async {
+          called = true;
+          return http.Response('x', 200);
+        });
+        await expectLater(
+          fetchImportUrl('http://example.com/dance.json', client: client),
+          throwsA(
+            isA<UrlFetchException>().having(
+              (e) => e.message,
+              'message',
+              contains('https'),
+            ),
+          ),
+        );
+        expect(called, isFalse);
+      },
+    );
+
+    test('allows an https:// URL and returns its body', () async {
+      final client = MockClient((_) async => http.Response('DANCE JSON', 200));
+      final body = await fetchImportUrl(
+        'https://example.com/dance.json',
+        client: client,
+      );
+      expect(body, 'DANCE JSON');
+    });
+
+    test('refuses an https -> http downgrade in a redirect Location', () async {
+      final requested = <String>[];
+      final client = MockClient((req) async {
+        requested.add(req.url.toString());
+        return http.Response(
+          '',
+          302,
+          headers: {'location': 'http://example.org/final'},
+        );
+      });
+      await expectLater(
+        fetchImportUrl('https://example.com/start', client: client),
+        throwsA(isA<UrlFetchException>()),
+      );
+      // Only the https origin hop was requested; the cleartext downgrade target
+      // (a public host, blocked purely by the https requirement) never was.
+      expect(requested, ['https://example.com/start']);
+    });
+  });
+
   group('fetchCallersBoxSearch SSRF guard', () {
     test('blocks a private-network host without calling the client', () async {
       var called = false;
@@ -178,6 +230,43 @@ void main() {
       expect(uri.host, 'www.ibiblio.org');
       expect(uri.queryParameters['id'], '5');
       expect(uri.queryParameters['format'], 'JSON');
+    });
+  });
+
+  group('fetchContraDbSearch response cap', () {
+    test('returns the response body on a normal search', () async {
+      final client = MockClient((req) async {
+        expect(req.method, 'POST');
+        expect(req.url.toString(), contraDbSearchUrl);
+        return http.Response('[{"id":1}]', 200);
+      });
+      final body = await fetchContraDbSearch('petronella', client: client);
+      expect(body, '[{"id":1}]');
+    });
+
+    test('aborts an over-limit response body', () async {
+      final big = Uint8List(importMaxResponseBytes + 1);
+      final client = MockClient((_) async => http.Response.bytes(big, 200));
+      await expectLater(
+        fetchContraDbSearch('anything', client: client),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.message,
+            'message',
+            contains('too large'),
+          ),
+        ),
+      );
+    });
+
+    test('does not leak the underlying error in the failure text', () async {
+      final client = MockClient((_) async => throw Exception('boom-secret'));
+      try {
+        await fetchContraDbSearch('anything', client: client);
+        fail('expected a UrlFetchException');
+      } on UrlFetchException catch (e) {
+        expect(e.message, isNot(contains('boom-secret')));
+      }
     });
   });
 }
