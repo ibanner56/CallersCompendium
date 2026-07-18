@@ -53,6 +53,9 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  build appears in **App Store Connect → TestFlight** and reaches internal testers.
  (Without the secrets the iOS leg is a clean skip; the API key needs the **App
  Manager** role or the upload fails.)
+- [ ] iOS **export compliance** needs no per-build action — `Info.plist` declares
+ `ITSAppUsesNonExemptEncryption = false` (app uses only exempt encryption), so
+ App Store Connect skips the "Missing Compliance" prompt automatically.
 - [ ] Each platform artifact launches and opens the collection on a clean machine
  — for **iOS**, install the TestFlight build on an **iPhone and an iPad**.
 

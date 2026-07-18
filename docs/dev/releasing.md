@@ -635,6 +635,15 @@ Store.
 > `workflow_dispatch` for build/sign validation). A PR's own CI does **not** run
 > the release workflow, so it never uploads to TestFlight.
 
+### Export compliance (handled via `Info.plist`, no per-build action)
+
+`app/ios/Runner/Info.plist` sets `ITSAppUsesNonExemptEncryption` = `false`.
+Caller's Compendium is local-first and uses only standard/exempt encryption
+(HTTPS for the update check), so it qualifies for the export-compliance
+exemption. Declaring this in the bundle makes **every** TestFlight/App Store
+upload skip the per-build "Missing Compliance" question in App Store Connect —
+neither CI nor testers need to answer it. No per-build action is required.
+
 ### Maintainer: obtain the App Store Connect API key (one-time, out-of-band)
 
 Requires an **Apple Developer Program** membership ($99/yr) and the App Store
