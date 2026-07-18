@@ -7,20 +7,22 @@ import 'package:drift/native.dart';
 CompendiumDatabase openTestDatabase() =>
     CompendiumDatabase(NativeDatabase.memory());
 
-/// Counts the SQL statements executed against the database, keyed by a caller-
-/// supplied match on the statement text. Used to assert query-count invariants
-/// (e.g. that a batched loader issues O(1) — not O(n) — child queries).
+/// Counts the SELECT statements executed against the database, keyed by a
+/// caller-supplied match on the statement text. Only SELECTs are observed —
+/// [runSelect] is the sole intercepted method — which is all the batched-loader
+/// query-count invariants need (e.g. asserting a loader issues O(1), not O(n),
+/// child SELECTs). Override [matches] to narrow which SELECTs are counted.
 class QueryCounter extends QueryInterceptor {
   int _count = 0;
 
-  /// The number of matching statements seen so far.
+  /// The number of matching SELECT statements seen so far.
   int get count => _count;
 
   /// Resets the counter to zero.
   void reset() => _count = 0;
 
-  /// Override to count only statements of interest. Defaults to counting every
-  /// statement.
+  /// Override to count only SELECT statements of interest. Defaults to counting
+  /// every SELECT.
   bool matches(String statement) => true;
 
   void _maybeCount(String statement) {
