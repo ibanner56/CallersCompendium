@@ -1,7 +1,9 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../data/callersbox_online.dart';
 import '../data/plaintext_program_import.dart';
+import '../data/program_import_online_resolver.dart';
 import '../data/repositories_scope.dart';
 
 /// Builds a [Program] from a pasted, newline-separated list of dance titles
@@ -13,14 +15,20 @@ import '../data/repositories_scope.dart';
 /// free-text note slot — the same note path announcements/breaks use — so
 /// nothing is dropped and ordering is preserved.
 ///
-/// The Caller's Box fallback (#313) and ContraDB import (#314) are intentionally
-/// out of scope here.
+/// The Caller's Box fallback (#313) resolves unmatched titles on demand via the
+/// "Resolve unmatched online" action; ContraDB import (#314) remains out of
+/// scope here.
 ///
 /// Pushed as a route; pops with the created program's id on success (null if the
 /// user backs out), mirroring [ProgramEditorScreen]. Commit shows an undo
 /// SnackBar that hard-deletes the just-created program.
 class PlaintextProgramImportScreen extends StatefulWidget {
-  const PlaintextProgramImportScreen({super.key});
+  const PlaintextProgramImportScreen({super.key, this.callersBoxOnline});
+
+  /// Injectable Caller's Box search + import service seam. Tests supply a
+  /// seam-backed instance so resolution never touches the network; defaults to a
+  /// network-backed [CallersBoxOnline].
+  final CallersBoxOnline? callersBoxOnline;
 
   @override
   State<PlaintextProgramImportScreen> createState() =>
@@ -30,6 +38,7 @@ class PlaintextProgramImportScreen extends StatefulWidget {
 class _PlaintextProgramImportScreenState
     extends State<PlaintextProgramImportScreen> {
   late final CompendiumRepositories _repos;
+  late final CallersBoxOnline _online;
   bool _started = false;
 
   final _titleController = TextEditingController();
@@ -40,6 +49,15 @@ class _PlaintextProgramImportScreenState
   Object? _loadError;
 
   bool _committing = false;
+
+  /// Set once the "Resolve unmatched online" action has run for the current
+  /// paste text: the resolved lines (some unmatched now linked via Caller's Box)
+  /// that override the freshly-parsed lines for preview/commit. Cleared whenever
+  /// the paste text changes, so edits re-parse from scratch.
+  List<ParsedProgramLine>? _resolvedOverride;
+
+  /// Whether an online resolution pass is currently running.
+  bool _resolving = false;
 
   /// Memoized parse of the current paste text, so a single build (which reads
   /// [_parsedLines] from both [_canCommit] and the preview) reparses at most
@@ -55,8 +73,9 @@ class _PlaintextProgramImportScreenState
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
-      _titleController.addListener(_onInputChanged);
-      _pasteController.addListener(_onInputChanged);
+      _online = widget.callersBoxOnline ?? CallersBoxOnline();
+      _titleController.addListener(_onTitleChanged);
+      _pasteController.addListener(_onPasteChanged);
       _load();
     }
   }
@@ -74,7 +93,11 @@ class _PlaintextProgramImportScreenState
     }
   }
 
-  void _onInputChanged() => setState(() {});
+  void _onTitleChanged() => setState(() {});
+
+  /// Editing the pasted titles invalidates any prior online resolution: the
+  /// lines must be re-parsed and re-resolved from the new text.
+  void _onPasteChanged() => setState(() => _resolvedOverride = null);
 
   @override
   void dispose() {
@@ -102,16 +125,91 @@ class _PlaintextProgramImportScreenState
     return parsed;
   }
 
+  /// The lines to preview and commit: the online-resolved override when present
+  /// (produced by [_resolveOnline]), otherwise the freshly-parsed lines.
+  List<ParsedProgramLine> get _effectiveLines =>
+      _resolvedOverride ?? _parsedLines;
+
+  /// Whether any line still lacks a resolution the online step could fill.
+  bool get _hasUnresolved => _effectiveLines.any(
+    (l) => l.resolution == PlaintextLineResolution.unmatched,
+  );
+
   bool get _canCommit =>
       !_committing &&
+      !_resolving &&
       _collection != null &&
       _titleController.text.trim().isNotEmpty &&
-      _parsedLines.isNotEmpty;
+      _effectiveLines.isNotEmpty;
+
+  Future<void> _resolveOnline() async {
+    if (_resolving || _committing) return;
+    final before = _effectiveLines;
+    if (!before.any((l) => l.resolution == PlaintextLineResolution.unmatched)) {
+      return;
+    }
+    setState(() => _resolving = true);
+    List<ParsedProgramLine> resolved;
+    try {
+      resolved = await resolveUnmatchedOnline(
+        before,
+        service: _online,
+        repos: _repos,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _resolving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('plaintext-import-resolve-error-snackbar'),
+          content: Text('Could not search The Caller\'s Box: $error'),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    final linked = resolved.where((l) => l.importedOnline).length;
+    final remaining = resolved
+        .where((l) => l.resolution == PlaintextLineResolution.unmatched)
+        .length;
+    // Newly imported dances now live in the local collection. Refresh the cached
+    // listing so a later paste edit (which clears the override and re-parses
+    // against `_collection`) recognizes them as local matches instead of
+    // re-searching/re-importing them online.
+    if (linked > 0) {
+      try {
+        final collection = await _repos.dances.listIdsAndTitles();
+        if (!mounted) return;
+        _collection = collection;
+      } on Exception {
+        // A refresh failure is non-fatal: the resolved override already links
+        // the imported dances for this session.
+      }
+    }
+    setState(() {
+      _resolvedOverride = resolved;
+      _resolving = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('plaintext-import-resolved-snackbar'),
+        content: Text(
+          linked == 0
+              ? 'No confident Caller\'s Box matches found — '
+                    '$remaining ${remaining == 1 ? 'title' : 'titles'} kept as '
+                    '${remaining == 1 ? 'a note' : 'notes'}.'
+              : 'Linked $linked ${linked == 1 ? 'title' : 'titles'} from The '
+                    'Caller\'s Box'
+                    '${remaining == 0 ? '.' : '; $remaining still ${remaining == 1 ? 'a note' : 'notes'}.'}',
+        ),
+      ),
+    );
+  }
 
   Future<void> _commit() async {
     if (!_canCommit) return;
     setState(() => _committing = true);
-    final lines = _parsedLines;
+    final lines = _effectiveLines;
     final now = DateTime.now().toUtc();
     final id = uuidV4();
     final program = Program(
@@ -244,7 +342,7 @@ class _PlaintextProgramImportScreenState
     if (_collection == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    final lines = _parsedLines;
+    final lines = _effectiveLines;
     if (lines.isEmpty) {
       return Center(
         key: const ValueKey('plaintext-import-empty-preview'),
@@ -262,9 +360,30 @@ class _PlaintextProgramImportScreenState
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            '${lines.length} ${lines.length == 1 ? 'slot' : 'slots'}',
-            style: Theme.of(context).textTheme.bodySmall,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${lines.length} ${lines.length == 1 ? 'slot' : 'slots'}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              if (_hasUnresolved)
+                TextButton.icon(
+                  key: const ValueKey('plaintext-import-resolve-online'),
+                  onPressed: _resolving ? null : _resolveOnline,
+                  icon: _resolving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.travel_explore, size: 18),
+                  label: Text(
+                    _resolving ? 'Searching…' : 'Resolve unmatched online',
+                  ),
+                ),
+            ],
           ),
         ),
         Expanded(
@@ -286,11 +405,14 @@ class _PlaintextProgramImportScreenState
       Color color,
       String label,
     ) = switch (line.resolution) {
-      PlaintextLineResolution.matched => (
-        Icons.link,
-        scheme.primary,
-        'Linked to dance',
-      ),
+      PlaintextLineResolution.matched =>
+        line.importedOnline
+            ? (
+                Icons.cloud_download_outlined,
+                scheme.primary,
+                'Imported from Caller\'s Box',
+              )
+            : (Icons.link, scheme.primary, 'Linked to dance'),
       PlaintextLineResolution.ambiguous => (
         Icons.help_outline,
         scheme.tertiary,
