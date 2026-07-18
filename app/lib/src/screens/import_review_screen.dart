@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
+import 'dance_editor_screen.dart';
 
 /// The adapter-agnostic in-app import experience (ROADMAP 6.3): pick or paste a
 /// source payload, [ImportPipeline.plan] it non-destructively, review every
@@ -121,6 +122,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   ImportBatchResult? _batch;
   List<_RowChoice> _choices = const [];
+
+  /// Indices of review rows already committed on their own via the per-row
+  /// **Edit** action. These are excluded from the batch [_commit] (so they are
+  /// never imported twice) and render as "Imported" instead of offering actions.
+  final Set<int> _committed = <int>{};
 
   /// Existing dance id → title, for showing candidate/reimport target names.
   Map<String, String> _titlesById = const {};
@@ -245,6 +251,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _batch = batch;
         _titlesById = titles;
         _choices = [for (final plan in batch.records) _defaultChoice(plan)];
+        _committed.clear();
         _phase = _Phase.review;
       });
     } catch (e) {
@@ -278,6 +285,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final resolutions = <int, DedupeResolution>{};
     var skipped = 0;
     for (var i = 0; i < batch.records.length; i++) {
+      // Rows already committed via the per-row Edit action are excluded so the
+      // batch import never writes them twice.
+      if (_committed.contains(i)) continue;
       final draft = batch.records[i].draft;
       final choice = _choices[i];
       final j = acted.length;
@@ -316,6 +326,106 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       }
     }
     return (ImportBatchResult(records: acted), resolutions, skipped);
+  }
+
+  /// Commits just row [i] on its own (honouring its chosen resolution) and then
+  /// opens the freshly committed dance in the [DanceEditorScreen] — the
+  /// one-click "import + edit" affordance (issue #266). The row is marked
+  /// committed so the batch [_commit] never writes it again, and the live
+  /// Collection is refreshed both after the commit and after the editor returns.
+  Future<void> _editRow(int i) async {
+    final batch = _batch!;
+    final draft = batch.records[i].draft;
+    final choice = _choices[i];
+
+    final acted = <ImportRecordPlan>[];
+    final resolutions = <int, DedupeResolution>{};
+    switch (choice.kind) {
+      case _ActionKind.create:
+        acted.add(
+          ImportRecordPlan(draft: draft, verdict: DedupeVerdict.isNew()),
+        );
+      case _ActionKind.reimport:
+        acted.add(
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.reimport(choice.linkTargetId!),
+          ),
+        );
+      case _ActionKind.link:
+        acted.add(
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.ambiguous(
+              batch.records[i].verdict.candidates,
+            ),
+          ),
+        );
+        resolutions[0] = DedupeResolution.link(choice.linkTargetId!);
+      case _ActionKind.duplicate:
+        acted.add(
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.ambiguous(const []),
+          ),
+        );
+        resolutions[0] = DedupeResolution.duplicate();
+      case _ActionKind.skip:
+        // Edit is disabled for skipped rows; nothing to commit.
+        return;
+    }
+
+    setState(() => _phase = _Phase.committing);
+    // Edit is a single-dance affordance, so it always uses the adapter-agnostic
+    // dance commit path — even for the Caller's Companion `.USR` byte source,
+    // whose programs remain the batch Import button's responsibility.
+    final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
+    try {
+      final session = await pipeline.commit(
+        ImportBatchResult(records: acted),
+        now: DateTime.now().toUtc(),
+        newId: uuidV4,
+        resolutions: resolutions,
+      );
+      if (!mounted) return;
+      final committed = session.records
+          .where((r) => r.succeeded && r.action != CommitAction.skip)
+          .toList();
+      final danceId = committed.isEmpty ? null : committed.first.danceId;
+      if (danceId == null) {
+        setState(() => _phase = _Phase.review);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            key: ValueKey('import-edit-error'),
+            content: Text("Couldn't import that dance to edit."),
+          ),
+        );
+        return;
+      }
+      setState(() {
+        _phase = _Phase.review;
+        _committed.add(i);
+      });
+      // Refresh the live Collection so the committed dance appears immediately.
+      CollectionRefreshScope.bump(context);
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => DanceEditorScreen(danceId: danceId),
+        ),
+      );
+      if (!mounted) return;
+      // Edits made in the editor also need to surface in the live Collection.
+      CollectionRefreshScope.bump(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _phase = _Phase.review);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-edit-error'),
+          content: Text("Couldn't import: $e"),
+        ),
+      );
+    }
   }
 
   Future<void> _commit() async {
@@ -796,7 +906,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       );
     }
 
-    final importable = _choices.where((c) => c.kind != _ActionKind.skip).length;
+    final importable = [
+      for (var i = 0; i < _choices.length; i++)
+        if (!_committed.contains(i) && _choices[i].kind != _ActionKind.skip) i,
+    ].length;
     return Column(
       children: [
         Expanded(
@@ -899,7 +1012,34 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 ),
               ),
             const SizedBox(height: 8),
-            _buildActions(context, i, plan.verdict),
+            if (_committed.contains(i))
+              Row(
+                key: ValueKey('import-row-$i-imported'),
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  const Expanded(child: Text('Imported')),
+                ],
+              )
+            else ...[
+              _buildActions(context, i, plan.verdict),
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  key: ValueKey('import-row-$i-edit'),
+                  onPressed: _choices[i].kind == _ActionKind.skip
+                      ? null
+                      : () => _editRow(i),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Edit'),
+                ),
+              ),
+            ],
           ],
         ),
       ),
