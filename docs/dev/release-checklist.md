@@ -4,13 +4,18 @@ Use one copy of this per beta tag (e.g. v0.1.0-beta.1). Check every box or
 explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 
 ## 0. Pre-flight
-- [ ] main is green: latest commit shows CI 7/7 (Format/analyze/test, Schema
- migration gate, Build android/ios/linux/macos/windows).
+- [ ] main is green: your target commit's CI passed — Format/analyze/test and the
+ 5-platform Build matrix (android/ios/linux/macos/windows). (The **Schema
+ migration gate** is `pull_request`-only — `ci.yml` runs it with
+ `if: github.event_name == 'pull_request'` — so it shows on the merged PR, not
+ on the main commit itself.)
 - [ ] No open PR is intended for this beta but still unmerged (or consciously cut).
 - [ ] Working tree clean; you are on `main` at the exact commit you intend to tag.
 
 ## 1. Version & metadata (Gate)
-- [ ] `pubspec.yaml` version bumped to the target (e.g. `0.1.0-beta.1` / build no.).
+- [ ] `app/pubspec.yaml` version bumped to the target (e.g. `0.1.0-beta.1` / build
+ no.). (The repo-root `pubspec.yaml` is the workspace file and has **no**
+ `version:`; the releasable version lives in `app/pubspec.yaml`.)
 - [ ] Version string is consistent everywhere it appears (about screen, update
  manifest, any hardcoded constant).
 - [ ] `kCompendiumSchemaVersion` matches the schema actually shipped; if it moved
@@ -26,8 +31,12 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Fresh-install path works (DB created at current schema, no migration).
 
 ## 3. Build & signing (Gate)
-- [ ] Android release build is SIGNED (verify the release workflow signing steps
- succeeded on the tagged commit, not a prior run).
+- [ ] Android release build is SIGNED — on the **actual tag push** (which builds the
+ signed APK because the `ANDROID_*` secrets are configured), confirm the signing
+ steps (Reconstruct signing config → Build signed APK → Package signed APK)
+ succeeded on **that tag's** release run, not a prior run and not a build-only
+ `workflow_dispatch`. (Without the secrets the Android leg is a no-op — it emits
+ `::notice::…skipping Android release artifact` and stages no APK.)
 - [ ] Desktop artifacts build for the platforms you're shipping. Note explicitly
  which desktop targets are UNSIGNED (currently expected) so testers aren't
  surprised by OS warnings.
