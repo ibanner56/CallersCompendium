@@ -259,8 +259,14 @@ void main() {
     test('issue #290 — long-wave lines are not claimed by the short wave', () {
       // "form a long wave" / "form long waves" must not resolve to
       // form_a_short_wave (tokens are never consecutive with its phrases).
-      expect(parseFigureLine('Form a long wave')!.move, isNot('form_a_short_wave'));
-      expect(parseFigureLine('Form long waves')!.move, isNot('form_a_short_wave'));
+      expect(
+        parseFigureLine('Form a long wave')!.move,
+        isNot('form_a_short_wave'),
+      );
+      expect(
+        parseFigureLine('Form long waves')!.move,
+        isNot('form_a_short_wave'),
+      );
     });
   });
 

@@ -15,7 +15,14 @@ void main() {
 
   // The sourced param set both new moves inherit from form_an_ocean_wave,
   // minus `passThru` (intrinsic to pass_the_ocean, absent from the short wave).
-  const inheritedParams = ['dir', 'balance', 'center', 'centerHand', 'sides', 'beats'];
+  const inheritedParams = [
+    'dir',
+    'balance',
+    'center',
+    'centerHand',
+    'sides',
+    'beats',
+  ];
 
   group('registration & defaults', () {
     for (final id in splitMoves) {
@@ -55,13 +62,16 @@ void main() {
         }
       });
 
-      test('$id accepts any beats (param-dependent, unencoded like legacy)', () {
-        expect(tax.resolve(id)!.goodBeats, anyOf(isNull, isEmpty));
-        expect(
-          tax.validateFigure(Figure(move: id, params: {'beats': 8})),
-          isEmpty,
-        );
-      });
+      test(
+        '$id accepts any beats (param-dependent, unencoded like legacy)',
+        () {
+          expect(tax.resolve(id)!.goodBeats, anyOf(isNull, isEmpty));
+          expect(
+            tax.validateFigure(Figure(move: id, params: {'beats': 8})),
+            isEmpty,
+          );
+        },
+      );
     }
   });
 
@@ -76,16 +86,21 @@ void main() {
       });
     });
 
-    test('both accept the balance flag without changing the canonical text', () {
-      for (final id in splitMoves) {
-        final expected = renderer.renderCanonical(Figure(move: id));
-        expect(
-          renderer.renderCanonical(Figure(move: id, params: {'balance': true})),
-          expected,
-          reason: 'balance is structured-only for $id',
-        );
-      }
-    });
+    test(
+      'both accept the balance flag without changing the canonical text',
+      () {
+        for (final id in splitMoves) {
+          final expected = renderer.renderCanonical(Figure(move: id));
+          expect(
+            renderer.renderCanonical(
+              Figure(move: id, params: {'balance': true}),
+            ),
+            expected,
+            reason: 'balance is structured-only for $id',
+          );
+        }
+      },
+    );
   });
 
   group('backward compatibility — legacy form_an_ocean_wave retained', () {

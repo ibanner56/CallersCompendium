@@ -958,7 +958,12 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },
       renderTemplate: '{move}',
-      searchKeywords: ['short wave', 'wavy line', 'wave of four', 'short waves'],
+      searchKeywords: [
+        'short wave',
+        'wavy line',
+        'wave of four',
+        'short waves',
+      ],
       // Beats mirror form_an_ocean_wave: param-dependent (balance), not encoded.
     ),
     const MoveDef(
