@@ -46,7 +46,16 @@ import 'taxonomy.dart';
 ///     an unused default-false flag changes no existing figure's derived output
 ///     (a bare `star_through` already rendered without balance) and is distinct
 ///     from schemaVersion — no DB migration is implied.
-const int contraTaxonomyVersion = 12;
+/// v13: splits the overloaded `form_an_ocean_wave` (issue #290) into a default
+///     short-wave `form_a_short_wave` (renders "form a wave") and a distinct
+///     `pass_the_ocean` (renders "pass the ocean"). Both inherit the legacy
+///     move's sourced params MINUS `passThru` (intrinsic to pass_the_ocean,
+///     absent from the short wave) and mirror its unencoded, param-dependent
+///     beats — no fabricated beat count. `form_an_ocean_wave` is RETAINED
+///     unchanged for stored-data fidelity (no alias, no rewrite), so existing
+///     figures render byte-identically. Purely additive: distinct from
+///     schemaVersion — no DB migration or derived rebuild is implied.
+const int contraTaxonomyVersion = 13;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -926,6 +935,57 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{move}',
       searchKeywords: ['ocean wave'],
       // Beats are param-dependent (passThru/balance); not encoded (cf. poussette).
+    ),
+    // v13: split of the overloaded `form_an_ocean_wave` (issue #290). That move
+    // conflated "form a short wave [and balance]" (the default short-wave case)
+    // with "pass the ocean" (the pass-through-to-a-wave figure). Both new moves
+    // inherit `form_an_ocean_wave`'s sourced param set MINUS `passThru`: the
+    // pass-through is intrinsic to `pass_the_ocean` and intrinsically absent
+    // from `form_a_short_wave`. Neither invents a beat count — they mirror the
+    // legacy move's flat, param-dependent (unencoded) beats exactly.
+    // `form_an_ocean_wave` is RETAINED unchanged above for stored-data fidelity.
+    const MoveDef(
+      id: 'form_a_short_wave',
+      displayName: 'form a wave',
+      params: {
+        // ContraDB set_direction_acrossish (across/rightDiagonal/leftDiagonal);
+        // all in our direction vocabulary.
+        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
+        'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+      },
+      renderTemplate: '{move}',
+      searchKeywords: [
+        'short wave',
+        'wavy line',
+        'wave of four',
+        'short waves',
+      ],
+      // Beats mirror form_an_ocean_wave: param-dependent (balance), not encoded.
+    ),
+    const MoveDef(
+      id: 'pass_the_ocean',
+      displayName: 'pass the ocean',
+      params: {
+        // Same sourced param set as form_an_ocean_wave minus `passThru`, which
+        // is intrinsic to this figure (dancers pass through to the wave).
+        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
+        'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
+      },
+      renderTemplate: '{move}',
+      searchKeywords: [
+        'ocean wave',
+        'pass to an ocean wave',
+        'pass through to an ocean wave',
+      ],
+      // Beats mirror form_an_ocean_wave: param-dependent (balance), not encoded.
     ),
     const MoveDef(
       id: customMoveId,
