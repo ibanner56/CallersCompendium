@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/callersbox_online.dart';
+import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/contradb_program_import.dart';
 import '../data/contradb_program_search.dart';
@@ -273,6 +274,9 @@ class _ContraDbProgramImportScreenState
     final navigator = Navigator.of(context);
     final linked = resolved.where((a) => a.isLinked).length;
     final notes = slots.length - linked;
+    // Any linked activity imported its ContraDB dance (and author) into the
+    // collection, so tell the live Collection view to reload (issue #340).
+    if (linked > 0) CollectionRefreshScope.bump(context);
     messenger.showSnackBar(
       SnackBar(
         key: const ValueKey('contradb-program-committed-snackbar'),

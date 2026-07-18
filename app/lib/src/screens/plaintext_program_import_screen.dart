@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/callersbox_online.dart';
+import '../data/collection_refresh_scope.dart';
 import '../data/plaintext_program_import.dart';
 import '../data/program_import_online_resolver.dart';
 import '../data/repositories_scope.dart';
@@ -169,6 +170,9 @@ class _PlaintextProgramImportScreenState
     }
     if (!mounted) return;
     final linked = resolved.where((l) => l.importedOnline).length;
+    // Any dances resolved from The Caller's Box are now in the collection
+    // (their authors too), so ask the live Collection view to reload (#340).
+    if (linked > 0) CollectionRefreshScope.bump(context);
     final remaining = resolved
         .where((l) => l.resolution == PlaintextLineResolution.unmatched)
         .length;

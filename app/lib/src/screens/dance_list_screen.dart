@@ -917,11 +917,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Future<void> _openNewDance() async {
-    final created = await Navigator.of(context).push<String>(
+    // The editor bumps CollectionRefreshScope on save, which re-boots this list
+    // (and re-derives the author filter), so no explicit reload is needed here
+    // — doing both would double-load (issue #340).
+    await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const DanceEditorScreen()),
     );
-    // Reload the collection so a newly saved dance shows up in results.
-    if (mounted && created != null) await _boot();
   }
 
   Future<void> _openCustomFields() async {

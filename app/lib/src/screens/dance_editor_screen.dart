@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/collection_refresh_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../utils/confirm_delete.dart';
@@ -202,7 +203,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       // Clear the autosave draft — work is now committed.
       await _controller.clearDraft();
       _controller.markSaved();
-      if (mounted) Navigator.of(context).pop(dance.id);
+      if (mounted) {
+        // A create (new author/tags) or edit changes the collection, so tell
+        // the live Collection view to reload + re-derive its author filter
+        // (issue #340). This is the single signal for every editor entry point
+        // (list FAB, detail-pane edit, edit-before-import).
+        CollectionRefreshScope.bump(context);
+        Navigator.of(context).pop(dance.id);
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
