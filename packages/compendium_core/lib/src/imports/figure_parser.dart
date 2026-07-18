@@ -528,6 +528,11 @@ final List<_Recognizer> _recognizers = [
   _star,
   _chain,
   _rightLeftThrough,
+  // Must precede _passThrough: "pass the ocean" has no "through" so it would
+  // fall through anyway, but grouping the two "pass …" recognizers keeps the
+  // more specific ocean figure ahead of the generic pass-through.
+  _passTheOcean,
+  _formAShortWave,
   _passThrough,
   _promenade,
   _shift,
@@ -829,6 +834,47 @@ _Match? _passThrough(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('pass_through', {'dir': ?dir});
+}
+
+// "pass the ocean" — the pass-through-to-an-ocean-wave figure (issue #290).
+// Distinct from `pass_through`: the pass-through is intrinsic and the figure
+// ends in a wave. A bare line states no balance/hands, so only the move id
+// (plus an optional direction) is emitted; the MoveDef defaults supply the
+// rest. "the" is filler, so "pass ocean" is accepted too. Deliberately does
+// NOT recognise the legacy "form an ocean wave" phrasing — that stays custom
+// here (the ContraDB adapter still maps it to the retained legacy move).
+_Match? _passTheOcean(List<String> w) {
+  if (!_consumePhrase(w, ['pass', 'the', 'ocean']) &&
+      !_consumePhrase(w, ['pass', 'ocean'])) {
+    return null;
+  }
+  String? dir;
+  if (_consumePhrase(w, ['across'])) {
+    dir = 'across';
+  }
+  _dropFiller(w);
+  return w.isEmpty ? _Match('pass_the_ocean', {'dir': ?dir}) : null;
+}
+
+// "form a wave" / "form short waves" / "form a short wave" — the default
+// short-wave case (issue #290). Conservative: only the move id (plus optional
+// direction) is emitted; balance/hands come from defaults. Does not match the
+// long-wave lines ("form a long wave", "form long waves") — their tokens are
+// never consecutive with these phrases — so it neither shadows nor is shadowed.
+_Match? _formAShortWave(List<String> w) {
+  if (!_consumePhrase(w, ['form', 'a', 'wave']) &&
+      !_consumePhrase(w, ['form', 'wave']) &&
+      !_consumePhrase(w, ['form', 'a', 'short', 'wave']) &&
+      !_consumePhrase(w, ['form', 'short', 'wave']) &&
+      !_consumePhrase(w, ['form', 'short', 'waves'])) {
+    return null;
+  }
+  String? dir;
+  if (_consumePhrase(w, ['across'])) {
+    dir = 'across';
+  }
+  _dropFiller(w);
+  return w.isEmpty ? _Match('form_a_short_wave', {'dir': ?dir}) : null;
 }
 
 _Match? _promenade(List<String> w) {

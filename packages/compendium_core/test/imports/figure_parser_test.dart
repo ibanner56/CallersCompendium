@@ -170,6 +170,20 @@ void main() {
         move: 'facing_star',
         params: {'who': 'everyone', 'turn': 'clockwise', 'places': 4},
       ),
+      // Issue #290 — "pass the ocean" (pass-through-to-a-wave) is distinct from
+      // the generic "pass through". A bare line states no balance/hands, so only
+      // the move id is emitted.
+      'Pass the ocean': (move: 'pass_the_ocean', params: {}),
+      'Pass ocean': (move: 'pass_the_ocean', params: {}),
+      'Pass the ocean across': (
+        move: 'pass_the_ocean',
+        params: {'dir': 'across'},
+      ),
+      // Issue #290 — the default short-wave case renders "form a wave" and
+      // accepts the common short-wave phrasings.
+      'Form a wave': (move: 'form_a_short_wave', params: {}),
+      'Form short waves': (move: 'form_a_short_wave', params: {}),
+      'Form a short wave': (move: 'form_a_short_wave', params: {}),
     };
 
     cases.forEach((line, expected) {
@@ -222,6 +236,31 @@ void main() {
       final up = parseFigureLine('Up the hall');
       expect(up!.move, 'up_the_hall');
       expect(up.params['ender'], 'none');
+    });
+
+    test('issue #290 — "pass the ocean" is not shadowed by "pass through"', () {
+      // "pass the ocean" contains no "through", so _passThrough cannot claim it.
+      final ocean = parseFigureLine('Pass the ocean');
+      expect(ocean!.isCustom, isFalse);
+      expect(ocean.move, 'pass_the_ocean');
+      // The generic pass-through recognizer is unaffected.
+      final through = parseFigureLine('Pass through');
+      expect(through!.move, 'pass_through');
+    });
+
+    test('issue #290 — legacy "form an ocean wave" phrasing stays custom', () {
+      // The parser deliberately does NOT recognise the shibboleth phrasing; the
+      // ContraDB adapter still maps it to the retained legacy move. It also must
+      // not be mis-claimed by the new short-wave recognizer.
+      final f = parseFigureLine('Form an ocean wave');
+      expect(f!.isCustom, isTrue);
+    });
+
+    test('issue #290 — long-wave lines are not claimed by the short wave', () {
+      // "form a long wave" / "form long waves" must not resolve to
+      // form_a_short_wave (tokens are never consecutive with its phrases).
+      expect(parseFigureLine('Form a long wave')!.move, isNot('form_a_short_wave'));
+      expect(parseFigureLine('Form long waves')!.move, isNot('form_a_short_wave'));
     });
   });
 

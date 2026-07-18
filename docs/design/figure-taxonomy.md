@@ -156,6 +156,19 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   `betweenHalfAndFull`). The dynamic `dancer%%N` meeting encodings remain out of
   scope. `length` is structured-only (not in the render template), so this is a
   validation/storage change only; canonical text is unaffected.
+- **v13 (ocean-wave split, issue #290):** split the overloaded
+  `form_an_ocean_wave` — which conflated the default short-wave case with
+  "pass the ocean" — into `form_a_short_wave` (renders "form a wave", parallels
+  `form_a_long_wave`) and `pass_the_ocean` (renders "pass the ocean"). Both
+  inherit the legacy move's sourced params **minus `passThru`** (intrinsic to
+  `pass_the_ocean`, absent from the short wave) and mirror its unencoded,
+  param-dependent beats — no fabricated beat count. `form_an_ocean_wave` is
+  **retained unchanged** (no alias, no data rewrite) so stored figures render
+  byte-identically; hiding it from the authoring picker is an app-layer
+  follow-up. Import adds conservative `pass_the_ocean` / `form_a_short_wave`
+  recognizers; the ContraDB adapter's "form an ocean wave" mapping is unchanged.
+  Purely additive: distinct from `schemaVersion` — no DB migration or derived
+  rebuild.
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
 landed). Exactly one new engine type was required across the whole build-out —
