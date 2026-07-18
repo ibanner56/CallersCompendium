@@ -11,6 +11,25 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Changed
+
+- **Android application identifier unified with Apple.** The Android app now uses
+  the application ID `org.callerscompendium.compendiumApp` (previously
+  `org.callerscompendium.compendium_app`), matching the Apple/iOS/macOS bundle
+  identifier. The Linux GTK application ID was updated to match as well. (The Dart
+  package name `compendium_app` is unchanged — this only affects the OS-level
+  application identifier.)
+
+### Known issues
+
+- **Android beta testers must reinstall.** Because Android treats a changed
+  application ID as a different app, testers who sideloaded **v0.1.0-beta.1**
+  cannot upgrade in place: the new build installs alongside the old one and local
+  app data does **not** carry over automatically. Before switching, **export a
+  backup first (Settings ▸ General ▸ Export a backup), then uninstall the old app,
+  install the new one, and restore from that backup.** In-place upgrade and
+  automatic data carry-over are not possible across this identifier change.
+
 ## [0.1.0] - 2026-07-17
 
 Flutter build: `0.1.0+1`.

@@ -359,10 +359,11 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
     WinSparkle-signed updates.
   - **Android keystore custody policy** — who holds the signing key and how it is
     stored/rotated (a lost key blocks all future updates).
-  - **Bundle-id mismatch to reconcile** — Android
-    `org.callerscompendium.compendium_app` vs Apple
-    `org.callerscompendium.compendiumApp`. These must be reconciled (or a
-    deliberate divergence documented) before store submission.
+  - **Bundle-id mismatch — RESOLVED.** Android/Linux previously used
+    `org.callerscompendium.compendium_app` while Apple used
+    `org.callerscompendium.compendiumApp`; all platforms now unify on the Apple
+    form `org.callerscompendium.compendiumApp` (Apple bundle IDs disallow
+    underscores, so the Apple form is the source of truth).
 - **Easier:** one artifact host, one deterministic naming scheme, one schema
   shared by producer and consumer, and a free integrity layer everywhere.
 - **Harder / debts accepted:** we take on maintaining the manifest/appcast
