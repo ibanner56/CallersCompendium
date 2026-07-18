@@ -382,6 +382,22 @@ void main() {
       }
     });
 
+    test('decodes an N1 (current neighbor) pass code (#308)', () {
+      // `N1L` names the current neighbor on the left shoulder. Before #308
+      // `_heyPeople` was missing `n1`, so this line fell to a custom figure.
+      final f = parseFigureLine('Hey 1/2 (WR;PL;MR;N1L~)');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'hey');
+      expect(f.params['length'], 'half');
+      expect(f.params['pass1'], 'role2s'); // code1 WR -> W = role2s
+      expect(f.params['shoulder'], 'right'); // code1 R
+      expect(f.params['pass2'], 'partners'); // code2 PL -> P
+      // No ricochet flags are set on a plain hey.
+      for (final r in ['rico1', 'rico2', 'rico3', 'rico4']) {
+        expect(f.params[r], isNull, reason: r);
+      }
+    });
+
     test('length decodes from the fraction (all four + default)', () {
       expect(parse('Hey 1/4 (WR;PL)')!.params['length'], 'lessThanHalf');
       expect(parse('Hey 1/2 (WR;PL)')!.params['length'], 'half');
