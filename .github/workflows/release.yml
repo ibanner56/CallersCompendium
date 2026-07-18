@@ -336,7 +336,7 @@ jobs:
       # bundle) and the .dmg, then verify as a hard gate. The whole flow lives in
       # one step so the ephemeral keychain never has to be handed across steps;
       # the always() cleanup step below deletes it. Secrets arrive via `env:` and
-      # are only ever decoded to files with `base64 --decode` (never echoed), and
+      # are only ever decoded to files with `base64 -D` (never echoed), and
       # `set -x` is deliberately NOT used so nothing sensitive reaches the log.
       - name: Sign, notarize & package macOS (Developer ID)
         if: matrix.platform == 'macos' && steps.macos_signing.outputs.signing == 'configured'
@@ -366,8 +366,10 @@ jobs:
           cert_p12="$RUNNER_TEMP/cc-developer-id.p12"
           api_key="$RUNNER_TEMP/cc-asc-api-key.p8"
 
-          printf '%s' "$APPLE_DEVELOPER_ID_CERT_P12" | base64 --decode > "$cert_p12"
-          printf '%s' "$APPLE_API_KEY_P8" | base64 --decode > "$api_key"
+          # macOS runners ship BSD base64; `-D` (decode) is the portable flag
+          # there (GNU's `--decode` isn't guaranteed on older runner images).
+          printf '%s' "$APPLE_DEVELOPER_ID_CERT_P12" | base64 -D > "$cert_p12"
+          printf '%s' "$APPLE_API_KEY_P8" | base64 -D > "$api_key"
 
           security create-keychain -p "$keychain_pw" "$keychain"
           # Keep it unlocked for the whole job (no idle auto-lock during notarize).
@@ -452,7 +454,10 @@ jobs:
           xcrun stapler validate "$dmg"
 
       # Always tear down the ephemeral signing keychain + decoded secret files,
-      # even if signing failed. A no-op on the unsigned path (nothing to remove).
+      # even if signing failed. `security delete-keychain` both removes the
+      # keychain from the search list and deletes the file, so we don't clobber
+      # the rest of the user search list. A no-op on the unsigned path (the
+      # keychain + secret files never existed).
       - name: Clean up macOS signing keychain
         if: always() && matrix.platform == 'macos'
         run: |
@@ -462,8 +467,6 @@ jobs:
           fi
           rm -f "$RUNNER_TEMP/cc-developer-id.p12" \
                 "$RUNNER_TEMP/cc-asc-api-key.p8" 2>/dev/null || true
-          # Restore the default login-keychain search list.
-          security list-keychains -d user -s login.keychain-db 2>/dev/null || true
           exit 0
 
       # --- Windows: zip (portable) + Inno Setup installer ------------------
