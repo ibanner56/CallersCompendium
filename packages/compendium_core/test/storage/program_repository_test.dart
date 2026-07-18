@@ -174,6 +174,73 @@ void main() {
         'Zesty Night',
       ]);
     });
+
+    test('rehydrates slots correctly for a multi-program mix', () async {
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Chase the Squirrel',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      // p-a: two slots (out-of-order ids to prove position ordering);
+      // p-b: no slots; p-c: one slot. Titles chosen so listAll order is a,b,c.
+      await repo.create(
+        sampleProgram(
+          id: 'p-a',
+          title: 'Alpha',
+          slots: [
+            ProgramSlot(id: 'a2', position: 1, text: 'Waltz break'),
+            ProgramSlot(id: 'a1', position: 0, danceId: 'd1', isAlt: true),
+          ],
+        ),
+      );
+      await repo.create(sampleProgram(id: 'p-b', title: 'Bravo'));
+      await repo.create(
+        sampleProgram(
+          id: 'p-c',
+          title: 'Charlie',
+          slots: [ProgramSlot(id: 'c1', position: 0, text: 'Closer')],
+        ),
+      );
+
+      final all = await repo.listAll();
+      expect(all.map((p) => p.id), ['p-a', 'p-b', 'p-c']);
+      // Batched map keys each program to exactly its own slots, in position
+      // order.
+      expect(all[0].slots.map((s) => s.id), ['a1', 'a2']);
+      expect(all[0].slots.first.danceId, 'd1');
+      expect(all[0].slots.first.isAlt, isTrue);
+      expect(all[0].slots.last.text, 'Waltz break');
+      expect(all[1].slots, isEmpty);
+      expect(all[2].slots.map((s) => s.id), ['c1']);
+    });
+
+    test('issues a constant number of slot queries regardless of program '
+        'count (no N+1)', () async {
+      final counter = SlotSelectCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final countingRepo = ProgramRepository(countingDb);
+
+      for (var i = 0; i < 5; i++) {
+        await countingRepo.create(
+          sampleProgram(
+            id: 'p$i',
+            title: 'Program $i',
+            slots: [ProgramSlot(id: 's$i', position: 0, text: 'slot $i')],
+          ),
+        );
+      }
+
+      counter.reset();
+      final all = await countingRepo.listAll();
+      expect(all, hasLength(5));
+      // Batched: a single `program_slots WHERE program_id IN (...)` select,
+      // not one per program.
+      expect(counter.count, 1);
+    });
   });
 
   group('listIdsAndTitles', () {
