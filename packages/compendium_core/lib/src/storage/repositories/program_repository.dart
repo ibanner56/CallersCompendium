@@ -189,12 +189,16 @@ class ProgramRepository {
       query.where((t) => t.deletedAt.isNull());
     }
     final rows = await query.get();
-    final provByProgram = await _provenanceForMany([
-      for (final r in rows) r.id,
-    ]);
+    final ids = [for (final r in rows) r.id];
+    final slotsByProgram = await _slotsForMany(ids);
+    final provByProgram = await _provenanceForMany(ids);
     return [
       for (final row in rows)
-        _toModel(row, await _slotsFor(row.id), provByProgram[row.id]),
+        _toModel(
+          row,
+          slotsByProgram[row.id] ?? const [],
+          provByProgram[row.id],
+        ),
     ];
   }
 
@@ -229,21 +233,47 @@ class ProgramRepository {
               ..where((t) => t.programId.equals(programId))
               ..orderBy([(t) => OrderingTerm(expression: t.position)]))
             .get();
-    return rows
-        .map(
-          (r) => ProgramSlot(
-            id: r.id,
-            position: r.position,
-            danceId: r.danceId,
-            text: r.text_,
-            isAlt: r.isAlt,
-            guestCaller: r.guestCaller,
-            plannedMinutes: r.plannedMinutes,
-            performedAt: asUtcOrNull(r.performedAt),
-          ),
-        )
-        .toList();
+    return rows.map(_slotFromRow).toList();
   }
+
+  /// Batched sibling of [_slotsFor]: loads the slots for many programs in a
+  /// SINGLE `program_slots` query keyed by `programId IN (...)`, returning a
+  /// `programId → slots` map with each program's slots in position order.
+  /// Programs without slots are simply absent from the map. Used by [listAll]
+  /// to avoid the per-row `_slotsFor` N+1 fan-out. Mirrors [_provenanceForMany].
+  Future<Map<String, List<ProgramSlot>>> _slotsForMany(
+    Iterable<String> ids,
+  ) async {
+    final idList = ids.toList();
+    if (idList.isEmpty) return const {};
+    // Order by programId then position so the in-memory grouping preserves
+    // each program's position order (rows for a program arrive contiguously
+    // and already sorted).
+    final rows =
+        await (_db.select(_db.programSlots)
+              ..where((t) => t.programId.isIn(idList))
+              ..orderBy([
+                (t) => OrderingTerm(expression: t.programId),
+                (t) => OrderingTerm(expression: t.position),
+              ]))
+            .get();
+    final byProgram = <String, List<ProgramSlot>>{};
+    for (final row in rows) {
+      (byProgram[row.programId] ??= <ProgramSlot>[]).add(_slotFromRow(row));
+    }
+    return byProgram;
+  }
+
+  ProgramSlot _slotFromRow(ProgramSlotRow r) => ProgramSlot(
+    id: r.id,
+    position: r.position,
+    danceId: r.danceId,
+    text: r.text_,
+    isAlt: r.isAlt,
+    guestCaller: r.guestCaller,
+    plannedMinutes: r.plannedMinutes,
+    performedAt: asUtcOrNull(r.performedAt),
+  );
 
   /// Maps dance id → the most recent `performedAt` timestamp across every
   /// slot of every non-deleted program, for dances that have actually been
