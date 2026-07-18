@@ -3,16 +3,20 @@
 An open-source, local-first dance organizer for Contra (and eventually ECD and
 Squares) callers — on desktop, tablet, and phone.
 
-> **Status: preparing our first beta.** The core app is built and working —
+> **Status: our first public beta is out.** The core app is built and working —
 > collection management, search, programs, and performance mode are complete
 > (roadmap Phases 0–5, plus the Caller's Companion parity backfill and the
-> named-dialect library manager), and importing from community sources and
-> migrating from Caller's Companion have landed (Phase 6). The release pipeline
-> (Phase 7) is largely in place — CI builds release artifacts for every platform,
-> generates release notes and a software bill of materials, and the app can check
-> for updates (and, on desktop, download and install them) — with only one-time
-> maintainer setup and cutting the first beta tag still to go.
-> See [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed, item-by-item status.
+> named-dialect library manager), importing from community sources and migrating
+> from Caller's Companion have landed (Phase 6), and the release pipeline
+> (Phase 7) now produces downloadable builds for every platform. **Download the
+> latest beta from the
+> [Releases page](https://github.com/ibanner56/CallersCompendium/releases)** —
+> pick the newest release (marked *Pre-release*) and expand its **Assets** for
+> Linux, macOS, Windows, and Android. Not sure which file to grab, or hitting the
+> first-launch security prompt? The
+> [Installation guide](docs/user/installation.md) walks you through it. An
+> iPhone/iPad build is still to come. See [docs/ROADMAP.md](docs/ROADMAP.md) for
+> the detailed, item-by-item status.
 
 ## What it does
 

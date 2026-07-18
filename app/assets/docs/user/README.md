@@ -19,18 +19,10 @@ you want the design rationale behind a feature, head to the
 
 ## How to read these guides
 
-Each guide in the table below is tagged with its current status:
-
-| Legend | Meaning |
-|---|---|
-| ✅ done | Written and ready to read |
-| ✍️ drafting | Planned and being written — not here yet |
-| 🔒 blocked | Waiting on other work before it can be written |
+Every guide below is written and ready to read — the **Status** column shows ✅
+for each.
 
 ## Guides
-
-Guides that are not written yet link to a short "what it will cover" note further
-down this page, so nothing here is a dead end.
 
 | Guide | Status | What it covers |
 |---|---|---|
@@ -45,21 +37,9 @@ down this page, so nothing here is a dead end.
 | [Backup & portability](backup-portability.md) | ✅ done | Save everything to one file and move it anywhere |
 | [Accessibility](accessibility.md) | ✅ done | Screen readers, large text, high contrast, keyboard use |
 | [Settings](settings.md) | ✅ done | Dialects, data sources, custom fields, appearance, backup, updates |
-| [Installation](#installation) | 🔒 blocked | Downloading and installing on each platform |
+| [Installation](installation.md) | ✅ done | Downloading and installing on each platform |
 | [FAQ & troubleshooting](faq.md) | ✅ done | Common questions and fixes for common snags |
 | [Glossary](glossary.md) | ✅ done | Plain definitions of the terms used throughout |
-
-## What each guide will cover
-
-A preview of the one guide that isn't here yet. When it lands, its row above will
-turn ✅ and its title will link to the new page.
-
-### Installation
-
-🔒 *Waiting on our first published build.* Step-by-step installation for Linux,
-macOS, Windows, Android, and iOS/iPadOS. The release pipeline that produces
-downloadable builds is now in place (roadmap **Phase 7.1**); this guide will be
-written as soon as the first beta build is published for you to download.
 
 ## Looking deeper
 
