@@ -782,6 +782,50 @@ String buildContraDbUrl(String input) {
   ).toString();
 }
 
+/// Builds the canonical ContraDB **program**-page URL from what the user typed.
+///
+/// ContraDB serves each program (set list) as HTML at `contradb.com/programs/N`.
+/// Accepts either a bare numeric id (`"33"`) → `https://contradb.com/programs/33`,
+/// or a pasted http(s) URL whose path contains `/programs/N` (query/fragment and
+/// user-info are dropped; the pasted host is preserved so a self-hosted instance
+/// works). Throws a [UrlFetchException] (safe message) for empty input, a
+/// non-http(s) URL, or a URL with no program id.
+String buildContraDbProgramUrl(String input) {
+  final trimmed = input.trim();
+  if (trimmed.isEmpty) {
+    throw const UrlFetchException(
+      'Enter a ContraDB program URL or id to import from.',
+    );
+  }
+
+  if (RegExp(r'^\d+$').hasMatch(trimmed)) {
+    return Uri.https(contraDbHost, '/programs/$trimmed').toString();
+  }
+
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null ||
+      !uri.hasScheme ||
+      (!uri.isScheme('http') && !uri.isScheme('https'))) {
+    throw const UrlFetchException(
+      "That doesn't look like a ContraDB program URL or a numeric id.",
+    );
+  }
+
+  final match = RegExp(r'/programs/(\d+)').firstMatch(uri.path);
+  if (match == null) {
+    throw const UrlFetchException(
+      'That ContraDB URL is missing a program id (…/programs/N).',
+    );
+  }
+  final id = match.group(1)!;
+  return Uri(
+    scheme: uri.scheme,
+    host: uri.host,
+    port: uri.hasPort ? uri.port : null,
+    path: '/programs/$id',
+  ).toString();
+}
+
 /// The ContraDB JSON search endpoint. ContraDB (a Rails app) exposes
 /// `POST https://contradb.com/api/v1/dances` (Content-Type application/json);
 /// the controller does `skip_before_action :verify_authenticity_token`, so no

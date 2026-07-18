@@ -54,31 +54,54 @@ Future<ParsedProgramLine> _resolveLine(
   required CompendiumRepositories repos,
   DateTime? now,
 }) async {
-  final wanted = line.text.trim().toLowerCase();
+  final danceId = await resolveConfidentOnlineDanceId(
+    line.text,
+    service: service,
+    repos: repos,
+    now: now,
+  );
+  // No confident match keeps the note-slot fallback (#312).
+  if (danceId == null) return line;
+  return ParsedProgramLine(
+    text: line.text,
+    resolution: PlaintextLineResolution.matched,
+    danceId: danceId,
+    matchCount: 1,
+    importedOnline: true,
+  );
+}
+
+/// Searches [service] by [title] and, on a **confident match** — a UNIQUE
+/// exact-title hit (exactly one result whose name equals [title], trimmed and
+/// case-insensitive) — imports that dance and returns its new dance id.
+///
+/// Returns null when there is no confident match (no results, only fuzzy hits,
+/// or more than one exact hit) or when the import yields no id. Any fetch /
+/// parse / import [Exception] is swallowed and returns null so one bad title
+/// can't abort a batch; `Error`s (assertion/programmer bugs) still surface.
+///
+/// This is the shared online-title→dance resolution used by both the plaintext
+/// program import (#313) and the ContraDB program import's Caller's Box fallback
+/// (#314). Performs a single search fetch plus, on a confident hit, a single
+/// import fetch — no crawling (import-fidelity rule).
+Future<String?> resolveConfidentOnlineDanceId(
+  String title, {
+  required OnlineSearchService service,
+  required CompendiumRepositories repos,
+  DateTime? now,
+}) async {
+  final wanted = title.trim().toLowerCase();
   try {
-    final rows = await service.search(OnlineSearchQuery(title: line.text));
+    final rows = await service.search(OnlineSearchQuery(title: title));
     final exact = rows
         .where((r) => r.name.trim().toLowerCase() == wanted)
         .toList();
-    // Confident match ⇔ a single exact-title hit. Zero, fuzzy-only, or multiple
-    // exact hits stay a note.
-    if (exact.length != 1) return line;
+    if (exact.length != 1) return null;
 
     final preview = await service.loadPreview(repos, exact.single, now: now);
     final result = await service.import(repos, preview.plan, now: now);
-    final danceId = result.danceId;
-    if (danceId == null) return line;
-
-    return ParsedProgramLine(
-      text: line.text,
-      resolution: PlaintextLineResolution.matched,
-      danceId: danceId,
-      matchCount: 1,
-      importedOnline: true,
-    );
+    return result.danceId;
   } on Exception catch (_) {
-    // A fetch/parse/import *failure* keeps the note-slot fallback (#312). Only
-    // Exceptions are swallowed; Errors (assertion/programmer bugs) surface.
-    return line;
+    return null;
   }
 }
