@@ -472,12 +472,16 @@ jobs:
           # ---- 4. Notarize the .dmg (registers the nested .app cdhash too) --
           # notarytool authenticates with an App Store Connect API key (.p8).
           # --wait blocks until Apple returns Accepted/Invalid (non-zero on
-          # Invalid, which fails the step).
+          # Invalid, which fails the step). --timeout 30m bounds that wait so a
+          # backlogged Apple notary service can't hang the job for hours; if the
+          # ticket isn't ready in 30 minutes notarytool exits non-zero and the
+          # step fails (re-run the release once Apple's queue drains).
           xcrun notarytool submit "$dmg" \
             --key "$api_key" \
             --key-id "$APPLE_API_KEY_ID" \
             --issuer "$APPLE_API_ISSUER_ID" \
-            --wait
+            --wait \
+            --timeout 30m
 
           # ---- 5. Staple the ticket to the .app (pre-zip) and the .dmg ------
           # The .app's cdhash was registered by the .dmg submission above, so it
