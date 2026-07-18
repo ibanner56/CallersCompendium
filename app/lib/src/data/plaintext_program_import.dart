@@ -23,7 +23,25 @@ class ParsedProgramLine {
     required this.resolution,
     this.danceId,
     this.matchCount = 0,
-  });
+  }) : assert(
+         // matched ⇒ exactly one dance, id present; note resolutions
+         // (unmatched/ambiguous) ⇒ no id, so buildProgramSlots always has a
+         // valid ProgramSlot (danceId xor text), never both-null.
+         resolution == PlaintextLineResolution.matched
+             ? (danceId != null && matchCount == 1)
+             : (danceId == null),
+         'matched requires danceId and matchCount == 1; '
+         'note resolutions require danceId == null',
+       ),
+       assert(
+         // ambiguous means more than one local match; unmatched means none.
+         resolution == PlaintextLineResolution.ambiguous
+             ? matchCount > 1
+             : (resolution == PlaintextLineResolution.unmatched
+                   ? matchCount == 0
+                   : true),
+         'ambiguous requires matchCount > 1; unmatched requires matchCount == 0',
+       );
 
   /// The trimmed line text as the user typed it.
   final String text;

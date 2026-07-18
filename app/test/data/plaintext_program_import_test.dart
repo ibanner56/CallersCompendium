@@ -112,4 +112,39 @@ void main() {
       expect(buildProgramSlots(const [], newSlotId: _seqIds()), isEmpty);
     });
   });
+
+  group('ParsedProgramLine invariants', () {
+    test('matched without a danceId throws', () {
+      expect(
+        () => ParsedProgramLine(
+          text: 'x',
+          resolution: PlaintextLineResolution.matched,
+          matchCount: 1,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('note resolution carrying a danceId throws', () {
+      expect(
+        () => ParsedProgramLine(
+          text: 'x',
+          resolution: PlaintextLineResolution.unmatched,
+          danceId: 'd1',
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+
+    test('ambiguous with matchCount <= 1 throws', () {
+      expect(
+        () => ParsedProgramLine(
+          text: 'x',
+          resolution: PlaintextLineResolution.ambiguous,
+          matchCount: 1,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+  });
 }

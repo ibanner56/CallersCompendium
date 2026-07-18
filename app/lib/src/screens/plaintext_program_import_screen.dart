@@ -41,6 +41,14 @@ class _PlaintextProgramImportScreenState
 
   bool _committing = false;
 
+  /// Memoized parse of the current paste text, so a single build (which reads
+  /// [_parsedLines] from both [_canCommit] and the preview) reparses at most
+  /// once. Invalidated when the paste text or the resolved [_collection]
+  /// identity changes.
+  List<ParsedProgramLine>? _parsedCache;
+  String? _parsedCacheText;
+  List<({String id, String title})>? _parsedCacheCollection;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -78,7 +86,20 @@ class _PlaintextProgramImportScreenState
   List<ParsedProgramLine> get _parsedLines {
     final collection = _collection;
     if (collection == null) return const [];
-    return parsePlaintextProgram(_pasteController.text, collection: collection);
+    final text = _pasteController.text;
+    // Reuse the cached parse unless the paste text or the collection identity
+    // changed. `identical` is enough: `_collection` is only ever swapped for a
+    // fresh list by `_load`, never mutated in place.
+    if (_parsedCache != null &&
+        _parsedCacheText == text &&
+        identical(_parsedCacheCollection, collection)) {
+      return _parsedCache!;
+    }
+    final parsed = parsePlaintextProgram(text, collection: collection);
+    _parsedCache = parsed;
+    _parsedCacheText = text;
+    _parsedCacheCollection = collection;
+    return parsed;
   }
 
   bool get _canCommit =>
