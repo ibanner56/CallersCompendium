@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -6,6 +7,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -1103,6 +1105,49 @@ void main() {
         fetchImportUrl('https://example.com/a.json', client: client, maxBytes: 8),
         throwsA(isA<UrlFetchException>()),
       );
+    });
+
+    test('aborts (does not drain) an oversized-by-declaration body', () async {
+      // A declared Content-Length over the cap must abort the download, not
+      // read the whole body off the wire. The chunk counter proves the body is
+      // not drained to completion.
+      var chunksPulled = 0;
+      final client = MockClient.streaming((request, bodyStream) async {
+        Stream<List<int>> body() async* {
+          for (var i = 0; i < 64; i++) {
+            chunksPulled++;
+            yield List<int>.filled(1024, 0x41);
+          }
+        }
+
+        return http.StreamedResponse(body(), 200, contentLength: 64 * 1024);
+      });
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client, maxBytes: 8),
+        throwsA(isA<UrlFetchException>()),
+      );
+      expect(chunksPulled, lessThan(64));
+    });
+
+    test('times out a stalled body read', () {
+      fakeAsync((async) {
+        // A body stream that never emits or closes: send() resolves (headers
+        // arrive) but the read hangs, so the body-read deadline must fire.
+        final controller = StreamController<List<int>>();
+        final client = MockClient.streaming(
+          (request, bodyStream) async =>
+              http.StreamedResponse(controller.stream, 200, contentLength: null),
+        );
+        Object? caught;
+        fetchImportUrl('https://example.com/a.json', client: client)
+            .then<void>((_) {}, onError: (Object e) => caught = e);
+        async.flushMicrotasks();
+        async.elapse(importFetchTimeout + const Duration(seconds: 1));
+        async.flushMicrotasks();
+        expect(caught, isA<UrlFetchException>());
+        expect((caught! as UrlFetchException).message, contains('timed out'));
+        controller.close();
+      });
     });
 
     test('follows a validated https→https redirect', () async {

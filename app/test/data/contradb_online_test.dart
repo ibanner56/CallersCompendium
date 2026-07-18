@@ -111,6 +111,18 @@ void main() {
       expect(captured.headers['Content-Type'], 'application/json');
       expect(jsonDecode(captured.body)['filter'], ['title', 'rendezvous']);
     });
+
+    test('disables automatic redirect following on the POST', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return http.Response(_searchJson(), 200);
+      });
+      await fetchContraDbSearch('x', client: client);
+      // A 3xx must surface as a non-2xx error rather than being chased to an
+      // insecure/internal target by the client.
+      expect(captured.followRedirects, isFalse);
+    });
   });
 
   group('ContraDbOnline.search', () {

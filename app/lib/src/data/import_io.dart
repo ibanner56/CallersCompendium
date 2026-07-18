@@ -189,7 +189,7 @@ Future<Uint8List> _followBoundedGet(
 
     final status = response.statusCode;
     if (status >= 300 && status < 400) {
-      await response.stream.drain<void>();
+      await _abort(response.stream);
       if (redirects >= kMaxImportRedirects) {
         throw const UrlFetchException('That URL redirected too many times.');
       }
@@ -204,14 +204,14 @@ Future<Uint8List> _followBoundedGet(
     }
 
     if (status < 200 || status >= 300) {
-      await response.stream.drain<void>();
+      await _abort(response.stream);
       throw UrlFetchException('The server responded with HTTP $status.');
     }
 
     // Fast-reject an advertised oversized body before reading a single chunk.
     final declared = response.contentLength;
     if (declared != null && declared > maxBytes) {
-      await response.stream.drain<void>();
+      await _abort(response.stream);
       throw UrlFetchException(_tooLargeMessage(maxBytes));
     }
 
@@ -219,20 +219,64 @@ Future<Uint8List> _followBoundedGet(
   }
 }
 
-/// Reads [stream] into memory, aborting with a [UrlFetchException] the moment
-/// the accumulated size would exceed [maxBytes]. The oversized tail is never
-/// buffered.
-Future<Uint8List> _readCapped(Stream<List<int>> stream, int maxBytes) async {
+/// Aborts an HTTP response body we are not going to read (a redirect, a non-2xx
+/// error, or an oversized-by-declaration response) by **cancelling** the stream
+/// subscription rather than draining it. Draining would read the entire body
+/// off the wire — defeating the point of a size cap and letting a hostile
+/// endpoint still consume bandwidth/time. Cancelling tears down the underlying
+/// connection immediately.
+Future<void> _abort(Stream<List<int>> stream) => stream.listen(null).cancel();
+
+/// Reads [stream] into memory under two independent guards, aborting the
+/// download (by cancelling the subscription) the instant either trips:
+///  * the accumulated size would exceed [maxBytes] → [UrlFetchException]; or
+///  * no completion within [timeout] → [TimeoutException].
+///
+/// Cancellation matters: `Future.timeout` alone would leave a stalled body
+/// stream draining in the background, and reading past the cap would buffer the
+/// oversized tail. Both guards cancel the subscription so the connection is torn
+/// down at once.
+Future<Uint8List> _readCapped(
+  Stream<List<int>> stream,
+  int maxBytes, {
+  Duration timeout = importFetchTimeout,
+}) {
+  final completer = Completer<Uint8List>();
   final builder = BytesBuilder(copy: false);
   var total = 0;
-  await for (final chunk in stream) {
-    total += chunk.length;
-    if (total > maxBytes) {
-      throw UrlFetchException(_tooLargeMessage(maxBytes));
-    }
-    builder.add(chunk);
+  final subscription = stream.listen(null);
+  Timer? deadline;
+
+  void abortWith(Object error, [StackTrace? stackTrace]) {
+    deadline?.cancel();
+    if (!completer.isCompleted) completer.completeError(error, stackTrace);
+    // Cancel to abort the download immediately; not awaited so the error is
+    // delivered promptly while the connection teardown proceeds independently.
+    unawaited(subscription.cancel());
   }
-  return builder.takeBytes();
+
+  deadline = Timer(timeout, () {
+    abortWith(TimeoutException('Reading the response body', timeout));
+  });
+
+  subscription
+    ..onData((chunk) {
+      total += chunk.length;
+      if (total > maxBytes) {
+        abortWith(UrlFetchException(_tooLargeMessage(maxBytes)));
+        return;
+      }
+      builder.add(chunk);
+    })
+    ..onError((Object error, StackTrace stackTrace) {
+      abortWith(error, stackTrace);
+    })
+    ..onDone(() {
+      deadline?.cancel();
+      if (!completer.isCompleted) completer.complete(builder.takeBytes());
+    });
+
+  return completer.future;
 }
 
 /// Validates a redirect from [from] to [location] and returns the resolved
@@ -776,7 +820,11 @@ Future<String> fetchContraDbSearch(
   try {
     // bodyBytes (not body) so the Content-Type header stays exactly
     // "application/json" without a charset suffix being appended.
+    // followRedirects=false so a 3xx surfaces here as a non-2xx error rather
+    // than being transparently chased (possibly to an insecure/internal target)
+    // by the client.
     final request = http.Request('POST', uri)
+      ..followRedirects = false
       ..headers['Content-Type'] = 'application/json'
       ..bodyBytes = utf8.encode(buildContraDbSearchBody(query));
     final response = await effectiveClient
@@ -784,20 +832,17 @@ Future<String> fetchContraDbSearch(
         .timeout(importFetchTimeout);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      await response.stream.drain<void>();
+      await _abort(response.stream);
       throw UrlFetchException(
         'ContraDB responded with HTTP ${response.statusCode}.',
       );
     }
     final declared = response.contentLength;
     if (declared != null && declared > maxBytes) {
-      await response.stream.drain<void>();
+      await _abort(response.stream);
       throw UrlFetchException(_tooLargeMessage(maxBytes));
     }
-    final bytes = await _readCapped(
-      response.stream,
-      maxBytes,
-    ).timeout(importFetchTimeout);
+    final bytes = await _readCapped(response.stream, maxBytes);
     final body = utf8.decode(bytes, allowMalformed: true);
     if (body.trim().isEmpty) {
       throw const UrlFetchException('ContraDB returned an empty response.');
