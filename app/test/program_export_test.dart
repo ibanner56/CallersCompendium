@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -30,6 +32,33 @@ Program _program({
 
 String? _titles(String id) =>
     const {'d1': 'Rory O\'More', 'd2': 'The Nice Combination'}[id];
+
+final _dances = <String, Dance>{
+  'd1': Dance(
+    id: 'd1',
+    title: 'Rory O\'More',
+    authorIds: const [],
+    figures: [
+      Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+    ],
+    sourceCitations: const [],
+    customFields: const [],
+    createdAt: _now,
+    updatedAt: _now,
+  ),
+  'd2': Dance(
+    id: 'd2',
+    title: 'The Nice Combination',
+    authorIds: const [],
+    figures: const [],
+    sourceCitations: const [],
+    customFields: const [],
+    createdAt: _now,
+    updatedAt: _now,
+  ),
+};
+
+Dance? _danceFor(String id) => _dances[id];
 
 Future<void> _pumpMenu(WidgetTester tester, Program program) async {
   await tester.pumpWidget(
@@ -230,6 +259,139 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text("Couldn't export this set list"), findsOneWidget);
+    });
+
+    testWidgets(
+      'offers "Share (program + dances)" only when danceFor is given',
+      (tester) async {
+        // Without danceFor: no bundle action.
+        await _pumpMenu(tester, _program());
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        expect(find.text('Share (program + dances)'), findsNothing);
+        // Close the menu.
+        await tester.tapAt(const Offset(5, 5));
+        await tester.pumpAndSettle();
+
+        // With danceFor: the bundle action appears.
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: _program(),
+                    titleFor: _titles,
+                    danceFor: _danceFor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        expect(find.text('Share (program + dances)'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'shares a single JSON bundle file with the program + deduped dances',
+      (tester) async {
+        final dir = Directory.systemTemp.createTempSync('share_bundle_test');
+        addTearDown(() => dir.deleteSync(recursive: true));
+
+        ShareParams? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: _program(
+                      slots: [
+                        ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+                        ProgramSlot(id: 's2', position: 1, text: 'Break'),
+                        ProgramSlot(id: 's3', position: 2, danceId: 'd2'),
+                        ProgramSlot(id: 's4', position: 3, danceId: 'd1'),
+                      ],
+                    ),
+                    titleFor: _titles,
+                    danceFor: _danceFor,
+                    bundleFileWriter: (json, fileName) async {
+                      final file = File('${dir.path}/$fileName');
+                      file.writeAsStringSync(json);
+                      return XFile(file.path, mimeType: 'application/json');
+                    },
+                    shareInvoker: (params) async => captured = params,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share (program + dances)'));
+        await tester.pumpAndSettle();
+
+        expect(captured, isNotNull);
+        expect(captured!.sharePositionOrigin, isNotNull);
+        final files = captured!.files!;
+        expect(files, hasLength(1));
+        expect(files.single.mimeType, 'application/json');
+        expect(files.single.path, endsWith('.json'));
+
+        final archive = decodeArchive(
+          File(files.single.path).readAsStringSync(),
+        ).archive;
+        expect(archive.programs.single.id, 'p1');
+        expect(archive.dances.map((d) => d.id).toSet(), {'d1', 'd2'});
+        expect(archive.dances, hasLength(2));
+      },
+    );
+
+    testWidgets('surfaces a SnackBar when the bundle share throws', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('share_bundle_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                ProgramExportMenu(
+                  program: _program(
+                    slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+                  ),
+                  titleFor: _titles,
+                  danceFor: _danceFor,
+                  bundleFileWriter: (json, fileName) async {
+                    final file = File('${dir.path}/$fileName');
+                    file.writeAsStringSync(json);
+                    return XFile(file.path, mimeType: 'application/json');
+                  },
+                  shareInvoker: (params) async =>
+                      throw Exception('no share target'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share (program + dances)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't share this program"), findsOneWidget);
     });
   });
 
