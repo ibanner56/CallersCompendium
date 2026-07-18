@@ -23,7 +23,15 @@ class ParsedProgramLine {
     required this.resolution,
     this.danceId,
     this.matchCount = 0,
+    this.importedOnline = false,
   }) : assert(
+         // importedOnline is only meaningful for a matched line (a dance was
+         // created online and linked into the slot). Note resolutions never set
+         // it.
+         !importedOnline || resolution == PlaintextLineResolution.matched,
+         'importedOnline requires resolution == matched',
+       ),
+       assert(
          // matched ⇒ exactly one dance, id present; note resolutions
          // (unmatched/ambiguous) ⇒ no id, so buildProgramSlots always has a
          // valid ProgramSlot (danceId xor text), never both-null.
@@ -56,6 +64,12 @@ class ParsedProgramLine {
   /// [ambiguous], `0` for [unmatched]. Lets the preview surface why an
   /// ambiguous line fell back to a note.
   final int matchCount;
+
+  /// Whether this matched line was resolved by importing a dance from The
+  /// Caller's Box (rather than an existing local match). Only ever true when
+  /// [resolution] is [PlaintextLineResolution.matched]; drives the preview's
+  /// "Imported from Caller's Box" label.
+  final bool importedOnline;
 
   /// Whether this line will become a free-text note slot (unmatched or
   /// ambiguous) rather than a dance-linked slot.

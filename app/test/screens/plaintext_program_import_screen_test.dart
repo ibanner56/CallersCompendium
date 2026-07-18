@@ -3,10 +3,43 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/plaintext_program_import_screen.dart';
 
 import '../support/test_repositories.dart';
+
+/// A trimmed Caller's Box results page with a single "Money Musk" row, modelled
+/// on the live HTML the parser expects.
+const String _moneyMuskResultsHtml = '''
+<html><head><meta charset='windows-1252'></head><body>
+<p>Of 16874 dances in the database, your query matches 1.</p>
+<table>
+<tr>
+  <td>&#x24bb;</td><td></td><td></td>
+  <td><a href='dance.php?id=10600' target='_blank'>Money Musk</a></td>
+  <td>Traditional</td>
+  <td>Triple Minor - Proper</td>
+</tr>
+</table>
+</body></html>
+''';
+
+/// A results page that matches nothing.
+const String _emptyResultsHtml = '''
+<html><head><meta charset='windows-1252'></head><body>
+<p>Of 16874 dances in the database, your query matches 0.</p>
+<table></table>
+</body></html>
+''';
+
+String _moneyMuskJson() =>
+    '{"ID":"10600","Name":"Money Musk","Authors":["Traditional"],'
+    '"InterpretedBy":[],"Permission":"full",'
+    '"FormationBase":"Triple Minor - Proper","FormationDetail":"",'
+    '"Progression":"Single","PhraseStructure":"","CallingNotes":[],'
+    '"OtherNames":[],"Music":[],"Tunes":[],"Appearances":[],'
+    '"phrases":[{"name":"A1","figures":["Actives balance and swing"]}]}';
 
 Dance _dance({required String id, required String title}) => Dance(
   id: id,
@@ -23,7 +56,11 @@ Dance _dance({required String id, required String title}) => Dance(
   updatedAt: DateTime.utc(2026, 1, 1),
 );
 
-Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
+Future<void> _pump(
+  WidgetTester tester,
+  CompendiumRepositories repos, {
+  CallersBoxOnline? online,
+}) async {
   await tester.binding.setSurfaceSize(const Size(600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
@@ -36,7 +73,8 @@ Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
             child: ElevatedButton(
               onPressed: () => Navigator.of(context).push<String>(
                 MaterialPageRoute<String>(
-                  builder: (_) => const PlaintextProgramImportScreen(),
+                  builder: (_) =>
+                      PlaintextProgramImportScreen(callersBoxOnline: online),
                 ),
               ),
               child: const Text('open'),
@@ -147,5 +185,91 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(commitButton().onPressed, isNotNull);
+  });
+
+  testWidgets(
+    'resolve online imports a confident TCB match and links it to the slot',
+    (tester) async {
+      final repos = openTestRepositories();
+      final online = CallersBoxOnline(
+        searchFetcher: (_) async => _moneyMuskResultsHtml,
+        jsonFetcher: (_) async => _moneyMuskJson(),
+      );
+
+      await _pump(tester, repos, online: online);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('plaintext-import-title')),
+        'Friday Night',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('plaintext-import-paste')),
+        'Money Musk',
+      );
+      await tester.pumpAndSettle();
+
+      // Starts as an unmatched note; the resolve action is offered.
+      expect(find.text('No match — added as note'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('plaintext-import-resolve-online')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('plaintext-import-resolve-online')),
+      );
+      await tester.pumpAndSettle();
+
+      // The line is now linked via Caller's Box, and the dance was imported.
+      expect(find.text("Imported from Caller's Box"), findsOneWidget);
+      final saved = await repos.dances.listAll();
+      expect(saved.map((d) => d.title), contains('Money Musk'));
+
+      // Committing writes a dance-linked slot, not a note.
+      await tester.tap(find.byKey(const ValueKey('plaintext-import-commit')));
+      await tester.pumpAndSettle();
+
+      final program = (await repos.programs.listAll()).single;
+      expect(program.slots.single.danceId, saved.single.id);
+      expect(program.slots.single.text, isNull);
+    },
+  );
+
+  testWidgets('resolve online leaves a no-match title as a note', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async => _emptyResultsHtml,
+      jsonFetcher: (_) async => throw StateError('should not fetch json'),
+    );
+
+    await _pump(tester, repos, online: online);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-title')),
+      'Friday Night',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('plaintext-import-paste')),
+      'Totally Unknown Dance',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('plaintext-import-resolve-online')),
+    );
+    await tester.pumpAndSettle();
+
+    // No dance imported; the line stays a note.
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(find.text('No match — added as note'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('plaintext-import-commit')));
+    await tester.pumpAndSettle();
+
+    final program = (await repos.programs.listAll()).single;
+    expect(program.slots.single.danceId, isNull);
+    expect(program.slots.single.text, 'Totally Unknown Dance');
   });
 }
