@@ -62,7 +62,7 @@ String programToPlainText(
     lines.add('Level: ${program.dancerLevel!.trim()}');
   }
 
-  final groups = program.grouped;
+  final groups = program.outputGrouped;
   if (groups.isNotEmpty) {
     lines.add('');
     var n = 1;

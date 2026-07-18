@@ -151,6 +151,8 @@ class Programs extends Table {
   TextColumn get notes => text().withDefault(const Constant(''))();
   TextColumn get status =>
       text().map(const EnumNameConverter(ProgramStatus.values))();
+  BoolColumn get hideAlternates =>
+      boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();

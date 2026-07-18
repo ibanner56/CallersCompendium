@@ -194,6 +194,42 @@ void main() {
     },
   );
 
+  testWidgets('summary pane omits ALT alternates when hideAlternates is set', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'd1', title: 'Chase the Squirrel', level: DanceLevel.beginner),
+    );
+    await repos.dances.create(_dance(id: 'd2', title: 'Petronella'));
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        hideAlternates: true,
+        slots: [
+          ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's1', position: 1, danceId: 'd2', isAlt: true),
+          ProgramSlot(id: 's2', position: 2, text: 'Break'),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+
+    await _pumpWide(tester, repos);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+
+    // The primary and free-text slots still render; the ALT is omitted.
+    expect(find.text('Chase the Squirrel'), findsOneWidget);
+    expect(find.text('Break'), findsOneWidget);
+    expect(find.text('Petronella'), findsNothing);
+    expect(find.byKey(const ValueKey('summary-slot-s1')), findsNothing);
+    expect(find.text('Alt'), findsNothing);
+  });
+
   testWidgets(
     'tapping a dance row in the summary set list opens DanceDetailScreen',
     (tester) async {

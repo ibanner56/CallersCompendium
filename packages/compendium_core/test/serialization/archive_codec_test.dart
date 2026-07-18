@@ -158,6 +158,7 @@ CompendiumArchive _sampleArchive() {
     dancerLevel: 'intermediate',
     notes: 'sound check at 6',
     status: ProgramStatus.performed,
+    hideAlternates: true,
     slots: [
       ProgramSlot(
         id: 'sl1',
@@ -260,6 +261,7 @@ void main() {
       expect(f.searchable, isFalse);
 
       final p1 = result.archive.programs.firstWhere((p) => p.id == 'p1');
+      expect(p1.hideAlternates, isTrue);
       expect(p1.slots, hasLength(3));
       expect(p1.slots[0].plannedMinutes, 12);
       expect(p1.slots[1].isAlt, isTrue);

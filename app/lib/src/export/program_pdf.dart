@@ -67,7 +67,7 @@ Future<Uint8List> buildProgramPdf(
         ),
         for (final line in metaLines)
           pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
-        if (program.grouped.isNotEmpty) pw.SizedBox(height: 12),
+        if (program.outputGrouped.isNotEmpty) pw.SizedBox(height: 12),
         ..._slotWidgets(program, titleFor, unknownDanceLabel),
         if (_has(program.notes)) ...[
           pw.SizedBox(height: 12),
@@ -95,7 +95,7 @@ List<pw.Widget> _slotWidgets(
 ) {
   final widgets = <pw.Widget>[];
   var n = 1;
-  for (final group in program.grouped) {
+  for (final group in program.outputGrouped) {
     widgets.add(
       pw.Padding(
         padding: const pw.EdgeInsets.symmetric(vertical: 2),

@@ -1223,6 +1223,92 @@ void main() {
     });
   });
 
+  group('v10 -> v11 upgrade', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v11_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v10 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v10.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('adds the programs.hide_alternates column', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final columns = await db
+          .customSelect("PRAGMA table_info('programs')")
+          .get();
+      final names = [for (final row in columns) row.read<String>('name')];
+      expect(names, contains('hide_alternates'));
+
+      await db.close();
+    });
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test('pre-existing programs default hideAlternates to false', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final program = await repos.programs.getById('prog-1');
+      expect(program, isNotNull);
+      expect(program!.title, 'Spring Contra 2026');
+      expect(program.slots, hasLength(2));
+      // The migration is purely additive with a false default — an existing
+      // program keeps showing its alternates.
+      expect(program.hideAlternates, isFalse);
+
+      await db.close();
+    });
+
+    test('hideAlternates round-trips after the upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final program = await repos.programs.getById('prog-1');
+      await repos.programs.update(
+        program!.copyWith(
+          hideAlternates: true,
+          updatedAt: DateTime.utc(2026, 3),
+        ),
+      );
+
+      final reloaded = await repos.programs.getById('prog-1');
+      expect(reloaded!.hideAlternates, isTrue);
+      // The stored slots are untouched — only the output view respects the flag.
+      expect(reloaded.slots, hasLength(2));
+      expect(reloaded.outputGrouped.single.alternates, isEmpty);
+
+      await db.close();
+    });
+  });
+
   test(
     'beforeOpen recreates dance_fts if missing from an existing database',
     () async {

@@ -49,7 +49,7 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 10;
+const int kCompendiumSchemaVersion = 11;
 
 /// The Caller's Compendium local database.
 ///
@@ -273,6 +273,13 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // dedupe). Programs don't feed the derived `dance_fts`/`dance_figures`
         // indexes, so no derived rebuild is required.
         await m.createTable(programProvenance);
+      }
+      if (from < 11) {
+        // CC-parity "hide alternates in set list" (`SetList_HideALT`). A single
+        // additive boolean column on `programs`, defaulting to false — existing
+        // programs keep showing alternates. Programs don't feed the derived
+        // `dance_fts`/`dance_figures` indexes, so no derived rebuild is required.
+        await m.addColumn(programs, programs.hideAlternates);
       }
     },
     beforeOpen: (details) async {

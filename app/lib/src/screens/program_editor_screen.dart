@@ -84,6 +84,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Program? _existing;
   DateTime? _eventDate;
   ProgramStatus _status = ProgramStatus.draft;
+  bool _hideAlternates = false;
   List<ProgramSlot> _slots = const [];
   CollectionData? _data;
   bool _saving = false;
@@ -172,6 +173,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _existing = program;
         _eventDate = program?.eventDate;
         _status = program?.status ?? ProgramStatus.draft;
+        _hideAlternates = program?.hideAlternates ?? false;
         _slots = program?.slots.toList() ?? const [];
         _loaded = true;
       });
@@ -439,6 +441,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         clearDancerLevel: nn(_levelController) == null,
         notes: _notesController.text,
         status: _status,
+        hideAlternates: _hideAlternates,
         slots: _renumber(_slots),
       );
     } catch (_) {
@@ -473,6 +476,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             dancerLevel: level.isEmpty ? null : level,
             notes: notes,
             status: _status,
+            hideAlternates: _hideAlternates,
             slots: slots,
             createdAt: now,
             updatedAt: now,
@@ -494,6 +498,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           clearDancerLevel: level.isEmpty,
           notes: notes,
           status: _status,
+          hideAlternates: _hideAlternates,
           slots: slots,
           updatedAt: now,
         );
@@ -1099,6 +1104,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 _dirty = true;
               });
             }
+          },
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          key: const ValueKey('program-hide-alternates'),
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Hide alternates in set list'),
+          subtitle: const Text(
+            'Omits ALT slots from the summary, PDF, and exported set list. '
+            'The builder still shows every slot.',
+          ),
+          value: _hideAlternates,
+          onChanged: (value) {
+            setState(() {
+              _hideAlternates = value;
+              _dirty = true;
+            });
           },
         ),
       ],
