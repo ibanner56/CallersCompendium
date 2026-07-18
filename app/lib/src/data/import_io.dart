@@ -850,6 +850,42 @@ const String contraDbSearchUrl = 'https://contradb.com/api/v1/dances';
 /// the query, so the transport — not the caller — assembles the request.
 typedef ContraDbSearchFetcher = Future<String> Function(String query);
 
+/// POSTs [body] to the ContraDB search endpoint [uri] with [client] and buffers
+/// the response under a running [importMaxResponseBytes] cap, aborting with a
+/// generic [UrlFetchException] the moment the body would exceed it (a single
+/// oversized chunk, or a lying/absent Content-Length, can't push the allocation
+/// past the cap).
+///
+/// Deliberately kept separate from the GET-oriented [_sendGuarded]: there is no
+/// SSRF host guard because [uri] is the fixed public [contraDbSearchUrl], not a
+/// user-controlled destination. The caller wraps the returned future in
+/// [importFetchTimeout], so both the `send` and this body read are bounded by a
+/// single deadline.
+Future<http.Response> _sendContraDbSearch(
+  Uri uri,
+  String body,
+  http.Client client,
+) async {
+  final request = http.Request('POST', uri)
+    ..headers['Content-Type'] = 'application/json'
+    ..body = body;
+  final streamed = await client.send(request);
+  final builder = BytesBuilder(copy: false);
+  await for (final chunk in streamed.stream) {
+    if (builder.length + chunk.length > importMaxResponseBytes) {
+      throw const UrlFetchException('That response was too large to import.');
+    }
+    builder.add(chunk);
+  }
+  return http.Response.bytes(
+    builder.takeBytes(),
+    streamed.statusCode,
+    headers: streamed.headers,
+    request: streamed.request,
+    reasonPhrase: streamed.reasonPhrase,
+  );
+}
+
 /// Default [ContraDbSearchFetcher]: POSTs the [query] as a ContraDB title-search
 /// JSON body to [contraDbSearchUrl] (with an [importFetchTimeout]) and returns
 /// the response body. Throws a [UrlFetchException] with a clear, user-presentable
@@ -869,29 +905,13 @@ Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
   final effectiveClient = client ?? http.Client();
   final http.Response response;
   try {
-    final request = http.Request('POST', uri)
-      ..headers['Content-Type'] = 'application/json'
-      ..body = buildContraDbSearchBody(query);
-    final streamed = await effectiveClient
-        .send(request)
-        .timeout(importFetchTimeout);
-    // Buffer with a running byte total checked before each add, so a single
-    // oversized chunk (or a lying/absent Content-Length) can't push the
-    // allocation past the cap.
-    final builder = BytesBuilder(copy: false);
-    await for (final chunk in streamed.stream) {
-      if (builder.length + chunk.length > importMaxResponseBytes) {
-        throw const UrlFetchException('That response was too large to import.');
-      }
-      builder.add(chunk);
-    }
-    response = http.Response.bytes(
-      builder.takeBytes(),
-      streamed.statusCode,
-      headers: streamed.headers,
-      request: streamed.request,
-      reasonPhrase: streamed.reasonPhrase,
-    );
+    // The timeout wraps the whole send + body-read (not just send), so a slow
+    // or never-ending response body is bounded by [importFetchTimeout] too.
+    response = await _sendContraDbSearch(
+      uri,
+      buildContraDbSearchBody(query),
+      effectiveClient,
+    ).timeout(importFetchTimeout);
   } on UrlFetchException {
     rethrow;
   } on TimeoutException {
