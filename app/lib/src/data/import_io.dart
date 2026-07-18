@@ -137,6 +137,13 @@ bool isBlockedImportHost(String host) {
   if (h.startsWith('[') && h.endsWith(']')) {
     h = h.substring(1, h.length - 1);
   }
+  // Strip any trailing dot(s): a fully-qualified form like `localhost.` or
+  // `127.0.0.1.` is equivalent to the bare name/IP, but would otherwise slip
+  // past the hostname checks and parse as null (an "allowed" DNS host).
+  while (h.endsWith('.')) {
+    h = h.substring(0, h.length - 1);
+  }
+  if (h.isEmpty) return true;
   // Hostname-based blocks (these never parse as IPs).
   if (h == 'localhost' || h.endsWith('.localhost') || h.endsWith('.local')) {
     return true;
@@ -268,15 +275,17 @@ Future<http.Response> _sendGuarded(String url, http.Client client) async {
       uri = _guardFetchUri(uri.resolve(location));
       continue;
     }
-    final bytes = <int>[];
+    // Buffer with a running byte total checked before each add, so a single
+    // oversized chunk can't push the allocation past the cap.
+    final builder = BytesBuilder(copy: false);
     await for (final chunk in streamed.stream) {
-      bytes.addAll(chunk);
-      if (bytes.length > importMaxResponseBytes) {
+      if (builder.length + chunk.length > importMaxResponseBytes) {
         throw const UrlFetchException('That response was too large to import.');
       }
+      builder.add(chunk);
     }
     return http.Response.bytes(
-      bytes,
+      builder.takeBytes(),
       status,
       headers: streamed.headers,
       request: streamed.request,

@@ -44,6 +44,12 @@ void main() {
       expect(isBlockedImportHost('foo.local'), isTrue);
     });
 
+    test('rejects trailing-dot FQDN forms (no bypass)', () {
+      expect(isBlockedImportHost('localhost.'), isTrue);
+      expect(isBlockedImportHost('foo.local.'), isTrue);
+      expect(isBlockedImportHost('127.0.0.1.'), isTrue);
+    });
+
     test('allows a normal public host and a public IP', () {
       expect(isBlockedImportHost('example.com'), isFalse);
       expect(isBlockedImportHost('www.contradb.com'), isFalse);
