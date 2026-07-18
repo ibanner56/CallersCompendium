@@ -274,11 +274,54 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
-  /// Builds the batch actually committed plus its resolutions map. Each acted
-  /// row is reconstructed with the exact verdict/resolution that yields the
-  /// chosen [CommitAction] (the core pipeline honours resolutions only for
-  /// ambiguous verdicts, so create/reimport/link/duplicate are expressed
-  /// directly); skipped rows are omitted so nothing is written for them.
+  /// Builds the committed [ImportRecordPlan] for row [i] from its chosen
+  /// resolution, together with the [DedupeResolution] the core pipeline needs
+  /// (only for the ambiguous link/duplicate choices; `null` otherwise). Returns
+  /// `null` for a skipped row, which is never written. The core pipeline honours
+  /// resolutions only for ambiguous verdicts, so create/reimport/link/duplicate
+  /// are expressed directly. Shared by [_buildCommitBatch] (batch import) and
+  /// [_editRow] (single-row edit) so the two paths can never drift.
+  (ImportRecordPlan, DedupeResolution?)? _planForRow(int i) {
+    final record = _batch!.records[i];
+    final draft = record.draft;
+    final choice = _choices[i];
+    switch (choice.kind) {
+      case _ActionKind.create:
+        return (
+          ImportRecordPlan(draft: draft, verdict: DedupeVerdict.isNew()),
+          null,
+        );
+      case _ActionKind.reimport:
+        return (
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.reimport(choice.linkTargetId!),
+          ),
+          null,
+        );
+      case _ActionKind.link:
+        return (
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.ambiguous(record.verdict.candidates),
+          ),
+          DedupeResolution.link(choice.linkTargetId!),
+        );
+      case _ActionKind.duplicate:
+        return (
+          ImportRecordPlan(
+            draft: draft,
+            verdict: DedupeVerdict.ambiguous(const []),
+          ),
+          DedupeResolution.duplicate(),
+        );
+      case _ActionKind.skip:
+        return null;
+    }
+  }
+
+  /// Builds the batch actually committed plus its resolutions map; skipped rows
+  /// are omitted so nothing is written for them.
   (ImportBatchResult, Map<int, DedupeResolution>, int) _buildCommitBatch() {
     final batch = _batch!;
     final acted = <ImportRecordPlan>[];
@@ -288,42 +331,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // Rows already committed via the per-row Edit action are excluded so the
       // batch import never writes them twice.
       if (_committed.contains(i)) continue;
-      final draft = batch.records[i].draft;
-      final choice = _choices[i];
-      final j = acted.length;
-      switch (choice.kind) {
-        case _ActionKind.create:
-          acted.add(
-            ImportRecordPlan(draft: draft, verdict: DedupeVerdict.isNew()),
-          );
-        case _ActionKind.reimport:
-          acted.add(
-            ImportRecordPlan(
-              draft: draft,
-              verdict: DedupeVerdict.reimport(choice.linkTargetId!),
-            ),
-          );
-        case _ActionKind.link:
-          acted.add(
-            ImportRecordPlan(
-              draft: draft,
-              verdict: DedupeVerdict.ambiguous(
-                batch.records[i].verdict.candidates,
-              ),
-            ),
-          );
-          resolutions[j] = DedupeResolution.link(choice.linkTargetId!);
-        case _ActionKind.duplicate:
-          acted.add(
-            ImportRecordPlan(
-              draft: draft,
-              verdict: DedupeVerdict.ambiguous(const []),
-            ),
-          );
-          resolutions[j] = DedupeResolution.duplicate();
-        case _ActionKind.skip:
-          skipped++;
+      final planned = _planForRow(i);
+      if (planned == null) {
+        skipped++;
+        continue;
       }
+      final (plan, resolution) = planned;
+      final j = acted.length;
+      acted.add(plan);
+      if (resolution != null) resolutions[j] = resolution;
     }
     return (ImportBatchResult(records: acted), resolutions, skipped);
   }
@@ -334,46 +350,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// committed so the batch [_commit] never writes it again, and the live
   /// Collection is refreshed both after the commit and after the editor returns.
   Future<void> _editRow(int i) async {
-    final batch = _batch!;
-    final draft = batch.records[i].draft;
-    final choice = _choices[i];
-
-    final acted = <ImportRecordPlan>[];
-    final resolutions = <int, DedupeResolution>{};
-    switch (choice.kind) {
-      case _ActionKind.create:
-        acted.add(
-          ImportRecordPlan(draft: draft, verdict: DedupeVerdict.isNew()),
-        );
-      case _ActionKind.reimport:
-        acted.add(
-          ImportRecordPlan(
-            draft: draft,
-            verdict: DedupeVerdict.reimport(choice.linkTargetId!),
-          ),
-        );
-      case _ActionKind.link:
-        acted.add(
-          ImportRecordPlan(
-            draft: draft,
-            verdict: DedupeVerdict.ambiguous(
-              batch.records[i].verdict.candidates,
-            ),
-          ),
-        );
-        resolutions[0] = DedupeResolution.link(choice.linkTargetId!);
-      case _ActionKind.duplicate:
-        acted.add(
-          ImportRecordPlan(
-            draft: draft,
-            verdict: DedupeVerdict.ambiguous(const []),
-          ),
-        );
-        resolutions[0] = DedupeResolution.duplicate();
-      case _ActionKind.skip:
-        // Edit is disabled for skipped rows; nothing to commit.
-        return;
-    }
+    final planned = _planForRow(i);
+    // Edit is disabled for skipped rows, so there is nothing to commit.
+    if (planned == null) return;
+    final (plan, resolution) = planned;
 
     setState(() => _phase = _Phase.committing);
     // Edit is a single-dance affordance, so it always uses the adapter-agnostic
@@ -382,10 +362,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
     try {
       final session = await pipeline.commit(
-        ImportBatchResult(records: acted),
+        ImportBatchResult(records: [plan]),
         now: DateTime.now().toUtc(),
         newId: uuidV4,
-        resolutions: resolutions,
+        resolutions: resolution == null
+            ? const <int, DedupeResolution>{}
+            : {0: resolution},
       );
       if (!mounted) return;
       final committed = session.records
