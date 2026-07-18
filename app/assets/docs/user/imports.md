@@ -3,9 +3,9 @@
 This guide is about getting dances *into* [Caller's Compendium](./glossary.md#callers-compendium)
 and moving your whole library between devices. It covers bringing in single
 dances from [The Caller's Box](./glossary.md#the-callers-box) and
-[ContraDB](./glossary.md#contradb), importing a Caller's Compendium file, and
-backing up and restoring everything you own. Where a feature is still on the way,
-it says so plainly.
+[ContraDB](./glossary.md#contradb), importing a Caller's Compendium file, moving
+a whole library across from Caller's Companion, and backing up and restoring
+everything you own. Where a feature is still on the way, it says so plainly.
 
 ## Your data stays yours
 
@@ -31,63 +31,59 @@ arrive entirely as plain text and still land safely in your collection, still be
 searchable, and still be yours to tidy up later. You are never left wondering
 what the app quietly threw away, because it throws nothing away.
 
-## Bring in dances from The Caller's Box
+## Bring in single dances from an online archive
 
-The Caller's Box is a large community archive of contra dances. Caller's
-Compendium can reach it two ways: a live **online search**, and importing a
-single dance **by its link or ID number**. Both need an internet connection, and
-both bring in **one dance at a time** so you can look before you keep.
+Caller's Compendium can reach two community archives —
+[The Caller's Box](./glossary.md#the-callers-box) and
+[ContraDB](./glossary.md#contradb) — two ways: a live **online search**, and
+importing a single dance **by its link or ID number**. Both need an internet
+connection, and both bring in **one dance at a time** so you can look before you
+keep.
 
-### Search The Caller's Box and import a dance
+### Search an archive online and import a dance
 
 1. Open **Collection**.
 2. Open the **Advanced** panel above the dance list and turn on the
    **Online search** switch. (Your local filters do not apply while online
    search is on — you are searching the archive, not your own library.)
-3. Type a dance **title** in the search box. Results from The Caller's Box
-   appear as you type.
-4. Select a result to open a **preview** of that dance.
-5. If it is the one you want, choose **Import** to add it to your collection.
+3. Choose which archive to search — **The Caller's Box** or **ContraDB** — from
+   the online source selector.
+4. Type a dance **title** in the search box. Results appear as you type. With
+   The Caller's Box you can also narrow by the figures a dance contains, using
+   the same **By-Phrase** panel as a local search; ContraDB search is by title
+   only.
+5. Select a result to open a **preview** of that dance.
+6. If it is the one you want, choose **Import** to add it to your collection.
 
 If the dance is already in your collection from an earlier import, the app tells
 you so and does not add a second copy — see
 [Avoiding duplicates](#avoiding-duplicates) below.
 
 > _Screenshot (added once packaged builds are available): the Collection screen
-> with the Online search switch turned on and three Caller's Box results listed
-> below a search for a dance title._
+> with the Online search switch turned on, an archive selector, and three
+> results listed below a search for a dance title._
 
-### Import a Caller's Box dance by link or ID
+### Import a dance by link or ID
 
 If you already have a dance's web address — or even its number — you can import
 it directly:
 
 1. Open **Settings**, go to the **Import** section, and choose **Import…**.
-2. In the source selector, choose **The Caller's Box**.
-3. Paste the dance's **web address** — its URL, for example a `dance.php?id=…`
-   link — or enter its **ID number** (for example `1`) in the address field,
-   then choose **Fetch**.
+2. In the source selector, choose **The Caller's Box** or **ContraDB**.
+3. Paste the dance's **web address** — for The Caller's Box a `dance.php?id=…`
+   link, for ContraDB a `…/dances/N` link — or enter its **ID number** (for
+   example `1`) in the address field, then choose **Fetch**. Paste a recognised
+   address and the app selects the matching source for you.
 4. Review the dance and commit it, as described in
    [Review before anything changes](#review-before-anything-changes).
 
-## Bring in a dance from ContraDB
-
-ContraDB is another online contra-dance database, and Caller's Compendium can
-import a single dance from it **by link or ID**:
-
-1. Open **Settings**, go to the **Import** section, and choose **Import…**.
-2. In the source selector, choose **ContraDB**.
-3. Paste a ContraDB dance's **web address** (a `…/dances/N` URL) or enter its
-   **ID number**, then choose **Fetch**.
-4. Review and commit the dance.
-
-A few honest notes about ContraDB imports:
+A few honest notes about these online imports:
 
 - They bring in **one dance at a time** and need an internet connection.
-- The app reads the public dance page, so it depends on how that page is laid
-  out; if the page changes or a dance has no figures listed, the dance still
-  comes in with whatever the app could read (its title, formation, and notes),
-  following the *nothing gets lost* promise above.
+- The app reads each archive's public dance page, so it depends on how that page
+  is laid out; if a page changes or a dance has no figures listed, the dance
+  still comes in with whatever the app could read (its title, formation, and
+  notes), following the *nothing gets lost* promise above.
 - Figures come in as recognised moves where the app can read them and as
   plain-text figures otherwise, the same as every other import.
 
@@ -107,6 +103,26 @@ library backup described next. Importing a file **adds to** your collection
 through the review queue; it does not replace what you already have. To move an
 entire library and replace what is on a device, use **Restore** instead — see
 below.
+
+## Bring your library across from Caller's Companion
+
+Moving from **Caller's Companion**? Caller's Compendium can read its exported
+`.USR` library file and bring your material across in one pass:
+
+1. Open **Settings**, go to the **Import** section, and choose **Import…**.
+2. In the source selector, choose **a Caller's Companion .USR file**.
+3. Choose your `.USR` file when the app asks for it.
+4. Review and commit, as described in
+   [Review before anything changes](#review-before-anything-changes).
+
+A `.USR` import brings across both your **dances** and your **program history**
+(Caller's Companion "sets"), and — like every other import — it is reviewable
+before it commits and undoable right after. Dances and programs you have imported
+before are recognised and offered as updates rather than duplicated.
+
+A few things do not come across yet: saved **venues**, custom **glossary terms**,
+and **related-dance links** stay behind for now. Your dances, their figures and
+notes, and your programs are the parts that migrate today.
 
 ## Move your whole library: backup and restore
 
@@ -177,18 +193,14 @@ watches for matches:
 
 ## Coming soon
 
-These migration paths are planned but **not available yet**. When they land,
-this guide will gain step-by-step instructions for each.
+One import path is planned but **not available yet**. When it lands, this guide
+will gain step-by-step instructions for it.
 
-- **Caller's Companion migration.** Bringing your dances and sets across from
-  Caller's Companion — both from its exported `.USR` file and from its
-  "copy formatted dance" text — is in progress and not yet something you can do
-  from the app.
-- **Community collection download.** A one-step "bootstrap" that downloads a
-  large, cleaned-up snapshot of the Caller's Box archive so you can start with a
-  full library instead of importing dances one at a time. This is planned and not
-  yet available; for now, use the Caller's Box **online search** and
-  **by-link** imports above.
+- **Importing programs from more places.** Today, program history comes across
+  only from a Caller's Companion `.USR` file. Building a program from a
+  **ContraDB** event or from a **plain-text list of dance titles** — matching
+  each dance to your collection (or importing it) as it goes — is planned but not
+  yet something you can do from the app.
 
 ## Where to go next
 
