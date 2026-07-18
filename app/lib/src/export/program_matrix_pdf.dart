@@ -24,7 +24,7 @@ const String _presentMark = '✓';
 /// [_debutMark]/[_firstMark]/[_presentMark]/blank markers with the same
 /// semantics as the on-screen [ProgramMatrix]
 /// (`isProgramDebut`/`isFirst`/`isPresent`). A short legend explains the marks.
-/// the marks. The header block (program title + event date/venue) mirrors the
+/// The header block (program title + event date/venue) mirrors the
 /// field ordering/format of [buildProgramPdf].
 ///
 /// - [formatDate] formats [eventDate]; defaults to ISO `yyyy-MM-dd`.
@@ -160,7 +160,7 @@ pw.Widget _matrixTable(
 pw.Widget _legend() => pw.Row(
   children: [
     pw.Text(
-      '$_debutMark  Introduced here      $_firstMark  First figure      $_presentMark  Present',
+      "$_debutMark  Introduced here      $_firstMark  Dance's first figure      $_presentMark  Present",
       style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
     ),
   ],
