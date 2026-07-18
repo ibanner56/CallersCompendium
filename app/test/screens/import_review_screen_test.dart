@@ -1070,6 +1070,159 @@ void main() {
         throwsA(isA<UrlFetchException>()),
       );
     });
+
+    test('rejects a response whose declared size exceeds the cap', () async {
+      final client = MockClient(
+        (_) async => http.Response('x' * 4096, 200),
+      );
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client, maxBytes: 8),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.message,
+            'message',
+            contains('more than'),
+          ),
+        ),
+      );
+    });
+
+    test('aborts a streamed body once it passes the size cap', () async {
+      // contentLength: null forces the streaming guard (not the declared-size
+      // fast path) to catch the overflow.
+      final client = MockClient.streaming((request, bodyStream) async {
+        Stream<List<int>> chunks() async* {
+          yield List<int>.filled(4, 0x41);
+          yield List<int>.filled(4, 0x41);
+          yield List<int>.filled(4, 0x41);
+        }
+
+        return http.StreamedResponse(chunks(), 200, contentLength: null);
+      });
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client, maxBytes: 8),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('follows a validated https→https redirect', () async {
+      final client = MockClient((request) async {
+        if (request.url.host == 'example.com') {
+          return http.Response(
+            '',
+            302,
+            headers: {'location': 'https://example.org/b.json'},
+          );
+        }
+        return http.Response('{"schemaVersion":1}', 200);
+      });
+      expect(
+        await fetchImportUrl('https://example.com/a.json', client: client),
+        '{"schemaVersion":1}',
+      );
+    });
+
+    test('rejects an https→http downgrade redirect', () async {
+      final client = MockClient((request) async {
+        if (request.url.scheme == 'https') {
+          return http.Response(
+            '',
+            302,
+            headers: {'location': 'http://example.com/b.json'},
+          );
+        }
+        return http.Response('should-not-be-reached', 200);
+      });
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.message,
+            'message',
+            contains('insecure'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects a redirect from a public host to a loopback address', () async {
+      final client = MockClient((request) async {
+        if (request.url.host == 'example.com') {
+          return http.Response(
+            '',
+            302,
+            headers: {'location': 'https://127.0.0.1:8080/x'},
+          );
+        }
+        return http.Response('should-not-be-reached', 200);
+      });
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client),
+        throwsA(
+          isA<UrlFetchException>().having(
+            (e) => e.message,
+            'message',
+            contains('internal'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects a redirect to the link-local metadata address', () async {
+      final client = MockClient((request) async {
+        if (request.url.host == 'example.com') {
+          return http.Response(
+            '',
+            302,
+            headers: {'location': 'https://169.254.169.254/latest/meta-data'},
+          );
+        }
+        return http.Response('should-not-be-reached', 200);
+      });
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('rejects a redirect with no destination', () async {
+      final client = MockClient(
+        (_) async => http.Response('', 302),
+      );
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('rejects a redirect to a non-http scheme', () async {
+      final client = MockClient((request) async {
+        if (request.url.scheme == 'https') {
+          return http.Response(
+            '',
+            302,
+            headers: {'location': 'file:///etc/passwd'},
+          );
+        }
+        return http.Response('should-not-be-reached', 200);
+      });
+      await expectLater(
+        fetchImportUrl('https://example.com/a.json', client: client),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('still allows a direct request to a self-hosted loopback URL', () async {
+      // A user who explicitly targets their own localhost instance is not
+      // blocked — only public→internal *redirects* are refused.
+      final client = MockClient(
+        (_) async => http.Response('{"schemaVersion":1}', 200),
+      );
+      expect(
+        await fetchImportUrl('http://localhost:3000/a.json', client: client),
+        '{"schemaVersion":1}',
+      );
+    });
   });
 
   group('edit prior to import (#266)', () {

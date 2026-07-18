@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show InternetAddress, InternetAddressType;
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -92,14 +94,42 @@ class UrlFetchException implements Exception {
 /// How long [fetchImportUrl] waits for a response before giving up.
 const Duration importFetchTimeout = Duration(seconds: 30);
 
+/// The maximum number of bytes any import fetch will read before aborting.
+///
+/// Import payloads are kilobyte-scale: a single dance JSON, a dance page, or a
+/// search results page. This deliberately generous ceiling (10 MiB) turns a
+/// hostile, compromised, or misbehaving endpoint's unbounded response into a
+/// clean, user-safe [UrlFetchException] instead of an out-of-memory crash of
+/// the whole app (OWASP: unrestricted resource consumption). The body is read
+/// as a stream and aborted the instant the budget is exceeded, so the oversized
+/// bytes are never fully buffered. Exposed as a per-call seam so tests can drive
+/// the guard with a tiny budget.
+const int kMaxImportResponseBytes = 10 * 1024 * 1024;
+
+/// The maximum number of HTTP redirects an import fetch will follow before
+/// giving up. Redirects are followed manually (not by the client) so every hop
+/// can be validated; this cap also stops a redirect loop from spinning forever.
+const int kMaxImportRedirects = 5;
+
 /// Default [UrlFetcher]: validates the URL, performs an HTTP GET (with a
 /// [importFetchTimeout]), and returns the response body. Throws a
 /// [UrlFetchException] with a clear, user-presentable message for an invalid or
-/// empty URL, a network failure, a timeout, a non-2xx status, or an empty body.
+/// empty URL, a network failure, a timeout, a non-2xx status, an oversized
+/// response, or an empty body.
+///
+/// Redirects are followed **manually** and validated per hop (see
+/// [_followBoundedGet]): a redirect that downgrades HTTPS→HTTP, or that points a
+/// public origin at a private/loopback/link-local address, is refused (OWASP
+/// A10 SSRF / A02). The body is read under a [maxBytes] budget.
 ///
 /// [client] is an injection point for tests (e.g. `package:http`'s
 /// `MockClient`); production callers omit it and a one-shot client is used.
-Future<String> fetchImportUrl(String url, {http.Client? client}) async {
+/// [maxBytes] is a test seam for the size guard.
+Future<String> fetchImportUrl(
+  String url, {
+  http.Client? client,
+  int maxBytes = kMaxImportResponseBytes,
+}) async {
   final trimmed = url.trim();
   if (trimmed.isEmpty) {
     throw const UrlFetchException('Enter a URL to import from.');
@@ -115,30 +145,166 @@ Future<String> fetchImportUrl(String url, {http.Client? client}) async {
 
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
-  final http.Response response;
   try {
-    response = await effectiveClient.get(uri).timeout(importFetchTimeout);
+    final bytes = await _followBoundedGet(
+      uri,
+      client: effectiveClient,
+      maxBytes: maxBytes,
+    );
+    final body = utf8.decode(bytes, allowMalformed: true);
+    if (body.trim().isEmpty) {
+      throw const UrlFetchException('The URL returned an empty response.');
+    }
+    return body;
   } on TimeoutException {
     throw UrlFetchException(
       'The request timed out after ${importFetchTimeout.inSeconds}s. Check the '
       'URL and your connection, then try again.',
     );
+  } on UrlFetchException {
+    rethrow;
   } on Object catch (e) {
     throw UrlFetchException("Couldn't reach that URL: $e");
   } finally {
     if (ownClient) effectiveClient.close();
   }
+}
 
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    throw UrlFetchException(
-      'The server responded with HTTP ${response.statusCode}.',
+/// Streams an HTTP GET of [uri] under a [maxBytes] budget, following redirects
+/// manually so every hop is validated (see [_validatedRedirectTarget]). Returns
+/// the response bytes on a 2xx, or throws a [UrlFetchException] for a non-2xx
+/// status, too many/redirect-loop redirects, an oversized body, or a disallowed
+/// redirect. The caller owns [client]'s lifecycle.
+Future<Uint8List> _followBoundedGet(
+  Uri uri, {
+  required http.Client client,
+  required int maxBytes,
+}) async {
+  var current = uri;
+  for (var redirects = 0; ; redirects++) {
+    // followRedirects=false so a 3xx is handed back to us to validate rather
+    // than transparently chased into a downgrade or an internal address.
+    final request = http.Request('GET', current)..followRedirects = false;
+    final response = await client.send(request).timeout(importFetchTimeout);
+
+    final status = response.statusCode;
+    if (status >= 300 && status < 400) {
+      await response.stream.drain<void>();
+      if (redirects >= kMaxImportRedirects) {
+        throw const UrlFetchException('That URL redirected too many times.');
+      }
+      final location = response.headers['location'];
+      if (location == null || location.trim().isEmpty) {
+        throw const UrlFetchException(
+          'The server returned a redirect with no destination.',
+        );
+      }
+      current = _validatedRedirectTarget(current, location.trim());
+      continue;
+    }
+
+    if (status < 200 || status >= 300) {
+      await response.stream.drain<void>();
+      throw UrlFetchException('The server responded with HTTP $status.');
+    }
+
+    // Fast-reject an advertised oversized body before reading a single chunk.
+    final declared = response.contentLength;
+    if (declared != null && declared > maxBytes) {
+      await response.stream.drain<void>();
+      throw UrlFetchException(_tooLargeMessage(maxBytes));
+    }
+
+    return _readCapped(response.stream, maxBytes);
+  }
+}
+
+/// Reads [stream] into memory, aborting with a [UrlFetchException] the moment
+/// the accumulated size would exceed [maxBytes]. The oversized tail is never
+/// buffered.
+Future<Uint8List> _readCapped(Stream<List<int>> stream, int maxBytes) async {
+  final builder = BytesBuilder(copy: false);
+  var total = 0;
+  await for (final chunk in stream) {
+    total += chunk.length;
+    if (total > maxBytes) {
+      throw UrlFetchException(_tooLargeMessage(maxBytes));
+    }
+    builder.add(chunk);
+  }
+  return builder.takeBytes();
+}
+
+/// Validates a redirect from [from] to [location] and returns the resolved
+/// target, or throws a [UrlFetchException] when the hop is unsafe.
+///
+/// Relative locations are resolved against [from]. A redirect is refused when
+/// it: targets a non-http(s) scheme; downgrades HTTPS→HTTP; or points a
+/// **public** origin at a private/loopback/link-local host (a classic
+/// SSRF-via-redirect vector). A user who explicitly fetched an internal host
+/// (e.g. a self-hosted `localhost` instance) is not penalised — the guard only
+/// fires when a public origin tries to reach inward.
+Uri _validatedRedirectTarget(Uri from, String location) {
+  final target = from.resolve(location);
+  if (!target.isScheme('http') && !target.isScheme('https')) {
+    throw const UrlFetchException(
+      'That URL redirected to an unsupported (non-http) address.',
     );
   }
-  final body = response.body;
-  if (body.trim().isEmpty) {
-    throw const UrlFetchException('The URL returned an empty response.');
+  if (from.isScheme('https') && target.isScheme('http')) {
+    throw const UrlFetchException(
+      'That URL redirected from a secure (https) to an insecure (http) '
+      'connection.',
+    );
   }
-  return body;
+  if (!_isInternalHost(from.host) && _isInternalHost(target.host)) {
+    throw const UrlFetchException(
+      'That URL redirected to a disallowed internal address.',
+    );
+  }
+  return target;
+}
+
+/// Whether [host] names a private, loopback, link-local, or otherwise
+/// non-public address that a public origin must not be redirected into.
+///
+/// Covers the `localhost`/`.local`/`.localhost` hostnames and IPv4/IPv6
+/// literals in loopback, private (RFC 1918 / ULA), link-local, and unspecified
+/// ranges. A public DNS name resolves to `false` (we do not perform DNS
+/// resolution here; this is a name/literal-level guard, not full DNS-rebinding
+/// defence).
+bool _isInternalHost(String host) {
+  final h = host.toLowerCase();
+  if (h.isEmpty) return true;
+  if (h == 'localhost' || h.endsWith('.localhost') || h.endsWith('.local')) {
+    return true;
+  }
+  final addr = InternetAddress.tryParse(h);
+  if (addr == null) return false;
+  if (addr.isLoopback || addr.isLinkLocal || addr.isMulticast) return true;
+  final raw = addr.rawAddress;
+  if (addr.type == InternetAddressType.IPv4) {
+    final a = raw[0];
+    final b = raw[1];
+    if (a == 0) return true; // 0.0.0.0/8 (unspecified)
+    if (a == 10) return true; // 10.0.0.0/8
+    if (a == 127) return true; // 127.0.0.0/8 (loopback)
+    if (a == 169 && b == 254) return true; // 169.254.0.0/16 (link-local)
+    if (a == 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+    if (a == 192 && b == 168) return true; // 192.168.0.0/16
+    return false;
+  }
+  // IPv6.
+  if (raw.every((byte) => byte == 0)) return true; // :: (unspecified)
+  final first = raw[0];
+  if (first == 0xfc || first == 0xfd) return true; // fc00::/7 (unique-local)
+  return false;
+}
+
+String _tooLargeMessage(int maxBytes) {
+  final mb = maxBytes ~/ (1024 * 1024);
+  final limit = mb > 0 ? '$mb\u00A0MB' : '$maxBytes\u00A0bytes';
+  return 'That URL returned more than $limit of data and was not imported.';
 }
 
 /// Transforms the raw text a user typed in URL mode (a pasted link or a bare
@@ -473,7 +639,11 @@ String decodeWindows1252(List<int> bytes) {
 ///
 /// [client] is an injection point for tests (e.g. `package:http`'s
 /// `MockClient`); production callers omit it and a one-shot client is used.
-Future<String> fetchCallersBoxSearch(String url, {http.Client? client}) async {
+Future<String> fetchCallersBoxSearch(
+  String url, {
+  http.Client? client,
+  int maxBytes = kMaxImportResponseBytes,
+}) async {
   final trimmed = url.trim();
   final uri = Uri.tryParse(trimmed);
   if (trimmed.isEmpty ||
@@ -485,30 +655,29 @@ Future<String> fetchCallersBoxSearch(String url, {http.Client? client}) async {
 
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
-  final http.Response response;
   try {
-    response = await effectiveClient.get(uri).timeout(importFetchTimeout);
+    final bytes = await _followBoundedGet(
+      uri,
+      client: effectiveClient,
+      maxBytes: maxBytes,
+    );
+    final body = decodeWindows1252(bytes);
+    if (body.trim().isEmpty) {
+      throw const UrlFetchException("The Caller's Box returned an empty page.");
+    }
+    return body;
   } on TimeoutException {
     throw UrlFetchException(
       'The search timed out after ${importFetchTimeout.inSeconds}s. Check your '
       'connection, then try again.',
     );
+  } on UrlFetchException {
+    rethrow;
   } on Object catch (e) {
     throw UrlFetchException("Couldn't reach The Caller's Box: $e");
   } finally {
     if (ownClient) effectiveClient.close();
   }
-
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    throw UrlFetchException(
-      "The Caller's Box responded with HTTP ${response.statusCode}.",
-    );
-  }
-  final body = decodeWindows1252(response.bodyBytes);
-  if (body.trim().isEmpty) {
-    throw const UrlFetchException("The Caller's Box returned an empty page.");
-  }
-  return body;
 }
 
 /// The host used to build a ContraDB dance URL from a **bare id**. ContraDB
@@ -596,40 +765,56 @@ typedef ContraDbSearchFetcher = Future<String> Function(String query);
 ///
 /// [client] is an injection point for tests (e.g. `package:http`'s
 /// `MockClient`); production callers omit it and a one-shot client is used.
-Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
+Future<String> fetchContraDbSearch(
+  String query, {
+  http.Client? client,
+  int maxBytes = kMaxImportResponseBytes,
+}) async {
   final uri = Uri.parse(contraDbSearchUrl);
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
-  final http.Response response;
   try {
-    response = await effectiveClient
-        .post(
-          uri,
-          headers: const {'Content-Type': 'application/json'},
-          body: buildContraDbSearchBody(query),
-        )
+    // bodyBytes (not body) so the Content-Type header stays exactly
+    // "application/json" without a charset suffix being appended.
+    final request = http.Request('POST', uri)
+      ..headers['Content-Type'] = 'application/json'
+      ..bodyBytes = utf8.encode(buildContraDbSearchBody(query));
+    final response = await effectiveClient
+        .send(request)
         .timeout(importFetchTimeout);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      await response.stream.drain<void>();
+      throw UrlFetchException(
+        'ContraDB responded with HTTP ${response.statusCode}.',
+      );
+    }
+    final declared = response.contentLength;
+    if (declared != null && declared > maxBytes) {
+      await response.stream.drain<void>();
+      throw UrlFetchException(_tooLargeMessage(maxBytes));
+    }
+    final bytes = await _readCapped(
+      response.stream,
+      maxBytes,
+    ).timeout(importFetchTimeout);
+    final body = utf8.decode(bytes, allowMalformed: true);
+    if (body.trim().isEmpty) {
+      throw const UrlFetchException('ContraDB returned an empty response.');
+    }
+    return body;
   } on TimeoutException {
     throw UrlFetchException(
       'The search timed out after ${importFetchTimeout.inSeconds}s. Check your '
       'connection, then try again.',
     );
+  } on UrlFetchException {
+    rethrow;
   } on Object catch (e) {
     throw UrlFetchException("Couldn't reach ContraDB: $e");
   } finally {
     if (ownClient) effectiveClient.close();
   }
-
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    throw UrlFetchException(
-      'ContraDB responded with HTTP ${response.statusCode}.',
-    );
-  }
-  final body = response.body;
-  if (body.trim().isEmpty) {
-    throw const UrlFetchException('ContraDB returned an empty response.');
-  }
-  return body;
 }
 
 /// Hosts serving The Caller's Box directly.

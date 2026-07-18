@@ -293,6 +293,40 @@ void main() {
         throwsA(isA<UrlFetchException>()),
       );
     });
+
+    test('rejects a response that exceeds the size cap', () async {
+      final client = MockClient(
+        (_) async => http.Response('x' * 4096, 200),
+      );
+      await expectLater(
+        fetchCallersBoxSearch(
+          'https://www.ibiblio.org/contradance/thecallersbox/index.php?title=x',
+          client: client,
+          maxBytes: 8,
+        ),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('rejects a redirect from a public host to a loopback address', () async {
+      final client = MockClient((request) async {
+        if (request.url.host == 'www.ibiblio.org') {
+          return http.Response(
+            '',
+            302,
+            headers: {'location': 'https://127.0.0.1/x'},
+          );
+        }
+        return http.Response('should-not-be-reached', 200);
+      });
+      await expectLater(
+        fetchCallersBoxSearch(
+          'https://www.ibiblio.org/contradance/thecallersbox/index.php?title=x',
+          client: client,
+        ),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
   });
 
   group('CallersBoxOnline.search', () {

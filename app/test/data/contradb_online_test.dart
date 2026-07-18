@@ -90,6 +90,27 @@ void main() {
         throwsA(isA<UrlFetchException>()),
       );
     });
+
+    test('rejects a response that exceeds the size cap', () async {
+      final client = MockClient(
+        (_) async => http.Response('x' * 4096, 200),
+      );
+      await expectLater(
+        fetchContraDbSearch('x', client: client, maxBytes: 8),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('preserves an exact application/json content type', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return http.Response(_searchJson(), 200);
+      });
+      await fetchContraDbSearch('rendezvous', client: client);
+      expect(captured.headers['Content-Type'], 'application/json');
+      expect(jsonDecode(captured.body)['filter'], ['title', 'rendezvous']);
+    });
   });
 
   group('ContraDbOnline.search', () {
