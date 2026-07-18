@@ -155,6 +155,18 @@ jobs:
           - platform: android
             arch: universal
             os: ubuntu-latest
+          # iOS is store-delivered (ADR-002): the signed .ipa goes to TestFlight
+          # via the App Store Connect API, NOT to the GitHub Release. So this leg
+          # deliberately stages NOTHING under dist/ and its .ipa is uploaded as a
+          # non-`dist-*` workflow artifact (see below) so it never lands in
+          # SHA256SUMS / the channel manifest / the SLSA subject glob. Like the
+          # android/macos legs it is a clean NO-OP when the Apple API-key secrets
+          # are absent (see the iOS signing gate below). arch:universal names the
+          # workflow artifact only — an .ipa is a single device-family-agnostic
+          # bundle (iPhone + iPad).
+          - platform: ios
+            arch: universal
+            os: macos-latest
     runs-on: ${{ matrix.os }}
     env:
       VERSION: ${{ needs.meta.outputs.version }}
@@ -215,6 +227,37 @@ jobs:
           else
             echo "signing=missing" >> "$GITHUB_OUTPUT"
             echo "::notice::macOS signing secrets not configured; producing UNSIGNED macOS artifacts (unchanged from today)."
+          fi
+
+      # iOS signing gate, mirroring the macOS/Android gates above. iOS has NO
+      # sideload/unsigned path (Apple-only distribution), so unlike the desktop
+      # legs there is no "unsigned fallback" — when the App Store Connect API-key
+      # secrets are absent the whole iOS leg is a clean no-op (it stages nothing
+      # and still succeeds). `signing=configured` ONLY when the full App Store
+      # Connect API-key set is present: the base64 .p8, its key id, the issuer
+      # id, and the team id. Secrets arrive via `env:` (never a step-level `if:`);
+      # names are never interpolated into a `run:` line. `mkdir -p dist` keeps the
+      # shared List/Upload steps happy on the no-op path.
+      - name: Determine iOS signing availability
+        if: matrix.platform == 'ios'
+        id: ios_signing
+        env:
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if [ -n "${APPLE_API_KEY_P8:-}" ] \
+            && [ -n "${APPLE_API_KEY_ID:-}" ] \
+            && [ -n "${APPLE_API_ISSUER_ID:-}" ] \
+            && [ -n "${APPLE_TEAM_ID:-}" ]; then
+            echo "signing=configured" >> "$GITHUB_OUTPUT"
+            echo "iOS App Store Connect API-key secrets configured; archiving + signing the .ipa (and uploading to TestFlight on a tag)."
+          else
+            echo "signing=missing" >> "$GITHUB_OUTPUT"
+            echo "::notice::iOS App Store Connect API-key secrets not configured; skipping the iOS/TestFlight leg."
           fi
 
       - name: Install Linux desktop dependencies
@@ -469,6 +512,156 @@ jobs:
                 "$RUNNER_TEMP/cc-asc-api-key.p8" 2>/dev/null || true
           exit 0
 
+      # --- iOS: signed App Store archive + TestFlight upload ----------------
+      # Automatic (Xcode-managed) code signing driven by an App Store Connect
+      # API key: `flutter build ipa` passes `-allowProvisioningUpdates` to BOTH
+      # the xcodebuild archive and the -exportArchive steps, so xcodebuild
+      # creates/downloads the iOS distribution certificate + App Store
+      # provisioning profile in the cloud — NO manually-managed cert or profile
+      # is required. The key needs the App Manager role (required for TestFlight
+      # upload; Developer is not sufficient).
+      #
+      # Secrets arrive via `env:` and are only ever decoded to files with
+      # `base64 -D` (never echoed); `set -x` is deliberately NOT used. The .p8 is
+      # written to the two directories xcodebuild + altool auto-search
+      # (~/.appstoreconnect/private_keys and ~/.private_keys) as
+      # AuthKey_<KEYID>.p8. DEVELOPMENT_TEAM (absent from the checked-in project)
+      # is injected into Release.xcconfig so automatic signing has a team; the
+      # always() cleanup step below removes the key material and reverts it.
+      - name: Prepare iOS signing (App Store Connect API key)
+        if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
+        env:
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          # App Store Connect API key, in BOTH well-known locations that
+          # xcodebuild (automatic signing) and altool (upload) auto-discover.
+          asc_dir="$HOME/.appstoreconnect/private_keys"
+          alt_dir="$HOME/.private_keys"
+          mkdir -p "$asc_dir" "$alt_dir"
+          # macOS runners ship BSD base64; `-D` (decode) is the portable flag.
+          printf '%s' "$APPLE_API_KEY_P8" | base64 -D > "$asc_dir/AuthKey_${APPLE_API_KEY_ID}.p8"
+          cp "$asc_dir/AuthKey_${APPLE_API_KEY_ID}.p8" "$alt_dir/AuthKey_${APPLE_API_KEY_ID}.p8"
+          chmod 600 "$asc_dir/AuthKey_${APPLE_API_KEY_ID}.p8" \
+                    "$alt_dir/AuthKey_${APPLE_API_KEY_ID}.p8"
+
+          # Give automatic signing a team. Release.xcconfig only #includes the
+          # ephemeral Generated.xcconfig today; append a team line (reverted in
+          # cleanup). The team id is not secret, but sourcing it from the secret
+          # keeps the checked-in project team-agnostic.
+          printf 'DEVELOPMENT_TEAM=%s\n' "$APPLE_TEAM_ID" >> app/ios/Flutter/Release.xcconfig
+
+          # ExportOptions for `flutter build ipa`, built with PlistBuddy so no
+          # heredoc indentation leaks into the file. `app-store` is accepted by
+          # every Xcode the runner is likely to ship (newer Xcode may emit a
+          # non-fatal deprecation notice for the renamed `app-store-connect`).
+          # destination=export keeps the build local; the actual TestFlight
+          # upload is a separate, tag-gated altool step below.
+          # manageAppVersionAndBuildNumber=false so our --build-number stays
+          # authoritative (TestFlight rejects duplicate build numbers).
+          plist="$RUNNER_TEMP/ExportOptions.plist"
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0"><dict></dict></plist>' > "$plist"
+          /usr/libexec/PlistBuddy \
+            -c "Add :method string app-store" \
+            -c "Add :signingStyle string automatic" \
+            -c "Add :teamID string ${APPLE_TEAM_ID}" \
+            -c "Add :destination string export" \
+            -c "Add :uploadSymbols bool true" \
+            -c "Add :manageAppVersionAndBuildNumber bool false" \
+            "$plist"
+
+      - name: Build signed iOS .ipa (App Store archive)
+        if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
+        working-directory: app
+        run: |
+          set -euo pipefail
+          # Monotonic, unique CFBundleVersion so TestFlight never rejects a
+          # duplicate build number. GITHUB_RUN_NUMBER only ever increases, but it
+          # is reused when a run is re-run, so fold in GITHUB_RUN_ATTEMPT (starts
+          # at 1, increments per re-run) to keep re-runs unique too. The result
+          # stays a single monotonic integer (attempts are << 1000). We pass it on
+          # the CLI so app/pubspec.yaml (0.1.0+1) is untouched and the meta/version
+          # gate (tag core == pubspec semver) stays green.
+          build_number=$(( GITHUB_RUN_NUMBER * 1000 + GITHUB_RUN_ATTEMPT ))
+          echo "Using CFBundleVersion (build number): ${build_number}"
+          flutter build ipa --release \
+            --build-number="${build_number}" \
+            --export-options-plist "$RUNNER_TEMP/ExportOptions.plist"
+          ls -l build/ios/ipa
+
+      # Upload to TestFlight ONLY on a real tag push — a manual workflow_dispatch
+      # builds + signs the .ipa for validation but never uploads (so dry runs
+      # don't spam TestFlight), mirroring how the desktop publish is tag-gated.
+      - name: Upload iOS build to TestFlight
+        if: >-
+          matrix.platform == 'ios' &&
+          steps.ios_signing.outputs.signing == 'configured' &&
+          github.event_name == 'push' &&
+          startsWith(github.ref, 'refs/tags/v')
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          # nullglob so an unmatched pattern expands to nothing (rather than the
+          # literal "*.ipa" string), giving a real empty-vs-found check.
+          shopt -s nullglob
+          ipas=(app/build/ios/ipa/*.ipa)
+          shopt -u nullglob
+          if [ "${#ipas[@]}" -eq 0 ]; then
+            echo "::error::no .ipa found under app/build/ios/ipa" >&2
+            exit 1
+          fi
+          if [ "${#ipas[@]}" -gt 1 ]; then
+            echo "::error::expected exactly one .ipa, found ${#ipas[@]}: ${ipas[*]}" >&2
+            exit 1
+          fi
+          ipa="${ipas[0]}"
+          echo "Uploading $ipa to App Store Connect (TestFlight, internal testers)."
+          # altool finds AuthKey_<KEYID>.p8 in the private_keys dirs written by
+          # the prepare step. --upload-app makes the build available to INTERNAL
+          # TestFlight testers automatically; it does NOT submit to Beta App
+          # Review or the public App Store.
+          xcrun altool --upload-app \
+            -f "$ipa" \
+            -t ios \
+            --apiKey "$APPLE_API_KEY_ID" \
+            --apiIssuer "$APPLE_API_ISSUER_ID"
+
+      # Keep the signed .ipa as a workflow artifact for validation/debugging.
+      # The name is OUTSIDE the `dist-*` namespace the publish job downloads
+      # (pattern: dist-*), so it is never merged into the GitHub Release,
+      # SHA256SUMS, the channel manifest, or the SLSA subject glob — iOS is
+      # store-delivered (ADR-002), not a direct download.
+      - name: Upload iOS .ipa artifact
+        if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-ipa
+          path: app/build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      # Always tear down the decoded API key material + revert the injected
+      # DEVELOPMENT_TEAM, even if the build/upload failed. A no-op on the skip
+      # path (nothing was written). The key id may be empty on that path, so the
+      # rm targets are guarded with a default.
+      - name: Clean up iOS signing material
+        if: always() && matrix.platform == 'ios'
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          key_id="${APPLE_API_KEY_ID:-__none__}"
+          rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${key_id}.p8" \
+                "$HOME/.private_keys/AuthKey_${key_id}.p8" 2>/dev/null || true
+          git checkout -- app/ios/Flutter/Release.xcconfig 2>/dev/null || true
+          exit 0
+
       # --- Windows: zip (portable) + Inno Setup installer ------------------
       - name: Build Windows release bundle
         if: matrix.platform == 'windows'
@@ -572,9 +765,12 @@ jobs:
           name: dist-${{ matrix.platform }}
           path: dist/
           # Desktop legs must always stage binaries (error on empty). The android
-          # leg is a no-op when signing secrets are absent, so it tolerates an
-          # empty dist/ (no dist-android artifact is uploaded, step still passes).
-          if-no-files-found: ${{ matrix.platform == 'android' && 'ignore' || 'error' }}
+          # leg is a no-op when signing secrets are absent, and the ios leg never
+          # stages into dist/ (its signed .ipa is store-delivered to TestFlight
+          # and uploaded as the separate `ios-ipa` artifact), so both tolerate an
+          # empty dist/ (no dist-android/dist-ios artifact is uploaded, step still
+          # passes).
+          if-no-files-found: ${{ (matrix.platform == 'android' || matrix.platform == 'ios') && 'ignore' || 'error' }}
           retention-days: 7
 
   # Draft-release publish. ONLY this job gets write scopes, and it runs ONLY for

@@ -60,7 +60,12 @@ The **release notes** (the draft's body) are generated from `app/CHANGELOG.md`
 by `tools/release/gen_release_notes.py` — see
 [CHANGELOG-driven release notes](#changelog-driven-release-notes) below.
 
-Deferred this wave: Linux/Windows **arm64** and **iOS** (needs Apple signing).
+Deferred this wave: Linux/Windows **arm64**.
+**iOS** now archives + signs an **App Store `.ipa`** and uploads it to
+**TestFlight** in the release pipeline (automatic signing via an App Store Connect
+API key — see [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api)
+below). iOS is **store-delivered** (ADR-002), so it is *not* a GitHub Release
+asset / `SHA256SUMS` / channel-manifest entry.
 **Android** now builds a **signed universal APK** in the release pipeline (a real
 `release` signingConfig in `app/android/app/build.gradle.kts` + the workflow's
 android build+sign+stage leg, see [Android (signed APK)](#android-signed-apk)
@@ -554,6 +559,129 @@ carries a valid signature, just not one from Google Play. To sideload it a user
 enables **"install unknown apps"** for their browser/file manager, then opens the
 downloaded APK. Verify the download against `SHA256SUMS` as with every artifact.
 
+## iOS (TestFlight via App Store Connect API)
+
+iOS has **no sideload/unsigned path** — Apple is the only distribution channel.
+So unlike the desktop legs (which have an unsigned fallback) the iOS leg is either
+a **fully signed App Store build uploaded to TestFlight**, or — when the Apple
+secrets are absent — a **clean no-op**. The first target is **TestFlight**
+(internal testers, no App Review wait), **not** public App Store submission. iOS
+is store-delivered (ADR-002 §6), so its `.ipa` is **never** a GitHub Release asset
+and never appears in `SHA256SUMS` / the channel manifest / the SLSA subject glob;
+it is uploaded only to App Store Connect (plus a `ios-ipa` workflow artifact for
+debugging).
+
+> **Status.** On a `v*` tag the `build` matrix's iOS leg (`macos-latest`), when
+> the App Store Connect API-key secrets are present, writes the API key to the
+> directories xcodebuild/altool auto-search, injects `DEVELOPMENT_TEAM` for
+> automatic signing, runs `flutter build ipa --release --export-options-plist …`
+> (which archives + exports a signed App Store `.ipa`), and then uploads it to
+> TestFlight with `xcrun altool --upload-app`. An `always()` step deletes the key
+> material and reverts the injected team.
+>
+> **Gated exactly like macOS/Android:** the `Determine iOS signing availability`
+> step sets `signing=configured` **only** when `APPLE_API_KEY_P8`,
+> `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`, **and** `APPLE_TEAM_ID` are all
+> present. Otherwise `signing=missing` and the whole leg is skipped (no failure),
+> so merging this never changes the current release output.
+
+### Automatic signing (no manual cert or profile)
+
+Code signing is **automatic** (Xcode-managed) and driven by the **App Store
+Connect API key**: `flutter build ipa` passes `-allowProvisioningUpdates` to both
+the `xcodebuild` archive **and** the `-exportArchive` step, so xcodebuild
+**creates/downloads the iOS distribution certificate and the App Store
+provisioning profile in the cloud** at build time. There is **no manually-created
+distribution cert or provisioning profile** to manage, and none is committed. The
+API key must have the **App Manager** role — the Developer role can build/sign but
+**cannot upload to TestFlight**.
+
+The Apple bundle identifier is `org.callerscompendium.compendiumApp` (unified
+across platforms; `app/ios/Runner.xcodeproj`, `CODE_SIGN_STYLE = Automatic`). No
+entitlements/capabilities are declared and none are needed. The App Store Connect
+app record (SKU `CallersCompendiumApp`) already exists.
+
+The generated `ExportOptions.plist` uses `method = app-store` (accepted by every
+Xcode the runner is likely to ship; newer Xcode may print a non-fatal deprecation
+notice for the renamed `app-store-connect`), `signingStyle = automatic`, and
+`teamID = APPLE_TEAM_ID`. `DEVELOPMENT_TEAM` is not committed to the project; it is
+appended to `app/ios/Flutter/Release.xcconfig` at build time from the secret and
+reverted in the `always()` cleanup, keeping the checked-in project team-agnostic.
+
+### Build-number uniqueness (TestFlight)
+
+TestFlight **rejects duplicate build numbers**. `app/pubspec.yaml` is `0.1.0+1`,
+so the leg computes `CFBundleVersion` as `GITHUB_RUN_NUMBER * 1000 +
+GITHUB_RUN_ATTEMPT` and passes it via `--build-number` on the CLI. The run number
+only ever increases, and folding in the run *attempt* keeps re-runs of the same
+tag unique too (a plain `GITHUB_RUN_NUMBER` would collide on a re-run and be
+rejected). This is done **without editing `pubspec.yaml`**, so the `meta` job's
+version gate (tag core version == pubspec semver `0.1.0`) is unaffected.
+`manageAppVersionAndBuildNumber` is set to `false` in `ExportOptions.plist` so
+this build number stays authoritative.
+
+### Upload gated to real tags only
+
+The `.ipa` is **built + signed on both** a tag push **and** a manual
+`workflow_dispatch` (so the sign path can be validated), but the
+`xcrun altool --upload-app` step runs **only** for a real tag push
+(`github.event_name == 'push'` on a `refs/tags/v*` ref). A `workflow_dispatch`
+dry run therefore never uploads to TestFlight — mirroring how the desktop publish
+is gated to tags. The upload makes the build available to **internal** TestFlight
+testers automatically; it does **not** submit to Beta App Review or the public App
+Store.
+
+> **Note.** The full sign + upload path only fully exercises on a tag (or a
+> `workflow_dispatch` for build/sign validation). A PR's own CI does **not** run
+> the release workflow, so it never uploads to TestFlight.
+
+### Export compliance (handled via `Info.plist`, no per-build action)
+
+`app/ios/Runner/Info.plist` sets `ITSAppUsesNonExemptEncryption` = `false`.
+Caller's Compendium is local-first and uses only standard/exempt encryption
+(HTTPS for the update check), so it qualifies for the export-compliance
+exemption. Declaring this in the bundle makes **every** TestFlight/App Store
+upload skip the per-build "Missing Compliance" question in App Store Connect —
+neither CI nor testers need to answer it. No per-build action is required.
+
+### Maintainer: obtain the App Store Connect API key (one-time, out-of-band)
+
+Requires an **Apple Developer Program** membership ($99/yr) and the App Store
+Connect app record (already created for this bundle id).
+
+In **App Store Connect → Users and Access → Integrations → App Store Connect
+API**, create a **Team** key with the **App Manager** role and download the `.p8`
+(downloadable **once**). Note its **Key ID** and the team's **Issuer ID**, and
+your Apple **Team ID**.
+
+> **Secret custody.** The `.p8` is a long-lived credential: anyone with it (App
+> Manager) can upload builds and manage the app. Keep it secret and backed up
+> **outside** the repo, never commit it, and store it **only** as the CI secret
+> below. If exposed, **revoke** the key in App Store Connect and rotate the secret.
+> The workflow decodes it to `~/.appstoreconnect/private_keys` /
+> `~/.private_keys`, never echoes it, and **deletes it in an `always()` cleanup
+> step** so nothing persists on the runner.
+
+### Maintainer: GitHub Actions secrets (the last step to enable iOS)
+
+Add **all four** and the pipeline starts signing + uploading iOS to TestFlight on
+the next tag; omit any and the iOS leg stays a clean skip. Three are **shared with
+the macOS Developer ID leg** (`APPLE_API_KEY_P8`, `APPLE_API_KEY_ID`,
+`APPLE_API_ISSUER_ID`, `APPLE_TEAM_ID`) — but note the macOS leg uses those for
+**notarization** with a **Developer ID** cert, whereas iOS uses them for **App
+Store automatic signing + TestFlight upload**; the `APPLE_DEVELOPER_ID_CERT_P12` /
+`APPLE_CERT_PASSWORD` secrets are **macOS-only** and are **not** used by iOS.
+
+| Secret | Contents |
+|--------|----------|
+| `APPLE_API_KEY_P8` | App Store Connect API key `.p8` (**App Manager** role), base64-encoded (`base64 < AuthKey_XXXX.p8 \| tr -d '\n'`) |
+| `APPLE_API_KEY_ID` | The API **Key ID** (e.g. `Z2DTAN9GXH`) |
+| `APPLE_API_ISSUER_ID` | The API key **Issuer ID** |
+| `APPLE_TEAM_ID` | Your Apple **Team ID** (e.g. `46U298TDGV`) — injected as `DEVELOPMENT_TEAM` + `teamID` |
+
+The secrets are passed via step `env:` (never interpolated into a `run:` line) and
+are only available to the canonical repo's tag-triggered run — not to forks or PRs.
+
 ## Packaging tooling notes
 
 Packaging is hand-rolled per platform for byte-exact control over the name
@@ -572,5 +700,9 @@ runners:
 - **Windows zip** — PowerShell `Compress-Archive`.
 - **Windows installer** — Inno Setup (`ISCC.exe`, preinstalled on the runner)
   driving `packaging/windows/CallersCompendium.iss`.
+- **iOS `.ipa`** — `flutter build ipa` (archive + `-exportArchive`) with an
+  `ExportOptions.plist` generated by `PlistBuddy`, then `xcrun altool` for the
+  TestFlight upload — see [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api).
+  Not staged into `dist/` (store-delivered, not a download).
 
 All GitHub Actions are pinned to full commit SHAs (repo convention).
