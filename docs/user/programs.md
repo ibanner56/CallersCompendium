@@ -23,10 +23,31 @@ Open **Programs** to see the programs you have built. It starts with a short
 prompt and a **New program** button until you make your first one.
 
 - **Start one** with **New program**.
+- **Build one from a list of titles** with **Import from title list** (the
+  playlist icon in the **Programs** toolbar) — see below.
 - **Duplicate** a program to reuse last month's shape as a starting point.
 - **Delete** a program and it is only soft-deleted — an **Undo** option appears,
   and it moves to a **Recently Deleted** area you can restore from later, exactly
   as with [dances](./collection.md#keep-your-collection-tidy).
+
+### Build from a list of titles
+
+Already have your set list written out somewhere — a text file, an email, a note
+on your phone? **Import from title list** lets you paste it in and turn it into a
+program in one go. Give the program a title, paste your dance titles **one per
+line**, and you get a live preview before anything is saved:
+
+- **A line that matches a dance in your [collection](./glossary.md#collection)**
+  (ignoring capitalisation) becomes a **dance slot** linked to that dance.
+- **A line that matches nothing** — or that matches **more than one** dance, so
+  the app can't tell which you meant — is kept as a **free-text note slot**, the
+  same kind of slot used for breaks and announcements. Nothing is dropped, and
+  the order you pasted is preserved exactly.
+- **Blank lines are skipped**, so you can space your list out however you like.
+
+Press **Import** to create the program; an **Undo** option appears in case you
+change your mind. You can then open the program and tidy up any notes — for
+example, searching your collection to link a dance the paste couldn't find.
 
 ## Build a program
 
