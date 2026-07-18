@@ -228,6 +228,106 @@ void main() {
     expect(await repos.dances.listAll(), hasLength(2));
   });
 
+  testWidgets('refining the query after a pick returns to the results list', (
+    tester,
+  ) async {
+    const indexHtml = '''
+<html><body>
+  <a href="/programs/33">Barn Dance Night</a>
+  <a href="/programs/99">Spring Fling</a>
+</body></html>
+''';
+    final repos = openTestRepositories();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) async {
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return _danceHtml(id);
+      },
+    );
+
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+      programSearch: ContraDbProgramSearch(fetch: (_) async => indexHtml),
+    );
+
+    await tester.tap(find.text('Search by name'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('contradb-program-search-field')),
+      'barn',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Barn Dance Night'));
+    await tester.pumpAndSettle();
+
+    // Preview is showing after the pick.
+    expect(
+      find.byKey(const ValueKey('contradb-program-preview')),
+      findsOneWidget,
+    );
+
+    // Editing the query clears the preview and shows results again.
+    await tester.enterText(
+      find.byKey(const ValueKey('contradb-program-search-field')),
+      'spring',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('contradb-program-preview')),
+      findsNothing,
+    );
+    expect(find.text('Spring Fling'), findsOneWidget);
+  });
+
+  testWidgets('switching to search after a URL fetch reveals the results UI', (
+    tester,
+  ) async {
+    const indexHtml =
+        '<html><body><a href="/programs/33">Barn Dance Night</a></body></html>';
+    final repos = openTestRepositories();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) async {
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return _danceHtml(id);
+      },
+    );
+
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+      programSearch: ContraDbProgramSearch(fetch: (_) async => indexHtml),
+    );
+
+    // Fetch a program via the URL flow first.
+    await tester.enterText(
+      find.byKey(const ValueKey('contradb-program-url')),
+      '33',
+    );
+    await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('contradb-program-preview')),
+      findsOneWidget,
+    );
+
+    // Switching to search mode clears the preview so the results UI is reachable.
+    await tester.tap(find.text('Search by name'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('contradb-program-preview')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('contradb-program-search-prompt')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('a program-index load failure shows an error with retry', (
     tester,
   ) async {

@@ -159,9 +159,17 @@ class _ContraDbProgramImportScreenState
     }
   }
 
-  /// Switches entry mode. Entering search mode lazily loads the index once.
+  /// Switches entry mode. Entering search mode lazily loads the index once and
+  /// clears any previously-fetched program so the results UI is reachable (a
+  /// program fetched via the URL flow must not keep hiding the results list).
   void _onModeChanged(_ImportMode mode) {
-    setState(() => _mode = mode);
+    setState(() {
+      _mode = mode;
+      if (mode == _ImportMode.search) {
+        _program = null;
+        _fetchError = null;
+      }
+    });
     if (mode == _ImportMode.search &&
         !_search.isLoaded &&
         !_indexLoading &&
@@ -193,7 +201,13 @@ class _ContraDbProgramImportScreenState
   }
 
   void _onSearchChanged(String query) {
-    setState(() => _searchResults = filterProgramIndex(_allEntries, query));
+    setState(() {
+      // Editing the query returns to the results list even after a program was
+      // picked + previewed, so the user can refine and choose a different one.
+      _program = null;
+      _fetchError = null;
+      _searchResults = filterProgramIndex(_allEntries, query);
+    });
   }
 
   /// Picks a searched program: feeds its id into the existing URL fetch flow so
