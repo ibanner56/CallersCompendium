@@ -48,7 +48,10 @@ This beta provides:
 
 - macOS: right-click the app → **Open**, then confirm (Gatekeeper).
 - Windows: **More info → Run anyway** on the SmartScreen prompt.
-- Linux: mark the AppImage executable, or use the tarball.
+- Linux: the **`.tar.gz`** is the no-setup path — extract and run. The `.AppImage`
+  needs the **FUSE 2** runtime (`libfuse.so.2`) — package `libfuse2` on Debian/Ubuntu,
+  `fuse-libs` on Fedora — which some recent distros don't preinstall; install it, or
+  launch with `./CallersCompendium-*.AppImage --appimage-extract-and-run`.
 
 You can verify any download against the published `SHA256SUMS` if you want
 belt-and-suspenders.
