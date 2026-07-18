@@ -342,6 +342,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             ProgramExportMenu(
               program: program,
               titleFor: (id) => _danceTitles[id],
+              danceFor: (id) => _dances[id],
             ),
             if (program.slots.any((s) => s.danceId != null))
               IconButton(

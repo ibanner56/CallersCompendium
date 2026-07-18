@@ -655,6 +655,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ProgramExportMenu(
                 program: _draftProgram!,
                 titleFor: _titleForDance,
+                danceFor: (id) => _data?.dancesById[id],
               ),
             if (!widget.isNew && _existing != null) ...[
               if (_slots.any((s) => s.danceId != null))

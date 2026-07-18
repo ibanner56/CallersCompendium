@@ -1,17 +1,37 @@
+import 'dart:io';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../export/program_pdf.dart';
+import '../export/program_share_bundle.dart';
 
 /// Actions offered by the [ProgramExportMenu].
-enum _ExportAction { shareText, copyText, pdf }
+enum _ExportAction { shareText, shareBundle, copyText, pdf }
 
 /// Hands the shareable set list to the OS share sheet. Defaults to
 /// [SharePlus.instance.share]; overridable so tests can force a failure.
 typedef ShareInvoker = Future<void> Function(ShareParams params);
+
+/// Materializes a share-bundle [json] payload as an [XFile] named [fileName]
+/// for the OS share sheet. The default writes it to a temp file (via
+/// `path_provider`); overridable so tests can supply the file without invoking
+/// the `path_provider` platform channel, which has no plugin implementation
+/// under `flutter test` (its calls would throw `MissingPluginException`).
+typedef BundleFileWriter = Future<XFile> Function(String json, String fileName);
+
+/// Default [BundleFileWriter]: writes [json] to a temp file (via
+/// `path_provider`) and returns it as a JSON [XFile].
+Future<XFile> writeBundleTempFile(String json, String fileName) async {
+  final dir = await getTemporaryDirectory();
+  final file = File('${dir.path}/$fileName');
+  await file.writeAsString(json);
+  return XFile(file.path, mimeType: 'application/json');
+}
 
 /// Hands a generated PDF to the OS print/save dialog. Defaults to
 /// [Printing.layoutPdf]; overridable so tests can force a failure.
@@ -38,15 +58,26 @@ class ProgramExportMenu extends StatelessWidget {
     super.key,
     required this.program,
     required this.titleFor,
+    this.danceFor,
     this.shareInvoker,
+    this.bundleFileWriter,
     this.pdfLayouter,
   });
 
   final Program program;
   final String? Function(String danceId) titleFor;
 
+  /// Resolves a slot's `danceId` to its full [Dance], so the "Share (program +
+  /// dances)" action can embed every referenced dance in a self-contained
+  /// bundle. When `null`, that action is omitted (there is nothing to embed).
+  final Dance? Function(String danceId)? danceFor;
+
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
   final ShareInvoker? shareInvoker;
+
+  /// Test seam for the bundle temp-file write; defaults to
+  /// [writeBundleTempFile].
+  final BundleFileWriter? bundleFileWriter;
 
   /// Test seam for the print/save call; defaults to [Printing.layoutPdf].
   final PdfLayouter? pdfLayouter;
@@ -65,6 +96,39 @@ class ProgramExportMenu extends StatelessWidget {
     await share(
       ShareParams(
         text: _plainText(context),
+        subject: program.title,
+        sharePositionOrigin: origin,
+      ),
+    );
+  }
+
+  /// Writes a self-contained program-plus-referenced-dances bundle (the
+  /// canonical [CompendiumArchive] JSON — see [buildProgramShareBundle]) to a
+  /// temp file and hands it to the OS share sheet as a JSON [XFile].
+  ///
+  /// The bundle *carries* the program plus the full definition of every dance
+  /// its slots reference. On the receiving device the **existing** manual
+  /// Import flow (`GenericJsonAdapter`) imports the embedded **dances** today;
+  /// it does not yet import the program. The program travels in the bundle for
+  /// the forthcoming receive-side auto-open (issue #298, PR 2), which will
+  /// import the program itself. This send-side action ships first, so a
+  /// recipient on a build without the receive side gets the dances now and the
+  /// program once PR 2 lands.
+  Future<void> _shareBundle(Rect? origin) async {
+    final resolveDance = danceFor;
+    if (resolveDance == null) return;
+
+    final json = buildProgramShareBundle(program, danceFor: resolveDance);
+    final fileName = programShareBundleFileName(program.title);
+
+    final writeFile = bundleFileWriter ?? writeBundleTempFile;
+    final xfile = await writeFile(json, fileName);
+
+    final share = shareInvoker ?? SharePlus.instance.share;
+    await share(
+      ShareParams(
+        files: [xfile],
+        fileNameOverrides: [fileName],
         subject: program.title,
         sharePositionOrigin: origin,
       ),
@@ -110,6 +174,12 @@ class ProgramExportMenu extends StatelessWidget {
           "Couldn't share this set list",
           () => _shareText(context, origin),
         );
+      case _ExportAction.shareBundle:
+        await _guard(
+          messenger,
+          "Couldn't share this program",
+          () => _shareBundle(origin),
+        );
       case _ExportAction.copyText:
         await _copyText(context);
       case _ExportAction.pdf:
@@ -145,8 +215,8 @@ class ProgramExportMenu extends StatelessWidget {
       tooltip: 'Export',
       icon: const Icon(Icons.ios_share),
       onSelected: (action) => _onSelected(context, action),
-      itemBuilder: (context) => const [
-        PopupMenuItem<_ExportAction>(
+      itemBuilder: (context) => [
+        const PopupMenuItem<_ExportAction>(
           value: _ExportAction.shareText,
           child: ListTile(
             leading: Icon(Icons.mail_outline),
@@ -154,7 +224,16 @@ class ProgramExportMenu extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        PopupMenuItem<_ExportAction>(
+        if (danceFor != null)
+          const PopupMenuItem<_ExportAction>(
+            value: _ExportAction.shareBundle,
+            child: ListTile(
+              leading: Icon(Icons.share_outlined),
+              title: Text('Share (program + dances)'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        const PopupMenuItem<_ExportAction>(
           value: _ExportAction.copyText,
           child: ListTile(
             leading: Icon(Icons.copy_outlined),
@@ -162,7 +241,7 @@ class ProgramExportMenu extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        PopupMenuItem<_ExportAction>(
+        const PopupMenuItem<_ExportAction>(
           value: _ExportAction.pdf,
           child: ListTile(
             leading: Icon(Icons.picture_as_pdf_outlined),
