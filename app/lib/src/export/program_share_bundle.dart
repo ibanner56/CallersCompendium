@@ -8,7 +8,10 @@ import 'package:compendium_core/compendium_core.dart';
 /// format the manual Import flow's `GenericJsonAdapter` already consumes. Here
 /// the archive carries a single [program] plus the full definitions of every
 /// dance the program references, so the receiving device can re-import the
-/// dances through the existing import path with nothing else attached.
+/// dances through the existing import path with nothing else attached. The
+/// program is carried alongside them for the forthcoming receive-side
+/// auto-open (issue #298, PR 2), which will import the program itself; the
+/// current manual Import flow imports the dances only.
 ///
 /// [danceFor] resolves a slot's `danceId` to its full [Dance]; a referenced id
 /// that can't be resolved is skipped (best-effort, never fatal — mirrors the

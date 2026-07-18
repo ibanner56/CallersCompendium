@@ -19,8 +19,9 @@ typedef ShareInvoker = Future<void> Function(ShareParams params);
 
 /// Materializes a share-bundle [json] payload as an [XFile] named [fileName]
 /// for the OS share sheet. The default writes it to a temp file (via
-/// `path_provider`); overridable so tests can supply the file without async
-/// disk I/O (which never completes under the widget tester's fake async).
+/// `path_provider`); overridable so tests can supply the file without invoking
+/// the `path_provider` platform channel, which has no plugin implementation
+/// under `flutter test` (its calls would throw `MissingPluginException`).
 typedef BundleFileWriter = Future<XFile> Function(String json, String fileName);
 
 /// Default [BundleFileWriter]: writes [json] to a temp file (via
@@ -103,8 +104,16 @@ class ProgramExportMenu extends StatelessWidget {
 
   /// Writes a self-contained program-plus-referenced-dances bundle (the
   /// canonical [CompendiumArchive] JSON — see [buildProgramShareBundle]) to a
-  /// temp file and hands it to the OS share sheet as a JSON [XFile]. The
-  /// receiving device re-imports it through the existing manual Import flow.
+  /// temp file and hands it to the OS share sheet as a JSON [XFile].
+  ///
+  /// The bundle *carries* the program plus the full definition of every dance
+  /// its slots reference. On the receiving device the **existing** manual
+  /// Import flow (`GenericJsonAdapter`) imports the embedded **dances** today;
+  /// it does not yet import the program. The program travels in the bundle for
+  /// the forthcoming receive-side auto-open (issue #298, PR 2), which will
+  /// import the program itself. This send-side action ships first, so a
+  /// recipient on a build without the receive side gets the dances now and the
+  /// program once PR 2 lands.
   Future<void> _shareBundle(Rect? origin) async {
     final resolveDance = danceFor;
     if (resolveDance == null) return;
