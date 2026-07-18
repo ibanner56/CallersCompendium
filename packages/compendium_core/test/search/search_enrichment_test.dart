@@ -168,4 +168,73 @@ void main() {
       expect(withEmpty.binds, without.binds);
     });
   });
+
+  group('SearchEnrichment value equality', () {
+    test('a same instance equals itself', () {
+      final e = SearchEnrichment.fromDialects([leadsFollows]);
+      expect(e, equals(e));
+    });
+
+    test('empty equals a freshly constructed enrichment', () {
+      expect(SearchEnrichment.empty, equals(SearchEnrichment()));
+      expect(SearchEnrichment.empty.hashCode, SearchEnrichment().hashCode);
+    });
+
+    test('value-equal instances are == and share a hashCode', () {
+      final a = SearchEnrichment(
+        roleSynonyms: const {'lead': 'role1', 'follow': 'role2'},
+        moveSynonyms: const {'gypsy': 'shoulder_round'},
+      );
+      final b = SearchEnrichment(
+        roleSynonyms: const {'lead': 'role1', 'follow': 'role2'},
+        moveSynonyms: const {'gypsy': 'shoulder_round'},
+      );
+      expect(a, equals(b));
+      expect(a.hashCode, b.hashCode);
+    });
+
+    test(
+      'two independently-built value-identical enrichments compare equal',
+      () {
+        // Mirrors the real concern: a caller building enrichment inline (no
+        // cache) on each rebuild must produce an == result so widgets that
+        // compare by value do not spuriously re-search.
+        final a = SearchEnrichment.fromDialects([leadsFollows, movesDialect]);
+        final b = SearchEnrichment.fromDialects([leadsFollows, movesDialect]);
+        expect(identical(a, b), isFalse);
+        expect(a, equals(b));
+        expect(a.hashCode, b.hashCode);
+      },
+    );
+
+    test('differing roleSynonyms are not equal', () {
+      final a = SearchEnrichment(roleSynonyms: const {'lead': 'role1'});
+      final b = SearchEnrichment(roleSynonyms: const {'lead': 'role2'});
+      expect(a, isNot(equals(b)));
+    });
+
+    test('differing moveSynonyms are not equal', () {
+      final a = SearchEnrichment(
+        moveSynonyms: const {'gypsy': 'shoulder_round'},
+      );
+      final b = SearchEnrichment(moveSynonyms: const {'gypsy': 'swing'});
+      expect(a, isNot(equals(b)));
+    });
+
+    test('an extra map entry breaks equality', () {
+      final a = SearchEnrichment(roleSynonyms: const {'lead': 'role1'});
+      final b = SearchEnrichment(
+        roleSynonyms: const {'lead': 'role1', 'follow': 'role2'},
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('constructor defensively copies maps (mutation-safe)', () {
+      final source = {'lead': 'role1'};
+      final e = SearchEnrichment(roleSynonyms: source);
+      source['follow'] = 'role2';
+      expect(e.roleSynonyms, const {'lead': 'role1'});
+      expect(() => e.roleSynonyms['x'] = 'y', throwsUnsupportedError);
+    });
+  });
 }

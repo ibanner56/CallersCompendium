@@ -47,8 +47,9 @@ Future<void> _pumpPicker(
   WidgetTester tester,
   CompendiumRepositories repos, {
   required void Function(String danceId) onAddDance,
-  SearchEnrichment enrichment = SearchEnrichment.empty,
+  SearchEnrichment? enrichment,
 }) async {
+  enrichment ??= SearchEnrichment.empty;
   // A tall surface so the search bar, filter/by-phrase/advanced panels and the
   // results list all lay out without scrolling, keeping control taps stable.
   await tester.binding.setSurfaceSize(const Size(1200, 3000));

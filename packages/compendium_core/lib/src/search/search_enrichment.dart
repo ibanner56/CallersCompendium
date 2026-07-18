@@ -1,5 +1,9 @@
+import 'package:collection/collection.dart';
+
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart' show roleTokens;
+
+const MapEquality<Object?, Object?> _mapEq = MapEquality<Object?, Object?>();
 
 /// Always-on, dialect-agnostic reverse-synonym maps used to enrich a *search*
 /// query so a user's saved-dialect vocabulary resolves regardless of which
@@ -18,21 +22,24 @@ import '../dialect/renderer.dart' show roleTokens;
 /// dialects (from its dialect library) and hands them to [fromDialects]; core
 /// only ever sees plain [Dialect]s and maps.
 class SearchEnrichment {
-  const SearchEnrichment({
-    this.roleSynonyms = const {},
-    this.moveSynonyms = const {},
-  });
+  SearchEnrichment({
+    Map<String, String> roleSynonyms = const {},
+    Map<String, String> moveSynonyms = const {},
+  }) : roleSynonyms = Map.unmodifiable(roleSynonyms),
+       moveSynonyms = Map.unmodifiable(moveSynonyms);
 
   /// The identity enrichment: adds nothing. Search behaves exactly as before.
-  static const SearchEnrichment empty = SearchEnrichment();
+  static final SearchEnrichment empty = SearchEnrichment();
 
   /// Lowercased role display term (singular or plural) → canonical role token
-  /// (`role1`/`role2`/`role1s`/`role2s`).
+  /// (`role1`/`role2`/`role1s`/`role2s`). Stored as an unmodifiable view;
+  /// callers must not mutate it.
   final Map<String, String> roleSynonyms;
 
   /// Lowercased move display substitution → canonical move id. Templated
   /// (`%S`) substitutions are excluded (not reversible by a plain word match),
-  /// mirroring the active-dialect move reversal in the filter compiler.
+  /// mirroring the active-dialect move reversal in the filter compiler. Stored
+  /// as an unmodifiable view; callers must not mutate it.
   final Map<String, String> moveSynonyms;
 
   bool get isEmpty => roleSynonyms.isEmpty && moveSynonyms.isEmpty;
@@ -72,6 +79,16 @@ class SearchEnrichment {
       moveSynonyms: moves.build(),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is SearchEnrichment &&
+      _mapEq.equals(other.roleSynonyms, roleSynonyms) &&
+      _mapEq.equals(other.moveSynonyms, moveSynonyms);
+
+  @override
+  int get hashCode =>
+      Object.hash(_mapEq.hash(roleSynonyms), _mapEq.hash(moveSynonyms));
 }
 
 /// Accumulates `display → canonical` mappings across dialects, dropping any
