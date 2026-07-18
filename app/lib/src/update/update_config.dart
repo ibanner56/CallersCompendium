@@ -23,6 +23,17 @@ const Duration kUpdateCheckTimeout = Duration(seconds: 10);
 /// real transfer is expected here, unlike the fire-and-forget check.
 const Duration kUpdateDownloadTimeout = Duration(seconds: 60);
 
+/// A hard upper bound on the number of bytes [downloadArtifact] will write for a
+/// single artifact, applied as a **backstop** when the manifest declares no
+/// usable `size` (`size == 0`). A manifest parsed by [UpdateManifest] always
+/// carries a positive `size` (the model rejects `size <= 0`), and that value is
+/// the tight per-download bound; this constant only guards a direct caller that
+/// supplies an unsized artifact, so a compromised or misbehaving host can never
+/// stream unbounded bytes to disk (OWASP A08 / resource exhaustion). Set well
+/// above any realistic desktop installer (1 GiB) so it never truncates a
+/// legitimate update.
+const int kMaxArtifactDownloadBytes = 1024 * 1024 * 1024;
+
 /// Derives a safe local filename for a downloaded [artifactUrl]: the URL's last
 /// non-empty path segment (e.g. `CallersCompendium-0.2.0-macos-universal.dmg`),
 /// stripped of any path separators or characters that are unsafe in a filename,

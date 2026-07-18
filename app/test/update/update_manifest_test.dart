@@ -158,6 +158,67 @@ void main() {
     });
   });
 
+  group('UpdateManifest.parse — url + size hardening (F3/F4)', () {
+    test('refuses a zero artifact size', () {
+      final json = _validStable.replaceFirst('"size": 12345678', '"size": 0');
+      expect(
+        () => UpdateManifest.parse(json, expectedChannel: UpdateChannel.stable),
+        throwsA(isA<UpdateManifestFormatException>()),
+      );
+    });
+
+    test('refuses a negative artifact size', () {
+      final json = _validStable.replaceFirst('"size": 12345678', '"size": -1');
+      expect(
+        () => UpdateManifest.parse(json, expectedChannel: UpdateChannel.stable),
+        throwsA(isA<UpdateManifestFormatException>()),
+      );
+    });
+
+    test('refuses a cleartext http artifact url', () {
+      final json = _validStable.replaceFirst(
+        '"url": "https://example.com/CallersCompendium-0.2.0-macos-universal.dmg"',
+        '"url": "http://example.com/CallersCompendium-0.2.0-macos-universal.dmg"',
+      );
+      expect(
+        () => UpdateManifest.parse(json, expectedChannel: UpdateChannel.stable),
+        throwsA(isA<UpdateManifestFormatException>()),
+      );
+    });
+
+    test('refuses a non-web artifact url scheme', () {
+      final json = _validStable.replaceFirst(
+        '"url": "https://example.com/CallersCompendium-0.2.0-macos-universal.dmg"',
+        '"url": "file:///etc/passwd"',
+      );
+      expect(
+        () => UpdateManifest.parse(json, expectedChannel: UpdateChannel.stable),
+        throwsA(isA<UpdateManifestFormatException>()),
+      );
+    });
+
+    test('refuses a cleartext http releaseNotesUrl', () {
+      final json = _validStable.replaceFirst(
+        '"releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.2.0"',
+        '"releaseNotesUrl": "http://github.com/ibanner56/CallersCompendium/releases/tag/v0.2.0"',
+      );
+      expect(
+        () => UpdateManifest.parse(json, expectedChannel: UpdateChannel.stable),
+        throwsA(isA<UpdateManifestFormatException>()),
+      );
+    });
+
+    test('accepts a well-formed https manifest with positive sizes', () {
+      final m = UpdateManifest.parse(
+        _validStable,
+        expectedChannel: UpdateChannel.stable,
+      );
+      expect(m.releaseNotesUrl, startsWith('https://'));
+      expect(m.artifacts.every((a) => a.url.startsWith('https://')), isTrue);
+      expect(m.artifacts.every((a) => a.size > 0), isTrue);
+    });
+  });
+
   group('UpdateManifest.parse — malformed / partial JSON', () {
     test('refuses non-JSON text', () {
       expect(

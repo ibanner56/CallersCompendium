@@ -128,6 +128,15 @@ class UpdateArtifact {
     if (size is! int) {
       throw const UpdateManifestFormatException('artifact.size must be an int');
     }
+    // Reject a non-positive size at the trust boundary: `0`/negative would
+    // otherwise disable the downloader's byte-count integrity check (which only
+    // runs when `size > 0`) and let a truncated/empty artifact look complete
+    // (OWASP A08 — Software & Data Integrity Failures).
+    if (size <= 0) {
+      throw const UpdateManifestFormatException(
+        'artifact.size must be a positive int',
+      );
+    }
     final minOs = node['minOsVersion'];
     if (minOs != null && minOs is! String) {
       throw const UpdateManifestFormatException(
@@ -137,7 +146,7 @@ class UpdateArtifact {
     return UpdateArtifact(
       platform: parsedPlatform,
       arch: parsedArch,
-      url: _requireString(node, 'url'),
+      url: _requireHttpsUrl(node, 'url'),
       sha256: _requireString(node, 'sha256'),
       size: size,
       minOsVersion: minOs as String?,
@@ -241,7 +250,7 @@ class UpdateManifest {
       manifestSchemaVersion: schema,
       channel: channel,
       version: version,
-      releaseNotesUrl: _requireString(decoded, 'releaseNotesUrl'),
+      releaseNotesUrl: _requireHttpsUrl(decoded, 'releaseNotesUrl'),
       pubDate: pubDate,
       artifacts: artifacts,
     );
@@ -272,6 +281,24 @@ String _requireString(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is! String || value.isEmpty) {
     throw UpdateManifestFormatException('$key missing or not a string');
+  }
+  return value;
+}
+
+/// Reads a required URL field and validates it is a well-formed **https** URL
+/// with a non-empty host, throwing [UpdateManifestFormatException] otherwise.
+///
+/// Enforcing TLS at the ingest boundary is defense-in-depth (OWASP A08 —
+/// Software & Data Integrity Failures) alongside the mandatory sha256 gate: a
+/// tampered or transport-downgraded manifest can never steer the client at a
+/// cleartext (`http://`) or non-web (`file:`/`javascript:`) artifact- or
+/// release-notes URL. The release workflow already publishes only `https://`
+/// URLs, so this rejects nothing legitimate.
+String _requireHttpsUrl(Map<String, Object?> json, String key) {
+  final value = _requireString(json, key);
+  final uri = Uri.tryParse(value);
+  if (uri == null || !uri.isScheme('https') || uri.host.isEmpty) {
+    throw UpdateManifestFormatException('$key must be an https URL');
   }
   return value;
 }

@@ -115,12 +115,16 @@ typedef ArtifactDownloader =
 ///
 /// Uses `client.send` (streamed) rather than a buffered `get` so a large
 /// artifact never fully materializes in memory and progress/cancel work while
-/// the body is still arriving. An **idle timeout** ([kUpdateDownloadTimeout])
-/// guards a stalled connection without capping a legitimately long transfer.
-/// After the stream ends, the written byte count is validated against the
-/// manifest `size`; a mismatch is a [DownloadResultKind.sizeMismatch]. Every
-/// non-success path deletes the partial file so no truncated artifact is ever
-/// handed to verification.
+/// the body is still arriving. The `url` must be **https** (defense-in-depth
+/// alongside the manifest-parse check and the sha256 gate). An **idle timeout**
+/// ([kUpdateDownloadTimeout]) guards a stalled connection without capping a
+/// legitimately long transfer, and the transfer is aborted the moment it would
+/// exceed the manifest's declared `size` (or [kMaxArtifactDownloadBytes] when
+/// the artifact is unsized) so an oversized body cannot fill the disk. After
+/// the stream ends, the written byte count is validated against the manifest
+/// `size`; a mismatch is a [DownloadResultKind.sizeMismatch]. Every non-success
+/// path deletes the partial file so no truncated artifact is ever handed to
+/// verification.
 Future<DownloadOutcome> downloadArtifact(
   UpdateArtifact artifact, {
   required File destination,
@@ -129,9 +133,9 @@ Future<DownloadOutcome> downloadArtifact(
   DownloadCancelToken? cancelToken,
 }) async {
   final uri = Uri.tryParse(artifact.url);
-  if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+  if (uri == null || !uri.isScheme('https')) {
     return DownloadOutcome.networkError(
-      'invalid artifact URL "${artifact.url}"',
+      'artifact URL must be an https URL "${artifact.url}"',
     );
   }
 
@@ -163,6 +167,13 @@ Future<DownloadOutcome> downloadArtifact(
     }
 
     final total = response.contentLength ?? artifact.size;
+    // The most bytes we are willing to write for this artifact: the manifest's
+    // (positive) declared size when known, else an absolute backstop so an
+    // unsized artifact from a misbehaving host cannot stream unbounded bytes to
+    // disk (OWASP A08 / resource exhaustion).
+    final maxBytes = artifact.size > 0
+        ? artifact.size
+        : kMaxArtifactDownloadBytes;
     sink = destination.openWrite();
 
     final done = Completer<DownloadOutcome>();
@@ -184,6 +195,22 @@ Future<DownloadOutcome> downloadArtifact(
         if (done.isCompleted) return;
         if (cancelToken != null && cancelToken.isCancelled) {
           done.complete(DownloadOutcome.cancelled());
+          return;
+        }
+        // Abort the moment the transfer would exceed its budget, before writing
+        // the over-budget chunk, so a body larger than the manifest promises
+        // (or an unsized body past the absolute backstop) never fills the disk
+        // and never reaches sha256 verification as a "complete" file.
+        if (received + chunk.length > maxBytes) {
+          done.complete(
+            artifact.size > 0
+                ? DownloadOutcome.sizeMismatch(
+                    'exceeded expected ${artifact.size} bytes',
+                  )
+                : DownloadOutcome.networkError(
+                    'download exceeded the maximum of $maxBytes bytes',
+                  ),
+          );
           return;
         }
         sink!.add(chunk);

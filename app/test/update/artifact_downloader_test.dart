@@ -181,6 +181,50 @@ void main() {
   });
 
   test(
+    'a body larger than the manifest size aborts as a sizeMismatch',
+    () async {
+      // Manifest promises 4 bytes; the stream delivers 8. The cap aborts before
+      // the over-budget chunk is written, and the partial file is deleted so an
+      // oversized body can never fill the disk or reach sha256 verification.
+      final client = _streamingClient([
+        utf8.encode('AAAA'),
+        utf8.encode('BBBB'),
+      ], contentLength: null);
+
+      final outcome = await downloadArtifact(
+        _artifact(size: 4),
+        destination: dest,
+        client: client,
+      );
+
+      expect(outcome.kind, DownloadResultKind.sizeMismatch);
+      expect(await dest.exists(), isFalse);
+    },
+  );
+
+  test(
+    'a cleartext http artifact url is rejected before any request',
+    () async {
+      var requested = false;
+      final client = MockClient.streaming((request, bodyStream) async {
+        requested = true;
+        return http.StreamedResponse(Stream.fromIterable(<List<int>>[]), 200);
+      });
+
+      final outcome = await downloadArtifact(
+        _artifact(url: 'http://example.com/x.dmg'),
+        destination: dest,
+        client: client,
+      );
+
+      expect(outcome.kind, DownloadResultKind.networkError);
+      expect(outcome.message, contains('https'));
+      expect(requested, isFalse);
+      expect(await dest.exists(), isFalse);
+    },
+  );
+
+  test(
     'a file flush/close failure downgrades success to a network error',
     () async {
       // Point the destination at an existing *directory*: bytes buffer fine, but
