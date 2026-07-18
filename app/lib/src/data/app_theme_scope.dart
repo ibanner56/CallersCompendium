@@ -298,6 +298,15 @@ class AppThemeScope
     return scope.notifier!.value;
   }
 
+  /// The current selection, or `null` when there is no [AppThemeScope] ancestor.
+  /// Registers a rebuild dependency. Use this from widgets that may render
+  /// outside the app shell (e.g. reused in tests) so a missing scope degrades
+  /// gracefully instead of throwing.
+  static AppThemeSelection? maybeOf(BuildContext context) {
+    final scope = context.dependOnInheritedWidgetOfExactType<AppThemeScope>();
+    return scope?.notifier?.value;
+  }
+
   /// Returns the underlying notifier so callers can change the selection.
   /// Does *not* register a rebuild dependency — for read-and-mutate use only.
   static ValueNotifier<AppThemeSelection> notifierOf(BuildContext context) {

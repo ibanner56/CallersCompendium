@@ -284,7 +284,7 @@ void main() {
       expect(
         tester.getSemantics(find.byKey(const ValueKey('summary-slot-s0'))),
         isSemantics(
-          label: 'Chase the Squirrel',
+          label: 'Chase the Squirrel. Duple improper',
           isButton: true,
           isFocusable: true,
           hasTapAction: true,

@@ -2,6 +2,11 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
+import '../data/app_theme_scope.dart';
+import '../data/set_list_color_coding_scope.dart';
+import '../models/dance_list_entry.dart';
+import '../theme/set_list_accents.dart';
+
 /// Editable, reorderable list of a program's slots for the builder
 /// (`docs/design/ux.md` §4).
 ///
@@ -18,6 +23,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     super.key,
     required this.slots,
     required this.danceTitles,
+    required this.formationFor,
     required this.onReorder,
     required this.onSlotChanged,
     required this.onRemove,
@@ -29,6 +35,11 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// Resolves a slot's `danceId` to a display title. A missing id (soft-deleted
   /// dance) yields null → a tombstone is shown.
   final String? Function(String danceId) danceTitles;
+
+  /// Resolves a slot's `danceId` to its [Formation], or null when the dance is
+  /// unavailable. Drives the redundant formation-family row accent (issue #270)
+  /// and the formation text shown beside it.
+  final Formation? Function(String danceId) formationFor;
 
   /// Reorder from [oldIndex] to [newIndex] using [ReorderableListView]'s
   /// `onReorderItem` semantics (newIndex is the post-removal insertion index).
@@ -107,6 +118,13 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     return (text == null || text.trim().isEmpty) ? 'Note' : text;
   }
 
+  /// Resolves a slot's dance formation, or null for free-text slots and
+  /// unavailable dances. Used for the row's formation text + accent.
+  Formation? _slotFormation(ProgramSlot slot) {
+    final danceId = slot.danceId;
+    return danceId == null ? null : widget.formationFor(danceId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final slots = widget.slots;
@@ -169,6 +187,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   index: i,
                   slot: slots[i],
                   title: _slotTitle(slots[i]),
+                  formation: _slotFormation(slots[i]),
                   ordinal: _ordinalAtIndex(i),
                   isDanceSlot: slots[i].danceId != null,
                   isTombstone:
@@ -201,6 +220,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   index: i,
                   slot: slots[i],
                   title: _slotTitle(slots[i]),
+                  formation: _slotFormation(slots[i]),
                   ordinal: _ordinalAtIndex(i),
                   isDanceSlot: slots[i].danceId != null,
                   isTombstone:
@@ -323,6 +343,7 @@ class _SlotTile extends StatelessWidget {
     required this.index,
     required this.slot,
     required this.title,
+    required this.formation,
     required this.ordinal,
     required this.isDanceSlot,
     required this.isTombstone,
@@ -341,6 +362,10 @@ class _SlotTile extends StatelessWidget {
   final int index;
   final ProgramSlot slot;
   final String title;
+
+  /// The resolved dance formation for a dance slot, or null for free-text
+  /// slots / unavailable dances. Drives the redundant accent + formation text.
+  final Formation? formation;
 
   /// The 1-based running-order number for a primary slot, or `null` for an
   /// alternate (which is grouped under its primary and carries no number).
@@ -363,7 +388,19 @@ class _SlotTile extends StatelessWidget {
     final theme = Theme.of(context);
     final performed = slot.performedAt != null;
 
+    // Redundant formation-family accent (issue #270): only for dance slots with
+    // a resolved formation, when the user has colour-coding on. Paired with the
+    // formation text below, so colour is never the sole cue (ux.md §4).
+    final colorCodingEnabled = SetListColorCodingScope.of(context);
+    final highContrast =
+        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
+        MediaQuery.highContrastOf(context);
+    final accent = (formation != null && colorCodingEnabled)
+        ? setListAccentForShape(formation!.shape, highContrast: highContrast)
+        : null;
+
     final subtitleParts = <String>[
+      if (formation != null) formationLabel(formation!),
       if (isDanceSlot && (slot.text?.trim().isNotEmpty ?? false))
         'Note: ${slot.text!.trim()}',
       if (!isDanceSlot && (slot.text?.trim().isNotEmpty ?? false)) '',
@@ -378,191 +415,204 @@ class _SlotTile extends StatelessWidget {
         padding: EdgeInsets.only(left: indented ? 32 : 0, top: 4, bottom: 4),
         child: Card(
           margin: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Ordinal: the primary slot's 1-based running-order position.
-                // Alternates are grouped under their primary, so they show an
-                // "ALT" marker instead of a number (never color alone) to
-                // avoid implying a separate running-order position.
-                Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: SizedBox(
-                    width: 24,
-                    child: Text(
-                      ordinal != null ? '$ordinal' : 'ALT',
-                      key: ValueKey('slot-$index-ordinal'),
-                      textAlign: TextAlign.center,
-                      style:
-                          (ordinal != null
-                                  ? theme.textTheme.labelMedium
-                                  : theme.textTheme.labelSmall)
-                              ?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
-                    ),
-                  ),
-                ),
-                if (draggable)
-                  ReorderableDragStartListener(
-                    index: index,
-                    child: Semantics(
-                      label: 'Drag to reorder $title',
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Icon(Icons.drag_handle),
-                      ),
-                    ),
+          child: Container(
+            key: accent != null ? ValueKey('slot-${slot.id}-accent') : null,
+            decoration: accent != null
+                ? BoxDecoration(
+                    border: Border(left: BorderSide(color: accent, width: 4)),
                   )
-                else
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Icon(Icons.drag_handle, color: Colors.transparent),
+                : null,
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: accent != null ? 12 : 8,
+                right: 8,
+                top: 8,
+                bottom: 8,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Ordinal: the primary slot's 1-based running-order position.
+                  // Alternates are grouped under their primary, so they show an
+                  // "ALT" marker instead of a number (never color alone) to
+                  // avoid implying a separate running-order position.
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: SizedBox(
+                      width: 24,
+                      child: Text(
+                        ordinal != null ? '$ordinal' : 'ALT',
+                        key: ValueKey('slot-$index-ordinal'),
+                        textAlign: TextAlign.center,
+                        style:
+                            (ordinal != null
+                                    ? theme.textTheme.labelMedium
+                                    : theme.textTheme.labelSmall)
+                                ?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                      ),
+                    ),
                   ),
-                // Type icon (icon + text, never colour alone).
-                Icon(
-                  isDanceSlot
-                      ? (isTombstone
-                            ? Icons.report_gmailerrorred_outlined
-                            : Icons.music_note_outlined)
-                      : Icons.notes_outlined,
-                  size: 20,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          if (slot.isAlt) ...[
-                            Icon(
-                              Icons.subdirectory_arrow_right,
-                              size: 16,
-                              color: theme.colorScheme.tertiary,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              'Alt',
-                              key: ValueKey('slot-${slot.id}-alt-badge'),
-                              style: theme.textTheme.labelSmall?.copyWith(
+                  if (draggable)
+                    ReorderableDragStartListener(
+                      index: index,
+                      child: Semantics(
+                        label: 'Drag to reorder $title',
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(Icons.drag_handle),
+                        ),
+                      ),
+                    )
+                  else
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      child: Icon(Icons.drag_handle, color: Colors.transparent),
+                    ),
+                  // Type icon (icon + text, never colour alone).
+                  Icon(
+                    isDanceSlot
+                        ? (isTombstone
+                              ? Icons.report_gmailerrorred_outlined
+                              : Icons.music_note_outlined)
+                        : Icons.notes_outlined,
+                    size: 20,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            if (slot.isAlt) ...[
+                              Icon(
+                                Icons.subdirectory_arrow_right,
+                                size: 16,
                                 color: theme.colorScheme.tertiary,
-                                fontWeight: FontWeight.bold,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                'Alt',
+                                key: ValueKey('slot-${slot.id}-alt-badge'),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.tertiary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Flexible(
+                              child: Text(
+                                title,
+                                key: ValueKey('slot-${slot.id}-title'),
+                                style: theme.textTheme.titleSmall,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            if (performed) ...[
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 16,
+                                color: theme.colorScheme.primary,
+                                semanticLabel: 'Performed',
+                              ),
+                            ],
                           ],
-                          Flexible(
-                            child: Text(
-                              title,
-                              key: ValueKey('slot-${slot.id}-title'),
-                              style: theme.textTheme.titleSmall,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (performed) ...[
-                            const SizedBox(width: 6),
-                            Icon(
-                              Icons.check_circle_outline,
-                              size: 16,
-                              color: theme.colorScheme.primary,
-                              semanticLabel: 'Performed',
-                            ),
-                          ],
-                        ],
-                      ),
-                      if (subtitleParts.isNotEmpty)
-                        Text(
-                          subtitleParts.join(' · '),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
                         ),
+                        if (subtitleParts.isNotEmpty)
+                          Text(
+                            subtitleParts.join(' · '),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    key: ValueKey('slot-$index-move-up'),
+                    tooltip: 'Move $title up',
+                    icon: const Icon(Icons.arrow_upward, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onMoveUp,
+                  ),
+                  IconButton(
+                    key: ValueKey('slot-$index-move-down'),
+                    tooltip: 'Move $title down',
+                    icon: const Icon(Icons.arrow_downward, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onMoveDown,
+                  ),
+                  IconButton(
+                    key: ValueKey('slot-$index-cut'),
+                    tooltip: 'Cut $title',
+                    icon: const Icon(Icons.content_cut, size: 18),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onCut,
+                  ),
+                  PopupMenuButton<String>(
+                    key: ValueKey('slot-$index-menu'),
+                    tooltip: 'More actions for $title',
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'edit':
+                          onEdit();
+                        case 'alt':
+                          onToggleAlt();
+                        case 'performed':
+                          onTogglePerformed();
+                        case 'remove':
+                          onRemove();
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: ListTile(
+                          leading: Icon(Icons.edit_outlined),
+                          title: Text('Edit slot'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'alt',
+                        child: ListTile(
+                          leading: const Icon(Icons.alt_route),
+                          title: Text(
+                            slot.isAlt ? 'Make primary' : 'Mark as alternate',
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'performed',
+                        child: ListTile(
+                          leading: const Icon(Icons.check_circle_outline),
+                          title: Text(
+                            performed ? 'Clear performed' : 'Mark performed',
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'remove',
+                        child: ListTile(
+                          leading: Icon(Icons.delete_outline),
+                          title: Text('Remove slot'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                IconButton(
-                  key: ValueKey('slot-$index-move-up'),
-                  tooltip: 'Move $title up',
-                  icon: const Icon(Icons.arrow_upward, size: 18),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onMoveUp,
-                ),
-                IconButton(
-                  key: ValueKey('slot-$index-move-down'),
-                  tooltip: 'Move $title down',
-                  icon: const Icon(Icons.arrow_downward, size: 18),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onMoveDown,
-                ),
-                IconButton(
-                  key: ValueKey('slot-$index-cut'),
-                  tooltip: 'Cut $title',
-                  icon: const Icon(Icons.content_cut, size: 18),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onCut,
-                ),
-                PopupMenuButton<String>(
-                  key: ValueKey('slot-$index-menu'),
-                  tooltip: 'More actions for $title',
-                  onSelected: (value) {
-                    switch (value) {
-                      case 'edit':
-                        onEdit();
-                      case 'alt':
-                        onToggleAlt();
-                      case 'performed':
-                        onTogglePerformed();
-                      case 'remove':
-                        onRemove();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: ListTile(
-                        leading: Icon(Icons.edit_outlined),
-                        title: Text('Edit slot'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'alt',
-                      child: ListTile(
-                        leading: const Icon(Icons.alt_route),
-                        title: Text(
-                          slot.isAlt ? 'Make primary' : 'Mark as alternate',
-                        ),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'performed',
-                      child: ListTile(
-                        leading: const Icon(Icons.check_circle_outline),
-                        title: Text(
-                          performed ? 'Clear performed' : 'Mark performed',
-                        ),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'remove',
-                      child: ListTile(
-                        leading: Icon(Icons.delete_outline),
-                        title: Text('Remove slot'),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

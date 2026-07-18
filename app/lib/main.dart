@@ -20,6 +20,7 @@ import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
+import 'src/data/set_list_color_coding_scope.dart';
 import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
@@ -135,6 +136,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   );
   final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _setListColorCodingNotifier = ValueNotifier(true);
   final ValueNotifier<DateFormatPref> _dateFormatNotifier = ValueNotifier(
     DateFormatPref.system,
   );
@@ -296,6 +298,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
     } else {
       _colourDanceThemeNotifier.value = false;
     }
+    // Load the "colour-code set-list rows" Appearance setting (issue #270),
+    // defaulting to on (true) when unset. Defensive: a read failure keeps the
+    // on-by-default state so startup never blocks on a settings hiccup.
+    final setListColorCoding = await _appData.repositories.settings
+        .get(kSetListColorCodingKey)
+        .catchError((_) => null);
+    if (setListColorCoding is bool) {
+      _setListColorCodingNotifier.value = setListColorCoding;
+    }
     // Load the regional-format preference (ROADMAP G.8), defaulting to System
     // when unset. Defensive: a read failure or garbage token resolves to the
     // safe System default via the resolver.
@@ -329,6 +340,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _verboseFigureRenderingNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
+    _setListColorCodingNotifier.dispose();
     _dateFormatNotifier.dispose();
     _collectionRefreshNotifier.dispose();
     _customThemes.dispose();
@@ -455,13 +467,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                 notifier: _confirmBeforeDeleteNotifier,
                                 child: ColourDanceThemeScope(
                                   notifier: _colourDanceThemeNotifier,
-                                  child: DateFormatScope(
-                                    notifier: _dateFormatNotifier,
-                                    child: BackupControllerScope(
-                                      onRestored: reloadFromSettings,
-                                      child: CollectionRefreshScope(
-                                        revision: _collectionRefreshNotifier,
-                                        child: child!,
+                                  child: SetListColorCodingScope(
+                                    notifier: _setListColorCodingNotifier,
+                                    child: DateFormatScope(
+                                      notifier: _dateFormatNotifier,
+                                      child: BackupControllerScope(
+                                        onRestored: reloadFromSettings,
+                                        child: CollectionRefreshScope(
+                                          revision: _collectionRefreshNotifier,
+                                          child: child!,
+                                        ),
                                       ),
                                     ),
                                   ),
