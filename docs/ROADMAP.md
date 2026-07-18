@@ -580,7 +580,7 @@ taxonomy are unchanged.
   - **Deferred** (later signing wave — needs paid developer accounts / a decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
     - macOS Developer ID signing + notarization, Windows Authenticode/Store (MSIX) signing, iOS distribution (TestFlight/App Store) — desktop currently ships UNSIGNED, so users bypass OS trust prompts manually.
     - Optional store distribution (Google Play, F-Droid, Flathub).
-    - Reconcile the bundle-id mismatch (Android `org.callerscompendium.compendium_app` vs Apple `org.callerscompendium.compendiumApp`) — blocks iOS/Play + update-check identity.
+    - Reconcile the bundle-id mismatch — **done**: all platforms now unify on the Apple form `org.callerscompendium.compendiumApp` (Android `applicationId`/namespace + Linux `APPLICATION_ID` updated to match; Apple was already the target and is the source of truth, since Apple bundle IDs disallow underscores).
     - Cutting the first beta tag (`v0.1.0-beta.1`) awaits an explicit maintainer GO.
 - [ ] 7.2 User documentation
   - **Delivered** — the [user-guide hub](user/README.md) + [style guide](user/style-guide.md), and the guides: Getting Started, Dialect (flagship), Imports & migration, Backup & portability, Collection & search, Programs & matrix, Perform mode, Accessibility, Settings, FAQ & troubleshooting, and Glossary; plus an offline **in-app User Guide** (#233). (#219/#222/#223/#224/#229/#233/#239/#240/#243)

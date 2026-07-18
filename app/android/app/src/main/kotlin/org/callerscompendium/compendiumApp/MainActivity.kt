@@ -1,4 +1,4 @@
-package org.callerscompendium.compendium_app
+package org.callerscompendium.compendiumApp
 
 import io.flutter.embedding.android.FlutterActivity
 
