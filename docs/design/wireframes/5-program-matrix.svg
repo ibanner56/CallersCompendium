@@ -77,9 +77,10 @@
   <text class="s" x="1040" y="360">→</text>
 
   <!-- legend -->
-  <rect class="card" x="20" y="656" width="360" height="34" rx="8"/>
-  <text class="glyph" x="40" y="678">★</text><text class="s" x="58" y="678">first figure</text>
-  <text class="glyph" x="170" y="678">✓</text><text class="s" x="188" y="678">move present</text>
+  <rect class="card" x="20" y="656" width="600" height="34" rx="8"/>
+  <text class="glyph" x="40" y="678">★</text><text class="s" x="58" y="678">introduced in program</text>
+  <text class="glyph" x="250" y="678">▸</text><text class="s" x="268" y="678">dance's first figure</text>
+  <text class="glyph" x="450" y="678">✓</text><text class="s" x="468" y="678">move present</text>
 
   <!-- annotations -->
   <circle class="anc" cx="270" cy="132" r="10"/><text class="an" x="266" y="136">1</text>
@@ -90,6 +91,6 @@
 
   <text class="noteh" x="470" y="656">Notes</text>
   <text class="note" x="470" y="676">1 · Moves = columns, dances = rows; per-dance presence.  2 · Pinned column + row headers,</text>
-  <text class="note" x="470" y="692">AT-navigable as a table.  3 · First-figure = ★ icon, present = ✓ (icon, not color-only).</text>
+  <text class="note" x="470" y="692">AT-navigable as a table.  3 · ★ = introduced in program, ▸ = dance's first figure, ✓ = present (icon, not color-only).</text>
   <text class="note" x="470" y="708">4 · Horizontally + vertically scrollable, headers mirrored.  5 · Legend (already implemented).</text>
 </svg>

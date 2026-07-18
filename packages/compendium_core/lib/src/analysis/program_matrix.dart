@@ -5,7 +5,17 @@
 /// Pure, Flutter-free, and unit-tested: the UI (`ProgramMatrixTable` in the
 /// app) is a thin renderer over this model. Columns are the moves actually
 /// present across the given dances; each cell records whether a dance uses a
-/// move; each row flags the dance's FIRST move (the first-figure highlight).
+/// move.
+///
+/// Two independent highlights are derived:
+///  * **Dance's first figure** (per row): the move each dance *opens* with
+///    ([MatrixRow.firstMoveId] / [MatrixRow.isFirst] / [ProgramMatrix.isFirst]).
+///    This mirrors Caller's Companion's per-dance "First figure" field.
+///  * **Program debut** (per column): the first dance in program (row) order
+///    whose figures contain that move *anywhere* — "this move is introduced
+///    here" ([ProgramMatrix.isProgramDebut]). A move used by several dances is
+///    a debut only on the earliest row; the collapsed custom column debuts on
+///    its first appearance too.
 library;
 
 import 'package:collection/collection.dart';
@@ -209,15 +219,25 @@ class MatrixRow {
       Object.hash(danceId, title, firstMoveId, _setEq.hash(presentMoveIds));
 }
 
-/// The derived matrix: [columns] × [rows] with per-cell presence and per-row
-/// first-figure flags. Immutable and cheap to rebuild whenever the program's
-/// dances change.
+/// The derived matrix: [columns] × [rows] with per-cell presence, per-row
+/// dance-opening flags, and per-column program-debut flags. Immutable and cheap
+/// to rebuild whenever the program's dances change.
 @immutable
 class ProgramMatrix {
-  const ProgramMatrix({required this.columns, required this.rows});
+  const ProgramMatrix({
+    required this.columns,
+    required this.rows,
+    this.programDebutRowByMove = const {},
+  });
 
   final List<MatrixColumn> columns;
   final List<MatrixRow> rows;
+
+  /// For each move (column key, including [customMove]) present in any dance,
+  /// the index of the first [rows] entry — in program order — whose dance
+  /// contains that move anywhere. Drives [isProgramDebut]. Moves that no dance
+  /// uses are absent from the map.
+  final Map<String, int> programDebutRowByMove;
 
   /// True when the matrix has no columns. Because the partner/neighbor swing
   /// baseline is emitted whenever the program has at least one dance, this is
@@ -230,9 +250,15 @@ class ProgramMatrix {
   bool isPresent(int rowIndex, int colIndex) =>
       rows[rowIndex].contains(columns[colIndex]);
 
-  /// Whether [columns]`[colIndex]` is the FIRST figure of [rows]`[rowIndex]`.
+  /// Whether [columns]`[colIndex]` is the dance's opening figure for
+  /// [rows]`[rowIndex]` (Caller's Companion "First figure" parity).
   bool isFirst(int rowIndex, int colIndex) =>
       rows[rowIndex].isFirst(columns[colIndex]);
+
+  /// Whether [rows]`[rowIndex]` is where [columns]`[colIndex]`'s move first
+  /// appears in program order — its program debut ("introduced here").
+  bool isProgramDebut(int rowIndex, int colIndex) =>
+      programDebutRowByMove[columns[colIndex].moveId] == rowIndex;
 }
 
 /// Column key for a [figure]: custom figures all map to [customMove]; `swing`
@@ -350,7 +376,21 @@ ProgramMatrix buildProgramMatrix(List<Dance> dances, {Taxonomy? taxonomy}) {
     );
   }
 
-  return ProgramMatrix(columns: columns, rows: rows);
+  // Program debut per move: the first row (program order) whose dance contains
+  // that move anywhere, keyed by column moveId (including the collapsed custom
+  // column). Built from rows directly so it's independent of column ordering.
+  final programDebutRowByMove = <String, int>{};
+  for (var r = 0; r < rows.length; r++) {
+    for (final moveId in rows[r].presentMoveIds) {
+      programDebutRowByMove.putIfAbsent(moveId, () => r);
+    }
+  }
+
+  return ProgramMatrix(
+    columns: columns,
+    rows: rows,
+    programDebutRowByMove: programDebutRowByMove,
+  );
 }
 
 /// Human label for a matrix [column] under [dialect], routed through the same

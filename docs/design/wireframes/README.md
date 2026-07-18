@@ -42,7 +42,8 @@ drawing every breakpoint. Performance mode (§5) is shown on its dark-stage defa
 the ≥7:1 contrast requirement from [`../../research/accessibility-baseline.md`](../../research/accessibility-baseline.md).
 
 The Matrix wireframe (#5) mirrors the **already-implemented** `program_matrix_table.dart`
-(pinned row/column headers, mirrored scrolling, ★ first-figure / ✓ present, legend) — its
+(pinned row/column headers, mirrored scrolling, ★ program-debut / ▸ dance's first figure /
+✓ present, legend) — its
 remaining work is theming only, per `ux-modernization.md` §5.
 
 Each wireframe's implementation issue will still carry the detailed semantics and

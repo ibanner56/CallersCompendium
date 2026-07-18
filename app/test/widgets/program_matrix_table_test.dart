@@ -92,21 +92,40 @@ void main() {
     await pump(
       tester,
       dances: [
-        dance('d1', 'A', [move('balance'), swing()]),
+        dance('d1', 'A', [swing(), move('balance')]),
+        dance('d2', 'B', [move('balance'), swing()]),
       ],
     );
 
-    // balance is the first figure (star); the partner swing is present but not
-    // first (check). Both are shapes, so presence never relies on colour alone.
-    expect(find.byIcon(Icons.check), findsWidgets);
+    // Three distinct shapes are in play so no state relies on colour alone:
+    // a star for a move's program debut, a flag for a dance's own opening
+    // figure (when not also a debut), and a check for any other present move.
     expect(find.byIcon(Icons.star), findsWidgets);
+    expect(find.byIcon(Icons.flag_outlined), findsWidgets);
+    expect(find.byIcon(Icons.check), findsWidgets);
 
-    // Cell semantics announce dance × move × state.
-    expect(find.bySemanticsLabel('A, partner swing: present'), findsOneWidget);
-    expect(find.bySemanticsLabel('A, balance: first figure'), findsOneWidget);
+    // A opens on a partner swing that also debuts here → star, both states.
+    expect(
+      find.bySemanticsLabel(
+        "A, partner swing: present, introduced here, dance's first figure",
+      ),
+      findsOneWidget,
+    );
+    // balance debuts in A (mid-dance) → star, "introduced here" only.
+    expect(
+      find.bySemanticsLabel('A, balance: present, introduced here'),
+      findsOneWidget,
+    );
+    // B opens on balance, but balance already debuted in A → flag only.
+    expect(
+      find.bySemanticsLabel("B, balance: present, dance's first figure"),
+      findsOneWidget,
+    );
+    // B's partner swing is a plain repeat → check, "present".
+    expect(find.bySemanticsLabel('B, partner swing: present'), findsOneWidget);
   });
 
-  testWidgets('first-figure highlight lands on the correct split column', (
+  testWidgets('debut star and dance-first flag land on the correct columns', (
     tester,
   ) async {
     await pump(
@@ -117,12 +136,15 @@ void main() {
     );
 
     // The legend spells out the meaning of each shape in text.
-    expect(find.text('First figure'), findsOneWidget);
+    expect(find.text('Introduced here'), findsOneWidget);
+    expect(find.text("Dance's first figure"), findsOneWidget);
     expect(find.text('Present'), findsOneWidget);
-    // A opens with a neighbor swing → the neighbor split column is the first
-    // figure; the partner baseline is not present for this dance.
+    // A opens with a neighbor swing → the neighbor split column is both its
+    // program debut and its first figure; the partner baseline is not present.
     expect(
-      find.bySemanticsLabel('A, neighbor swing: first figure'),
+      find.bySemanticsLabel(
+        "A, neighbor swing: present, introduced here, dance's first figure",
+      ),
       findsOneWidget,
     );
     expect(
@@ -264,27 +286,38 @@ void main() {
         findsOneWidget,
       );
 
-      // ...and the per-dance table semantics are preserved on each chip.
+      // ...and the per-dance table semantics are preserved on each chip. A
+      // opens with the swing (its debut + first figure); B opens with it too
+      // but the swing already debuted in A, so B carries the dance-first flag.
       expect(
-        find.bySemanticsLabel('A, partner swing: first figure'),
+        find.bySemanticsLabel(
+          "A, partner swing: present, introduced here, dance's first figure",
+        ),
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel('B, partner swing: first figure'),
+        find.bySemanticsLabel(
+          "B, partner swing: present, dance's first figure",
+        ),
         findsOneWidget,
       );
-      expect(find.bySemanticsLabel('A, balance: present'), findsOneWidget);
+      // balance debuts in A (mid-dance) and is a plain repeat in B.
+      expect(
+        find.bySemanticsLabel('A, balance: present, introduced here'),
+        findsOneWidget,
+      );
       expect(find.bySemanticsLabel('B, balance: present'), findsOneWidget);
     });
 
-    testWidgets('marks the first figure of a repeated move with a star', (
+    testWidgets('marks the debut of a repeated move with a star', (
       tester,
     ) async {
       await pumpNarrow(
         tester,
         dances: [
-          // A opens on the swing; B opens on balance, so the shared partner
-          // swing is B's second figure (present, not first).
+          // A opens on the swing (its debut + first figure); B opens on
+          // balance, so the shared partner swing is B's second figure — present
+          // but neither a debut nor B's first figure.
           dance('d1', 'A', [swing()]),
           dance('d2', 'B', [move('balance'), swing()]),
         ],
@@ -292,14 +325,16 @@ void main() {
 
       expect(find.text('Repeated moves'), findsOneWidget);
       expect(
-        find.bySemanticsLabel('A, partner swing: first figure'),
+        find.bySemanticsLabel(
+          "A, partner swing: present, introduced here, dance's first figure",
+        ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel('B, partner swing: present'),
         findsOneWidget,
       );
-      // First-figure highlight is a distinct shape (star), not colour alone.
+      // The program debut is a distinct shape (star), not colour alone.
       expect(find.byIcon(Icons.star), findsWidgets);
     });
 
@@ -357,15 +392,20 @@ void main() {
         altDanceIds: {'d2'},
       );
       // The alternate-slot distinction (only in the wide row header) is carried
-      // into the compact chip's semantics and shown with the alt_route icon.
+      // into the compact chip's semantics and shown with the alt_route icon. A
+      // opens the swing (its debut + first figure); Alt Dance opens it too but
+      // after the debut, so it carries only the dance-first flag.
       expect(
         find.bySemanticsLabel(
-          'Alt Dance (alternate dance), partner swing: first figure',
+          "Alt Dance (alternate dance), partner swing: present, "
+          "dance's first figure",
         ),
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel('A, partner swing: first figure'),
+        find.bySemanticsLabel(
+          "A, partner swing: present, introduced here, dance's first figure",
+        ),
         findsOneWidget,
       );
       expect(find.byIcon(Icons.alt_route), findsWidgets);

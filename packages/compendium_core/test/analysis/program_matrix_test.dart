@@ -273,6 +273,80 @@ void main() {
     });
   });
 
+  group('buildProgramMatrix — program-debut highlight', () {
+    test('debuts on the first row using a move, regardless of position', () {
+      final matrix = buildProgramMatrix([
+        // balance appears mid-dance here → this is its program debut.
+        dance('d1', 'A', [swing(), move('balance')]),
+        // balance opens this dance (its dance-first figure) but is NOT a debut.
+        dance('d2', 'B', [move('balance'), swing('neighbors')]),
+      ]);
+      final balance = colOf(matrix, 'balance');
+
+      expect(matrix.isProgramDebut(0, balance), isTrue);
+      expect(matrix.isProgramDebut(1, balance), isFalse);
+      // The dance-opening flag is independent: balance is d2's first figure.
+      expect(matrix.isFirst(0, balance), isFalse);
+      expect(matrix.isFirst(1, balance), isTrue);
+    });
+
+    test('a move used by a single dance debuts on that dance', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swing()]),
+        dance('d2', 'B', [move('balance')]),
+      ]);
+      final balance = colOf(matrix, 'balance');
+      expect(matrix.isProgramDebut(0, balance), isFalse);
+      expect(matrix.isProgramDebut(1, balance), isTrue);
+    });
+
+    test('each split sub-column debuts independently', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swing()]),
+        dance('d2', 'B', [swing('neighbors')]),
+      ]);
+      final partner = colOf(matrix, 'swing:partner');
+      final neighbor = colOf(matrix, 'swing:neighbor');
+      expect(matrix.isProgramDebut(0, partner), isTrue);
+      expect(matrix.isProgramDebut(1, partner), isFalse);
+      expect(matrix.isProgramDebut(1, neighbor), isTrue);
+      expect(matrix.isProgramDebut(0, neighbor), isFalse);
+    });
+
+    test('the collapsed custom column debuts on its first appearance', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swing()]),
+        dance('d2', 'B', [custom('big circle')]),
+        dance('d3', 'C', [custom('grand square')]),
+      ]);
+      final customCol = matrix.columns.indexWhere((c) => c.isCustom);
+      expect(matrix.isProgramDebut(1, customCol), isTrue);
+      expect(matrix.isProgramDebut(2, customCol), isFalse);
+    });
+
+    test('an unused swing baseline column has no debut', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [swing()]),
+      ]);
+      final neighbor = colOf(matrix, 'swing:neighbor');
+      expect(matrix.isProgramDebut(0, neighbor), isFalse);
+      expect(
+        matrix.programDebutRowByMove.containsKey('swing:neighbor'),
+        isFalse,
+      );
+    });
+
+    test('figure-less rows contribute no debut', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'Stub', const []),
+        dance('d2', 'B', [move('balance')]),
+      ]);
+      final balance = colOf(matrix, 'balance');
+      expect(matrix.isProgramDebut(0, balance), isFalse);
+      expect(matrix.isProgramDebut(1, balance), isTrue);
+    });
+  });
+
   group('buildProgramMatrix — edge cases', () {
     test('empty program has no rows and no columns', () {
       final matrix = buildProgramMatrix([]);

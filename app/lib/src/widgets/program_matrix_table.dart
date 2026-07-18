@@ -6,16 +6,19 @@ import 'package:flutter/material.dart';
 ///
 /// Columns are the moves actually present across the program's dances (derived
 /// by [buildProgramMatrix] — no manual checklist, CC's failure mode). Each cell
-/// shows whether a dance uses that move; each dance's FIRST figure is
-/// highlighted. Presence and the first-figure highlight are conveyed with an
-/// **icon + text/semantics, never colour alone** (WCAG 1.4.1).
+/// shows whether a dance uses that move. Two highlights are overlaid: the
+/// **program debut** (★ — the first dance, in program order, to use a move) and
+/// the **dance's first figure** (flag — the move each dance opens with). Both,
+/// and presence, are conveyed with an **icon + text/semantics, never colour
+/// alone** (WCAG 1.4.1).
 ///
 /// Layout: a four-quadrant grid (corner / pinned column headers / pinned row
 /// headers / scrolling body) with the row- and column-header scroll positions
 /// mirrored to the body via linked [ScrollController]s, so both headers stay
 /// pinned while the body scrolls in both directions. The grid is exposed as a
 /// semantic table: header cells are flagged headers and every data cell
-/// announces `<dance>, <move>: present/not present[, first figure]`.
+/// announces `<dance>, <move>: present/not present[, introduced here]`
+/// `[, dance's first figure]`.
 class ProgramMatrixTable extends StatefulWidget {
   const ProgramMatrixTable({
     super.key,
@@ -230,6 +233,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                                       moveLabel: labels[c],
                                       present: matrix.isPresent(r, c),
                                       first: matrix.isFirst(r, c),
+                                      programDebut: matrix.isProgramDebut(r, c),
                                     ),
                                 ],
                               ),
@@ -348,26 +352,35 @@ class _Cell extends StatelessWidget {
     required this.moveLabel,
     required this.present,
     required this.first,
+    required this.programDebut,
   });
 
   final String danceTitle;
   final String moveLabel;
   final bool present;
   final bool first;
+  final bool programDebut;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final state = first
-        ? 'first figure'
-        : present
-        ? 'present'
-        : 'not present';
+    final state = _cellStateLabel(
+      present: present,
+      first: first,
+      programDebut: programDebut,
+    );
 
     Widget? mark;
-    if (first) {
-      // Distinct SHAPE (star) + text, not colour alone.
+    if (programDebut) {
+      // Program debut: distinct SHAPE (star) + text, not colour alone.
       mark = Icon(Icons.star, size: 20, color: theme.colorScheme.primary);
+    } else if (first) {
+      // Dance's opening figure: a shape-distinct flag (not the star) + text.
+      mark = Icon(
+        Icons.flag_outlined,
+        size: 18,
+        color: theme.colorScheme.secondary,
+      );
     } else if (present) {
       mark = Icon(Icons.check, size: 18, color: theme.colorScheme.onSurface);
     }
@@ -380,8 +393,10 @@ class _Cell extends StatelessWidget {
         height: ProgramMatrixTable.rowHeight,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: first
+          color: programDebut
               ? theme.colorScheme.primaryContainer.withValues(alpha: 0.4)
+              : first
+              ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.3)
               : null,
           border: Border(
             right: BorderSide(color: theme.dividerColor, width: 0.5),
@@ -392,6 +407,20 @@ class _Cell extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Semantics phrasing shared by the grid and compact views. A cell that is both
+/// a program debut and its dance's opening figure announces both, distinctly.
+String _cellStateLabel({
+  required bool present,
+  required bool first,
+  required bool programDebut,
+}) {
+  if (!present && !first && !programDebut) return 'not present';
+  final parts = <String>['present'];
+  if (programDebut) parts.add('introduced here');
+  if (first) parts.add("dance's first figure");
+  return parts.join(', ');
 }
 
 class _CompactMatrix extends StatelessWidget {
@@ -424,6 +453,7 @@ class _CompactMatrix extends StatelessWidget {
             _DanceUse(
               title: matrix.rows[r].title,
               first: matrix.isFirst(r, c),
+              programDebut: matrix.isProgramDebut(r, c),
               isAlt: altDanceIds.contains(matrix.rows[r].danceId),
             ),
           );
@@ -536,13 +566,20 @@ class _MoveSummary {
 }
 
 /// A single dance's use of a move: its title, whether the move is that dance's
-/// FIRST figure (mirrors the grid's first-figure highlight), and whether the
-/// dance is an alternate slot (mirrors the grid's ALT row badge).
+/// FIRST figure, whether this is the move's program debut (mirrors the grid's
+/// two highlights), and whether the dance is an alternate slot (mirrors the
+/// grid's ALT row badge).
 class _DanceUse {
-  _DanceUse({required this.title, required this.first, required this.isAlt});
+  _DanceUse({
+    required this.title,
+    required this.first,
+    required this.programDebut,
+    required this.isAlt,
+  });
 
   final String title;
   final bool first;
+  final bool programDebut;
   final bool isAlt;
 }
 
@@ -573,8 +610,8 @@ class _SectionHeader extends StatelessWidget {
 /// One move in the compact view: a header row (move label + "N of M dances"
 /// count) over a wrap of the dances that use it. Preserves the grid's table
 /// semantics — the header is flagged a semantic header ("Move: label, used in
-/// N of M dances") and each dance chip announces "dance, move: present" (or
-/// "first figure"), matching [_Cell].
+/// N of M dances") and each dance chip announces "dance, move: present" (plus
+/// "introduced here" / "dance's first figure"), matching [_Cell].
 class _MoveCard extends StatelessWidget {
   const _MoveCard({required this.summary, required this.total});
 
@@ -625,6 +662,7 @@ class _MoveCard extends StatelessWidget {
                   danceTitle: d.title,
                   moveLabel: summary.label,
                   first: d.first,
+                  programDebut: d.programDebut,
                   isAlt: d.isAlt,
                 ),
             ],
@@ -640,42 +678,56 @@ class _DanceChip extends StatelessWidget {
     required this.danceTitle,
     required this.moveLabel,
     required this.first,
+    required this.programDebut,
     required this.isAlt,
   });
 
   final String danceTitle;
   final String moveLabel;
   final bool first;
+  final bool programDebut;
   final bool isAlt;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final state = first ? 'first figure' : 'present';
+    final state = _cellStateLabel(
+      present: true,
+      first: first,
+      programDebut: programDebut,
+    );
     // Preserve the grid's ALT distinction, which otherwise lives only in the
     // wide row header, so it isn't lost on phones.
     final who = isAlt ? '$danceTitle (alternate dance)' : danceTitle;
+    final IconData markIcon;
+    final Color markColor;
+    if (programDebut) {
+      markIcon = Icons.star;
+      markColor = theme.colorScheme.primary;
+    } else if (first) {
+      markIcon = Icons.flag_outlined;
+      markColor = theme.colorScheme.secondary;
+    } else {
+      markIcon = Icons.check;
+      markColor = theme.colorScheme.onSurface;
+    }
     return Semantics(
       label: '$who, $moveLabel: $state',
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: first
+          color: programDebut
               ? theme.colorScheme.primaryContainer.withValues(alpha: 0.4)
+              : first
+              ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.3)
               : theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              first ? Icons.star : Icons.check,
-              size: 14,
-              color: first
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface,
-            ),
+            Icon(markIcon, size: 14, color: markColor),
             if (isAlt) ...[
               const SizedBox(width: 3),
               Icon(
@@ -706,7 +758,12 @@ class _Legend extends StatelessWidget {
           _LegendItem(
             icon: Icons.star,
             color: theme.colorScheme.primary,
-            label: 'First figure',
+            label: 'Introduced here',
+          ),
+          _LegendItem(
+            icon: Icons.flag_outlined,
+            color: theme.colorScheme.secondary,
+            label: "Dance's first figure",
           ),
           _LegendItem(
             icon: Icons.check,

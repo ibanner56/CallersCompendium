@@ -76,5 +76,30 @@ void main() {
 
       expect(bytes, isNotEmpty);
     });
+
+    test('builds a matrix that carries a program-debut marker', () async {
+      final matrix = buildProgramMatrix([
+        // Balance debuts here (mid-dance), so its debut row is 0 even though
+        // the dance opens with a swing.
+        dance('d1', 'Opener', [swing(), move('balance')]),
+        // This dance opens with balance, so it is its dance-first figure, but
+        // balance already debuted in d1 — the star marker path (row 0) and the
+        // dance-first marker path (row 1) are both exercised.
+        dance('d2', 'Second', [move('balance')]),
+      ]);
+      final balance = matrix.columns.indexWhere((c) => c.moveId == 'balance');
+      expect(matrix.isProgramDebut(0, balance), isTrue);
+      expect(matrix.isProgramDebut(1, balance), isFalse);
+      expect(matrix.isFirst(1, balance), isTrue);
+
+      final bytes = await buildProgramMatrixPdf(
+        matrix,
+        taxonomy: contraTaxonomy,
+        dialect: Dialect.larksRobins,
+        programTitle: 'Program-debut program',
+      );
+
+      expect(bytes, isNotEmpty);
+    });
   });
 }

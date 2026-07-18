@@ -226,7 +226,8 @@ Design items (each produces a design doc + review):
   headers and full table semantics. **Delivered follow-on**: a print/report
   version of the matrix — a dedicated LANDSCAPE PDF (`buildProgramMatrixPdf`,
   reusing the bundled-font PDF theme) rendering the moves × dances table with
-  shape/text markers (★ first figure, ✓ present) plus a legend, wired to a
+  shape/text markers (★ program-debut, ▸ dance's first figure, ✓ present) plus
+  a legend, wired to a
   keyboard-reachable export/print control on the Matrix tab. **Intentional
   design decision (won't-do)**: per-cell within-dance repeat **counts** — the
   matrix stays BOOLEAN presence to match CC's checklist semantics; adding
