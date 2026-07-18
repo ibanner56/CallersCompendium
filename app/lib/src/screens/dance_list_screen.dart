@@ -1061,12 +1061,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
                   // own "search by phrase" fields, so it's offered for the
                   // Caller's Box source (even with an empty local collection);
                   // it's hidden for title-only sources (ContraDB).
-                  if (!_onlineEnabled && !collectionEmpty)
-                    _buildFiltersPanel(data),
-                  if ((_onlineEnabled && _onlineSource.supportsByPhrase) ||
-                      (!_onlineEnabled && !collectionEmpty))
-                    _buildByPhrasePanel(data),
-                  _buildAdvancedPanel(data),
+                  //
+                  // The panels suppress their built-in ExpansionTile borders and
+                  // rely on explicit dividers interleaved *between* visible
+                  // panels only, so a hidden panel (e.g. By-phrase for ContraDB)
+                  // never leaves a stray leading rule above the next panel.
+                  ..._buildFilterPanels(data, collectionEmpty),
                   if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
                   const Divider(height: 1),
                 ]),
@@ -1109,10 +1109,38 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
+  /// Builds the visible filter panels with hairline dividers interleaved only
+  /// *between* them. Each panel suppresses its built-in ExpansionTile border
+  /// (see [_buildFiltersPanel] etc.), so the first visible panel never carries
+  /// a leading rule — even when an earlier panel (e.g. By-phrase for ContraDB)
+  /// is hidden.
+  List<Widget> _buildFilterPanels(CollectionData data, bool collectionEmpty) {
+    final panels = <Widget>[
+      if (!_onlineEnabled && !collectionEmpty) _buildFiltersPanel(data),
+      if ((_onlineEnabled && _onlineSource.supportsByPhrase) ||
+          (!_onlineEnabled && !collectionEmpty))
+        _buildByPhrasePanel(data),
+      _buildAdvancedPanel(data),
+    ];
+
+    final children = <Widget>[];
+    for (var i = 0; i < panels.length; i++) {
+      if (i > 0) {
+        children.add(
+          Divider(height: 1, key: ValueKey('filter-panel-divider-$i')),
+        );
+      }
+      children.add(panels[i]);
+    }
+    return children;
+  }
+
   Widget _buildFiltersPanel(CollectionData data) {
     final activeCount = _activeFacetCount();
     return ExpansionTile(
       key: const ValueKey('filters-panel'),
+      shape: const Border(),
+      collapsedShape: const Border(),
       leading: const Icon(Icons.filter_alt_outlined),
       title: Text(
         activeCount == 0 ? 'Filters' : 'Filters ($activeCount active)',
@@ -1150,6 +1178,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final activeCount = _byPhraseActiveCount();
     return ExpansionTile(
       key: const ValueKey('by-phrase-panel'),
+      shape: const Border(),
+      collapsedShape: const Border(),
       leading: const Icon(Icons.grid_view_outlined),
       title: Text(
         activeCount == 0 ? 'By phrase' : 'By phrase ($activeCount active)',
@@ -1185,6 +1215,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Widget _buildAdvancedPanel(CollectionData data) {
     return ExpansionTile(
       key: const ValueKey('advanced-panel'),
+      shape: const Border(),
+      collapsedShape: const Border(),
       leading: const Icon(Icons.account_tree_outlined),
       title: const Text('Advanced'),
       childrenPadding: const EdgeInsets.fromLTRB(
