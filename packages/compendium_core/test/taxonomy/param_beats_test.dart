@@ -136,6 +136,18 @@ void main() {
         expect(tax.resolve(id)!.paramBeats, isNull, reason: id);
       }
     });
+
+    test(
+      'circle keeps its flat 8 across turn/places changes (#262 no-snap)',
+      () {
+        // Circle carries no paramBeats, so its default beats never move when the
+        // direction or amount change — the editor must not snap a user's count.
+        expect(beatsFor('circle'), 8);
+        expect(beatsFor('circle', {'turn': 'right'}), 8);
+        expect(beatsFor('circle', {'turn': 'left', 'places': 3}), 8);
+        expect(beatsFor('circle', {'turn': 'right', 'places': 8}), 8);
+      },
+    );
   });
 
   group('paramBeats data shape', () {

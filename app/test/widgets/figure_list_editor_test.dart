@@ -1898,4 +1898,92 @@ void main() {
       },
     );
   });
+
+  group('#262 snap beats only when the default actually changes', () {
+    testWidgets(
+      'snap branch: swing prefix none->balance snaps 8->16 when untouched',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts);
+        await _selectMove(tester, 0, 'sw', 'swing');
+        expect(drafts.single.beats, 8);
+        expect(drafts.single.beatsTouched, isFalse);
+
+        // Adding a balance prefix moves the default 8->16, so beats snaps.
+        await _selectDropdownOption(tester, 'figure-0-prefix', 'balance');
+        expect(drafts.single.params['prefix'], 'balance');
+        expect(drafts.single.beats, 16);
+        expect(drafts.single.beatsTouched, isFalse);
+      },
+    );
+
+    testWidgets('no-snap branch: a circle turn change leaves beats untouched', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'circle', 'circle');
+      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.beats, 8);
+      expect(drafts.single.beatsTouched, isFalse);
+
+      // Circle has no paramBeats: the default stays 8 regardless of the
+      // direction, so beats must not be re-snapped.
+      await _selectDropdownOption(tester, 'figure-0-turn', 'right');
+      expect(drafts.single.params['turn'], 'right');
+      expect(drafts.single.beats, 8);
+      expect(drafts.single.beatsTouched, isFalse);
+    });
+
+    testWidgets(
+      'opt-out: a manual beats edit survives a default-changing param change',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts);
+        await _selectMove(tester, 0, 'sw', 'swing');
+
+        // The user pins beats to 10, taking ownership of the value.
+        await tester.enterText(
+          find.byKey(const ValueKey('figure-0-beats')),
+          '10',
+        );
+        await tester.pumpAndSettle();
+        expect(drafts.single.beats, 10);
+        expect(drafts.single.beatsTouched, isTrue);
+
+        // A balance prefix would normally snap 8->16, but the manual override
+        // is never overwritten.
+        await _selectDropdownOption(tester, 'figure-0-prefix', 'balance');
+        expect(drafts.single.params['prefix'], 'balance');
+        expect(drafts.single.beats, 10);
+        expect(drafts.single.beatsTouched, isTrue);
+      },
+    );
+
+    testWidgets(
+      'seeds missing beats from the default on a no-default-change edit',
+      (tester) async {
+        // Older/partial data: a loaded figure with no explicit beats is unowned
+        // and reads back as 0 until it's seeded.
+        final drafts = <FigureDraft>[
+          FigureDraft.fromFigure(
+            Figure(move: 'circle', params: const {'turn': 'left'}),
+          ),
+        ];
+        expect(drafts.single.beatsTouched, isFalse);
+        expect(drafts.single.beats, 0);
+
+        await _pump(tester, drafts);
+        await _openFigure(tester, 0);
+
+        // Changing turn doesn't move circle's (paramBeats-free) default, but a
+        // missing count is still seeded to the canonical 8 rather than left at
+        // 0.
+        await _selectDropdownOption(tester, 'figure-0-turn', 'right');
+        expect(drafts.single.params['turn'], 'right');
+        expect(drafts.single.beats, 8);
+        expect(drafts.single.beatsTouched, isFalse);
+      },
+    );
+  });
 }
