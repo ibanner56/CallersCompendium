@@ -469,9 +469,7 @@ class CallersBoxAdapter implements SourceAdapter {
     final lower = '$base $extra'.toLowerCase();
     FormationShape? shape;
     if (lower.contains('becket')) {
-      shape = (lower.contains('ccw') || lower.contains('counter'))
-          ? FormationShape.becketCcw
-          : FormationShape.becketCw;
+      shape = _becketShape(dance['Direction'], lower, issues);
     } else if (lower.contains('improper')) {
       shape = FormationShape.dupleImproper;
     } else if (lower.contains('indecent')) {
@@ -515,7 +513,37 @@ class CallersBoxAdapter implements SourceAdapter {
     return Formation(shape, detail: detail);
   }
 
-  // --- Progression -----------------------------------------------------------
+  /// Resolves Becket rotation. The CW/CCW indicator lives in the separate
+  /// top-level `Direction` JSON field, so prefer it when present; fall back to
+  /// scanning the formation text for feeds that inline the direction; default
+  /// to [FormationShape.becketCw] when neither says otherwise.
+  static FormationShape _becketShape(
+    Object? direction,
+    String lower,
+    List<ImportIssue> issues,
+  ) {
+    final dir = _asString(direction)?.trim();
+    if (dir != null && dir.isNotEmpty) {
+      switch (dir.toLowerCase()) {
+        case 'ccw':
+          return FormationShape.becketCcw;
+        case 'cw':
+          return FormationShape.becketCw;
+      }
+      issues.add(
+        ImportIssue(
+          severity: ImportIssueSeverity.info,
+          code: 'callersbox_direction_unmapped',
+          message:
+              'Direction "$dir" is not "CW" or "CCW"; defaulted Becket to '
+              'clockwise.',
+        ),
+      );
+    }
+    return (lower.contains('ccw') || lower.contains('counter'))
+        ? FormationShape.becketCcw
+        : FormationShape.becketCw;
+  }
 
   Progression _parseProgression(Object? raw, List<ImportIssue> issues) {
     final text = _asString(raw)?.trim();
