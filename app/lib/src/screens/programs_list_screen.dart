@@ -7,10 +7,14 @@ import '../utils/confirm_delete.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
 import 'app_shell_search_scope.dart';
+import 'contradb_program_import_screen.dart';
 import 'plaintext_program_import_screen.dart';
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
 import 'recently_deleted_screen.dart';
+
+/// The program-import sources offered by the Programs list "Import" menu.
+enum _ProgramImportSource { plaintext, contraDb }
 
 /// How the Programs list is ordered (`docs/design/ux.md` §4).
 enum ProgramSort {
@@ -175,6 +179,19 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     }
   }
 
+  Future<void> _openContraDbImport() async {
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => const ContraDbProgramImportScreen(),
+      ),
+    );
+    if (!mounted) return;
+    if (result != null) {
+      await _load();
+      if (mounted) widget.onSelectProgram?.call(result);
+    }
+  }
+
   Future<void> _softDelete(Program program) async {
     await _repos.programs.softDelete(program.id, at: DateTime.now().toUtc());
     if (!mounted) return;
@@ -235,11 +252,34 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               onPressed: openSearch,
             ),
           if (_programs != null) ...[
-            IconButton(
-              key: const ValueKey('programs-import-plaintext'),
-              tooltip: 'Import from title list',
-              icon: const Icon(Icons.playlist_add),
-              onPressed: _openPlaintextImport,
+            PopupMenuButton<_ProgramImportSource>(
+              key: const ValueKey('programs-import'),
+              tooltip: 'Import program',
+              icon: const Icon(Icons.file_download_outlined),
+              onSelected: (source) => switch (source) {
+                _ProgramImportSource.plaintext => _openPlaintextImport(),
+                _ProgramImportSource.contraDb => _openContraDbImport(),
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(
+                  key: ValueKey('programs-import-plaintext'),
+                  value: _ProgramImportSource.plaintext,
+                  child: ListTile(
+                    leading: Icon(Icons.playlist_add),
+                    title: Text('From title list'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                PopupMenuItem(
+                  key: ValueKey('programs-import-contradb'),
+                  value: _ProgramImportSource.contraDb,
+                  child: ListTile(
+                    leading: Icon(Icons.cloud_download_outlined),
+                    title: Text('From ContraDB'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
             ),
             IconButton(
               key: const ValueKey('programs-recently-deleted'),

@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>01.12.18-Harrisburg, Pa | Program | Contra</title>
+  <link href="https://fonts.googleapis.com/css?family=PT+Sans|PT+Serif" rel="stylesheet">
+  <!-- asset pipeline / sprockets begin -->
+  <link rel="stylesheet" media="all" href="/assets/application-2b59d224874b3d007b68c135c604ebfc10acc2ab28ffaaddfb2d6cc8005e0340.css" />
+  <script src="/assets/application-bfdd90c965d9298d1a5a18209a467fbcebcb85a5328db759d124a8c819e4dd62.js"></script>
+  <!-- asset pipeline / sprockets end -->
+  <meta name="csrf-param" content="authenticity_token" />
+<meta name="csrf-token" content="rEdOEBHHOMwfA2DehhVaujKkHdchRX2ukj8LB9Xvf5EQWrxakng13Lx2KXW+DRmDorxdf6L83fRXCIgxgcMVJg==" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body class="rails-env-production programs-show-body">
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/">ContraDB</a>
+      </div>
+      <div id="navbar" class="navbar-collapse collapse">
+        <ul class="nav navbar-nav">
+          <li><p class="navbar-btn"><a class="btn btn-default" type="button" href="/dances/new"><span><span class='glyphicon glyphicon-plus' aria-hidden='true'></span> New Dance</span></a></p></li>
+          <li><a href="/figures">Figures</a></li>
+          <li><a href="/programs">Programs</a></li>
+          <li><a href="/choreographers">Choreographers</a></li>
+          <li><a href="/about">About</a></li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+            <li><a class="navbar-link" href="/users/sign_up">sign up</a></li>
+            <li><a class="navbar-link" href="/users/sign_in">login</a></li>
+        </ul>
+      </div><!--/.nav-collapse -->
+    </div><!--/.container-fluid -->
+  </nav>
+<p class="notice" id="notice"></p>
+<p class="alert" id="alert"></p>
+<div class="programs-show-content">
+  <div class='container'> <!-- TODO: reindent -->
+  <h1>01.12.18-Harrisburg, Pa</h1>
+  <p>user: <strong><a href="/users/67">Karl Senseman</a></strong></p>
+  <div class='row'>
+    <div class='col-sm-8 col-print-12'>
+      <div class="activity-toc">
+        <h2>Table of Contents</h2>
+        <ol>
+            <li>
+              <a href="/programs/33#activity-1"><span class="activity-toc-dance-title">Courageous Soul</span> by Carol Kopp</a>
+              
+            </li>
+            <li>
+              <a href="/programs/33#activity-2"><span class="activity-toc-dance-title">Boys From Urbana</span> by John Coffman</a>
+              
+            </li>
+            <li>
+              <a href="/programs/33#activity-3"><span class="activity-toc-dance-title">Marshmallows in Flight</span> by Rich Goss</a>
+              
+            </li>
+            <li>
+              <a href="/programs/33#activity-4"><span class="activity-toc-dance-title">Hey in the Barn</span> by Chart Guthrie</a>
+              
+            </li>
+            <li>
+              <a href="/programs/33#activity-5"><span class="activity-toc-dance-title">20 Below</span> by Bill Olson</a>
+              
+            </li>
+            <li>
+              
+              <a href="/programs/33#activity-6"><span class='contra-markdown-inline'><p>Waltz</p>
+</span></a>
+            </li>
+            <li>
+              <a href="/programs/33#activity-7"><span class="activity-toc-dance-title">Yo Ho Ho and a Bottle of Sasparilla</span> by Mariah Fabry</a>
+              <a href="/programs/33#activity-7"><span class='contra-markdown-inline'><p>Called as ladles:&quot;pirates&quot; - gentlespoons:&quot;wenches&quot;</p>
+</span></a>
+            </li>
+            <li>
+              <a href="/programs/33#activity-8"><span class="activity-toc-dance-title">Shift Happens</span> by Rick Mohr</a>
+              
+            </li>
+            <li>
+              <a href="/programs/33#activity-9"><span class="activity-toc-dance-title">Whirl-A-Way</span> by Karl Senseman</a>
+              
+            </li>
+            <li>
+              <a href="/programs/33#activity-10"><span class="activity-toc-dance-title">The Baby Rose</span> by David Kaynor</a>
+              
+            </li>
+            <li>
+              
+              <a href="/programs/33#activity-11"><span class='contra-markdown-inline'><p>Waltz</p>
+</span></a>
+            </li>
+        </ol>
+      </div>
+    </div>
+    <div class='col-sm-4'>
+      <div class='visible-xs-block'>
+        <br><br>
+      </div>
+      <div class='panel panel-default hidden-print'>
+        <div class="panel-heading">
+          <h2 class='panel-title'>Database</h2>
+        </div>
+        <div class='panel-body'>
+          <div class="btn-group">
+            <a class="btn btn-default btn-md contra-btn-midpage" type="button" href="/programs/new?copy_program_id=33"><span><span class="glyphicon glyphicon-duplicate" aria-label="copy" data-toggle="tooltip" data-placement="left" title="copy"></span> Copy</span></a>
+            
+          </div>
+        </div>
+        <div class="panel-heading panel-heading-mid-panel-hack">
+          <h3 class='panel-title'>Validation</h3>
+        </div>
+        <div class='panel-body'>
+          <div class='validation-toggle-partial'>
+  <div>
+    <input name="validation" type="checkbox" class="validation-toggle" data-toggle="toggle" data-on="Validate" data-size="small" />
+  </div>
+  <p class='understated' style='margin-top: 0.5em'>toggle validations for common dance entry errors, e.g. typing 'gentlemen' when you're using 'leads'</p>
+</div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <div id="activity-1" class="activity-breakdown">
+      <h2 class="activity-breakdown-dance-title"><a href="/dances/185">Courageous Soul</a></h2>
+      <p>by: <b><a href="/choreographers/80">Carol Kopp</a></b></p>
+
+      
+
+      <p>introduces moves: <a href="/figures/do-si-do">do si do</a>, <a href="/figures/swing">swing</a>, <a href="/figures/circle">circle</a>, <a href="/figures/long-lines">long lines</a>, <a href="/figures/chain">chain</a></p>
+
+        <div class='dance-body-in-program'>
+          <p class="dance-show-formation">formation: improper </p>
+
+<div class="dance-show-preamble"><div class='contra-markdown-block'></div></div>
+
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+         <tr class="a1b1 ">
+             <td>A1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles do si do once</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">gentlespoons do si do once</div>
+</td></tr>
+</tr>         <tr class="a2b2 dance-show-long-figure">
+             <td>A2</td>
+             <td class=dance-show-beats>16</td>
+             <td><div class="show-figure">neighbors balance &amp; swing</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td>B1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">circle left 3 places</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">partners swing</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>B2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">long lines forward &amp; back</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles chain ⁋</div>
+</td></tr>
+</tr></table>
+
+<div class="dance-show-notes"><div class='contra-markdown-block'></div></div>
+
+        </div>
+</div>    <div id="activity-2" class="activity-breakdown">
+      <h2 class="activity-breakdown-dance-title"><a href="/dances/173">Boys From Urbana</a></h2>
+      <p>by: <b><a href="/choreographers/44">John Coffman</a></b></p>
+
+      
+
+      <p>introduces moves: <a href="/figures/zig-zag">zig zag</a>, <a href="/figures/allemande">allemande</a></p>
+
+        <div class='dance-body-in-program'>
+          <p class="dance-show-formation">formation: Becket </p>
+
+<div class="dance-show-preamble"><div class='contra-markdown-block'></div></div>
+
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+         <tr class="a1b1 ">
+             <td>A1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">circle left 3 places</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>6</td>
+             <td><div class="show-figure">zig left zag right, trailing two catching hands ⁋</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>2</td>
+             <td><div class="show-figure">gentlespoons allemande left ½</div>
+</td></tr>
+</tr>         <tr class="a2b2 dance-show-long-figure">
+             <td>A2</td>
+             <td class=dance-show-beats>16</td>
+             <td><div class="show-figure">neighbors balance &amp; swing</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td>B1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">long lines forward &amp; back</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles allemande right 1½</div>
+</td></tr>
+</tr>         <tr class="a2b2 dance-show-long-figure">
+             <td>B2</td>
+             <td class=dance-show-beats>16</td>
+             <td><div class="show-figure">partners balance &amp; swing</div>
+</td></tr>
+</tr></table>
+
+<div class="dance-show-notes"><div class='contra-markdown-block'></div></div>
+
+        </div>
+</div>    <div id="activity-3" class="activity-breakdown">
+      <h2 class="activity-breakdown-dance-title"><a href="/dances/153">Marshmallows in Flight</a></h2>
+      <p>by: <b><a href="/choreographers/68">Rich Goss</a></b></p>
+
+      
+
+      <p>introduces moves: <a href="/figures/balance-the-ring">balance the ring</a>, <a href="/figures/roll-away">roll away</a>, <a href="/figures/give-and-take">give &amp; take</a>, <a href="/figures/california-twirl">California twirl</a></p>
+
+        <div class='dance-body-in-program'>
+          <p class="dance-show-formation">formation: improper </p>
+
+<div class="dance-show-preamble"><div class='contra-markdown-block'></div></div>
+
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+         <tr class="a1b1 ">
+             <td>A1</td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">balance the ring</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">gentlespoons roll away neighbors with a half sashay along</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">balance the ring</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">gentlespoons roll away partners with a half sashay across</div>
+</td></tr>
+</tr>         <tr class="a2b2 dance-show-long-figure">
+             <td>A2</td>
+             <td class=dance-show-beats>16</td>
+             <td><div class="show-figure">neighbors balance &amp; swing</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td>B1</td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">gentlespoons give &amp; take partners</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>12</td>
+             <td><div class="show-figure">partners swing</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>B2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">circle left 3 places</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">balance the ring</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">partners California twirl ⁋</div>
+</td></tr>
+</tr></table>
+
+<div class="dance-show-notes"><div class='contra-markdown-block'></div></div>
+
+        </div>
+</div>    <div id="activity-4" class="activity-breakdown">
+      <h2 class="activity-breakdown-dance-title"><a href="/dances/266">Hey in the Barn</a></h2>
+      <p>by: <b><a href="/choreographers/14">Chart Guthrie</a></b></p>
+
+      
+
+      <p>introduces moves: <a href="/figures/hey">hey</a></p>
+
+        <div class='dance-body-in-program'>
+          <p class="dance-show-formation">formation: improper </p>
+
+<div class="dance-show-preamble"><div class='contra-markdown-block'></div></div>
+
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+         <tr class="a1b1 dance-show-long-figure">
+             <td>A1</td>
+             <td class=dance-show-beats>16</td>
+             <td><div class="show-figure">neighbors balance &amp; swing</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>A2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles chain</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles start a half hey - rights in center, lefts on ends</div>
+</td></tr>
+</tr>         <tr class="a1b1 dance-show-long-figure">
+             <td>B1</td>
+             <td class=dance-show-beats>16</td>
+             <td><div class="show-figure">partners balance &amp; swing</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>B2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles chain</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles start a half hey - ____ in center, ____ on ends ⁋</div>
+</td></tr>
+</tr></table>
+
+<div class="dance-show-notes"><div class='contra-markdown-block'></div></div>
+
+        </div>
+</div>    <div id="activity-5" class="activity-breakdown">
+      <h2 class="activity-breakdown-dance-title"><a href="/dances/186">20 Below</a></h2>
+      <p>by: <b><a href="/choreographers/81">Bill Olson</a></b></p>
+
+      
+
+      <p>introduces moves: <a href="/figures/balance">balance</a>, <a href="/figures/custom">custom</a></p>
+
+        <div class='dance-body-in-program'>
+          <p class="dance-show-formation">formation: Becket </p>
+
+<div class="dance-show-preamble"><div class='contra-markdown-block'><p>Nice to start with a couple out at the top because the progression is in A2<br>
+Last time thru likewise should start with a couple out at top</p>
+</div></div>
+
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+         <tr class="a1b1 ">
+             <td>A1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">circle left 3 places to wavy line across, L in cntr</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">balance wave</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">move forward to new wavy line (progression) ⁋</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>A2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure"><u>balance</u> the wave</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">neighbors swing</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td>B1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">gentlespoons allemande left 1½</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">partners start a half hey - rights on ends, lefts in center</div>
+</td></tr>
+</tr>         <tr class="a2b2 dance-show-long-figure">
+             <td>B2</td>
+             <td class=dance-show-beats>16</td>
+             <td><div class="show-figure">partners balance &amp; swing (start again with same <u>neighbors</u>)</div>
+</td></tr>
+</tr></table>
+
+<div class="dance-show-notes"><div class='contra-markdown-block'><p><a href="http://www.billolsondance.com/billsdances.html">http://www.billolsondance.com/billsdances.html</a></p>
+</div></div>
+
+        </div>
+</div>    <div id="activity-6" class="activity-breakdown">
+      <h2 class="activity-breakdown-text"><div class='contra-markdown-block'><p>Waltz</p>
+</div></h2>
+      
+
+      
+
+      
+
+</div>    <div id="activity-7" class="activity-breakdown">
+      <h2 class="activity-breakdown-dance-title"><a href="/dances/162">Yo Ho Ho and a Bottle of Sasparilla</a></h2>
+      <p>by: <b><a href="/choreographers/73">Mariah Fabry</a></b></p>
+
+      <p class="activity-breakdown-text"><div class='contra-markdown-block'><p>Called as ladles:&quot;pirates&quot; - gentlespoons:&quot;wenches&quot;</p>
+</div></p>
+
+      <p>introduces moves: <a href="/figures/star-promenade">star promenade</a>, <a href="/figures/butterfly-whirl">butterfly whirl</a>, <a href="/figures/star">star</a></p>
+
+        <div class='dance-body-in-program'>
+          <p class="dance-show-formation">formation: improper </p>
+
+<div class="dance-show-preamble"><div class='contra-markdown-block'></div></div>
+
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+         <tr class="a1b1 ">
+             <td>A1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles allemande right 1½ hook elbows</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">ladles star promenade right ½ scoop your partner (plunder)</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">butterfly whirl</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>A2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">gentlespoons allemande right 1½ hook elbows</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">neighbors swing</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td>B1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">circle left 3 places</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">partners swing</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>B2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles chain</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">star left 4 places ⁋</div>
+</td></tr>
+</tr></table>
+
+<div class="dance-show-notes"><div class='contra-markdown-block'><p>Mariah Fabry notes: substitute &#39;pirates&#39; for <u>gentlespoons</u> and &#39;wenches&#39; for <u>ladles</u><br>
+allemandes are hook-arm turns</p>
+</div></div>
+
+        </div>
+</div>    <div id="activity-8" class="activity-breakdown">
+      <h2 class="activity-breakdown-dance-title"><a href="/dances/245">Shift Happens</a></h2>
+      <p>by: <b><a href="/choreographers/35">Rick Mohr</a></b></p>
+
+      
+
+      <p>introduces moves: <a href="/figures/slice">slice</a>, <a href="/figures/gyre">gyre</a>, <a href="/figures/slide-along-set">slide along set</a></p>
+
+        <div class='dance-body-in-program'>
+          <p class="dance-show-formation">formation: Becket </p>
+
+<div class="dance-show-preamble"><div class='contra-markdown-block'></div></div>
+
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+         <tr class="a1b1 ">
+             <td>A1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">circle left 3 places</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">neighbors swing</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>A2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">slice left and straight back</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles chain</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td>B1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles start a half hey - rights in center, lefts on ends</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">partners swing (find partner in adjacent <u>hey</u>)</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>B2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">gentlespoons start a half hey - lefts in center, rights on ends</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>6</td>
+             <td><div class="show-figure">partners gyre once</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>2</td>
+             <td><div class="show-figure">slide left along set ⁋</div>
+</td></tr>
+</tr></table>
+
+<div class="dance-show-notes"><div class='contra-markdown-block'></div></div>
+
+        </div>
+</div>    <div id="activity-9" class="activity-breakdown">
+      <h2 class="activity-breakdown-dance-title"><a href="/dances/235">Whirl-A-Way</a></h2>
+      <p>by: <b><a href="/choreographers/79">Karl Senseman</a></b></p>
+
+      
+
+      <p>introduces moves: <a href="/figures/pull-by-dancers">pull by dancers</a></p>
+
+        <div class='dance-body-in-program'>
+          <p class="dance-show-formation">formation: Becket </p>
+
+<div class="dance-show-preamble"><div class='contra-markdown-block'></div></div>
+
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+         <tr class="a1b1 ">
+             <td>A1</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">circle left 3 places</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">neighbors swing</div>
+</td></tr>
+</tr>         <tr class="a2b2 dance-show-long-figure">
+             <td>A2</td>
+             <td class=dance-show-beats>16</td>
+             <td><div class="show-figure">gentlespoons start a full hey - lefts in center, rights on ends</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td>B1</td>
+             <td class=dance-show-beats>2</td>
+             <td><div class="show-figure">gentlespoons pull by left</div>
+</td></tr>
+</tr>         <tr class="a1b1 ">
+             <td></td>
+             <td class=dance-show-beats>14</td>
+             <td><div class="show-figure">partners swing</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>B2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles allemande right once pick up partner</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">ladles star promenade right ½</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>4</td>
+             <td><div class="show-figure">butterfly whirl (shift left to next couple) ⁋</div>
+</td></tr>
+</tr></table>
+
+<div class="dance-show-notes"><div class='contra-markdown-block'><p><u>butterfly whirl</u>: <u>ladles</u> backup while <u>gentlespoons</u> go forward, while doing figure shift left (up or down) to next couple for progression</p>
+</div></div>
+
+        </div>
+</div>    <div id="activity-10" class="activity-breakdown">
+      <h2 class="activity-breakdown-dance-title"><a href="/dances/8">The Baby Rose</a></h2>
+      <p>by: <b><a href="/choreographers/7">David Kaynor</a></b></p>
+
+      
+
+      
+
+        <div class='dance-body-in-program'>
+          <p class="dance-show-formation">formation: improper </p>
+
+<div class="dance-show-preamble"><div class='contra-markdown-block'></div></div>
+
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+         <tr class="a1b1 dance-show-long-figure">
+             <td>A1</td>
+             <td class=dance-show-beats>16</td>
+             <td><div class="show-figure">neighbors balance &amp; swing</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>A2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">circle left 3 places</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">partners do si do once</div>
+</td></tr>
+</tr>         <tr class="a1b1 dance-show-long-figure">
+             <td>B1</td>
+             <td class=dance-show-beats>16</td>
+             <td><div class="show-figure">partners balance &amp; swing</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td>B2</td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">ladles chain</div>
+</td></tr>
+</tr>         <tr class="a2b2 ">
+             <td></td>
+             <td class=dance-show-beats>8</td>
+             <td><div class="show-figure">star left 4 places to new <u>neighbors</u> ⁋</div>
+</td></tr>
+</tr></table>
+
+<div class="dance-show-notes"><div class='contra-markdown-block'></div></div>
+
+        </div>
+</div>    <div id="activity-11" class="activity-breakdown">
+      <h2 class="activity-breakdown-text"><div class='contra-markdown-block'><p>Waltz</p>
+</div></h2>
+      
+
+      
+
+      
+
+</div></div>
+
+</div></body></html>
