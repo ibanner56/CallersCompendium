@@ -1,5 +1,7 @@
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/contradb_online.dart';
+import 'package:compendium_app/src/data/contradb_program_search.dart';
+import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -44,6 +46,7 @@ Future<void> _pump(
   required Future<String> Function(String) programFetcher,
   required ContraDbOnline contraDb,
   CallersBoxOnline? callersBox,
+  ContraDbProgramSearch? programSearch,
 }) async {
   await tester.binding.setSurfaceSize(const Size(600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -61,6 +64,7 @@ Future<void> _pump(
                     programFetcher: programFetcher,
                     contraDbOnline: contraDb,
                     callersBoxOnline: callersBox,
+                    programSearch: programSearch,
                   ),
                 ),
               ),
@@ -164,5 +168,90 @@ void main() {
       findsOneWidget,
     );
     expect(await repos.programs.listAll(), isEmpty);
+  });
+
+  testWidgets('searches by name and imports the picked program', (
+    tester,
+  ) async {
+    const indexHtml = '''
+<html><body>
+  <a href="/programs/33">Barn Dance Night</a>
+  <a href="/programs/99">Spring Fling</a>
+</body></html>
+''';
+    final repos = openTestRepositories();
+    final contraDb = ContraDbOnline(
+      htmlFetcher: (url) async {
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return _danceHtml(id);
+      },
+    );
+
+    await _pump(
+      tester,
+      repos,
+      // The program page is fetched by id ('33') through the existing seam.
+      programFetcher: (_) async => _programHtml,
+      contraDb: contraDb,
+      programSearch: ContraDbProgramSearch(fetch: (_) async => indexHtml),
+    );
+
+    // Switch to search mode; the index loads and the prompt shows.
+    await tester.tap(find.text('Search by name'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('contradb-program-search-prompt')),
+      findsOneWidget,
+    );
+
+    // Type a name → only the matching program is listed.
+    await tester.enterText(
+      find.byKey(const ValueKey('contradb-program-search-field')),
+      'barn',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Barn Dance Night'), findsOneWidget);
+    expect(find.text('Spring Fling'), findsNothing);
+
+    // Pick it → reuses the existing fetch+preview pipeline for /programs/33.
+    await tester.tap(find.text('Barn Dance Night'));
+    await tester.pumpAndSettle();
+    expect(find.text('3 activities (2 dances, 1 note)'), findsOneWidget);
+    expect(find.text('Courageous Soul'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+    await tester.pumpAndSettle();
+
+    final programs = await repos.programs.listAll();
+    expect(programs, hasLength(1));
+    expect(programs.single.title, 'Barn Dance');
+    expect(await repos.dances.listAll(), hasLength(2));
+  });
+
+  testWidgets('a program-index load failure shows an error with retry', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(
+      tester,
+      repos,
+      programFetcher: (_) async => _programHtml,
+      contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
+      programSearch: ContraDbProgramSearch(
+        fetch: (_) async => throw const UrlFetchException('offline'),
+      ),
+    );
+
+    await tester.tap(find.text('Search by name'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('contradb-program-search-error')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('contradb-program-search-retry')),
+      findsOneWidget,
+    );
   });
 }
