@@ -24,9 +24,10 @@ class ContraDbProgramActivity {
   });
 
   /// A linked ContraDB dance. [danceId] is the numeric `/dances/{id}` id and
-  /// [title] is the dance title as shown on the program page (both verbatim).
-  /// [note] is optional free text attached to this dance on the program (e.g.
-  /// "Called as ladles:'pirates'…"); it is preserved verbatim and never guessed.
+  /// [title] is the dance title as shown on the program page (surrounding
+  /// whitespace trimmed, otherwise verbatim). [note] is optional free text
+  /// attached to this dance on the program (e.g. "Called as ladles:'pirates'…");
+  /// its content is preserved as-is (outer whitespace trimmed) and never guessed.
   factory ContraDbProgramActivity.dance({
     required String danceId,
     required String title,
@@ -38,9 +39,9 @@ class ContraDbProgramActivity {
     text: (note != null && note.trim().isNotEmpty) ? note.trim() : null,
   );
 
-  /// A standalone free-text note activity (announcement / waltz / break). Kept
-  /// verbatim; consumers must render it as a note slot and must **not** try to
-  /// resolve it to a dance.
+  /// A standalone free-text note activity (announcement / waltz / break). Its
+  /// content is preserved as-is (surrounding whitespace trimmed); consumers must
+  /// render it as a note slot and must **not** try to resolve it to a dance.
   factory ContraDbProgramActivity.note(String text) =>
       ContraDbProgramActivity._(isDance: false, text: text.trim());
 
