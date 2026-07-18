@@ -518,12 +518,16 @@ jobs:
 
       # --- iOS: signed App Store archive + TestFlight upload ----------------
       # Automatic (Xcode-managed) code signing driven by an App Store Connect
-      # API key: `flutter build ipa` passes `-allowProvisioningUpdates` to BOTH
-      # the xcodebuild archive and the -exportArchive steps, so xcodebuild
-      # creates/downloads the iOS distribution certificate + App Store
-      # provisioning profile in the cloud — NO manually-managed cert or profile
-      # is required. The key needs the App Manager role (required for TestFlight
-      # upload; Developer is not sufficient).
+      # API key. `flutter build ipa` CANNOT forward the API-key credentials to
+      # its internal `xcodebuild archive`, so that archive runs with no account
+      # and fails automatic signing with "No Accounts" / "no profiles found".
+      # The build step below therefore archives + exports with xcodebuild
+      # directly, passing the key explicitly via -authenticationKeyPath /
+      # -authenticationKeyID / -authenticationKeyIssuerID so
+      # -allowProvisioningUpdates can create/download the iOS distribution
+      # certificate + App Store provisioning profile in the cloud — NO
+      # manually-managed cert or profile is required. The key needs the App
+      # Manager role (required for TestFlight upload; Developer is not enough).
       #
       # Secrets arrive via `env:` and are only ever decoded to files with
       # `base64 -D` (never echoed); `set -x` is deliberately NOT used. The .p8 is
@@ -557,7 +561,8 @@ jobs:
           # keeps the checked-in project team-agnostic.
           printf 'DEVELOPMENT_TEAM=%s\n' "$APPLE_TEAM_ID" >> app/ios/Flutter/Release.xcconfig
 
-          # ExportOptions for `flutter build ipa`, built with PlistBuddy so no
+          # ExportOptions for the xcodebuild -exportArchive step, built with
+          # PlistBuddy so no
           # heredoc indentation leaks into the file. `app-store` is accepted by
           # every Xcode the runner is likely to ship (newer Xcode may emit a
           # non-fatal deprecation notice for the renamed `app-store-connect`).
@@ -582,6 +587,10 @@ jobs:
       - name: Build signed iOS .ipa (App Store archive)
         if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
         working-directory: app
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
           # Monotonic, unique CFBundleVersion so TestFlight never rejects a
@@ -593,9 +602,47 @@ jobs:
           # gate (tag core == pubspec semver) stays green.
           build_number=$(( GITHUB_RUN_NUMBER * 1000 + GITHUB_RUN_ATTEMPT ))
           echo "Using CFBundleVersion (build number): ${build_number}"
-          flutter build ipa --release \
-            --build-number="${build_number}" \
-            --export-options-plist "$RUNNER_TEMP/ExportOptions.plist"
+
+          # `flutter build ipa` cannot forward the App Store Connect API-key
+          # credentials to its internal `xcodebuild archive`, so that archive
+          # has no account and fails automatic signing with "No Accounts".
+          # Instead: (1) build the Flutter assets + generated project UNSIGNED,
+          # then (2) archive and (3) export with xcodebuild directly, passing the
+          # API key explicitly so -allowProvisioningUpdates can mint the
+          # distribution certificate + App Store provisioning profile.
+          key_path="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
+
+          # 1) Flutter build — populates Generated.xcconfig (incl. the build
+          #    number) and compiles the Dart/asset bundle. --no-codesign because
+          #    xcodebuild signs during the archive below.
+          flutter build ios --release --no-codesign --build-number="${build_number}"
+
+          # 2) Archive with automatic, API-key-authenticated signing.
+          xcodebuild archive \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$key_path" \
+            -authenticationKeyID "$APPLE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPLE_API_ISSUER_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+
+          # 3) Export the App Store .ipa to app/build/ios/ipa (the path the
+          #    TestFlight upload + artifact-upload steps below already glob).
+          rm -rf build/ios/ipa
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
+            -exportPath "$PWD/build/ios/ipa" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$key_path" \
+            -authenticationKeyID "$APPLE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPLE_API_ISSUER_ID"
+
           ls -l build/ios/ipa
 
       # Upload to TestFlight ONLY on a real tag push — a manual workflow_dispatch
