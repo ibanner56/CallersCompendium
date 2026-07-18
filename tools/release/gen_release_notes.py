@@ -15,8 +15,14 @@ Behaviour:
 * For a prerelease (``--channel beta``) a clear **Beta / pre-release** banner is
   prepended so a ``-beta``/``-rc`` tag can never produce misleading "stable"
   wording.
-* A short footer is always appended: the artifacts are UNSIGNED, verify against
-  ``SHA256SUMS``, and a maintainer publishes the draft after review.
+* A short footer is always appended: it states the per-platform signing
+  posture, tells users to verify against ``SHA256SUMS``, and notes that a
+  maintainer publishes the draft after review. The macOS sentence is
+  **conditional on the actual signing outcome** (``--macos-signing``): macOS is
+  described as **Developer ID-signed & notarized** only when the pipeline
+  actually signed it (the Apple secrets were configured — ADR-002 §6);
+  otherwise all three desktops are reported as **unsigned**, so the notes never
+  over-claim provenance.
 * Missing-section handling is **channel-conditional**:
     - ``--check`` mode (run in the release ``meta`` job) fails fast with an
       ``::error::`` when a **stable** release has no matching section, so public
@@ -39,14 +45,34 @@ import re
 import sys
 from pathlib import Path
 
-# Footer appended to every generated body. Kept in lock-step with the safety
-# wording the pipeline has always shown (see ADR-002 §6).
-_FOOTER = (
-    "These artifacts are **UNSIGNED** (no code-signing this wave — see "
-    "ADR-002 §6).\n"
+# Footer appended to every generated body. The verify/publish reminder
+# (``_VERIFY_LINE``) is invariant; the signing sentence above it is chosen at
+# runtime from the ACTUAL macOS signing outcome (see ``_signing_line``) so the
+# notes never over-claim provenance. macOS signing is gated on the Apple secrets
+# (ADR-002 §6); when they're absent the macOS leg ships UNSIGNED like
+# Windows/Linux, and the footer says exactly that.
+_VERIFY_LINE = (
     "Verify downloads against `SHA256SUMS`. A maintainer publishes this draft "
     "after review."
 )
+
+
+def _signing_line(*, macos_signed: bool) -> str:
+    """Per-platform signing sentence, honest about the macOS outcome."""
+    if macos_signed:
+        return (
+            "Windows and Linux desktop builds are **unsigned**; macOS is "
+            "**Developer ID-signed & notarized** (see ADR-002 §6)."
+        )
+    return (
+        "Windows, Linux, and macOS desktop builds are **unsigned** this "
+        "release — macOS Developer ID signing + notarization activates once "
+        "the Apple secrets are configured (see ADR-002 §6)."
+    )
+
+
+def _footer(*, macos_signed: bool) -> str:
+    return f"{_signing_line(macos_signed=macos_signed)}\n{_VERIFY_LINE}"
 
 
 def _core_version(version: str) -> str:
@@ -135,8 +161,14 @@ def build_notes(
     tag: str,
     channel: str,
     changelog_text: str,
+    macos_signed: bool = False,
 ) -> tuple[str, bool]:
     """Build the release-notes body.
+
+    ``macos_signed`` selects the footer's macOS signing sentence: True only when
+    the pipeline actually Developer ID-signed + notarized the macOS artifacts
+    (the Apple secrets were configured). It defaults to False so the notes never
+    over-claim provenance when the signing outcome is unknown.
 
     Returns ``(body, found)`` where ``found`` is False when no matching
     CHANGELOG section existed (the caller can then emit a ``::warning::``).
@@ -158,7 +190,7 @@ def build_notes(
         )
 
     blocks.append("---")
-    blocks.append(_FOOTER)
+    blocks.append(_footer(macos_signed=macos_signed))
 
     body = "\n\n".join(blocks).rstrip() + "\n"
     return body, section is not None
@@ -186,6 +218,15 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         type=Path,
         help="write the notes to this file (default: stdout)",
+    )
+    ap.add_argument(
+        "--macos-signing",
+        choices=["configured", "missing"],
+        default="missing",
+        help="the macOS signing outcome for this release: 'configured' when the "
+        "pipeline Developer ID-signed + notarized the macOS artifacts (Apple "
+        "secrets present), else 'missing'. Selects the footer's macOS signing "
+        "sentence so the notes never over-claim provenance. Default: missing.",
     )
     ap.add_argument(
         "--check",
@@ -220,6 +261,7 @@ def main(argv: list[str] | None = None) -> int:
         tag=args.tag,
         channel=args.channel,
         changelog_text=changelog_text,
+        macos_signed=args.macos_signing == "configured",
     )
 
     if not found:

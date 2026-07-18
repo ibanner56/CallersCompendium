@@ -258,6 +258,17 @@ outside the Store — is valid and common but is an Apple-platform step **beyond
 the Flutter doc. We record **both**; both require the same Apple Developer
 Program (**$99/yr**). (Flutter: *Build and release a macOS app*.)
 
+> **Implemented (gated on secrets).** The direct-distribution path is now wired
+> into `.github/workflows/release.yml`: on a `v*` tag the macOS leg deep-codesigns
+> the `.app` with the hardened runtime, builds + signs the `.dmg`, notarizes via
+> `notarytool`, staples the ticket to the `.app` and `.dmg`, and verifies with
+> `codesign`/`spctl`. It is **gated exactly like Android** — active only when the
+> `APPLE_DEVELOPER_ID_CERT_P12` / `APPLE_CERT_PASSWORD` / `APPLE_TEAM_ID` cert set
+> **and** the `APPLE_API_KEY_P8` / `APPLE_API_KEY_ID` / `APPLE_API_ISSUER_ID`
+> notarytool credentials are all present; otherwise the leg produces the same
+> UNSIGNED artifacts as before. See
+> [docs/dev/releasing.md](../dev/releasing.md#macos-developer-id-signed--notarized).
+
 **Linux.** Alongside the AppImage + `tar.gz` baseline and Flathub, we also list
 **Snap** (`snapcraft`), which is the **Flutter-documented** Linux release path.
 All three are free, and Linux has no OS-trust-warning model to satisfy. (Flutter:

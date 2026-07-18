@@ -1,16 +1,22 @@
-# Releasing (desktop, unsigned)
+# Releasing (desktop)
 
 This is the operator runbook for cutting a desktop release. It documents the
 `.github/workflows/release.yml` pipeline added in Wave-1 (ADR-002 layers A6/A7).
 
-> **Scope of this wave.** Desktop builds are **UNSIGNED** and **free** — no
-> secrets, no code-signing, no paid accounts. macOS notarization and Windows
-> Authenticode are deliberately deferred to a later signing wave
-> (see [ADR-002 §6](../adr/002-distribution-and-update-channels.md)). Until then
-> users bypass OS trust prompts manually (macOS Gatekeeper right-click-Open,
-> Windows SmartScreen "More info → Run anyway"). **Android is the exception:** it
-> ships a **self-signed** APK via a real upload keystore once the maintainer adds
-> the CI secrets — see [Android (signed APK)](#android-signed-apk).
+> **Scope of this wave.** Desktop builds are **free** — no paid accounts. The
+> **Linux** (`tar.gz`/AppImage) and **Windows** (installer/`zip`) artifacts are
+> **UNSIGNED**: until Windows Authenticode lands, Windows users bypass the
+> SmartScreen prompt manually ("More info → Run anyway"). **macOS is the
+> desktop exception:** the release pipeline **Developer ID-signs and notarizes**
+> the `.app`/`.dmg`/`.zip` (hardened runtime + `notarytool` + stapled ticket)
+> once the maintainer adds the Apple secrets — see
+> [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized).
+> Until those secrets exist the macOS leg stays a clean UNSIGNED build (users
+> bypass Gatekeeper with right-click → Open). **Android** likewise ships a
+> **self-signed** APK via a real upload keystore once its CI secrets are added —
+> see [Android (signed APK)](#android-signed-apk). See
+> [ADR-002 §6](../adr/002-distribution-and-update-channels.md) for the full
+> per-platform signing table.
 
 ## What the pipeline produces
 
@@ -142,8 +148,12 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
   same section serves the beta and the eventual stable release.
 - For a **prerelease/beta** tag it prepends a clear **Beta / pre-release**
   banner, so a `-beta`/`-rc` tag can never render misleading "stable" wording.
-- It always appends the safety footer (artifacts are **UNSIGNED**, verify
-  against `SHA256SUMS`, a maintainer publishes the draft after review).
+- It always appends the safety footer: the per-platform signing posture, a
+  reminder to verify against `SHA256SUMS`, and a note that a maintainer
+  publishes the draft after review. The macOS line is **honest about the actual
+  signing outcome** — the publish job passes `--macos-signing configured` only
+  when the Apple secrets are present (so macOS was Developer ID-signed &
+  notarized); otherwise the footer reports all three desktops as **unsigned**.
 - If **no matching section exists**, behaviour is **channel-conditional**:
   - **Stable** tag (plain `x.y.z`): the release **fails fast** in the cheap
     `meta` job — *before* the build matrix — with a clear `::error::` telling you
@@ -299,6 +309,91 @@ gh workflow run release.yml
 > workflow from the tagged commit and produces a **draft** (never public);
 > delete the draft release and the tag afterward.
 
+## macOS (Developer ID signed + notarized)
+
+Unlike the Linux and Windows desktop artifacts (which are **unsigned** — users
+bypass the OS prompt manually), the macOS `.app`/`.dmg`/`.zip` are
+**Developer ID-signed and notarized** so Gatekeeper opens them without a
+right-click workaround. This is the ADR-002 §6 direct-distribution (non-App
+Store) path: a **Developer ID Application** certificate + Apple's **`notarytool`**
++ **`stapler`**.
+
+> **Status.** The release pipeline now **signs, notarizes, staples, and stages**
+> the macOS artifacts. On a `v*` tag the `build` matrix's macOS leg, when the
+> Apple secrets are present, imports the Developer ID cert into an ephemeral
+> keychain, deep-codesigns the `.app` with the **hardened runtime**
+> (`--options runtime --timestamp`), builds + signs the `.dmg`, submits it to
+> `xcrun notarytool submit … --wait`, staples the ticket to both the `.app`
+> (before it is zipped) and the `.dmg`, and then **verifies** with
+> `codesign --verify --deep --strict` and `spctl` as a hard gate.
+>
+> **Gated exactly like Android:** the `Determine macOS signing availability`
+> step sets `signing=configured` **only** when the full cert set **and** all
+> three notarytool credentials are present. Until then `signing=missing` and the
+> macOS leg builds the **UNSIGNED** `zip` + `dmg` exactly as before (the
+> unsigned packaging step is byte-for-byte unchanged) — so merging this never
+> changes the current release output and never produces a half-signed artifact.
+
+### Hardened runtime & entitlements
+
+Signing uses `--options runtime` (the hardened runtime is a codesign flag, not
+an entitlement). The committed `app/macos/Runner/Release.entitlements`
+(app-sandbox, `network.client`, `print`, `files.user-selected.read-write`) is
+applied to the outer app bundle and is sufficient for notarization — we do
+**not** add any `com.apple.security.cs.*` exceptions because the app uses no JIT
+or unsigned executable memory. The Apple bundle identifier is
+`org.callerscompendium.compendiumApp`
+(`app/macos/Runner/Configs/AppInfo.xcconfig`).
+
+The signing identity is **resolved from the imported certificate** at build time
+(`security find-identity -v -p codesigning`, matched to `APPLE_TEAM_ID`) rather
+than hardcoded, so a cert rotation needs no workflow edit.
+
+### Maintainer: obtain the Developer ID cert + notarytool key (one-time, out-of-band)
+
+Both require an **Apple Developer Program** membership ($99/yr).
+
+1. **Developer ID Application certificate.** In Xcode (Settings → Accounts →
+   Manage Certificates → **＋ → Developer ID Application**) or the Apple Developer
+   portal, create the cert, then export it **with its private key** as a
+   password-protected `.p12` from **Keychain Access**. The export password is
+   `APPLE_CERT_PASSWORD`.
+2. **App Store Connect API key** (notarytool auth). In **App Store Connect →
+   Users and Access → Integrations → App Store Connect API**, create a key with
+   the **Developer** role and download the `.p8` (downloadable **once**). Note
+   its **Key ID** and the team's **Issuer ID**.
+
+> **Secret custody (mirror the Android upload-keystore governance).** The
+> Developer ID `.p12`, its export password, and the `.p8` API key are
+> **long-lived signing/attestation credentials** — treat them like the Android
+> upload keystore: keep the original files and passwords secret and backed up
+> **outside** the repo, never commit them, and store them **only** as the CI
+> secrets below. Anyone with the `.p12` + password can sign software as this
+> identity, and anyone with the `.p8` can drive notarization, so restrict who
+> can add/read these secrets. If a credential is exposed, **revoke** the Apple
+> certificate / API key and rotate the secret. The workflow decodes each secret
+> to a file under `$RUNNER_TEMP`, uses an **ephemeral keychain**, and **deletes
+> the keychain + decoded files in an `always()` cleanup step**, so nothing
+> persists on the runner and nothing is ever echoed to the log.
+
+### Maintainer: GitHub Actions secrets (the last step to enable macOS signing)
+
+Add **all six** and the pipeline starts signing + notarizing macOS on the next
+tag; omit any and the macOS leg stays a clean **unsigned** build:
+
+| Secret | Contents |
+|--------|----------|
+| `APPLE_DEVELOPER_ID_CERT_P12` | Developer ID Application cert **+ private key**, base64-encoded (`base64 < DeveloperID.p12 \| tr -d '\n'`) |
+| `APPLE_CERT_PASSWORD` | The `.p12` export password |
+| `APPLE_TEAM_ID` | Your Apple **Team ID** (used to select the signing identity) |
+| `APPLE_API_KEY_P8` | App Store Connect API key `.p8`, base64-encoded (`base64 < AuthKey_XXXX.p8 \| tr -d '\n'`) |
+| `APPLE_API_KEY_ID` | The API **Key ID** |
+| `APPLE_API_ISSUER_ID` | The API key **Issuer ID** |
+
+The secrets are passed via step `env:` (never interpolated into a `run:` line)
+and are only available to the canonical repo's tag-triggered run — not to forks
+or PRs.
+
 ## Android (signed APK)
 
 Unlike the desktop artifacts (which are **unsigned** this wave), Android's first
@@ -442,7 +537,10 @@ runners:
   with a pinned runtime (`type2-runtime` `20251108`) over the committed AppDir
   recipe in `packaging/linux/` (`AppRun`, `compendium_app.desktop`, `icon.png`).
   Runs with `--appimage-extract-and-run` so no FUSE is required on CI.
-- **macOS zip/dmg** — `ditto` and the built-in `hdiutil` (zero extra deps).
+- **macOS zip/dmg** — `ditto` and the built-in `hdiutil` (zero extra deps). When
+  the Apple signing secrets are configured the same step also Developer
+  ID-signs (hardened runtime), notarizes, and staples the artifacts — see
+  [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized).
 - **Windows zip** — PowerShell `Compress-Archive`.
 - **Windows installer** — Inno Setup (`ISCC.exe`, preinstalled on the runner)
   driving `packaging/windows/CallersCompendium.iss`.
