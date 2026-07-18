@@ -19,6 +19,7 @@ Map<String, Object?> _dance({
   String? permission = 'full',
   String? formationBase,
   String? formationDetail,
+  String? direction,
   String? progression,
   String? phraseStructure,
   List<String>? callingNotes,
@@ -36,6 +37,7 @@ Map<String, Object?> _dance({
   if (permission != null) map['Permission'] = permission;
   if (formationBase != null) map['FormationBase'] = formationBase;
   if (formationDetail != null) map['FormationDetail'] = formationDetail;
+  if (direction != null) map['Direction'] = direction;
   if (progression != null) map['Progression'] = progression;
   if (phraseStructure != null) map['PhraseStructure'] = phraseStructure;
   if (callingNotes != null) map['CallingNotes'] = callingNotes;
@@ -314,6 +316,43 @@ void main() {
           weird.issues.any(
             (i) => i.code == 'callersbox_formation_unclassified',
           ),
+          isTrue,
+        );
+      });
+
+      test('resolves Becket direction from the Direction field', () async {
+        final ccw = await _importOne(
+          jsonEncode(
+            _dance(formationBase: 'Duple Minor - Becket', direction: 'CCW'),
+          ),
+        );
+        expect(ccw.dance.formation.shape, FormationShape.becketCcw);
+
+        final cw = await _importOne(
+          jsonEncode(
+            _dance(formationBase: 'Duple Minor - Becket', direction: 'CW'),
+          ),
+        );
+        expect(cw.dance.formation.shape, FormationShape.becketCw);
+
+        final blank = await _importOne(
+          jsonEncode(
+            _dance(formationBase: 'Duple Minor - Becket', direction: ''),
+          ),
+        );
+        expect(blank.dance.formation.shape, FormationShape.becketCw);
+
+        final weird = await _importOne(
+          jsonEncode(
+            _dance(
+              formationBase: 'Duple Minor - Becket',
+              direction: 'sideways',
+            ),
+          ),
+        );
+        expect(weird.dance.formation.shape, FormationShape.becketCw);
+        expect(
+          weird.issues.any((i) => i.code == 'callersbox_direction_unmapped'),
           isTrue,
         );
       });
