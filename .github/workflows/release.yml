@@ -581,11 +581,16 @@ jobs:
         run: |
           set -euo pipefail
           # Monotonic, unique CFBundleVersion so TestFlight never rejects a
-          # duplicate build number. GITHUB_RUN_NUMBER only ever increases; we
-          # pass it on the CLI so app/pubspec.yaml (0.1.0+1) is untouched and the
-          # meta/version gate (tag core == pubspec semver) stays green.
+          # duplicate build number. GITHUB_RUN_NUMBER only ever increases, but it
+          # is reused when a run is re-run, so fold in GITHUB_RUN_ATTEMPT (starts
+          # at 1, increments per re-run) to keep re-runs unique too. The result
+          # stays a single monotonic integer (attempts are << 1000). We pass it on
+          # the CLI so app/pubspec.yaml (0.1.0+1) is untouched and the meta/version
+          # gate (tag core == pubspec semver) stays green.
+          build_number=$(( GITHUB_RUN_NUMBER * 1000 + GITHUB_RUN_ATTEMPT ))
+          echo "Using CFBundleVersion (build number): ${build_number}"
           flutter build ipa --release \
-            --build-number="${GITHUB_RUN_NUMBER}" \
+            --build-number="${build_number}" \
             --export-options-plist "$RUNNER_TEMP/ExportOptions.plist"
           ls -l build/ios/ipa
 
@@ -603,12 +608,20 @@ jobs:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           set -euo pipefail
-          ipa=""
-          for f in app/build/ios/ipa/*.ipa; do ipa="$f"; break; done
-          if [ -z "$ipa" ]; then
+          # nullglob so an unmatched pattern expands to nothing (rather than the
+          # literal "*.ipa" string), giving a real empty-vs-found check.
+          shopt -s nullglob
+          ipas=(app/build/ios/ipa/*.ipa)
+          shopt -u nullglob
+          if [ "${#ipas[@]}" -eq 0 ]; then
             echo "::error::no .ipa found under app/build/ios/ipa" >&2
             exit 1
           fi
+          if [ "${#ipas[@]}" -gt 1 ]; then
+            echo "::error::expected exactly one .ipa, found ${#ipas[@]}: ${ipas[*]}" >&2
+            exit 1
+          fi
+          ipa="${ipas[0]}"
           echo "Uploading $ipa to App Store Connect (TestFlight, internal testers)."
           # altool finds AuthKey_<KEYID>.p8 in the private_keys dirs written by
           # the prepare step. --upload-app makes the build available to INTERNAL

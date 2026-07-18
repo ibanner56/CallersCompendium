@@ -288,8 +288,9 @@ nothing to store or commit. The unified Apple bundle id is
 > like macOS/Android** — active only when `APPLE_API_KEY_P8` / `APPLE_API_KEY_ID`
 > / `APPLE_API_ISSUER_ID` / `APPLE_TEAM_ID` are all present (the key needs the
 > **App Manager** role, required for TestFlight upload); otherwise the leg is a
-> clean skip. The build number is a monotonic `GITHUB_RUN_NUMBER` (TestFlight
-> rejects duplicates) passed on the CLI, **not** committed to `pubspec.yaml`.
+> clean skip. The build number is a monotonic `GITHUB_RUN_NUMBER * 1000 +
+> GITHUB_RUN_ATTEMPT` (unique across re-runs; TestFlight rejects duplicates)
+> passed on the CLI, **not** committed to `pubspec.yaml`.
 > Upload is gated to **real tag pushes** (a `workflow_dispatch` builds + signs the
 > `.ipa` for validation but never uploads). **No manual cert or provisioning
 > profile is required**, and no Beta App Review / public App Store submission is

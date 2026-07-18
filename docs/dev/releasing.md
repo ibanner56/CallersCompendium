@@ -611,11 +611,14 @@ reverted in the `always()` cleanup, keeping the checked-in project team-agnostic
 ### Build-number uniqueness (TestFlight)
 
 TestFlight **rejects duplicate build numbers**. `app/pubspec.yaml` is `0.1.0+1`,
-so the leg passes `--build-number "${GITHUB_RUN_NUMBER}"` on the CLI — a value
-that only ever increases — as the `CFBundleVersion`. This is done **without
-editing `pubspec.yaml`**, so the `meta` job's version gate (tag core version ==
-pubspec semver `0.1.0`) is unaffected. `manageAppVersionAndBuildNumber` is set to
-`false` in `ExportOptions.plist` so this build number stays authoritative.
+so the leg computes `CFBundleVersion` as `GITHUB_RUN_NUMBER * 1000 +
+GITHUB_RUN_ATTEMPT` and passes it via `--build-number` on the CLI. The run number
+only ever increases, and folding in the run *attempt* keeps re-runs of the same
+tag unique too (a plain `GITHUB_RUN_NUMBER` would collide on a re-run and be
+rejected). This is done **without editing `pubspec.yaml`**, so the `meta` job's
+version gate (tag core version == pubspec semver `0.1.0`) is unaffected.
+`manageAppVersionAndBuildNumber` is set to `false` in `ExportOptions.plist` so
+this build number stays authoritative.
 
 ### Upload gated to real tags only
 
