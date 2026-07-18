@@ -1199,6 +1199,10 @@ const Map<String, String> _heyPeople = {
   'p': 'partners',
   'n': 'neighbors',
   'n0': 'prevNeighbors',
+  // N1 is the current neighbor (glossary: callersbox.md L51; mirrors the
+  // general Tier-B role map's `'n1': 'neighbors'`). Without it, a pass code
+  // like `N1L` fails to decode and drops the whole hey to custom (#308).
+  'n1': 'neighbors',
   'n2': 'nextNeighbors',
   'n3': 'thirdNeighbors',
   'n4': 'fourthNeighbors',

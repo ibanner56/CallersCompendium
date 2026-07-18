@@ -95,6 +95,40 @@ const String _realId1 = '''
 }
 ''';
 
+/// The real id=14051 record ("Triassic Poetry", Lindsey Dono), captured
+/// verbatim from `dance.php?id=14051&format=JSON` (trimmed to the fields the
+/// adapter reads). Its B2 hey `(8) Hey 1/2 (WR;PL;MR;N1L~)` is the #308
+/// regression case: the `N1L` pass (current neighbor) must decode.
+const String _realId14051 = '''
+{
+  "request": "http://www.ibiblio.org/contradance/thecallersbox/dance.php?id=14051&format=JSON",
+  "download_date": "2026-07-18T06:33:12+00:00",
+  "ID": "14051",
+  "Name": "Triassic Poetry",
+  "Authors": ["Lindsey Dono"],
+  "InterpretedBy": [],
+  "Permission": "full",
+  "Status": "",
+  "BasedOn": [],
+  "FormationBase": "Duple Minor - Improper",
+  "FormationDetail": "",
+  "Progression": "Single",
+  "Direction": "",
+  "PhraseStructure": "",
+  "Music": [],
+  "Tunes": [],
+  "phrases": [
+    {"name": "A1", "figures": ["(2) Pass through along (NR)", "(6) N2 neighbor left shoulder round 1", "(8) N1 neighbor swing"]},
+    {"name": "A2", "figures": ["(8) In long lines, go forward and back", "(8) Men allemande left 1 & 1/2"]},
+    {"name": "B1", "figures": ["(4) Partner balance", "(12) Partner swing"]},
+    {"name": "B2", "figures": ["(8) Ladies chain to neighbor N1", "(8) Hey 1/2 (WR;PL;MR;N1L~)"]}
+  ],
+  "CallingNotes": [],
+  "Appearances": [{"source": "website Dono"}],
+  "OtherNames": []
+}
+''';
+
 void main() {
   group('CallersBoxAdapter', () {
     test('source is ProvenanceSource.callersbox', () {
@@ -905,6 +939,33 @@ void main() {
         final raw = await adapter.fetch(discovered.single);
         expect(raw.sourceVersion, '2026-07-16T05:47:04+00:00');
         expect(raw.permission, 'full');
+      });
+    });
+
+    group('real id=14051 fixture (#308)', () {
+      test('Triassic Poetry B2 hey decodes structured, not custom', () async {
+        final draft = await _importOne(_realId14051);
+        expect(draft.dance.title, 'Triassic Poetry');
+        expect(draft.dance.formation.shape, FormationShape.dupleImproper);
+        expect(draft.authorNames, ['Lindsey Dono']);
+
+        // The B2 hey `(8) Hey 1/2 (WR;PL;MR;N1L~)` is the regression: the `N1L`
+        // pass (current neighbor) must decode onto the structured hey rather
+        // than fall to custom.
+        final heys = draft.dance.figures.where((f) => f.move == 'hey').toList();
+        expect(heys, hasLength(1), reason: 'B2 hey should be structured');
+        final hey = heys.single;
+        expect(hey.isCustom, isFalse);
+        expect(hey.params['length'], 'half');
+        expect(hey.params['shoulder'], 'right'); // code1 WR -> R
+        expect(hey.params['pass1'], 'role2s'); // code1 WR -> W
+        expect(hey.params['pass2'], 'partners'); // code2 PL -> P
+      });
+
+      test('the decoded B2 hey survives a JSON round-trip', () async {
+        final draft = await _importOne(_realId14051);
+        final hey = draft.dance.figures.firstWhere((f) => f.move == 'hey');
+        expect(figureFromJson(figureToJson(hey)), hey);
       });
     });
   });
