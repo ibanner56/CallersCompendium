@@ -7,6 +7,7 @@ import '../utils/confirm_delete.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
 import 'app_shell_search_scope.dart';
+import 'plaintext_program_import_screen.dart';
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
 import 'recently_deleted_screen.dart';
@@ -161,6 +162,19 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     if (mounted) await _load();
   }
 
+  Future<void> _openPlaintextImport() async {
+    final result = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => const PlaintextProgramImportScreen(),
+      ),
+    );
+    if (!mounted) return;
+    if (result != null) {
+      await _load();
+      if (mounted) widget.onSelectProgram?.call(result);
+    }
+  }
+
   Future<void> _softDelete(Program program) async {
     await _repos.programs.softDelete(program.id, at: DateTime.now().toUtc());
     if (!mounted) return;
@@ -221,6 +235,12 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               onPressed: openSearch,
             ),
           if (_programs != null) ...[
+            IconButton(
+              key: const ValueKey('programs-import-plaintext'),
+              tooltip: 'Import from title list',
+              icon: const Icon(Icons.playlist_add),
+              onPressed: _openPlaintextImport,
+            ),
             IconButton(
               key: const ValueKey('programs-recently-deleted'),
               tooltip: 'Recently deleted',
