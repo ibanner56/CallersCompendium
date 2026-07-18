@@ -1,4 +1,5 @@
 import 'package:compendium_app/src/data/callersbox_online.dart';
+import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/contradb_online.dart';
 import 'package:compendium_app/src/data/contradb_program_search.dart';
 import 'package:compendium_app/src/data/import_io.dart';
@@ -47,13 +48,18 @@ Future<void> _pump(
   required ContraDbOnline contraDb,
   CallersBoxOnline? callersBox,
   ContraDbProgramSearch? programSearch,
+  ValueNotifier<int>? revision,
 }) async {
   await tester.binding.setSurfaceSize(const Size(600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
-      builder: (context, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (context, child) {
+        final scoped = revision == null
+            ? child!
+            : CollectionRefreshScope(revision: revision, child: child!);
+        return RepositoriesScope(repositories: repos, child: scoped);
+      },
       home: Builder(
         builder: (context) => Scaffold(
           body: Center(
@@ -144,6 +150,47 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'issue #340: committing a ContraDB program signals the collection to '
+    'refresh (imported dances must appear live)',
+    (tester) async {
+      final repos = openTestRepositories();
+      final contraDb = ContraDbOnline(
+        htmlFetcher: (url) async {
+          final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+          return _danceHtml(id);
+        },
+      );
+      final revision = ValueNotifier<int>(0);
+      addTearDown(revision.dispose);
+
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programHtml,
+        contraDb: contraDb,
+        revision: revision,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        'https://contradb.com/programs/33',
+      );
+      await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+      await tester.pumpAndSettle();
+
+      expect(revision.value, 0);
+
+      await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+      await tester.pumpAndSettle();
+
+      // Two dances were imported into the collection, so the live Collection
+      // view must be told to reload.
+      expect((await repos.dances.listAll()), hasLength(2));
+      expect(revision.value, greaterThan(0));
+    },
+  );
 
   testWidgets('a fetch failure surfaces an error and keeps Import disabled', (
     tester,

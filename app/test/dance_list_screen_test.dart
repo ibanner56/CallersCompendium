@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -52,6 +53,7 @@ Future<void> _pumpScreen(
   CompendiumRepositories repos, {
   Dialect? activeDialect,
   ValueListenable<int>? refreshTrigger,
+  ValueNotifier<int>? collectionRefresh,
   bool sortIgnoreArticles = true,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
@@ -81,7 +83,12 @@ Future<void> _pumpScreen(
               notifier: notifier,
               child: SortIgnoreArticlesScope(
                 notifier: sortIgnoreArticlesNotifier,
-                child: child!,
+                child: collectionRefresh == null
+                    ? child!
+                    : CollectionRefreshScope(
+                        revision: collectionRefresh,
+                        child: child!,
+                      ),
               ),
             ),
           ),
@@ -282,6 +289,54 @@ void main() {
       refreshTrigger.value = 1;
       await tester.pumpAndSettle();
       expect(_titles(tester), ['Aardvark', 'Zephyr']);
+    },
+  );
+
+  testWidgets(
+    'issue #340: a dance added externally with a new author appears — and the '
+    'new author joins the filter — after CollectionRefreshScope fires, without '
+    'a manual reload',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Ada Lovelace'),
+      );
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Chase the Squirrel', authorIds: const ['c1']),
+      );
+
+      final collectionRefresh = ValueNotifier<int>(0);
+      addTearDown(collectionRefresh.dispose);
+      await _pumpScreen(tester, repos, collectionRefresh: collectionRefresh);
+      await tester.pumpAndSettle();
+
+      // Baseline: only the seeded dance and its author are present.
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('1 dance'), findsOneWidget);
+      await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
+      expect(find.byKey(const ValueKey('author-c1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('author-c2')), findsNothing);
+
+      // Simulate an import: a new dance by a brand-new author lands in the
+      // collection out-of-band, then the app-level signal fires.
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c2', name: 'Grace Hopper'),
+      );
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Petronella', authorIds: const ['c2']),
+      );
+      collectionRefresh.value++;
+      await tester.pumpAndSettle();
+
+      // The list re-booted: the imported dance shows and the count updated,
+      // with no navigation or manual reload.
+      expect(find.text('Petronella'), findsOneWidget);
+      expect(find.text('2 dances'), findsOneWidget);
+
+      // The author filter re-derived: the new author is now selectable.
+      // (The name also renders on the dance tile, hence findsWidgets.)
+      expect(find.byKey(const ValueKey('author-c2')), findsOneWidget);
+      expect(find.text('Grace Hopper'), findsWidgets);
     },
   );
 

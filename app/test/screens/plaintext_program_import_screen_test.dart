@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/callersbox_online.dart';
+import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/plaintext_program_import_screen.dart';
 
@@ -60,13 +61,18 @@ Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
   CallersBoxOnline? online,
+  ValueNotifier<int>? revision,
 }) async {
   await tester.binding.setSurfaceSize(const Size(600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
-      builder: (context, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (context, child) {
+        final scoped = revision == null
+            ? child!
+            : CollectionRefreshScope(revision: revision, child: child!);
+        return RepositoriesScope(repositories: repos, child: scoped);
+      },
       home: Builder(
         builder: (context) => Scaffold(
           body: Center(
@@ -232,6 +238,42 @@ void main() {
       final program = (await repos.programs.listAll()).single;
       expect(program.slots.single.danceId, saved.single.id);
       expect(program.slots.single.text, isNull);
+    },
+  );
+
+  testWidgets(
+    'issue #340: resolving online imports a dance and signals the collection '
+    'to refresh (imported dance + author must appear live)',
+    (tester) async {
+      final repos = openTestRepositories();
+      final online = CallersBoxOnline(
+        searchFetcher: (_) async => _moneyMuskResultsHtml,
+        jsonFetcher: (_) async => _moneyMuskJson(),
+      );
+      final revision = ValueNotifier<int>(0);
+      addTearDown(revision.dispose);
+
+      await _pump(tester, repos, online: online, revision: revision);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('plaintext-import-paste')),
+        'Money Musk',
+      );
+      await tester.pumpAndSettle();
+      expect(revision.value, 0);
+
+      await tester.tap(
+        find.byKey(const ValueKey('plaintext-import-resolve-online')),
+      );
+      await tester.pumpAndSettle();
+
+      // A dance (and its author) was imported into the collection, so the live
+      // Collection view must be told to reload.
+      expect(
+        (await repos.dances.listAll()).map((d) => d.title),
+        contains('Money Musk'),
+      );
+      expect(revision.value, greaterThan(0));
     },
   );
 
