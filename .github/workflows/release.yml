@@ -249,6 +249,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_DISTRIBUTION_CERT_P12: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
           APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+          APPLE_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_DISTRIBUTION_PROFILE }}
         run: |
           set -euo pipefail
           mkdir -p dist
@@ -257,7 +258,8 @@ jobs:
             && [ -n "${APPLE_API_ISSUER_ID:-}" ] \
             && [ -n "${APPLE_TEAM_ID:-}" ] \
             && [ -n "${APPLE_DISTRIBUTION_CERT_P12:-}" ] \
-            && [ -n "${APPLE_DISTRIBUTION_CERT_PASSWORD:-}" ]; then
+            && [ -n "${APPLE_DISTRIBUTION_CERT_PASSWORD:-}" ] \
+            && [ -n "${APPLE_DISTRIBUTION_PROFILE:-}" ]; then
             echo "signing=configured" >> "$GITHUB_OUTPUT"
             echo "iOS App Store Connect API-key + distribution cert secrets configured; archiving + signing the .ipa (and uploading to TestFlight on a tag)."
           else
@@ -522,25 +524,30 @@ jobs:
           exit 0
 
       # --- iOS: signed App Store archive + TestFlight upload ----------------
-      # Xcode-managed (automatic) code signing using the team's Apple
-      # Distribution certificate, imported from a base64 .p12 secret into an
-      # ephemeral keychain below. With the distribution identity present LOCALLY,
-      # xcodebuild signs the App Store build with it directly (NO cloud signing),
-      # and the App Store Connect API key + -allowProvisioningUpdates auto-create
-      # / download the matching App Store provisioning profile. Cloud signing
-      # alone cannot work here: the distribution cert is not Apple-managed, so
-      # its private key must be supplied to the runner. The API key needs the
-      # App Manager role (required for profile creation AND TestFlight upload;
-      # Developer is not enough).
+      # Xcode signs the App Store build with the team's Apple Distribution
+      # certificate, imported from a base64 .p12 secret into an ephemeral
+      # keychain, plus a pre-provisioned App Store profile (base64 secret)
+      # installed onto the runner. The archive uses automatic signing (a
+      # development identity, which cloud signing CAN mint) and the export uses
+      # MANUAL signing to re-sign with the local distribution identity + that
+      # profile. Automatic/cloud signing cannot be used for the distribution
+      # export: the distribution cert is not Apple-managed, so cloud signing
+      # fails with "Cloud signing permission error / no profiles found". The App
+      # Store Connect API key still drives the archive's development signing
+      # (-allowProvisioningUpdates) and the TestFlight upload; it needs the App
+      # Manager role (Developer is not enough).
       #
       # Secrets arrive via `env:` and are only ever decoded to files with
       # `base64 -D` (never echoed); `set -x` is deliberately NOT used. The .p8 is
       # written to the two dirs xcodebuild + altool auto-search
       # (~/.appstoreconnect/private_keys and ~/.private_keys) as
       # AuthKey_<KEYID>.p8; the .p12 is imported into an ephemeral keychain under
-      # $RUNNER_TEMP. DEVELOPMENT_TEAM (absent from the checked-in project) is
-      # injected into Release.xcconfig so signing has a team. The always()
-      # cleanup step removes the key material, deletes the keychain, and reverts.
+      # $RUNNER_TEMP; the provisioning profile is installed under
+      # ~/Library/Developer/Xcode/UserData/Provisioning Profiles (+ the classic
+      # MobileDevice dir). DEVELOPMENT_TEAM (absent from the checked-in project)
+      # is injected into Release.xcconfig so signing has a team. The always()
+      # cleanup step removes the key material, deletes the keychain + profile,
+      # and reverts the xcconfig.
       - name: Prepare iOS signing (App Store Connect API key)
         if: matrix.platform == 'ios' && steps.ios_signing.outputs.signing == 'configured'
         env:
@@ -549,6 +556,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_DISTRIBUTION_CERT_P12: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
           APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+          APPLE_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_DISTRIBUTION_PROFILE }}
         run: |
           set -euo pipefail
           # App Store Connect API key, in BOTH well-known locations that
@@ -585,6 +593,28 @@ jobs:
           security list-keychains -d user -s "$keychain" $existing_keychains
           security find-identity -v -p codesigning "$keychain"
 
+          # Install the App Store provisioning profile so MANUAL export signing
+          # can find it by name. Automatic export signing insists on cloud
+          # signing for the distribution identity (which fails: our distribution
+          # cert is not Apple-managed), so the export below uses signingStyle
+          # manual against this pre-provisioned profile + the imported cert. The
+          # profile is a CMS-signed plist; decode it to read its UUID and install
+          # under the file name Xcode expects. Xcode 16+/26 reads profiles from
+          # ~/Library/Developer/Xcode/UserData/Provisioning Profiles; also drop a
+          # copy in the classic ~/Library/MobileDevice location for safety.
+          prof_raw="$RUNNER_TEMP/cc_appstore.mobileprovision"
+          printf '%s' "$APPLE_DISTRIBUTION_PROFILE" | base64 -D > "$prof_raw"
+          prof_plist="$RUNNER_TEMP/cc_appstore.plist"
+          security cms -D -i "$prof_raw" > "$prof_plist"
+          prof_uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$prof_plist")
+          prof_name=$(/usr/libexec/PlistBuddy -c "Print :Name" "$prof_plist")
+          echo "Installing provisioning profile '${prof_name}' (${prof_uuid})"
+          for dir in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+                     "$HOME/Library/MobileDevice/Provisioning Profiles"; do
+            mkdir -p "$dir"
+            cp "$prof_raw" "$dir/${prof_uuid}.mobileprovision"
+          done
+
           # Give automatic signing a team. Release.xcconfig only #includes the
           # ephemeral Generated.xcconfig today; append a team line (reverted in
           # cleanup). The team id is not secret, but sourcing it from the secret
@@ -600,6 +630,10 @@ jobs:
           # upload is a separate, tag-gated altool step below.
           # manageAppVersionAndBuildNumber=false so our --build-number stays
           # authoritative (TestFlight rejects duplicate build numbers).
+          # signingStyle=manual with an explicit signingCertificate +
+          # provisioningProfiles map: the distribution cert is imported LOCALLY
+          # and its profile is pre-installed above, so export never touches cloud
+          # signing (which cannot mint this non-Apple-managed distribution cert).
           plist="$RUNNER_TEMP/ExportOptions.plist"
           printf '%s\n' \
             '<?xml version="1.0" encoding="UTF-8"?>' \
@@ -607,8 +641,11 @@ jobs:
             '<plist version="1.0"><dict></dict></plist>' > "$plist"
           /usr/libexec/PlistBuddy \
             -c "Add :method string app-store" \
-            -c "Add :signingStyle string automatic" \
+            -c "Add :signingStyle string manual" \
             -c "Add :teamID string ${APPLE_TEAM_ID}" \
+            -c "Add :signingCertificate string Apple Distribution" \
+            -c "Add :provisioningProfiles dict" \
+            -c "Add :provisioningProfiles:org.callerscompendium.compendiumApp string ${prof_name}" \
             -c "Add :destination string export" \
             -c "Add :uploadSymbols bool true" \
             -c "Add :manageAppVersionAndBuildNumber bool false" \
@@ -665,15 +702,15 @@ jobs:
 
           # 3) Export the App Store .ipa to app/build/ios/ipa (the path the
           #    TestFlight upload + artifact-upload steps below already glob).
+          #    Manual signing: uses the LOCAL distribution identity + the
+          #    pre-installed profile from ExportOptions — NO cloud signing, NO
+          #    -allowProvisioningUpdates (which would re-trigger the failing
+          #    cloud distribution signing).
           rm -rf build/ios/ipa
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/Runner.xcarchive" \
             -exportPath "$PWD/build/ios/ipa" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$key_path" \
-            -authenticationKeyID "$APPLE_API_KEY_ID" \
-            -authenticationKeyIssuerID "$APPLE_API_ISSUER_ID"
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
 
           ls -l build/ios/ipa
 
@@ -743,6 +780,8 @@ jobs:
           rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${key_id}.p8" \
                 "$HOME/.private_keys/AuthKey_${key_id}.p8" 2>/dev/null || true
           security delete-keychain "$RUNNER_TEMP/cc-ios.keychain-db" 2>/dev/null || true
+          rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision \
+                "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision 2>/dev/null || true
           git checkout -- app/ios/Flutter/Release.xcconfig 2>/dev/null || true
           exit 0
 
