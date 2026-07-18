@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -79,6 +81,39 @@ Future<void> _toReview(WidgetTester tester) async {
 Future<void> _fetch(WidgetTester tester, String url) async {
   await tester.enterText(find.byKey(const ValueKey('import-url-field')), url);
   await tester.tap(find.byKey(const ValueKey('import-fetch-url')));
+  await tester.pumpAndSettle();
+}
+
+/// Pumps the review screen with [RepositoriesScope] and [ActiveDialectScope]
+/// installed **above** the Navigator (via [MaterialApp.builder], mirroring
+/// `main.dart`) so the per-row **Edit** action can push the real
+/// [DanceEditorScreen] route and have it find its inherited scopes.
+Future<void> _pumpForEdit(
+  WidgetTester tester,
+  CompendiumRepositories repos, {
+  required String payload,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(1000, 1600));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+  addTearDown(notifier.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(notifier: notifier, child: child!),
+      ),
+      home: ImportReviewScreen(
+        sources: [
+          ImportSource(
+            label: 'test JSON',
+            adapterFactory: GenericJsonAdapter.new,
+          ),
+        ],
+        picker: () async => payload,
+      ),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -1034,6 +1069,99 @@ void main() {
         fetchImportUrl('https://example.com/a.json', client: client),
         throwsA(isA<UrlFetchException>()),
       );
+    });
+  });
+
+  group('edit prior to import (#266)', () {
+    testWidgets('Edit commits the parsed dance faithfully and opens it in the '
+        'editor, where a correction persists', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpForEdit(
+        tester,
+        repos,
+        payload: _archivePayload([_dance('d1', 'Parsed Reel')]),
+      );
+      await _toReview(tester);
+
+      expect(find.text('Parsed Reel'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+      await tester.pumpAndSettle();
+
+      // The row's parsed dance was committed faithfully and the editor opened.
+      expect(find.byType(DanceEditorScreen), findsOneWidget);
+      final committed = await repos.dances.listAll();
+      expect(committed.map((d) => d.title), ['Parsed Reel']);
+      final committedId = committed.single.id;
+
+      // Correcting the title in the editor and saving persists the edit.
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Corrected Reel',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById(committedId);
+      expect(saved!.title, 'Corrected Reel');
+    });
+
+    testWidgets('Edit commits only its row; remaining rows still import as '
+        'parsed via the batch Import button', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpForEdit(
+        tester,
+        repos,
+        payload: _archivePayload([
+          _dance('d1', 'First Reel'),
+          _dance('d2', 'Second Jig'),
+        ]),
+      );
+      await _toReview(tester);
+      expect(find.text('2 of 2 will be imported'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('import-row-0-edit')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceEditorScreen), findsOneWidget);
+
+      // Leave the editor unchanged (no correction to the parsed dance).
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      // Back on review: row 0 is marked imported and only row 1 is left.
+      expect(
+        find.byKey(const ValueKey('import-row-0-imported')),
+        findsOneWidget,
+      );
+      expect(find.text('1 of 2 will be imported'), findsOneWidget);
+
+      // Batch-import the rest.
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final titles = (await repos.dances.listAll())
+          .map((d) => d.title)
+          .toList();
+      expect(titles, containsAll(['First Reel', 'Second Jig']));
+      // The edited row was committed exactly once (not re-committed by Import).
+      expect(titles.where((t) => t == 'First Reel'), hasLength(1));
+    });
+
+    testWidgets('Edit is disabled when the row is set to Skip', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpForEdit(
+        tester,
+        repos,
+        payload: _archivePayload([_dance('d1', 'Skippable')]),
+      );
+      await _toReview(tester);
+
+      await tester.tap(find.byKey(const ValueKey('import-row-0-skip')));
+      await tester.pumpAndSettle();
+
+      final editButton = tester.widget<TextButton>(
+        find.byKey(const ValueKey('import-row-0-edit')),
+      );
+      expect(editButton.onPressed, isNull);
     });
   });
 }
