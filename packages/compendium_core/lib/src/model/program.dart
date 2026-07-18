@@ -253,7 +253,11 @@ class Program {
   List<ProgramSlotGroup> get outputGrouped {
     if (!hideAlternates) return grouped;
     return List.unmodifiable([
-      for (final group in grouped) ProgramSlotGroup(primary: group.primary),
+      for (final group in grouped)
+        // Drop each group's trailing alternates, and drop the group entirely
+        // when its primary is itself an alt (a leading/orphaned ALT, which
+        // [grouped] keeps as a degenerate primary) so no `isAlt` slot renders.
+        if (!group.primary.isAlt) ProgramSlotGroup(primary: group.primary),
     ]);
   }
 

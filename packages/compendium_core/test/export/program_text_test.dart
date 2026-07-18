@@ -185,6 +185,24 @@ void main() {
       expect(text, contains('1. Rory O\'More'));
     });
 
+    test('omits a leading/orphaned alt when hideAlternates is set', () {
+      final slots = [
+        ProgramSlot(id: 's1', position: 0, danceId: 'd1', isAlt: true),
+        ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+      ];
+      final hidden = programToPlainText(
+        program(slots: slots, hideAlternates: true),
+        titleFor: titles,
+      );
+      // The orphaned alt (a degenerate primary) must not render either.
+      expect(hidden, isNot(contains('Rory O\'More')));
+      expect(hidden, contains('1. The Nice Combination'));
+
+      // With the flag off it still renders as a numbered degenerate primary.
+      final shown = programToPlainText(program(slots: slots), titleFor: titles);
+      expect(shown, contains('1. Rory O\'More'));
+    });
+
     test(
       'falls back to the unknown-dance label when titleFor returns null',
       () {
