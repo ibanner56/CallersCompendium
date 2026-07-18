@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -189,8 +190,22 @@ def _cases() -> None:
     again = g.build_sbom(DEPS, version="0.1.0", timestamp=FIXED_TS)
     assert json.dumps(sbom, sort_keys=True) == json.dumps(again, sort_keys=True)
 
-    # 9. No random serialNumber (would break reproducibility).
-    assert "serialNumber" not in sbom
+    # 9. serialNumber is a deterministic, content-addressed URN. It MUST be
+    #    present: actions/attest only detects CycloneDX when bomFormat,
+    #    specVersion AND serialNumber are all truthy (omitting it made the
+    #    release "Attest SBOM" step fail with "Unsupported SBOM format").
+    serial = sbom["serialNumber"]
+    assert serial.startswith("urn:uuid:"), serial
+    # Parses as a real UUID (validates the URN payload).
+    uuid.UUID(serial[len("urn:uuid:") :])
+    # The attest CycloneDX-detection triad is satisfied.
+    assert sbom["bomFormat"] and sbom["specVersion"] and sbom["serialNumber"]
+    # Deterministic: same resolved inputs -> identical serial (already covered by
+    # the byte-identical check above, asserted explicitly here for clarity).
+    assert again["serialNumber"] == serial
+    # Content-addressed: a different version yields a different serial.
+    other = g.build_sbom(DEPS, version="0.2.0", timestamp=FIXED_TS)
+    assert other["serialNumber"] != serial
 
     # 10. classify_dependencies: a package that is dev in one member but direct
     #     in another is classified direct (production wins). drift is direct in
@@ -251,6 +266,7 @@ def _cases() -> None:
         written = json.loads(out_path.read_text(encoding="utf-8"))
         assert written["bomFormat"] == "CycloneDX"
         assert written["specVersion"] == "1.5"
+        assert written["serialNumber"].startswith("urn:uuid:")
         assert len(written["components"]) == 6
 
     # 13. main() also reads deps from stdin when --deps is '-'.

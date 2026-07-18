@@ -33,11 +33,16 @@ versions and no pub purl) are intentionally excluded from ``components[]``; the
 app is represented by ``metadata.component`` and the SDK versions by
 ``metadata.properties``.
 
-Determinism: components are sorted by purl and no random ``serialNumber`` is
-emitted, so re-runs against the same lockfile diff cleanly. The only
-time-varying field is ``metadata.timestamp`` (the build time), overridable via
-``--timestamp`` for reproducible output — mirroring ``gen_release_metadata.py``'s
-``--pub-date``.
+Determinism: components are sorted by purl and the ``serialNumber`` is a
+deterministic, content-addressed URN — a UUIDv5 over the app name, the version,
+the sorted component purls, and the SDK versions (never a random UUID and never
+the timestamp) — so re-runs against the same lockfile are byte-identical and
+diff cleanly. A ``serialNumber`` is emitted because ``actions/attest`` only
+recognizes a document as CycloneDX when ``bomFormat``, ``specVersion`` **and**
+``serialNumber`` are all present; omitting it makes the release ``Attest SBOM``
+step fail with "Unsupported SBOM format". The only time-varying field is
+``metadata.timestamp`` (the build time), overridable via ``--timestamp`` for
+reproducible output — mirroring ``gen_release_metadata.py``'s ``--pub-date``.
 
 This module is intentionally pure-stdlib and Flutter-free (mirroring
 ``gen_release_metadata.py`` / ``gen_release_notes.py``) so it stays reviewable
@@ -50,6 +55,7 @@ import argparse
 import datetime as _dt
 import json
 import sys
+import uuid
 from pathlib import Path
 
 # Identifies this generator in the SBOM's ``metadata.tools`` block.
@@ -72,6 +78,31 @@ def _default_timestamp() -> str:
 def _purl(name: str, version: str) -> str:
     """CycloneDX package URL for a pub.dev package."""
     return f"pkg:pub/{name}@{version}"
+
+
+def _serial_number(
+    app_name: str, version: str, components: list[dict], sdk_properties: list[dict]
+) -> str:
+    """Deterministic, content-addressed CycloneDX ``serialNumber`` URN.
+
+    ``actions/attest`` only recognizes a document as CycloneDX when
+    ``bomFormat``, ``specVersion`` **and** ``serialNumber`` are all present, so
+    this field is required for the release ``Attest SBOM`` step to succeed. It is
+    derived as a UUIDv5 over the app name, version, the (already-sorted) component
+    purls, and the SDK versions — never a random UUID and never the timestamp — so
+    the same resolved dependency set always yields the same serial and re-runs
+    stay byte-identical.
+    """
+    canonical = "|".join(
+        [
+            "CycloneDX-SBOM",
+            app_name,
+            version,
+            ";".join(c["purl"] for c in components),
+            ";".join(f"{p['name']}={p['value']}" for p in sdk_properties),
+        ]
+    )
+    return f"urn:uuid:{uuid.uuid5(uuid.NAMESPACE_URL, canonical)}"
 
 
 def classify_dependencies(packages: list[dict]) -> dict[str, str]:
@@ -188,6 +219,9 @@ def build_sbom(
     return {
         "bomFormat": "CycloneDX",
         "specVersion": "1.5",
+        "serialNumber": _serial_number(
+            app_name, version, components, sdk_properties
+        ),
         "version": 1,
         "metadata": metadata,
         "components": components,
