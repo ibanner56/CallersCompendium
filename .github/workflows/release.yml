@@ -744,6 +744,73 @@ jobs:
 
           echo "Draft release ready: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
 
+  # Close the supply-chain loop (#300): the `publish` job MINTS keyless SLSA
+  # build-provenance + SBOM attestations, but generating them proves nothing
+  # unless someone VERIFIES them. This job re-downloads the very same build
+  # artifacts and runs `gh attestation verify` against each binary, so a broken,
+  # missing, or repo-mismatched attestation FAILS the release run — a hard gate a
+  # maintainer sees before manually publishing the draft. (The release is a
+  # human-published draft, so a truly post-*publish* trigger can't be automated;
+  # running immediately after the attestations are minted is the faithful
+  # "post-publish" gate — see docs/dev/releasing.md.)
+  #
+  # LEAST PRIVILEGE: read-only. `attestations: read` lets `gh attestation verify`
+  # query the attestations API; NO id-token / write / contents:write. Same
+  # canonical-repo + tag-push guard as `publish`, so forks / PRs / manual dispatch
+  # never run it.
+  verify:
+    name: Verify artifact provenance
+    needs: [meta, publish]
+    if: >-
+      github.repository == 'ibanner56/CallersCompendium' &&
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      attestations: read     # read the attestations minted by `publish`
+    steps:
+      - name: Download all packaged artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          pattern: dist-*
+          merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: ls -l dist
+
+      # Verify every released binary against BOTH attestations the `publish` job
+      # minted: the SLSA build provenance (default predicate) and the CycloneDX
+      # SBOM attestation (`--predicate-type https://cyclonedx.org/bom`). The glob
+      # is the BINARIES only (`dist/CallersCompendium-*`) — the exact subjects the
+      # attestations were bound to (never the SBOM/SHA256SUMS/<channel>.json). We
+      # fail fast if the glob matches nothing (a silently empty dist would
+      # otherwise let a release through unverified). `--repo` pins verification to
+      # this repository so an attestation from anywhere else is rejected.
+      - name: Verify SLSA build provenance + SBOM attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          artifacts=(dist/CallersCompendium-*)
+          if [ ${#artifacts[@]} -eq 0 ]; then
+            echo "::error::No dist/CallersCompendium-* artifacts found to verify."
+            exit 1
+          fi
+          for artifact in "${artifacts[@]}"; do
+            echo "::group::Verifying $artifact"
+            echo "-- build provenance --"
+            gh attestation verify "$artifact" --repo "$REPO"
+            echo "-- SBOM attestation --"
+            gh attestation verify "$artifact" --repo "$REPO" \
+              --predicate-type https://cyclonedx.org/bom
+            echo "::endgroup::"
+          done
+          echo "All ${#artifacts[@]} artifact(s) passed provenance + SBOM verification."
+
   # Publish the channel manifest (stable.json / beta.json) to the persistent
   # `gh-pages` branch so the client's fixed URL resolves (A11c / ADR-002 §1):
   #   https://ibanner56.github.io/CallersCompendium/<channel>.json
