@@ -6,6 +6,7 @@ import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
 import 'figure_parser.dart';
+import 'figure_text_scrub.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -268,15 +269,142 @@ class CallersBoxAdapter implements SourceAdapter {
       if (phrase is! Map) continue;
       final lines = phrase['figures'];
       if (lines is! List) continue;
-      final phraseFigures = <Figure>[];
+      // Preserve the raw line strings (indentation intact): TCB's compound
+      // convention is signalled by leading indentation, which `_parseFigureLine`
+      // trims away, so grouping must run on the untrimmed lines first.
+      final rawLines = <String>[];
       for (final line in lines) {
         final text = _asString(line);
         if (text == null) continue;
-        phraseFigures.addAll(_parseFigureLine(text));
+        rawLines.add(text);
       }
-      figures.addAll(_mergeCrossLineFigures(phraseFigures));
+      figures.addAll(_mergeCrossLineFigures(_parsePhraseFigures(rawLines)));
     }
     return figures;
+  }
+
+  /// Parses one phrase's raw figure lines into figures, collapsing TCB's
+  /// compound convention ([_tryParseCompound]) into a single figure and routing
+  /// every other line through the per-line parser unchanged.
+  List<Figure> _parsePhraseFigures(List<String> rawLines) {
+    final out = <Figure>[];
+    var i = 0;
+    while (i < rawLines.length) {
+      final compound = _tryParseCompound(rawLines, i);
+      if (compound != null) {
+        out.add(compound.figure);
+        i = compound.nextIndex;
+        continue;
+      }
+      out.addAll(_parseFigureLine(rawLines[i]));
+      i += 1;
+    }
+    return out;
+  }
+
+  /// Attempts to read a TCB **compound figure** starting at [start]: a parent
+  /// line `(beats) Name:` (trailing colon) followed by one or more lines with
+  /// strictly greater leading indentation whose `(beats)` values sum EXACTLY to
+  /// the parent's. This is TCB's convention for expressing a named figure as its
+  /// component sub-figures (e.g. `(6) Revolving door:` == `(4) Partner star
+  /// promenade ½` + `(2) Women allemande right ½`); the children are the
+  /// figure's *definition*, not additional choreography.
+  ///
+  /// On a confident match returns a single figure carrying the PARENT's beats —
+  /// the parent name routed through [parseFigureLines], yielding the structured
+  /// taxonomy move when it maps (e.g. `revolving_door`) or a single
+  /// [customFigure] otherwise. The children are never emitted as separate
+  /// figures; their (scrubbed) decomposition rides along in the figure `note` so
+  /// nothing the source stated is dropped. Beats stay accurate: the collapsed
+  /// figure contributes exactly the parent's beat count to the section total.
+  ///
+  /// Returns `null` when [start] is not a compound parent, so the caller parses
+  /// the line normally. Tolerant of untrusted input: a missing/non-numeric beat,
+  /// no children, a colon with no indented followers, or children that do not
+  /// sum to the parent all decline the collapse (safe fallback, never a throw).
+  _Compound? _tryParseCompound(List<String> lines, int start) {
+    final parent = _compoundParent.firstMatch(lines[start]);
+    if (parent == null) return null;
+    final parentIndent = parent.group(1)!.length;
+    final parentBeats = int.tryParse(parent.group(2)!);
+    if (parentBeats == null || parentBeats <= 0) return null;
+    final parentText = parent.group(3)!.trim();
+    if (parentText.isEmpty) return null;
+
+    // Collect strictly-more-indented `(beats) text` children until the block
+    // returns to the parent's column (or a non-beats / non-indented line). We do
+    // NOT recurse into deeper nesting — a nested grandchild would double-count
+    // and fail the exact-sum guard below, declining the collapse safely.
+    final childTexts = <String>[];
+    var childBeatsSum = 0;
+    var i = start + 1;
+    while (i < lines.length) {
+      final child = _indentedBeats.firstMatch(lines[i]);
+      if (child == null) break;
+      final childIndent = child.group(1)!.length;
+      if (childIndent <= parentIndent) break;
+      final childBeats = int.tryParse(child.group(2)!);
+      if (childBeats == null) break;
+      childBeatsSum += childBeats;
+      childTexts.add('($childBeats) ${child.group(3)!.trim()}');
+      i += 1;
+    }
+
+    // Confidence guard: at least one child, summing EXACTLY to the parent.
+    if (childTexts.isEmpty || childBeatsSum != parentBeats) return null;
+
+    // The parent is a single atomic figure carrying the parent's beats. A
+    // recognised parent structures (revolving_door, …); anything else — or a
+    // parent that would itself split on `;` — stays one custom figure. Never
+    // split into the children.
+    final parsed = parseFigureLine(parentText, beats: parentBeats);
+    final base =
+        parsed != null && !parsed.isCustom && !_hasTopLevelSemicolon(parentText)
+        ? parsed
+        : customFigure(parentText, beats: parentBeats);
+
+    // Preserve the source decomposition (scrubbed) so the definition is not
+    // lost, appending to any note the recognizer already attached.
+    final decomposition = childTexts
+        .map((c) => _scrubCompoundChild(c))
+        .join('; ');
+    final note = [
+      if (base.note != null && base.note!.trim().isNotEmpty) base.note!.trim(),
+      decomposition,
+    ].join(' — ');
+
+    return _Compound(base.copyWith(note: note), i);
+  }
+
+  /// Scrubs one `(beats) text` child line for storage in a compound's note,
+  /// keeping its beat count but routing the prose through the shared
+  /// canonicalization chokepoint (gendered terms → role tokens) so the note
+  /// reads dialect-agnostically like every other imported figure text.
+  static String _scrubCompoundChild(String childLine) {
+    final match = _beatsPrefix.firstMatch(childLine);
+    if (match == null) return scrubFigureText(childLine);
+    final beats = match.group(1)!;
+    final scrubbed = scrubFigureText(match.group(2)!);
+    return scrubbed.isEmpty ? '($beats)' : '($beats) $scrubbed';
+  }
+
+  /// Whether [text] contains a top-level `;` clause separator (outside any
+  /// bracketed annotation). Mirrors [parseFigureLines]' split rule so a compound
+  /// parent that would fan out into multiple structured clauses is kept as a
+  /// single custom figure instead.
+  static bool _hasTopLevelSemicolon(String text) {
+    var depth = 0;
+    for (var i = 0; i < text.length; i++) {
+      final c = text.codeUnitAt(i);
+      if (c == 0x28 || c == 0x5B) {
+        depth++;
+      } else if (c == 0x29 || c == 0x5D) {
+        if (depth > 0) depth--;
+      } else if (depth == 0 && c == 0x3B) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Parses one TCB figure line `(beats) text` into one or more figures. A
@@ -721,8 +849,34 @@ class CallersBoxAdapter implements SourceAdapter {
     dotAll: true,
   );
 
+  /// A TCB compound-figure PARENT line: `(beats) Name:` with a trailing colon.
+  /// Group 1 is the leading indentation (used to scope the children), group 2
+  /// the beat count, group 3 the figure name (colon and surrounding space
+  /// stripped). Single-line (no `dotAll`) so the trailing-colon anchor is exact.
+  static final RegExp _compoundParent = RegExp(
+    r'^(\s*)\((\d+)\)\s*(\S.*?):\s*$',
+  );
+
+  /// A `(beats) text` line with its leading indentation captured (group 1), used
+  /// to detect a compound's indented CHILD lines. Group 2 is the beat count,
+  /// group 3 the prose.
+  static final RegExp _indentedBeats = RegExp(
+    r'^(\s*)\((\d+)\)\s*(.*)$',
+    dotAll: true,
+  );
+
   static final DateTime _epoch = DateTime.fromMillisecondsSinceEpoch(
     0,
     isUtc: true,
   );
+}
+
+/// The result of collapsing a TCB compound figure: the single [figure] the
+/// parent + its indented children map to, and [nextIndex] — the index of the
+/// first line AFTER the consumed block, so the caller resumes there.
+class _Compound {
+  const _Compound(this.figure, this.nextIndex);
+
+  final Figure figure;
+  final int nextIndex;
 }

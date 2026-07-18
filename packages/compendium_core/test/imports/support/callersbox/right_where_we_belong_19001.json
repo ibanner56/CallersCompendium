@@ -1,0 +1,77 @@
+{
+    "request": "http://www.ibiblio.org/contradance/thecallersbox/dance.php?id=19001&format=JSON",
+    "download_date": "2026-07-18T22:13:59+00:00",
+    "ID": "19001",
+    "Name": "Right Where We Belong",
+    "Authors": [
+        "Isaac Banner"
+    ],
+    "InterpretedBy": [],
+    "Permission": "full",
+    "Status": "",
+    "BasedOn": [],
+    "FormationBase": "Duple Minor - Becket",
+    "FormationDetail": "",
+    "Progression": "Single",
+    "Direction": "CW",
+    "Mixer?": "",
+    "Virtual?": "",
+    "PhraseStructure": "",
+    "Music": [],
+    "Tunes": [],
+    "phrases": [
+        {
+            "name": "A1",
+            "figures": [
+                "(6) Revolving door:",
+                "     (4) Partner star promenade 1/2 (WR)",
+                "     (2) Women allemande right 1/2",
+                "(10) Neighbor swing"
+            ]
+        },
+        {
+            "name": "A2",
+            "figures": [
+                "(8) Ladies chain to partner",
+                "(8) Circle right 1"
+            ]
+        },
+        {
+            "name": "B1",
+            "figures": [
+                "(2) Shift right",
+                "(6) N2 men allemande left 1",
+                "(8) Hey 1/2 (PR;WL;N2R;ML)"
+            ]
+        },
+        {
+            "name": "B2",
+            "figures": [
+                "(4) Partner balance",
+                "(12) Partner swing"
+            ]
+        }
+    ],
+    "CallingNotes": [],
+    "Appearances": [
+        {
+            "source": "website contradb.com",
+            "lo": "2443"
+        },
+        {
+            "source": "Free and Open Dancing for All Vol. 2",
+            "p": "32",
+            "lo": "#page=37"
+        }
+    ],
+    "OtherNames": [],
+    "Videos": [
+        "https://www.youtube.com/watch?v=c_M7pHDeDBQ",
+        "https://www.youtube.com/watch?v=5FXzmrvaQBg",
+        "https://www.youtube.com/watch?v=9Oa5Gxqf1m8",
+        "https://www.youtube.com/watch?v=U1TTKXbXTGE"
+    ],
+    "VirtualVideos": [],
+    "VariantVideos": [],
+    "VariantVirtualVideos": []
+}

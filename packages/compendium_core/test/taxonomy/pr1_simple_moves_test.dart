@@ -42,7 +42,7 @@ void main() {
       'stand still': Figure(move: 'stand_still'),
       'slide along set left': Figure(move: 'slide_along_set'),
       'ones mad robin once': Figure(move: 'mad_robin'),
-      'ones revolving door left neighbors': Figure(move: 'revolving_door'),
+      'role2s revolving door right partners': Figure(move: 'revolving_door'),
       'role1s star promenade right ½': Figure(move: 'star_promenade'),
       'ones allemande orbit left 1½ ½': Figure(move: 'allemande_orbit'),
     };
@@ -64,9 +64,9 @@ void main() {
     test('revolving_door renders its whom target', () {
       expect(
         renderer.renderCanonical(
-          Figure(move: 'revolving_door', params: {'whom': 'partners'}),
+          Figure(move: 'revolving_door', params: {'whom': 'neighbors'}),
         ),
-        'ones revolving door left partners',
+        'role2s revolving door right neighbors',
       );
     });
   });

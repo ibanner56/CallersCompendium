@@ -65,6 +65,28 @@ B2: (8) Ladies chain to neighbor / (8) Star left 1
 - Progression: None/Single/Double/Triple/Quadruple/More/Virtual/Other-Weird.
 - No difficulty/level field exists.
 
+### Compound figures — `(beats) Name:` with indented children
+
+A figure line ending in a **colon** whose beats are followed by **indented**
+child lines is TCB's way of writing one named figure as its component
+sub-figures; the children's beats **sum to the parent's**. The children are the
+*definition*, not extra choreography. Verbatim example from *Right Where We
+Belong* (Isaac Banner, id 19001) A1:
+
+```
+(6) Revolving door:
+     (4) Partner star promenade 1/2 (WR)
+     (2) Women allemande right 1/2
+(10) Neighbor swing
+```
+
+`Revolving door` (6) == `Partner star promenade 1/2` (4) + `Women allemande
+right 1/2` (2); A1 total = 6 + 10 = 16. The import parser must **collapse** such
+a unit to the single parent figure carrying the parent's beats (see
+`docs/design/imports.md` → *Compound figures*) — counting the children
+separately would inflate the section's beat total.
+
+
 ### Residual variance to handle in the snapshot pipeline
 
 Pre-1900 historical transcriptions (special conventions, own FAQ section); free-text

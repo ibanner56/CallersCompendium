@@ -512,6 +512,7 @@ final List<_Recognizer> _recognizers = [
   _shoulderRound,
   _allemande,
   _doSiDo,
+  _revolvingDoor,
   _boxTheGnat,
   _boxCirculate,
   _circle,
@@ -661,6 +662,21 @@ _Match? _doSiDo(List<String> w) {
   if (w.isNotEmpty) return null;
   final moveId = seeSaw ? 'see_saw' : 'do_si_do';
   return _Match(moveId, {'who': who2 ?? 'neighbors', 'turn': ?turn});
+}
+
+_Match? _revolvingDoor(List<String> w) {
+  // Optional leading dancer set, then the two-word anchor. TCB writes the
+  // compound parent as a bare "Revolving door"; ContraDB may qualify it
+  // ("ladles revolving door right partners"). Only parsed tokens are emitted —
+  // absent who/hand/whom fall to the taxonomy defaults, never fabricated.
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['revolving', 'door'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  final hand = _takeSide(w);
+  final whom = _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('revolving_door', {'who': ?who2, 'hand': ?hand, 'whom': ?whom});
 }
 
 _Match? _boxTheGnat(List<String> w) {

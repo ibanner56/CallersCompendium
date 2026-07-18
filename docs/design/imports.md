@@ -78,6 +78,42 @@ pipeline resolves them to real `Choreographer` associations (`Dance.authorIds`) 
 - `Permission: search` stubs import as metadata-only with a link to TCB.
 - Attribution: TCB id + appearances retained; UI shows "via The Caller's Box".
 
+#### Compound figures (the `(beats) Name:` + indented-children convention)
+
+TCB sometimes expresses one named figure as its **decomposition**: a parent
+line `(beats) Name:` (trailing colon) followed by **indented** child lines
+`(beats) …` whose beats **sum to the parent's**. The children are the
+*definition* of the parent move, **not** additional choreography. For example
+*Right Where We Belong* (#19001) A1 is:
+
+```
+(6) Revolving door:
+     (4) Partner star promenade 1/2 (WR)
+     (2) Women allemande right 1/2
+(10) Neighbor swing
+```
+
+Parsing each line independently double-counts A1 (6 + 4 + 2 + 10 = 22 instead
+of the true 16). A **compound pre-pass** in `callersbox_adapter.dart` (which
+sees the raw, still-indented lines before `parseFigureLine` trims them) groups
+such a unit and collapses it to **exactly one** `Figure`:
+
+- **Known parent** (the parent name structures to a single taxonomy move, e.g.
+  `revolving_door`) → emit that structured figure carrying the **parent's**
+  beats; children are subsumed.
+- **Unknown parent** → one `customFigure` with the parent text (colon stripped)
+  and the parent's beats.
+- Children are **never** re-emitted as separate figures; their scrubbed source
+  decomposition is preserved in `Figure.note` so nothing is lost.
+
+**Confidence guard (tolerant / OWASP).** The collapse fires only when there is
+≥1 indented child, the parent beats are numeric and > 0, and the children's
+beats sum **exactly** to the parent's. If beats are missing/non-numeric,
+indentation is malformed or absent, or the sum doesn't match, the pre-pass
+**declines** and the lines flow through the ordinary per-line path unchanged.
+Grouping is single-level and bounded (deeper nesting simply fails the exact-sum
+guard → safe decline); the untrusted TCB payload can never crash the parse.
+
 ### 2. Caller's Companion migration (6.5)
 - Input: user's `CallersCompanion2.USR` (FileMaker 12 container).
 - Approach: FM12 parser (fmptools-style) extracting the dances/sets tables;

@@ -169,6 +169,18 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   recognizers; the ContraDB adapter's "form an ocean wave" mapping is unchanged.
   Purely additive: distinct from `schemaVersion` — no DB migration or derived
   rebuild.
+- **v14 (revolving-door text parity, issue #347):** corrected `revolving_door`'s
+  defaults toward the canonical figure + ContraDB #2443 / `libfigure`: `hand`
+  `left` → **`right`** (it takes right hands), `who` `ones` → **`role2s`** (the
+  ladles who take hands, ContraDB `subject_pair`), `whom` `neighbors` →
+  **`partners`** (dropped off, ContraDB `object_pairs`). The canonical/search
+  render keeps its terse `{who} {move} {hand} {whom}` template; a display-only
+  **outcome clarifier** — "— drop off on the other side" — is added in
+  `renderer.dart` `_summarySuffix` (same fixed, dialect-independent mechanism as
+  the halls/hey/zig-zag/long-lines), mirroring ContraDB's `revolvingDoorWords`
+  without repeating params. `hand` remains a real param (an explicit `left` is
+  honored); atypical beats (e.g. TCB's 6 vs `goodBeats` [8]) stay a preserved
+  warning. Purely additive; no migration.
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
 landed). Exactly one new engine type was required across the whole build-out —
