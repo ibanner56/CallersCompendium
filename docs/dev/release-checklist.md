@@ -43,7 +43,18 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  release run); without the secrets the macOS leg is a clean UNSIGNED build.
  **Windows and Linux are still UNSIGNED** (expected) — note that explicitly so
  testers aren't surprised by SmartScreen/Gatekeeper warnings.
-- [ ] Each platform artifact launches and opens the collection on a clean machine.
+- [ ] iOS build is SIGNED + uploaded to TestFlight — on the **actual tag push**
+ (which archives + signs the App Store `.ipa` via automatic signing and runs
+ `xcrun altool --upload-app` because `APPLE_API_KEY_P8` / `APPLE_API_KEY_ID` /
+ `APPLE_API_ISSUER_ID` / `APPLE_TEAM_ID` are configured), confirm the
+ `Prepare iOS signing` → `Build signed iOS .ipa` → `Upload iOS build to
+ TestFlight` steps succeeded on **that tag's** release run — **not** a
+ `workflow_dispatch` (which builds+signs but never uploads). Then confirm the
+ build appears in **App Store Connect → TestFlight** and reaches internal testers.
+ (Without the secrets the iOS leg is a clean skip; the API key needs the **App
+ Manager** role or the upload fails.)
+- [ ] Each platform artifact launches and opens the collection on a clean machine
+ — for **iOS**, install the TestFlight build on an **iPhone and an iPad**.
 
 ## 4. Update/distribution infrastructure
 - [ ] GitHub Pages (gh-pages) is enabled and serving the update manifest at the

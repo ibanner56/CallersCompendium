@@ -269,6 +269,35 @@ Program (**$99/yr**). (Flutter: *Build and release a macOS app*.)
 > UNSIGNED artifacts as before. See
 > [docs/dev/releasing.md](../dev/releasing.md#macos-developer-id-signed--notarized).
 
+**iOS.** Flutter's iOS deployment doc covers App Store / TestFlight distribution
+via Xcode; there is **no sideload or unsigned path** — Apple is the only channel.
+We distribute **first to TestFlight** (internal testers, no App Review wait), not
+the public App Store, using **automatic (Xcode-managed) code signing driven by an
+App Store Connect API key** rather than a manually-created distribution
+certificate + provisioning profile. `flutter build ipa` passes
+`-allowProvisioningUpdates` to xcodebuild, so the iOS **distribution certificate +
+App Store provisioning profile are created/managed in the cloud** at build time —
+nothing to store or commit. The unified Apple bundle id is
+`org.callerscompendium.compendiumApp`; no entitlements are declared. (Flutter:
+*Build and release an iOS app*.)
+
+> **Implemented (gated on secrets).** The iOS App Store archive + TestFlight
+> upload is now wired into `.github/workflows/release.yml`: on a `v*` tag the iOS
+> leg (`macos-latest`) archives + signs the `.ipa` with automatic signing and
+> uploads it to TestFlight via `xcrun altool --upload-app`. It is **gated exactly
+> like macOS/Android** — active only when `APPLE_API_KEY_P8` / `APPLE_API_KEY_ID`
+> / `APPLE_API_ISSUER_ID` / `APPLE_TEAM_ID` are all present (the key needs the
+> **App Manager** role, required for TestFlight upload); otherwise the leg is a
+> clean skip. The build number is a monotonic `GITHUB_RUN_NUMBER` (TestFlight
+> rejects duplicates) passed on the CLI, **not** committed to `pubspec.yaml`.
+> Upload is gated to **real tag pushes** (a `workflow_dispatch` builds + signs the
+> `.ipa` for validation but never uploads). **No manual cert or provisioning
+> profile is required**, and no Beta App Review / public App Store submission is
+> triggered. The signed `.ipa` is store-delivered — it is **not** a GitHub Release
+> asset and never enters `SHA256SUMS` / the channel manifest / the SLSA subject
+> glob. See
+> [docs/dev/releasing.md](../dev/releasing.md#ios-testflight-via-app-store-connect-api).
+
 **Linux.** Alongside the AppImage + `tar.gz` baseline and Flathub, we also list
 **Snap** (`snapcraft`), which is the **Flutter-documented** Linux release path.
 All three are free, and Linux has no OS-trust-warning model to satisfy. (Flutter:
