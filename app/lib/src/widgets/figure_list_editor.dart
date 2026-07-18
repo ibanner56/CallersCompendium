@@ -732,35 +732,42 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.onChanged();
   }
 
-  /// Re-fills the auto-filled `beats` value from the current move's canonical
-  /// default, unless the user has taken ownership of beats
-  /// ([FigureDraft.beatsTouched]).
+  /// Applies a non-`beats` param change and snaps `beats` to the move's
+  /// canonical default only when that change actually moves the default
+  /// (issue #262). Capturing the default before *and* after the mutation means:
   ///
-  /// Today's taxonomy exposes a single beat default per move, so with an
-  /// untouched draft this is effectively a no-op (beats already equals that
-  /// default). It exists as the override-respecting extension point for future
-  /// param-value-dependent durations (e.g. a half vs. full hey): when such
-  /// data lands, a non-beats param change can re-derive beats here without ever
-  /// clobbering a manual override. Null-safe against an unset/unknown move or a
-  /// move with no beats spec (e.g. a custom figure).
-  void _resyncBeatsIfUntouched() {
+  /// - a driver change that shifts the default (e.g. adding a `balance` prefix
+  ///   to a swing, 8→16) snaps beats to the new default; but
+  /// - a change that leaves the default put (e.g. a circle's `turn`/`places`,
+  ///   which carry no `paramBeats`) never disturbs the current beats — so a
+  ///   user-entered count isn't snapped back when nothing about the duration
+  ///   changed.
+  ///
+  /// A manual beats override ([FigureDraft.beatsTouched]) is never overwritten.
+  void _applyNonBeatsParamChange(String key, Object? value) {
     final draft = widget.draft;
-    if (draft.beatsTouched) return;
-    final move = draft.move;
-    if (move == null) return;
+    final oldDefault = _canonicalBeats(draft.params);
+    draft.params[key] = value;
+    final newDefault = _canonicalBeats(draft.params);
+    if (!draft.beatsTouched && newDefault != null && newDefault != oldDefault) {
+      draft.params['beats'] = newDefault;
+    }
+  }
+
+  /// The move's canonical `beats` default for [params], ignoring any explicit
+  /// `beats` so the taxonomy re-derives the value from the driver params.
+  /// Returns null when there is no move, no beats spec (e.g. a custom figure),
+  /// or a non-int result. Delegates to the Flutter-free core resolver.
+  int? _canonicalBeats(Map<String, Object?> params) {
+    final move = widget.draft.move;
+    if (move == null) return null;
     final def = widget.taxonomy.resolve(move);
-    if (def == null || !def.params.containsKey('beats')) return;
-    // Probe with the draft's current non-beats params so the resync reflects
-    // the draft's actual state if/when taxonomy beat defaults become sensitive
-    // to other params. `beats` is dropped so we recompute the canonical value
-    // rather than echoing whatever beats is already set.
-    final probeParams = Map<String, Object?>.of(draft.params)..remove('beats');
-    final canonical = widget.taxonomy.effectiveParams(
+    if (def == null || !def.params.containsKey('beats')) return null;
+    final probeParams = Map<String, Object?>.of(params)..remove('beats');
+    final beats = widget.taxonomy.effectiveParams(
       Figure(move: move, params: probeParams),
     )['beats'];
-    if (canonical is int) {
-      draft.params['beats'] = canonical;
-    }
+    return beats is int ? beats : null;
   }
 
   void _toggleProgression() {
@@ -1161,11 +1168,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                     taxonomy: widget.taxonomy,
                     value: (draft.params['text'] as String?) ?? '',
                     onChanged: (v) {
-                      draft.params['text'] = v;
                       // 'text' only exists on the custom move; a custom figure
-                      // has no canonical beat rule, so this respects any manual
-                      // beats while staying a no-op otherwise.
-                      _resyncBeatsIfUntouched();
+                      // has no canonical beat rule, so this leaves beats alone
+                      // (no default to move) while respecting a manual override.
+                      _applyNonBeatsParamChange('text', v);
                       widget.onChanged();
                     },
                   )
@@ -1207,15 +1213,16 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             dialect: widget.dialect,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
-              draft.params[entry.key] = v;
               if (entry.key == 'beats') {
+                draft.params['beats'] = v;
                 // The user edited beats directly: lock the value so nothing
                 // auto-fills over it.
                 draft.beatsTouched = true;
               } else {
-                // A non-beats edit may imply a different canonical duration in
-                // the future; re-derive it unless the user owns beats.
-                _resyncBeatsIfUntouched();
+                // A non-beats edit may move the canonical duration; snap beats
+                // to the new default only if it actually changed and the user
+                // doesn't own beats (issue #262).
+                _applyNonBeatsParamChange(entry.key, v);
               }
               widget.onChanged();
             },
