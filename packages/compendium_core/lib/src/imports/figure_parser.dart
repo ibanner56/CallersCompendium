@@ -528,9 +528,11 @@ final List<_Recognizer> _recognizers = [
   _star,
   _chain,
   _rightLeftThrough,
-  // Must precede _passThrough: "pass the ocean" has no "through" so it would
-  // fall through anyway, but grouping the two "pass …" recognizers keeps the
-  // more specific ocean figure ahead of the generic pass-through.
+  // Order among these three is not correctness-critical: each recognizer runs on
+  // its own copy of the word list, and "pass the ocean" contains no "through" so
+  // _passThrough never matches (or partially consumes) it. They are placed
+  // together here purely for locality. _formAShortWave sits between the two
+  // "pass …" recognizers and is independent of both (its lead word is "form").
   _passTheOcean,
   _formAShortWave,
   _passThrough,
