@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -92,6 +93,207 @@ class UrlFetchException implements Exception {
 /// How long [fetchImportUrl] waits for a response before giving up.
 const Duration importFetchTimeout = Duration(seconds: 30);
 
+/// Hard cap on the number of bytes read from an import response body.
+///
+/// OWASP guidance (SSRF / uncontrolled resource consumption): a fetch of a
+/// user-supplied URL must not be able to exhaust memory with a hostile or
+/// accidentally huge response. 8 MiB comfortably exceeds any real dance /
+/// program payload while bounding the blast radius; [_sendGuarded] aborts with
+/// a generic [UrlFetchException] once this many bytes have been read.
+const int importMaxResponseBytes = 8 * 1024 * 1024;
+
+/// Maximum number of HTTP redirects [_sendGuarded] will follow before giving up.
+///
+/// Redirects are followed manually (not by `package:http`) so the SSRF host
+/// guard can be re-applied to every hop's resolved `Location`; without a cap a
+/// redirect loop could otherwise run forever. Five hops is generous for the
+/// canonicalizing 30x's the supported sources use in practice.
+const int importMaxRedirects = 5;
+
+/// Returns `true` if [host] must not be fetched from an online-import path,
+/// because it names a loopback / private / link-local / otherwise-reserved
+/// destination inside the device's trust boundary (the SSRF blast radius:
+/// localhost, the LAN, and cloud metadata at 169.254.169.254).
+///
+/// This is the core SSRF guard for every online-import fetch. The realistic
+/// threat is the shared-link angle: a malicious author shares a crafted "import
+/// link"; a victim pastes it and taps Fetch, causing the victim's own device to
+/// issue a GET from inside its trust boundary. Blocking reserved destinations
+/// kills that blast radius while still allowing legitimate **public**
+/// self-hosted instances.
+///
+/// Behavior:
+/// - `localhost`, `*.localhost`, and `*.local` hostnames are rejected.
+/// - A value that parses as an IP literal is rejected when it falls in a
+///   loopback / private / link-local / CGNAT / reserved / multicast range
+///   (IPv4 and IPv6, including IPv4-mapped IPv6).
+/// - Any other value (a real DNS hostname) is **allowed**. Per #332,
+///   DNS-resolution-time IP checking (to defeat DNS rebinding) is an explicit
+///   non-goal here; a hostname is trusted to resolve to a public address.
+bool isBlockedImportHost(String host) {
+  var h = host.trim().toLowerCase();
+  if (h.isEmpty) return true;
+  // Strip the brackets Dart keeps around IPv6 literals in a URI host.
+  if (h.startsWith('[') && h.endsWith(']')) {
+    h = h.substring(1, h.length - 1);
+  }
+  // Strip any trailing dot(s): a fully-qualified form like `localhost.` or
+  // `127.0.0.1.` is equivalent to the bare name/IP, but would otherwise slip
+  // past the hostname checks and parse as null (an "allowed" DNS host).
+  while (h.endsWith('.')) {
+    h = h.substring(0, h.length - 1);
+  }
+  if (h.isEmpty) return true;
+  // Hostname-based blocks (these never parse as IPs).
+  if (h == 'localhost' || h.endsWith('.localhost') || h.endsWith('.local')) {
+    return true;
+  }
+  final addr = InternetAddress.tryParse(h);
+  // A DNS hostname (not an IP literal) — allow; see the dartdoc non-goal note.
+  if (addr == null) return false;
+  return _isBlockedIp(addr);
+}
+
+/// Classifies a parsed IP literal as reserved (blocked) or public (allowed).
+bool _isBlockedIp(InternetAddress addr) {
+  final bytes = addr.rawAddress;
+  if (addr.type == InternetAddressType.IPv4) {
+    return _isBlockedIpv4(bytes);
+  }
+  // IPv4-mapped IPv6 (::ffff:a.b.c.d): re-check the embedded IPv4 so an
+  // attacker can't smuggle 127.0.0.1 past the guard as ::ffff:127.0.0.1.
+  if (_isIpv4MappedIpv6(bytes)) {
+    return _isBlockedIpv4(bytes.sublist(12));
+  }
+  // :: (unspecified).
+  if (bytes.every((b) => b == 0)) return true;
+  // ::1 (loopback).
+  var loopback = true;
+  for (var i = 0; i < 15; i++) {
+    if (bytes[i] != 0) {
+      loopback = false;
+      break;
+    }
+  }
+  if (loopback && bytes[15] == 1) return true;
+  final first = bytes[0];
+  // fc00::/7 (unique local address).
+  if ((first & 0xFE) == 0xFC) return true;
+  // fe80::/10 (link-local).
+  if (first == 0xFE && (bytes[1] & 0xC0) == 0x80) return true;
+  // ff00::/8 (multicast).
+  if (first == 0xFF) return true;
+  return false;
+}
+
+/// `true` when 16 raw bytes are an IPv4-mapped IPv6 address (::ffff:0:0/96).
+bool _isIpv4MappedIpv6(List<int> bytes) {
+  for (var i = 0; i < 10; i++) {
+    if (bytes[i] != 0) return false;
+  }
+  return bytes[10] == 0xFF && bytes[11] == 0xFF;
+}
+
+/// Classifies 4 raw IPv4 bytes as reserved (blocked) or public (allowed).
+bool _isBlockedIpv4(List<int> b) {
+  final o1 = b[0], o2 = b[1], o3 = b[2];
+  // 0.0.0.0/8 ("this network").
+  if (o1 == 0) return true;
+  // 10.0.0.0/8 (private).
+  if (o1 == 10) return true;
+  // 127.0.0.0/8 (loopback).
+  if (o1 == 127) return true;
+  // 169.254.0.0/16 (link-local, incl. 169.254.169.254 cloud metadata).
+  if (o1 == 169 && o2 == 254) return true;
+  // 172.16.0.0/12 (private).
+  if (o1 == 172 && o2 >= 16 && o2 <= 31) return true;
+  // 192.168.0.0/16 (private).
+  if (o1 == 192 && o2 == 168) return true;
+  // 100.64.0.0/10 (carrier-grade NAT).
+  if (o1 == 100 && o2 >= 64 && o2 <= 127) return true;
+  // 192.0.0.0/24 (IETF protocol assignments).
+  if (o1 == 192 && o2 == 0 && o3 == 0) return true;
+  // 224.0.0.0/4 (multicast).
+  if (o1 >= 224 && o1 <= 239) return true;
+  // 240.0.0.0/4 (reserved) incl. 255.255.255.255 (broadcast).
+  if (o1 >= 240) return true;
+  return false;
+}
+
+/// Validates a fetch [uri] against the SSRF guard and returns a fetch-safe copy.
+///
+/// Rejects a non-http(s) scheme and any [isBlockedImportHost] host with a
+/// generic [UrlFetchException] (the message never echoes the URL, so pasted
+/// credentials or internal hostnames can't leak into the UI). On success the
+/// returned URI has any embedded `userInfo` (credentials) stripped.
+Uri _guardFetchUri(Uri uri) {
+  if (!uri.isScheme('http') && !uri.isScheme('https')) {
+    throw const UrlFetchException(
+      "That doesn't look like a valid http(s) URL.",
+    );
+  }
+  if (isBlockedImportHost(uri.host)) {
+    throw const UrlFetchException(
+      'That URL points to a network location that cannot be imported from.',
+    );
+  }
+  return uri.userInfo.isEmpty ? uri : uri.replace(userInfo: '');
+}
+
+/// Performs a guarded HTTP GET of [url] using [client], shared by every online
+/// import fetcher so they all inherit the SSRF protections.
+///
+/// The initial URL and every redirect hop are validated with [_guardFetchUri],
+/// redirects are followed manually (`followRedirects = false`) so the host
+/// guard re-runs on each resolved `Location` (an allowed host cannot 30x to an
+/// internal address), the hop count is capped at [importMaxRedirects], and the
+/// response body is read with a running [importMaxResponseBytes] cap. Returns a
+/// buffered [http.Response] so callers decode charset/body exactly as before.
+Future<http.Response> _sendGuarded(String url, http.Client client) async {
+  final parsed = Uri.tryParse(url.trim());
+  if (parsed == null || !parsed.hasScheme) {
+    throw const UrlFetchException(
+      "That doesn't look like a valid http(s) URL.",
+    );
+  }
+  var uri = _guardFetchUri(parsed);
+  var redirects = 0;
+  while (true) {
+    final request = http.Request('GET', uri)..followRedirects = false;
+    final streamed = await client.send(request);
+    final status = streamed.statusCode;
+    final location = streamed.headers['location'];
+    if (status >= 300 && status < 400 && location != null) {
+      // Drain the redirect response before issuing the next hop.
+      await streamed.stream.drain<void>();
+      if (redirects >= importMaxRedirects) {
+        throw const UrlFetchException('That URL redirected too many times.');
+      }
+      redirects++;
+      // Re-validate the resolved target so a redirect can't reach a blocked
+      // host; userInfo on the hop is stripped by _guardFetchUri.
+      uri = _guardFetchUri(uri.resolve(location));
+      continue;
+    }
+    // Buffer with a running byte total checked before each add, so a single
+    // oversized chunk can't push the allocation past the cap.
+    final builder = BytesBuilder(copy: false);
+    await for (final chunk in streamed.stream) {
+      if (builder.length + chunk.length > importMaxResponseBytes) {
+        throw const UrlFetchException('That response was too large to import.');
+      }
+      builder.add(chunk);
+    }
+    return http.Response.bytes(
+      builder.takeBytes(),
+      status,
+      headers: streamed.headers,
+      request: streamed.request,
+      reasonPhrase: streamed.reasonPhrase,
+    );
+  }
+}
+
 /// Default [UrlFetcher]: validates the URL, performs an HTTP GET (with a
 /// [importFetchTimeout]), and returns the response body. Throws a
 /// [UrlFetchException] with a clear, user-presentable message for an invalid or
@@ -104,27 +306,29 @@ Future<String> fetchImportUrl(String url, {http.Client? client}) async {
   if (trimmed.isEmpty) {
     throw const UrlFetchException('Enter a URL to import from.');
   }
-  final uri = Uri.tryParse(trimmed);
-  if (uri == null ||
-      !uri.hasScheme ||
-      (!uri.isScheme('http') && !uri.isScheme('https'))) {
-    throw const UrlFetchException(
-      "That doesn't look like a valid http(s) URL.",
-    );
-  }
 
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   final http.Response response;
   try {
-    response = await effectiveClient.get(uri).timeout(importFetchTimeout);
+    response = await _sendGuarded(
+      trimmed,
+      effectiveClient,
+    ).timeout(importFetchTimeout);
+  } on UrlFetchException {
+    rethrow;
   } on TimeoutException {
     throw UrlFetchException(
       'The request timed out after ${importFetchTimeout.inSeconds}s. Check the '
       'URL and your connection, then try again.',
     );
-  } on Object catch (e) {
-    throw UrlFetchException("Couldn't reach that URL: $e");
+  } on Object {
+    // Never interpolate the error/URL here: it could leak the pasted URL or
+    // embedded credentials into a user-facing message.
+    throw const UrlFetchException(
+      "Couldn't reach that URL. Check the URL and your connection, then try "
+      'again.',
+    );
   } finally {
     if (ownClient) effectiveClient.close();
   }
@@ -263,7 +467,16 @@ String buildCallersBoxJsonUrl(String input) {
     if (key.toLowerCase() != 'format') params[key] = value;
   });
   params['format'] = 'JSON';
-  return uri.replace(queryParameters: params).toString();
+  // Reconstruct from parts rather than `uri.replace(queryParameters: ...)`,
+  // which would preserve any embedded credentials (userInfo) and fragment.
+  // Dropping them matches the ContraDB builders and avoids leaking creds.
+  return Uri(
+    scheme: uri.scheme,
+    host: uri.host,
+    port: uri.hasPort ? uri.port : null,
+    path: uri.path,
+    queryParameters: params,
+  ).toString();
 }
 
 /// Fetches a **Caller's Box** search results page and returns its decoded HTML,
@@ -474,27 +687,26 @@ String decodeWindows1252(List<int> bytes) {
 /// [client] is an injection point for tests (e.g. `package:http`'s
 /// `MockClient`); production callers omit it and a one-shot client is used.
 Future<String> fetchCallersBoxSearch(String url, {http.Client? client}) async {
-  final trimmed = url.trim();
-  final uri = Uri.tryParse(trimmed);
-  if (trimmed.isEmpty ||
-      uri == null ||
-      !uri.hasScheme ||
-      (!uri.isScheme('http') && !uri.isScheme('https'))) {
-    throw const UrlFetchException("Couldn't build a valid search URL.");
-  }
-
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   final http.Response response;
   try {
-    response = await effectiveClient.get(uri).timeout(importFetchTimeout);
+    response = await _sendGuarded(
+      url,
+      effectiveClient,
+    ).timeout(importFetchTimeout);
+  } on UrlFetchException {
+    rethrow;
   } on TimeoutException {
     throw UrlFetchException(
       'The search timed out after ${importFetchTimeout.inSeconds}s. Check your '
       'connection, then try again.',
     );
-  } on Object catch (e) {
-    throw UrlFetchException("Couldn't reach The Caller's Box: $e");
+  } on Object {
+    // Never interpolate the error/URL here (see fetchImportUrl).
+    throw const UrlFetchException(
+      "Couldn't reach The Caller's Box. Check your connection, then try again.",
+    );
   } finally {
     if (ownClient) effectiveClient.close();
   }
@@ -597,6 +809,9 @@ typedef ContraDbSearchFetcher = Future<String> Function(String query);
 /// [client] is an injection point for tests (e.g. `package:http`'s
 /// `MockClient`); production callers omit it and a one-shot client is used.
 Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
+  // Not subject to the SSRF host guard / _sendGuarded: this POSTs to the fixed
+  // constant [contraDbSearchUrl] (a hard-coded public host), not a
+  // user-controlled URL, so there is no untrusted destination to validate.
   final uri = Uri.parse(contraDbSearchUrl);
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
