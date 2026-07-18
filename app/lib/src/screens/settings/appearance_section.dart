@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'settings_keys.dart';
 import '../../data/app_theme_scope.dart';
+import '../../data/colour_dance_theme_scope.dart';
 import '../../data/custom_theme.dart';
 import '../../data/custom_themes_controller.dart';
 import '../../data/custom_themes_scope.dart';
@@ -21,6 +22,16 @@ class AppearanceSection extends StatefulWidget {
 }
 
 class _AppearanceSectionState extends State<AppearanceSection> {
+  Future<void> _onColourDanceThemeChanged(bool value) async {
+    // Drive the live scope (loaded from settings at startup and kept current on
+    // restore) so the switch reflects the real state and open dance views
+    // re-tint instantly; then persist. Reading the scope in [build] means this
+    // rebuilds whenever the setting changes elsewhere.
+    ColourDanceThemeScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kColourDanceThemeKey, value);
+  }
+
   Future<void> _onThemeChanged(AppThemeSelection selection) async {
     // Mirror the dialect pattern: update the live notifier instantly, then
     // persist in the background. Selecting a built-in theme also clears any
@@ -48,6 +59,8 @@ class _AppearanceSectionState extends State<AppearanceSection> {
       onThemeSelected: _onThemeChanged,
       customThemes: customThemes,
       seedScheme: seedScheme,
+      colourDanceTheme: ColourDanceThemeScope.of(context),
+      onColourDanceThemeChanged: _onColourDanceThemeChanged,
     );
   }
 }
@@ -59,12 +72,16 @@ class _AppearanceView extends StatelessWidget {
     required this.onThemeSelected,
     required this.customThemes,
     required this.seedScheme,
+    required this.colourDanceTheme,
+    required this.onColourDanceThemeChanged,
   });
 
   final AppThemeSelection? themeSelected;
   final ValueChanged<AppThemeSelection> onThemeSelected;
   final CustomThemesController customThemes;
   final ColorScheme seedScheme;
+  final bool colourDanceTheme;
+  final ValueChanged<bool> onColourDanceThemeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +107,20 @@ class _AppearanceView extends StatelessWidget {
             controller: customThemes,
             seedScheme: seedScheme,
           ),
+        ),
+        SectionHeader(title: 'Easter eggs'),
+        SwitchListTile(
+          key: const ValueKey('appearance-colour-dance-theme'),
+          value: colourDanceTheme,
+          onChanged: onColourDanceThemeChanged,
+          title: const Text('Colour-named dances tint the theme'),
+          subtitle: const Text(
+            'A playful surprise: when you open a dance whose title names a '
+            'colour — like Baby Rose or Blue Boy — its view is tinted that '
+            'colour. Off by default, and it steps aside when a high-contrast '
+            'theme is active so readability always wins.',
+          ),
+          isThreeLine: true,
         ),
       ],
     );

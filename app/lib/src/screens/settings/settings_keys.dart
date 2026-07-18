@@ -21,3 +21,8 @@ const String kAutoSizePerformKey = 'auto_size_perform_cards';
 /// setting. Stored as a bool; absent/unset means on (`true`), so the dance
 /// list alphabetizes titles with a leading article ("the"/"a"/"an") ignored.
 const String kSortIgnoreArticlesKey = 'sort_ignore_articles';
+
+/// Key used to persist the "colour-named dances tint the theme" easter egg
+/// (issue #307). Stored as a bool; absent/unset means off (`false`), so the
+/// feature is strictly opt-in.
+const String kColourDanceThemeKey = 'colour_dance_theme';

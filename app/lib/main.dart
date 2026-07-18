@@ -15,6 +15,7 @@ import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
 import 'src/data/migration_guard.dart';
+import 'src/data/colour_dance_theme_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
@@ -26,7 +27,11 @@ import 'src/data/window_service.dart';
 import 'src/licenses.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/settings_screen.dart'
-    show kAppThemeKey, kRequirePerformedForHistoryKey, kSortIgnoreArticlesKey;
+    show
+        kAppThemeKey,
+        kColourDanceThemeKey,
+        kRequirePerformedForHistoryKey,
+        kSortIgnoreArticlesKey;
 import 'src/theme/app_theme.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
@@ -129,6 +134,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     false,
   );
   final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
   final ValueNotifier<DateFormatPref> _dateFormatNotifier = ValueNotifier(
     DateFormatPref.system,
   );
@@ -280,6 +286,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (confirmBeforeDelete is bool) {
       _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
     }
+    // Load the colour-tint easter egg (#307), off by default when unset. It is
+    // opt-in, so a read failure or missing key stays off.
+    final colourDanceTheme = await _appData.repositories.settings
+        .get(kColourDanceThemeKey)
+        .catchError((_) => null);
+    if (colourDanceTheme is bool) {
+      _colourDanceThemeNotifier.value = colourDanceTheme;
+    } else {
+      _colourDanceThemeNotifier.value = false;
+    }
     // Load the regional-format preference (ROADMAP G.8), defaulting to System
     // when unset. Defensive: a read failure or garbage token resolves to the
     // safe System default via the resolver.
@@ -312,6 +328,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _reduceMotionNotifier.dispose();
     _verboseFigureRenderingNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
+    _colourDanceThemeNotifier.dispose();
     _dateFormatNotifier.dispose();
     _collectionRefreshNotifier.dispose();
     _customThemes.dispose();
@@ -436,13 +453,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
                               notifier: _verboseFigureRenderingNotifier,
                               child: ConfirmBeforeDeleteScope(
                                 notifier: _confirmBeforeDeleteNotifier,
-                                child: DateFormatScope(
-                                  notifier: _dateFormatNotifier,
-                                  child: BackupControllerScope(
-                                    onRestored: reloadFromSettings,
-                                    child: CollectionRefreshScope(
-                                      revision: _collectionRefreshNotifier,
-                                      child: child!,
+                                child: ColourDanceThemeScope(
+                                  notifier: _colourDanceThemeNotifier,
+                                  child: DateFormatScope(
+                                    notifier: _dateFormatNotifier,
+                                    child: BackupControllerScope(
+                                      onRestored: reloadFromSettings,
+                                      child: CollectionRefreshScope(
+                                        revision: _collectionRefreshNotifier,
+                                        child: child!,
+                                      ),
                                     ),
                                   ),
                                 ),

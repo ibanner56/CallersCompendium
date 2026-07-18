@@ -9,6 +9,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/repositories_scope.dart';
 import '../search/collection_data.dart';
+import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
@@ -451,155 +452,158 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
     final slot = members[memberIndex];
 
-    return PerformStageTheme(
-      enabled: _stageMode,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            key: const ValueKey('perform-program-exit'),
-            tooltip: 'Exit performance view',
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: Text(widget.program.title),
-          actions: [
-            const DialectQuickSwitch(),
-            IconButton(
-              key: const ValueKey('perform-adjust'),
-              tooltip: 'Adjust program',
-              icon: const Icon(Icons.tune),
-              onPressed: _openAdjustSheet,
+    return ColourDanceTheme(
+      title: _slotLabel(slot),
+      child: PerformStageTheme(
+        enabled: _stageMode,
+        child: Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              key: const ValueKey('perform-program-exit'),
+              tooltip: 'Exit performance view',
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.of(context).pop(),
             ),
-            IconButton(
-              key: const ValueKey('perform-jump'),
-              tooltip: 'Jump to slot',
-              icon: const Icon(Icons.list),
-              onPressed: _openJumpSheet,
-            ),
-            if (hasAlternates)
+            title: Text(widget.program.title),
+            actions: [
+              const DialectQuickSwitch(),
               IconButton(
-                key: const ValueKey('perform-alt-swap'),
-                tooltip: 'Show alternate',
-                icon: const Icon(Icons.swap_horiz),
-                onPressed: _swapAlternate,
+                key: const ValueKey('perform-adjust'),
+                tooltip: 'Adjust program',
+                icon: const Icon(Icons.tune),
+                onPressed: _openAdjustSheet,
               ),
-            PerformSizeControls(
-              canDecrease: canDecrease,
-              onDecrease: _decreaseTextSize,
-              onIncrease: _increaseTextSize,
-            ),
-            PerformAutoSizeToggle(
-              autoSizeOn: _autoSize,
-              onChanged: (value) => setState(() {
-                _autoSizeUserSet = true;
-                _autoSize = value;
-              }),
-            ),
-            if (!isCanonicalDialect)
-              PerformDialectToggle(
-                canonical: _canonicalView,
-                onChanged: (value) => setState(() => _canonicalView = value),
+              IconButton(
+                key: const ValueKey('perform-jump'),
+                tooltip: 'Jump to slot',
+                icon: const Icon(Icons.list),
+                onPressed: _openJumpSheet,
               ),
-            PerformStageToggle(
-              stageOn: _stageMode,
-              onChanged: (value) => setState(() => _stageMode = value),
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        body: CallbackShortcuts(
-          bindings: <ShortcutActivator, VoidCallback>{
-            const SingleActivator(LogicalKeyboardKey.arrowRight): _goNext,
-            const SingleActivator(LogicalKeyboardKey.arrowDown): _goNext,
-            const SingleActivator(LogicalKeyboardKey.pageDown): _goNext,
-            const SingleActivator(LogicalKeyboardKey.arrowLeft): _goPrev,
-            const SingleActivator(LogicalKeyboardKey.arrowUp): _goPrev,
-            const SingleActivator(LogicalKeyboardKey.pageUp): _goPrev,
-          },
-          child: Focus(
-            focusNode: _focusNode,
-            autofocus: true,
-            child: SafeArea(
-              child: Stack(
-                children: [
-                  Positioned.fill(child: _buildCard(slot, dialect)),
-                  // Giant edge hit zones (>=44pt) for touch/mouse. Accessibility
-                  // and keyboard use go through the prev/next buttons, so these
-                  // are excluded from semantics to avoid double-announcing.
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 56,
-                    child: ExcludeSemantics(
-                      child: GestureDetector(
-                        key: const ValueKey('perform-edge-prev'),
-                        behavior: HitTestBehavior.translucent,
-                        onTap: _hasPrev ? _goPrev : null,
+              if (hasAlternates)
+                IconButton(
+                  key: const ValueKey('perform-alt-swap'),
+                  tooltip: 'Show alternate',
+                  icon: const Icon(Icons.swap_horiz),
+                  onPressed: _swapAlternate,
+                ),
+              PerformSizeControls(
+                canDecrease: canDecrease,
+                onDecrease: _decreaseTextSize,
+                onIncrease: _increaseTextSize,
+              ),
+              PerformAutoSizeToggle(
+                autoSizeOn: _autoSize,
+                onChanged: (value) => setState(() {
+                  _autoSizeUserSet = true;
+                  _autoSize = value;
+                }),
+              ),
+              if (!isCanonicalDialect)
+                PerformDialectToggle(
+                  canonical: _canonicalView,
+                  onChanged: (value) => setState(() => _canonicalView = value),
+                ),
+              PerformStageToggle(
+                stageOn: _stageMode,
+                onChanged: (value) => setState(() => _stageMode = value),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: CallbackShortcuts(
+            bindings: <ShortcutActivator, VoidCallback>{
+              const SingleActivator(LogicalKeyboardKey.arrowRight): _goNext,
+              const SingleActivator(LogicalKeyboardKey.arrowDown): _goNext,
+              const SingleActivator(LogicalKeyboardKey.pageDown): _goNext,
+              const SingleActivator(LogicalKeyboardKey.arrowLeft): _goPrev,
+              const SingleActivator(LogicalKeyboardKey.arrowUp): _goPrev,
+              const SingleActivator(LogicalKeyboardKey.pageUp): _goPrev,
+            },
+            child: Focus(
+              focusNode: _focusNode,
+              autofocus: true,
+              child: SafeArea(
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: _buildCard(slot, dialect)),
+                    // Giant edge hit zones (>=44pt) for touch/mouse. Accessibility
+                    // and keyboard use go through the prev/next buttons, so these
+                    // are excluded from semantics to avoid double-announcing.
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 56,
+                      child: ExcludeSemantics(
+                        child: GestureDetector(
+                          key: const ValueKey('perform-edge-prev'),
+                          behavior: HitTestBehavior.translucent,
+                          onTap: _hasPrev ? _goPrev : null,
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: 56,
-                    child: ExcludeSemantics(
-                      child: GestureDetector(
-                        key: const ValueKey('perform-edge-next'),
-                        behavior: HitTestBehavior.translucent,
-                        onTap: _hasNext ? _goNext : null,
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 56,
+                      child: ExcludeSemantics(
+                        child: GestureDetector(
+                          key: const ValueKey('perform-edge-next'),
+                          behavior: HitTestBehavior.translucent,
+                          onTap: _hasNext ? _goNext : null,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        bottomNavigationBar: BottomAppBar(
-          child: Row(
-            children: [
-              _buildPauseButton(),
-              IconButton(
-                key: const ValueKey('perform-prev'),
-                tooltip: 'Previous slot',
-                icon: const Icon(Icons.chevron_left),
-                onPressed: _hasPrev ? _goPrev : null,
-              ),
-              Expanded(
-                child: Center(
-                  child: Builder(
-                    // Resolve the text style from a context *below*
-                    // [PerformStageTheme] so the labels pick up the stage
-                    // theme's on-surface color (readable on the dark
-                    // BottomAppBar) when stage mode is on, rather than the
-                    // outer ambient theme.
-                    builder: (context) {
-                      final textTheme = Theme.of(context).textTheme;
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Slot ${_groupIndex + 1} of ${_groups.length}',
-                            key: const ValueKey('perform-position'),
-                            style: textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 2),
-                          _buildTimingLine(slot, textTheme),
-                        ],
-                      );
-                    },
-                  ),
+                  ],
                 ),
               ),
-              IconButton(
-                key: const ValueKey('perform-next'),
-                tooltip: 'Next slot',
-                icon: const Icon(Icons.chevron_right),
-                onPressed: _hasNext ? _goNext : null,
-              ),
-            ],
+            ),
+          ),
+          bottomNavigationBar: BottomAppBar(
+            child: Row(
+              children: [
+                _buildPauseButton(),
+                IconButton(
+                  key: const ValueKey('perform-prev'),
+                  tooltip: 'Previous slot',
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: _hasPrev ? _goPrev : null,
+                ),
+                Expanded(
+                  child: Center(
+                    child: Builder(
+                      // Resolve the text style from a context *below*
+                      // [PerformStageTheme] so the labels pick up the stage
+                      // theme's on-surface color (readable on the dark
+                      // BottomAppBar) when stage mode is on, rather than the
+                      // outer ambient theme.
+                      builder: (context) {
+                        final textTheme = Theme.of(context).textTheme;
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Slot ${_groupIndex + 1} of ${_groups.length}',
+                              key: const ValueKey('perform-position'),
+                              style: textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 2),
+                            _buildTimingLine(slot, textTheme),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('perform-next'),
+                  tooltip: 'Next slot',
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: _hasNext ? _goNext : null,
+                ),
+              ],
+            ),
           ),
         ),
       ),

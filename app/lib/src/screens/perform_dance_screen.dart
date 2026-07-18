@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
+import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
@@ -110,51 +111,54 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     final canDecrease =
         _textScale - kPerformScaleStep >= kPerformMinScale - 1e-9;
 
-    return PerformStageTheme(
-      enabled: _stageMode,
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            key: const ValueKey('exit-perform'),
-            tooltip: 'Exit performance view',
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: const Text('Perform'),
-          actions: [
-            const DialectQuickSwitch(),
-            PerformSizeControls(
-              canDecrease: canDecrease,
-              onDecrease: _decreaseTextSize,
-              onIncrease: _increaseTextSize,
+    return ColourDanceTheme(
+      title: widget.dance.title,
+      child: PerformStageTheme(
+        enabled: _stageMode,
+        child: Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              key: const ValueKey('exit-perform'),
+              tooltip: 'Exit performance view',
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.of(context).pop(),
             ),
-            PerformAutoSizeToggle(
-              autoSizeOn: _autoSize,
-              onChanged: (value) => setState(() {
-                _autoSizeUserSet = true;
-                _autoSize = value;
-              }),
-            ),
-            if (!isCanonicalDialect)
-              PerformDialectToggle(
-                canonical: _canonicalView,
-                onChanged: (value) => setState(() => _canonicalView = value),
+            title: const Text('Perform'),
+            actions: [
+              const DialectQuickSwitch(),
+              PerformSizeControls(
+                canDecrease: canDecrease,
+                onDecrease: _decreaseTextSize,
+                onIncrease: _increaseTextSize,
               ),
-            PerformStageToggle(
-              stageOn: _stageMode,
-              onChanged: (value) => setState(() => _stageMode = value),
+              PerformAutoSizeToggle(
+                autoSizeOn: _autoSize,
+                onChanged: (value) => setState(() {
+                  _autoSizeUserSet = true;
+                  _autoSize = value;
+                }),
+              ),
+              if (!isCanonicalDialect)
+                PerformDialectToggle(
+                  canonical: _canonicalView,
+                  onChanged: (value) => setState(() => _canonicalView = value),
+                ),
+              PerformStageToggle(
+                stageOn: _stageMode,
+                onChanged: (value) => setState(() => _stageMode = value),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: SafeArea(
+            child: PerformCard(
+              dance: widget.dance,
+              renderer: widget.renderer,
+              dialect: dialect,
+              textScale: _textScale,
+              autoSize: _autoSize,
+              authorNames: widget.authorNames,
             ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        body: SafeArea(
-          child: PerformCard(
-            dance: widget.dance,
-            renderer: widget.renderer,
-            dialect: dialect,
-            textScale: _textScale,
-            autoSize: _autoSize,
-            authorNames: widget.authorNames,
           ),
         ),
       ),
