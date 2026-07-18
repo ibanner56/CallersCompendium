@@ -295,9 +295,7 @@ void main() {
     });
 
     test('rejects a response that exceeds the size cap', () async {
-      final client = MockClient(
-        (_) async => http.Response('x' * 4096, 200),
-      );
+      final client = MockClient((_) async => http.Response('x' * 4096, 200));
       await expectLater(
         fetchCallersBoxSearch(
           'https://www.ibiblio.org/contradance/thecallersbox/index.php?title=x',

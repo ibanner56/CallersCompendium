@@ -1074,11 +1074,13 @@ void main() {
     });
 
     test('rejects a response whose declared size exceeds the cap', () async {
-      final client = MockClient(
-        (_) async => http.Response('x' * 4096, 200),
-      );
+      final client = MockClient((_) async => http.Response('x' * 4096, 200));
       await expectLater(
-        fetchImportUrl('https://example.com/a.json', client: client, maxBytes: 8),
+        fetchImportUrl(
+          'https://example.com/a.json',
+          client: client,
+          maxBytes: 8,
+        ),
         throwsA(
           isA<UrlFetchException>().having(
             (e) => e.message,
@@ -1102,7 +1104,11 @@ void main() {
         return http.StreamedResponse(chunks(), 200, contentLength: null);
       });
       await expectLater(
-        fetchImportUrl('https://example.com/a.json', client: client, maxBytes: 8),
+        fetchImportUrl(
+          'https://example.com/a.json',
+          client: client,
+          maxBytes: 8,
+        ),
         throwsA(isA<UrlFetchException>()),
       );
     });
@@ -1123,7 +1129,11 @@ void main() {
         return http.StreamedResponse(body(), 200, contentLength: 64 * 1024);
       });
       await expectLater(
-        fetchImportUrl('https://example.com/a.json', client: client, maxBytes: 8),
+        fetchImportUrl(
+          'https://example.com/a.json',
+          client: client,
+          maxBytes: 8,
+        ),
         throwsA(isA<UrlFetchException>()),
       );
       expect(chunksPulled, lessThan(64));
@@ -1135,12 +1145,17 @@ void main() {
         // arrive) but the read hangs, so the body-read deadline must fire.
         final controller = StreamController<List<int>>();
         final client = MockClient.streaming(
-          (request, bodyStream) async =>
-              http.StreamedResponse(controller.stream, 200, contentLength: null),
+          (request, bodyStream) async => http.StreamedResponse(
+            controller.stream,
+            200,
+            contentLength: null,
+          ),
         );
         Object? caught;
-        fetchImportUrl('https://example.com/a.json', client: client)
-            .then<void>((_) {}, onError: (Object e) => caught = e);
+        fetchImportUrl(
+          'https://example.com/a.json',
+          client: client,
+        ).then<void>((_) {}, onError: (Object e) => caught = e);
         async.flushMicrotasks();
         async.elapse(importFetchTimeout + const Duration(seconds: 1));
         async.flushMicrotasks();
@@ -1190,28 +1205,31 @@ void main() {
       );
     });
 
-    test('rejects a redirect from a public host to a loopback address', () async {
-      final client = MockClient((request) async {
-        if (request.url.host == 'example.com') {
-          return http.Response(
-            '',
-            302,
-            headers: {'location': 'https://127.0.0.1:8080/x'},
-          );
-        }
-        return http.Response('should-not-be-reached', 200);
-      });
-      await expectLater(
-        fetchImportUrl('https://example.com/a.json', client: client),
-        throwsA(
-          isA<UrlFetchException>().having(
-            (e) => e.message,
-            'message',
-            contains('internal'),
+    test(
+      'rejects a redirect from a public host to a loopback address',
+      () async {
+        final client = MockClient((request) async {
+          if (request.url.host == 'example.com') {
+            return http.Response(
+              '',
+              302,
+              headers: {'location': 'https://127.0.0.1:8080/x'},
+            );
+          }
+          return http.Response('should-not-be-reached', 200);
+        });
+        await expectLater(
+          fetchImportUrl('https://example.com/a.json', client: client),
+          throwsA(
+            isA<UrlFetchException>().having(
+              (e) => e.message,
+              'message',
+              contains('internal'),
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
 
     test('rejects a redirect to the link-local metadata address', () async {
       final client = MockClient((request) async {
@@ -1231,9 +1249,7 @@ void main() {
     });
 
     test('rejects a redirect with no destination', () async {
-      final client = MockClient(
-        (_) async => http.Response('', 302),
-      );
+      final client = MockClient((_) async => http.Response('', 302));
       await expectLater(
         fetchImportUrl('https://example.com/a.json', client: client),
         throwsA(isA<UrlFetchException>()),
@@ -1257,17 +1273,20 @@ void main() {
       );
     });
 
-    test('still allows a direct request to a self-hosted loopback URL', () async {
-      // A user who explicitly targets their own localhost instance is not
-      // blocked — only public→internal *redirects* are refused.
-      final client = MockClient(
-        (_) async => http.Response('{"schemaVersion":1}', 200),
-      );
-      expect(
-        await fetchImportUrl('http://localhost:3000/a.json', client: client),
-        '{"schemaVersion":1}',
-      );
-    });
+    test(
+      'still allows a direct request to a self-hosted loopback URL',
+      () async {
+        // A user who explicitly targets their own localhost instance is not
+        // blocked — only public→internal *redirects* are refused.
+        final client = MockClient(
+          (_) async => http.Response('{"schemaVersion":1}', 200),
+        );
+        expect(
+          await fetchImportUrl('http://localhost:3000/a.json', client: client),
+          '{"schemaVersion":1}',
+        );
+      },
+    );
   });
 
   group('edit prior to import (#266)', () {
