@@ -390,9 +390,17 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'revolving_door',
       displayName: 'revolving door',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
-        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
-        'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        // The dancers who take hands and lead the figure. Canonically the
+        // ladles (role2s) — they take right hands and drop off partners on the
+        // far side (verified: ContraDB #2443 + libfigure `revolving door`; and
+        // the TCB decomposition's "Women allemande right", women → role2s).
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
+        // Canonical revolving door takes RIGHT hands (partner star promenade →
+        // women allemande right). ContraDB models this move's hand as a param;
+        // the community-canonical value is right.
+        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        // Whom the leaders drop off on the other side — their partners.
+        'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {hand} {whom}',

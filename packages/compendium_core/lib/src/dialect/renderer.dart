@@ -153,6 +153,13 @@ class FigureRenderer {
           default:
             return '';
         }
+      case 'revolving_door':
+        // ContraDB `revolvingDoorWords` describes the outcome the terse line
+        // can't: the leaders drop their partners off on the far side (which is
+        // also the progression). who/hand/whom already render in the base line;
+        // this adds only the "drop off on the other side" outcome, so it does
+        // not repeat a param. Fixed structural vocabulary → dialect-independent.
+        return ' — drop off on the other side';
       default:
         return '';
     }
