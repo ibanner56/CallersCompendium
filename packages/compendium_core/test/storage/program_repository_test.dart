@@ -141,6 +141,28 @@ void main() {
       expect(loaded.slots.single.plannedMinutes, 12);
     });
 
+    test('round-trips the hideAlternates flag', () async {
+      final program = sampleProgram(
+        slots: [
+          ProgramSlot(id: 's1', position: 0, text: 'Primary'),
+          ProgramSlot(id: 's2', position: 1, text: 'Alternate', isAlt: true),
+        ],
+      ).copyWith(hideAlternates: true);
+      await repo.create(program);
+      final loaded = await repo.getById(program.id);
+      expect(loaded!.hideAlternates, isTrue);
+      // The flag is a view-only setting: the stored slots are untouched.
+      expect(loaded.slots, hasLength(2));
+      expect(loaded, program);
+    });
+
+    test('hideAlternates defaults to false when unset', () async {
+      final program = sampleProgram();
+      await repo.create(program);
+      final loaded = await repo.getById(program.id);
+      expect(loaded!.hideAlternates, isFalse);
+    });
+
     test('excludes soft-deleted programs by default', () async {
       final program = sampleProgram(deletedAt: DateTime.utc(2026, 1, 2));
       await repo.create(program);

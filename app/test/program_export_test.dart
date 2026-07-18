@@ -12,6 +12,7 @@ final _now = DateTime.utc(2026, 1, 1);
 Program _program({
   String title = 'Friday Contra',
   List<ProgramSlot> slots = const [],
+  bool hideAlternates = false,
 }) => Program(
   id: 'p1',
   title: title,
@@ -22,6 +23,7 @@ Program _program({
   dancerLevel: 'All',
   notes: 'Bring water.',
   slots: slots,
+  hideAlternates: hideAlternates,
   createdAt: _now,
   updatedAt: _now,
 );
@@ -100,6 +102,48 @@ void main() {
       expect(clipboardText, contains('Friday Contra'));
       expect(clipboardText, contains('1. Rory O\'More'));
       expect(find.text('Set list copied to clipboard.'), findsOneWidget);
+    });
+
+    testWidgets('Copy set list omits ALTs when hideAlternates is set', (
+      tester,
+    ) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await _pumpMenu(
+        tester,
+        _program(
+          hideAlternates: true,
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy set list'));
+      await tester.pumpAndSettle();
+
+      expect(clipboardText, isNotNull);
+      expect(clipboardText, contains('1. Rory O\'More'));
+      expect(clipboardText, isNot(contains('ALT:')));
+      expect(clipboardText, isNot(contains('The Nice Combination')));
     });
 
     testWidgets('surfaces a SnackBar when sharing throws', (tester) async {

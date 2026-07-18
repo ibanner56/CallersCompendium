@@ -2528,6 +2528,21 @@ class $ProgramsTable extends Programs
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<ProgramStatus>($ProgramsTable.$converterstatus);
+  static const VerificationMeta _hideAlternatesMeta = const VerificationMeta(
+    'hideAlternates',
+  );
+  @override
+  late final GeneratedColumn<bool> hideAlternates = GeneratedColumn<bool>(
+    'hide_alternates',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("hide_alternates" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2572,6 +2587,7 @@ class $ProgramsTable extends Programs
     dancerLevel,
     notes,
     status,
+    hideAlternates,
     createdAt,
     updatedAt,
     deletedAt,
@@ -2638,6 +2654,15 @@ class $ProgramsTable extends Programs
       context.handle(
         _notesMeta,
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('hide_alternates')) {
+      context.handle(
+        _hideAlternatesMeta,
+        hideAlternates.isAcceptableOrUnknown(
+          data['hide_alternates']!,
+          _hideAlternatesMeta,
+        ),
       );
     }
     if (data.containsKey('created_at')) {
@@ -2709,6 +2734,10 @@ class $ProgramsTable extends Programs
           data['${effectivePrefix}status'],
         )!,
       ),
+      hideAlternates: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}hide_alternates'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2743,6 +2772,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   final String? dancerLevel;
   final String notes;
   final ProgramStatus status;
+  final bool hideAlternates;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -2756,6 +2786,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     this.dancerLevel,
     required this.notes,
     required this.status,
+    required this.hideAlternates,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -2786,6 +2817,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
         $ProgramsTable.$converterstatus.toSql(status),
       );
     }
+    map['hide_alternates'] = Variable<bool>(hideAlternates);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -2813,6 +2845,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           : Value(dancerLevel),
       notes: Value(notes),
       status: Value(status),
+      hideAlternates: Value(hideAlternates),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -2838,6 +2871,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       status: $ProgramsTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
+      hideAlternates: serializer.fromJson<bool>(json['hideAlternates']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -2858,6 +2892,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       'status': serializer.toJson<String>(
         $ProgramsTable.$converterstatus.toJson(status),
       ),
+      'hideAlternates': serializer.toJson<bool>(hideAlternates),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -2874,6 +2909,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     Value<String?> dancerLevel = const Value.absent(),
     String? notes,
     ProgramStatus? status,
+    bool? hideAlternates,
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -2887,6 +2923,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     dancerLevel: dancerLevel.present ? dancerLevel.value : this.dancerLevel,
     notes: notes ?? this.notes,
     status: status ?? this.status,
+    hideAlternates: hideAlternates ?? this.hideAlternates,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -2904,6 +2941,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           : this.dancerLevel,
       notes: data.notes.present ? data.notes.value : this.notes,
       status: data.status.present ? data.status.value : this.status,
+      hideAlternates: data.hideAlternates.present
+          ? data.hideAlternates.value
+          : this.hideAlternates,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -2922,6 +2962,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('dancerLevel: $dancerLevel, ')
           ..write('notes: $notes, ')
           ..write('status: $status, ')
+          ..write('hideAlternates: $hideAlternates, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
@@ -2940,6 +2981,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     dancerLevel,
     notes,
     status,
+    hideAlternates,
     createdAt,
     updatedAt,
     deletedAt,
@@ -2957,6 +2999,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.dancerLevel == this.dancerLevel &&
           other.notes == this.notes &&
           other.status == this.status &&
+          other.hideAlternates == this.hideAlternates &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
@@ -2972,6 +3015,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<String?> dancerLevel;
   final Value<String> notes;
   final Value<ProgramStatus> status;
+  final Value<bool> hideAlternates;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -2986,6 +3030,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.dancerLevel = const Value.absent(),
     this.notes = const Value.absent(),
     this.status = const Value.absent(),
+    this.hideAlternates = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -3001,6 +3046,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.dancerLevel = const Value.absent(),
     this.notes = const Value.absent(),
     required ProgramStatus status,
+    this.hideAlternates = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
@@ -3020,6 +3066,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<String>? dancerLevel,
     Expression<String>? notes,
     Expression<String>? status,
+    Expression<bool>? hideAlternates,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -3035,6 +3082,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (dancerLevel != null) 'dancer_level': dancerLevel,
       if (notes != null) 'notes': notes,
       if (status != null) 'status': status,
+      if (hideAlternates != null) 'hide_alternates': hideAlternates,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -3052,6 +3100,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<String?>? dancerLevel,
     Value<String>? notes,
     Value<ProgramStatus>? status,
+    Value<bool>? hideAlternates,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -3067,6 +3116,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       dancerLevel: dancerLevel ?? this.dancerLevel,
       notes: notes ?? this.notes,
       status: status ?? this.status,
+      hideAlternates: hideAlternates ?? this.hideAlternates,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -3106,6 +3156,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
         $ProgramsTable.$converterstatus.toSql(status.value),
       );
     }
+    if (hideAlternates.present) {
+      map['hide_alternates'] = Variable<bool>(hideAlternates.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -3133,6 +3186,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('dancerLevel: $dancerLevel, ')
           ..write('notes: $notes, ')
           ..write('status: $status, ')
+          ..write('hideAlternates: $hideAlternates, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -10482,6 +10536,7 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       Value<String?> dancerLevel,
       Value<String> notes,
       required ProgramStatus status,
+      Value<bool> hideAlternates,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<DateTime?> deletedAt,
@@ -10498,6 +10553,7 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<String?> dancerLevel,
       Value<String> notes,
       Value<ProgramStatus> status,
+      Value<bool> hideAlternates,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -10605,6 +10661,11 @@ class $$ProgramsTableFilterComposer
   get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get hideAlternates => $composableBuilder(
+    column: $table.hideAlternates,
+    builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
@@ -10727,6 +10788,11 @@ class $$ProgramsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get hideAlternates => $composableBuilder(
+    column: $table.hideAlternates,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -10780,6 +10846,11 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<ProgramStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<bool> get hideAlternates => $composableBuilder(
+    column: $table.hideAlternates,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -10882,6 +10953,7 @@ class $$ProgramsTableTableManager
                 Value<String?> dancerLevel = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 Value<ProgramStatus> status = const Value.absent(),
+                Value<bool> hideAlternates = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -10896,6 +10968,7 @@ class $$ProgramsTableTableManager
                 dancerLevel: dancerLevel,
                 notes: notes,
                 status: status,
+                hideAlternates: hideAlternates,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -10912,6 +10985,7 @@ class $$ProgramsTableTableManager
                 Value<String?> dancerLevel = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 required ProgramStatus status,
+                Value<bool> hideAlternates = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -10926,6 +11000,7 @@ class $$ProgramsTableTableManager
                 dancerLevel: dancerLevel,
                 notes: notes,
                 status: status,
+                hideAlternates: hideAlternates,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,

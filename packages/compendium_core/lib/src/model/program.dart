@@ -152,6 +152,7 @@ class Program {
     this.dancerLevel,
     this.notes = '',
     this.status = ProgramStatus.draft,
+    this.hideAlternates = false,
     List<ProgramSlot> slots = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -183,6 +184,13 @@ class Program {
 
   final String notes;
   final ProgramStatus status;
+
+  /// When true, alternate (`isAlt`) slots are omitted from the program's
+  /// **output** — the plain-text set list, PDF, and on-screen summary set list
+  /// (see [outputGrouped]). Per-program and persisted (CC parity:
+  /// `SetList_HideALT`). The builder editor and Perform mode ignore this flag
+  /// and always show every slot; the stored slots are never mutated.
+  final bool hideAlternates;
 
   /// Slots, always ordered by position.
   final List<ProgramSlot> slots;
@@ -237,6 +245,18 @@ class Program {
     return List.unmodifiable(groups);
   }
 
+  /// The [grouped] view used for **output** (plain-text set list, PDF, summary):
+  /// identical to [grouped] except that, when [hideAlternates] is set, each
+  /// group's [ProgramSlotGroup.alternates] are dropped so only primaries render.
+  /// Primaries stay numbered 1..n either way. The builder/Perform UIs use
+  /// [grouped] directly and are unaffected by the flag.
+  List<ProgramSlotGroup> get outputGrouped {
+    if (!hideAlternates) return grouped;
+    return List.unmodifiable([
+      for (final group in grouped) ProgramSlotGroup(primary: group.primary),
+    ]);
+  }
+
   /// Runs warning-level validation. Structural invariants are enforced at
   /// construction and never appear here; softer concerns surface as warnings
   /// (mirrors [Dance.validate], per the domain-model "warnings, not hard
@@ -283,6 +303,7 @@ class Program {
     String? dancerLevel,
     String? notes,
     ProgramStatus? status,
+    bool? hideAlternates,
     List<ProgramSlot>? slots,
     DateTime? updatedAt,
     DateTime? deletedAt,
@@ -304,6 +325,7 @@ class Program {
     dancerLevel: clearDancerLevel ? null : (dancerLevel ?? this.dancerLevel),
     notes: notes ?? this.notes,
     status: status ?? this.status,
+    hideAlternates: hideAlternates ?? this.hideAlternates,
     slots: slots ?? this.slots,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -330,6 +352,7 @@ class Program {
     dancerLevel: dancerLevel,
     notes: notes,
     status: ProgramStatus.draft,
+    hideAlternates: hideAlternates,
     slots: [
       for (final s in slots)
         ProgramSlot(
@@ -358,6 +381,7 @@ class Program {
       other.dancerLevel == dancerLevel &&
       other.notes == notes &&
       other.status == status &&
+      other.hideAlternates == hideAlternates &&
       _listEq.equals(other.slots, slots) &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&

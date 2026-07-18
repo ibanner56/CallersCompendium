@@ -488,7 +488,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
     final rows = <Widget>[];
     var ordinal = 0;
-    for (final group in program.grouped) {
+    for (final group in program.outputGrouped) {
       ordinal++;
       rows.add(_slotRow(group.primary, ordinalLabel: '$ordinal'));
       for (final alt in group.alternates) {

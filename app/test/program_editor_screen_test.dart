@@ -173,6 +173,26 @@ void main() {
     expect(updated.venue, 'Old Hall');
   });
 
+  testWidgets('toggling "Hide alternates" persists the flag', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
+
+    final toggle = find.byKey(const ValueKey('program-hide-alternates'));
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    // Default is off.
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final updated = await repos.programs.getById('p1');
+    expect(updated!.hideAlternates, isTrue);
+  });
+
   testWidgets('clearing venue and event date persists as null', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(
