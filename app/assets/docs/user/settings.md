@@ -73,6 +73,10 @@ A gallery of built-in themes: **System** (follows your device), **Light**, **Dar
 - **New custom theme** — opens an editor seeded from your current theme, so you start from something familiar.
 - Saved custom themes can be selected, edited, duplicated, or deleted at any time.
 
+### Set lists
+
+- **Colour-code set-list rows** — tints each dance row in a program's set list (both the read-only summary and the builder) by its [formation](./glossary.md#formation) family — contras, triplets, mixers, circles, and squares each get their own accent, so you can read the *shape* of a program at a glance. The formation is always shown as text on the row too, so rows stay fully readable without relying on colour, and the accents adapt to the High Contrast theme. On by default; turn it off to hide the tints.
+
 ## Dialect
 
 The **Dialect** section is your library of [dialects](./glossary.md#dialect) — the role names and wording the app uses when it describes dances.

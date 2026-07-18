@@ -7,6 +7,7 @@ import '../../data/custom_theme.dart';
 import '../../data/custom_themes_controller.dart';
 import '../../data/custom_themes_scope.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/set_list_color_coding_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/color_schemes.dart';
 import '../../widgets/section_header.dart';
@@ -43,6 +44,15 @@ class _AppearanceSectionState extends State<AppearanceSection> {
     await repos.settings.set(kAppThemeKey, selection.name);
   }
 
+  /// Persists the "colour-code set-list rows" toggle (issue #270): flip the
+  /// live scope notifier immediately, then write through in the background —
+  /// the same optimistic pattern as the other Appearance/General toggles.
+  Future<void> _onSetListColorCodingChanged(bool value) async {
+    final repos = RepositoriesScope.of(context);
+    SetListColorCodingScope.notifierOf(context).value = value;
+    await repos.settings.set(kSetListColorCodingKey, value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeSelected = AppThemeScope.of(context);
@@ -61,6 +71,8 @@ class _AppearanceSectionState extends State<AppearanceSection> {
       seedScheme: seedScheme,
       colourDanceTheme: ColourDanceThemeScope.of(context),
       onColourDanceThemeChanged: _onColourDanceThemeChanged,
+      setListColorCoding: SetListColorCodingScope.of(context),
+      onSetListColorCodingChanged: _onSetListColorCodingChanged,
     );
   }
 }
@@ -74,6 +86,8 @@ class _AppearanceView extends StatelessWidget {
     required this.seedScheme,
     required this.colourDanceTheme,
     required this.onColourDanceThemeChanged,
+    required this.setListColorCoding,
+    required this.onSetListColorCodingChanged,
   });
 
   final AppThemeSelection? themeSelected;
@@ -82,6 +96,8 @@ class _AppearanceView extends StatelessWidget {
   final ColorScheme seedScheme;
   final bool colourDanceTheme;
   final ValueChanged<bool> onColourDanceThemeChanged;
+  final bool setListColorCoding;
+  final ValueChanged<bool> onSetListColorCodingChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -121,6 +137,18 @@ class _AppearanceView extends StatelessWidget {
             'theme is active so readability always wins.',
           ),
           isThreeLine: true,
+        ),
+        SectionHeader(title: 'Set lists'),
+        SwitchListTile(
+          key: const ValueKey('appearance-set-list-color-coding'),
+          title: const Text('Colour-code set-list rows'),
+          subtitle: const Text(
+            'Tint each dance row by its formation family (contra, mixer, '
+            'square, …). The formation is always shown as text too, so rows '
+            'stay readable without colour.',
+          ),
+          value: setListColorCoding,
+          onChanged: onSetListColorCodingChanged,
         ),
       ],
     );

@@ -241,6 +241,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   String? _titleForDance(String danceId) => _data?.dancesById[danceId]?.title;
 
+  /// Resolves a dance's formation for the slot editor's redundant accent +
+  /// formation text (issue #270). Null when the dance is unavailable.
+  Formation? _formationForDance(String danceId) =>
+      _data?.dancesById[danceId]?.formation;
+
   /// Shared renderer for the large-print Perform view (mirrors the dance
   /// detail / single-dance Perform screens).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
@@ -899,6 +904,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ProgramSlotListEditor(
             slots: _slots,
             danceTitles: _titleForDance,
+            formationFor: _formationForDance,
             onReorder: _reorderSlot,
             onSlotChanged: _updateSlot,
             onRemove: _removeSlot,

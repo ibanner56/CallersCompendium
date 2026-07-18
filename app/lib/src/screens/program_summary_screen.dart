@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
+import '../data/app_theme_scope.dart';
+import '../data/set_list_color_coding_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart';
+import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
@@ -505,6 +508,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   }) {
     final theme = Theme.of(context);
     final danceId = slot.danceId;
+    // Colour-code accent (issue #270): a *redundant* cue paired with the
+    // formation text below. Suppressed when the user disables it. High contrast
+    // is either the app's high-contrast theme or the OS setting, in which case
+    // we use the brighter high-contrast palette.
+    final colorCodingEnabled = SetListColorCodingScope.of(context);
+    final highContrast =
+        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
+        MediaQuery.highContrastOf(context);
 
     Widget leading = SizedBox(
       width: 28,
@@ -597,12 +608,27 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       ];
       final secondary = secondaryParts.join(' · ');
 
+      // Resolve the redundant formation accent (issue #270). Only when a dance
+      // resolves, color-coding is on, and the family has a themed accent.
+      final accent = (dance != null && colorCodingEnabled)
+          ? setListAccentForShape(
+              dance.formation.shape,
+              highContrast: highContrast,
+            )
+          : null;
+      // Expose the formation as text to AT so the row is fully readable without
+      // colour (ux.md §4): the accent is never the sole carrier of type/form.
+      final semanticsLabel = [
+        slot.isAlt ? 'Alternate: $title' : title,
+        if (dance != null) formationLabel(dance.formation),
+      ].join('. ');
+
       return Padding(
         padding: EdgeInsets.only(left: indented ? 32 : 0, top: 2, bottom: 2),
         child: MergeSemantics(
           child: Semantics(
             button: true,
-            label: slot.isAlt ? 'Alternate: $title' : title,
+            label: semanticsLabel,
             child: InkWell(
               key: ValueKey('summary-slot-${slot.id}'),
               onTap: () => Navigator.of(context).push(
@@ -611,8 +637,22 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
                 ),
               ),
               child: ExcludeSemantics(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Container(
+                  key: accent != null
+                      ? ValueKey('summary-slot-${slot.id}-accent')
+                      : null,
+                  decoration: accent != null
+                      ? BoxDecoration(
+                          border: Border(
+                            left: BorderSide(color: accent, width: 4),
+                          ),
+                        )
+                      : null,
+                  padding: EdgeInsets.only(
+                    left: accent != null ? 8 : 0,
+                    top: 8,
+                    bottom: 8,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
