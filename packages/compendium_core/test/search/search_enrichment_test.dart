@@ -176,21 +176,18 @@ void main() {
     });
 
     test('empty equals a freshly constructed enrichment', () {
-      expect(SearchEnrichment.empty, equals(const SearchEnrichment()));
-      expect(
-        SearchEnrichment.empty.hashCode,
-        const SearchEnrichment().hashCode,
-      );
+      expect(SearchEnrichment.empty, equals(SearchEnrichment()));
+      expect(SearchEnrichment.empty.hashCode, SearchEnrichment().hashCode);
     });
 
     test('value-equal instances are == and share a hashCode', () {
-      const a = SearchEnrichment(
-        roleSynonyms: {'lead': 'role1', 'follow': 'role2'},
-        moveSynonyms: {'gypsy': 'shoulder_round'},
+      final a = SearchEnrichment(
+        roleSynonyms: const {'lead': 'role1', 'follow': 'role2'},
+        moveSynonyms: const {'gypsy': 'shoulder_round'},
       );
-      const b = SearchEnrichment(
-        roleSynonyms: {'lead': 'role1', 'follow': 'role2'},
-        moveSynonyms: {'gypsy': 'shoulder_round'},
+      final b = SearchEnrichment(
+        roleSynonyms: const {'lead': 'role1', 'follow': 'role2'},
+        moveSynonyms: const {'gypsy': 'shoulder_round'},
       );
       expect(a, equals(b));
       expect(a.hashCode, b.hashCode);
@@ -211,23 +208,33 @@ void main() {
     );
 
     test('differing roleSynonyms are not equal', () {
-      const a = SearchEnrichment(roleSynonyms: {'lead': 'role1'});
-      const b = SearchEnrichment(roleSynonyms: {'lead': 'role2'});
+      final a = SearchEnrichment(roleSynonyms: const {'lead': 'role1'});
+      final b = SearchEnrichment(roleSynonyms: const {'lead': 'role2'});
       expect(a, isNot(equals(b)));
     });
 
     test('differing moveSynonyms are not equal', () {
-      const a = SearchEnrichment(moveSynonyms: {'gypsy': 'shoulder_round'});
-      const b = SearchEnrichment(moveSynonyms: {'gypsy': 'swing'});
+      final a = SearchEnrichment(
+        moveSynonyms: const {'gypsy': 'shoulder_round'},
+      );
+      final b = SearchEnrichment(moveSynonyms: const {'gypsy': 'swing'});
       expect(a, isNot(equals(b)));
     });
 
     test('an extra map entry breaks equality', () {
-      const a = SearchEnrichment(roleSynonyms: {'lead': 'role1'});
-      const b = SearchEnrichment(
-        roleSynonyms: {'lead': 'role1', 'follow': 'role2'},
+      final a = SearchEnrichment(roleSynonyms: const {'lead': 'role1'});
+      final b = SearchEnrichment(
+        roleSynonyms: const {'lead': 'role1', 'follow': 'role2'},
       );
       expect(a, isNot(equals(b)));
+    });
+
+    test('constructor defensively copies maps (mutation-safe)', () {
+      final source = {'lead': 'role1'};
+      final e = SearchEnrichment(roleSynonyms: source);
+      source['follow'] = 'role2';
+      expect(e.roleSynonyms, const {'lead': 'role1'});
+      expect(() => e.roleSynonyms['x'] = 'y', throwsUnsupportedError);
     });
   });
 }

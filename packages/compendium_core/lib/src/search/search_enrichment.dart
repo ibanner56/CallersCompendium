@@ -22,13 +22,14 @@ const MapEquality<Object?, Object?> _mapEq = MapEquality<Object?, Object?>();
 /// dialects (from its dialect library) and hands them to [fromDialects]; core
 /// only ever sees plain [Dialect]s and maps.
 class SearchEnrichment {
-  const SearchEnrichment({
-    this.roleSynonyms = const {},
-    this.moveSynonyms = const {},
-  });
+  SearchEnrichment({
+    Map<String, String> roleSynonyms = const {},
+    Map<String, String> moveSynonyms = const {},
+  }) : roleSynonyms = Map.unmodifiable(roleSynonyms),
+       moveSynonyms = Map.unmodifiable(moveSynonyms);
 
   /// The identity enrichment: adds nothing. Search behaves exactly as before.
-  static const SearchEnrichment empty = SearchEnrichment();
+  static final SearchEnrichment empty = SearchEnrichment();
 
   /// Lowercased role display term (singular or plural) → canonical role token
   /// (`role1`/`role2`/`role1s`/`role2s`).
