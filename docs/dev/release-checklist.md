@@ -37,9 +37,12 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  succeeded on **that tag's** release run, not a prior run and not a build-only
  `workflow_dispatch`. (Without the secrets the Android leg is a no-op — it emits
  `::notice::…skipping Android release artifact` and stages no APK.)
-- [ ] Desktop artifacts build for the platforms you're shipping. Note explicitly
- which desktop targets are UNSIGNED (currently expected) so testers aren't
- surprised by OS warnings.
+- [ ] Desktop artifacts build for the platforms you're shipping. **macOS** is
+ Developer ID-signed + notarized when the `APPLE_*` secrets are configured (the
+ sign/notarize/staple + `codesign`/`spctl` verify steps ran on **that tag's**
+ release run); without the secrets the macOS leg is a clean UNSIGNED build.
+ **Windows and Linux are still UNSIGNED** (expected) — note that explicitly so
+ testers aren't surprised by SmartScreen/Gatekeeper warnings.
 - [ ] Each platform artifact launches and opens the collection on a clean machine.
 
 ## 4. Update/distribution infrastructure

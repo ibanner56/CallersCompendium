@@ -100,13 +100,30 @@ def _cases() -> None:
     assert "Beta / pre-release" not in body
     assert "A shiny new feature." in body
 
-    # 5. Footer is always present (both stable and beta).
+    # 5. Footer is always present (both stable and beta). When macOS was signed,
+    #    the footer states Windows/Linux unsigned + macOS Developer ID-signed.
     for ch, ver, tag in (("stable", "0.2.0", "v0.2.0"),
                          ("beta", "0.1.0-rc.3", "v0.1.0-rc.3")):
         body, _ = g.build_notes(
             version=ver, tag=tag, channel=ch, changelog_text=CHANGELOG,
+            macos_signed=True,
         )
-        assert "**UNSIGNED**" in body
+        assert "**unsigned**" in body
+        assert "**Developer ID-signed & notarized**" in body
+        assert "`SHA256SUMS`" in body
+        assert "maintainer publishes this draft after review" in body
+
+    # 5b. Honest footer when macOS was NOT signed (secrets absent / default):
+    #     all three desktops reported unsigned, and NO false signed claim.
+    for macos_signed_kwargs in ({}, {"macos_signed": False}):
+        body, _ = g.build_notes(
+            version="0.2.0", tag="v0.2.0", channel="stable",
+            changelog_text=CHANGELOG, **macos_signed_kwargs,
+        )
+        assert "**unsigned**" in body
+        assert "Developer ID-signed & notarized" not in body
+        # It must name macOS as unsigned this release, not just Windows/Linux.
+        assert "macOS" in body
         assert "`SHA256SUMS`" in body
         assert "maintainer publishes this draft after review" in body
 
@@ -118,7 +135,7 @@ def _cases() -> None:
     assert found is False
     assert "No `## [9.9.9]` entry" in body
     # Footer still present so the safety wording never gets lost.
-    assert "**UNSIGNED**" in body
+    assert "**unsigned**" in body
 
     # 7. Fallback for a prerelease still shows the beta banner + warning.
     body, found = g.build_notes(
@@ -194,6 +211,28 @@ def _cases() -> None:
              "--tag", "v9.9.9-rc.1", "--changelog", str(cl), "--check"]
         )
         assert rc_beta == 0
+
+        # 16. --macos-signing toggles the footer's macOS claim end-to-end via the
+        #     CLI (default = unsigned; 'configured' = Developer ID-signed).
+        out_default = Path(td) / "notes-default.md"
+        rc = g.main(
+            ["--version", "0.2.0", "--channel", "stable", "--tag", "v0.2.0",
+             "--changelog", str(cl), "--output", str(out_default)]
+        )
+        assert rc == 0
+        default_body = out_default.read_text(encoding="utf-8")
+        assert "Developer ID-signed & notarized" not in default_body
+        assert "**unsigned**" in default_body
+
+        out_signed = Path(td) / "notes-signed.md"
+        rc = g.main(
+            ["--version", "0.2.0", "--channel", "stable", "--tag", "v0.2.0",
+             "--macos-signing", "configured",
+             "--changelog", str(cl), "--output", str(out_signed)]
+        )
+        assert rc == 0
+        signed_body = out_signed.read_text(encoding="utf-8")
+        assert "**Developer ID-signed & notarized**" in signed_body
 
 
 def main() -> int:

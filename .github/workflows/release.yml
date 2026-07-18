@@ -184,6 +184,39 @@ jobs:
             echo "::notice::Android signing secrets not configured; skipping Android release artifact"
           fi
 
+      # macOS signing gate, mirroring the Android gate above. The `secrets`
+      # context can't be used in a step-level `if:`, so read the Apple secrets
+      # via `env:` and export a plain `signing=configured|missing` output that
+      # the macOS sign/package steps below gate on. `signing=configured` ONLY
+      # when the full Developer ID cert set AND all three notarytool credentials
+      # are present; otherwise `signing=missing` and the macOS leg builds exactly
+      # as today (UNSIGNED zip + dmg, no failure) until the maintainer adds the
+      # Apple secrets. Names are never interpolated into a `run:` line.
+      - name: Determine macOS signing availability
+        if: matrix.platform == 'macos'
+        id: macos_signing
+        env:
+          APPLE_DEVELOPER_ID_CERT_P12: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "${APPLE_DEVELOPER_ID_CERT_P12:-}" ] \
+            && [ -n "${APPLE_CERT_PASSWORD:-}" ] \
+            && [ -n "${APPLE_TEAM_ID:-}" ] \
+            && [ -n "${APPLE_API_KEY_P8:-}" ] \
+            && [ -n "${APPLE_API_KEY_ID:-}" ] \
+            && [ -n "${APPLE_API_ISSUER_ID:-}" ]; then
+            echo "signing=configured" >> "$GITHUB_OUTPUT"
+            echo "macOS Developer ID signing secrets configured; signing + notarizing the macOS artifacts."
+          else
+            echo "signing=missing" >> "$GITHUB_OUTPUT"
+            echo "::notice::macOS signing secrets not configured; producing UNSIGNED macOS artifacts (unchanged from today)."
+          fi
+
       - name: Install Linux desktop dependencies
         if: matrix.platform == 'linux'
         run: |
@@ -264,14 +297,19 @@ jobs:
             --runtime-file runtime-x86_64 \
             "$appdir" "dist/CallersCompendium-${VERSION}-linux-x64.AppImage"
 
-      # --- macOS: zip + dmg (UNSIGNED, universal) --------------------------
+      # --- macOS: zip + dmg ------------------------------------------------
+      # Unsigned by default (Linux/Windows parity); Developer ID-signed +
+      # notarized when the Apple secrets are configured (see the macOS signing
+      # gate above and the two mutually-exclusive package steps below).
       - name: Build macOS release bundle
         if: matrix.platform == 'macos'
         working-directory: app
         run: flutter build macos --release
 
+      # UNSIGNED path (secrets absent): byte-for-byte identical to the previous
+      # behaviour — a ditto zip + an hdiutil drag-to-Applications dmg, no deps.
       - name: Package macOS (zip + dmg)
-        if: matrix.platform == 'macos'
+        if: matrix.platform == 'macos' && steps.macos_signing.outputs.signing == 'missing'
         run: |
           set -euo pipefail
           app_path="app/build/macos/Build/Products/Release/compendium_app.app"
@@ -291,6 +329,142 @@ jobs:
           ln -s /Applications "$stage/Applications"
           hdiutil create -volname "Caller's Compendium" -srcfolder "$stage" \
             -ov -format UDZO "dist/CallersCompendium-${VERSION}-macos-universal.dmg"
+
+      # SIGNED path (secrets present): deep-codesign the .app with the hardened
+      # runtime, build + sign the .dmg, notarize with notarytool, staple the
+      # ticket to BOTH the .app (before zipping, so the zip carries a stapled
+      # bundle) and the .dmg, then verify as a hard gate. The whole flow lives in
+      # one step so the ephemeral keychain never has to be handed across steps;
+      # the always() cleanup step below deletes it. Secrets arrive via `env:` and
+      # are only ever decoded to files with `base64 --decode` (never echoed), and
+      # `set -x` is deliberately NOT used so nothing sensitive reaches the log.
+      - name: Sign, notarize & package macOS (Developer ID)
+        if: matrix.platform == 'macos' && steps.macos_signing.outputs.signing == 'configured'
+        env:
+          APPLE_DEVELOPER_ID_CERT_P12: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          app_path="app/build/macos/Build/Products/Release/compendium_app.app"
+          entitlements="app/macos/Runner/Release.entitlements"
+          dmg="dist/CallersCompendium-${VERSION}-macos-universal.dmg"
+          zip="dist/CallersCompendium-${VERSION}-macos-universal.zip"
+          mkdir -p dist
+
+          # Informational: confirm the produced binary is a universal (fat) Mach-O.
+          lipo -info "$app_path/Contents/MacOS/compendium_app" || true
+
+          # ---- 1. Ephemeral, dedicated signing keychain ---------------------
+          # A throwaway keychain (random password, fixed path so the always()
+          # cleanup step can find it) holds the imported Developer ID cert+key.
+          keychain="$RUNNER_TEMP/cc-signing.keychain-db"
+          keychain_pw="$(openssl rand -base64 24)"
+          cert_p12="$RUNNER_TEMP/cc-developer-id.p12"
+          api_key="$RUNNER_TEMP/cc-asc-api-key.p8"
+
+          printf '%s' "$APPLE_DEVELOPER_ID_CERT_P12" | base64 --decode > "$cert_p12"
+          printf '%s' "$APPLE_API_KEY_P8" | base64 --decode > "$api_key"
+
+          security create-keychain -p "$keychain_pw" "$keychain"
+          # Keep it unlocked for the whole job (no idle auto-lock during notarize).
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_pw" "$keychain"
+          # Import cert+key; allowlist codesign/security so no UI prompt is needed.
+          security import "$cert_p12" -k "$keychain" -P "$APPLE_CERT_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security -f pkcs12
+          # Prepend our keychain to the user search list, preserving the rest.
+          # shellcheck disable=SC2046  # intentional split: each path is its own arg
+          security list-keychains -d user -s "$keychain" \
+            $(security list-keychains -d user | sed 's/"//g')
+          # Let codesign use the imported private key non-interactively.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$keychain_pw" "$keychain" >/dev/null
+
+          # Resolve the Developer ID Application identity for this team, by its
+          # SHA-1 (unambiguous) rather than a hardcoded name. Fail loudly if the
+          # imported cert isn't a Developer ID Application cert for APPLE_TEAM_ID.
+          identity="$(security find-identity -v -p codesigning "$keychain" \
+            | awk -v team="($APPLE_TEAM_ID)" \
+                '/Developer ID Application/ && index($0, team) {print $2; exit}')"
+          if [ -z "${identity:-}" ]; then
+            echo "::error::No 'Developer ID Application' code-signing identity for team ${APPLE_TEAM_ID} was found in the imported certificate." >&2
+            exit 1
+          fi
+          echo "Resolved Developer ID Application identity: ${identity}"
+
+          # ---- 2. Deep-codesign the .app (hardened runtime), inside-out -----
+          # Sign nested Mach-O FIRST (dylibs, then framework/xpc/helper bundles),
+          # THEN the outer app bundle with entitlements. --options runtime turns
+          # on the hardened runtime, --timestamp is required for notarization,
+          # --force re-signs anything Flutter already ad-hoc signed.
+          sign() {
+            codesign --force --options runtime --timestamp --sign "$identity" "$1"
+          }
+          while IFS= read -r -d '' f; do sign "$f"; done \
+            < <(find "$app_path/Contents" -type f -name '*.dylib' -print0)
+          while IFS= read -r -d '' f; do sign "$f"; done \
+            < <(find "$app_path/Contents" -type d -name '*.framework' -print0)
+          while IFS= read -r -d '' f; do sign "$f"; done \
+            < <(find "$app_path/Contents" -type d -name '*.xpc' -print0)
+          while IFS= read -r -d '' f; do sign "$f"; done \
+            < <(find "$app_path/Contents" -type d -name '*.app' ! -path "$app_path" -print0)
+          codesign --force --options runtime --timestamp \
+            --entitlements "$entitlements" --sign "$identity" "$app_path"
+
+          # ---- 3. Build the .dmg (same hdiutil recipe) and sign it ----------
+          stage="dmg_stage"
+          rm -rf "$stage" && mkdir -p "$stage"
+          cp -R "$app_path" "$stage/"
+          ln -s /Applications "$stage/Applications"
+          hdiutil create -volname "Caller's Compendium" -srcfolder "$stage" \
+            -ov -format UDZO "$dmg"
+          codesign --force --timestamp --sign "$identity" "$dmg"
+
+          # ---- 4. Notarize the .dmg (registers the nested .app cdhash too) --
+          # notarytool authenticates with an App Store Connect API key (.p8).
+          # --wait blocks until Apple returns Accepted/Invalid (non-zero on
+          # Invalid, which fails the step).
+          xcrun notarytool submit "$dmg" \
+            --key "$api_key" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER_ID" \
+            --wait
+
+          # ---- 5. Staple the ticket to the .app (pre-zip) and the .dmg ------
+          # The .app's cdhash was registered by the .dmg submission above, so it
+          # can be stapled directly. Stapling BEFORE the ditto zip means the zip
+          # captures a stapled (offline-verifiable) bundle.
+          xcrun stapler staple "$app_path"
+          xcrun stapler staple "$dmg"
+
+          # ---- 6. Zip the STAPLED, signed .app ------------------------------
+          ditto -c -k --keepParent "$app_path" "$zip"
+
+          # ---- 7. Verify as a hard gate -------------------------------------
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          spctl -a -t exec -vvv "$app_path"
+          spctl -a -t open --context context:primary-signature -vvv "$dmg"
+          xcrun stapler validate "$app_path"
+          xcrun stapler validate "$dmg"
+
+      # Always tear down the ephemeral signing keychain + decoded secret files,
+      # even if signing failed. A no-op on the unsigned path (nothing to remove).
+      - name: Clean up macOS signing keychain
+        if: always() && matrix.platform == 'macos'
+        run: |
+          keychain="$RUNNER_TEMP/cc-signing.keychain-db"
+          if [ -f "$keychain" ]; then
+            security delete-keychain "$keychain" 2>/dev/null || true
+          fi
+          rm -f "$RUNNER_TEMP/cc-developer-id.p12" \
+                "$RUNNER_TEMP/cc-asc-api-key.p8" 2>/dev/null || true
+          # Restore the default login-keychain search list.
+          security list-keychains -d user -s login.keychain-db 2>/dev/null || true
+          exit 0
 
       # --- Windows: zip (portable) + Inno Setup installer ------------------
       - name: Build Windows release bundle
@@ -496,22 +670,46 @@ jobs:
 
       # Release notes come from app/CHANGELOG.md (A12): gen_release_notes.py
       # extracts the `## [x.y.z]` section for this version, adds a beta banner
-      # for prerelease tags, and appends the UNSIGNED/verify/maintainer footer.
+      # for prerelease tags, and appends the signing/verify/maintainer footer.
       # A missing section falls back to a loud "add notes" body (+ ::warning::)
       # rather than failing the run — the release is a DRAFT until a human
       # publishes it. Maintain notes by promoting `## [Unreleased]` before
       # tagging (see docs/dev/releasing.md).
+      #
+      # The footer's macOS line must match what actually happened in the build
+      # matrix. macOS signing is gated on the six Apple secrets (same gate as the
+      # build job's `Determine macOS signing availability` step); if any is
+      # signing-configured-but-failing, the build job's verify gate fails the
+      # whole run so we never reach publish. So presence of all six secrets here
+      # is an accurate proxy for "macOS was Developer ID-signed + notarized",
+      # which we pass as `--macos-signing` so the notes never over-claim.
       - name: Generate release notes from CHANGELOG
         env:
           VERSION: ${{ needs.meta.outputs.version }}
           TAG: ${{ needs.meta.outputs.tag }}
           CHANNEL: ${{ needs.meta.outputs.channel }}
+          APPLE_DEVELOPER_ID_CERT_P12: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12 }}
+          APPLE_CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           set -euo pipefail
+          macos_signing=missing
+          if [ -n "${APPLE_DEVELOPER_ID_CERT_P12:-}" ] \
+            && [ -n "${APPLE_CERT_PASSWORD:-}" ] \
+            && [ -n "${APPLE_TEAM_ID:-}" ] \
+            && [ -n "${APPLE_API_KEY_P8:-}" ] \
+            && [ -n "${APPLE_API_KEY_ID:-}" ] \
+            && [ -n "${APPLE_API_ISSUER_ID:-}" ]; then
+            macos_signing=configured
+          fi
           python3 tools/release/gen_release_notes.py \
             --version "$VERSION" \
             --tag "$TAG" \
             --channel "$CHANNEL" \
+            --macos-signing "$macos_signing" \
             --changelog app/CHANGELOG.md \
             --output release-notes.md
 
