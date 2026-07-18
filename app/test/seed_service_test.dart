@@ -13,7 +13,10 @@ void main() {
 
   // The checked-in seed asset, read straight from disk for the behavior tests
   // so they exercise real archive JSON without depending on the asset bundle.
-  final seedJson = File('assets/seed/baby_rose.json').readAsStringSync();
+  // Resolved against both the app package root (the cwd under `flutter test`)
+  // and the repo root, so the suite passes whether run as `cd app && flutter
+  // test` or `flutter test app/test/...` from the repository root.
+  final seedJson = _readSeedAsset();
   Future<String> fakeLoader(String key) async {
     expect(key, kBabyRoseSeedAsset);
     return seedJson;
@@ -116,4 +119,20 @@ void main() {
     expect(dance.figures.first.move, 'swing');
     expect(dance.figures.last.progression, isTrue);
   });
+}
+
+/// Reads the checked-in seed asset regardless of the test runner's working
+/// directory: `flutter test` sets the cwd to the app package, but running
+/// `flutter test app/test/...` from the repo root does not. Tries the package
+/// root first, then the repo-root-prefixed path.
+String _readSeedAsset() {
+  const relative = 'assets/seed/baby_rose.json';
+  for (final path in <String>[relative, 'app/$relative']) {
+    final file = File(path);
+    if (file.existsSync()) return file.readAsStringSync();
+  }
+  fail(
+    'Could not locate seed asset "$relative" from '
+    '${Directory.current.path}',
+  );
 }

@@ -56,9 +56,10 @@ class SeedService {
     if (await _repos.settings.contains(kInitialSeedCompletedKey)) return;
 
     // `includeDeleted: true` so a soft-deleted-but-present collection (an
-    // upgrade edge) still counts as "not empty" and is left untouched.
-    final existing = await _repos.dances.listIdsAndTitles(includeDeleted: true);
-    if (existing.isNotEmpty) {
+    // upgrade edge) still counts as "not empty" and is left untouched. A
+    // lightweight existence probe (`LIMIT 1`) — we only need emptiness, not
+    // the full id/title listing.
+    if (await _repos.dances.hasAny(includeDeleted: true)) {
       await _repos.settings.set(kInitialSeedCompletedKey, true);
       return;
     }

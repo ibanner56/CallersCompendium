@@ -219,9 +219,12 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (widget.seedInitialCollection != null) {
       try {
         await widget.seedInitialCollection!(_appData.repositories);
-      } catch (_) {
+      } catch (error, stackTrace) {
         // Intentionally non-fatal: the app still opens (empty at worst), and
-        // the seed latch stays unset so a later launch can retry.
+        // the seed latch stays unset so a later launch can retry. Log the
+        // failure (like the backup/export paths) so a missing or invalid
+        // bundled asset is diagnosable in the field rather than silent.
+        debugPrint('First-run seed failed: $error\n$stackTrace');
       }
     }
     // Fast, once-per-launch integrity probe (SQLite `PRAGMA quick_check`, per
