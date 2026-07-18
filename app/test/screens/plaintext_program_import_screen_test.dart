@@ -235,6 +235,59 @@ void main() {
     },
   );
 
+  testWidgets(
+    'after online import, editing the paste recognizes the dance locally',
+    (tester) async {
+      final repos = openTestRepositories();
+      var jsonFetches = 0;
+      final online = CallersBoxOnline(
+        searchFetcher: (_) async => _moneyMuskResultsHtml,
+        jsonFetcher: (_) async {
+          jsonFetches++;
+          return _moneyMuskJson();
+        },
+      );
+
+      await _pump(tester, repos, online: online);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('plaintext-import-title')),
+        'Friday Night',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('plaintext-import-paste')),
+        'Money Musk',
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('plaintext-import-resolve-online')),
+      );
+      await tester.pumpAndSettle();
+      expect(jsonFetches, 1);
+      expect(find.text("Imported from Caller's Box"), findsOneWidget);
+
+      // Editing the paste clears the override and re-parses against the now
+      // refreshed collection: the imported dance is a plain local match, and no
+      // second online import is attempted. (A trailing space changes the text
+      // so the override is invalidated, but trims back to the same title.)
+      await tester.enterText(
+        find.byKey(const ValueKey('plaintext-import-paste')),
+        'Money Musk ',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Linked to dance'), findsOneWidget);
+      expect(find.text("Imported from Caller's Box"), findsNothing);
+      expect(
+        find.byKey(const ValueKey('plaintext-import-resolve-online')),
+        findsNothing,
+      );
+      expect(jsonFetches, 1);
+      expect((await repos.dances.listAll()), hasLength(1));
+    },
+  );
+
   testWidgets('resolve online leaves a no-match title as a note', (
     tester,
   ) async {

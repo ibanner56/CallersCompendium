@@ -172,6 +172,20 @@ class _PlaintextProgramImportScreenState
     final remaining = resolved
         .where((l) => l.resolution == PlaintextLineResolution.unmatched)
         .length;
+    // Newly imported dances now live in the local collection. Refresh the cached
+    // listing so a later paste edit (which clears the override and re-parses
+    // against `_collection`) recognizes them as local matches instead of
+    // re-searching/re-importing them online.
+    if (linked > 0) {
+      try {
+        final collection = await _repos.dances.listIdsAndTitles();
+        if (!mounted) return;
+        _collection = collection;
+      } on Exception {
+        // A refresh failure is non-fatal: the resolved override already links
+        // the imported dances for this session.
+      }
+    }
     setState(() {
       _resolvedOverride = resolved;
       _resolving = false;

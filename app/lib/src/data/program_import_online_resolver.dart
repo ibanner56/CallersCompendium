@@ -76,8 +76,9 @@ Future<ParsedProgramLine> _resolveLine(
       matchCount: 1,
       importedOnline: true,
     );
-  } catch (_) {
-    // Any fetch/parse/import failure keeps the note-slot fallback (#312).
+  } on Exception catch (_) {
+    // A fetch/parse/import *failure* keeps the note-slot fallback (#312). Only
+    // Exceptions are swallowed; Errors (assertion/programmer bugs) surface.
     return line;
   }
 }
