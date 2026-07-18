@@ -148,6 +148,27 @@ void main() {
       },
     );
 
+    test(
+      'unknown parent with a gendered term is stored role-normalized (scrubbed)',
+      () async {
+        // Regression: the unknown-parent custom fallback must scrub like every
+        // other import path — a gendered term in the parent name becomes a role
+        // token, never stored raw.
+        final draft = await _importFigures([
+          '(6) Ladies do a fancy thing:',
+          '     (4) first part',
+          '     (2) second part',
+        ]);
+        final figs = draft.dance.figures;
+        expect(figs.length, 1);
+        expect(figs.single.isCustom, isTrue);
+        expect(figs.single.beats, 6);
+        final text = _text(figs.single).toLowerCase();
+        expect(text, contains('role2s'));
+        expect(text, isNot(contains('ladies')));
+      },
+    );
+
     test('tabs as indentation are handled', () async {
       final draft = await _importFigures([
         '(8) Mystery move:',

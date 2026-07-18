@@ -180,7 +180,12 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   the halls/hey/zig-zag/long-lines), mirroring ContraDB's `revolvingDoorWords`
   without repeating params. `hand` remains a real param (an explicit `left` is
   honored); atypical beats (e.g. TCB's 6 vs `goodBeats` [8]) stay a preserved
-  warning. Purely additive; no migration.
+  warning. **Not byte-identical for existing data:** because these are default
+  values, any previously-stored `revolving_door` figure that omitted `who`,
+  `hand`, or `whom` now **renders** with the corrected canonical values
+  (`role2s`/`right`/`partners`) instead of the old `ones`/`left`/`neighbors` —
+  a render/display change, not a stored-data change (no DB migration, and any
+  figure that persisted explicit params is unaffected).
 
 **The full ContraDB v1 contra move set is now modeled** (all five 2.4a slices
 landed). Exactly one new engine type was required across the whole build-out —

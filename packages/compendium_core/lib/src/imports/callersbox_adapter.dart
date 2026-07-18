@@ -311,7 +311,7 @@ class CallersBoxAdapter implements SourceAdapter {
   /// figure's *definition*, not additional choreography.
   ///
   /// On a confident match returns a single figure carrying the PARENT's beats —
-  /// the parent name routed through [parseFigureLines], yielding the structured
+  /// the parent name routed through [parseFigureLine], yielding the structured
   /// taxonomy move when it maps (e.g. `revolving_door`) or a single
   /// [customFigure] otherwise. The children are never emitted as separate
   /// figures; their (scrubbed) decomposition rides along in the figure `note` so
@@ -355,13 +355,33 @@ class CallersBoxAdapter implements SourceAdapter {
 
     // The parent is a single atomic figure carrying the parent's beats. A
     // recognised parent structures (revolving_door, …); anything else — or a
-    // parent that would itself split on `;` — stays one custom figure. Never
-    // split into the children.
+    // parent that would itself split on `;` — stays ONE custom figure. Never
+    // split into the children. Every stored text must go through
+    // `scrubFigureText` for consistency with the rest of the importer:
+    // `parseFigureLine` already scrubs (both its structured and custom-fallback
+    // results), so reuse it directly for the known and unknown-parent cases;
+    // only the top-level-`;` case builds its own custom figure and must scrub
+    // the raw text itself. Guard the extreme empty-after-scrub case so
+    // `customFigure` is never handed empty text (parse-never-fails: decline).
     final parsed = parseFigureLine(parentText, beats: parentBeats);
-    final base =
-        parsed != null && !parsed.isCustom && !_hasTopLevelSemicolon(parentText)
-        ? parsed
-        : customFigure(parentText, beats: parentBeats);
+    final Figure base;
+    if (parsed != null &&
+        !parsed.isCustom &&
+        !_hasTopLevelSemicolon(parentText)) {
+      base = parsed; // known parent → structured taxonomy move (scrubbed)
+    } else if (parsed != null && parsed.isCustom) {
+      base = parsed; // unknown parent → already-scrubbed custom fallback
+    } else {
+      // A structured parent carrying a top-level `;` (would fan into clauses):
+      // keep it whole as one scrubbed custom figure instead of splitting.
+      final scrubbed = scrubFigureText(parentText);
+      if (scrubbed.isEmpty) {
+        if (parsed == null) return null;
+        base = parsed;
+      } else {
+        base = customFigure(scrubbed, beats: parentBeats);
+      }
+    }
 
     // Preserve the source decomposition (scrubbed) so the definition is not
     // lost, appending to any note the recognizer already attached.
