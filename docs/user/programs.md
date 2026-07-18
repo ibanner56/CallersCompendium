@@ -105,16 +105,21 @@ The **Matrix** tab turns your program into a grid worked out from the
 choreography, so you can see the shape of the evening at a glance.
 
 *Wireframe sketch of the program matrix: a grid with moves as columns and dances
-as rows, a star marking each dance's first figure and a check mark where a move
+as rows, a star marking where each move is first introduced in the program, a
+flag marking each dance's own first figure, and a check mark where a move
 appears, with the row and column headers pinned. This is a low-fidelity layout
 sketch, not the finished app.*
 
-![Wireframe sketch of the program matrix, showing moves as columns and dances as rows, with a star marking each dance's first figure, check marks where a move appears, and pinned row and column headers](../design/wireframes/5-program-matrix.svg)
+![Wireframe sketch of the program matrix, showing moves as columns and dances as rows, with a star marking where each move is first introduced in the program, a flag marking each dance's first figure, check marks where a move appears, and pinned row and column headers](../design/wireframes/5-program-matrix.svg)
 
 Here is how to read it:
 
 - **Dances are rows; moves are columns.**
-- **A ★ (star)** marks each dance's first figure.
+- **A ★ (star)** marks where a move is **first introduced** in the program — the
+  first dance (top to bottom) whose choreography uses it, wherever it falls in
+  that dance.
+- **A ▸ (flag)** marks each **dance's own first figure** — the move it opens
+  with.
 - **A ✓ (check mark)** shows where a move appears in a dance.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
@@ -134,7 +139,7 @@ A few practical notes:
 - **For screen-reader users**, the matrix reads as a proper table, so you can
   navigate it row by row and column by column.
 - **To take it with you**, print or export the matrix as its own landscape PDF,
-  complete with a legend explaining the ★ and ✓ markers.
+  complete with a legend explaining the ★, ▸, and ✓ markers.
 
 ## Print, export, and email a program
 

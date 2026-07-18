@@ -66,7 +66,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   text, never color alone).
 - Reorder: drag + non-drag alternative; slot notes inline.
 - **Matrix view** tab: figures × dances grid computed from structured data
-  (moves as columns, per-dance presence + first-figure highlight) — CC's
+  (moves as columns, per-dance presence + program-debut and dance-first-figure
+  highlights) — CC's
   programming matrix without the manual checklist. Horizontally scrollable,
   row/column headers pinned, AT-navigable as a table.
 - Header: event date/venue/notes; duplicate program; print/export (PDF, text);

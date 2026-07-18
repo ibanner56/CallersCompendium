@@ -8,10 +8,11 @@ import 'program_pdf.dart' show loadProgramPdfTheme;
 
 /// Marker glyphs for the printed matrix. Deliberately distinct SHAPES + a
 /// legend (never colour alone) so the report matches the on-screen table's
-/// accessibility contract (`ProgramMatrixTable`, WCAG 1.4.1): a dance's first
-/// figure is a star, any other present move is a check, and an absent move is
-/// blank.
-const String _firstMark = '★';
+/// accessibility contract (`ProgramMatrixTable`, WCAG 1.4.1): a move's program
+/// debut (first dance to use it) is a star, a dance's own first figure is a
+/// triangle, any other present move is a check, and an absent move is blank.
+const String _debutMark = '★';
+const String _firstMark = '▸';
 const String _presentMark = '✓';
 
 /// Builds a printable/saveable PDF of the Programming Matrix (ROADMAP §4.4).
@@ -20,8 +21,9 @@ const String _presentMark = '✓';
 /// matrix is wide (moves × dances), so it uses `PdfPageFormat.a4.landscape` and
 /// a [pw.Table]. The header row is the dialect-aware column labels (via
 /// [matrixColumnLabel]); the first column is the dance title; body cells carry
-/// [_firstMark]/[_presentMark]/blank markers with the same semantics as the
-/// on-screen [ProgramMatrix] (`isFirst`/`isPresent`). A short legend explains
+/// [_debutMark]/[_firstMark]/[_presentMark]/blank markers with the same
+/// semantics as the on-screen [ProgramMatrix]
+/// (`isProgramDebut`/`isFirst`/`isPresent`). A short legend explains the marks.
 /// the marks. The header block (program title + event date/venue) mirrors the
 /// field ordering/format of [buildProgramPdf].
 ///
@@ -135,7 +137,9 @@ pw.Widget _matrixTable(
           ),
           for (var c = 0; c < matrix.columns.length; c++)
             markCell(
-              matrix.isFirst(r, c)
+              matrix.isProgramDebut(r, c)
+                  ? _debutMark
+                  : matrix.isFirst(r, c)
                   ? _firstMark
                   : matrix.isPresent(r, c)
                   ? _presentMark
@@ -156,7 +160,7 @@ pw.Widget _matrixTable(
 pw.Widget _legend() => pw.Row(
   children: [
     pw.Text(
-      '$_firstMark  First figure      $_presentMark  Present',
+      '$_debutMark  Introduced here      $_firstMark  First figure      $_presentMark  Present',
       style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
     ),
   ],
