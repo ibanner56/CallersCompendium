@@ -1,9 +1,12 @@
 import 'package:compendium_app/src/data/contradb_program_import.dart';
+import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 import '../support/test_repositories.dart';
 
@@ -268,4 +271,36 @@ void main() {
       expect(slots.map((s) => s.id).toSet(), hasLength(3));
     },
   );
+
+  // #332/#314: the program import screen builds its fetch URL with
+  // buildContraDbProgramUrl and fetches it through the shared, SSRF-hardened
+  // fetchImportUrl. A crafted "program link" whose host is an internal/reserved
+  // address (the shared-link attack: a victim pastes it and taps Fetch) must be
+  // rejected by the host guard BEFORE any network call, and the error must not
+  // echo the URL back.
+  test('a blocked-host program URL is rejected before any fetch', () async {
+    var requests = 0;
+    final client = MockClient((_) async {
+      requests++;
+      return http.Response('should never be reached', 200);
+    });
+
+    // The builder faithfully preserves the pasted (malicious) host...
+    const pasted = 'http://169.254.169.254/programs/1';
+    final url = buildContraDbProgramUrl(pasted);
+    expect(url, 'http://169.254.169.254/programs/1');
+
+    // ...but the guarded fetch throws without ever touching the network.
+    await expectLater(
+      () => fetchImportUrl(url, client: client),
+      throwsA(
+        isA<UrlFetchException>().having(
+          (e) => e.message,
+          'message',
+          allOf(isNot(contains('169.254.169.254')), isNot(contains(url))),
+        ),
+      ),
+    );
+    expect(requests, 0, reason: 'no request should be sent to a blocked host');
+  });
 }
