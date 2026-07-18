@@ -32,12 +32,14 @@ class SearchEnrichment {
   static final SearchEnrichment empty = SearchEnrichment();
 
   /// Lowercased role display term (singular or plural) → canonical role token
-  /// (`role1`/`role2`/`role1s`/`role2s`).
+  /// (`role1`/`role2`/`role1s`/`role2s`). Stored as an unmodifiable view;
+  /// callers must not mutate it.
   final Map<String, String> roleSynonyms;
 
   /// Lowercased move display substitution → canonical move id. Templated
   /// (`%S`) substitutions are excluded (not reversible by a plain word match),
-  /// mirroring the active-dialect move reversal in the filter compiler.
+  /// mirroring the active-dialect move reversal in the filter compiler. Stored
+  /// as an unmodifiable view; callers must not mutate it.
   final Map<String, String> moveSynonyms;
 
   bool get isEmpty => roleSynonyms.isEmpty && moveSynonyms.isEmpty;
