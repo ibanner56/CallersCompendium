@@ -250,6 +250,22 @@ void main() {
     });
   });
 
+  group('hasAny', () {
+    test('reports emptiness and presence, honoring includeDeleted', () async {
+      expect(await dances.hasAny(), isFalse);
+      expect(await dances.hasAny(includeDeleted: true), isFalse);
+
+      await dances.create(sampleDance(id: 'd1', title: 'Airplane'));
+      expect(await dances.hasAny(), isTrue);
+
+      await dances.softDelete('d1', at: DateTime.utc(2026, 1, 2));
+      // Only a soft-deleted dance remains: absent by default, present when
+      // deleted rows are included.
+      expect(await dances.hasAny(), isFalse);
+      expect(await dances.hasAny(includeDeleted: true), isTrue);
+    });
+  });
+
   group('listIdsAndTitles', () {
     test(
       'returns id+title pairs ordered by title, excluding soft-deleted',

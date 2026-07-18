@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": "2020-01-01T00:00:00.000Z",
+  "choreographers": [
+    {
+      "id": "seed-baby-rose-0001",
+      "name": "David Kaynor",
+      "deceased": false
+    }
+  ],
+  "publishedSources": [],
+  "tags": [],
+  "customFields": [],
+  "dances": [
+    {
+      "id": "seed-baby-rose-0002",
+      "title": "The Baby Rose",
+      "authorIds": [
+        "seed-baby-rose-0001"
+      ],
+      "form": "contra",
+      "formation": {
+        "shape": "dupleImproper",
+        "detail": "improper"
+      },
+      "progression": "single",
+      "phraseStructure": "",
+      "figures": [
+        {
+          "schemaVersion": 1,
+          "move": "swing",
+          "params": {
+            "who": "neighbors",
+            "prefix": "balance",
+            "beats": 16
+          }
+        },
+        {
+          "schemaVersion": 1,
+          "move": "circle",
+          "params": {
+            "turn": "left",
+            "places": 3,
+            "beats": 8
+          }
+        },
+        {
+          "schemaVersion": 1,
+          "move": "do_si_do",
+          "params": {
+            "who": "partners",
+            "turn": 1.0,
+            "beats": 8
+          }
+        },
+        {
+          "schemaVersion": 1,
+          "move": "swing",
+          "params": {
+            "who": "partners",
+            "prefix": "balance",
+            "beats": 16
+          }
+        },
+        {
+          "schemaVersion": 1,
+          "move": "chain",
+          "params": {
+            "who": "role2s",
+            "beats": 8
+          }
+        },
+        {
+          "schemaVersion": 1,
+          "move": "custom",
+          "params": {
+            "text": "star left 4 places to new neighbors",
+            "beats": 8
+          },
+          "progression": true
+        }
+      ],
+      "hook": "",
+      "callingNotes": "Imported from ContraDB.",
+      "status": "active",
+      "mixedLevel": false,
+      "tunes": [],
+      "customFields": [],
+      "tagIds": [],
+      "links": [],
+      "sourceCitations": [],
+      "provenance": {
+        "source": "contradb",
+        "externalId": "8",
+        "importedAt": "2020-01-01T00:00:00.000Z",
+        "sourceVersion": "contradb-html"
+      },
+      "createdAt": "2020-01-01T00:00:00.000Z",
+      "updatedAt": "2020-01-01T00:00:00.000Z"
+    }
+  ],
+  "programs": []
+}

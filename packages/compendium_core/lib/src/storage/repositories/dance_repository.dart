@@ -296,6 +296,22 @@ class DanceRepository {
     return [for (final row in rows) await _toModel(row)];
   }
 
+  /// Whether the collection contains at least one dance, reading at most a
+  /// single row (`LIMIT 1`) rather than materializing every id/title. A
+  /// lightweight emptiness probe for callers — e.g. the first-run seed — that
+  /// only need to know if any dance exists. Soft-deleted dances are excluded
+  /// unless [includeDeleted] is set.
+  Future<bool> hasAny({bool includeDeleted = false}) async {
+    final query = _db.selectOnly(_db.dances)
+      ..addColumns([_db.dances.id])
+      ..limit(1);
+    if (!includeDeleted) {
+      query.where(_db.dances.deletedAt.isNull());
+    }
+    final rows = await query.get();
+    return rows.isNotEmpty;
+  }
+
   /// Lightweight `(id, title)` listing that reads only the two columns it
   /// needs — avoiding the per-row [_toModel] hydration (figure decoding, child
   /// queries) that [listAll] performs. Ordered by title; soft-deleted dances

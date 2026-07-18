@@ -20,6 +20,7 @@ import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
+import 'src/data/seed_service.dart';
 import 'src/data/set_list_color_coding_scope.dart';
 import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
@@ -59,6 +60,7 @@ Future<void> main() async {
       migrationPreflight: () => runMigrationPreflightForApp(
         runningSchemaVersion: kCompendiumSchemaVersion,
       ),
+      seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
     ),
   );
 }
@@ -89,6 +91,7 @@ class CompendiumApp extends StatefulWidget {
     required this.windowService,
     this.migrationPreflight,
     this.integrityCheck,
+    this.seedInitialCollection,
   });
 
   /// The already-opened database + repositories facade. Injected from [main]
@@ -112,6 +115,15 @@ class CompendiumApp extends StatefulWidget {
   /// corruption warning. Defaults to [CompendiumDatabase.quickCheck]; injected
   /// in tests to exercise the warning path.
   final Future<bool> Function()? integrityCheck;
+
+  /// One-time first-run collection seed, run during bootstrap right after the
+  /// schema migration so the app never opens to a completely empty collection
+  /// (seeds "The Baby Rose" by David Kaynor on a fresh, empty install; a no-op
+  /// on every later launch — see [SeedService]). Injected from [main]; left
+  /// `null` in tests that don't exercise it (the step is then skipped), so a
+  /// seed failure is non-fatal to startup, mirroring [integrityCheck].
+  final Future<void> Function(CompendiumRepositories repos)?
+  seedInitialCollection;
 
   @override
   State<CompendiumApp> createState() => _CompendiumAppState();
@@ -197,6 +209,24 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // blank window with no way to recover (Stage 1.6).
     await widget.windowService.initialize();
     await _appData.repositories.ensureMigrated();
+    // First-run seed (issue: "first launch is never empty"): insert exactly one
+    // seed dance on a fresh, empty install so the collection is never empty,
+    // and never again thereafter (idempotent via a settings latch; safe to skip
+    // for an already-populated collection). Best-effort: a failure to load the
+    // bundled seed asset must not brick startup, so it is caught and swallowed
+    // here (advisory, like the integrity probe below) rather than routed to the
+    // error/retry screen. The seam is null in tests that don't exercise it.
+    if (widget.seedInitialCollection != null) {
+      try {
+        await widget.seedInitialCollection!(_appData.repositories);
+      } catch (error, stackTrace) {
+        // Intentionally non-fatal: the app still opens (empty at worst), and
+        // the seed latch stays unset so a later launch can retry. Log the
+        // failure (like the backup/export paths) so a missing or invalid
+        // bundled asset is diagnosable in the field rather than silent.
+        debugPrint('First-run seed failed: $error\n$stackTrace');
+      }
+    }
     // Fast, once-per-launch integrity probe (SQLite `PRAGMA quick_check`, per
     // `docs/design/storage.md` "Durability"). A failure is advisory — the app
     // still opens, but [build] surfaces a corruption warning so the user can
