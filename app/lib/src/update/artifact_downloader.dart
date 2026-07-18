@@ -115,12 +115,18 @@ typedef ArtifactDownloader =
 ///
 /// Uses `client.send` (streamed) rather than a buffered `get` so a large
 /// artifact never fully materializes in memory and progress/cancel work while
-/// the body is still arriving. An **idle timeout** ([kUpdateDownloadTimeout])
-/// guards a stalled connection without capping a legitimately long transfer.
-/// After the stream ends, the written byte count is validated against the
-/// manifest `size`; a mismatch is a [DownloadResultKind.sizeMismatch]. Every
-/// non-success path deletes the partial file so no truncated artifact is ever
-/// handed to verification.
+/// the body is still arriving. The `url` must be **https**, and redirects are
+/// followed manually so every hop is re-validated as https — an `https→http`
+/// downgrade is refused rather than silently downloaded over cleartext
+/// (defense-in-depth alongside the manifest-parse check and the sha256 gate).
+/// An **idle timeout** ([kUpdateDownloadTimeout]) guards a stalled connection
+/// without capping a legitimately long transfer, and the transfer is aborted
+/// the moment it would exceed the manifest's declared `size` (or
+/// [kMaxArtifactDownloadBytes] when the artifact is unsized) so an oversized
+/// body cannot fill the disk. After the stream ends, the written byte count is
+/// validated against the manifest `size`; a mismatch is a
+/// [DownloadResultKind.sizeMismatch]. Every non-success path deletes the
+/// partial file so no truncated artifact is ever handed to verification.
 Future<DownloadOutcome> downloadArtifact(
   UpdateArtifact artifact, {
   required File destination,
@@ -129,9 +135,9 @@ Future<DownloadOutcome> downloadArtifact(
   DownloadCancelToken? cancelToken,
 }) async {
   final uri = Uri.tryParse(artifact.url);
-  if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+  if (uri == null || !uri.isScheme('https')) {
     return DownloadOutcome.networkError(
-      'invalid artifact URL "${artifact.url}"',
+      'artifact URL must be an https URL "${artifact.url}"',
     );
   }
 
@@ -149,11 +155,14 @@ Future<DownloadOutcome> downloadArtifact(
 
     final http.StreamedResponse response;
     try {
-      response = await effectiveClient
-          .send(http.Request('GET', uri))
-          .timeout(kUpdateDownloadTimeout);
+      response = await _sendFollowingHttpsRedirects(
+        effectiveClient,
+        uri,
+      ).timeout(kUpdateDownloadTimeout);
     } on TimeoutException {
       return DownloadOutcome.networkError('connection timed out');
+    } on _RedirectException catch (e) {
+      return DownloadOutcome.networkError(e.message);
     } on Object catch (e) {
       return DownloadOutcome.networkError(e.toString());
     }
@@ -163,6 +172,13 @@ Future<DownloadOutcome> downloadArtifact(
     }
 
     final total = response.contentLength ?? artifact.size;
+    // The most bytes we are willing to write for this artifact: the manifest's
+    // (positive) declared size when known, else an absolute backstop so an
+    // unsized artifact from a misbehaving host cannot stream unbounded bytes to
+    // disk (OWASP A08 / resource exhaustion).
+    final maxBytes = artifact.size > 0
+        ? artifact.size
+        : kMaxArtifactDownloadBytes;
     sink = destination.openWrite();
 
     final done = Completer<DownloadOutcome>();
@@ -184,6 +200,22 @@ Future<DownloadOutcome> downloadArtifact(
         if (done.isCompleted) return;
         if (cancelToken != null && cancelToken.isCancelled) {
           done.complete(DownloadOutcome.cancelled());
+          return;
+        }
+        // Abort the moment the transfer would exceed its budget, before writing
+        // the over-budget chunk, so a body larger than the manifest promises
+        // (or an unsized body past the absolute backstop) never fills the disk
+        // and never reaches sha256 verification as a "complete" file.
+        if (received + chunk.length > maxBytes) {
+          done.complete(
+            artifact.size > 0
+                ? DownloadOutcome.sizeMismatch(
+                    'exceeded expected ${artifact.size} bytes',
+                  )
+                : DownloadOutcome.networkError(
+                    'download exceeded the maximum of $maxBytes bytes',
+                  ),
+          );
           return;
         }
         sink!.add(chunk);
@@ -256,4 +288,60 @@ Future<DownloadOutcome> downloadArtifact(
     }
     if (ownClient) effectiveClient.close();
   }
+}
+
+/// Whether [status] is an HTTP redirect [_sendFollowingHttpsRedirects] follows.
+bool _isRedirectStatus(int status) =>
+    status == 301 ||
+    status == 302 ||
+    status == 303 ||
+    status == 307 ||
+    status == 308;
+
+/// Sends a streamed `GET` for [uri], following redirects **manually**
+/// (`followRedirects = false`) so every hop is re-validated as an `https` URL
+/// with a non-empty host. This closes the downgrade hole that the `package:http`
+/// default (`followRedirects = true`) would otherwise leave open — an
+/// `https://…` artifact URL that 30x-redirects to `http://…` is refused rather
+/// than silently downloaded over cleartext — while still allowing the
+/// legitimate `https → https` redirect GitHub uses to serve release assets. The
+/// hop count is capped at [kMaxArtifactRedirects]. Returns the final,
+/// non-redirect [http.StreamedResponse] for the caller to stream.
+Future<http.StreamedResponse> _sendFollowingHttpsRedirects(
+  http.Client client,
+  Uri uri,
+) async {
+  var current = uri;
+  for (var hops = 0; ; hops++) {
+    final request = http.Request('GET', current)..followRedirects = false;
+    final response = await client.send(request);
+    if (!_isRedirectStatus(response.statusCode)) return response;
+
+    // A redirect: discard its (small) body so the connection is freed, then
+    // validate the next hop before re-issuing.
+    await response.stream.drain<void>();
+    if (hops >= kMaxArtifactRedirects) {
+      throw const _RedirectException('too many redirects');
+    }
+    final location = response.headers['location'];
+    if (location == null || location.isEmpty) {
+      throw const _RedirectException('redirect without a location');
+    }
+    final next = current.resolve(location);
+    if (!next.isScheme('https') || next.host.isEmpty) {
+      throw const _RedirectException('refused non-https redirect target');
+    }
+    current = next;
+  }
+}
+
+/// Signals a redirect that [_sendFollowingHttpsRedirects] refused (a non-https
+/// hop, a missing `Location`, or exceeding [kMaxArtifactRedirects]). Surfaced by
+/// [downloadArtifact] as a [DownloadResultKind.networkError]; [message] is for
+/// tests/logging, not the UI.
+class _RedirectException implements Exception {
+  const _RedirectException(this.message);
+  final String message;
+  @override
+  String toString() => 'RedirectException: $message';
 }

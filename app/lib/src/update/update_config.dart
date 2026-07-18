@@ -23,6 +23,23 @@ const Duration kUpdateCheckTimeout = Duration(seconds: 10);
 /// real transfer is expected here, unlike the fire-and-forget check.
 const Duration kUpdateDownloadTimeout = Duration(seconds: 60);
 
+/// A hard upper bound on the number of bytes [downloadArtifact] will write for a
+/// single artifact, applied as a **backstop** for an artifact that carries no
+/// usable `size` (`size == 0`). A manifest parsed by [UpdateManifest] can never
+/// produce that case (the model rejects `size <= 0`), so in practice this only
+/// guards a *direct* caller that constructs an unsized [UpdateArtifact]; the
+/// manifest `size` is otherwise the tight per-download bound. Either way a
+/// compromised or misbehaving host cannot stream unbounded bytes to disk
+/// (OWASP A08 / resource exhaustion). Set well above any realistic desktop
+/// installer (1 GiB) so it never truncates a legitimate update.
+const int kMaxArtifactDownloadBytes = 1024 * 1024 * 1024;
+
+/// The maximum number of HTTP redirects [downloadArtifact] follows before giving
+/// up. Redirects are followed **manually** so each hop can be re-validated as
+/// https (GitHub serves release assets via an `https → https` redirect); this
+/// only bounds a redirect loop.
+const int kMaxArtifactRedirects = 5;
+
 /// Derives a safe local filename for a downloaded [artifactUrl]: the URL's last
 /// non-empty path segment (e.g. `CallersCompendium-0.2.0-macos-universal.dmg`),
 /// stripped of any path separators or characters that are unsafe in a filename,

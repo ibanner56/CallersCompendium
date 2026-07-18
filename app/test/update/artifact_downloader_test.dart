@@ -181,6 +181,135 @@ void main() {
   });
 
   test(
+    'a body larger than the manifest size aborts as a sizeMismatch',
+    () async {
+      // Manifest promises 4 bytes; the stream delivers 8. The cap aborts before
+      // the over-budget chunk is written, and the partial file is deleted so an
+      // oversized body can never fill the disk or reach sha256 verification.
+      final client = _streamingClient([
+        utf8.encode('AAAA'),
+        utf8.encode('BBBB'),
+      ], contentLength: null);
+
+      final outcome = await downloadArtifact(
+        _artifact(size: 4),
+        destination: dest,
+        client: client,
+      );
+
+      expect(outcome.kind, DownloadResultKind.sizeMismatch);
+      expect(await dest.exists(), isFalse);
+    },
+  );
+
+  test(
+    'a cleartext http artifact url is rejected before any request',
+    () async {
+      var requested = false;
+      final client = MockClient.streaming((request, bodyStream) async {
+        requested = true;
+        return http.StreamedResponse(Stream.fromIterable(<List<int>>[]), 200);
+      });
+
+      final outcome = await downloadArtifact(
+        _artifact(url: 'http://example.com/x.dmg'),
+        destination: dest,
+        client: client,
+      );
+
+      expect(outcome.kind, DownloadResultKind.networkError);
+      expect(outcome.message, contains('https'));
+      expect(requested, isFalse);
+      expect(await dest.exists(), isFalse);
+    },
+  );
+
+  test(
+    'follows an https -> https redirect and streams the final body',
+    () async {
+      const start = 'https://github.com/o/r/releases/download/v1/a.dmg';
+      const target = 'https://objects.githubusercontent.com/a.dmg';
+      final client = MockClient.streaming((request, bodyStream) async {
+        if (request.url.toString() == start) {
+          return http.StreamedResponse(
+            Stream.fromIterable(<List<int>>[]),
+            302,
+            headers: const {'location': target},
+          );
+        }
+        return http.StreamedResponse(
+          Stream.fromIterable([utf8.encode('OK')]),
+          200,
+          contentLength: 2,
+        );
+      });
+
+      final outcome = await downloadArtifact(
+        _artifact(url: start, size: 2),
+        destination: dest,
+        client: client,
+      );
+
+      expect(outcome.kind, DownloadResultKind.success);
+      expect(await dest.readAsString(), 'OK');
+    },
+  );
+
+  test('refuses an https -> http redirect (no cleartext downgrade)', () async {
+    const start = 'https://github.com/o/r/releases/download/v1/a.dmg';
+    var reachedHttp = false;
+    final client = MockClient.streaming((request, bodyStream) async {
+      if (request.url.isScheme('http')) reachedHttp = true;
+      if (request.url.toString() == start) {
+        return http.StreamedResponse(
+          Stream.fromIterable(<List<int>>[]),
+          302,
+          headers: const {'location': 'http://evil.example.com/a.dmg'},
+        );
+      }
+      return http.StreamedResponse(
+        Stream.fromIterable([utf8.encode('EVIL')]),
+        200,
+        contentLength: 4,
+      );
+    });
+
+    final outcome = await downloadArtifact(
+      _artifact(url: start, size: 4),
+      destination: dest,
+      client: client,
+    );
+
+    expect(outcome.kind, DownloadResultKind.networkError);
+    expect(outcome.message, contains('redirect'));
+    expect(reachedHttp, isFalse);
+    expect(await dest.exists(), isFalse);
+  });
+
+  test('gives up after too many redirects', () async {
+    // An endless https redirect chain must terminate, not loop forever.
+    var hops = 0;
+    final client = MockClient.streaming((request, bodyStream) async {
+      hops++;
+      return http.StreamedResponse(
+        Stream.fromIterable(<List<int>>[]),
+        302,
+        headers: {'location': 'https://example.com/hop$hops.dmg'},
+      );
+    });
+
+    final outcome = await downloadArtifact(
+      _artifact(url: 'https://example.com/hop0.dmg', size: 2),
+      destination: dest,
+      client: client,
+    );
+
+    expect(outcome.kind, DownloadResultKind.networkError);
+    expect(outcome.message, contains('redirect'));
+    expect(await dest.exists(), isFalse);
+  });
+
+  test(
     'a file flush/close failure downgrades success to a network error',
     () async {
       // Point the destination at an existing *directory*: bytes buffer fine, but
