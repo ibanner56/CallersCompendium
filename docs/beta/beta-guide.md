@@ -73,8 +73,8 @@ Open **Settings → General** and you will find:
 A good habit for the beta: **export a backup before you try something new or update
 the app**, and keep that file somewhere outside the app (a cloud drive, a USB stick,
 an email to yourself). If anything ever goes sideways, you can restore in a few
-steps. The [Backup & portability guide](../user/README.md#backup--portability) will
-cover this in more depth when it lands.
+steps. The [Backup & portability guide](../user/backup-portability.md) covers this
+in more depth.
 
 ## How to join
 
@@ -91,17 +91,19 @@ rather keep private.
 
 ## How to install
 
-Signed installers are still on the way (roadmap **Phase 7.1**), so the
-[Installation guide](../user/README.md#installation) is *coming soon*. In the
-meantime, beta testers run a development build from source. The
+Packaged beta builds are ready on the
+[Releases page](https://github.com/ibanner56/CallersCompendium/releases). The
+[Installation guide](../user/installation.md) walks you through downloading and
+opening the app on Linux, macOS, Windows, and Android — including the first-time
+security warning you will see, because the desktop builds are not code-signed yet.
+There is no iPhone or iPad build in this beta.
+
+Prefer to run from source, or want to help with the code? The
 [Getting started section of CONTRIBUTING.md](../../CONTRIBUTING.md#getting-started)
 walks through installing Flutter (via FVM) and running the app on desktop, an
-emulator, or a connected phone. If that feels like a lot, say so in
+emulator, or a connected phone. If anything feels like a lot, say so in
 [Discussions](https://github.com/ibanner56/CallersCompendium/discussions) and we
 will help — plenty of testers are callers first and tinkerers second.
-
-When packaged builds are ready, this section and the Installation guide will point
-you straight at a download for your platform.
 
 ## How to give feedback
 

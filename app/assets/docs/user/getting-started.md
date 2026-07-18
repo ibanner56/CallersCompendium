@@ -42,12 +42,11 @@ a new machine any time with a single backup file — see the
 
 ## Installing the app
 
-*Coming soon.* Downloadable, installable builds for each platform are still being
-prepared, so step-by-step install instructions are not ready yet. When they are,
-the [Installation guide](./README.md#installation) will walk you through downloading and
-setting up Caller's Compendium on Linux, macOS, Windows, Android, and
-iOS/iPadOS. Please do not look for download links here in the meantime — there
-are not any official ones yet.
+Downloadable builds are ready for **Linux**, **macOS**, **Windows**, and
+**Android**. The [Installation guide](./installation.md) walks you through
+downloading the right file, getting past the first-time security prompt you'll
+see on a beta build, and keeping the app up to date. (An iPhone/iPad build is
+still to come.)
 
 ## Your first launch
 
