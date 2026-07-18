@@ -1959,5 +1959,31 @@ void main() {
         expect(drafts.single.beatsTouched, isTrue);
       },
     );
+
+    testWidgets(
+      'seeds missing beats from the default on a no-default-change edit',
+      (tester) async {
+        // Older/partial data: a loaded figure with no explicit beats is unowned
+        // and reads back as 0 until it's seeded.
+        final drafts = <FigureDraft>[
+          FigureDraft.fromFigure(
+            Figure(move: 'circle', params: const {'turn': 'left'}),
+          ),
+        ];
+        expect(drafts.single.beatsTouched, isFalse);
+        expect(drafts.single.beats, 0);
+
+        await _pump(tester, drafts);
+        await _openFigure(tester, 0);
+
+        // Changing turn doesn't move circle's (paramBeats-free) default, but a
+        // missing count is still seeded to the canonical 8 rather than left at
+        // 0.
+        await _selectDropdownOption(tester, 'figure-0-turn', 'right');
+        expect(drafts.single.params['turn'], 'right');
+        expect(drafts.single.beats, 8);
+        expect(drafts.single.beatsTouched, isFalse);
+      },
+    );
   });
 }

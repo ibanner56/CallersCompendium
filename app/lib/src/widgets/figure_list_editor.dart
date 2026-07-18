@@ -732,24 +732,29 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.onChanged();
   }
 
-  /// Applies a non-`beats` param change and snaps `beats` to the move's
-  /// canonical default only when that change actually moves the default
-  /// (issue #262). Capturing the default before *and* after the mutation means:
+  /// Applies a non-`beats` param change and reconciles `beats` with the move's
+  /// canonical default (issue #262). Capturing the default before *and* after
+  /// the mutation means:
   ///
   /// - a driver change that shifts the default (e.g. adding a `balance` prefix
   ///   to a swing, 8→16) snaps beats to the new default; but
   /// - a change that leaves the default put (e.g. a circle's `turn`/`places`,
-  ///   which carry no `paramBeats`) never disturbs the current beats — so a
-  ///   user-entered count isn't snapped back when nothing about the duration
+  ///   which carry no `paramBeats`) never disturbs an existing count — so a
+  ///   user-entered value isn't snapped back when nothing about the duration
   ///   changed.
   ///
-  /// A manual beats override ([FigureDraft.beatsTouched]) is never overwritten.
+  /// A `beats` that is missing or non-int (older/partial data loaded without an
+  /// explicit count) is still seeded to the canonical default, so an unowned
+  /// figure never gets stuck at 0. A manual override
+  /// ([FigureDraft.beatsTouched]) is never overwritten.
   void _applyNonBeatsParamChange(String key, Object? value) {
     final draft = widget.draft;
     final oldDefault = _canonicalBeats(draft.params);
     draft.params[key] = value;
     final newDefault = _canonicalBeats(draft.params);
-    if (!draft.beatsTouched && newDefault != null && newDefault != oldDefault) {
+    if (draft.beatsTouched || newDefault == null) return;
+    final currentBeats = draft.params['beats'];
+    if (currentBeats is! int || newDefault != oldDefault) {
       draft.params['beats'] = newDefault;
     }
   }
@@ -1168,9 +1173,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                     taxonomy: widget.taxonomy,
                     value: (draft.params['text'] as String?) ?? '',
                     onChanged: (v) {
-                      // 'text' only exists on the custom move; a custom figure
-                      // has no canonical beat rule, so this leaves beats alone
-                      // (no default to move) while respecting a manual override.
+                      // 'text' only exists on the custom move, which carries a
+                      // flat beats default (no paramBeats): editing text never
+                      // moves that default, so an existing count is left alone
+                      // while a missing one is seeded. A manual override is
+                      // still respected.
                       _applyNonBeatsParamChange('text', v);
                       widget.onChanged();
                     },
