@@ -19,6 +19,7 @@ import '../utils/launch_external_url.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/dance_export_menu.dart';
 import '../widgets/dialect_quick_switch.dart';
+import '../widgets/colour_dance_theme.dart';
 import '../widgets/figure_table.dart';
 import '../widgets/skeleton.dart';
 import 'dance_editor_screen.dart';
@@ -564,7 +565,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               if (detail == null) {
                 return const Center(child: Text('Dance not found.'));
               }
-              return _buildBody(detail);
+              return ColourDanceTheme(
+                title: detail.dance.title,
+                child: _buildBody(detail),
+              );
             },
           ),
           // Edit mirrors the program preview's builder affordance: a bottom-right

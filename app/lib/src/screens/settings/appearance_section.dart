@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'settings_keys.dart';
 import '../../data/app_theme_scope.dart';
+import '../../data/colour_dance_theme_scope.dart';
 import '../../data/custom_theme.dart';
 import '../../data/custom_themes_controller.dart';
 import '../../data/custom_themes_scope.dart';
@@ -21,6 +22,42 @@ class AppearanceSection extends StatefulWidget {
 }
 
 class _AppearanceSectionState extends State<AppearanceSection> {
+  /// The colour-tint easter egg toggle (#307). `null` until the persisted value
+  /// resolves; off (`false`) is the product default while loading and if unset.
+  bool? _colourDanceTheme;
+  bool _colourDanceThemeRequested = false;
+  bool _colourDanceThemeUserSet = false;
+
+  /// Lazily loads the persisted easter-egg preference the first time the
+  /// section builds, mirroring the async-load-race guard the other appearance
+  /// toggles use: a late read must not clobber a value the user set first.
+  void _ensureColourDanceThemeLoaded(BuildContext context) {
+    if (_colourDanceThemeRequested) return;
+    _colourDanceThemeRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings
+        .get(kColourDanceThemeKey)
+        .then((value) {
+          if (!mounted || _colourDanceThemeUserSet) return;
+          setState(() => _colourDanceTheme = value is bool ? value : false);
+        })
+        .catchError((_) {
+          if (!mounted || _colourDanceThemeUserSet) return;
+          setState(() => _colourDanceTheme = false);
+        });
+  }
+
+  Future<void> _onColourDanceThemeChanged(bool value) async {
+    setState(() {
+      _colourDanceThemeUserSet = true;
+      _colourDanceTheme = value;
+    });
+    // Update the live scope instantly so open dance views re-tint, then persist.
+    ColourDanceThemeScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kColourDanceThemeKey, value);
+  }
+
   Future<void> _onThemeChanged(AppThemeSelection selection) async {
     // Mirror the dialect pattern: update the live notifier instantly, then
     // persist in the background. Selecting a built-in theme also clears any
@@ -34,6 +71,7 @@ class _AppearanceSectionState extends State<AppearanceSection> {
 
   @override
   Widget build(BuildContext context) {
+    _ensureColourDanceThemeLoaded(context);
     final themeSelected = AppThemeScope.of(context);
     final customThemes = CustomThemesScope.of(context);
     final platformDark =
@@ -48,6 +86,8 @@ class _AppearanceSectionState extends State<AppearanceSection> {
       onThemeSelected: _onThemeChanged,
       customThemes: customThemes,
       seedScheme: seedScheme,
+      colourDanceTheme: _colourDanceTheme ?? false,
+      onColourDanceThemeChanged: _onColourDanceThemeChanged,
     );
   }
 }
@@ -59,12 +99,16 @@ class _AppearanceView extends StatelessWidget {
     required this.onThemeSelected,
     required this.customThemes,
     required this.seedScheme,
+    required this.colourDanceTheme,
+    required this.onColourDanceThemeChanged,
   });
 
   final AppThemeSelection? themeSelected;
   final ValueChanged<AppThemeSelection> onThemeSelected;
   final CustomThemesController customThemes;
   final ColorScheme seedScheme;
+  final bool colourDanceTheme;
+  final ValueChanged<bool> onColourDanceThemeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +134,20 @@ class _AppearanceView extends StatelessWidget {
             controller: customThemes,
             seedScheme: seedScheme,
           ),
+        ),
+        SectionHeader(title: 'Easter eggs'),
+        SwitchListTile(
+          key: const ValueKey('appearance-colour-dance-theme'),
+          value: colourDanceTheme,
+          onChanged: onColourDanceThemeChanged,
+          title: const Text('Colour-named dances tint the theme'),
+          subtitle: const Text(
+            'A playful surprise: when you open a dance whose title names a '
+            'colour — like Baby Rose or Blue Boy — its view is tinted that '
+            'colour. Off by default, and it steps aside when a high-contrast '
+            'theme is active so readability always wins.',
+          ),
+          isThreeLine: true,
         ),
       ],
     );

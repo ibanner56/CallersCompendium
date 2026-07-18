@@ -79,5 +79,6 @@ export 'src/taxonomy/contra_taxonomy.dart';
 export 'src/taxonomy/move_def.dart';
 export 'src/taxonomy/param_types.dart';
 export 'src/taxonomy/taxonomy.dart';
+export 'src/util/colour_name_seed.dart';
 export 'src/util/uuid.dart';
 export 'src/validation/validation.dart';
