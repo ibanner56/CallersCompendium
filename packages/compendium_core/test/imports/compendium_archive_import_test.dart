@@ -265,6 +265,64 @@ void main() {
     },
   );
 
+  test('undo restores the true pre-import state when a re-import repeats an '
+      'existing externalId', () async {
+    // First import establishes a program in the DB (externalId "orig-dup").
+    final d1 = _dance('orig-d1', 'Simplicity Swing');
+    Program variant(String title) => Program(
+      id: 'orig-dup',
+      title: title,
+      notes: title == 'Original' ? 'keep me' : 'edited notes',
+      status: ProgramStatus.draft,
+      slots: [ProgramSlot(id: 'sl-$title', position: 0, danceId: 'orig-d1')],
+      createdAt: DateTime.utc(2026, 4, 1),
+      updatedAt: DateTime.utc(2026, 4, 1),
+    );
+    final first = CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 7, 15),
+      dances: [d1],
+      programs: [variant('Original')],
+    );
+    await importer.import(
+      encodeArchive(first),
+      first,
+      now: now,
+      newId: sequentialIds('first'),
+      newSlotId: sequentialIds('firstslot'),
+    );
+    final preImport = (await programs.listAll()).single;
+    expect(preImport.title, 'Original');
+    expect(preImport.notes, 'keep me');
+
+    // Re-import: an (untrusted) archive that repeats the SAME externalId twice
+    // against the pre-existing program.
+    final second = CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 7, 16),
+      dances: [d1],
+      programs: [variant('Edited A'), variant('Edited B')],
+    );
+    final result2 = await importer.import(
+      encodeArchive(second),
+      second,
+      now: now.add(const Duration(days: 1)),
+      newId: sequentialIds('second'),
+      newSlotId: sequentialIds('secondslot'),
+    );
+
+    // One program, updated in place; the prior state was captured exactly once
+    // (a single existing id, despite the duplicate in the bundle).
+    expect(await programs.listAll(), hasLength(1));
+    expect(result2.insertedProgramCount, 0);
+    expect(result2.updatedProgramCount, 1);
+
+    // Undo restores the TRUE pre-import state, not the intermediate "Edited A".
+    await importer.undo(result2);
+    final restored = (await programs.listAll()).single;
+    expect(restored.id, preImport.id);
+    expect(restored.title, 'Original');
+    expect(restored.notes, 'keep me');
+  });
+
   test('unresolved dance placeholder preserves any existing note', () async {
     final program = Program(
       id: 'orig-p1',
