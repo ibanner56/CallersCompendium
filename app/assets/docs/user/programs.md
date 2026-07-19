@@ -23,8 +23,10 @@ Open **Programs** to see the programs you have built. It starts with a short
 prompt and a **New program** button until you make your first one.
 
 - **Start one** with **New program**.
-- **Build one from a list of titles** with **Import from title list** (the
-  playlist icon in the **Programs** toolbar) — see below.
+- **Import one** from the **Import program** menu (the import icon in the
+  **Programs** toolbar), which offers two sources — **From title list** (paste a
+  set list you already have) and **From ContraDB** (pull an event straight from
+  the online archive). Both are described below.
 - **Duplicate** a program to reuse last month's shape as a starting point.
 - **Delete** a program and it is only soft-deleted — an **Undo** option appears,
   and it moves to a **Recently Deleted** area you can restore from later, exactly
@@ -48,6 +50,36 @@ line**, and you get a live preview before anything is saved:
 Press **Import** to create the program; an **Undo** option appears in case you
 change your mind. You can then open the program and tidy up any notes — for
 example, searching your collection to link a dance the paste couldn't find.
+
+**Fill the gaps from The Caller's Box.** If some lines didn't match anything in
+your collection, the preview shows a **Resolve unmatched online** button. It
+looks each unmatched title up in [The Caller's Box](./glossary.md#the-callers-box)
+and, where it finds a confident single match, imports that dance and links the
+slot to it — so a paste can pull in dances you don't own yet, not just the ones
+you already have. It needs an internet connection, and anything it still can't
+place stays a note for you to sort out by hand.
+
+### Import a program from ContraDB
+
+You can also build a program from an event on
+[ContraDB](./glossary.md#contradb). Choose **From ContraDB** in the **Import
+program** menu; the screen offers two ways to find the event, and both end in the
+same preview-before-you-keep flow:
+
+- **Paste URL** — paste a `contradb.com/programs/N` link (or just its number) and
+  choose **Fetch program**.
+- **Search by name** — type part of a program's name and pick it from the
+  results.
+
+Either way, the app reads the event's running order and lays it out as a program:
+each dance ContraDB lists is matched to your collection or imported for you, and
+anything it can't place is kept as a note, in the exact order of the event.
+Review the preview, then choose **Import** — with the same **Undo** safety net as
+every other import. This needs an internet connection.
+
+> _Screenshot (added once packaged builds are available): the Import from
+> ContraDB screen with the Paste URL / Search by name toggle, a search field, and
+> a preview of the event's dances below._
 
 ## Build a program
 
@@ -143,15 +175,23 @@ A few practical notes:
 
 ## Print, export, and email a program
 
-When it is time to hand out or file your set list, you can export or print a
-program as:
+When it is time to hand out or file your set list, open the program's **Export**
+menu. You can export or print a program as:
 
 - a **PDF**,
-- **plain text**, or
+- **plain text** (copy the set list, or share it as text), or
 - an **emailable text set list** you can drop straight into a message.
 
-As with a single dance, the export follows your [dialect](./dialects.md), so the
-wording matches how you — or whoever you are handing it to — speak.
+You can also **Share (program + dances)** — this writes one Caller's Compendium
+file that holds the program *and* every dance it uses, so another caller can
+import the whole thing and get the dances too, not just a list of titles. It is
+the same `.json` format the app uses everywhere else, and it comes in through the
+ordinary [import review](./imports.md#review-before-anything-changes) queue on the
+other end.
+
+As with a single dance, the text and PDF exports follow your
+[dialect](./dialects.md), so the wording matches how you — or whoever you are
+handing it to — speak.
 
 ## Track what you have called
 

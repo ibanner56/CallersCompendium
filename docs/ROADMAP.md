@@ -565,7 +565,7 @@ taxonomy are unchanged.
 ## Phase 7 — Release
 
 - [ ] 7.1 Packaging/signing for all platforms; update channel
-  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run), but **desktop** builds still ship **unsigned** (deferred signing wave) and update-manifest hosting still awaits enabling GitHub Pages.
+  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run), but **desktop** builds still ship **unsigned** (deferred signing wave) and update-manifest hosting still awaits enabling GitHub Pages. The **first public beta is cut** — `v0.1.0-beta.1` is published on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases) with desktop + Android assets, and `v0.1.0-beta.2` is tagged to follow (it unifies the Android application id — see the CHANGELOG for the one-time reinstall note).
   - **Delivered**
     - Reusable CI (`_checks.yml` via `workflow_call`) with a thin `ci.yml` caller (#228).
     - Release pipeline `release.yml` (#230): a `v*` tag reuses the checks gate, then a build matrix produces a **draft** GitHub Release of **unsigned** desktop artifacts — Linux x64 (AppImage + tar.gz), macOS universal (dmg + zip), Windows x64 (installer + zip) — under deterministic `CallersCompendium-<ver>-<platform>-<arch>.<ext>` names, plus a `SHA256SUMS` manifest, keyless SLSA build-provenance + artifact attestation, and the per-channel `stable.json` / `beta.json` update manifests. Least-privilege (global `contents: read`; only the publish job elevates), canonical-repo + tag guards, SHA-pinned actions.
@@ -583,7 +583,6 @@ taxonomy are unchanged.
     - macOS Developer ID signing + notarization, Windows Authenticode/Store (MSIX) signing — desktop currently ships UNSIGNED, so users bypass OS trust prompts manually. (iOS distribution via TestFlight is now wired — see **Delivered** above.)
     - Optional store distribution (Google Play, F-Droid, Flathub).
     - Reconcile the bundle-id mismatch — **done**: all platforms now unify on the Apple form `org.callerscompendium.compendiumApp` (Android `applicationId`/namespace + Linux `APPLICATION_ID` updated to match; Apple was already the target and is the source of truth, since Apple bundle IDs disallow underscores).
-    - Cutting the first beta tag (`v0.1.0-beta.1`) awaits an explicit maintainer GO.
 - [ ] 7.2 User documentation
   - **Delivered** — the [user-guide hub](user/README.md) + [style guide](user/style-guide.md), and the guides: Getting Started, Dialect (flagship), Imports & migration, Backup & portability, Collection & search, Programs & matrix, Perform mode, Accessibility, Settings, FAQ & troubleshooting, and Glossary; plus an offline **in-app User Guide** (#233). (#219/#222/#223/#224/#229/#233/#239/#240/#243)
   - **Remaining (blocked on other work)**

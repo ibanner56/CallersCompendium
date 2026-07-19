@@ -25,7 +25,9 @@ Squares) callers — on desktop, tablet, and phone.
   "chain then swing in B2"), and your own custom fields. _(built)_
 - **Programs** — create, edit, duplicate, and print/email set lists for events,
   with alternate dances, free-text slots, and a programming matrix computed from
-  the choreography itself. _(built)_
+  the choreography itself. Build a program from a plain-text title list or
+  straight from a ContraDB event, and share a program together with all the
+  dances it uses. _(built)_
 - **Performance mode** — a large-print, high-contrast, stage-ready calling
   view with wake-lock, program navigation, on-the-fly adjustments, and
   screen-reader-friendly figure rendering. _(built)_
