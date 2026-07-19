@@ -711,10 +711,19 @@ class FigureRenderer {
     // moveSubstitution). Rotations format through our rotation vocabulary.
     'allemande_orbit': (r, def, params, dialect, verbose) {
       final swho = r._displaySubject(params['who'], dialect);
-      final hand = _displayScalar(params['hand']);
-      final oppositeDir = (params['hand'] == 'left' || params['hand'] == null)
+      final handRaw = params['hand'];
+      final hand = _displayScalar(handRaw);
+      // Orbit direction is the opposite of the allemande hand: left/null ->
+      // "clockwise", right -> "counter clockwise". Surface the wildcard ('*')
+      // and any unexpected value rather than inventing a concrete direction
+      // (mirrors facing_star `turn == '*'` and square_through `hand == '*'`).
+      final oppositeDir = (handRaw == 'left' || handRaw == null)
           ? 'clockwise'
-          : 'counter clockwise';
+          : handRaw == 'right'
+          ? 'counter clockwise'
+          : handRaw == '*'
+          ? '*'
+          : _humanize(handRaw.toString());
       final other = r._invertPair(params['who'], dialect);
       final innerRaw = params['inner'];
       final outerRaw = params['outer'];
@@ -1041,7 +1050,12 @@ class FigureRenderer {
           return '$other dance out while $swho '
               'dance in to a long wave in the center$maybeBalance';
         }
-        return '$other dance out${(bal == true || bal == '*') ? ' & balance' : ''}';
+        return '$other dance out'
+            '${bal == true
+                ? ' & balance'
+                : bal == '*'
+                ? ' & *'
+                : ''}';
       }
       if (inFlag) {
         return '$swho dance in to a long wave in the center$maybeBalance';

@@ -1471,6 +1471,25 @@ void main() {
           'ones allemande left one and a half times around while the twos orbit clockwise halfway around',
         );
       });
+      test('hand=* surfaces the wildcard as the orbit direction', () {
+        // Must NOT invent "counter clockwise" for a non-left/right hand.
+        expect(
+          renderer.render(
+            Figure(move: 'allemande_orbit', params: {'hand': '*'}),
+            d,
+          ),
+          'ones allemande * 1½ around while the twos orbit * ½ around',
+        );
+      });
+      test('unexpected hand humanizes rather than inventing a direction', () {
+        expect(
+          renderer.render(
+            Figure(move: 'allemande_orbit', params: {'hand': 'sideways'}),
+            d,
+          ),
+          'ones allemande sideways 1½ around while the twos orbit sideways ½ around',
+        );
+      });
     });
 
     group('cross_trails (ContraDB crossTrailsWords)', () {
@@ -1754,6 +1773,32 @@ void main() {
             d,
           ),
           'odd dancers dance in to a long wave in the center',
+        );
+      });
+      test('form_a_long_wave out-only surfaces a wildcard balance', () {
+        // The out-only branch must surface '*' (like the sibling branches'
+        // maybeBalance) instead of collapsing it into a concrete "& balance".
+        expect(
+          renderer.render(
+            Figure(
+              move: 'form_a_long_wave',
+              params: {'in': false, 'out': true, 'balance': '*'},
+            ),
+            d,
+          ),
+          'role1s dance out & *',
+        );
+      });
+      test('form_a_long_wave out-only omits balance for false/unexpected', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'form_a_long_wave',
+              params: {'in': false, 'out': true, 'balance': 'maybe'},
+            ),
+            d,
+          ),
+          'role1s dance out',
         );
       });
     });
