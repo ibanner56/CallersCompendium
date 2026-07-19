@@ -589,7 +589,7 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$kc_pass" "$keychain" >/dev/null
           # Prepend our keychain to the user search list (keeping the existing
           # entries) so xcodebuild can find the imported signing identity.
-          existing_keychains=$(security list-keychains -d user | sed 's/[\" ]//g')
+          existing_keychains=$(security list-keychains -d user | sed 's/"//g')
           # shellcheck disable=SC2086  # intentional word-split: one keychain path per token
           security list-keychains -d user -s "$keychain" $existing_keychains
           security find-identity -v -p codesigning "$keychain"
