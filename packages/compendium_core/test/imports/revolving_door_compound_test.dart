@@ -97,10 +97,11 @@ void main() {
       () {
         final renderer = FigureRenderer(contraTaxonomy);
         final door = draft.dance.figures.first;
-        // Right hand (was left), correct dancers, and the outcome clarifier.
+        // Right hand (was left), correct dancers, and the outcome clarifier,
+        // now in ContraDB's verbatim base-line wording (PR2).
         final summary = renderer.renderSummary(door, Dialect.canonical);
-        expect(summary, contains('revolving door right'));
-        expect(summary, contains('drop off on the other side'));
+        expect(summary, contains('take right hands'));
+        expect(summary, contains('drop off partner on other side'));
       },
     );
 
