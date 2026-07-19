@@ -10,6 +10,11 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 
+    // Receive-side share import (issue #298): wire the incoming-file channel to
+    // this engine's messenger so OS "Open With…" files reach the Dart intake.
+    IncomingFilesBridge.shared.register(
+      messenger: flutterViewController.engine.binaryMessenger)
+
     super.awakeFromNib()
   }
 }

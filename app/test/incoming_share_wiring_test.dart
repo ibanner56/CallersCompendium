@@ -1,0 +1,145 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:compendium_app/main.dart';
+import 'package:compendium_app/src/data/app_database.dart';
+import 'package:compendium_app/src/data/archive_intake_service.dart';
+import 'package:compendium_app/src/data/incoming_file_channel.dart';
+import 'package:compendium_app/src/data/window_service.dart';
+import 'package:compendium_app/src/screens/program_summary_screen.dart';
+import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/native.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_test/flutter_test.dart';
+
+/// A [WindowService] whose restore does nothing (no real window under test).
+class _NoopWindowService extends WindowService {
+  _NoopWindowService(super.settings);
+  @override
+  Future<void> initialize() async {}
+  @override
+  void dispose() {}
+}
+
+/// A fake [IncomingFileChannel] that delivers a caller-chosen cold-start file
+/// path — no real platform channel is touched.
+class _FakeIncomingFileChannel extends IncomingFileChannel {
+  _FakeIncomingFileChannel({this.initialPath});
+
+  final String? initialPath;
+  final StreamController<String> _controller =
+      StreamController<String>.broadcast();
+
+  @override
+  void start() {}
+
+  @override
+  Stream<String> get files => _controller.stream;
+
+  @override
+  Future<String?> initialFile() async => initialPath;
+
+  @override
+  void dispose() {
+    unawaited(_controller.close());
+  }
+}
+
+String _validBundleJson() => encodeArchive(
+  CompendiumArchive(
+    exportedAt: DateTime.utc(2026, 7, 15),
+    dances: [
+      Dance(
+        id: 'd1',
+        title: 'Simplicity Swing',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    ],
+    programs: [
+      Program(
+        id: 'p1',
+        title: 'Shared Spring Fling',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        createdAt: DateTime.utc(2026, 4, 1),
+        updatedAt: DateTime.utc(2026, 4, 1),
+      ),
+    ],
+  ),
+);
+
+AppData _openAppData() {
+  final appData = AppData(CompendiumDatabase(NativeDatabase.memory()));
+  addTearDown(appData.close);
+  return appData;
+}
+
+/// An in-memory byte reader so intake runs without real file I/O — a real disk
+/// read would be started inside the test's faked-time zone and never complete.
+ArchiveByteReader _readerFor(String contents) =>
+    (_) async => Uint8List.fromList(utf8.encode(contents));
+
+void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  // Booting the full app keeps the User Guide's doc FutureBuilder alive; the
+  // root bundle caches parsed results as SynchronousFutures which otherwise
+  // stall pumpAndSettle. Clearing the cache before each test lets it settle
+  // (mirrors startup_sequence_test).
+  setUp(rootBundle.clear);
+
+  testWidgets(
+    'a shared bundle opened at launch imports and auto-opens the program',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialPath: '/shared/bundle.json',
+          ),
+          incomingFileReader: _readerFor(_validBundleJson()),
+        ),
+      );
+      // Bootstrap builds the ready app, which schedules the cold-start intake;
+      // the in-memory import + auto-open navigation settle within these pumps.
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProgramSummaryScreen), findsOneWidget);
+      expect(await appData.repositories.programs.listAll(), hasLength(1));
+      expect(await appData.repositories.dances.listAll(), hasLength(1));
+    },
+  );
+
+  testWidgets('a malformed shared file is rejected with a snackbar', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final appData = _openAppData();
+
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: appData,
+        windowService: _NoopWindowService(appData.repositories.settings),
+        incomingFileChannel: _FakeIncomingFileChannel(
+          initialPath: '/shared/bundle.json',
+        ),
+        incomingFileReader: _readerFor('this is not a compendium archive'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+    expect(find.byType(ProgramSummaryScreen), findsNothing);
+    expect(await appData.repositories.programs.listAll(), isEmpty);
+  });
+}
