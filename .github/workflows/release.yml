@@ -235,8 +235,9 @@ jobs:
       # secrets are absent the whole iOS leg is a clean no-op (it stages nothing
       # and still succeeds). `signing=configured` ONLY when the full signing set
       # is present: the App Store Connect API key (base64 .p8, key id, issuer id),
-      # the team id, AND the Apple Distribution certificate (base64 .p12 + its
-      # password). Secrets arrive via `env:` (never a step-level `if:`);
+      # the team id, the Apple Distribution certificate (base64 .p12 + its
+      # password), AND the App Store provisioning profile (base64
+      # .mobileprovision). Secrets arrive via `env:` (never a step-level `if:`);
       # names are never interpolated into a `run:` line. `mkdir -p dist` keeps the
       # shared List/Upload steps happy on the no-op path.
       - name: Determine iOS signing availability
@@ -264,7 +265,7 @@ jobs:
             echo "iOS App Store Connect API-key + distribution cert secrets configured; archiving + signing the .ipa (and uploading to TestFlight on a tag)."
           else
             echo "signing=missing" >> "$GITHUB_OUTPUT"
-            echo "::notice::iOS App Store Connect API-key secrets not configured; skipping the iOS/TestFlight leg."
+            echo "::notice::iOS signing secrets not fully configured (need the App Store Connect API key, team id, distribution .p12 + password, and the App Store provisioning profile); skipping the iOS/TestFlight leg."
           fi
 
       - name: Install Linux desktop dependencies
@@ -609,6 +610,9 @@ jobs:
           prof_uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$prof_plist")
           prof_name=$(/usr/libexec/PlistBuddy -c "Print :Name" "$prof_plist")
           echo "Installing provisioning profile '${prof_name}' (${prof_uuid})"
+          # Persist the UUID so the cleanup step removes ONLY this profile
+          # (never a blanket wipe of the runner's profile dirs).
+          printf '%s' "$prof_uuid" > "$RUNNER_TEMP/cc-ios-profile-uuid"
           for dir in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
                      "$HOME/Library/MobileDevice/Provisioning Profiles"; do
             mkdir -p "$dir"
@@ -780,8 +784,13 @@ jobs:
           rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_${key_id}.p8" \
                 "$HOME/.private_keys/AuthKey_${key_id}.p8" 2>/dev/null || true
           security delete-keychain "$RUNNER_TEMP/cc-ios.keychain-db" 2>/dev/null || true
-          rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision \
-                "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision 2>/dev/null || true
+          # Remove ONLY the profile this workflow installed (by UUID), never a
+          # blanket wipe that could delete unrelated profiles on the runner.
+          prof_uuid="$(cat "$RUNNER_TEMP/cc-ios-profile-uuid" 2>/dev/null || true)"
+          if [ -n "$prof_uuid" ]; then
+            rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/${prof_uuid}.mobileprovision" \
+                  "$HOME/Library/MobileDevice/Provisioning Profiles/${prof_uuid}.mobileprovision" 2>/dev/null || true
+          fi
           git checkout -- app/ios/Flutter/Release.xcconfig 2>/dev/null || true
           exit 0
 
