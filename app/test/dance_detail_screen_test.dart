@@ -326,12 +326,12 @@ void main() {
     // Section header A1 is derived (figure starts at beat 0).
     expect(find.text('A1'), findsOneWidget);
     // Default view applies the Larks/Robins preset: role2s -> robins.
-    expect(find.text('robins chain across'), findsOneWidget);
+    expect(find.text('robins chain'), findsOneWidget);
 
     // Toggle to canonical: role tokens are shown verbatim.
     await tester.tap(find.byKey(const ValueKey('dialect-toggle')));
     await tester.pumpAndSettle();
-    expect(find.text('role2s chain across'), findsOneWidget);
+    expect(find.text('role2s chain'), findsOneWidget);
   });
 
   testWidgets('opens in the saved default rendering (ROADMAP G.6b)', (
@@ -355,8 +355,8 @@ void main() {
 
     // No toggle interaction: the detail opens showing canonical tokens
     // instead of the active Larks/Robins dialect.
-    expect(find.text('role2s chain across'), findsOneWidget);
-    expect(find.text('Robins chain across'), findsNothing);
+    expect(find.text('role2s chain'), findsOneWidget);
+    expect(find.text('Robins chain'), findsNothing);
     // The in-view toggle reflects the seeded canonical state.
     expect(
       tester.widget<Switch>(find.byKey(const ValueKey('dialect-toggle'))).value,
@@ -384,7 +384,7 @@ void main() {
     await _pumpDetail(tester, repos, 'd1');
 
     // Sighted users still see the terse, glyph-bearing display text.
-    expect(find.text('neighbors allemande left 1½'), findsOneWidget);
+    expect(find.text('neighbor allemande left 1½'), findsOneWidget);
 
     // Screen readers get the spoken-friendly expansion (no notation glyphs) as
     // the row's single merged semantics label.
@@ -393,7 +393,7 @@ void main() {
     );
     expect(
       semantics.label,
-      contains('neighbors allemande left one and a half times, 8 beats'),
+      contains('neighbor allemande left one and a half times, 8 beats'),
     );
     expect(semantics.label, isNot(contains('1½')));
     handle.dispose();
@@ -695,14 +695,14 @@ void main() {
     await _pumpDetail(tester, repos, 'd1', activeDialect: Dialect.larksRobins);
 
     // Active dialect = Larks/Robins: role2s → robins.
-    expect(find.text('robins chain across'), findsOneWidget);
+    expect(find.text('robins chain'), findsOneWidget);
     // Toggle is visible because active dialect is not canonical.
     expect(find.byKey(const ValueKey('dialect-toggle')), findsOneWidget);
 
     // Toggle to canonical.
     await tester.tap(find.byKey(const ValueKey('dialect-toggle')));
     await tester.pumpAndSettle();
-    expect(find.text('role2s chain across'), findsOneWidget);
+    expect(find.text('role2s chain'), findsOneWidget);
   });
 
   testWidgets('with Gents/Ladies dialect figure table shows those terms', (
@@ -729,7 +729,7 @@ void main() {
     );
 
     // role2s → Ladies in Gents/Ladies dialect.
-    expect(find.text('Ladies chain across'), findsOneWidget);
+    expect(find.text('Ladies chain'), findsOneWidget);
     // Toggle is present (non-canonical dialect).
     expect(find.byKey(const ValueKey('dialect-toggle')), findsOneWidget);
   });
@@ -752,7 +752,7 @@ void main() {
     // Toggle is hidden when active dialect is already canonical.
     expect(find.byKey(const ValueKey('dialect-toggle')), findsNothing);
     // Canonical role tokens shown.
-    expect(find.text('role2s chain across'), findsOneWidget);
+    expect(find.text('role2s chain'), findsOneWidget);
   });
 
   // ── relatedDance links ─────────────────────────────────────────────────────

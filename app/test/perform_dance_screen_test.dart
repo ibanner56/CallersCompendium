@@ -131,7 +131,7 @@ void main() {
     // Section header derived from the phrase structure.
     expect(find.text('A1'), findsOneWidget);
     // Larks/Robins preset: role2s -> robins.
-    expect(find.text('robins chain across'), findsOneWidget);
+    expect(find.text('robins chain'), findsOneWidget);
   });
 
   testWidgets(
@@ -146,9 +146,7 @@ void main() {
       // Perform is the accessibility-critical surface: the distance-read body
       // (figure rows + phrase section headers) must render in the Atkinson
       // Hyperlegible face, not the Fraunces serif (§1c).
-      final figureStyle = tester
-          .widget<Text>(find.text('robins chain across'))
-          .style;
+      final figureStyle = tester.widget<Text>(find.text('robins chain')).style;
       expect(figureStyle?.fontFamily, AppTypography.bodyFamily);
 
       final sectionStyle = tester.widget<Text>(find.text('A1')).style;
@@ -182,7 +180,7 @@ void main() {
     );
 
     // The large-print card keeps the terse, glyph-bearing text on screen.
-    expect(find.text('neighbors allemande left 1½'), findsOneWidget);
+    expect(find.text('neighbor allemande left 1½'), findsOneWidget);
 
     // Assistive tech hears the spoken-friendly expansion, glyph-free, as the
     // figure line's single merged semantics label.
@@ -191,7 +189,7 @@ void main() {
     );
     expect(
       semantics.label,
-      contains('neighbors allemande left one and a half times, 8 beats'),
+      contains('neighbor allemande left one and a half times, 8 beats'),
     );
     expect(semantics.label, isNot(contains('1½')));
     handle.dispose();
@@ -202,12 +200,12 @@ void main() {
   ) async {
     await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
 
-    expect(find.text('robins chain across'), findsOneWidget);
+    expect(find.text('robins chain'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('perform-dialect-toggle')));
     await tester.pumpAndSettle();
 
-    expect(find.text('role2s chain across'), findsOneWidget);
+    expect(find.text('role2s chain'), findsOneWidget);
   });
 
   testWidgets('dialect toggle is hidden when active dialect is canonical', (
@@ -221,7 +219,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('perform-dialect-toggle')), findsNothing);
     // Canonical tokens render verbatim.
-    expect(find.text('role2s chain across'), findsOneWidget);
+    expect(find.text('role2s chain'), findsOneWidget);
   });
 
   testWidgets('size control increases and decreases the applied text scale', (

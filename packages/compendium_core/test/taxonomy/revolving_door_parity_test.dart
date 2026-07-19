@@ -31,7 +31,7 @@ void main() {
   test('display render maps role tokens under a dialect', () {
     expect(
       renderer.render(Figure(move: 'revolving_door'), Dialect.larksRobins),
-      'robins revolving door right partners',
+      'robins revolving door right partner',
     );
   });
 
@@ -42,7 +42,7 @@ void main() {
     );
     expect(
       summary,
-      'role2s revolving door right partners — drop off on the other side',
+      'role2s revolving door right partner — drop off on the other side',
     );
   });
 
