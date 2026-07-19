@@ -29,6 +29,48 @@ void main() {
       expect(loaded, dance);
     });
 
+    test(
+      'losslessly round-trips a figure whose move is unknown (#358)',
+      () async {
+        // A dance authored in a newer version / carrying a since-removed move.
+        // Its move + params must survive save + reload byte-for-byte, never
+        // coerced or discarded on load or save.
+        final unknown = Figure(
+          move: 'a_move_from_the_future',
+          params: const {'beats': 12, 'flavor': 'spicy', 'who': 'partners'},
+        );
+        final dance = sampleDance(
+          figures: [
+            Figure(move: 'swing', params: const {'beats': 8}),
+            unknown,
+          ],
+        );
+        await dances.create(dance);
+
+        final loaded = await dances.getById(dance.id);
+        expect(loaded, dance, reason: 'whole dance round-trips by value');
+        final reloadedUnknown = loaded!.figures[1];
+        expect(reloadedUnknown.move, 'a_move_from_the_future');
+        expect(reloadedUnknown.params, {
+          'beats': 12,
+          'flavor': 'spicy',
+          'who': 'partners',
+        });
+
+        // Re-saving the reloaded dance preserves it again (no drift on update).
+        await dances.update(
+          loaded.copyWith(updatedAt: DateTime.utc(2026, 3, 1)),
+        );
+        final resaved = await dances.getById(dance.id);
+        expect(resaved!.figures[1].move, 'a_move_from_the_future');
+        expect(resaved.figures[1].params, {
+          'beats': 12,
+          'flavor': 'spicy',
+          'who': 'partners',
+        });
+      },
+    );
+
     test('round-trips a rating and its cleared (NULL) state', () async {
       final rated = sampleDance().copyWith(rating: 5);
       await dances.create(rated);

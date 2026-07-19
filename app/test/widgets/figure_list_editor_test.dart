@@ -2,6 +2,7 @@ import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
+import 'package:compendium_app/src/widgets/figure_param_editors.dart';
 import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -1985,5 +1986,81 @@ void main() {
         expect(drafts.single.beatsTouched, isFalse);
       },
     );
+  });
+
+  group('unknown move (#358)', () {
+    testWidgets(
+      'opens read-only without throwing and preserves the stored data',
+      (tester) async {
+        // A figure authored in a newer version / carrying a since-removed move.
+        final drafts = <FigureDraft>[
+          FigureDraft.fromFigure(
+            Figure(
+              move: 'a_move_from_the_future',
+              params: const {'beats': 12, 'flavor': 'spicy'},
+            ),
+          ),
+        ];
+        await _pump(tester, drafts);
+
+        // Best-effort text (raw id) shows in the collapsed summary already.
+        expect(find.text('a_move_from_the_future'), findsWidgets);
+
+        // Expanding the editor must not throw and must show the read-only
+        // unrecognized-move panel instead of the editable move field / params.
+        await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(
+          find.byKey(const ValueKey('figure-0-unknown-move')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+        expect(find.byType(FigureParamEditor), findsNothing);
+
+        // The stored move + params are untouched by opening the editor.
+        expect(drafts.single.move, 'a_move_from_the_future');
+        expect(drafts.single.params, {'beats': 12, 'flavor': 'spicy'});
+      },
+    );
+
+    testWidgets('reorder and delete remain available for an unknown move', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(Figure(move: 'swing', params: const {})),
+        FigureDraft.fromFigure(
+          Figure(move: 'a_move_from_the_future', params: const {'beats': 12}),
+        ),
+      ];
+      await _pump(tester, drafts);
+
+      // Move the unknown figure up, then delete it — both via the ⋮ menu.
+      await _tapMenuItem(tester, 1, 'move-up');
+      expect(drafts.first.move, 'a_move_from_the_future');
+      expect(tester.takeException(), isNull);
+
+      await _tapMenuItem(tester, 0, 'delete');
+      expect(drafts, hasLength(1));
+      expect(drafts.single.move, 'swing');
+    });
+
+    testWidgets('recovers to a normal editable figure once the move is known', (
+      tester,
+    ) async {
+      // Same figure id, but rendered against a taxonomy that knows the move:
+      // params editors surface and the move is no longer read-only.
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(move: 'swing', params: const {'beats': 8}),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('figure-0-unknown-move')), findsNothing);
+      expect(find.byType(FigureParamEditor), findsWidgets);
+    });
   });
 }

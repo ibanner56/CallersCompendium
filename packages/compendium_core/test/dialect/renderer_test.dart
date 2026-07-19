@@ -283,6 +283,18 @@ void main() {
         'mystery_move',
       );
     });
+
+    test('render/renderSummary degrade to raw id, params intact (#358)', () {
+      final figure = Figure(
+        move: 'future_move',
+        params: {'beats': 12, 'flavor': 'spicy'},
+      );
+      expect(renderer.render(figure, larks), 'future_move');
+      expect(renderer.renderSummary(figure, larks), 'future_move');
+      expect(renderer.renderVerbose(figure, larks), 'future_move');
+      // The best-effort render must not throw or mutate the stored params.
+      expect(figure.params, {'beats': 12, 'flavor': 'spicy'});
+    });
   });
 
   group('verbose (spoken-friendly) rendering', () {

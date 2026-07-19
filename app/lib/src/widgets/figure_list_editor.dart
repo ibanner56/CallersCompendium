@@ -1119,6 +1119,21 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final draft = widget.draft;
     final move = draft.move;
     final def = move == null ? null : widget.taxonomy.resolve(move);
+    // A figure whose move is not in the active taxonomy (authored in a newer
+    // app version, or a since-removed move) degrades to a read-only panel: we
+    // don't know its param schema, so exposing the editable move field / param
+    // editors risks silently coercing or discarding the preserved data. The
+    // original move + params stay intact and untouched, so the figure renders
+    // and edits normally again once the move is known (issue #358). Reorder,
+    // delete, duplicate, progression, and note remain available.
+    final isUnknownMove =
+        move != null &&
+        move != customMove &&
+        move != _standStillMove &&
+        def == null;
+    if (isUnknownMove) {
+      return _buildUnknownMoveEditor(context, move);
+    }
     // Open the Move field EMPTY for an unset draft or the placeholder
     // `stand_still` figure so the caller can type over it immediately. Because
     // the editor (and its MoveAutocomplete) remounts on every open, this blanks
@@ -1189,6 +1204,75 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 const SizedBox(height: 8),
                 _buildNote(context),
               ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Read-only editor panel for a figure whose move is unknown to the active
+  /// taxonomy (issue #358). Shows best-effort text (the renderer's raw-id
+  /// fallback) and a clear "unrecognized move" indicator explaining why it
+  /// can't be edited here. The stored move + params are never mutated by this
+  /// path; note and progression stay editable (they are not move params, so
+  /// editing them can't corrupt the unknown schema).
+  Widget _buildUnknownMoveEditor(BuildContext context, String move) {
+    final theme = Theme.of(context);
+    final figure = widget.draft.toFigure();
+    final bestEffortText = figure == null
+        ? move
+        : FigureRenderer(widget.taxonomy).render(figure, widget.dialect);
+
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: _handleEditorKey,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(8),
+            color: theme.colorScheme.surfaceContainerLow,
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                key: ValueKey('figure-${widget.index}-unknown-move'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.help_outline,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(bestEffortText, style: theme.textTheme.bodyLarge),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Unrecognized move "$move" — not in this version\'s '
+                          'taxonomy. Shown read-only so its data is preserved; '
+                          'it will edit normally again if the move becomes '
+                          'known. You can still reorder or delete it.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildProgressionToggle(context, null),
+              const SizedBox(height: 8),
+              _buildNote(context),
             ],
           ),
         ),
@@ -1271,7 +1355,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
-  Widget _buildProgressionToggle(BuildContext context, MoveDef def) {
+  Widget _buildProgressionToggle(BuildContext context, MoveDef? def) {
     final theme = Theme.of(context);
     final draft = widget.draft;
     return Row(
@@ -1291,7 +1375,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ),
         const SizedBox(width: 8),
         Text('Progression', style: theme.textTheme.bodyMedium),
-        if (def.progressionCapable && !draft.progression)
+        if (def != null && def.progressionCapable && !draft.progression)
           Padding(
             padding: const EdgeInsets.only(left: 4),
             child: Tooltip(

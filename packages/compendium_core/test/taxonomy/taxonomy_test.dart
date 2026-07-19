@@ -91,6 +91,33 @@ void main() {
         'right',
       );
     });
+
+    test(
+      'unknown move returns figure params as-is without throwing (#358)',
+      () {
+        final figure = Figure(
+          move: 'a_move_from_the_future',
+          params: {'beats': 12, 'flavor': 'spicy'},
+        );
+        final p = tax.effectiveParams(figure);
+        expect(p, {'beats': 12, 'flavor': 'spicy'});
+      },
+    );
+
+    test('unknown move with no params returns an empty map (#358)', () {
+      expect(tax.effectiveParams(Figure(move: 'totally_unknown')), isEmpty);
+    });
+
+    test(
+      'effectiveParams result is decoupled from the stored params (#358)',
+      () {
+        final figure = Figure(move: 'unknown_x', params: {'beats': 8});
+        final p = tax.effectiveParams(figure)..['beats'] = 99;
+        // Mutating the returned best-effort map must not touch the figure.
+        expect(figure.params['beats'], 8);
+        expect(p['beats'], 99);
+      },
+    );
   });
 
   group('validateFigure', () {

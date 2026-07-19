@@ -57,10 +57,19 @@ class Taxonomy {
   /// effective value of the driver parameter — unless the figure (or its
   /// alias) pins `beats` explicitly, in which case that pinned value wins. A
   /// driver value absent from the table leaves the flat spec default in place.
+  ///
+  /// For an **unknown move** (one not in this taxonomy, e.g. a figure authored
+  /// in a newer app version or a since-removed move) this returns the figure's
+  /// own params as-is instead of throwing — a best-effort result that lets the
+  /// renderer, editor, and analysis paths degrade gracefully rather than crash.
+  /// The move id and its params are never coerced or discarded here, so the
+  /// figure round-trips losslessly and renders/edits normally again once the
+  /// move is known (issue #358). Use [validateFigure] to detect the
+  /// `unknown_move` condition; this method deliberately never fails.
   Map<String, Object?> effectiveParams(Figure figure) {
     final def = resolve(figure.move);
     if (def == null) {
-      throw ArgumentError.value(figure.move, 'figure.move', 'unknown move');
+      return Map<String, Object?>.of(figure.params);
     }
     final alias = aliases[figure.move];
     final effective = {
