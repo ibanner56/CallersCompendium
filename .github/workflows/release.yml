@@ -609,7 +609,8 @@ jobs:
           # cert is not Apple-managed), so the export below uses signingStyle
           # manual against this pre-provisioned profile + the imported cert. The
           # profile is a CMS-signed plist; decode it to read its UUID and install
-          # under the file name Xcode expects. Xcode 16+/26 reads profiles from
+          # under the file name Xcode expects. Xcode 16 and later (including the
+          # Xcode 26 on GitHub's macOS runners) reads profiles from
           # ~/Library/Developer/Xcode/UserData/Provisioning Profiles; also drop a
           # copy in the classic ~/Library/MobileDevice location for safety.
           prof_raw="$RUNNER_TEMP/cc_appstore.mobileprovision"
