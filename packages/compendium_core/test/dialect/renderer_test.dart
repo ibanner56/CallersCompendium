@@ -634,46 +634,51 @@ void main() {
     });
 
     group('hey length', () {
+      // PR3 moved the hey length into the display base line (see the PR3 group
+      // + `_displayBaseRenderers['hey']`); `_summarySuffix` no longer appends a
+      // parenthetical, so the summary now equals the full base line.
       String s(String length) => renderer.renderSummary(
         Figure(move: 'hey', params: {'length': length}),
         d,
       );
-      test('half (default) shows a compact "(half)" on screen', () {
+      test('half (default) names the length inline', () {
         expect(
           renderer.renderSummary(Figure(move: 'hey'), d),
-          'role2s hey right (half)',
+          'role2s start a half hey - rights in center, lefts on ends',
         );
       });
-      test('full shows "(full)" on screen', () {
-        expect(s('full'), 'role2s hey right (full)');
+      test('full names the length inline', () {
+        expect(
+          s('full'),
+          'role2s start a full hey - rights in center, lefts on ends',
+        );
       });
       test('lessThanHalf reads "until someone meets"', () {
-        expect(s('lessThanHalf'), 'role2s hey right until someone meets');
+        expect(
+          s('lessThanHalf'),
+          'role2s start a hey - rights in center, lefts on ends - until someone meets',
+        );
       });
       test('betweenHalfAndFull reads the second-time clause', () {
         expect(
           s('betweenHalfAndFull'),
-          'role2s hey right until someone meets the second time',
+          'role2s start a hey - rights in center, lefts on ends - until someone meets the second time',
         );
       });
-      test('verbose expands half/full to the spoken "hey" comma clause', () {
-        final half = Figure(move: 'hey');
-        final full = Figure(move: 'hey', params: {'length': 'full'});
-        expect(
-          renderer.renderSummary(half, d, verbose: true),
-          'role2s hey right, half hey',
-        );
-        expect(
-          renderer.renderSummary(full, d, verbose: true),
-          'role2s hey right, full hey',
-        );
-      });
-      test('verbose "until…" clauses match the visible ones', () {
-        final f = Figure(move: 'hey', params: {'length': 'lessThanHalf'});
-        expect(
-          renderer.renderSummary(f, d, verbose: true),
-          renderer.renderSummary(f, d),
-        );
+      test('summary equals the base line (no appended clause)', () {
+        for (final length in [
+          'half',
+          'full',
+          'lessThanHalf',
+          'betweenHalfAndFull',
+        ]) {
+          final f = Figure(move: 'hey', params: {'length': length});
+          expect(renderer.renderSummary(f, d), renderer.render(f, d));
+          expect(
+            renderer.renderSummary(f, d, verbose: true),
+            renderer.render(f, d),
+          );
+        }
       });
     });
 
@@ -734,10 +739,13 @@ void main() {
       });
       test('box_circulate (leading) surfaces balance when set', () {
         final f = Figure(move: 'box_circulate', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'balance & partner box circulate');
+        expect(
+          renderer.renderSummary(f, d),
+          'balance & box circulate - partner cross while others loop right',
+        );
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'balance and partner box circulate',
+          'balance and box circulate - partner cross while others loop right',
         );
       });
       test('box_circulate shows balance BY DEFAULT (unset balance)', () {
@@ -745,17 +753,23 @@ void main() {
         // balance, so an unset balance surfaces the prefix in display. The
         // taxonomy default stays false so renderCanonical is byte-stable.
         final f = Figure(move: 'box_circulate');
-        expect(renderer.renderSummary(f, d), 'balance & partner box circulate');
+        expect(
+          renderer.renderSummary(f, d),
+          'balance & box circulate - partner cross while others loop right',
+        );
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'balance and partner box circulate',
+          'balance and box circulate - partner cross while others loop right',
         );
         // canonical is untouched by the display default.
         expect(renderer.renderCanonical(f), 'partners box circulate');
       });
       test('box_circulate explicit balance:false suppresses the prefix', () {
         final f = Figure(move: 'box_circulate', params: {'balance': false});
-        expect(renderer.renderSummary(f, d), 'partner box circulate');
+        expect(
+          renderer.renderSummary(f, d),
+          'box circulate - partner cross while others loop right',
+        );
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
       test('pull_by_dancers (after-who) inserts balance before the move', () {
@@ -853,12 +867,13 @@ void main() {
     });
 
     test('summary is dialect-aware via its base render', () {
-      // The move/role tokens still honor the dialect; the appended ender is
-      // fixed structural vocabulary.
+      // The move/role tokens still honor the dialect. PR3 moved the hey length
+      // into the base line, so the summary now equals the (dialect-aware) base
+      // render with no appended clause.
       final f = Figure(move: 'hey', params: {'length': 'full'});
       final larksSummary = renderer.renderSummary(f, Dialect.larksRobins);
-      expect(larksSummary, endsWith(' (full)'));
-      expect(larksSummary, startsWith(renderer.render(f, Dialect.larksRobins)));
+      expect(larksSummary, renderer.render(f, Dialect.larksRobins));
+      expect(larksSummary, startsWith('robins '));
     });
   });
 
@@ -1348,6 +1363,442 @@ void main() {
             d,
           ),
           'revolving door - odd leaders take either hands and drop off some folks on other side',
+        );
+      });
+    });
+  });
+
+  group('PR3 display parity — terse-by-design clauses (adopt ContraDB)', () {
+    final d = Dialect.canonical;
+    final larks = Dialect.larksRobins;
+
+    group('renderCanonical is unchanged (the invariant)', () {
+      // Every touched move keeps its OLD canonical template expansion — the
+      // byte-stable dedupe/FTS key — that the PR3 display reword replaces.
+      final cases = <String, Figure>{
+        'partners box circulate': Figure(move: 'box_circulate'),
+        'ones allemande orbit left 1½ ½': Figure(move: 'allemande_orbit'),
+        'partners cross trails across neighbors': Figure(move: 'cross_trails'),
+        'ones poussette neighbors half clockwise': Figure(move: 'poussette'),
+        'ones facing star clockwise 3 places': Figure(move: 'facing_star'),
+        'partners square through 4 places': Figure(move: 'square_through'),
+        'role2s hey right': Figure(move: 'hey'),
+        'ones dolphin hey right': Figure(move: 'dolphin_hey'),
+        'role1s form long waves': Figure(move: 'form_long_waves'),
+        'role2s form a long wave': Figure(move: 'form_a_long_wave'),
+        // Explicit-param variants prove the display reword never leaks into the
+        // search/dedupe text.
+        'ones allemande orbit right 1½ ½': Figure(
+          move: 'allemande_orbit',
+          params: {'hand': 'right'},
+        ),
+        'partners cross trails along neighbors': Figure(
+          move: 'cross_trails',
+          params: {'dir': 'along'},
+        ),
+        'ones poussette neighbors full counterclockwise': Figure(
+          move: 'poussette',
+          params: {'half': 'full', 'turn': 'counterclockwise'},
+        ),
+        'ones facing star counterclockwise 3 places': Figure(
+          move: 'facing_star',
+          params: {'turn': 'counterclockwise'},
+        ),
+        'partners square through 2 places': Figure(
+          move: 'square_through',
+          params: {'places': 2},
+        ),
+      };
+      cases.forEach((expected, figure) {
+        test('"$expected"', () {
+          expect(renderer.renderCanonical(figure), expected);
+          // Exercising display + summary must never disturb canonical.
+          renderer.render(figure, d);
+          renderer.render(figure, larks);
+          renderer.renderSummary(figure, d);
+          renderer.renderSummary(figure, d, verbose: true);
+          expect(renderer.renderCanonical(figure), expected);
+        });
+      });
+    });
+
+    group(
+      'box_circulate (ContraDB boxCirculateWords; PR2 balance preserved)',
+      () {
+        test('default base line carries the cross/loop clause, no balance', () {
+          expect(
+            renderer.render(Figure(move: 'box_circulate'), d),
+            'box circulate - partner cross while others loop right',
+          );
+        });
+        test('summary still prepends the (default-shown) balance', () {
+          expect(
+            renderer.renderSummary(Figure(move: 'box_circulate'), d),
+            'balance & box circulate - partner cross while others loop right',
+          );
+        });
+        test('explicit balance:false suppresses the summary prefix', () {
+          expect(
+            renderer.renderSummary(
+              Figure(move: 'box_circulate', params: {'balance': false}),
+              d,
+            ),
+            'box circulate - partner cross while others loop right',
+          );
+        });
+      },
+    );
+
+    group('allemande_orbit (ContraDB allemandeOrbitWords)', () {
+      test('default: opposite orbit direction derived from the hand', () {
+        expect(
+          renderer.render(Figure(move: 'allemande_orbit'), d),
+          'ones allemande left 1½ around while the twos orbit clockwise ½ around',
+        );
+      });
+      test('hand=right flips the orbit to counter clockwise', () {
+        expect(
+          renderer.render(
+            Figure(move: 'allemande_orbit', params: {'hand': 'right'}),
+            d,
+          ),
+          'ones allemande right 1½ around while the twos orbit counter clockwise ½ around',
+        );
+      });
+      test('verbose spells the rotations out', () {
+        expect(
+          renderer.renderVerbose(Figure(move: 'allemande_orbit'), d),
+          'ones allemande left one and a half times around while the twos orbit clockwise halfway around',
+        );
+      });
+      test('hand=* surfaces the wildcard as the orbit direction', () {
+        // Must NOT invent "counter clockwise" for a non-left/right hand.
+        expect(
+          renderer.render(
+            Figure(move: 'allemande_orbit', params: {'hand': '*'}),
+            d,
+          ),
+          'ones allemande * 1½ around while the twos orbit * ½ around',
+        );
+      });
+      test('unexpected hand humanizes rather than inventing a direction', () {
+        expect(
+          renderer.render(
+            Figure(move: 'allemande_orbit', params: {'hand': 'sideways'}),
+            d,
+          ),
+          'ones allemande sideways 1½ around while the twos orbit sideways ½ around',
+        );
+      });
+    });
+
+    group('cross_trails (ContraDB crossTrailsWords)', () {
+      test('default: second dir/shoulder are the structural inverse', () {
+        expect(
+          renderer.render(Figure(move: 'cross_trails'), d),
+          'cross trails - partner across the set right shoulders, neighbor along the set left shoulders',
+        );
+      });
+      test('dir=along mirrors to "across the set" for the second pair', () {
+        expect(
+          renderer.render(
+            Figure(move: 'cross_trails', params: {'dir': 'along'}),
+            d,
+          ),
+          'cross trails - partner along the set right shoulders, neighbor across the set left shoulders',
+        );
+      });
+    });
+
+    group('poussette (ContraDB poussetteWords)', () {
+      test('default: half + clockwise -> "back then left"', () {
+        expect(
+          renderer.render(Figure(move: 'poussette'), d),
+          'half poussette - ones pull neighbor back then left',
+        );
+      });
+      test('full + counterclockwise -> "back then right"', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'poussette',
+              params: {'half': 'full', 'turn': 'counterclockwise'},
+            ),
+            d,
+          ),
+          'full poussette - ones pull neighbor back then right',
+        );
+      });
+    });
+
+    group('facing_star (ContraDB facingStarWords)', () {
+      test('default: hand derived from the turn (clockwise -> left)', () {
+        expect(
+          renderer.render(Figure(move: 'facing_star'), d),
+          'facing star clockwise 3 places with ones putting their left hands in and backing up',
+        );
+      });
+      test('counterclockwise derives the right hand', () {
+        expect(
+          renderer.render(
+            Figure(move: 'facing_star', params: {'turn': 'counterclockwise'}),
+            d,
+          ),
+          'facing star counterclockwise 3 places with ones putting their right hands in and backing up',
+        );
+      });
+    });
+
+    group('square_through (ContraDB squareThroughWords)', () {
+      test('default (4 places): embedded balance + "then repeat" tail', () {
+        expect(
+          renderer.render(Figure(move: 'square_through'), d),
+          'square through four - partner balance & pull by right, then neighbor pull by left, then repeat',
+        );
+      });
+      test('2 places: no tail', () {
+        expect(
+          renderer.render(
+            Figure(move: 'square_through', params: {'places': 2}),
+            d,
+          ),
+          'square through two - partner balance & pull by right, then neighbor pull by left',
+        );
+      });
+      test('3 places: repeats the first (balance &) pull', () {
+        expect(
+          renderer.render(
+            Figure(move: 'square_through', params: {'places': 3}),
+            d,
+          ),
+          'square through three - partner balance & pull by right, then neighbor pull by left, then partner balance & pull by right',
+        );
+      });
+      test('balance:false drops the embedded balance', () {
+        expect(
+          renderer.render(
+            Figure(move: 'square_through', params: {'balance': false}),
+            d,
+          ),
+          'square through four - partner pull by right, then neighbor pull by left, then repeat',
+        );
+      });
+      test('verbose spells the embedded balance as "balance and"', () {
+        expect(
+          renderer.renderVerbose(Figure(move: 'square_through'), d),
+          'square through four - partner balance and pull by right, then neighbor pull by left, then repeat',
+        );
+      });
+    });
+
+    group('hey (ContraDB heyWords; summary length no longer duplicated)', () {
+      test(
+        'default: half hey with terse shoulders + center/ends placement',
+        () {
+          expect(
+            renderer.render(Figure(move: 'hey'), d),
+            'role2s start a half hey - rights in center, lefts on ends',
+          );
+        },
+      );
+      test('full hey', () {
+        expect(
+          renderer.render(Figure(move: 'hey', params: {'length': 'full'}), d),
+          'role2s start a full hey - rights in center, lefts on ends',
+        );
+      });
+      test('lessThanHalf appends "until someone meets"', () {
+        expect(
+          renderer.render(
+            Figure(move: 'hey', params: {'length': 'lessThanHalf'}),
+            d,
+          ),
+          'role2s start a hey - rights in center, lefts on ends - until someone meets',
+        );
+      });
+      test('betweenHalfAndFull appends "…the second time"', () {
+        expect(
+          renderer.render(
+            Figure(move: 'hey', params: {'length': 'betweenHalfAndFull'}),
+            d,
+          ),
+          'role2s start a hey - rights in center, lefts on ends - until someone meets the second time',
+        );
+      });
+      test('a ricochet flag adds the ricochet clause', () {
+        expect(
+          renderer.render(Figure(move: 'hey', params: {'rico1': true}), d),
+          'role2s start a half hey - rights in center, lefts on ends - role2s ricochet',
+        );
+      });
+      test('odd ricochet flag references the inverted pair, with timing', () {
+        // rico2 (index 1, odd) -> the other pair; a non-half length adds
+        // "first time" (i & 2 == 0).
+        expect(
+          renderer.render(
+            Figure(move: 'hey', params: {'rico2': true, 'length': 'full'}),
+            larks,
+          ),
+          'robins start a full hey - rights in center, lefts on ends - larks ricochet first time',
+        );
+      });
+      test('summary no longer appends a duplicate length clause', () {
+        final f = Figure(move: 'hey');
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      });
+    });
+
+    group('dolphin_hey (ContraDB dolphinHeyWords; single-dancer whom)', () {
+      test('default: "whom" renders as a single dancer under a dialect', () {
+        expect(
+          renderer.render(Figure(move: 'dolphin_hey'), larks),
+          'dolphin hey - start with ones passing first lark by right shoulders',
+        );
+      });
+      test('canonical dialect uses the plain role token', () {
+        expect(
+          renderer.render(Figure(move: 'dolphin_hey'), d),
+          'dolphin hey - start with ones passing first role1 by right shoulders',
+        );
+      });
+    });
+
+    group('form_long_waves (ContraDB formLongWavesWords)', () {
+      test('default: who faces in, the other pair faces out', () {
+        expect(
+          renderer.render(Figure(move: 'form_long_waves'), larks),
+          'form long waves - larks face in, robins face out',
+        );
+      });
+    });
+
+    group('form_a_long_wave (ContraDB formALongWaveWords)', () {
+      test('default (in + balance)', () {
+        expect(
+          renderer.render(Figure(move: 'form_a_long_wave'), larks),
+          'robins dance in to a long wave in the center - balance the wave',
+        );
+      });
+      test('out only (+ balance) -> "dance out & balance"', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'form_a_long_wave',
+              params: {'in': false, 'out': true},
+            ),
+            larks,
+          ),
+          'larks dance out & balance',
+        );
+      });
+      test('out + in -> "<other> dance out while <who> dance in…"', () {
+        expect(
+          renderer.render(
+            Figure(move: 'form_a_long_wave', params: {'in': true, 'out': true}),
+            larks,
+          ),
+          'larks dance out while robins dance in to a long wave in the center - balance the wave',
+        );
+      });
+      test('neither in nor out -> the move-name form', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'form_a_long_wave',
+              params: {'in': false, 'out': false, 'balance': false},
+            ),
+            larks,
+          ),
+          'robins form a long wave in the center',
+        );
+      });
+    });
+
+    group('robust to unexpected / uncoerced param values (no silent drops)', () {
+      // The display base renderers must surface unexpected non-null values via
+      // best-effort humanize rather than blank them out (OWASP: never silently
+      // hide untrusted/imported input) — and never emit a dangling connective.
+      test('square_through places outside {2,3,4} degrade, never throw', () {
+        expect(
+          renderer.render(
+            Figure(move: 'square_through', params: {'places': 6}),
+            d,
+          ),
+          'square through 6 - partner balance & pull by right, then neighbor pull by left',
+        );
+      });
+      test(
+        'cross_trails surfaces an unknown subject (structural clause kept)',
+        () {
+          // ContraDB always emits both dir/shoulder clauses; an empty second
+          // subject leaves the (still meaningful) structural clause, and the
+          // unknown first subject is humanized rather than dropped.
+          expect(
+            renderer.render(
+              Figure(
+                move: 'cross_trails',
+                params: {'who': 'someImportedGroup', 'who2': ''},
+              ),
+              d,
+            ),
+            'cross trails - some imported group across the set right shoulders, along the set left shoulders',
+          );
+        },
+      );
+      test('poussette drops the direction clause for an unknown turn', () {
+        expect(
+          renderer.render(
+            Figure(move: 'poussette', params: {'turn': 'sideways'}),
+            d,
+          ),
+          'half poussette - ones pull neighbor',
+        );
+      });
+      test('hey surfaces an unknown shoulder rather than blanking', () {
+        expect(
+          renderer.render(
+            Figure(move: 'hey', params: {'shoulder': 'eitherSide'}),
+            d,
+          ),
+          'role2s start a half hey - either side in center, either side on ends',
+        );
+      });
+      test('form_a_long_wave surfaces an unknown subject', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'form_a_long_wave',
+              params: {'who': 'oddDancers', 'balance': false},
+            ),
+            d,
+          ),
+          'odd dancers dance in to a long wave in the center',
+        );
+      });
+      test('form_a_long_wave out-only surfaces a wildcard balance', () {
+        // The out-only branch must surface '*' (like the sibling branches'
+        // maybeBalance) instead of collapsing it into a concrete "& balance".
+        expect(
+          renderer.render(
+            Figure(
+              move: 'form_a_long_wave',
+              params: {'in': false, 'out': true, 'balance': '*'},
+            ),
+            d,
+          ),
+          'role1s dance out & *',
+        );
+      });
+      test('form_a_long_wave out-only omits balance for false/unexpected', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'form_a_long_wave',
+              params: {'in': false, 'out': true, 'balance': 'maybe'},
+            ),
+            d,
+          ),
+          'role1s dance out',
         );
       });
     });

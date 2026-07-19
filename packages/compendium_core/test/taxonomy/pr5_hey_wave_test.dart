@@ -297,11 +297,20 @@ void main() {
   });
 
   group('dialect round-trip unaffected', () {
-    test('hey pass1 role token maps under dialect and round-trips', () {
+    test('hey pass1 role token maps under dialect; canonical round-trips', () {
+      // PR3 rewrote the hey DISPLAY into ContraDB's fuller clause; the dialect
+      // still maps the pass1 role token (role2s -> robins).
       final display = renderer.render(Figure(move: 'hey'), Dialect.larksRobins);
-      expect(display, 'robins hey right');
       expect(
-        canonicalizeText(display, Dialect.larksRobins),
+        display,
+        'robins start a half hey - rights in center, lefts on ends',
+      );
+      // The canonical text (the dedupe/FTS key) is unchanged and still
+      // round-trips through canonicalizeText.
+      final canonical = renderer.renderCanonical(Figure(move: 'hey'));
+      expect(canonical, 'role2s hey right');
+      expect(
+        canonicalizeText(canonical, Dialect.larksRobins),
         'role2s hey right',
       );
     });
