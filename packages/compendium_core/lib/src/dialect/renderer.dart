@@ -12,6 +12,20 @@ const Set<String> roleTokens = {'role1', 'role2', 'role1s', 'role2s'};
 final RegExp _placeholder = RegExp(r'\{(\w+)\}');
 final RegExp _camelBoundary = RegExp(r'(?<=[a-z])(?=[A-Z])');
 
+/// Signature of a DISPLAY-ONLY base-line renderer (see
+/// [FigureRenderer._displayBaseRenderers]). Rebuilds the whole terse line for a
+/// move that adopts ContraDB's `words()` sentence structure verbatim, using the
+/// already-resolved effective [params] and the active [dialect]. Never invoked
+/// for the canonical render (which keeps expanding `renderTemplate`).
+typedef _DisplayBaseRenderer =
+    String Function(
+      FigureRenderer r,
+      MoveDef def,
+      Map<String, Object?> params,
+      Dialect dialect,
+      bool verbose,
+    );
+
 /// Where a move's `balance` flag renders relative to the terse base line, per
 /// ContraDB `libfigure` word order. [leading] prepends the "balance &" prefix
 /// to the whole line (ContraDB emits the balance token before any subject);
@@ -84,7 +98,16 @@ class FigureRenderer {
     var out = base;
     // Balance flag → a "balance &" (visual) / "balance and" (verbose) prefix,
     // positioned per ContraDB's per-move word order (see [_balancePlacement]).
-    if (params['balance'] == true) {
+    // box_circulate is special (ratified decision): ContraDB models it with a
+    // default-TRUE balance (`balance_true`), so its summary shows the balance
+    // prefix BY DEFAULT. We keep the taxonomy default false (canonical stays
+    // byte-stable) and instead treat an *unset* balance as shown here, checking
+    // the raw `figure.params` so an explicit `balance:false` still suppresses.
+    final showBalance =
+        params['balance'] == true ||
+        (figure.move == 'box_circulate' &&
+            !figure.params.containsKey('balance'));
+    if (showBalance) {
       final placement = _balancePlacement[figure.move];
       if (placement != null) {
         final connective = _renderPrefix('balance', verbose);
@@ -164,12 +187,10 @@ class FigureRenderer {
             return '';
         }
       case 'revolving_door':
-        // ContraDB `revolvingDoorWords` describes the outcome the terse line
-        // can't: the leaders drop their partners off on the far side (which is
-        // also the progression). who/hand/whom already render in the base line;
-        // this adds only the "drop off on the other side" outcome, so it does
-        // not repeat a param. Fixed structural vocabulary → dialect-independent.
-        return ' — drop off on the other side';
+        // The revolving_door display base line (see [_displayBaseRenderers])
+        // already renders ContraDB's full "…and drop off <whom> on other side"
+        // outcome, so no extra summary clause is appended (it would duplicate).
+        return '';
       default:
         return '';
     }
@@ -197,6 +218,19 @@ class FigureRenderer {
       return figure.move;
     }
     final params = taxonomy.effectiveParams(figure);
+    // DISPLAY-ONLY base-line reword: a handful of moves adopt ContraDB's
+    // `words()` sentence structure verbatim (not a suffix), so the whole terse
+    // line is rebuilt rather than expanded from `renderTemplate`. Gated behind
+    // `!forCanonical` so `renderCanonical` keeps expanding the template and
+    // stays byte-for-byte stable (the dedupe/FTS invariant).
+    if (!forCanonical) {
+      final displayBase = _displayBaseRenderers[def.id];
+      if (displayBase != null) {
+        return _collapseSpaces(
+          displayBase(this, def, params, dialect, verbose),
+        );
+      }
+    }
     // Aliases render under their own name (a "see saw" is not shown as
     // "do si do"); dialect move substitution is still keyed canonically.
     final alias = taxonomy.aliases[figure.move];
@@ -272,6 +306,38 @@ class FigureRenderer {
         (forCanonical ? null : _displayMoveNameOverrides[moveId]);
     return _applyMoveSubstitution(substitution, displayName, params);
   }
+
+  /// DISPLAY-ONLY rendering of a single dancer/role [token] for the
+  /// [_displayBaseRenderers] base lines: role tokens map to the dialect role
+  /// term (canonical token when unmapped), [Dialect.dancers] substitutions
+  /// win next, then positional dancer sets read as the PR1 singular subject
+  /// (`partners` → `partner`), else the token humanizes. Mirrors the
+  /// display-path branch of [_renderValue]; never used by the canonical render.
+  String _displayDancer(String token, Dialect dialect) {
+    if (roleTokens.contains(token)) return _roleTerm(token, dialect);
+    final substitution = dialect.dancers[token];
+    if (substitution != null) return substitution;
+    return _singularDancerSets[token] ?? _humanize(token);
+  }
+
+  /// DISPLAY-ONLY: renders a dancer/role subject [value] of any type for the
+  /// [_displayBaseRenderers] base lines. A `String` routes through
+  /// [_displayDancer]; a non-null non-`String` (which
+  /// [Taxonomy.effectiveParams] passes through uncoerced) is surfaced via
+  /// best-effort [_humanize] rather than silently blanked — malformed
+  /// imported/user data must be visible, not hidden. `null` renders empty so
+  /// the caller can drop the connective.
+  String _displaySubject(Object? value, Dialect dialect) {
+    if (value == null) return '';
+    if (value is String) return _displayDancer(value, dialect);
+    return _humanize(value.toString());
+  }
+
+  /// DISPLAY-ONLY: best-effort humanization of a non-dancer scalar param
+  /// [value] (e.g. a hand side) for the [_displayBaseRenderers] base lines.
+  /// Unknown non-null values are surfaced, not blanked; `null` renders empty.
+  static String _displayScalar(Object? value) =>
+      value == null ? '' : _humanize(value.toString());
 
   /// Display name for [moveId] under [dialect] for the dance editor / figure
   /// rows: applies [Dialect.moves] substitution (with `%S` shoulder/hand
@@ -499,6 +565,100 @@ class FigureRenderer {
     'nextNeighbors': 'next neighbor',
     'thirdNeighbors': 'third neighbor',
     'fourthNeighbors': 'fourth neighbor',
+  };
+
+  /// DISPLAY-ONLY base-line renderers that adopt ContraDB `libfigure`
+  /// (`app/javascript/libfigure/figure.js` @13f38a5) `words()` sentence
+  /// structure verbatim for moves whose display wording is a base-line
+  /// restructure (not a trailing suffix). Consulted in [_render] only when
+  /// `!forCanonical`; the canonical render keeps expanding `renderTemplate`, so
+  /// the dedupe/FTS text stays byte-for-byte stable. Dancer/role tokens map
+  /// through [_displayDancer] (dialect-aware + PR1 singularization); move names
+  /// through [_renderMoveName].
+  static final Map<String, _DisplayBaseRenderer> _displayBaseRenderers = {
+    // ContraDB `zigZagWords`: words(twho, "zig", sspin, "zag", return_sspin, …).
+    // The zag direction is the mirror of the zig (`turn`) direction. ContraDB
+    // omits the partners subject; per the ratified decision we instead surface
+    // it as a trailing "with <subject>" (singular, per PR1). The ender clause is
+    // appended separately by [_summarySuffix].
+    'zig_zag': (r, def, params, dialect, verbose) {
+      final turnRaw = params['turn'];
+      final turn = turnRaw is String
+          ? turnRaw
+          : turnRaw == null
+          ? 'left'
+          : _humanize(turnRaw.toString());
+      final zag = turn == 'left'
+          ? 'right'
+          : turn == 'right'
+          ? 'left'
+          : turn;
+      final swho = r._displaySubject(params['who'], dialect);
+      // Omit the "with <subject>" suffix entirely when the subject renders
+      // empty — never emit a dangling "with".
+      final suffix = swho.isEmpty ? '' : ' with $swho';
+      return 'zig $turn zag $zag$suffix';
+    },
+    // ContraDB `slice` has no `words` fn → `figureGenericWords` over its labels:
+    // words(smove, sslide, sincrement, sreturn). `slice_increment` couple→"",
+    // dancer→"one dancer" (`stringParamSliceIncrement`); `slice_return`
+    // straight→"and straight back", diagonal→"and diagonal back", none→""
+    // (`stringParamSliceReturn`). Unknown non-null by/return values humanize
+    // (surfacing malformed data) rather than rendering as the empty default.
+    'slice': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final slideRaw = params['slice'];
+      final slide = slideRaw is String
+          ? slideRaw
+          : slideRaw == null
+          ? 'left'
+          : _humanize(slideRaw.toString());
+      final by = params['by'];
+      final byWord = by == null || by == 'couple'
+          ? ''
+          : by == 'dancer'
+          ? 'one dancer'
+          : _humanize(by.toString());
+      final ret = params['return'];
+      final retWord = ret == null || ret == 'none'
+          ? ''
+          : ret == 'straight'
+          ? 'and straight back'
+          : ret == 'diagonal'
+          ? 'and diagonal back'
+          : _humanize(ret.toString());
+      return '$move $slide $byWord $retWord';
+    },
+    // ContraDB `madRobinWords`: words(smove, tangle, comma, srole, "in front"),
+    // tangle = angle !== 360 && sangle + " around". Our `turn` is a rotation
+    // (1.0 == 360° == once), so the "<turn> around" clause is shown only for a
+    // non-default turn (formatted via our rotation vocabulary — an approximation
+    // of ContraDB's degrees wording).
+    'mad_robin': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final turn = params['turn'];
+      final around = (turn is num && turn != 1.0)
+          ? ' ${verbose ? _formatRotationVerbose(turn) : _formatRotation(turn)} around'
+          : '';
+      final swho = r._displaySubject(params['who'], dialect);
+      // Only emit the comma + "<subject> in front" when the subject renders
+      // non-empty (never "mad robin, " with nothing after it).
+      final subject = swho.isEmpty ? '' : ', $swho in front';
+      return '$move$around$subject';
+    },
+    // ContraDB `revolvingDoorWords`: words(smove, " - ", ssubject, "take",
+    // shand, "hands and drop off", sobject, "on other side"). The subject
+    // (role2s) stays a plural role term; the object (partners) singularizes per
+    // PR1. Unknown non-null who/whom/hand values humanize (surfacing malformed
+    // data) rather than blanking out. This base line already carries the
+    // drop-off outcome, so [_summarySuffix] no longer appends its own clarifier.
+    'revolving_door': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final swho = r._displaySubject(params['who'], dialect);
+      final hand = _displayScalar(params['hand']);
+      final swhom = r._displaySubject(params['whom'], dialect);
+      return '$move - $swho take $hand hands and drop off $swhom on other side';
+    },
   };
 
   /// Where the `balance` flag's "balance &" prefix sits relative to the base

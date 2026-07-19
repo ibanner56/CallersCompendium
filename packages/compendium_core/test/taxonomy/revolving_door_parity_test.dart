@@ -28,21 +28,30 @@ void main() {
     );
   });
 
-  test('display render maps role tokens under a dialect', () {
+  test('display render adopts ContraDB revolving-door wording under a dialect', () {
+    // ContraDB `revolvingDoorWords`: "revolving door - <who> take <hand> hands
+    // and drop off <whom> on other side". who=role2s stays a plural role term;
+    // whom=partners singularizes per PR1.
     expect(
       renderer.render(Figure(move: 'revolving_door'), Dialect.larksRobins),
-      'robins revolving door right partner',
+      'revolving door - robins take right hands and drop off partner on other side',
     );
   });
 
-  test('renderSummary adds the ContraDB-parity drop-off clarifier', () {
+  test('renderSummary does not double the drop-off clause', () {
+    // The display base line already carries "…drop off … on other side", so the
+    // summary must not append its old " — drop off on the other side" clause.
     final summary = renderer.renderSummary(
       Figure(move: 'revolving_door'),
       Dialect.canonical,
     );
     expect(
       summary,
-      'role2s revolving door right partner — drop off on the other side',
+      'revolving door - role2s take right hands and drop off partner on other side',
+    );
+    expect(
+      summary,
+      renderer.render(Figure(move: 'revolving_door'), Dialect.canonical),
     );
   });
 

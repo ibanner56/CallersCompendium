@@ -688,7 +688,7 @@ void main() {
             Figure(move: 'zig_zag', params: {'ender': 'ring'}),
             d,
           ),
-          'partner zig zag left into a ring',
+          'zig left zag right with partner into a ring',
         );
       });
       test('allemande reads the comma-prefixed catching-hands clause', () {
@@ -697,7 +697,7 @@ void main() {
             Figure(move: 'zig_zag', params: {'ender': 'allemande'}),
             d,
           ),
-          'partner zig zag left, trailing two catching hands',
+          'zig left zag right with partner, trailing two catching hands',
         );
       });
     });
@@ -740,8 +740,21 @@ void main() {
           'balance and partner box circulate',
         );
       });
-      test('box_circulate default (balance:false) is unchanged', () {
+      test('box_circulate shows balance BY DEFAULT (unset balance)', () {
+        // Ratified decision: ContraDB models box circulate with a default-true
+        // balance, so an unset balance surfaces the prefix in display. The
+        // taxonomy default stays false so renderCanonical is byte-stable.
         final f = Figure(move: 'box_circulate');
+        expect(renderer.renderSummary(f, d), 'balance & partner box circulate');
+        expect(
+          renderer.renderSummary(f, d, verbose: true),
+          'balance and partner box circulate',
+        );
+        // canonical is untouched by the display default.
+        expect(renderer.renderCanonical(f), 'partners box circulate');
+      });
+      test('box_circulate explicit balance:false suppresses the prefix', () {
+        final f = Figure(move: 'box_circulate', params: {'balance': false});
         expect(renderer.renderSummary(f, d), 'partner box circulate');
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
@@ -1101,6 +1114,240 @@ void main() {
         expect(
           renderer.renderVerbose(Figure(move: 'shoulder_round'), d),
           'neighbor right shoulder round once',
+        );
+      });
+    });
+  });
+
+  group('PR2 display parity — idioms & adopted ContraDB wording', () {
+    final d = Dialect.canonical;
+
+    group('renderCanonical is unchanged (the invariant)', () {
+      // Every touched move: canonical keeps its OLD template expansion (plural
+      // subjects, template word order) that the PR2 display reword replaces.
+      final cases = <String, Figure>{
+        'partners zig zag left': Figure(move: 'zig_zag'),
+        'slice left couple straight': Figure(move: 'slice'),
+        'ones mad robin once': Figure(move: 'mad_robin'),
+        'role2s revolving door right partners': Figure(move: 'revolving_door'),
+        'partners box circulate': Figure(move: 'box_circulate'),
+        // Explicit-param variants prove the display reword never leaks into
+        // the search/dedupe text.
+        'partners zig zag right': Figure(
+          move: 'zig_zag',
+          params: {'turn': 'right'},
+        ),
+        'neighbors zig zag left': Figure(
+          move: 'zig_zag',
+          params: {'who': 'neighbors'},
+        ),
+        'slice left dancer none': Figure(
+          move: 'slice',
+          params: {'by': 'dancer', 'return': 'none'},
+        ),
+        'slice right couple diagonal': Figure(
+          move: 'slice',
+          params: {'slice': 'right', 'return': 'diagonal'},
+        ),
+        'ones mad robin 1½': Figure(move: 'mad_robin', params: {'turn': 1.5}),
+        'role2s revolving door left partners': Figure(
+          move: 'revolving_door',
+          params: {'hand': 'left'},
+        ),
+      };
+      cases.forEach((expected, figure) {
+        test('"$expected"', () {
+          expect(renderer.renderCanonical(figure), expected);
+          // Exercising display + summary must never disturb canonical.
+          renderer.render(figure, d);
+          renderer.renderSummary(figure, d);
+          renderer.renderSummary(figure, d, verbose: true);
+          expect(renderer.renderCanonical(figure), expected);
+        });
+      });
+    });
+
+    group('zig_zag ("with <subject>" suffix)', () {
+      test('default reads "zig left zag right with partner"', () {
+        expect(
+          renderer.render(Figure(move: 'zig_zag'), d),
+          'zig left zag right with partner',
+        );
+      });
+      test('turn=right mirrors the direction words', () {
+        expect(
+          renderer.render(
+            Figure(move: 'zig_zag', params: {'turn': 'right'}),
+            d,
+          ),
+          'zig right zag left with partner',
+        );
+      });
+      test('non-default subject is singularized in the suffix', () {
+        expect(
+          renderer.render(
+            Figure(move: 'zig_zag', params: {'who': 'neighbors'}),
+            d,
+          ),
+          'zig left zag right with neighbor',
+        );
+      });
+      test('subject role term is dialect-aware', () {
+        expect(
+          renderer.render(Figure(move: 'zig_zag'), Dialect.larksRobins),
+          'zig left zag right with partner',
+        );
+      });
+    });
+
+    group('slice (ContraDB generic-words label reword)', () {
+      test('default reads "slice left and straight back"', () {
+        expect(
+          renderer.render(Figure(move: 'slice'), d),
+          'slice left and straight back',
+        );
+      });
+      test('by dancer reads "one dancer"', () {
+        expect(
+          renderer.render(Figure(move: 'slice', params: {'by': 'dancer'}), d),
+          'slice left one dancer and straight back',
+        );
+      });
+      test('return none drops the "…back" clause', () {
+        expect(
+          renderer.render(Figure(move: 'slice', params: {'return': 'none'}), d),
+          'slice left',
+        );
+      });
+      test('return diagonal reads "and diagonal back"', () {
+        expect(
+          renderer.render(
+            Figure(move: 'slice', params: {'return': 'diagonal'}),
+            d,
+          ),
+          'slice left and diagonal back',
+        );
+      });
+      test('slide right renders the direction', () {
+        expect(
+          renderer.render(Figure(move: 'slice', params: {'slice': 'right'}), d),
+          'slice right and straight back',
+        );
+      });
+    });
+
+    group('mad_robin (base-line reorder)', () {
+      test('default reads "mad robin, ones in front"', () {
+        expect(
+          renderer.render(Figure(move: 'mad_robin'), d),
+          'mad robin, ones in front',
+        );
+      });
+      test('non-default turn adds the "<turn> around" clause', () {
+        expect(
+          renderer.render(Figure(move: 'mad_robin', params: {'turn': 1.5}), d),
+          'mad robin 1½ around, ones in front',
+        );
+      });
+      test('non-default subject is singularized', () {
+        expect(
+          renderer.render(
+            Figure(move: 'mad_robin', params: {'who': 'neighbors'}),
+            d,
+          ),
+          'mad robin, neighbor in front',
+        );
+      });
+    });
+
+    group('revolving_door (ContraDB wording verbatim)', () {
+      test('default base line under canonical', () {
+        expect(
+          renderer.render(Figure(move: 'revolving_door'), d),
+          'revolving door - role2s take right hands and drop off partner on other side',
+        );
+      });
+      test('roles map under a dialect; whom singularized', () {
+        expect(
+          renderer.render(Figure(move: 'revolving_door'), Dialect.larksRobins),
+          'revolving door - robins take right hands and drop off partner on other side',
+        );
+      });
+      test('explicit hand renders in the "take <hand> hands" slot', () {
+        expect(
+          renderer.render(
+            Figure(move: 'revolving_door', params: {'hand': 'left'}),
+            d,
+          ),
+          'revolving door - role2s take left hands and drop off partner on other side',
+        );
+      });
+      test('summary does not append a duplicate drop-off clause', () {
+        final f = Figure(move: 'revolving_door');
+        expect(renderer.renderSummary(f, d), renderer.render(f, d));
+      });
+    });
+
+    group('robust to unexpected / uncoerced param values (no silent drops)', () {
+      // Taxonomy.effectiveParams passes raw values through without coercion, so
+      // the display base renderers must surface unexpected non-null values via
+      // best-effort humanize rather than blank them out (OWASP: never silently
+      // hide untrusted/imported input) — and never emit a dangling connective.
+      test('zig_zag surfaces an unknown subject in the "with" suffix', () {
+        expect(
+          renderer.render(
+            Figure(move: 'zig_zag', params: {'who': 'someImportedGroup'}),
+            d,
+          ),
+          'zig left zag right with some imported group',
+        );
+      });
+      test('zig_zag drops the "with" suffix for an empty subject', () {
+        expect(
+          renderer.render(Figure(move: 'zig_zag', params: {'who': ''}), d),
+          'zig left zag right',
+        );
+      });
+      test('slice surfaces unknown by/return values instead of blanking', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'slice',
+              params: {'by': 'wholeSet', 'return': 'loopBack'},
+            ),
+            d,
+          ),
+          'slice left whole set loop back',
+        );
+      });
+      test('mad_robin surfaces an unknown subject, no dangling comma', () {
+        expect(
+          renderer.render(
+            Figure(move: 'mad_robin', params: {'who': 'oddDancers'}),
+            d,
+          ),
+          'mad robin, odd dancers in front',
+        );
+        // An empty subject omits the comma clause entirely.
+        expect(
+          renderer.render(Figure(move: 'mad_robin', params: {'who': ''}), d),
+          'mad robin',
+        );
+      });
+      test('revolving_door surfaces unknown who/whom/hand values', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'revolving_door',
+              params: {
+                'who': 'oddLeaders',
+                'hand': 'either',
+                'whom': 'someFolks',
+              },
+            ),
+            d,
+          ),
+          'revolving door - odd leaders take either hands and drop off some folks on other side',
         );
       });
     });
