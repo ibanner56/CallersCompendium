@@ -169,23 +169,12 @@ class FigureRenderer {
             ? ' forward'
             : (verbose ? ' forward and back' : ' forward & back');
       case 'hey':
-        // ContraDB renders `full`/`half` as a "half hey"/"full hey" phrase and
-        // the partial lengths as a trailing "until…" clause. On screen the
-        // half/full label is a compact parenthetical to avoid repeating "hey";
-        // the spoken path expands to the full ContraDB phrase. The "until…"
-        // clauses are identical in both paths.
-        switch (params['length']) {
-          case 'half':
-            return verbose ? ', half hey' : ' (half)';
-          case 'full':
-            return verbose ? ', full hey' : ' (full)';
-          case 'lessThanHalf':
-            return ' until someone meets';
-          case 'betweenHalfAndFull':
-            return ' until someone meets the second time';
-          default:
-            return '';
-        }
+        // The hey display base line (see [_displayBaseRenderers]) already
+        // carries the length — the "half"/"full" word inline and the partial
+        // lengths' "until someone meets…" clause — mirroring ContraDB
+        // `heyWords`. Appending anything here would duplicate it, so (like
+        // `revolving_door`) no extra summary clause is added.
+        return '';
       case 'revolving_door':
         // The revolving_door display base line (see [_displayBaseRenderers])
         // already renders ContraDB's full "…and drop off <whom> on other side"
@@ -338,6 +327,46 @@ class FigureRenderer {
   /// Unknown non-null values are surfaced, not blanked; `null` renders empty.
   static String _displayScalar(Object? value) =>
       value == null ? '' : _humanize(value.toString());
+
+  /// DISPLAY-ONLY: the "other pair" for a subject [value], mirroring ContraDB
+  /// `dance.js` `invertPair` (`app/javascript/libfigure/dance.js` @13f38a5).
+  /// ContraDB inverts only the four-dancer pairings it can name
+  /// (role1s↔role2s, ones↔twos, firstCorners↔secondCorners) and returns
+  /// "others" for an empty/undefined subject; it throws on any other value
+  /// (e.g. `partners`, `neighbors`). We never throw — an out-of-domain or
+  /// non-string subject renders the same "others" fallback ContraDB uses for
+  /// the empty case, so a clause never emits a bogus pair. The inverted token
+  /// is mapped through [_displayDancer] so it stays dialect-aware and plural.
+  String _invertPair(Object? value, Dialect dialect) {
+    const inverse = <String, String>{
+      'role1s': 'role2s',
+      'role2s': 'role1s',
+      'ones': 'twos',
+      'twos': 'ones',
+      'firstCorners': 'secondCorners',
+      'secondCorners': 'firstCorners',
+    };
+    final other = value is String ? inverse[value] : null;
+    return other == null ? 'others' : _displayDancer(other, dialect);
+  }
+
+  /// DISPLAY-ONLY: label for a single-dancer identity [token] (`onesRole1` …),
+  /// as `<first|second> <role singular>` — e.g. `first lark` under
+  /// larks/robins, `first role1` under the canonical dialect. Mirrors
+  /// ContraDB's `chooser_dancer` "first/second gentlespoon/ladle" naming
+  /// (`app/javascript/libfigure/chooser.js` @13f38a5). The ordinal (ones→first,
+  /// twos→second) is fixed structural vocabulary; the role word is the active
+  /// dialect's role term. A token that does not match the
+  /// `(ones|twos)(Role1|Role2)` shape falls back to [_displayDancer] so unknown
+  /// values are still surfaced, not blanked.
+  String _singleDancerLabel(Object? value, Dialect dialect) {
+    if (value is! String) return _displaySubject(value, dialect);
+    final match = RegExp(r'^(ones|twos)(Role[12])$').firstMatch(value);
+    if (match == null) return _displayDancer(value, dialect);
+    final ordinal = match[1] == 'ones' ? 'first' : 'second';
+    final role = match[2]!.toLowerCase(); // Role1 -> role1
+    return '$ordinal ${_roleTerm(role, dialect)}';
+  }
 
   /// Display name for [moveId] under [dialect] for the dance editor / figure
   /// rows: applies [Dialect.moves] substitution (with `%S` shoulder/hand
@@ -659,7 +688,410 @@ class FigureRenderer {
       final swhom = r._displaySubject(params['whom'], dialect);
       return '$move - $swho take $hand hands and drop off $swhom on other side';
     },
+    // ContraDB `boxCirculateWords`: words(sbal, smove, "-", words(ssubject,
+    // "cross while", invertPair(subject), "loop", sspin)). The leading balance
+    // is NOT baked in here — it is composed by `renderSummary` via
+    // [_balancePlacement]`[box_circulate] = leading` (PR2's default-shown-balance
+    // handling), so `render()` shows the bare "box circulate - … cross while …
+    // loop right" and only the summary prepends "balance &". `who` (partners)
+    // is outside ContraDB's invert domain, so the loop pair renders "others"
+    // (ContraDB's own empty-subject fallback).
+    'box_circulate': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final swho = r._displaySubject(params['who'], dialect);
+      final other = r._invertPair(params['who'], dialect);
+      final hand = _displayScalar(params['hand']);
+      return '$move - $swho cross while $other loop $hand';
+    },
+    // ContraDB `allemandeOrbitWords`: words(swho, "allemande", sdir, sinner,
+    // "around", "while the", invertPair(who), "orbit", sopposite_dir, souter,
+    // "around"). The orbit direction is the opposite of the allemande hand
+    // (ContraDB: hand truthy/right -> "counter clockwise", left/false ->
+    // "clockwise"). "allemande"/"orbit" are fixed structural literals (not
+    // moveSubstitution). Rotations format through our rotation vocabulary.
+    'allemande_orbit': (r, def, params, dialect, verbose) {
+      final swho = r._displaySubject(params['who'], dialect);
+      final hand = _displayScalar(params['hand']);
+      final oppositeDir = (params['hand'] == 'left' || params['hand'] == null)
+          ? 'clockwise'
+          : 'counter clockwise';
+      final other = r._invertPair(params['who'], dialect);
+      final innerRaw = params['inner'];
+      final outerRaw = params['outer'];
+      final inner = innerRaw is num
+          ? (verbose
+                ? _formatRotationVerbose(innerRaw)
+                : _formatRotation(innerRaw))
+          : _displayScalar(innerRaw);
+      final outer = outerRaw is num
+          ? (verbose
+                ? _formatRotationVerbose(outerRaw)
+                : _formatRotation(outerRaw))
+          : _displayScalar(outerRaw);
+      return [
+        swho,
+        'allemande',
+        hand,
+        inner,
+        'around while the',
+        other,
+        'orbit',
+        oppositeDir,
+        outer,
+        'around',
+      ].where((s) => s.isNotEmpty).join(' ');
+    },
+    // ContraDB `crossTrailsWords`: words(smove, "-", sfirst_who, sfirst_dir,
+    // sfirst_shoulder + ",", ssecond_who, ssecond_dir, ssecond_shoulder). The
+    // second dir/shoulder are the fixed structural inverse of the first
+    // (across<->"along the set"; right<->left shoulders). Shoulders render in
+    // full ("right shoulders"), matching ContraDB `stringParamShoulders`.
+    'cross_trails': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final swho = r._displaySubject(params['who'], dialect);
+      final swho2 = r._displaySubject(params['who2'], dialect);
+      final dir = params['dir'];
+      final firstDir = dir == null
+          ? ''
+          : '${_humanize(dir.toString())} the set';
+      final secondDir = dir == 'across'
+          ? 'along the set'
+          : dir == 'along'
+          ? 'across the set'
+          : dir == '*'
+          ? '* the set'
+          : '';
+      final sh = params['shoulder'];
+      final firstShoulder = sh == null
+          ? ''
+          : '${_humanize(sh.toString())} shoulders';
+      final otherSh = sh == 'right'
+          ? 'left'
+          : sh == 'left'
+          ? 'right'
+          : null;
+      final secondShoulder = otherSh == null ? '' : '$otherSh shoulders';
+      final firstPart = [
+        swho,
+        firstDir,
+        firstShoulder,
+      ].where((s) => s.isNotEmpty).join(' ');
+      final secondPart = [
+        swho2,
+        secondDir,
+        secondShoulder,
+      ].where((s) => s.isNotEmpty).join(' ');
+      final body = secondPart.isEmpty ? firstPart : '$firstPart, $secondPart';
+      return '$move - $body';
+    },
+    // ContraDB `poussetteWords`: words(shalf_or_full, smove, "-", swho, "pull",
+    // swhom, tturn). tturn: turn truthy (clockwise) -> "back then left", falsy
+    // (counterclockwise) -> "back then right", "*"" -> "back then *". The
+    // half/full fraction word leads the clause.
+    'poussette': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final half = _displayScalar(params['half']);
+      final swho = r._displaySubject(params['who'], dialect);
+      final swhom = r._displaySubject(params['whom'], dialect);
+      final turn = params['turn'];
+      final turnWord = turn == 'clockwise'
+          ? 'back then left'
+          : turn == 'counterclockwise'
+          ? 'back then right'
+          : turn == '*'
+          ? 'back then *'
+          : '';
+      final pullClause = swhom.isEmpty ? 'pull' : 'pull $swhom';
+      return [
+        half,
+        move,
+        '-',
+        swho,
+        pullClause,
+        turnWord,
+      ].where((s) => s.isNotEmpty).join(' ');
+    },
+    // ContraDB `facingStarWords`: words(smove, sturn, splaces, "with", swho,
+    // "putting their", shand, "hands in and backing up"). No leading subject.
+    // The hand word is DERIVED from the turn (ContraDB: turn truthy/clockwise ->
+    // "left", counterclockwise/false -> "right"). The turn word itself is our
+    // own spinDirection vocabulary via [_displayScalar] ("clockwise" /
+    // "counterclockwise") — matching the canonical text and every other spin
+    // render — rather than ContraDB's hyphenated "counter-clockwise" spelling;
+    // the default (clockwise) is identical either way.
+    'facing_star': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final turn = params['turn'];
+      final turnWord = _displayScalar(turn);
+      final hand = turn == 'counterclockwise'
+          ? 'right'
+          : turn == '*'
+          ? '*'
+          : 'left';
+      final placesRaw = params['places'];
+      final places = placesRaw is int
+          ? _formatPlaces(placesRaw)
+          : _displayScalar(placesRaw);
+      final swho = r._displaySubject(params['who'], dialect);
+      final withClause = swho.isEmpty ? '' : 'with $swho';
+      return [
+        move,
+        turnWord,
+        places,
+        withClause,
+        'putting their',
+        hand,
+        'hands in and backing up',
+      ].where((s) => s.isNotEmpty).join(' ');
+    },
+    // ContraDB `squareThroughWords`: words(smove, placewords, "-", ssubject1,
+    // sbal, "pull by", shand, comma, "then", ssubject2, "pull by", shand2,
+    // <tail>). The balance is embedded INSIDE the sequence (not via
+    // [_balancePlacement], which has no square_through entry). The second hand
+    // is the opposite of the first. The tail branches on places: 2 -> none,
+    // 4 -> "then repeat", 3 -> repeat the first (balance &) pull. Places outside
+    // {2,3,4} degrade to a humanized count with no tail (never throws, unlike
+    // ContraDB's `throw_up`).
+    'square_through': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final swho = r._displaySubject(params['who'], dialect);
+      final swho2 = r._displaySubject(params['who2'], dialect);
+      final placesRaw = params['places'];
+      final placeWord = placesRaw == 2
+          ? 'two'
+          : placesRaw == 3
+          ? 'three'
+          : placesRaw == 4
+          ? 'four'
+          : placesRaw == '*'
+          ? '*'
+          : placesRaw is num
+          ? _formatNumber(placesRaw)
+          : _displayScalar(placesRaw);
+      final bal = params['balance'] == true
+          ? _renderPrefix('balance', verbose)
+          : '';
+      final hand = _displayScalar(params['hand']);
+      final hand2 = params['hand'] == 'left'
+          ? 'right'
+          : params['hand'] == '*'
+          ? '*'
+          : 'left';
+      String pull(String who, String balPrefix, String h) =>
+          [who, balPrefix, 'pull by', h].where((s) => s.isNotEmpty).join(' ');
+      final seq = <String>[
+        pull(swho, bal, hand),
+        'then ${pull(swho2, '', hand2)}',
+      ];
+      if (placesRaw == 3) {
+        seq.add('then ${pull(swho, bal, hand)}');
+      } else if (placesRaw == 4) {
+        seq.add('then repeat');
+      }
+      return '$move $placeWord - ${seq.join(', ')}';
+    },
+    // ContraDB `heyWords`: words(sfirst_pass, "start", indefiniteArticleFor(mp),
+    // mp, "-", sshoulder, first_place, comma, other_sshoulder, second_place,
+    // uses_until && "-", uses_until && shey_length, rico_string). mp (main move
+    // phrase) = words(sdir2, [shey_length,] smove). Shoulders render TERSE
+    // ("rights"/"lefts") with the second the inverse of the first; the pair pass
+    // is "in center", the other "on ends". `full`/`half` name the length inline;
+    // `lessThanHalf`/`betweenHalfAndFull` instead append "- until someone meets
+    // [the second time]". A non-`across` dir prefixes the phrase. Ricochet flags
+    // add " - <who> ricochet[ first time| second time], …". Because the base
+    // line now carries the length, [_summarySuffix] no longer appends "(half)".
+    'hey': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final pass1 = params['pass1'];
+      final pass2 = params['pass2'];
+      final sfirst = r._displaySubject(pass1, dialect);
+      final length = params['length'];
+      final dir = params['dir'];
+      final sdir2 = (dir == 'across' || dir == null) ? '' : _displayScalar(dir);
+      final usesUntil =
+          length == 'lessThanHalf' || length == 'betweenHalfAndFull';
+      final lengthWord = length == 'half'
+          ? 'half'
+          : length == 'full'
+          ? 'full'
+          : length == '*'
+          ? '*'
+          : usesUntil
+          ? ''
+          : _displayScalar(length);
+      final mainPhrase = [
+        sdir2,
+        lengthWord,
+        move,
+      ].where((s) => s.isNotEmpty).join(' ');
+      final article = _indefiniteArticle(mainPhrase);
+      final sh = params['shoulder'];
+      final terse = _terseShoulder(sh);
+      final otherTerse = _terseShoulder(
+        sh == 'right'
+            ? 'left'
+            : sh == 'left'
+            ? 'right'
+            : sh,
+      );
+      final firstIsPair = _isPairToken(pass1);
+      final firstPlace = firstIsPair ? 'in center' : 'on ends';
+      final secondPlace = firstIsPair ? 'on ends' : 'in center';
+      final shoulderClause = [
+        if (terse.isNotEmpty) '$terse $firstPlace',
+        if (otherTerse.isNotEmpty) '$otherTerse $secondPlace',
+      ].join(', ');
+      final untilClause = length == 'lessThanHalf'
+          ? 'until someone meets'
+          : length == 'betweenHalfAndFull'
+          ? 'until someone meets the second time'
+          : '';
+      // Ricochets: pick the pair pass as the ricochet subject; odd-index flags
+      // reference the inverted (other) pair, matching ContraDB `heyWords`.
+      String center;
+      if (_isPairToken(pass1)) {
+        center = r._displaySubject(pass1, dialect);
+      } else if (_isPairToken(pass2)) {
+        center = r._displaySubject(pass2, dialect);
+      } else {
+        center = sfirst;
+      }
+      final inverted = _isPairToken(pass1)
+          ? r._invertPair(pass1, dialect)
+          : _isPairToken(pass2)
+          ? r._invertPair(pass2, dialect)
+          : center;
+      final ricoFlags = [
+        params['rico1'],
+        params['rico2'],
+        params['rico3'],
+        params['rico4'],
+      ];
+      final ricoStrings = <String>[];
+      for (var i = 0; i < ricoFlags.length; i++) {
+        final flag = ricoFlags[i];
+        if (flag == true || flag == '*') {
+          final who = (i.isOdd) ? inverted : center;
+          final time = length == 'half'
+              ? ''
+              : (i & 2) != 0
+              ? ' second time'
+              : ' first time';
+          final verb = flag == '*' ? 'maybe ricochet' : 'ricochet';
+          if (who.isNotEmpty) ricoStrings.add('$who $verb$time');
+        }
+      }
+      final buffer = StringBuffer();
+      if (sfirst.isNotEmpty) buffer.write('$sfirst ');
+      buffer.write('start $article $mainPhrase');
+      if (shoulderClause.isNotEmpty) buffer.write(' - $shoulderClause');
+      if (usesUntil && untilClause.isNotEmpty) buffer.write(' - $untilClause');
+      if (ricoStrings.isNotEmpty) {
+        buffer.write(' - ${ricoStrings.join(', ')}');
+      }
+      return buffer.toString();
+    },
+    // ContraDB `dolphinHeyWords`: words(smove, "- start with", swho, "passing",
+    // swhom, "by", sshoulder). `whom` is a single-dancer identity, rendered via
+    // [_singleDancerLabel] ("first lark"); the shoulder renders in full
+    // ("right shoulders").
+    'dolphin_hey': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final swho = r._displaySubject(params['who'], dialect);
+      final swhom = r._singleDancerLabel(params['whom'], dialect);
+      final sh = params['shoulder'];
+      final shoulder = sh == null
+          ? ''
+          : '${_humanize(sh.toString())} shoulders';
+      final buffer = StringBuffer('$move - start with');
+      if (swho.isNotEmpty) buffer.write(' $swho');
+      buffer.write(' passing');
+      if (swhom.isNotEmpty) buffer.write(' $swhom');
+      buffer.write(' by');
+      if (shoulder.isNotEmpty) buffer.write(' $shoulder');
+      return buffer.toString();
+    },
+    // ContraDB `formLongWavesWords`: words(smove, "-", ssubject, "face in,",
+    // invertPair(subject), "face out").
+    'form_long_waves': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final swho = r._displaySubject(params['who'], dialect);
+      final other = r._invertPair(params['who'], dialect);
+      return '$move - $swho face in, $other face out';
+    },
+    // ContraDB `formALongWaveWords`: branches on in/out/balance. in only ->
+    // "<who> dance in to a long wave in the center"; out+in -> "<other> dance
+    // out while <who> dance in…"; out only -> "<other> dance out[ & balance]";
+    // neither -> "<who> form a long wave in the center". A truthy balance
+    // appends " - balance the wave" (except the out-only branch, which uses
+    // "& balance").
+    'form_a_long_wave': (r, def, params, dialect, verbose) {
+      final swho = r._displaySubject(params['who'], dialect);
+      final other = r._invertPair(params['who'], dialect);
+      final inFlag = params['in'] == true;
+      final outFlag = params['out'] == true;
+      final bal = params['balance'];
+      final maybeBalance = bal == true
+          ? ' - balance the wave'
+          : bal == '*'
+          ? ' - *'
+          : '';
+      if (outFlag) {
+        if (inFlag) {
+          return '$other dance out while $swho '
+              'dance in to a long wave in the center$maybeBalance';
+        }
+        return '$other dance out${(bal == true || bal == '*') ? ' & balance' : ''}';
+      }
+      if (inFlag) {
+        return '$swho dance in to a long wave in the center$maybeBalance';
+      }
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      return '$swho $move in the center$maybeBalance';
+    },
   };
+
+  /// DISPLAY-ONLY: the four-dancer pairing tokens ContraDB's `dancerIsPair`
+  /// treats as a "pair" for hey center/ends placement, mirroring
+  /// [_invertPair]'s invert domain. Used by the `hey` base line to decide which
+  /// pass dances "in center" vs "on ends".
+  static const Set<String> _pairTokens = {
+    'role1s',
+    'role2s',
+    'ones',
+    'twos',
+    'firstCorners',
+    'secondCorners',
+  };
+
+  static bool _isPairToken(Object? value) =>
+      value is String && _pairTokens.contains(value);
+
+  /// DISPLAY-ONLY: the terse shoulder word for the `hey` base line, mirroring
+  /// ContraDB `stringParamShouldersTerse` (right -> "rights", left -> "lefts",
+  /// "*" -> "* shoulders"). A null value yields "" (no dangling clause); any
+  /// other value is surfaced humanized rather than dropped (OWASP robustness).
+  static String _terseShoulder(Object? value) {
+    if (value == null) return '';
+    switch (value) {
+      case 'right':
+        return 'rights';
+      case 'left':
+        return 'lefts';
+      case '*':
+        return '* shoulders';
+      default:
+        return _humanize(value.toString());
+    }
+  }
+
+  /// DISPLAY-ONLY: the indefinite article ("a"/"an") for [phrase], mirroring
+  /// ContraDB `indefiniteArticleFor` (vowel-initial -> "an", else "a").
+  static String _indefiniteArticle(String phrase) {
+    final trimmed = phrase.trimLeft();
+    if (trimmed.isEmpty) return 'a';
+    return 'aeiou'.contains(trimmed[0].toLowerCase()) ? 'an' : 'a';
+  }
 
   /// Where the `balance` flag's "balance &" prefix sits relative to the base
   /// render, per each move's ContraDB `words` function word order (contradb
