@@ -320,6 +320,25 @@ class FigureRenderer {
     return _singularDancerSets[token] ?? _humanize(token);
   }
 
+  /// DISPLAY-ONLY: renders a dancer/role subject [value] of any type for the
+  /// [_displayBaseRenderers] base lines. A `String` routes through
+  /// [_displayDancer]; a non-null non-`String` (which
+  /// [Taxonomy.effectiveParams] passes through uncoerced) is surfaced via
+  /// best-effort [_humanize] rather than silently blanked — malformed
+  /// imported/user data must be visible, not hidden. `null` renders empty so
+  /// the caller can drop the connective.
+  String _displaySubject(Object? value, Dialect dialect) {
+    if (value == null) return '';
+    if (value is String) return _displayDancer(value, dialect);
+    return _humanize(value.toString());
+  }
+
+  /// DISPLAY-ONLY: best-effort humanization of a non-dancer scalar param
+  /// [value] (e.g. a hand side) for the [_displayBaseRenderers] base lines.
+  /// Unknown non-null values are surfaced, not blanked; `null` renders empty.
+  static String _displayScalar(Object? value) =>
+      value == null ? '' : _humanize(value.toString());
+
   /// Display name for [moveId] under [dialect] for the dance editor / figure
   /// rows: applies [Dialect.moves] substitution (with `%S` shoulder/hand
   /// injection from [params]) when present, otherwise the taxonomy display name
@@ -563,33 +582,51 @@ class FigureRenderer {
     // it as a trailing "with <subject>" (singular, per PR1). The ender clause is
     // appended separately by [_summarySuffix].
     'zig_zag': (r, def, params, dialect, verbose) {
-      final turn = params['turn'] is String ? params['turn'] as String : 'left';
+      final turnRaw = params['turn'];
+      final turn = turnRaw is String
+          ? turnRaw
+          : turnRaw == null
+          ? 'left'
+          : _humanize(turnRaw.toString());
       final zag = turn == 'left'
           ? 'right'
           : turn == 'right'
           ? 'left'
           : turn;
-      final who = params['who'];
-      final swho = who is String ? r._displayDancer(who, dialect) : '';
-      return 'zig $turn zag $zag with $swho';
+      final swho = r._displaySubject(params['who'], dialect);
+      // Omit the "with <subject>" suffix entirely when the subject renders
+      // empty — never emit a dangling "with".
+      final suffix = swho.isEmpty ? '' : ' with $swho';
+      return 'zig $turn zag $zag$suffix';
     },
     // ContraDB `slice` has no `words` fn → `figureGenericWords` over its labels:
     // words(smove, sslide, sincrement, sreturn). `slice_increment` couple→"",
     // dancer→"one dancer" (`stringParamSliceIncrement`); `slice_return`
     // straight→"and straight back", diagonal→"and diagonal back", none→""
-    // (`stringParamSliceReturn`).
+    // (`stringParamSliceReturn`). Unknown non-null by/return values humanize
+    // (surfacing malformed data) rather than rendering as the empty default.
     'slice': (r, def, params, dialect, verbose) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final slide = params['slice'] is String
-          ? params['slice'] as String
-          : 'left';
-      final byWord = params['by'] == 'dancer' ? 'one dancer' : '';
+      final slideRaw = params['slice'];
+      final slide = slideRaw is String
+          ? slideRaw
+          : slideRaw == null
+          ? 'left'
+          : _humanize(slideRaw.toString());
+      final by = params['by'];
+      final byWord = by == null || by == 'couple'
+          ? ''
+          : by == 'dancer'
+          ? 'one dancer'
+          : _humanize(by.toString());
       final ret = params['return'];
-      final retWord = ret == 'straight'
+      final retWord = ret == null || ret == 'none'
+          ? ''
+          : ret == 'straight'
           ? 'and straight back'
           : ret == 'diagonal'
           ? 'and diagonal back'
-          : '';
+          : _humanize(ret.toString());
       return '$move $slide $byWord $retWord';
     },
     // ContraDB `madRobinWords`: words(smove, tangle, comma, srole, "in front"),
@@ -603,22 +640,23 @@ class FigureRenderer {
       final around = (turn is num && turn != 1.0)
           ? ' ${verbose ? _formatRotationVerbose(turn) : _formatRotation(turn)} around'
           : '';
-      final who = params['who'];
-      final swho = who is String ? r._displayDancer(who, dialect) : '';
-      return '$move$around, $swho in front';
+      final swho = r._displaySubject(params['who'], dialect);
+      // Only emit the comma + "<subject> in front" when the subject renders
+      // non-empty (never "mad robin, " with nothing after it).
+      final subject = swho.isEmpty ? '' : ', $swho in front';
+      return '$move$around$subject';
     },
     // ContraDB `revolvingDoorWords`: words(smove, " - ", ssubject, "take",
     // shand, "hands and drop off", sobject, "on other side"). The subject
     // (role2s) stays a plural role term; the object (partners) singularizes per
-    // PR1. This base line already carries the drop-off outcome, so
-    // [_summarySuffix] no longer appends its own clarifier.
+    // PR1. Unknown non-null who/whom/hand values humanize (surfacing malformed
+    // data) rather than blanking out. This base line already carries the
+    // drop-off outcome, so [_summarySuffix] no longer appends its own clarifier.
     'revolving_door': (r, def, params, dialect, verbose) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final who = params['who'];
-      final swho = who is String ? r._displayDancer(who, dialect) : '';
-      final hand = params['hand'] is String ? params['hand'] as String : '';
-      final whom = params['whom'];
-      final swhom = whom is String ? r._displayDancer(whom, dialect) : '';
+      final swho = r._displaySubject(params['who'], dialect);
+      final hand = _displayScalar(params['hand']);
+      final swhom = r._displaySubject(params['whom'], dialect);
       return '$move - $swho take $hand hands and drop off $swhom on other side';
     },
   };

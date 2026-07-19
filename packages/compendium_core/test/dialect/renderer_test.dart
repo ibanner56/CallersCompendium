@@ -1275,5 +1275,69 @@ void main() {
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
     });
+
+    group('robust to unexpected / uncoerced param values (no silent drops)', () {
+      // Taxonomy.effectiveParams passes raw values through without coercion, so
+      // the display base renderers must surface unexpected non-null values via
+      // best-effort humanize rather than blank them out (OWASP: never silently
+      // hide untrusted/imported input) — and never emit a dangling connective.
+      test('zig_zag surfaces an unknown subject in the "with" suffix', () {
+        expect(
+          renderer.render(
+            Figure(move: 'zig_zag', params: {'who': 'someImportedGroup'}),
+            d,
+          ),
+          'zig left zag right with some imported group',
+        );
+      });
+      test('zig_zag drops the "with" suffix for an empty subject', () {
+        expect(
+          renderer.render(Figure(move: 'zig_zag', params: {'who': ''}), d),
+          'zig left zag right',
+        );
+      });
+      test('slice surfaces unknown by/return values instead of blanking', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'slice',
+              params: {'by': 'wholeSet', 'return': 'loopBack'},
+            ),
+            d,
+          ),
+          'slice left whole set loop back',
+        );
+      });
+      test('mad_robin surfaces an unknown subject, no dangling comma', () {
+        expect(
+          renderer.render(
+            Figure(move: 'mad_robin', params: {'who': 'oddDancers'}),
+            d,
+          ),
+          'mad robin, odd dancers in front',
+        );
+        // An empty subject omits the comma clause entirely.
+        expect(
+          renderer.render(Figure(move: 'mad_robin', params: {'who': ''}), d),
+          'mad robin',
+        );
+      });
+      test('revolving_door surfaces unknown who/whom/hand values', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'revolving_door',
+              params: {
+                'who': 'oddLeaders',
+                'hand': 'either',
+                'whom': 'someFolks',
+              },
+            ),
+            d,
+          ),
+          'revolving door - odd leaders take either hands and drop off some folks on other side',
+        );
+      });
+    });
   });
 }
