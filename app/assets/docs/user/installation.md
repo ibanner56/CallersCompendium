@@ -106,6 +106,14 @@ yet, so you install this file directly (sometimes called *sideloading*).
 3. Allow installing from that app, then continue.
 4. Finish the install and open Caller's Compendium.
 
+> **Upgrading from the very first beta (`v0.1.0-beta.1`)?** That early Android
+> build used a different internal app identifier, so a newer build installs
+> *alongside* it rather than over the top, and your data does **not** carry over
+> on its own. Before you switch: open the old app, **export a backup** (Settings ▸
+> General ▸ Export a backup), uninstall the old app, install the new `.apk`, then
+> **restore** from that backup. This one-time step only affects testers coming
+> from `beta.1`.
+
 ## On iPhone and iPad
 
 There isn't an iPhone or iPad version in this beta yet. An **iOS/iPadOS** build

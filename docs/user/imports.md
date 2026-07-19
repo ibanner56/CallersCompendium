@@ -191,16 +191,20 @@ watches for matches:
   keep both as a **duplicate**, or **skip** the new one. It never merges dances
   on its own.
 
-## Coming soon
+## Importing whole programs
 
-One import path is planned but **not available yet**. When it lands, this guide
-will gain step-by-step instructions for it.
+Everything above brings in **dances**. You can also import a **whole program**
+— a night's set list — in one go, and Caller's Compendium matches each dance to
+your collection (or imports it for you) as it reads the list:
 
-- **Importing programs from more places.** Today, program history comes across
-  only from a Caller's Companion `.USR` file. Building a program from a
-  **ContraDB** event or from a **plain-text list of dance titles** — matching
-  each dance to your collection (or importing it) as it goes — is planned but not
-  yet something you can do from the app.
+- **From a plain-text list of dance titles** you already have written down, and
+- **From a ContraDB event**, by pasting its link or searching for it by name.
+
+Both live in the **Import program** menu on the **Programs** screen rather than
+the **Import…** flow here, because they build a program, not just add dances. For
+step-by-step instructions, see
+[Programs & matrix › Import a program](./programs.md#import-a-program-from-contradb)
+and [Build from a list of titles](./programs.md#build-from-a-list-of-titles).
 
 ## Where to go next
 
