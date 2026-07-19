@@ -603,7 +603,8 @@ jobs:
           security find-identity -v -p codesigning "$keychain"
 
           # Install the App Store provisioning profile so MANUAL export signing
-          # can find it by name. Automatic export signing insists on cloud
+          # can find it (ExportOptions.plist below references it by UUID).
+          # Automatic export signing insists on cloud
           # signing for the distribution identity (which fails: our distribution
           # cert is not Apple-managed), so the export below uses signingStyle
           # manual against this pre-provisioned profile + the imported cert. The
@@ -689,11 +690,13 @@ jobs:
           # credentials to its internal `xcodebuild archive`, so that archive
           # has no account and fails automatic signing with "No Accounts".
           # Instead: (1) build the Flutter assets + generated project UNSIGNED,
-          # then (2) archive and (3) export with xcodebuild directly, passing the
-          # API key explicitly. The distribution certificate was imported LOCALLY
-          # in the prepare step, so automatic signing uses it (no cloud signing);
-          # -allowProvisioningUpdates + the API key only create/download the
-          # matching App Store provisioning profile.
+          # then (2) archive and (3) export with xcodebuild directly.
+          # (2) The archive uses AUTOMATIC signing: -allowProvisioningUpdates +
+          # the API key let Xcode mint/download a DEVELOPMENT identity + profile
+          # solely to produce the archive (the cloud can mint dev identities).
+          # (3) The export re-signs with MANUAL signing against the LOCALLY-
+          # imported distribution cert + the pre-installed App Store profile
+          # (no portal access), so a dev-signed archive is a fine input.
           key_path="$HOME/.appstoreconnect/private_keys/AuthKey_${APPLE_API_KEY_ID}.p8"
 
           # 1) Flutter build — populates Generated.xcconfig (incl. the build
