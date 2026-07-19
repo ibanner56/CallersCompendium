@@ -72,10 +72,21 @@ void main() {
   });
 
   group('display rendering maps role tokens via dialect', () {
-    test('star_promenade role1s → Larks', () {
+    test('star_promenade omits its default role1s subject in display', () {
+      // PR1: star_promenade omits its default role subject (ContraDB drops the
+      // gentlespoons subject); the hand/turn still render.
       expect(
         renderer.render(Figure(move: 'star_promenade'), Dialect.larksRobins),
-        'larks star promenade right ½',
+        'star promenade right ½',
+      );
+    });
+    test('a non-default role subject still maps under the dialect', () {
+      expect(
+        renderer.render(
+          Figure(move: 'star_promenade', params: {'who': 'role2s'}),
+          Dialect.larksRobins,
+        ),
+        'robins star promenade right ½',
       );
     });
   });

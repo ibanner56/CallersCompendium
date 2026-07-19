@@ -67,33 +67,33 @@ void main() {
     test('none renders no prefix word', () {
       expect(
         renderer.render(swing('none'), Dialect.canonical),
-        'neighbors swing',
+        'neighbor swing',
       );
       expect(
         renderer.renderVerbose(swing('none'), Dialect.canonical),
-        'neighbors swing',
+        'neighbor swing',
       );
     });
 
     test('balance renders "balance & swing" / verbose "balance and swing"', () {
       expect(
         renderer.render(swing('balance'), Dialect.canonical),
-        'neighbors balance & swing',
+        'neighbor balance & swing',
       );
       expect(
         renderer.renderVerbose(swing('balance'), Dialect.canonical),
-        'neighbors balance and swing',
+        'neighbor balance and swing',
       );
     });
 
     test('meltdown renders "meltdown swing" (visual and verbose)', () {
       expect(
         renderer.render(swing('meltdown'), Dialect.canonical),
-        'neighbors meltdown swing',
+        'neighbor meltdown swing',
       );
       expect(
         renderer.renderVerbose(swing('meltdown'), Dialect.canonical),
-        'neighbors meltdown swing',
+        'neighbor meltdown swing',
       );
     });
 
@@ -103,7 +103,7 @@ void main() {
           Figure(move: 'swing', params: {'who': 'partners'}),
           Dialect.canonical,
         ),
-        'partners swing',
+        'partner swing',
       );
     });
 
@@ -112,14 +112,14 @@ void main() {
       // must not render a second time.
       expect(
         renderer.render(Figure(move: 'meltdown_swing'), Dialect.canonical),
-        'partners meltdown swing',
+        'partner meltdown swing',
       );
       expect(
         renderer.renderVerbose(
           Figure(move: 'meltdown_swing'),
           Dialect.canonical,
         ),
-        'partners meltdown swing',
+        'partner meltdown swing',
       );
     });
 
@@ -158,10 +158,7 @@ void main() {
         ),
         'larks swing',
       );
-      expect(
-        renderer.render(Figure(move: 'chain'), larks),
-        'robins chain across',
-      );
+      expect(renderer.render(Figure(move: 'chain'), larks), 'robins chain');
     });
 
     test('non-role dancers are untouched by role dialect', () {
@@ -170,7 +167,7 @@ void main() {
           Figure(move: 'swing', params: {'who': 'partners'}),
           larks,
         ),
-        'partners swing',
+        'partner swing',
       );
     });
 
@@ -186,7 +183,7 @@ void main() {
           ),
           dialect,
         ),
-        'partners left shoulder round once',
+        'partner left shoulder round once',
       );
     });
 
@@ -227,10 +224,7 @@ void main() {
     test('dancer substitution and role substitution coexist', () {
       final dialect = larks.copyWith(dancers: {'neighbors': 'the others'});
       // neighbors -> dancer substitution; chain's role2s -> role term.
-      expect(
-        renderer.render(Figure(move: 'chain'), dialect),
-        'robins chain across',
-      );
+      expect(renderer.render(Figure(move: 'chain'), dialect), 'robins chain');
       expect(
         renderer.render(
           Figure(move: 'swing', params: {'who': 'neighbors'}),
@@ -247,7 +241,7 @@ void main() {
           Figure(move: 'swing', params: {'who': 'nextNeighbors'}),
           dialect,
         ),
-        'next neighbors swing',
+        'next neighbor swing',
       );
     });
   });
@@ -292,28 +286,28 @@ void main() {
           Figure(move: 'allemande', params: {'hand': 'left', 'turn': 1.5}),
           larks,
         ),
-        'neighbors allemande left one and a half times',
+        'neighbor allemande left one and a half times',
       );
       expect(
         renderer.renderVerbose(
           Figure(move: 'allemande', params: {'turn': 1.25}),
           larks,
         ),
-        'neighbors allemande right one and a quarter times',
+        'neighbor allemande right one and a quarter times',
       );
       expect(
         renderer.renderVerbose(
           Figure(move: 'allemande', params: {'turn': 1.75}),
           larks,
         ),
-        'neighbors allemande right one and three quarters times',
+        'neighbor allemande right one and three quarters times',
       );
       expect(
         renderer.renderVerbose(
           Figure(move: 'allemande', params: {'turn': 2.5}),
           larks,
         ),
-        'neighbors allemande right two and a half times',
+        'neighbor allemande right two and a half times',
       );
     });
 
@@ -323,14 +317,14 @@ void main() {
           Figure(move: 'do_si_do', params: {'who': 'partners'}),
           larks,
         ),
-        'partners do si do once',
+        'partner do si do once',
       );
       expect(
         renderer.renderVerbose(
           Figure(move: 'allemande', params: {'turn': 2}),
           larks,
         ),
-        'neighbors allemande right twice',
+        'neighbor allemande right twice',
       );
     });
 
@@ -368,7 +362,7 @@ void main() {
       );
       expect(
         renderer.renderVerbose(Figure(move: 'chain'), larks),
-        'robins chain across',
+        'robins chain',
       );
     });
 
@@ -578,7 +572,7 @@ void main() {
       test('default turn-couple ender is surfaced', () {
         expect(
           renderer.renderSummary(Figure(move: 'down_the_hall'), d),
-          'everyone down the hall forward and turn as a couple',
+          'down the hall and turn as a couple',
         );
       });
 
@@ -591,7 +585,7 @@ void main() {
         final f = Figure(move: 'down_the_hall', params: {'ender': 'circle'});
         expect(
           renderer.renderSummary(f, d),
-          'everyone down the hall forward and bend into a ring',
+          'down the hall and bend into a ring',
         );
       });
 
@@ -622,7 +616,7 @@ void main() {
       test('up the hall default circle ender is surfaced', () {
         expect(
           renderer.renderSummary(Figure(move: 'up_the_hall'), d),
-          'everyone up the hall forward and bend into a ring',
+          'up the hall and bend into a ring',
         );
       });
     });
@@ -682,7 +676,7 @@ void main() {
             Figure(move: 'zig_zag', params: {'ender': 'ring'}),
             d,
           ),
-          'partners zig zag left into a ring',
+          'partner zig zag left into a ring',
         );
       });
       test('allemande reads the comma-prefixed catching-hands clause', () {
@@ -691,7 +685,7 @@ void main() {
             Figure(move: 'zig_zag', params: {'ender': 'allemande'}),
             d,
           ),
-          'partners zig zag left, trailing two catching hands',
+          'partner zig zag left, trailing two catching hands',
         );
       });
     });
@@ -713,7 +707,7 @@ void main() {
       });
       test('pull_by_direction (leading) surfaces balance when set', () {
         final f = Figure(move: 'pull_by_direction', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'balance & pull by along right');
+        expect(renderer.renderSummary(f, d), 'balance & pull by right');
         // default (balance:false) is untouched.
         final g = Figure(move: 'pull_by_direction');
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
@@ -721,36 +715,33 @@ void main() {
       test('rory_o_more (leading, balance before subject)', () {
         expect(
           renderer.renderSummary(Figure(move: 'rory_o_more'), d),
-          'balance & everyone Rory O\'More right',
+          'balance & Rory O\'More right',
         );
         final f = Figure(move: 'rory_o_more', params: {'balance': false});
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
       test('box_circulate (leading) surfaces balance when set', () {
         final f = Figure(move: 'box_circulate', params: {'balance': true});
-        expect(
-          renderer.renderSummary(f, d),
-          'balance & partners box circulate',
-        );
+        expect(renderer.renderSummary(f, d), 'balance & partner box circulate');
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'balance and partners box circulate',
+          'balance and partner box circulate',
         );
       });
       test('box_circulate default (balance:false) is unchanged', () {
         final f = Figure(move: 'box_circulate');
-        expect(renderer.renderSummary(f, d), 'partners box circulate');
+        expect(renderer.renderSummary(f, d), 'partner box circulate');
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
       test('pull_by_dancers (after-who) inserts balance before the move', () {
         final f = Figure(move: 'pull_by_dancers', params: {'balance': true});
         expect(
           renderer.renderSummary(f, d),
-          'neighbors balance & pull by right',
+          'neighbor balance & pull by right',
         );
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'neighbors balance and pull by right',
+          'neighbor balance and pull by right',
         );
         final g = Figure(move: 'pull_by_dancers');
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
@@ -769,7 +760,7 @@ void main() {
           // mirrors california_twirl). A plain star_through therefore never
           // surfaces a balance prefix — renderSummary matches render exactly.
           final f = Figure(move: 'star_through', params: {'who': 'partners'});
-          expect(renderer.renderSummary(f, d), 'partners star through');
+          expect(renderer.renderSummary(f, d), 'partner star through');
           expect(renderer.renderSummary(f, d), renderer.render(f, d));
         },
       );
@@ -778,10 +769,10 @@ void main() {
         // balance, so adding "balance &" is a strict improvement, not a new
         // divergence (the hand omission is pre-existing base behavior).
         final f = Figure(move: 'box_the_gnat', params: {'balance': true});
-        expect(renderer.renderSummary(f, d), 'partners balance & box the gnat');
+        expect(renderer.renderSummary(f, d), 'partner balance & box the gnat');
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'partners balance and box the gnat',
+          'partner balance and box the gnat',
         );
         final g = Figure(move: 'box_the_gnat', params: {'balance': false});
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
@@ -790,13 +781,10 @@ void main() {
         // The alias renders under its own name, so the connective must splice
         // before the RENDERED alias name ("swat the flea"), not the target's.
         final f = Figure(move: 'swat_the_flea', params: {'balance': true});
-        expect(
-          renderer.renderSummary(f, d),
-          'partners balance & swat the flea',
-        );
+        expect(renderer.renderSummary(f, d), 'partner balance & swat the flea');
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'partners balance and swat the flea',
+          'partner balance and swat the flea',
         );
         final g = Figure(move: 'swat_the_flea', params: {'balance': false});
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
@@ -836,7 +824,7 @@ void main() {
       // swing already carries its prefix via the render template.
       final f = Figure(move: 'swing', params: {'prefix': 'balance'});
       expect(renderer.renderSummary(f, d), renderer.render(f, d));
-      expect(renderer.renderSummary(f, d), 'partners balance & swing');
+      expect(renderer.renderSummary(f, d), 'partner balance & swing');
     });
 
     test('summary is dialect-aware via its base render', () {
@@ -846,6 +834,263 @@ void main() {
       final larksSummary = renderer.renderSummary(f, Dialect.larksRobins);
       expect(larksSummary, endsWith(' (full)'));
       expect(larksSummary, startsWith(renderer.render(f, Dialect.larksRobins)));
+    });
+  });
+
+  // PR1: DISPLAY parity with ContraDB `libfigure` (silenced default
+  // direction/facing, omitted default subject, singularized positional dancer
+  // sets, shoulder_round shoulder injection). The display path may diverge from
+  // renderCanonical; renderCanonical (search/dedupe text) must stay unchanged.
+  group('PR1 display parity (ContraDB libfigure)', () {
+    final d = Dialect.canonical;
+
+    group('renderCanonical is unchanged (the invariant)', () {
+      // Every touched move: canonical keeps the plural subjects and the
+      // silenced default tokens (dir/facing) that the display path drops.
+      final cases = <String, Figure>{
+        'pass through along': Figure(move: 'pass_through'),
+        'right left through across': Figure(move: 'right_left_through'),
+        'role2s chain across': Figure(move: 'chain'),
+        'partners promenade across': Figure(move: 'promenade'),
+        'pull by along right': Figure(move: 'pull_by_direction'),
+        'everyone down the hall forward': Figure(move: 'down_the_hall'),
+        'everyone up the hall forward': Figure(move: 'up_the_hall'),
+        'everyone turn alone': Figure(move: 'turn_alone'),
+        'everyone Rory O\'More right': Figure(move: 'rory_o_more'),
+        'role1s star promenade right ½': Figure(move: 'star_promenade'),
+        'neighbors shoulder round once': Figure(move: 'shoulder_round'),
+      };
+      cases.forEach((expected, figure) {
+        test('"$expected"', () {
+          expect(renderer.renderCanonical(figure), expected);
+        });
+      });
+    });
+
+    group('silence default set-direction / facing', () {
+      // ContraDB stringParamSetDirectionSilencingDefault / march_forward.
+      test('pass_through drops the default "along"', () {
+        expect(
+          renderer.render(Figure(move: 'pass_through'), d),
+          'pass through',
+        );
+      });
+      test('pass_through keeps a non-default direction', () {
+        expect(
+          renderer.render(
+            Figure(move: 'pass_through', params: {'dir': 'across'}),
+            d,
+          ),
+          'pass through across',
+        );
+      });
+      test('right_left_through drops the default "across"', () {
+        expect(
+          renderer.render(Figure(move: 'right_left_through'), d),
+          'right left through',
+        );
+      });
+      test(
+        'chain drops the default "across" (subject role term kept plural)',
+        () {
+          expect(renderer.render(Figure(move: 'chain'), d), 'role2s chain');
+          expect(
+            renderer.render(Figure(move: 'chain'), Dialect.larksRobins),
+            'robins chain',
+          );
+        },
+      );
+      test('chain keeps a non-default direction', () {
+        expect(
+          renderer.render(Figure(move: 'chain', params: {'dir': 'along'}), d),
+          'role2s chain along',
+        );
+      });
+      test('promenade drops the default "across"', () {
+        expect(
+          renderer.render(Figure(move: 'promenade'), d),
+          'partner promenade',
+        );
+      });
+      test('promenade keeps a non-default direction', () {
+        expect(
+          renderer.render(
+            Figure(move: 'promenade', params: {'dir': 'along'}),
+            d,
+          ),
+          'partner promenade along',
+        );
+      });
+      test('pull_by_direction drops the default "along"', () {
+        expect(
+          renderer.render(Figure(move: 'pull_by_direction'), d),
+          'pull by right',
+        );
+      });
+      test('pull_by_direction keeps a non-default direction', () {
+        expect(
+          renderer.render(
+            Figure(move: 'pull_by_direction', params: {'dir': 'across'}),
+            d,
+          ),
+          'pull by across right',
+        );
+      });
+      test('down_the_hall drops the default "forward" facing', () {
+        // Base render (no ender clause) omits the silenced facing.
+        expect(
+          renderer.render(
+            Figure(move: 'down_the_hall', params: {'ender': 'none'}),
+            d,
+          ),
+          'down the hall',
+        );
+      });
+      test('down_the_hall keeps a non-default facing', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'down_the_hall',
+              params: {'ender': 'none', 'facing': 'backward'},
+            ),
+            d,
+          ),
+          'down the hall backward',
+        );
+      });
+    });
+
+    group('omit default subject', () {
+      // ContraDB upOrDownTheHallWords (who === "everyone" ? "" : swho) and the
+      // per-move subject omission; star_promenade omits its role subject.
+      test('down_the_hall summary omits everyone + forward', () {
+        expect(
+          renderer.renderSummary(Figure(move: 'down_the_hall'), d),
+          'down the hall and turn as a couple',
+        );
+      });
+      test('up_the_hall summary omits everyone + forward', () {
+        expect(
+          renderer.renderSummary(Figure(move: 'up_the_hall'), d),
+          'up the hall and bend into a ring',
+        );
+      });
+      test('turn_alone omits the default everyone', () {
+        expect(renderer.render(Figure(move: 'turn_alone'), d), 'turn alone');
+      });
+      test('rory_o_more summary omits everyone (balance leads)', () {
+        expect(
+          renderer.renderSummary(Figure(move: 'rory_o_more'), d),
+          'balance & Rory O\'More right',
+        );
+      });
+      test('star_promenade omits the default role1s subject', () {
+        expect(
+          renderer.render(Figure(move: 'star_promenade'), d),
+          'star promenade right ½',
+        );
+      });
+      test('a non-default subject still renders (down_the_hall)', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'down_the_hall',
+              params: {'who': 'ones', 'ender': 'none'},
+            ),
+            d,
+          ),
+          'ones down the hall',
+        );
+      });
+      test('a non-default subject still renders (star_promenade)', () {
+        expect(
+          renderer.render(
+            Figure(move: 'star_promenade', params: {'who': 'role2s'}),
+            d,
+          ),
+          'role2s star promenade right ½',
+        );
+      });
+    });
+
+    group('singularize positional dancer sets (role tokens untouched)', () {
+      test('partners → partner', () {
+        expect(
+          renderer.render(
+            Figure(move: 'swing', params: {'who': 'partners'}),
+            d,
+          ),
+          'partner swing',
+        );
+      });
+      test('neighbors → neighbor', () {
+        expect(
+          renderer.render(
+            Figure(move: 'swing', params: {'who': 'neighbors'}),
+            d,
+          ),
+          'neighbor swing',
+        );
+      });
+      test('shadows → shadow', () {
+        expect(
+          renderer.render(Figure(move: 'swing', params: {'who': 'shadows'}), d),
+          'shadow swing',
+        );
+      });
+      test('nextNeighbors → next neighbor', () {
+        expect(
+          renderer.render(
+            Figure(move: 'swing', params: {'who': 'nextNeighbors'}),
+            d,
+          ),
+          'next neighbor swing',
+        );
+      });
+      test('role tokens are NOT singularized (stay plural role terms)', () {
+        expect(
+          renderer.render(Figure(move: 'swing', params: {'who': 'role1s'}), d),
+          'role1s swing',
+        );
+        expect(
+          renderer.render(
+            Figure(move: 'swing', params: {'who': 'role1s'}),
+            Dialect.larksRobins,
+          ),
+          'larks swing',
+        );
+      });
+      test('ones/everyone are NOT singularized', () {
+        expect(
+          renderer.render(Figure(move: 'swing', params: {'who': 'ones'}), d),
+          'ones swing',
+        );
+      });
+    });
+
+    group('shoulder_round renders the shoulder in display', () {
+      // ContraDB gyreWords expands %S to the shoulder side.
+      test('default: neighbor right shoulder round once', () {
+        expect(
+          renderer.render(Figure(move: 'shoulder_round'), d),
+          'neighbor right shoulder round once',
+        );
+      });
+      test('non-default shoulder still renders', () {
+        expect(
+          renderer.render(
+            Figure(move: 'shoulder_round', params: {'shoulder': 'left'}),
+            d,
+          ),
+          'neighbor left shoulder round once',
+        );
+      });
+      test('verbose keeps the injected shoulder', () {
+        expect(
+          renderer.renderVerbose(Figure(move: 'shoulder_round'), d),
+          'neighbor right shoulder round once',
+        );
+      });
     });
   });
 }

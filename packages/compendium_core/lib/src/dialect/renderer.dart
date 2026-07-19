@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import '../taxonomy/move_def.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'dialect.dart';
@@ -28,7 +29,16 @@ class FigureRenderer {
 
   /// Canonical text for [figure]: role tokens stay as `role1`/`role2`, no
   /// dialect. Used to build the search index.
-  String renderCanonical(Figure figure) => _render(figure, Dialect.canonical);
+  ///
+  /// This is the ONE invariant: its output is persisted to
+  /// `dance_figures.canonicalText` / `dance_fts` and is the dedupe key, so it
+  /// must stay byte-for-byte stable. It passes `forCanonical: true`, which
+  /// bypasses every display-only polish (silenced defaults, subject omission,
+  /// dancer-set singularization, shoulder injection) that [render] /
+  /// [renderSummary] apply. As a result `render(figure, Dialect.canonical)`
+  /// legitimately diverges from `renderCanonical(figure)`.
+  String renderCanonical(Figure figure) =>
+      _render(figure, Dialect.canonical, forCanonical: true);
 
   /// Display text for [figure] under [dialect] (roles + move names mapped).
   String render(Figure figure, Dialect dialect) => _render(figure, dialect);
@@ -165,7 +175,18 @@ class FigureRenderer {
     }
   }
 
-  String _render(Figure figure, Dialect dialect, {bool verbose = false}) {
+  /// Renders [figure]. When [forCanonical] is true (only [renderCanonical]),
+  /// every display-only polish is bypassed so the search/dedupe text stays
+  /// stable; when false ([render]/[renderVerbose]/[renderSummary]) the
+  /// ContraDB-parity display transforms — silenced default direction/facing,
+  /// omitted default subject, singularized positional dancer sets, and the
+  /// shoulder_round shoulder injection — are applied.
+  String _render(
+    Figure figure,
+    Dialect dialect, {
+    bool verbose = false,
+    bool forCanonical = false,
+  }) {
     if (figure.isCustom) {
       final text = (figure.params['text'] as String?)?.trim() ?? '';
       return text.isEmpty ? customMove : renderFreeText(text, dialect);
@@ -187,26 +208,70 @@ class FigureRenderer {
     final rendered = def.renderTemplate.replaceAllMapped(_placeholder, (m) {
       final name = m[1]!;
       if (name == 'move') {
-        return _renderMoveName(def.id, displayName, params, dialect);
+        return _renderMoveName(
+          def.id,
+          displayName,
+          params,
+          dialect,
+          forCanonical,
+        );
       }
       if (pinned.containsKey(name)) return '';
+      // Display-only omission of a param whose value equals its silenced
+      // default (direction/facing) or the move's default subject.
+      if (!forCanonical && _isDisplaySilenced(def, name, params[name])) {
+        return '';
+      }
       return _renderValue(
         name,
         params[name],
         def.params[name],
         dialect,
         verbose,
+        forCanonical,
       );
     });
     return _collapseSpaces(rendered);
+  }
+
+  /// Whether the template token [name] of [def] is omitted in the DISPLAY path
+  /// because [value] equals a silenced default. Two ContraDB-parity rules:
+  ///
+  /// - set-direction / facing silencing: the param is omitted when it equals
+  ///   the move's default (ContraDB `stringParamSetDirectionSilencingDefault`
+  ///   and the `march_forward` "forward" default). Enumerated per move in
+  ///   [_silencedDefaultParams].
+  /// - default-subject omission: `who` is omitted when it equals the move's
+  ///   `who` default, for the moves in [_omitDefaultSubject] (ContraDB
+  ///   `upOrDownTheHallWords` `who === "everyone" ? "" : swho`, plus
+  ///   star_promenade's role-subject omission).
+  bool _isDisplaySilenced(MoveDef def, String name, Object? value) {
+    if (name == 'who' && _omitDefaultSubject.contains(def.id)) {
+      return value == def.params['who']?.defaultValue;
+    }
+    if (_silencedDefaultParams[def.id] == name) {
+      return value == def.params[name]?.defaultValue;
+    }
+    return false;
   }
 
   String _renderMoveName(
     String moveId,
     String displayName,
     Map<String, Object?> params,
-    Dialect dialect,
-  ) => _applyMoveSubstitution(dialect.moves[moveId], displayName, params);
+    Dialect dialect, [
+    bool forCanonical = false,
+  ]) {
+    // Display path: fall back to a built-in `%S` move-name override (e.g.
+    // shoulder_round → "%S shoulder round") when the dialect provides none, so
+    // the shoulder word surfaces even under the canonical/identity dialect.
+    // ContraDB `gyreWords` expands `%S` to the shoulder side. Never applied to
+    // the canonical render (the search/dedupe text keeps the bare move name).
+    final substitution =
+        dialect.moves[moveId] ??
+        (forCanonical ? null : _displayMoveNameOverrides[moveId]);
+    return _applyMoveSubstitution(substitution, displayName, params);
+  }
 
   /// Display name for [moveId] under [dialect] for the dance editor / figure
   /// rows: applies [Dialect.moves] substitution (with `%S` shoulder/hand
@@ -271,6 +336,7 @@ class FigureRenderer {
     ParamSpec? spec,
     Dialect dialect,
     bool verbose,
+    bool forCanonical,
   ) {
     if (value == null) return '';
     if (value is String && roleTokens.contains(value)) {
@@ -286,6 +352,13 @@ class FigureRenderer {
             spec?.kind == ParamKind.dancerPair)) {
       final substitution = dialect.dancers[value];
       if (substitution != null) return substitution;
+      // Display-only: positional dancer sets read as singular subjects
+      // (`neighbors` → `neighbor`). Role tokens are handled above and never
+      // singularized; the canonical render keeps the plural token.
+      if (!forCanonical) {
+        final singular = _singularDancerSets[value];
+        if (singular != null) return singular;
+      }
     }
     if (spec?.kind == ParamKind.rotation && value is num) {
       return verbose ? _formatRotationVerbose(value) : _formatRotation(value);
@@ -362,6 +435,71 @@ class FigureRenderer {
   /// ContraDB `libfigure` hey-length wording is emitted inline by
   /// [_summarySuffix] (compact parenthetical on screen, "half hey"/"full hey"
   /// or the "until…" clause when spoken), so no lookup table is needed here.
+
+  /// DISPLAY-ONLY: the single template param, per move, whose value is omitted
+  /// when it equals the move's taxonomy default. Mirrors ContraDB's per-param
+  /// `stringParamSetDirectionSilencingDefault(<default>)`
+  /// (`app/javascript/libfigure/param.js` @13f38a5) for the `dir` (set
+  /// direction) params, and the `facing`/`march_forward` "forward" default for
+  /// the hall moves. A non-default value still renders. `cross_trails` is
+  /// intentionally absent — it is out of PR1 scope. The canonical render is
+  /// never affected (it keeps `pass through along`, `everyone down the hall
+  /// forward`, etc.).
+  static const Map<String, String> _silencedDefaultParams = {
+    // ContraDB set_direction_along → silences default 'along'.
+    'pass_through': 'dir',
+    'pull_by_direction': 'dir',
+    // ContraDB set_direction_across/acrossish → silences default 'across'.
+    'right_left_through': 'dir',
+    'chain': 'dir',
+    'promenade': 'dir',
+    // ContraDB march_forward → silences the "forward" facing default.
+    'down_the_hall': 'facing',
+    'up_the_hall': 'facing',
+  };
+
+  /// DISPLAY-ONLY: moves whose `who` subject is omitted when it equals the
+  /// move's `who` default. Mirrors ContraDB `upOrDownTheHallWords`
+  /// (`who === "everyone" ? "" : swho`) for the hall moves, ContraDB's
+  /// `everyone`-omitting subject rendering for `turn_alone`/`rory_o_more`, and
+  /// star_promenade's role-subject omission (ContraDB drops the gentlespoons
+  /// subject there). This omission is NOT generalized to other role subjects.
+  /// A non-default `who` still renders.
+  static const Set<String> _omitDefaultSubject = {
+    'down_the_hall',
+    'up_the_hall',
+    'turn_alone',
+    'rory_o_more',
+    'star_promenade',
+  };
+
+  /// DISPLAY-ONLY built-in move-name overrides applied when the active dialect
+  /// supplies no substitution, so the wording surfaces even under the
+  /// canonical/identity dialect. `%S` expands to the figure's shoulder/hand
+  /// side (see [_applyMoveSubstitution]). ContraDB `gyreWords` renders the
+  /// shoulder via the same `%S` expansion (`neighbor right shoulder round`).
+  /// The canonical render keeps the bare `{move}` display name.
+  static const Map<String, String> _displayMoveNameOverrides = {
+    'shoulder_round': '%S shoulder round',
+  };
+
+  /// DISPLAY-ONLY singular forms for the positional dancer-set vocabulary that
+  /// otherwise humanizes to a `partner`/`neighbor`/`shadow` plural. A figure's
+  /// subject reads as a singular dancer in display (`neighbors` → `neighbor`),
+  /// while the canonical render keeps the plural token. Role tokens
+  /// (`role1s`/`role2s`) and the group tokens `everyone`/`ones`/`twos`/
+  /// `centers`/`firstCorners`/`secondCorners`/`sameRoles` are intentionally
+  /// absent — they are never singularized.
+  static const Map<String, String> _singularDancerSets = {
+    'partners': 'partner',
+    'neighbors': 'neighbor',
+    'shadows': 'shadow',
+    'secondShadows': 'second shadow',
+    'prevNeighbors': 'prev neighbor',
+    'nextNeighbors': 'next neighbor',
+    'thirdNeighbors': 'third neighbor',
+    'fourthNeighbors': 'fourth neighbor',
+  };
 
   /// Where the `balance` flag's "balance &" prefix sits relative to the base
   /// render, per each move's ContraDB `words` function word order (contradb
