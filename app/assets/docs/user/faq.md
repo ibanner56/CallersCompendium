@@ -65,7 +65,8 @@ input.
 Open the dance or program and use its share/export options — you can share as
 text or export a PDF. A program also offers **Share (program + dances)**, which
 bundles the set list together with every dance it uses into one file the
-recipient can import whole. This is separate from a full backup. See
+recipient can import in a single step — dances and all, not just a list of
+titles. This is separate from a full backup. See
 [Collection & search](./collection.md) for dances and
 [Programs & matrix](./programs.md#print-export-and-email-a-program) for programs.
 

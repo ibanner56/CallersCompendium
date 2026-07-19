@@ -203,7 +203,7 @@ your collection (or imports it for you) as it reads the list:
 Both live in the **Import program** menu on the **Programs** screen rather than
 the **Import…** flow here, because they build a program, not just add dances. For
 step-by-step instructions, see
-[Programs & matrix › Import a program](./programs.md#import-a-program-from-contradb)
+[Programs & matrix › Import a program from ContraDB](./programs.md#import-a-program-from-contradb)
 and [Build from a list of titles](./programs.md#build-from-a-list-of-titles).
 
 ## Where to go next
