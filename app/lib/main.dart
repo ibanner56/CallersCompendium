@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
+import 'src/data/archive_intake_service.dart';
 import 'src/data/backup_controller_scope.dart';
 import 'src/data/collection_refresh_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
@@ -14,6 +15,7 @@ import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
+import 'src/data/incoming_file_channel.dart';
 import 'src/data/migration_guard.dart';
 import 'src/data/colour_dance_theme_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
@@ -28,6 +30,7 @@ import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/licenses.dart';
 import 'src/screens/app_shell.dart';
+import 'src/screens/program_summary_screen.dart';
 import 'src/screens/settings_screen.dart'
     show
         kAppThemeKey,
@@ -61,6 +64,7 @@ Future<void> main() async {
         runningSchemaVersion: kCompendiumSchemaVersion,
       ),
       seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
+      incomingFileChannel: IncomingFileChannel(),
     ),
   );
 }
@@ -92,6 +96,8 @@ class CompendiumApp extends StatefulWidget {
     this.migrationPreflight,
     this.integrityCheck,
     this.seedInitialCollection,
+    this.incomingFileChannel,
+    this.incomingFileReader,
   });
 
   /// The already-opened database + repositories facade. Injected from [main]
@@ -124,6 +130,21 @@ class CompendiumApp extends StatefulWidget {
   /// seed failure is non-fatal to startup, mirroring [integrityCheck].
   final Future<void> Function(CompendiumRepositories repos)?
   seedInitialCollection;
+
+  /// Delivers the path of a shared [CompendiumArchive] file the OS handed the
+  /// app (AirDrop / "Open with" / a share intent) so it can be imported and the
+  /// restored program auto-opened (issue #298, receive side). Injected from
+  /// [main] with a real [IncomingFileChannel]; left `null` in tests that don't
+  /// exercise intake, which disables the wiring entirely (no platform-channel
+  /// traffic), and can be given a fake channel to drive intake without the OS.
+  final IncomingFileChannel? incomingFileChannel;
+
+  /// Reads the bytes of an incoming shared file for [ArchiveIntakeService].
+  /// Defaults to the service's disk reader (which enforces the size cap before
+  /// reading). Injected in widget tests so intake runs entirely in-memory with
+  /// no real file I/O — real disk reads would be started inside the test's
+  /// faked-time zone and never complete. Left `null` in production.
+  final ArchiveByteReader? incomingFileReader;
 
   @override
   State<CompendiumApp> createState() => _CompendiumAppState();
@@ -173,6 +194,21 @@ class _CompendiumAppState extends State<CompendiumApp> {
   bool _dataIntegrityOk = true;
   bool _corruptionBannerShown = false;
 
+  /// Routes shared-file imports (issue #298) to a screen and surfaces
+  /// snackbars: a global navigator + messenger so the incoming-file handler can
+  /// open the imported program and report results from outside the widget tree.
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<ScaffoldMessengerState> _messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
+  /// Subscription to files delivered while the app is running. Null when no
+  /// [CompendiumApp.incomingFileChannel] was injected (intake disabled).
+  StreamSubscription<String>? _incomingFileSub;
+
+  /// Guards the one-time cold-start file check so it runs only once, after the
+  /// ready UI is first shown.
+  bool _initialFileChecked = false;
+
   @override
   void initState() {
     super.initState();
@@ -184,6 +220,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dialectLibrary = DialectLibraryController(_appData.repositories.settings);
     _dialectLibrary.addListener(_syncActiveDialect);
     _updateController = UpdateController(_appData.repositories.settings);
+    // Listen for files opened while the app is running (AirDrop / "Open with"
+    // on an already-launched app). The cold-start file is pulled once the ready
+    // UI is shown (see [_buildReadyApp]). No-op when intake is not wired.
+    final channel = widget.incomingFileChannel;
+    if (channel != null) {
+      channel.start();
+      _incomingFileSub = channel.files.listen(_handleIncomingFile);
+    }
     _bootstrap = _startupSequence();
   }
 
@@ -191,6 +235,57 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// every `ActiveDialectScope` consumer sees changes live.
   void _syncActiveDialect() {
     _dialectNotifier.value = _dialectLibrary.active;
+  }
+
+  /// Imports a shared [CompendiumArchive] file (issue #298, receive side) the OS
+  /// handed the app, then auto-opens the restored program.
+  ///
+  /// The file is **untrusted input**: [ArchiveIntakeService] enforces a size
+  /// cap, validates the archive schema/version, and never throws — a bad file
+  /// resolves to a rejection message shown in a snackbar. On success the
+  /// imported dances/programs are committed through the shared import pipeline,
+  /// the live Collection is refreshed, and the restored program is pushed.
+  Future<void> _handleIncomingFile(String path) async {
+    final intake = ArchiveIntakeService(
+      repositories: _appData.repositories,
+      readBytes: widget.incomingFileReader,
+    );
+    final result = await intake.importFromPath(path);
+    if (!mounted) return;
+
+    if (result.isRejected) {
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          key: const ValueKey('shared-import-error'),
+          content: Text(result.message ?? "Couldn't import the shared file."),
+        ),
+      );
+      return;
+    }
+
+    // Refresh the live Collection so imported dances appear immediately, using
+    // the same revision notifier the manual Import flow bumps via
+    // [CollectionRefreshScope].
+    _collectionRefreshNotifier.value++;
+
+    final programId = result.programId;
+    if (programId == null) {
+      // A bundle with dances but no program: nothing to open, but confirm the
+      // import landed.
+      _messengerKey.currentState?.showSnackBar(
+        const SnackBar(
+          key: ValueKey('shared-import-ok'),
+          content: Text('Imported shared dances.'),
+        ),
+      );
+      return;
+    }
+
+    await _navigatorKey.currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProgramSummaryScreen(programId: programId),
+      ),
+    );
   }
 
   Future<void> _startupSequence() async {
@@ -362,6 +457,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
   @override
   void dispose() {
+    unawaited(_incomingFileSub?.cancel());
+    widget.incomingFileChannel?.dispose();
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
@@ -423,6 +520,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
         );
       });
     }
+    // Cold start: the app may have been launched to open a shared file. Pull it
+    // once now that the ready UI is shown, so the imported program opens over
+    // the app shell (not the loading screen). No-op when intake isn't wired.
+    final channel = widget.incomingFileChannel;
+    if (channel != null && !_initialFileChecked) {
+      _initialFileChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final path = await channel.initialFile();
+        if (!mounted || path == null) return;
+        await _handleIncomingFile(path);
+      });
+    }
     return const AppShell();
   }
 
@@ -468,6 +578,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
         return MaterialApp(
           title: "Caller's Compendium",
+          navigatorKey: _navigatorKey,
+          scaffoldMessengerKey: _messengerKey,
           theme: lightTheme,
           darkTheme: darkTheme,
           highContrastTheme: AppTheme.highContrast,
