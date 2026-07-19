@@ -221,4 +221,84 @@ void main() {
     await importer.undo(result);
     expect(await programs.listAll(), isEmpty);
   });
+
+  test(
+    'a crafted archive with duplicate program ids collapses to one program',
+    () async {
+      // Untrusted input: two programs sharing the same id (=> same provenance
+      // externalId) within a single bundle must not insert twice.
+      final d1 = _dance('orig-d1', 'Simplicity Swing');
+      Program dup(String title) => Program(
+        id: 'orig-dup',
+        title: title,
+        status: ProgramStatus.draft,
+        slots: [ProgramSlot(id: 'sl-$title', position: 0, danceId: 'orig-d1')],
+        createdAt: DateTime.utc(2026, 4, 1),
+        updatedAt: DateTime.utc(2026, 4, 1),
+      );
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [d1],
+        programs: [dup('First'), dup('Second')],
+      );
+
+      final result = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('slot'),
+      );
+
+      // Exactly one program persisted, carrying the last-seen state.
+      final all = await programs.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.title, 'Second');
+      expect(result.programs, hasLength(1));
+      expect(result.insertedProgramCount, 1);
+      expect(result.updatedProgramCount, 0);
+
+      // Undo removes it cleanly (the second occurrence was an in-commit update
+      // of our own insert, so no bogus prior state was captured).
+      await importer.undo(result);
+      expect(await programs.listAll(), isEmpty);
+    },
+  );
+
+  test('unresolved dance placeholder preserves any existing note', () async {
+    final program = Program(
+      id: 'orig-p1',
+      title: 'Spring Fling',
+      status: ProgramStatus.draft,
+      slots: [
+        ProgramSlot(
+          id: 'orig-sl1',
+          position: 0,
+          danceId: 'orig-missing',
+          text: 'Caller intro',
+        ),
+      ],
+      createdAt: DateTime.utc(2026, 4, 1),
+      updatedAt: DateTime.utc(2026, 4, 1),
+    );
+    final archive = CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 7, 15),
+      dances: const [],
+      programs: [program],
+    );
+
+    await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: now,
+      newId: sequentialIds('new'),
+      newSlotId: sequentialIds('slot'),
+    );
+
+    final slot = (await programs.listAll()).single.slots.single;
+    expect(slot.danceId, isNull);
+    // Original note kept AND the failed reference surfaced.
+    expect(slot.text, contains('Caller intro'));
+    expect(slot.text, contains('orig-missing'));
+  });
 }

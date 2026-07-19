@@ -72,10 +72,13 @@ ArchiveProgramsResult buildArchivePrograms(
         danceId = danceIdByOriginalId[slot.danceId];
         if (danceId == null) {
           // The referenced dance is not present in the committed collection;
-          // keep the slot as a placeholder note rather than dropping it.
-          if (text == null || text.trim().isEmpty) {
-            text = 'Dance not imported (${slot.danceId})';
-          }
+          // keep the slot as a placeholder note rather than dropping it, and
+          // always surface which reference failed — appended to any existing
+          // note so the missing id is never silently lost.
+          final marker = 'Dance not imported (${slot.danceId})';
+          text = (text == null || text.trim().isEmpty)
+              ? marker
+              : '$text\n\n$marker';
           issues.add(
             ImportIssue(
               severity: ImportIssueSeverity.warning,
@@ -274,31 +277,49 @@ class CompendiumArchiveImporter {
     final existingByExternalId = await _programs.externalIdToProgramId(
       ProvenanceSource.json,
     );
+    // Working copy that also absorbs ids inserted during *this* commit, so a
+    // duplicate externalId appearing twice in a single (untrusted) archive
+    // updates the row in place instead of inserting it twice.
+    final resolvedByExternalId = Map<String, String>.from(existingByExternalId);
     final insertedIds = <String>[];
+    final insertedIdSet = <String>{};
+    final priorCapturedFor = <String>{};
     final priorStates = <Program>[];
-    final persisted = <Program>[];
+    // Keyed by final program id so repeated externalIds collapse to one entry
+    // carrying the final persisted state, preserving first-seen archive order.
+    final persisted = <String, Program>{};
     try {
       for (final program in built.programs) {
         final externalId = program.provenance?.externalId;
-        final existingId = (externalId == null || externalId.isEmpty)
+        final hasExternalId = externalId != null && externalId.isNotEmpty;
+        final mappedId = hasExternalId
+            ? resolvedByExternalId[externalId]
+            : null;
+        final existing = mappedId == null
             ? null
-            : existingByExternalId[externalId];
-        final prior = existingId == null
-            ? null
-            : await _programs.getById(existingId, includeDeleted: true);
-        if (existingId == null || prior == null) {
+            : await _programs.getById(mappedId, includeDeleted: true);
+        if (mappedId == null || existing == null) {
           await _programs.create(program);
           insertedIds.add(program.id);
-          persisted.add(program);
+          insertedIdSet.add(program.id);
+          if (hasExternalId) resolvedByExternalId[externalId] = program.id;
+          persisted[program.id] = program;
         } else {
           final target = _rebuildProgramWithId(
             program,
-            id: existingId,
-            createdAt: prior.createdAt,
+            id: mappedId,
+            createdAt: existing.createdAt,
           );
-          priorStates.add(prior);
+          // Capture the true pre-import state exactly once per existing id, and
+          // never for a row this commit inserted (its prior state is "absent",
+          // handled by hardDelete on undo) — so undo restores the real
+          // pre-import state, not an intermediate one.
+          if (!insertedIdSet.contains(mappedId) &&
+              priorCapturedFor.add(mappedId)) {
+            priorStates.add(existing);
+          }
           await _programs.update(target);
-          persisted.add(target);
+          persisted[mappedId] = target;
         }
       }
     } catch (_) {
@@ -312,7 +333,7 @@ class CompendiumArchiveImporter {
 
     return CompendiumArchiveImportResult(
       danceSession: danceSession,
-      programs: persisted,
+      programs: persisted.values.toList(growable: false),
       programIssues: built.issues,
       insertedProgramIds: insertedIds,
       updatedProgramPriorStates: priorStates,
