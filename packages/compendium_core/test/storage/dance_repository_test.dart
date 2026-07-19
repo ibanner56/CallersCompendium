@@ -4,6 +4,22 @@ import 'package:test/test.dart';
 import 'fixtures.dart';
 import 'test_database.dart';
 
+/// Reads the derived `dance_figures.params_json` string for the figure at
+/// [idx] of [danceId]. Used to assert the stored JSON has not drifted from the
+/// source encoding (e.g. a key-order change on re-encode).
+Future<String> _figureParamsJson(
+  CompendiumDatabase db,
+  String danceId,
+  int idx,
+) async {
+  final row =
+      await (db.select(db.danceFigures)
+            ..where((t) => t.danceId.equals(danceId))
+            ..where((t) => t.idx.equals(idx)))
+          .getSingle();
+  return row.paramsJson;
+}
+
 void main() {
   late CompendiumDatabase db;
   late DanceRepository dances;
@@ -47,6 +63,8 @@ void main() {
         );
         await dances.create(dance);
 
+        // The canonical source of truth (figures_json) must round-trip the
+        // move + params verbatim.
         final loaded = await dances.getById(dance.id);
         expect(loaded, dance, reason: 'whole dance round-trips by value');
         final reloadedUnknown = loaded!.figures[1];
@@ -56,6 +74,13 @@ void main() {
           'flavor': 'spicy',
           'who': 'partners',
         });
+
+        // The derived dance_figures.params_json string must also be
+        // byte-for-byte identical to the encoded source params — comparing
+        // decoded maps alone wouldn't catch JSON re-encoding drift (e.g. a
+        // key-order change) that could break search/dedupe parity.
+        const expectedJson = '{"beats":12,"flavor":"spicy","who":"partners"}';
+        expect(await _figureParamsJson(db, dance.id, 1), expectedJson);
 
         // Re-saving the reloaded dance preserves it again (no drift on update).
         await dances.update(
@@ -68,6 +93,9 @@ void main() {
           'flavor': 'spicy',
           'who': 'partners',
         });
+        // The update path must encode identically to create() — assert the
+        // derived params_json string again so a divergent re-encode fails.
+        expect(await _figureParamsJson(db, dance.id, 1), expectedJson);
       },
     );
 

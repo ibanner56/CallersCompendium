@@ -42,6 +42,12 @@ class Taxonomy {
   final Map<String, MoveDef> moves;
   final Map<String, MoveAlias> aliases;
 
+  /// Neutral `beats` fallback surfaced by [effectiveParams] for an unknown
+  /// move that carries no explicit count. Mirrors the custom/free-text move's
+  /// default (a typical contra figure length): it keeps duration/phrase math
+  /// sane without inventing a per-move value we can't know (issue #358).
+  static const int _unknownMoveBeatsFallback = 8;
+
   /// Looks up a move id, resolving aliases to their canonical move.
   MoveDef? resolve(String moveId) {
     final direct = moves[moveId];
@@ -69,7 +75,15 @@ class Taxonomy {
   Map<String, Object?> effectiveParams(Figure figure) {
     final def = resolve(figure.move);
     if (def == null) {
-      return Map<String, Object?>.of(figure.params);
+      // Unknown move: return a best-effort copy of the figure's own params
+      // (never mutate [figure.params]). Preserve an authored `beats`; only
+      // when it is absent fall back to a neutral default so downstream
+      // duration/phrase math doesn't read 0 beats for a move we can't
+      // recognize. We can't know the real per-move count, so a generic
+      // default is the correct non-destructive choice.
+      final effective = Map<String, Object?>.of(figure.params);
+      effective.putIfAbsent('beats', () => _unknownMoveBeatsFallback);
+      return effective;
     }
     final alias = aliases[figure.move];
     final effective = {
