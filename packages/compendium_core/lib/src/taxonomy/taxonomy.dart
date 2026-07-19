@@ -42,6 +42,12 @@ class Taxonomy {
   final Map<String, MoveDef> moves;
   final Map<String, MoveAlias> aliases;
 
+  /// Neutral `beats` fallback surfaced by [effectiveParams] for an unknown
+  /// move that carries no explicit count. Mirrors the custom/free-text move's
+  /// default (a typical contra figure length): it keeps duration/phrase math
+  /// sane without inventing a per-move value we can't know (issue #358).
+  static const int _unknownMoveBeatsFallback = 8;
+
   /// Looks up a move id, resolving aliases to their canonical move.
   MoveDef? resolve(String moveId) {
     final direct = moves[moveId];
@@ -57,10 +63,27 @@ class Taxonomy {
   /// effective value of the driver parameter — unless the figure (or its
   /// alias) pins `beats` explicitly, in which case that pinned value wins. A
   /// driver value absent from the table leaves the flat spec default in place.
+  ///
+  /// For an **unknown move** (one not in this taxonomy, e.g. a figure authored
+  /// in a newer app version or a since-removed move) this returns the figure's
+  /// own params as-is instead of throwing — a best-effort result that lets the
+  /// renderer, editor, and analysis paths degrade gracefully rather than crash.
+  /// The move id and its params are never coerced or discarded here, so the
+  /// figure round-trips losslessly and renders/edits normally again once the
+  /// move is known (issue #358). Use [validateFigure] to detect the
+  /// `unknown_move` condition; this method deliberately never fails.
   Map<String, Object?> effectiveParams(Figure figure) {
     final def = resolve(figure.move);
     if (def == null) {
-      throw ArgumentError.value(figure.move, 'figure.move', 'unknown move');
+      // Unknown move: return a best-effort copy of the figure's own params
+      // (never mutate [figure.params]). Preserve an authored `beats`; only
+      // when it is absent fall back to a neutral default so downstream
+      // duration/phrase math doesn't read 0 beats for a move we can't
+      // recognize. We can't know the real per-move count, so a generic
+      // default is the correct non-destructive choice.
+      final effective = Map<String, Object?>.of(figure.params);
+      effective.putIfAbsent('beats', () => _unknownMoveBeatsFallback);
+      return effective;
     }
     final alias = aliases[figure.move];
     final effective = {

@@ -91,6 +91,43 @@ void main() {
         'right',
       );
     });
+
+    test('unknown move preserves an authored beats and passes params through '
+        '(#358)', () {
+      final figure = Figure(
+        move: 'a_move_from_the_future',
+        params: {'beats': 12, 'flavor': 'spicy'},
+      );
+      final p = tax.effectiveParams(figure);
+      // An authored beats is preserved verbatim (no fallback applied).
+      expect(p, {'beats': 12, 'flavor': 'spicy'});
+    });
+
+    test(
+      'unknown move with no beats gets a sensible beats fallback, not 0 (#358)',
+      () {
+        final figure = Figure(move: 'totally_unknown', params: {'flavor': 'x'});
+        final p = tax.effectiveParams(figure);
+        // A neutral fallback keeps downstream duration/phrase math sane.
+        expect(p['beats'], 8);
+        expect(p['flavor'], 'x');
+        // The fallback lives only in the returned map — figure.params is
+        // never mutated (lossless preservation).
+        expect(figure.params.containsKey('beats'), isFalse);
+        expect(figure.params, {'flavor': 'x'});
+      },
+    );
+
+    test(
+      'effectiveParams result is decoupled from the stored params (#358)',
+      () {
+        final figure = Figure(move: 'unknown_x', params: {'beats': 8});
+        final p = tax.effectiveParams(figure)..['beats'] = 99;
+        // Mutating the returned best-effort map must not touch the figure.
+        expect(figure.params['beats'], 8);
+        expect(p['beats'], 99);
+      },
+    );
   });
 
   group('validateFigure', () {

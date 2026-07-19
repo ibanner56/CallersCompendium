@@ -4,6 +4,22 @@ import 'package:test/test.dart';
 import 'fixtures.dart';
 import 'test_database.dart';
 
+/// Reads the derived `dance_figures.params_json` string for the figure at
+/// [idx] of [danceId]. Used to assert the stored JSON has not drifted from the
+/// source encoding (e.g. a key-order change on re-encode).
+Future<String> _figureParamsJson(
+  CompendiumDatabase db,
+  String danceId,
+  int idx,
+) async {
+  final row =
+      await (db.select(db.danceFigures)
+            ..where((t) => t.danceId.equals(danceId))
+            ..where((t) => t.idx.equals(idx)))
+          .getSingle();
+  return row.paramsJson;
+}
+
 void main() {
   late CompendiumDatabase db;
   late DanceRepository dances;
@@ -28,6 +44,60 @@ void main() {
       final loaded = await dances.getById(dance.id);
       expect(loaded, dance);
     });
+
+    test(
+      'losslessly round-trips a figure whose move is unknown (#358)',
+      () async {
+        // A dance authored in a newer version / carrying a since-removed move.
+        // Its move + params must survive save + reload byte-for-byte, never
+        // coerced or discarded on load or save.
+        final unknown = Figure(
+          move: 'a_move_from_the_future',
+          params: const {'beats': 12, 'flavor': 'spicy', 'who': 'partners'},
+        );
+        final dance = sampleDance(
+          figures: [
+            Figure(move: 'swing', params: const {'beats': 8}),
+            unknown,
+          ],
+        );
+        await dances.create(dance);
+
+        // The canonical source of truth (figures_json) must round-trip the
+        // move + params verbatim.
+        final loaded = await dances.getById(dance.id);
+        expect(loaded, dance, reason: 'whole dance round-trips by value');
+        final reloadedUnknown = loaded!.figures[1];
+        expect(reloadedUnknown.move, 'a_move_from_the_future');
+        expect(reloadedUnknown.params, {
+          'beats': 12,
+          'flavor': 'spicy',
+          'who': 'partners',
+        });
+
+        // The derived dance_figures.params_json string must also be
+        // byte-for-byte identical to the encoded source params — comparing
+        // decoded maps alone wouldn't catch JSON re-encoding drift (e.g. a
+        // key-order change) that could break search/dedupe parity.
+        const expectedJson = '{"beats":12,"flavor":"spicy","who":"partners"}';
+        expect(await _figureParamsJson(db, dance.id, 1), expectedJson);
+
+        // Re-saving the reloaded dance preserves it again (no drift on update).
+        await dances.update(
+          loaded.copyWith(updatedAt: DateTime.utc(2026, 3, 1)),
+        );
+        final resaved = await dances.getById(dance.id);
+        expect(resaved!.figures[1].move, 'a_move_from_the_future');
+        expect(resaved.figures[1].params, {
+          'beats': 12,
+          'flavor': 'spicy',
+          'who': 'partners',
+        });
+        // The update path must encode identically to create() — assert the
+        // derived params_json string again so a divergent re-encode fails.
+        expect(await _figureParamsJson(db, dance.id, 1), expectedJson);
+      },
+    );
 
     test('round-trips a rating and its cleared (NULL) state', () async {
       final rated = sampleDance().copyWith(rating: 5);
