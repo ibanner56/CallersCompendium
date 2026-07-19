@@ -55,8 +55,8 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
   @available(iOS 13.0, *)
   @objc public func scene(
     _ scene: UIScene,
-    willConnectToSession session: UISceneSession,
-    options connectionOptions: UISceneConnectionOptions?
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions?
   ) -> Bool {
     guard let contexts = connectionOptions?.urlContexts, !contexts.isEmpty else {
       return false
