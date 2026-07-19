@@ -638,6 +638,9 @@ jobs:
           # provisioningProfiles map: the distribution cert is imported LOCALLY
           # and its profile is pre-installed above, so export never touches cloud
           # signing (which cannot mint this non-Apple-managed distribution cert).
+          # The profile is referenced by UUID (not name): profile names contain
+          # spaces/parens that PlistBuddy would mis-tokenize, whereas the UUID is
+          # a bare token and xcodebuild accepts either.
           plist="$RUNNER_TEMP/ExportOptions.plist"
           printf '%s\n' \
             '<?xml version="1.0" encoding="UTF-8"?>' \
@@ -649,7 +652,7 @@ jobs:
             -c "Add :teamID string ${APPLE_TEAM_ID}" \
             -c "Add :signingCertificate string Apple Distribution" \
             -c "Add :provisioningProfiles dict" \
-            -c "Add :provisioningProfiles:org.callerscompendium.compendiumApp string ${prof_name}" \
+            -c "Add :provisioningProfiles:org.callerscompendium.compendiumApp string ${prof_uuid}" \
             -c "Add :destination string export" \
             -c "Add :uploadSymbols bool true" \
             -c "Add :manageAppVersionAndBuildNumber bool false" \
@@ -791,6 +794,14 @@ jobs:
             rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/${prof_uuid}.mobileprovision" \
                   "$HOME/Library/MobileDevice/Provisioning Profiles/${prof_uuid}.mobileprovision" 2>/dev/null || true
           fi
+          # Remove the decoded profile/plist + generated ExportOptions + UUID
+          # marker from $RUNNER_TEMP (derived from secrets; $RUNNER_TEMP is
+          # ephemeral, but tear them down explicitly per the cleanup contract).
+          rm -f "$RUNNER_TEMP/cc_appstore.mobileprovision" \
+                "$RUNNER_TEMP/cc_appstore.plist" \
+                "$RUNNER_TEMP/ExportOptions.plist" \
+                "$RUNNER_TEMP/cc-ios-profile-uuid" \
+                "$RUNNER_TEMP/dist.p12" 2>/dev/null || true
           git checkout -- app/ios/Flutter/Release.xcconfig 2>/dev/null || true
           exit 0
 
