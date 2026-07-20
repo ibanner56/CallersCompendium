@@ -61,13 +61,35 @@ const int _star = 0x2a; // *
 const int _underscore = 0x5f; // _
 const int _backslash = 0x5c; // \
 
+bool _isSpace(int c) =>
+    c == 0x20 || c == 0x09 || c == 0x0a || c == 0x0d || c == 0x0c;
+
+/// ASCII punctuation (CommonMark's punctuation class for the purposes of
+/// delimiter flanking). Non-ASCII code units are treated as non-punctuation
+/// "word" characters, which is sufficient for this app's (ASCII) corpus.
+bool _isPunct(int c) =>
+    (c >= 0x21 && c <= 0x2f) ||
+    (c >= 0x3a && c <= 0x40) ||
+    (c >= 0x5b && c <= 0x60) ||
+    (c >= 0x7b && c <= 0x7e);
+
 /// Parses [input] into a list of [EmphasisSpan]s.
 ///
-/// A delimiter (`*` or `_`) only toggles its style when a matching closing
-/// delimiter of the same kind appears later in the string; an unmatched
-/// delimiter is emitted as a literal character. The returned list coalesces
-/// adjacent runs that share styling and never contains empty spans (an empty
-/// input yields an empty list).
+/// A delimiter (`*` or `_`) only toggles its style when it is a valid opener
+/// with a matching valid closer of the same kind later in the string; any
+/// delimiter that is not part of such a pair is emitted as a literal
+/// character. The returned list coalesces adjacent runs that share styling and
+/// never contains empty spans (an empty input yields an empty list).
+///
+/// Opener/closer eligibility follows CommonMark's "flanking" rules so that
+/// markup can only ever emphasize at word boundaries and NEVER reinterprets
+/// text a caller wrote before this syntax existed:
+/// - A space-flanked or bare delimiter (e.g. `star * 2 * couples`, `hey * 4`)
+///   stays literal — it neither opens nor closes.
+/// - An underscore between word characters (e.g. `do_si_do`, `allemande_left`,
+///   `star_thru`) stays literal — no intra-word underscore emphasis.
+/// - True word-boundary emphasis (`*bold*`, `_underline_`, `see _this_ move`)
+///   and nesting (`*_x_*`) still work; `\*` / `\_` remain literal escapes.
 List<EmphasisSpan> parseInlineEmphasis(String input) {
   if (input.isEmpty) return const <EmphasisSpan>[];
 
@@ -75,9 +97,10 @@ List<EmphasisSpan> parseInlineEmphasis(String input) {
   final n = units.length;
 
   // Precompute, for each `*`/`_`, whether it is "active" (part of a matched
-  // open/close pair). Single forward pass tracking the last unmatched open
-  // index per delimiter kind — O(n), no regex, no backtracking. Escaped
-  // delimiters are skipped so they can never open or close a pair.
+  // open/close pair). Single forward pass tracking the last pending opener per
+  // delimiter kind — O(n), no regex, no backtracking. Escaped delimiters are
+  // skipped so they can never open or close a pair. Opener/closer eligibility
+  // uses CommonMark left/right-flanking (see doc comment).
   final active = List<bool>.filled(n, false);
   var openStar = -1;
   var openUnderscore = -1;
@@ -87,20 +110,45 @@ List<EmphasisSpan> parseInlineEmphasis(String input) {
       i++; // skip the escaped character (if any)
       continue;
     }
+    if (c != _star && c != _underscore) continue;
+
+    // Adjacent characters; a missing neighbour (string edge) counts as space,
+    // matching CommonMark's treatment of line start/end as whitespace.
+    final prev = i > 0 ? units[i - 1] : -1;
+    final next = i + 1 < n ? units[i + 1] : -1;
+    final prevSpace = prev < 0 || _isSpace(prev);
+    final prevPunct = prev >= 0 && _isPunct(prev);
+    final nextSpace = next < 0 || _isSpace(next);
+    final nextPunct = next >= 0 && _isPunct(next);
+
+    final leftFlanking = !nextSpace && (!nextPunct || prevSpace || prevPunct);
+    final rightFlanking = !prevSpace && (!prevPunct || nextSpace || nextPunct);
+
+    final bool canOpen;
+    final bool canClose;
     if (c == _star) {
-      if (openStar >= 0) {
+      canOpen = leftFlanking;
+      canClose = rightFlanking;
+    } else {
+      // `_`: intra-word-safe — cannot open/close when flanked by word chars.
+      canOpen = leftFlanking && (!rightFlanking || prevPunct);
+      canClose = rightFlanking && (!leftFlanking || nextPunct);
+    }
+
+    if (c == _star) {
+      if (openStar >= 0 && canClose) {
         active[openStar] = true;
         active[i] = true;
         openStar = -1;
-      } else {
+      } else if (canOpen) {
         openStar = i;
       }
-    } else if (c == _underscore) {
-      if (openUnderscore >= 0) {
+    } else {
+      if (openUnderscore >= 0 && canClose) {
         active[openUnderscore] = true;
         active[i] = true;
         openUnderscore = -1;
-      } else {
+      } else if (canOpen) {
         openUnderscore = i;
       }
     }

@@ -42,12 +42,12 @@ void main() {
       ]);
     });
 
-    test('interleaved delimiters toggle independently', () {
-      // *a_b*c_  -> a(bold) b(bold+underline) c(underline)
-      expect(parseInlineEmphasis('*a_b*c_'), const [
-        EmphasisSpan(text: 'a', bold: true),
+    test('nested emphasis toggles independently within a bold span', () {
+      // Bold spans the whole phrase; an underline nests on "b" inside it.
+      expect(parseInlineEmphasis('*a _b_ c*'), const [
+        EmphasisSpan(text: 'a ', bold: true),
         EmphasisSpan(text: 'b', bold: true, underline: true),
-        EmphasisSpan(text: 'c', underline: true),
+        EmphasisSpan(text: ' c', bold: true),
       ]);
     });
 
@@ -124,6 +124,65 @@ void main() {
       // *a* -> a(bold); ** -> toggles bold off then on (empty run dropped);
       // b -> bold. Result is a single coalesced bold "ab".
       expect(spans, const [EmphasisSpan(text: 'ab', bold: true)]);
+    });
+
+    group('flanking guards protect pre-existing note text (issue #369)', () {
+      test('intra-word underscores stay literal (do_si_do)', () {
+        expect(parseInlineEmphasis('do_si_do'), const [
+          EmphasisSpan(text: 'do_si_do'),
+        ]);
+      });
+
+      test('single intra-word underscore stays literal', () {
+        expect(parseInlineEmphasis('allemande_left'), const [
+          EmphasisSpan(text: 'allemande_left'),
+        ]);
+        expect(parseInlineEmphasis('star_thru'), const [
+          EmphasisSpan(text: 'star_thru'),
+        ]);
+        expect(parseInlineEmphasis('gents_do_si_do'), const [
+          EmphasisSpan(text: 'gents_do_si_do'),
+        ]);
+      });
+
+      test('space-flanked asterisks stay literal (star * 2 * couples)', () {
+        expect(parseInlineEmphasis('star * 2 * couples'), const [
+          EmphasisSpan(text: 'star * 2 * couples'),
+        ]);
+      });
+
+      test('bare/space-flanked asterisk stays literal (hey * 4)', () {
+        expect(parseInlineEmphasis('hey * 4'), const [
+          EmphasisSpan(text: 'hey * 4'),
+        ]);
+      });
+
+      test('word-boundary emphasis still works', () {
+        expect(parseInlineEmphasis('*bold*'), const [
+          EmphasisSpan(text: 'bold', bold: true),
+        ]);
+        expect(parseInlineEmphasis('_underline_'), const [
+          EmphasisSpan(text: 'underline', underline: true),
+        ]);
+        expect(parseInlineEmphasis('word *bold* word'), const [
+          EmphasisSpan(text: 'word '),
+          EmphasisSpan(text: 'bold', bold: true),
+          EmphasisSpan(text: ' word'),
+        ]);
+        expect(parseInlineEmphasis('see _this_ move'), const [
+          EmphasisSpan(text: 'see '),
+          EmphasisSpan(text: 'this', underline: true),
+          EmphasisSpan(text: ' move'),
+        ]);
+      });
+
+      test('nesting and escaping still work after flanking guards', () {
+        expect(parseInlineEmphasis('*_x_*'), const [
+          EmphasisSpan(text: 'x', bold: true, underline: true),
+        ]);
+        expect(stripInlineEmphasis(r'\*'), '*');
+        expect(stripInlineEmphasis(r'\_'), '_');
+      });
     });
   });
 
