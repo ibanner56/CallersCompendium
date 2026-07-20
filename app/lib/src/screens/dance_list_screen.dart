@@ -145,6 +145,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   CollectionSort _sort = CollectionSort.title;
 
+  /// The sort **direction**, seeded from the current sort key's historical
+  /// default (`SearchSort.defaultDirection`) so the list opens exactly as
+  /// before; a toggle button lets the user flip it. Reset to the new key's
+  /// default whenever the sort key changes.
+  SortDirection _sortDir = CollectionSort.title.searchSort.defaultDirection;
+
   /// Whether the user has explicitly chosen a sort this session. Once set, the
   /// saved default (ROADMAP G.6a) no longer seeds `_sort` — protecting an
   /// in-session choice from a late async read and from a [refreshTrigger]
@@ -316,7 +322,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (!mounted || _sortUserSet) return;
     final sort = collectionSortFromName(stored);
     if (sort != null && sort != _sort) {
-      setState(() => _sort = sort);
+      setState(() {
+        _sort = sort;
+        _sortDir = sort.searchSort.defaultDirection;
+      });
     }
   }
 
@@ -353,6 +362,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // query stopped being one.
     if (_sort == CollectionSort.relevance && !_isBareFullText) {
       _sort = CollectionSort.title;
+      _sortDir = CollectionSort.title.searchSort.defaultDirection;
     }
 
     final seq = ++_searchSeq;
@@ -372,6 +382,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       final ids = await _repos.dances.search(
         filter,
         sort: _sort.searchSort,
+        direction: _sortDir,
         dialect: _dialect,
         enrichment: _enrichment,
         ignoreLeadingArticles: _sortIgnoreArticles,
@@ -875,6 +886,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
               setState(() {
                 _sortUserSet = true;
                 _sort = value;
+                _sortDir = value.searchSort.defaultDirection;
               });
               _runSearch();
             },
@@ -882,6 +894,26 @@ class _DanceListScreenState extends State<DanceListScreen> {
               for (final option in _availableSorts)
                 PopupMenuItem(value: option, child: Text(option.label)),
             ],
+          ),
+          IconButton(
+            key: const ValueKey('collection-sort-direction'),
+            tooltip: _sortDir == SortDirection.ascending
+                ? 'Ascending (tap for descending)'
+                : 'Descending (tap for ascending)',
+            icon: Icon(
+              _sortDir == SortDirection.ascending
+                  ? Icons.arrow_upward
+                  : Icons.arrow_downward,
+            ),
+            onPressed: () {
+              setState(() {
+                _sortUserSet = true;
+                _sortDir = _sortDir == SortDirection.ascending
+                    ? SortDirection.descending
+                    : SortDirection.ascending;
+              });
+              _runSearch();
+            },
           ),
         ],
       ],

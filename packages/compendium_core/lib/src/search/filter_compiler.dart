@@ -58,15 +58,20 @@ class FilterCompiler {
   final SearchEnrichment enrichment;
   late final Map<String, String> _moveReverse;
 
-  /// Compiles [filter] with the given [sort] (default [SearchSort.title]).
+  /// Compiles [filter] with the given [sort] (default [SearchSort.title]) and
+  /// [direction]. When [direction] is omitted it resolves to the sort key's
+  /// [SearchSortDirectionX.defaultDirection], so a caller that only passes a
+  /// [sort] gets exactly the historical ordering.
   CompiledFilter compile(
     DanceFilter filter, {
     SearchSort sort = SearchSort.title,
+    SortDirection? direction,
   }) {
+    final dir = direction ?? sort.defaultDirection;
     // Relevance is only meaningful for a bare full-text search; it needs a
     // dedicated shape that can `ORDER BY bm25(dance_fts)`.
     if (sort == SearchSort.relevance && filter is FullTextFilter) {
-      return _compileRelevance(filter);
+      return _compileRelevance(filter, dir);
     }
 
     final binds = <Object?>[];
@@ -74,11 +79,11 @@ class FilterCompiler {
     final sql =
         'SELECT id FROM dances '
         'WHERE deleted_at IS NULL AND ($pred) '
-        'ORDER BY ${_orderBy(sort)}';
+        'ORDER BY ${_orderBy(sort, dir)}';
     return CompiledFilter(sql, binds);
   }
 
-  CompiledFilter _compileRelevance(FullTextFilter filter) {
+  CompiledFilter _compileRelevance(FullTextFilter filter, SortDirection dir) {
     final query = toFtsMatchQuery(
       canonicalizeText(
         filter.query,
@@ -86,33 +91,47 @@ class FilterCompiler {
         extraRoleSynonyms: enrichment.roleSynonyms,
       ),
     );
-    const sql =
+    // bm25 returns lower (more negative) for better matches, so ascending
+    // (the default) is best-match-first; descending flips to worst-match-first.
+    final order = dir == SortDirection.descending
+        ? 'bm25(dance_fts) DESC'
+        : 'bm25(dance_fts)';
+    final sql =
         'SELECT dance_fts.dance_id FROM dance_fts '
         'JOIN dances ON dances.id = dance_fts.dance_id '
         'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
-        'ORDER BY bm25(dance_fts)';
+        'ORDER BY $order';
     return CompiledFilter(sql, [query]);
   }
 
-  /// SQL `ORDER BY` fragment for a [SearchSort]. [SearchSort.author] and
-  /// [SearchSort.lastCalled] are applied in Dart after the id fetch, so they
-  /// use the stable [title] base ordering here; [relevance] on a non-bare
-  /// tree likewise degrades to [title].
-  static String _orderBy(SearchSort sort) => switch (sort) {
-    SearchSort.recentlyAdded => 'created_at DESC',
-    SearchSort.recentlyEdited => 'updated_at DESC',
-    // Canonical PartialDate strings sort lexicographically == chronologically.
-    // NULLs (no composed date) sort last; ties break by title.
-    SearchSort.composedOn =>
-      'composed_on IS NULL, composed_on, title COLLATE NOCASE',
-    // Highest rating first; the explicit `rating IS NULL` guard forces unrated
-    // (NULL) rows last regardless of SQLite's default NULL ordering on DESC.
-    SearchSort.rating => 'rating IS NULL, rating DESC, title COLLATE NOCASE',
-    SearchSort.title ||
-    SearchSort.author ||
-    SearchSort.lastCalled ||
-    SearchSort.relevance => 'title COLLATE NOCASE',
-  };
+  /// SQL `ORDER BY` fragment for a [SearchSort] in [direction]. [SearchSort.author]
+  /// and [SearchSort.lastCalled] are applied in Dart after the id fetch, so they
+  /// use the stable ascending [title] base ordering here (their requested
+  /// direction is applied by the Dart post-sort); [relevance] on a non-bare tree
+  /// likewise degrades to that base.
+  ///
+  /// [direction] flips only the *primary* comparison. The `IS NULL` guards keep
+  /// NULL/absent values sorting **last** in both directions, and the trailing
+  /// `title COLLATE NOCASE` stays the ascending tiebreak. Ascending omits the
+  /// `ASC` keyword so the default fragments are byte-identical to before.
+  static String _orderBy(SearchSort sort, SortDirection direction) {
+    final d = direction == SortDirection.descending ? ' DESC' : '';
+    return switch (sort) {
+      SearchSort.recentlyAdded => 'created_at$d',
+      SearchSort.recentlyEdited => 'updated_at$d',
+      // Canonical PartialDate strings sort lexicographically == chronologically.
+      // NULLs (no composed date) sort last; ties break by title.
+      SearchSort.composedOn =>
+        'composed_on IS NULL, composed_on$d, title COLLATE NOCASE',
+      // Highest rating first (default); the explicit `rating IS NULL` guard
+      // forces unrated (NULL) rows last regardless of direction.
+      SearchSort.rating => 'rating IS NULL, rating$d, title COLLATE NOCASE',
+      SearchSort.title => 'title COLLATE NOCASE$d',
+      SearchSort.author ||
+      SearchSort.lastCalled ||
+      SearchSort.relevance => 'title COLLATE NOCASE',
+    };
+  }
 
   // ---- DanceFilter -> predicate over the current `dances` row ----
 

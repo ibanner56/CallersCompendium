@@ -108,14 +108,14 @@ void main() {
     expect(titlesInOrder(), ['Alpha', 'Zeta']);
 
     // Recently updated: p2 (Feb) before p1 (Jan).
-    await tester.tap(find.byTooltip('Sort by'));
+    await tester.tap(find.byKey(const ValueKey('programs-sort')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Recently updated').last);
     await tester.pumpAndSettle();
     expect(titlesInOrder(), ['Alpha', 'Zeta']);
 
     // Event date: p2 (Mar) before p1 (May).
-    await tester.tap(find.byTooltip('Sort by'));
+    await tester.tap(find.byKey(const ValueKey('programs-sort')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Event date').last);
     await tester.pumpAndSettle();

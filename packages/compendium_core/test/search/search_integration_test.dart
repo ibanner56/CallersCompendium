@@ -1169,6 +1169,147 @@ void main() {
     );
   });
 
+  group('sort direction (ascending/descending toggle)', () {
+    test('title descending reverses A→Z to Z→A', () async {
+      await dances.create(_dance(id: 'b', title: 'banana'));
+      await dances.create(_dance(id: 'a', title: 'Apple'));
+      await dances.create(_dance(id: 'c', title: 'cherry'));
+      expect(
+        await dances.search(
+          const AndFilter([]),
+          sort: SearchSort.title,
+          direction: SortDirection.descending,
+        ),
+        ['c', 'b', 'a'],
+      );
+    });
+
+    test('recentlyAdded ascending is oldest-first', () async {
+      await dances.create(
+        _dance(id: 'old', title: 'Old', createdAt: DateTime.utc(2020)),
+      );
+      await dances.create(
+        _dance(id: 'new', title: 'New', createdAt: DateTime.utc(2026)),
+      );
+      expect(
+        await dances.search(
+          const AndFilter([]),
+          sort: SearchSort.recentlyAdded,
+          direction: SortDirection.ascending,
+        ),
+        ['old', 'new'],
+      );
+    });
+
+    test('composedOn descending keeps NULLs last', () async {
+      await dances.create(
+        _dance(id: 'y1990', title: 'later', composedOn: PartialDate(1990)),
+      );
+      await dances.create(
+        _dance(id: 'y1989', title: 'earlier', composedOn: PartialDate(1989)),
+      );
+      await dances.create(_dance(id: 'none', title: 'noDate'));
+      expect(
+        await dances.search(
+          const AndFilter([]),
+          sort: SearchSort.composedOn,
+          direction: SortDirection.descending,
+        ),
+        ['y1990', 'y1989', 'none'],
+      );
+    });
+
+    test('rating ascending keeps unrated last', () async {
+      await dances.create(_dance(id: 'r3', title: 'Gamma', rating: 3));
+      await dances.create(_dance(id: 'r5', title: 'Alpha', rating: 5));
+      await dances.create(_dance(id: 'u', title: 'Zeta'));
+      expect(
+        await dances.search(
+          const AndFilter([]),
+          sort: SearchSort.rating,
+          direction: SortDirection.ascending,
+        ),
+        // Lowest-first among rated, unrated still last.
+        ['r3', 'r5', 'u'],
+      );
+    });
+
+    test('author descending reverses name order (no-author last)', () async {
+      await choreographers.upsert(Choreographer(id: 'z', name: 'Zoe'));
+      await choreographers.upsert(Choreographer(id: 'am', name: 'Amy'));
+      await dances.create(_dance(id: 'z', title: 'Z dance', authorIds: ['z']));
+      await dances.create(_dance(id: 'a', title: 'A dance', authorIds: ['am']));
+      await dances.create(_dance(id: 'none', title: 'No author'));
+      expect(
+        await dances.search(
+          const AndFilter([]),
+          sort: SearchSort.author,
+          direction: SortDirection.descending,
+        ),
+        // Zoe, Amy, then empty-name (no author) last.
+        ['z', 'a', 'none'],
+      );
+    });
+
+    test(
+      'lastCalled ascending is oldest-call-first, never-called last',
+      () async {
+        await dances.create(_dance(id: 'recent', title: 'Recent'));
+        await dances.create(_dance(id: 'old', title: 'Old'));
+        await dances.create(_dance(id: 'never', title: 'Never'));
+        await programs.create(
+          Program(
+            id: 'p1',
+            title: 'Event',
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                danceId: 'recent',
+                performedAt: DateTime.utc(2026, 5),
+              ),
+              ProgramSlot(
+                id: 's2',
+                position: 1,
+                danceId: 'old',
+                performedAt: DateTime.utc(2020, 5),
+              ),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        expect(
+          await dances.search(
+            const AndFilter([]),
+            sort: SearchSort.lastCalled,
+            direction: SortDirection.ascending,
+          ),
+          ['old', 'recent', 'never'],
+        );
+      },
+    );
+
+    test(
+      'title-ignoring-articles descending reverses the keyed order',
+      () async {
+        await dances.create(_dance(id: 'apple', title: 'Apple Blossom'));
+        await dances.create(_dance(id: 'zesty', title: 'A Zesty Reel'));
+        await dances.create(_dance(id: 'mid', title: 'Midtown'));
+        expect(
+          await dances.search(
+            const AndFilter([]),
+            sort: SearchSort.title,
+            direction: SortDirection.descending,
+            ignoreLeadingArticles: true,
+          ),
+          // Keys: apple blossom, midtown, zesty reel → reversed.
+          ['zesty', 'mid', 'apple'],
+        );
+      },
+    );
+  });
+
   group('soft-delete exclusion', () {
     test('deleted dances never appear', () async {
       await dances.create(_dance(id: 'a', title: 'A'));

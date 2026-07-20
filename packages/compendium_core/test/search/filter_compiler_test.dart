@@ -454,6 +454,148 @@ void main() {
     });
   });
 
+  group('sort direction', () {
+    const f = FormFilter(DanceForm.contra);
+
+    test('defaultDirection matches each key historical order', () {
+      expect(SearchSort.title.defaultDirection, SortDirection.ascending);
+      expect(SearchSort.author.defaultDirection, SortDirection.ascending);
+      expect(SearchSort.composedOn.defaultDirection, SortDirection.ascending);
+      expect(SearchSort.relevance.defaultDirection, SortDirection.ascending);
+      expect(
+        SearchSort.recentlyAdded.defaultDirection,
+        SortDirection.descending,
+      );
+      expect(
+        SearchSort.recentlyEdited.defaultDirection,
+        SortDirection.descending,
+      );
+      expect(SearchSort.rating.defaultDirection, SortDirection.descending);
+      expect(SearchSort.lastCalled.defaultDirection, SortDirection.descending);
+    });
+
+    test('omitted direction is byte-identical to the historical fragment', () {
+      // Ascending-default keys omit the ASC keyword.
+      expect(
+        compiler.compile(f, sort: SearchSort.title).sql,
+        endsWith('ORDER BY title COLLATE NOCASE'),
+      );
+      expect(
+        compiler.compile(f, sort: SearchSort.composedOn).sql,
+        endsWith(
+          'ORDER BY composed_on IS NULL, composed_on, title COLLATE NOCASE',
+        ),
+      );
+      // Descending-default keys keep their DESC.
+      expect(
+        compiler.compile(f, sort: SearchSort.recentlyAdded).sql,
+        endsWith('ORDER BY created_at DESC'),
+      );
+      expect(
+        compiler.compile(f, sort: SearchSort.rating).sql,
+        endsWith('ORDER BY rating IS NULL, rating DESC, title COLLATE NOCASE'),
+      );
+    });
+
+    test('title flips ASC/DESC', () {
+      expect(
+        compiler
+            .compile(
+              f,
+              sort: SearchSort.title,
+              direction: SortDirection.ascending,
+            )
+            .sql,
+        endsWith('ORDER BY title COLLATE NOCASE'),
+      );
+      expect(
+        compiler
+            .compile(
+              f,
+              sort: SearchSort.title,
+              direction: SortDirection.descending,
+            )
+            .sql,
+        endsWith('ORDER BY title COLLATE NOCASE DESC'),
+      );
+    });
+
+    test('recentlyAdded / recentlyEdited flip to ascending', () {
+      expect(
+        compiler
+            .compile(
+              f,
+              sort: SearchSort.recentlyAdded,
+              direction: SortDirection.ascending,
+            )
+            .sql,
+        endsWith('ORDER BY created_at'),
+      );
+      expect(
+        compiler
+            .compile(
+              f,
+              sort: SearchSort.recentlyEdited,
+              direction: SortDirection.ascending,
+            )
+            .sql,
+        endsWith('ORDER BY updated_at'),
+      );
+    });
+
+    test('composedOn keeps NULLs last + title tiebreak when descending', () {
+      expect(
+        compiler
+            .compile(
+              f,
+              sort: SearchSort.composedOn,
+              direction: SortDirection.descending,
+            )
+            .sql,
+        endsWith(
+          'ORDER BY composed_on IS NULL, composed_on DESC, title COLLATE NOCASE',
+        ),
+      );
+    });
+
+    test('rating keeps NULLs last + title tiebreak when ascending', () {
+      expect(
+        compiler
+            .compile(
+              f,
+              sort: SearchSort.rating,
+              direction: SortDirection.ascending,
+            )
+            .sql,
+        endsWith('ORDER BY rating IS NULL, rating, title COLLATE NOCASE'),
+      );
+    });
+
+    test('author / lastCalled keep the ascending title base in SQL', () {
+      // Their requested direction is applied by the Dart post-sort, so the SQL
+      // base order stays the stable ascending title order regardless.
+      for (final s in [SearchSort.author, SearchSort.lastCalled]) {
+        expect(
+          compiler.compile(f, sort: s, direction: SortDirection.descending).sql,
+          endsWith('ORDER BY title COLLATE NOCASE'),
+        );
+      }
+    });
+
+    test('relevance flips bm25 direction', () {
+      expect(
+        compiler
+            .compile(
+              const FullTextFilter('reel'),
+              sort: SearchSort.relevance,
+              direction: SortDirection.descending,
+            )
+            .sql,
+        endsWith('ORDER BY bm25(dance_fts) DESC'),
+      );
+    });
+  });
+
   group('dialect canonicalization at the compiler boundary', () {
     test('FullText role terms are canonicalized', () {
       final c = FilterCompiler(
