@@ -471,11 +471,12 @@ class ImportPipeline {
   /// source-specific: only callers that opt in (the archive/share receive path)
   /// use it, so the manual review flow and manual-import ambiguity are untouched.
   ///
-  /// Bounded: O(records × candidates), with at most one dance read per
-  /// candidate plus, only when the incoming dance declares author names, one
-  /// choreographer-name read per candidate to evaluate the author signal. The
-  /// dedupe candidate list is already threshold-bounded, so there is no
-  /// pathological blow-up on a large or hostile batch.
+  /// Bounded: O(records × candidates), with one dance read per candidate. The
+  /// in-memory content comparison is tried first; a choreographer-name read is
+  /// performed only when content did not already match **and** the incoming
+  /// dance declares author names (to evaluate the author signal). The dedupe
+  /// candidate list is already threshold-bounded, so there is no pathological
+  /// blow-up on a large or hostile batch.
   Future<Map<int, DedupeResolution>> autoResolveAmbiguous(
     ImportBatchResult batch, {
     required List<String> Function(Dance draftDance) authorNamesOf,
@@ -496,19 +497,21 @@ class ImportPipeline {
         // Exact normalized-title gate: a fuzzy-but-inexact title is never
         // confident (that is the "two different dances share a title" trap).
         if (normalizeTitle(existing.title) != incomingTitle) continue;
-        // The author signal can only fire when the incoming dance declares
-        // authors, so skip the candidate's choreographer read entirely in the
-        // common no-author case and lean on content equality.
-        var authorsMatch = false;
-        if (incomingAuthors.isNotEmpty) {
+        // Try the cheap in-memory content comparison first: a canonical
+        // choreography match is confident on its own and short-circuits before
+        // any author lookup. Only when content differs AND the incoming dance
+        // declares authors do we spend a choreographer read on the author
+        // signal.
+        var confident = _choreographyEquals(incoming, existing);
+        if (!confident && incomingAuthors.isNotEmpty) {
           final existingAuthors = _normalizedAuthorSet(
             await _authorNamesFor(existing),
           );
-          authorsMatch =
+          confident =
               existingAuthors.isNotEmpty &&
               _setEquals(incomingAuthors, existingAuthors);
         }
-        if (authorsMatch || _choreographyEquals(incoming, existing)) {
+        if (confident) {
           linkTarget = candidate.danceId;
           break;
         }
