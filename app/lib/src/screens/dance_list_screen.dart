@@ -20,6 +20,7 @@ import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
 import '../theme/app_spacing.dart';
+import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
@@ -1083,6 +1084,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
         Expanded(
           child: CustomScrollView(
+            keyboardDismissBehavior: kTextEntryKeyboardDismiss,
             slivers: [
               SliverList(
                 delegate: SliverChildListDelegate([

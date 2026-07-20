@@ -9,6 +9,7 @@ import '../../models/dance_list_entry.dart' show formationShapeLabel;
 import '../../search/collection_query.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
@@ -541,6 +542,7 @@ class _DefaultsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
         SectionHeader(title: 'Program defaults'),
         Padding(
