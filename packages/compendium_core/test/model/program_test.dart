@@ -528,4 +528,95 @@ void main() {
       });
     });
   });
+
+  group('Program.stampDanceSlotsPerformed', () {
+    Program program({
+      DateTime? eventDate,
+      List<ProgramSlot> slots = const [],
+    }) => Program(
+      id: 'p1',
+      title: 'Spring Dance',
+      eventDate: eventDate,
+      slots: slots,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    test('stamps dance-linked slots that lack performedAt with eventDate', () {
+      final eventDate = DateTime.utc(2026, 3, 15);
+      final p = program(
+        eventDate: eventDate,
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ],
+      );
+      final stamped = p.stampDanceSlotsPerformed(
+        fallback: DateTime.utc(2026, 7, 20),
+      );
+      expect(stamped.slots.map((s) => s.performedAt), [eventDate, eventDate]);
+    });
+
+    test('uses fallback when the program has no eventDate', () {
+      final fallback = DateTime.utc(2026, 7, 20);
+      final p = program(
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      );
+      final stamped = p.stampDanceSlotsPerformed(fallback: fallback);
+      expect(stamped.slots.single.performedAt, fallback);
+    });
+
+    test('never overwrites an existing performedAt (idempotent)', () {
+      final existing = DateTime.utc(2025, 1, 1);
+      final p = program(
+        eventDate: DateTime.utc(2026, 3, 15),
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            performedAt: existing,
+          ),
+        ],
+      );
+      final stamped = p.stampDanceSlotsPerformed(
+        fallback: DateTime.utc(2026, 7, 20),
+      );
+      expect(stamped.slots.single.performedAt, existing);
+      // Applying twice yields the same result.
+      final twice = stamped.stampDanceSlotsPerformed(
+        fallback: DateTime.utc(2026, 7, 20),
+      );
+      expect(twice.slots.single.performedAt, existing);
+    });
+
+    test('leaves free-text / note slots untouched', () {
+      final p = program(
+        eventDate: DateTime.utc(2026, 3, 15),
+        slots: [
+          ProgramSlot(id: 's1', position: 0, text: 'Waltz break'),
+          ProgramSlot(id: 's2', position: 1, text: Program.breakSlotText),
+        ],
+      );
+      final stamped = p.stampDanceSlotsPerformed(
+        fallback: DateTime.utc(2026, 7, 20),
+      );
+      expect(stamped.slots.every((s) => s.performedAt == null), isTrue);
+      expect(identical(stamped, p), isTrue);
+    });
+
+    test('returns the same instance when nothing needs stamping', () {
+      final p = program(
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            performedAt: DateTime.utc(2025, 1, 1),
+          ),
+        ],
+      );
+      expect(identical(p.stampDanceSlotsPerformed(fallback: now), p), isTrue);
+    });
+  });
 }

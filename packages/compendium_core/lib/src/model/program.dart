@@ -433,6 +433,40 @@ class Program {
     updatedAt: now,
   );
 
+  /// Returns a copy in which every **dance-linked** slot (`danceId != null`)
+  /// that has no [ProgramSlot.performedAt] is stamped performed at [fallback].
+  ///
+  /// This backs the "auto-stamp when a program's status becomes performed"
+  /// behaviour (issue #356): a program's *status* being performed and its
+  /// per-slot calling history should agree, since dance calling history is
+  /// derived from per-slot `performedAt` (see [ProgramSlot.performedAt]).
+  ///
+  /// - **Dance-linked only:** free-text/note/break slots aren't dances and can
+  ///   never contribute to calling history, so they're left untouched.
+  /// - **Idempotent:** a slot that already has a `performedAt` (e.g. a
+  ///   manually-set date) is never overwritten.
+  /// - **Pure:** callers choose the timestamp — typically the program's
+  ///   [eventDate] when set, else the status-change time — so this stays
+  ///   deterministic and Flutter-free. [fallback] must be UTC.
+  ///
+  /// When nothing needs stamping the same instance is returned unchanged (no
+  /// spurious `updatedAt` churn is introduced here; callers manage that).
+  Program stampDanceSlotsPerformed({required DateTime fallback}) {
+    final stamp = eventDate ?? fallback;
+    var changed = false;
+    final next = <ProgramSlot>[];
+    for (final s in slots) {
+      if (s.danceId != null && s.performedAt == null) {
+        next.add(s.copyWith(performedAt: stamp));
+        changed = true;
+      } else {
+        next.add(s);
+      }
+    }
+    if (!changed) return this;
+    return copyWith(slots: next);
+  }
+
   @override
   bool operator ==(Object other) =>
       other is Program &&
