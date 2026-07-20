@@ -1,0 +1,55 @@
+# Pages site: publish the static landing page in `site/` to the `gh-pages`
+# branch that also hosts the in-app update manifests
+# (https://ibanner56.github.io/CallersCompendium/).
+#
+# WHY a branch push (not actions/deploy-pages): the GitHub-Actions Pages flow
+# replaces the WHOLE site each deploy, which would clobber `beta.json` /
+# `stable.json`. tools/release/publish_pages_site.sh instead starts from the
+# existing gh-pages content and rewrites ONLY the site files, preserving the
+# manifests — the mirror image of the release pipeline's manifest publisher, so
+# the two coexist. Keep the Pages source on "Deploy from a branch -> gh-pages".
+# The preserve/prune/no-op contract is covered offline by
+# tools/release/test_publish_pages_site.py.
+name: Pages site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - site/**
+      - tools/release/publish_pages_site.sh
+      - .github/workflows/pages-site.yml
+  # Manual re-publish (e.g. after a release, to refresh editorial copy).
+  workflow_dispatch: {}
+
+# Least privilege: only the write scope needed to push the gh-pages branch.
+permissions:
+  contents: write
+
+# Serialize; don't cancel a half-finished publish.
+concurrency:
+  group: pages-site-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish landing page to gh-pages
+    runs-on: ubuntu-latest
+    # Canonical repo only, and never from a fork PR — matches the release
+    # pipeline's guard so only trusted pushes can publish the site.
+    if: github.repository == 'ibanner56/CallersCompendium'
+    steps:
+      # Full history so the publisher can add a gh-pages worktree; the
+      # persist-credentials default provides the push token.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      # Guard: the offline preservation/prune/no-op contract must hold.
+      - name: Test the publisher (offline)
+        run: python3 tools/release/test_publish_pages_site.py
+
+      - name: Publish the landing page to gh-pages
+        env:
+          SOURCE_REF: ${{ github.sha }}
+        run: bash tools/release/publish_pages_site.sh --site site

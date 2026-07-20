@@ -326,6 +326,51 @@ cross-channel-preservation contract:
 python3 tools/release/test_publish_pages_manifest.py
 ```
 
+## Landing page (GitHub Pages)
+
+The public landing page at <https://ibanner56.github.io/CallersCompendium/> lives
+in [`site/`](../../site/) (plain HTML/CSS/JS, no build step) and is published to
+the **same `gh-pages` branch** as the update manifests. Its own workflow
+(`.github/workflows/pages-site.yml` → `tools/release/publish_pages_site.sh`)
+deploys it on any push to `main` under `site/**`, or on manual dispatch.
+
+The site publisher is the **mirror image** of the manifest publisher: it starts
+from the existing `gh-pages` content and rewrites only the site files, so it
+**preserves `beta.json` / `stable.json`**, and the manifest publisher preserves
+the site. The two therefore coexist on one branch without clobbering each other
+(proven offline by `tools/release/test_publish_pages_site.py`). This is why Pages
+stays on **Deploy from a branch → `gh-pages`** — do not switch it to the
+GitHub-Actions Pages source.
+
+### Keeping the landing page aligned
+
+The **downloads section stays correct automatically**: `site/app.js` fetches
+`beta.json` at page load, so version, links, sizes, and checksums track whatever
+the release pipeline just published — no edits needed.
+
+What does **not** auto-update is the **editorial copy**. As part of cutting a
+release (see the [Release Checklist](release-checklist.md) §4), skim `site/` and
+refresh anything the release changed:
+
+- **Status** — the "Where the project is today" list and the hero eyebrow, if the
+  shipped/in-flight picture moved (keep it in step with `README.md` and
+  `docs/ROADMAP.md`).
+- **Features** — add/adjust cards for any newly shipped capability.
+- **Screenshots** — replace or add captures for changed UI (see
+  [`site/README.md`](../../site/README.md#adding-real-screenshots) for the capture
+  procedure).
+- **Version fallbacks** — the static `v0.1.0-beta.2` strings in `index.html` are
+  only shown before the manifest fetch resolves; bump them at a major beta so the
+  pre-hydration flash matches.
+
+Commit those edits to `main` in the release prep PR; merging triggers
+`pages-site.yml` and the page redeploys. To refresh the page **without** a code
+change (e.g. immediately after publishing a release), run the workflow manually:
+
+```sh
+gh workflow run pages-site.yml
+```
+
 ## Dry run (no release created)
 
 A manual dispatch builds + packages without creating any release (the `publish`

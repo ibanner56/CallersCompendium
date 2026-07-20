@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Caller's Compendium logo">
+  <defs>
+    <linearGradient id="cc-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b4cca"/>
+      <stop offset="1" stop-color="#c9603a"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#cc-g)"/>
+  <!-- open book -->
+  <path d="M14 20c5-3 10-3 14 0v26c-4-3-9-3-14 0V20Z" fill="#fff" opacity="0.95"/>
+  <path d="M50 20c-5-3-10-3-14 0v26c4-3 9-3 14 0V20Z" fill="#fff" opacity="0.82"/>
+  <!-- swing / partnering arcs -->
+  <path d="M24 33c2-4 6-6 8-6s6 2 8 6" fill="none" stroke="#3b4cca" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="32" cy="27.5" r="2.4" fill="#c9603a"/>
+</svg>
