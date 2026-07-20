@@ -128,22 +128,25 @@ void main() {
         },
       );
 
-      test('issue #290 — "form an ocean wave" still maps to the retained '
-          'legacy move (not the new split moves)', () async {
-        final draft = await _importOne(
-          jsonEncode(
-            _dance(
-              figures: [
-                _fig('form an ocean wave', [8]),
-              ],
+      test(
+        'issue #290 — "form an ocean wave" maps to pass_the_ocean '
+        '(ContraDB pass_through default; legacy move removed at v14)',
+        () async {
+          final draft = await _importOne(
+            jsonEncode(
+              _dance(
+                figures: [
+                  _fig('form an ocean wave', [8]),
+                ],
+              ),
             ),
-          ),
-        );
-        final wave = _figureFor(draft, 'form_an_ocean_wave');
-        expect(wave.move, 'form_an_ocean_wave');
-        expect(wave.params['beats'], 8);
-        expect(draft.quality.customFigures, 0);
-      });
+          );
+          final wave = _figureFor(draft, 'pass_the_ocean');
+          expect(wave.move, 'pass_the_ocean');
+          expect(wave.params['beats'], 8);
+          expect(draft.quality.customFigures, 0);
+        },
+      );
 
       test('figure note and progression flag are preserved', () async {
         final draft = await _importOne(

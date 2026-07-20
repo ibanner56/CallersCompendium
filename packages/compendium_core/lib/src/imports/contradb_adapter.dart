@@ -1021,7 +1021,12 @@ final Map<String, _MoveMap> _moveMappings = {
     _PosParam('who', _dancers),
     _PosParam('beats', _beatsConv()),
   ]),
-  'form an ocean wave': _MoveMap('form_an_ocean_wave', [
+  // Issue #290: `form_an_ocean_wave` was removed from the taxonomy (v14).
+  // ContraDB's "form an ocean wave" defaults to pass_through=true, so map it to
+  // `pass_the_ocean` (carry beats) rather than letting it degrade to an
+  // unknown-move custom figure. (The legacy minimal mapping only ever carried
+  // beats; retargeting the id keeps that behavior while pointing at a live move.)
+  'form an ocean wave': _MoveMap('pass_the_ocean', [
     _PosParam('beats', _beatsConv()),
   ]),
 };

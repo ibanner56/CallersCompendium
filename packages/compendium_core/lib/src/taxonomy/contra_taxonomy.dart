@@ -51,11 +51,15 @@ import 'taxonomy.dart';
 ///     `pass_the_ocean` (renders "pass the ocean"). Both inherit the legacy
 ///     move's sourced params MINUS `passThru` (intrinsic to pass_the_ocean,
 ///     absent from the short wave) and mirror its unencoded, param-dependent
-///     beats — no fabricated beat count. `form_an_ocean_wave` is RETAINED
-///     unchanged for stored-data fidelity (no alias, no rewrite), so existing
-///     figures render byte-identically. Purely additive: distinct from
-///     schemaVersion — no DB migration or derived rebuild is implied.
-const int contraTaxonomyVersion = 13;
+///     beats — no fabricated beat count. `form_an_ocean_wave` was RETAINED at
+///     v13 for stored-data fidelity; v14 removes it (migrated away — see below).
+/// v14: removes the now-superseded `form_an_ocean_wave` MoveDef (issue #290
+///     cleanup). Stored figures that reference it are rewritten by the schema
+///     migration (CompendiumDatabase schema v12) to `pass_the_ocean` (when
+///     `passThru` is true — its default) or `form_a_short_wave` (when false),
+///     carrying the remaining params. This is a DB migration (distinct from
+///     this taxonomy version), the sanctioned canonical-changing exception.
+const int contraTaxonomyVersion = 14;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -926,32 +930,15 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // scope); the typical full case is 8. Not encoding the conditional rule.
       goodBeats: [8],
     ),
-    const MoveDef(
-      id: 'form_an_ocean_wave',
-      displayName: 'form an ocean wave',
-      params: {
-        'passThru': ParamSpec(ParamKind.flag, defaultValue: true),
-        // ContraDB set_direction_acrossish (across/rightDiagonal/leftDiagonal);
-        // all in our direction vocabulary.
-        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
-        'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
-        'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
-        'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
-      },
-      renderTemplate: '{move}',
-      searchKeywords: ['ocean wave'],
-      // Beats are param-dependent (passThru/balance); not encoded (cf. poussette).
-    ),
-    // v13: split of the overloaded `form_an_ocean_wave` (issue #290). That move
+    // v13 split of the overloaded `form_an_ocean_wave` (issue #290). That move
     // conflated "form a short wave [and balance]" (the default short-wave case)
     // with "pass the ocean" (the pass-through-to-a-wave figure). Both new moves
     // inherit `form_an_ocean_wave`'s sourced param set MINUS `passThru`: the
     // pass-through is intrinsic to `pass_the_ocean` and intrinsically absent
     // from `form_a_short_wave`. Neither invents a beat count — they mirror the
     // legacy move's flat, param-dependent (unencoded) beats exactly.
-    // `form_an_ocean_wave` is RETAINED unchanged above for stored-data fidelity.
+    // `form_an_ocean_wave` itself was REMOVED at taxonomy v14 (CompendiumDatabase
+    // schema v12 migrates stored figures onto these two moves by `passThru`).
     const MoveDef(
       id: 'form_a_short_wave',
       displayName: 'form a wave',
