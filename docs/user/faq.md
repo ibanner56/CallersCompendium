@@ -35,8 +35,10 @@ license, and a link to the source under **Settings › About**.
 
 ### Which devices does it run on?
 
-Desktop (Linux, macOS, Windows) and mobile (Android, iOS/iPadOS). Step-by-step
-install instructions are coming once packaged builds are available.
+Desktop (Linux, macOS, Windows) and mobile (Android, iOS/iPadOS). Desktop and
+Android builds are on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases);
+iPhone and iPad go out via TestFlight to invited testers. See the
+[Installation guide](./installation.md) for step-by-step instructions.
 
 ## Everyday tasks
 
@@ -64,9 +66,11 @@ input.
 
 Open the dance or program and use its share/export options — you can share as
 text or export a PDF. A program also offers **Share (program + dances)**, which
-bundles the set list together with every dance it uses into one file the
-recipient can import in a single step — dances and all, not just a list of
-titles. This is separate from a full backup. See
+bundles the set list together with every dance it uses into one file — dances and
+all, not just a list of titles. The recipient can **open that file directly**
+(AirDrop, "Open with", or a share intent) and the app imports it and opens the
+program automatically, or they can import it from **Settings › Import**. This is
+separate from a full backup. See
 [Collection & search](./collection.md) for dances and
 [Programs & matrix](./programs.md#print-export-and-email-a-program) for programs.
 

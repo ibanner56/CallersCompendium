@@ -43,10 +43,11 @@ a new machine any time with a single backup file — see the
 ## Installing the app
 
 Downloadable builds are ready for **Linux**, **macOS**, **Windows**, and
-**Android**. The [Installation guide](./installation.md) walks you through
-downloading the right file, getting past the first-time security prompt you'll
-see on a beta build, and keeping the app up to date. (An iPhone/iPad build is
-still to come.)
+**Android**, and **iPhone/iPad** builds go out through **TestFlight** to invited
+testers. The [Installation guide](./installation.md) walks you through
+downloading the right file (or joining the TestFlight beta), getting past the
+first-time security prompt you'll see on the unsigned Windows and Linux builds,
+and keeping the app up to date.
 
 ## Your first launch
 
