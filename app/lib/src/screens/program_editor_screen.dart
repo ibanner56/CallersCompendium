@@ -676,6 +676,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 program: _draftProgram!,
                 titleFor: _titleForDance,
                 danceFor: (id) => _data?.dancesById[id],
+                choreographerFor: (id) => _data?.choreographersById[id],
               ),
             if (!widget.isNew && _existing != null) ...[
               if (_slots.any((s) => s.danceId != null))

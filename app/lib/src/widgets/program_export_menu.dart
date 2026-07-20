@@ -83,6 +83,7 @@ class ProgramExportMenu extends StatelessWidget {
     required this.program,
     required this.titleFor,
     this.danceFor,
+    this.choreographerFor,
     this.shareInvoker,
     this.bundleFileWriter,
     this.pdfLayouter,
@@ -95,6 +96,12 @@ class ProgramExportMenu extends StatelessWidget {
   /// dances)" action can embed every referenced dance in a self-contained
   /// bundle. When `null`, that action is omitted (there is nothing to embed).
   final Dance? Function(String danceId)? danceFor;
+
+  /// Resolves a dance's author id to its full [Choreographer], so the "Share
+  /// (program + dances)" action can embed the choreographers its bundled dances
+  /// reference and author attribution survives the round-trip. Optional and
+  /// best-effort: an unresolved id is simply omitted from the bundle.
+  final Choreographer? Function(String id)? choreographerFor;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
   final ShareInvoker? shareInvoker;
@@ -142,7 +149,11 @@ class ProgramExportMenu extends StatelessWidget {
     final resolveDance = danceFor;
     if (resolveDance == null) return;
 
-    final json = buildProgramShareBundle(program, danceFor: resolveDance);
+    final json = buildProgramShareBundle(
+      program,
+      danceFor: resolveDance,
+      choreographerFor: choreographerFor ?? (_) => null,
+    );
     final fileName = programShareBundleFileName(program.title);
 
     final writeFile = bundleFileWriter ?? writeBundleTempFile;
