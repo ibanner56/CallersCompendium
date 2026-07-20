@@ -220,22 +220,15 @@ class FacetPanel extends StatelessWidget {
     }
 
     if (authors.isNotEmpty) {
+      // #341: a searchable multi-select replaces the flat per-author chip list,
+      // which grew unwieldy as collections accumulate choreographers. Selection
+      // still lives in `facets.authorIds`, so filter semantics are unchanged.
       sections.add(
-        _FacetSection(
+        _AuthorFacet(
           key: const ValueKey('facet-row-author'),
-          label: 'Author',
-          sectionId: 'author',
-          activeCount: facets.authorIds.length,
-          chips: [
-            for (final a in authors)
-              _chip(
-                key: 'author-${a.id}',
-                label: a.name,
-                icon: Icons.person_outline,
-                selected: facets.authorIds.contains(a.id),
-                onSelected: (s) => toggle(facets.authorIds, a.id, s),
-              ),
-          ],
+          authors: authors,
+          facets: facets,
+          onChanged: onChanged,
         ),
       );
     }
@@ -507,6 +500,161 @@ class _FacetExpansion extends StatelessWidget {
         ],
       ),
       children: [child],
+    );
+  }
+}
+
+/// The Author facet (#341): a searchable multi-select over choreographers.
+///
+/// Built on the dance-editor name-picker typeahead pattern
+/// ([`name_picker.dart`]'s `_AddAutocomplete`) but author-specific and
+/// filter-only (no "create" affordance). Type to filter authors; matches are
+/// shown in a dropdown and, once chosen, appear as removable chips. Selection
+/// is written straight into the parent-owned [FacetSelections.authorIds] set,
+/// so the compiled filter (an OR-group of `AuthorFilter` leaves) and the
+/// OR-within-facet semantics are identical to the previous chip list. Sits in
+/// the shared [_FacetExpansion] shell so the collapsible section and its
+/// active-count badge are preserved.
+class _AuthorFacet extends StatefulWidget {
+  const _AuthorFacet({
+    super.key,
+    required this.authors,
+    required this.facets,
+    required this.onChanged,
+  });
+
+  final List<Choreographer> authors;
+  final FacetSelections facets;
+  final VoidCallback onChanged;
+
+  @override
+  State<_AuthorFacet> createState() => _AuthorFacetState();
+}
+
+class _AuthorFacetState extends State<_AuthorFacet> {
+  // Owned here (not by Autocomplete) so a selection can clear the query text,
+  // resetting the field for the next author in a multi-select.
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _add(String id) {
+    widget.facets.authorIds.add(id);
+    _controller.clear();
+    widget.onChanged();
+  }
+
+  void _remove(String id) {
+    widget.facets.authorIds.remove(id);
+    widget.onChanged();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authorsById = {for (final a in widget.authors) a.id: a.name};
+    final selectedIds = widget.facets.authorIds;
+    return _FacetExpansion(
+      label: 'Author',
+      sectionId: 'author',
+      activeCount: selectedIds.length,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (selectedIds.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final id in selectedIds)
+                    InputChip(
+                      key: ValueKey('author-facet-chip-$id'),
+                      avatar: const Icon(Icons.person_outline, size: 18),
+                      label: Text(authorsById[id] ?? id),
+                      tooltip: 'Remove ${authorsById[id] ?? id}',
+                      deleteIcon: const Icon(Icons.close, size: 18),
+                      deleteButtonTooltipMessage:
+                          'Remove ${authorsById[id] ?? id}',
+                      onDeleted: () => _remove(id),
+                    ),
+                ],
+              ),
+            ),
+          Autocomplete<Choreographer>(
+            key: const ValueKey('author-facet-autocomplete'),
+            textEditingController: _controller,
+            focusNode: _focusNode,
+            displayStringForOption: (a) => a.name,
+            optionsBuilder: (value) {
+              final q = value.text.trim().toLowerCase();
+              if (q.isEmpty) return const Iterable<Choreographer>.empty();
+              // Exclude already-selected authors so the dropdown only offers
+              // additions; matching is a case-insensitive substring on name.
+              return widget.authors.where(
+                (a) =>
+                    !selectedIds.contains(a.id) &&
+                    a.name.toLowerCase().contains(q),
+              );
+            },
+            onSelected: (a) => _add(a.id),
+            fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+              return TextField(
+                key: const ValueKey('author-facet-search'),
+                controller: controller,
+                focusNode: focusNode,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search, size: 18),
+                  hintText: 'Search authors…',
+                  isDense: true,
+                ),
+                onSubmitted: (_) => onSubmit(),
+              );
+            },
+            optionsViewBuilder: (context, onSelected, options) {
+              return Align(
+                alignment: Alignment.topLeft,
+                child: Material(
+                  elevation: 4,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxHeight: 240,
+                      maxWidth: 320,
+                    ),
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      children: [
+                        for (final a in options)
+                          ListTile(
+                            key: ValueKey('author-facet-option-${a.id}'),
+                            dense: true,
+                            leading: const Icon(Icons.person_outline, size: 18),
+                            title: Text(a.name),
+                            onTap: () => onSelected(a),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

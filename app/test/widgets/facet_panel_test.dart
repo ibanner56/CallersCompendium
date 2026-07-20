@@ -13,6 +13,7 @@ Future<void> _pump(
   List<DanceLevel> levels = const [],
   List<CustomFieldDef> choiceFields = const [],
   List<PublishedSource> citedSources = const [],
+  List<Choreographer> authors = const [],
   bool hasMixedLevel = false,
   bool hasRating = false,
   required VoidCallback onChanged,
@@ -31,7 +32,7 @@ Future<void> _pump(
               levels: levels,
               hasMixedLevel: hasMixedLevel,
               hasRating: hasRating,
-              authors: const [],
+              authors: authors,
               tags: const [],
               citedSources: citedSources,
               choiceFields: choiceFields,
@@ -337,5 +338,206 @@ void main() {
 
     // The collapsed Progression section must remain collapsed.
     expect(find.byKey(const ValueKey('progression-single')), findsNothing);
+  });
+
+  group('author multi-select (#341)', () {
+    final authors = [
+      Choreographer(id: 'c1', name: 'Ada Lovelace'),
+      Choreographer(id: 'c2', name: 'Grace Hopper'),
+      Choreographer(id: 'c3', name: 'Gene Hubert'),
+    ];
+
+    testWidgets('the section is hidden when there are no authors', (
+      tester,
+    ) async {
+      await _pump(tester, FacetSelections(), onChanged: () {});
+      expect(find.text('Author'), findsNothing);
+      expect(find.byKey(const ValueKey('author-facet-search')), findsNothing);
+    });
+
+    testWidgets('renders the search field and no chips before any selection', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        FacetSelections(),
+        authors: authors,
+        onChanged: () {},
+      );
+      expect(find.text('Author'), findsOneWidget);
+      expect(find.byKey(const ValueKey('author-facet-search')), findsOneWidget);
+      // No per-author chips are pre-rendered (the old flat list is gone).
+      expect(find.byKey(const ValueKey('author-facet-chip-c1')), findsNothing);
+    });
+
+    testWidgets('typing filters the options to name substring matches', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        FacetSelections(),
+        authors: authors,
+        onChanged: () {},
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('author-facet-search')),
+        'grace',
+      );
+      await tester.pumpAndSettle();
+
+      // Only Grace Hopper matches "grace" (case-insensitive).
+      expect(
+        find.byKey(const ValueKey('author-facet-option-c2')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('author-facet-option-c1')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('author-facet-option-c3')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('selecting an author adds it to authorIds and shows a chip', (
+      tester,
+    ) async {
+      final facets = FacetSelections();
+      var changes = 0;
+      await _pump(tester, facets, authors: authors, onChanged: () => changes++);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('author-facet-search')),
+        'ada',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-facet-option-c1')));
+      await tester.pumpAndSettle();
+
+      expect(facets.authorIds, {'c1'});
+      expect(changes, 1);
+      expect(
+        find.byKey(const ValueKey('author-facet-chip-c1')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('selecting two authors OR-s them within the facet', (
+      tester,
+    ) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, authors: authors, onChanged: () {});
+
+      await tester.enterText(
+        find.byKey(const ValueKey('author-facet-search')),
+        'ada',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-facet-option-c1')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('author-facet-search')),
+        'grace',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-facet-option-c2')));
+      await tester.pumpAndSettle();
+
+      expect(facets.authorIds, {'c1', 'c2'});
+    });
+
+    testWidgets('an already-selected author is excluded from the options', (
+      tester,
+    ) async {
+      final facets = FacetSelections()..authorIds.add('c1');
+      await _pump(tester, facets, authors: authors, onChanged: () {});
+
+      // "a" matches Ada and Grace, but Ada (c1) is already selected.
+      await tester.enterText(
+        find.byKey(const ValueKey('author-facet-search')),
+        'a',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('author-facet-option-c1')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('author-facet-option-c2')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('removing the last chip leaves authorIds empty (no dangling '
+        'filter)', (tester) async {
+      final facets = FacetSelections()..authorIds.add('c1');
+      var changes = 0;
+      await _pump(tester, facets, authors: authors, onChanged: () => changes++);
+
+      expect(
+        find.byKey(const ValueKey('author-facet-chip-c1')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('author-facet-chip-c1')),
+          matching: find.byIcon(Icons.close),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(facets.authorIds, isEmpty);
+      expect(changes, 1);
+      expect(find.byKey(const ValueKey('author-facet-chip-c1')), findsNothing);
+
+      // An empty author facet contributes no filter branch: with nothing else
+      // selected the query compiles to the match-all AndFilter([]).
+      final filter = buildCollectionFilter(
+        ftsText: '',
+        facets: facets,
+        defs: const [],
+      );
+      expect(filter, isA<AndFilter>());
+      expect((filter as AndFilter).children, isEmpty);
+    });
+
+    testWidgets('two selected authors compile to the same OR-group of '
+        'AuthorFilters (semantics unchanged)', (tester) async {
+      final facets = FacetSelections();
+      await _pump(tester, facets, authors: authors, onChanged: () {});
+
+      await tester.enterText(
+        find.byKey(const ValueKey('author-facet-search')),
+        'ada',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-facet-option-c1')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('author-facet-search')),
+        'grace',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-facet-option-c2')));
+      await tester.pumpAndSettle();
+
+      final filter = buildCollectionFilter(
+        ftsText: '',
+        facets: facets,
+        defs: const [],
+      );
+      expect(filter, isA<OrFilter>());
+      final leaves = (filter as OrFilter).children;
+      expect(leaves.every((f) => f is AuthorFilter), isTrue);
+      expect(leaves.map((f) => (f as AuthorFilter).choreographerId).toSet(), {
+        'c1',
+        'c2',
+      });
+    });
   });
 }
