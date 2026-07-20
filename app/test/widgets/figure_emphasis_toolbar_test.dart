@@ -99,4 +99,51 @@ void main() {
 
     expect(drafts.single.note, '_balance_ then swing');
   });
+
+  testWidgets('out-of-range selection does not crash the emphasis toolbar', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft(move: 'swing')];
+    await _pump(tester, drafts);
+    await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-add-note')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-note')),
+      'short',
+    );
+    await tester.pumpAndSettle();
+
+    // Tapping bold with a plain caret (no wild selection possible on a live
+    // field) still applies safely and never throws.
+    _select(tester, const ValueKey('figure-0-note'), 5, 5);
+    await tester.tap(find.byKey(const ValueKey('figure-0-note-bold')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  test('wrapSelectionWith clamps a stale out-of-range selection', () {
+    // A bare controller can legitimately hold a selection past the text length
+    // (e.g. text shortened after the selection was made). The wrap must clamp
+    // rather than throw a RangeError.
+    final controller = TextEditingController()
+      ..value = const TextEditingValue(
+        text: 'short',
+        selection: TextSelection(baseOffset: 3, extentOffset: 999),
+      );
+
+    expect(() => wrapSelectionWith(controller, '*'), returnsNormally);
+    // Clamped to offsets 3..5 => wraps "rt".
+    expect(controller.text, 'sho*rt*');
+
+    // Fully out-of-range / collapsed-past-end also stays safe.
+    controller.value = const TextEditingValue(
+      text: 'hi',
+      selection: TextSelection.collapsed(offset: 50),
+    );
+    expect(() => wrapSelectionWith(controller, '_'), returnsNormally);
+    expect(controller.text, 'hi__');
+  });
 }

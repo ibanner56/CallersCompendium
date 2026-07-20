@@ -1445,7 +1445,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 /// text. With no selection it inserts an empty `delimiter+delimiter` pair and
 /// places the caret between them. The markup lives verbatim in the string; the
 /// Perform view renders it via `parseInlineEmphasis`.
-void _wrapSelectionWith(TextEditingController controller, String delimiter) {
+@visibleForTesting
+void wrapSelectionWith(TextEditingController controller, String delimiter) {
   final value = controller.value;
   final text = value.text;
   var selection = value.selection;
@@ -1454,10 +1455,12 @@ void _wrapSelectionWith(TextEditingController controller, String delimiter) {
     selection = TextSelection.collapsed(offset: text.length);
   }
   // `isValid` only guarantees non-negative offsets; clamp to the current text
-  // length so a stale selection can never throw a RangeError on substring /
-  // replaceRange.
-  final start = selection.start.clamp(0, text.length);
-  final end = selection.end.clamp(0, text.length);
+  // length (and order them) so a stale/out-of-range selection can never throw a
+  // RangeError on substring / replaceRange.
+  final a = selection.start.clamp(0, text.length);
+  final b = selection.end.clamp(0, text.length);
+  final start = a <= b ? a : b;
+  final end = a <= b ? b : a;
   final selected = text.substring(start, end);
   final replacement = '$delimiter$selected$delimiter';
   final newText = text.replaceRange(start, end, replacement);
@@ -1485,7 +1488,7 @@ class _EmphasisToolbar extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   void _apply(String delimiter) {
-    _wrapSelectionWith(controller, delimiter);
+    wrapSelectionWith(controller, delimiter);
     onChanged(controller.text);
   }
 

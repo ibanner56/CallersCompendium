@@ -771,12 +771,13 @@ class _FigureRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (mainSpans != null)
-                    Text.rich(_emphasisSpan(mainSpans!, textStyle))
+                    Text.rich(_emphasisSpan(mainSpans!), style: textStyle)
                   else
                     Text(text, style: textStyle),
                   if (noteText.isNotEmpty)
                     Text.rich(
-                      _emphasisSpan(parseInlineEmphasis(noteText), noteStyle),
+                      _emphasisSpan(parseInlineEmphasis(noteText)),
+                      style: noteStyle,
                     ),
                 ],
               ),
@@ -797,14 +798,10 @@ class _FigureRow extends StatelessWidget {
   }
 
   /// Builds a `TextSpan` tree from parsed [EmphasisSpan]s, applying bold and/or
-  /// underline over [baseStyle] (carried on the root span). Purely visual — the
-  /// text itself is unchanged.
-  static TextSpan _emphasisSpan(
-    List<EmphasisSpan> spans,
-    TextStyle? baseStyle,
-  ) {
+  /// underline per span. Base styling is supplied by the enclosing
+  /// `Text.rich(style: ...)`. Purely visual — the text itself is unchanged.
+  static TextSpan _emphasisSpan(List<EmphasisSpan> spans) {
     return TextSpan(
-      style: baseStyle,
       children: [
         for (final span in spans)
           TextSpan(
