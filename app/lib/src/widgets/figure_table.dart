@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/verbose_figure_rendering_scope.dart';
+import '../data/decimal_turns_scope.dart';
 import '../search/facet_labels.dart';
 
 /// Read-only figure table grouped by derived phrase section (`docs/design/ux.md`
@@ -39,6 +40,7 @@ class FigureTable extends StatelessWidget {
     // ROADMAP G.7: when "always verbose" is on, the visible row text uses the
     // spoken-style verbose rendering instead of the terse notation.
     final verbose = VerboseFigureRenderingScope.of(context);
+    final decimals = DecimalTurnsScope.of(context);
     final rows = <Widget>[];
     String? lastLabel;
     var isFirstRowInSection = true;
@@ -53,7 +55,7 @@ class FigureTable extends StatelessWidget {
       }
       rows.add(
         _FigureRow(
-          text: renderer.renderSummary(sf.figure, dialect),
+          text: renderer.renderSummary(sf.figure, dialect, decimals: decimals),
           verboseText: renderer.renderSummary(
             sf.figure,
             dialect,

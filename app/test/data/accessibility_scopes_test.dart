@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
+import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/data/verbose_figure_rendering_scope.dart';
@@ -126,6 +127,56 @@ void main() {
       notifier.value = true;
       await tester.pump();
       expect(observed, [false, true]);
+    });
+  });
+
+  group('DecimalTurnsScope', () {
+    testWidgets('defaults to false with no ancestor', (tester) async {
+      late bool value;
+      await tester.pumpWidget(
+        Builder(
+          builder: (context) {
+            value = DecimalTurnsScope.of(context);
+            return const SizedBox();
+          },
+        ),
+      );
+      expect(value, isFalse);
+    });
+
+    testWidgets('changing the notifier rebuilds dependents', (tester) async {
+      final notifier = ValueNotifier<bool>(false);
+      addTearDown(notifier.dispose);
+      final observed = <bool>[];
+      await tester.pumpWidget(
+        DecimalTurnsScope(
+          notifier: notifier,
+          child: Builder(
+            builder: (context) {
+              observed.add(DecimalTurnsScope.of(context));
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      expect(observed, [false]);
+      notifier.value = true;
+      await tester.pump();
+      expect(observed, [false, true]);
+    });
+
+    testWidgets('notifierOf throws without an ancestor', (tester) async {
+      await tester.pumpWidget(
+        Builder(
+          builder: (context) {
+            expect(
+              () => DecimalTurnsScope.notifierOf(context),
+              throwsFlutterError,
+            );
+            return const SizedBox();
+          },
+        ),
+      );
     });
   });
 

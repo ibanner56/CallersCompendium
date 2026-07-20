@@ -18,7 +18,7 @@ Future<void> _pumpGeneral(
   WidgetTester tester,
   CompendiumRepositories repos,
 ) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 900));
+  await tester.binding.setSurfaceSize(const Size(1200, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);

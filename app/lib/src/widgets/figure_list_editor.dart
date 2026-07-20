@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../data/reduce_motion_scope.dart';
+import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
 import '../search/facet_labels.dart';
 import 'figure_param_editors.dart';
@@ -855,7 +856,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final hasMove = figure != null;
     final renderer = FigureRenderer(widget.taxonomy);
     final sentence = hasMove
-        ? renderer.renderSummary(figure, widget.dialect)
+        ? renderer.renderSummary(
+            figure,
+            widget.dialect,
+            decimals: DecimalTurnsScope.of(context),
+          )
         : '(empty — choose a move)';
     final spoken = hasMove
         ? renderer.renderSummary(figure, widget.dialect, verbose: true)

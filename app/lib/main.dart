@@ -30,6 +30,7 @@ import 'src/data/set_list_color_coding_scope.dart';
 import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
+import 'src/data/decimal_turns_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/licenses.dart';
 import 'src/screens/app_shell.dart';
@@ -178,6 +179,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool> _verboseFigureRenderingNotifier = ValueNotifier(
     false,
   );
+  final ValueNotifier<bool> _decimalTurnsNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _setListColorCodingNotifier = ValueNotifier(true);
@@ -470,6 +472,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (verboseFigures is bool) {
       _verboseFigureRenderingNotifier.value = verboseFigures;
     }
+    // Load the "show turns as decimals" display toggle (#368), off by default
+    // when unset. Opt-in, so a read failure or missing key stays off (keeps the
+    // fraction-glyph default). Coerced through `is bool` so a garbage stored
+    // value can never flip the toggle on.
+    final decimalTurns = await _appData.repositories.settings
+        .get(kDecimalTurnsKey)
+        .catchError((_) => null);
+    if (decimalTurns is bool) {
+      _decimalTurnsNotifier.value = decimalTurns;
+    }
     final confirmBeforeDelete = await _appData.repositories.settings
         .get(kConfirmBeforeDeleteKey)
         .catchError((_) => null);
@@ -531,6 +543,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _sortIgnoreArticlesNotifier.dispose();
     _reduceMotionNotifier.dispose();
     _verboseFigureRenderingNotifier.dispose();
+    _decimalTurnsNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
@@ -679,20 +692,23 @@ class _CompendiumAppState extends State<CompendiumApp> {
                               notifier: _reduceMotionNotifier,
                               child: VerboseFigureRenderingScope(
                                 notifier: _verboseFigureRenderingNotifier,
-                                child: ConfirmBeforeDeleteScope(
-                                  notifier: _confirmBeforeDeleteNotifier,
-                                  child: ColourDanceThemeScope(
-                                    notifier: _colourDanceThemeNotifier,
-                                    child: SetListColorCodingScope(
-                                      notifier: _setListColorCodingNotifier,
-                                      child: DateFormatScope(
-                                        notifier: _dateFormatNotifier,
-                                        child: BackupControllerScope(
-                                          onRestored: reloadFromSettings,
-                                          child: CollectionRefreshScope(
-                                            revision:
-                                                _collectionRefreshNotifier,
-                                            child: child!,
+                                child: DecimalTurnsScope(
+                                  notifier: _decimalTurnsNotifier,
+                                  child: ConfirmBeforeDeleteScope(
+                                    notifier: _confirmBeforeDeleteNotifier,
+                                    child: ColourDanceThemeScope(
+                                      notifier: _colourDanceThemeNotifier,
+                                      child: SetListColorCodingScope(
+                                        notifier: _setListColorCodingNotifier,
+                                        child: DateFormatScope(
+                                          notifier: _dateFormatNotifier,
+                                          child: BackupControllerScope(
+                                            onRestored: reloadFromSettings,
+                                            child: CollectionRefreshScope(
+                                              revision:
+                                                  _collectionRefreshNotifier,
+                                              child: child!,
+                                            ),
                                           ),
                                         ),
                                       ),

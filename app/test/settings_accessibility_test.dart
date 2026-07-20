@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/verbose_figure_rendering_scope.dart';
@@ -36,12 +37,16 @@ Future<void> _pumpGeneral(
   final confirmDelete = ValueNotifier<bool>(
     await repos.settings.get(kConfirmBeforeDeleteKey) == true,
   );
+  final decimalTurns = ValueNotifier<bool>(
+    await repos.settings.get(kDecimalTurnsKey) == true,
+  );
   addTearDown(dialect.dispose);
   addTearDown(theme.dispose);
   addTearDown(customThemes.dispose);
   addTearDown(reduceMotion.dispose);
   addTearDown(verboseFigures.dispose);
   addTearDown(confirmDelete.dispose);
+  addTearDown(decimalTurns.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -57,9 +62,12 @@ Future<void> _pumpGeneral(
                 notifier: reduceMotion,
                 child: VerboseFigureRenderingScope(
                   notifier: verboseFigures,
-                  child: ConfirmBeforeDeleteScope(
-                    notifier: confirmDelete,
-                    child: const SettingsScreen(),
+                  child: DecimalTurnsScope(
+                    notifier: decimalTurns,
+                    child: ConfirmBeforeDeleteScope(
+                      notifier: confirmDelete,
+                      child: const SettingsScreen(),
+                    ),
                   ),
                 ),
               ),
@@ -84,10 +92,11 @@ void main() {
   const keys = {
     'general-reduce-motion': kReduceMotionKey,
     'general-verbose-figures': kVerboseFigureRenderingKey,
+    'general-decimal-turns': kDecimalTurnsKey,
     'general-confirm-before-delete': kConfirmBeforeDeleteKey,
   };
 
-  testWidgets('all three accessibility switches render and default off', (
+  testWidgets('all accessibility switches render and default off', (
     tester,
   ) async {
     final repos = openTestRepositories();
