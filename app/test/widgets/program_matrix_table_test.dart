@@ -25,6 +25,7 @@ void main() {
     int omittedFreeTextCount = 0,
     Set<String> altDanceIds = const {},
     Dialect? dialect,
+    List<ProgramHalf?>? halves,
   }) async {
     await tester.binding.setSurfaceSize(const Size(1400, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -32,7 +33,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: ProgramMatrixTable(
-            matrix: buildProgramMatrix(dances),
+            matrix: buildProgramMatrix(dances, halves: halves),
             taxonomy: contraTaxonomy,
             dialect: dialect ?? Dialect.canonical,
             omittedFreeTextCount: omittedFreeTextCount,
@@ -242,6 +243,7 @@ void main() {
       int omittedFreeTextCount = 0,
       Set<String> altDanceIds = const {},
       Dialect? dialect,
+      List<ProgramHalf?>? halves,
     }) async {
       // A 360dp phone: below ProgramMatrixTable.compactBreakpoint (600), so the
       // wide scrolling grid is replaced by the condensed by-move view.
@@ -251,7 +253,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: ProgramMatrixTable(
-              matrix: buildProgramMatrix(dances),
+              matrix: buildProgramMatrix(dances, halves: halves),
               taxonomy: contraTaxonomy,
               dialect: dialect ?? Dialect.canonical,
               omittedFreeTextCount: omittedFreeTextCount,
@@ -445,6 +447,84 @@ void main() {
     ) async {
       await pumpNarrow(tester, dances: const []);
       expect(find.text('No structured figures yet'), findsOneWidget);
+    });
+  });
+
+  group('half badge', () {
+    testWidgets('wide grid renders 1st/2nd badges with icon + text', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        dances: [
+          dance('d1', 'A', [move('balance')]),
+          dance('d2', 'B', [move('balance')]),
+        ],
+        halves: const [ProgramHalf.first, ProgramHalf.second],
+      );
+
+      // Icon + text (never colour alone), per WCAG 1.4.1.
+      expect(find.text('1st'), findsOneWidget);
+      expect(find.text('2nd'), findsOneWidget);
+      expect(find.byIcon(Icons.looks_one_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.looks_two_outlined), findsOneWidget);
+
+      // Screen-reader phrasing folds the half into the row header label.
+      expect(find.bySemanticsLabel('Dance: A, first half'), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: B, second half'), findsOneWidget);
+    });
+
+    testWidgets('no badge when the program has no halves', (tester) async {
+      await pump(
+        tester,
+        dances: [
+          dance('d1', 'A', [move('balance')]),
+          dance('d2', 'B', [move('balance')]),
+        ],
+      );
+
+      expect(find.text('1st'), findsNothing);
+      expect(find.text('2nd'), findsNothing);
+      expect(find.bySemanticsLabel('Dance: A'), findsOneWidget);
+    });
+
+    testWidgets('compact view carries the half into chip semantics', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(360, 720));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProgramMatrixTable(
+              matrix: buildProgramMatrix(
+                [
+                  dance('d1', 'A', [swing(), move('balance')]),
+                  dance('d2', 'B', [swing(), move('balance')]),
+                ],
+                halves: const [ProgramHalf.first, ProgramHalf.second],
+              ),
+              taxonomy: contraTaxonomy,
+              dialect: Dialect.canonical,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.bySemanticsLabel(
+          "A (first half), partner swing: present, introduced here, "
+          "dance's first figure",
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(
+          "B (second half), partner swing: present, dance's first figure",
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

@@ -23,6 +23,14 @@ enum DanceLevel { beginner, intermediate, advanced }
 /// Lifecycle status of a program (set list).
 enum ProgramStatus { draft, finalized, performed }
 
+/// Which half of a program a slot falls in, DERIVED from the first break slot
+/// (see [Program.halfAtIndex]): everything before the first break is the
+/// [first] half, everything after is the [second]. There is no persisted
+/// half/section marker — the half is computed from the ordered slot list, so
+/// this carries no migration concern. A program with no break has no derived
+/// halves at all (every slot classifies as `null`).
+enum ProgramHalf { first, second }
+
 /// What a [DanceLink] points at.
 enum LinkKind { source, video, relatedDance, other }
 

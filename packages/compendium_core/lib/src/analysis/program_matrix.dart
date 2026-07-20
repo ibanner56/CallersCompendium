@@ -24,6 +24,7 @@ import 'package:meta/meta.dart';
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart';
 import '../model/dance.dart';
+import '../model/enums.dart';
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
@@ -189,10 +190,16 @@ class MatrixRow {
     required this.title,
     required this.firstMoveId,
     required Set<String> presentMoveIds,
+    this.half,
   }) : presentMoveIds = Set.unmodifiable(presentMoveIds);
 
   final String danceId;
   final String title;
+
+  /// The program half this dance's slot falls in (see [Program.halfAtIndex]),
+  /// or `null` when the program has no break to derive halves from. Drives the
+  /// "1st"/"2nd" half badge on the matrix row header.
+  final ProgramHalf? half;
 
   /// Column key of the dance's FIRST figure (the first-figure highlight), or
   /// `null` when the dance has no figures. Custom first figures use
@@ -212,11 +219,17 @@ class MatrixRow {
       other.danceId == danceId &&
       other.title == title &&
       other.firstMoveId == firstMoveId &&
+      other.half == half &&
       _setEq.equals(other.presentMoveIds, presentMoveIds);
 
   @override
-  int get hashCode =>
-      Object.hash(danceId, title, firstMoveId, _setEq.hash(presentMoveIds));
+  int get hashCode => Object.hash(
+    danceId,
+    title,
+    firstMoveId,
+    half,
+    _setEq.hash(presentMoveIds),
+  );
 }
 
 /// The derived matrix: [columns] × [rows] with per-cell presence, per-row
@@ -306,14 +319,34 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// semantics). Figure-less or deleted dances still produce a row (with an empty
 /// presence set) so the gap is visible; they contribute no columns of their own
 /// (but the swing baseline still appears while any dance exists).
-ProgramMatrix buildProgramMatrix(List<Dance> dances, {Taxonomy? taxonomy}) {
+///
+/// [halves], when provided, is a parallel list aligned to [dances] (same order
+/// and length) supplying each row's derived [ProgramHalf] (see
+/// [Program.halvesForSlots] / [Program.halfAtIndex]); a `null` entry means the
+/// dance has no half (the program has no break, or the slot is itself the
+/// break). It must be exactly the same length as [dances] — a mismatch throws
+/// [ArgumentError] (enforced at runtime, in release builds too). Omit it to
+/// leave every row's [MatrixRow.half] `null`.
+ProgramMatrix buildProgramMatrix(
+  List<Dance> dances, {
+  Taxonomy? taxonomy,
+  List<ProgramHalf?>? halves,
+}) {
   final tax = taxonomy ?? contraTaxonomy;
+  if (halves != null && halves.length != dances.length) {
+    throw ArgumentError.value(
+      halves.length,
+      'halves',
+      'must be aligned to dances (same length: ${dances.length})',
+    );
+  }
 
   final rows = <MatrixRow>[];
   final present = <String>{};
   var hasCustom = false;
 
-  for (final dance in dances) {
+  for (var i = 0; i < dances.length; i++) {
+    final dance = dances[i];
     final rowMoves = <String>{};
     for (final figure in dance.figures) {
       final key = columnKeyForFigure(figure);
@@ -332,6 +365,7 @@ ProgramMatrix buildProgramMatrix(List<Dance> dances, {Taxonomy? taxonomy}) {
             ? null
             : columnKeyForFigure(dance.figures.first),
         presentMoveIds: rowMoves,
+        half: halves == null ? null : halves[i],
       ),
     );
   }

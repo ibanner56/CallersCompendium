@@ -367,6 +367,25 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
+  void _insertBreakSlot() {
+    setState(() {
+      _slots = _renumber([
+        ..._slots,
+        ProgramSlot(
+          id: uuidV4(),
+          position: _slots.length,
+          text: Program.breakSlotText,
+        ),
+      ]);
+      _dirty = true;
+    });
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      'Added break to program.',
+      TextDirection.ltr,
+    );
+  }
+
   void _reorderSlot(int oldIndex, int newIndex) {
     setState(() {
       final list = [..._slots];
@@ -771,12 +790,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
     // Rows = dance slots in program order (flat). Free-text-only slots are
     // omitted; a slot referencing a soft-deleted dance renders a tombstone
-    // row so the gap is still visible in the matrix.
+    // row so the gap is still visible in the matrix. Per-row halves are
+    // derived from the full ordered slot list (including the break and any
+    // free-text slots) so the "1st"/"2nd" badge reflects the break position.
     final now = DateTime.now();
+    final halvesForSlots = Program.halvesForSlots(_slots);
     final rows = <Dance>[];
+    final rowHalves = <ProgramHalf?>[];
     final altDanceIds = <String>{};
     var omittedFreeText = 0;
-    for (final slot in _slots) {
+    for (var i = 0; i < _slots.length; i++) {
+      final slot = _slots[i];
       final danceId = slot.danceId;
       if (danceId == null) {
         omittedFreeText++;
@@ -791,10 +815,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             updatedAt: now,
           );
       rows.add(dance);
+      rowHalves.add(halvesForSlots[i]);
       if (slot.isAlt) altDanceIds.add(danceId);
     }
 
-    final matrix = buildProgramMatrix(rows, taxonomy: data.taxonomy);
+    final matrix = buildProgramMatrix(
+      rows,
+      taxonomy: data.taxonomy,
+      halves: rowHalves,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -898,6 +927,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 onPressed: _addFreeTextSlot,
                 icon: const Icon(Icons.notes_outlined),
                 label: const Text('Add note / break'),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('insert-break-slot'),
+                onPressed: _insertBreakSlot,
+                icon: const Icon(Icons.free_breakfast_outlined),
+                label: const Text('Insert break'),
               ),
             ],
           ),

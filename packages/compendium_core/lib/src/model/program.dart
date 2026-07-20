@@ -62,6 +62,23 @@ class ProgramSlot {
   /// (which is derived by query, never stored on the dance).
   final DateTime? performedAt;
 
+  /// Whether this slot is a **break** — the divider the program's first/second
+  /// half is derived from ([Program.halfAtIndex]).
+  ///
+  /// A break is modelled as a free-text slot (no [danceId]) whose [text],
+  /// trimmed and lowercased, equals the canonical [Program.breakSlotText]
+  /// token. This is deliberately an exact match on the token so a note like
+  /// "breakdown" or "take a break at the pub after" is *not* treated as the
+  /// structural break; the one-tap "insert break" affordance writes exactly
+  /// this token so callers never have to hand-type it (a hand-typed "Break"
+  /// still matches). There is no persisted break slot-kind — recognition is
+  /// derived, so introducing it needs no schema migration.
+  bool get isBreak {
+    final t = text;
+    if (danceId != null || t == null) return false;
+    return t.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
+  }
+
   /// See [Program.copyWith] for the `clear*`-flag precedent used for the
   /// nullable fields (a set clear flag wins over any value passed for the
   /// same field).
@@ -206,6 +223,49 @@ class Program {
   final Provenance? provenance;
 
   bool get isDeleted => deletedAt != null;
+
+  /// Canonical text of a **break** slot. The one-tap "insert break" affordance
+  /// writes exactly this so half-derivation ([halfAtIndex]) keys off it without
+  /// the caller hand-typing "break"; [ProgramSlot.isBreak] recognises it
+  /// case-insensitively (so a hand-typed "break" still counts).
+  static const String breakSlotText = 'Break';
+
+  /// Index into [slots] of the first [ProgramSlot.isBreak] slot, or `null` when
+  /// the program has no break. Because [slots] is always position-ordered, this
+  /// is the divider the first/second half is derived from.
+  int? get firstBreakSlotIndex {
+    final index = slots.indexWhere((s) => s.isBreak);
+    return index < 0 ? null : index;
+  }
+
+  /// Whether the program contains a break slot (and therefore has derived
+  /// halves).
+  bool get hasBreak => firstBreakSlotIndex != null;
+
+  /// The derived [ProgramHalf] for the slot at [index] in [slots]: everything
+  /// before the first break is [ProgramHalf.first], everything after is
+  /// [ProgramHalf.second]. Returns `null` when there is no break (no halves are
+  /// defined), for any break slot itself (a break is a divider, in neither
+  /// half), and for any out-of-range [index].
+  ProgramHalf? halfAtIndex(int index) {
+    if (index < 0 || index >= slots.length) return null;
+    final breakIndex = firstBreakSlotIndex;
+    if (breakIndex == null || slots[index].isBreak) return null;
+    return index < breakIndex ? ProgramHalf.first : ProgramHalf.second;
+  }
+
+  /// Derived [ProgramHalf] for each slot in a **position-ordered** [slots]
+  /// list, as a parallel list (same length/order). Lets callers classify a
+  /// working slot list — e.g. the program editor's in-progress edits — without
+  /// constructing a [Program]. Uses the same rules as [halfAtIndex]: `null`
+  /// when there is no break, and `null` for any break slot itself.
+  static List<ProgramHalf?> halvesForSlots(List<ProgramSlot> slots) {
+    final breakIndex = slots.indexWhere((s) => s.isBreak);
+    return List<ProgramHalf?>.generate(slots.length, (i) {
+      if (breakIndex < 0 || slots[i].isBreak) return null;
+      return i < breakIndex ? ProgramHalf.first : ProgramHalf.second;
+    }, growable: false);
+  }
 
   /// Groups [slots] into primaries each carrying their trailing alternates,
   /// so builder/perform UIs render an alt indented under its primary
