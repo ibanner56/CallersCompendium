@@ -306,4 +306,36 @@ void main() {
     await tester.pump();
     expect(facets.sourceIds, {'s2'});
   });
+
+  testWidgets('a collapsed section stays collapsed when a filter is applied '
+      'elsewhere (#375)', (tester) async {
+    // Regression: the Column's direct children are keyed, so prepending the
+    // Clear-filters row on the first selection must not remount the keyed
+    // ExpansionTiles and re-expand a section the user collapsed.
+    final facets = FacetSelections();
+    await _pump(
+      tester,
+      facets,
+      progressions: Progression.values,
+      levels: DanceLevel.values,
+      onChanged: () {},
+    );
+
+    // Both sections start expanded, so their chips are in the tree.
+    expect(find.byKey(const ValueKey('progression-single')), findsOneWidget);
+
+    // Collapse the Progression section by tapping its header.
+    await tester.tap(find.text('Progression'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('progression-single')), findsNothing);
+
+    // Apply the first filter in a different section — this flips
+    // `facets.isEmpty` and prepends the Clear-filters row.
+    await tester.tap(find.byKey(const ValueKey('level-beginner')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('clear-filters')), findsOneWidget);
+
+    // The collapsed Progression section must remain collapsed.
+    expect(find.byKey(const ValueKey('progression-single')), findsNothing);
+  });
 }
