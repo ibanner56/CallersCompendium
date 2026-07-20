@@ -103,6 +103,23 @@ class ProgramRepository {
     for (final slot in program.slots) {
       assertUtcOrNull(slot.performedAt, 'slot.performedAt');
     }
+    // Auto-stamp performed slots on a status transition to `performed`
+    // (issue #356): a program's *status* being performed and its per-slot
+    // calling history should agree. We only stamp on the transition — reading
+    // the previously-stored status — so a slot the user manually cleared while
+    // the program is already performed is NOT re-stamped, and reverting away
+    // from performed never un-stamps (history is preserved). Idempotent and
+    // dance-linked-only logic lives in [Program.stampDanceSlotsPerformed]. The
+    // stamp uses the program's eventDate when set, else its updatedAt (the
+    // save's "now"), keeping the timestamp deterministic and validated.
+    if (program.status == ProgramStatus.performed) {
+      final priorRow = await (_db.select(
+        _db.programs,
+      )..where((t) => t.id.equals(program.id))).getSingleOrNull();
+      if (priorRow?.status != ProgramStatus.performed) {
+        program = program.stampDanceSlotsPerformed(fallback: program.updatedAt);
+      }
+    }
     await _db
         .into(_db.programs)
         .insertOnConflictUpdate(

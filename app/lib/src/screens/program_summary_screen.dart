@@ -563,6 +563,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (danceId != null) {
       final dance = _dances[danceId];
       final title = dance?.title ?? _danceTitles[danceId];
+      final performed = slot.performedAt != null;
       if (title == null) {
         // The dance no longer resolves (deleted/tombstoned). Render a graceful,
         // non-interactive fallback rather than a broken tappable row.
@@ -622,6 +623,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       final semanticsLabel = [
         slot.isAlt ? 'Alternate: $title' : title,
         if (dance != null) formationLabel(dance.formation),
+        if (performed) 'Performed',
       ].join('. ');
 
       return Padding(
@@ -680,6 +682,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
                           ],
                         ),
                       ),
+                      if (performed) ...[
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Icon(
                         Icons.chevron_right,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -693,7 +703,6 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ),
       );
     }
-
     // Free-text slot (break / waltz / announcement): non-interactive text.
     final text = (slot.text ?? '').trim();
     return Padding(

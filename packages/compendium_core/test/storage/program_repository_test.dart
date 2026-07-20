@@ -993,4 +993,165 @@ void main() {
       expect((await repo.getById('p2'))!.provenance, isNull);
     });
   });
+
+  group('auto-stamp performed on status transition (#356)', () {
+    Future<void> makeDance(String id) => dances.create(
+      Dance(
+        id: id,
+        title: 'Dance $id',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+
+    Program performedProgram({
+      String id = 'p1',
+      DateTime? eventDate,
+      List<ProgramSlot> slots = const [],
+      DateTime? updatedAt,
+    }) {
+      final now = DateTime.utc(2026, 6, 1);
+      return Program(
+        id: id,
+        title: 'Set Night',
+        eventDate: eventDate,
+        slots: slots,
+        status: ProgramStatus.performed,
+        createdAt: now,
+        updatedAt: updatedAt ?? now,
+      );
+    }
+
+    test('create with status performed stamps dance-linked slots with '
+        'eventDate', () async {
+      await makeDance('d1');
+      await repo.create(
+        performedProgram(
+          eventDate: DateTime.utc(2026, 3, 15),
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, text: 'Waltz break'),
+          ],
+        ),
+      );
+      final stored = (await repo.getById('p1'))!;
+      expect(stored.slots[0].performedAt, DateTime.utc(2026, 3, 15));
+      // Free-text slot is never stamped.
+      expect(stored.slots[1].performedAt, isNull);
+    });
+
+    test('falls back to updatedAt when the program has no eventDate', () async {
+      await makeDance('d1');
+      final updatedAt = DateTime.utc(2026, 7, 20, 18, 30);
+      await repo.create(
+        performedProgram(
+          updatedAt: updatedAt,
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final stored = (await repo.getById('p1'))!;
+      expect(stored.slots.single.performedAt, updatedAt);
+    });
+
+    test('updating from draft to performed stamps the slots', () async {
+      await makeDance('d1');
+      final draft = performedProgram(
+        eventDate: DateTime.utc(2026, 3, 15),
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ).copyWith(status: ProgramStatus.draft);
+      await repo.create(draft);
+      expect((await repo.getById('p1'))!.slots.single.performedAt, isNull);
+
+      await repo.update(draft.copyWith(status: ProgramStatus.performed));
+      expect(
+        (await repo.getById('p1'))!.slots.single.performedAt,
+        DateTime.utc(2026, 3, 15),
+      );
+    });
+
+    test('does not overwrite a manually-set performedAt', () async {
+      await makeDance('d1');
+      final manual = DateTime.utc(2025, 1, 1);
+      await repo.create(
+        performedProgram(
+          eventDate: DateTime.utc(2026, 3, 15),
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: manual,
+            ),
+          ],
+        ),
+      );
+      expect((await repo.getById('p1'))!.slots.single.performedAt, manual);
+    });
+
+    test('does not re-stamp a slot cleared while already performed', () async {
+      await makeDance('d1');
+      // Transition to performed stamps the slot.
+      await repo.create(
+        performedProgram(
+          eventDate: DateTime.utc(2026, 3, 15),
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final stored = (await repo.getById('p1'))!;
+      expect(stored.slots.single.performedAt, isNotNull);
+
+      // User manually clears the stamp while status stays performed; saving
+      // must NOT re-stamp because there is no non-performed -> performed
+      // transition.
+      final cleared = stored.copyWith(
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      );
+      await repo.update(cleared);
+      expect((await repo.getById('p1'))!.slots.single.performedAt, isNull);
+    });
+
+    test('reverting away from performed does not un-stamp', () async {
+      await makeDance('d1');
+      await repo.create(
+        performedProgram(
+          eventDate: DateTime.utc(2026, 3, 15),
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      final stored = (await repo.getById('p1'))!;
+      await repo.update(stored.copyWith(status: ProgramStatus.finalized));
+      expect(
+        (await repo.getById('p1'))!.slots.single.performedAt,
+        DateTime.utc(2026, 3, 15),
+      );
+    });
+
+    test('auto-stamped slots surface in performed-only calling history and '
+        'half stats (composes with #378)', () async {
+      await makeDance('d1');
+      await makeDance('d2');
+      await repo.create(
+        performedProgram(
+          eventDate: DateTime.utc(2026, 3, 15),
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 'brk', position: 1, text: Program.breakSlotText),
+            ProgramSlot(id: 's2', position: 2, danceId: 'd2'),
+          ],
+        ),
+      );
+      final performed = await repo.callingHistoryForDance(
+        'd1',
+        performedOnly: true,
+      );
+      expect(performed, hasLength(1));
+      expect(performed.single.performedAt, DateTime.utc(2026, 3, 15));
+
+      final stats = await repo.halfCallingStatsForDance(
+        'd1',
+        performedOnly: true,
+      );
+      expect(stats.firstHalfCount, 1);
+    });
+  });
 }
