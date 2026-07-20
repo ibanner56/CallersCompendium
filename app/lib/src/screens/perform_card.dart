@@ -7,6 +7,7 @@ import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
+import '../theme/set_list_accents.dart';
 import '../widgets/formation_color_badge.dart';
 
 /// Shared large-print rendering for Performance mode (`docs/design/ux.md` §5).
@@ -539,7 +540,6 @@ class _MetaRow extends StatelessWidget {
     );
     final iconSize =
         (style?.fontSize ?? 24) * MediaQuery.textScalerOf(context).scale(1);
-    final label = Text(text, style: style);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -547,12 +547,21 @@ class _MetaRow extends StatelessWidget {
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: highlightColor == null
-              ? label
+              ? Text(text, style: style)
               : Align(
                   alignment: Alignment.centerLeft,
                   child: FormationColorBadge(
                     color: highlightColor!,
-                    child: label,
+                    // Force the label onto the badge's contrast-safe
+                    // foreground: the themed `style` carries a colour that
+                    // would otherwise merge OVER the badge's DefaultTextStyle
+                    // and defeat the auto-contrast (issue #367, ruling 1).
+                    child: Text(
+                      text,
+                      style: (style ?? const TextStyle()).copyWith(
+                        color: readableForegroundOn(highlightColor!),
+                      ),
+                    ),
                   ),
                 ),
         ),

@@ -43,6 +43,21 @@ void main() {
       expect(parsed, isEmpty);
     });
 
+    test('rejects non-finite values (Infinity / -Infinity / NaN) safely', () {
+      // These would throw in `toInt()` — the decode must ignore them, not crash
+      // (never-throws contract on a hostile payload).
+      late final Map<FormationShape, Color> parsed;
+      expect(
+        () => parsed = formationColorOverridesFromStored({
+          'becketCw': double.infinity,
+          'becketCcw': double.negativeInfinity,
+          'dupleProper': double.nan,
+        }),
+        returnsNormally,
+      );
+      expect(parsed, isEmpty);
+    });
+
     test('forces full opacity so a 0-alpha value can never be invisible', () {
       final parsed = formationColorOverridesFromStored({
         'becketCw': 0x00FFEB3B, // stored transparent

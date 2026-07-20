@@ -33,7 +33,11 @@ Map<FormationShape, Color> formationColorOverridesFromStored(Object? stored) {
     if (key is! String) return;
     final shape = byName[key];
     if (shape == null) return;
-    if (value is! num || value is double && value != value.roundToDouble()) {
+    if (value is! num) return;
+    // Reject NaN and ±Infinity (which would throw in toInt), plus any
+    // fractional value — a colour is an integer ARGB.
+    if (value is double &&
+        (!value.isFinite || value != value.roundToDouble())) {
       return;
     }
     final argb = value.toInt();

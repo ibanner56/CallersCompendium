@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../data/app_theme_scope.dart';
 import '../data/formation_colors_controller.dart';
 import '../models/dance_list_entry.dart';
 import '../theme/app_spacing.dart';
@@ -25,7 +26,7 @@ class FormationColorsScreen extends StatelessWidget {
 
   Future<void> _edit(BuildContext context, FormationShape shape) async {
     final highContrast =
-        Theme.of(context).brightness == Brightness.dark ||
+        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
         MediaQuery.highContrastOf(context);
     // Seed the picker with the current override, else the family default so the
     // user starts from a sensible on-theme color rather than plain black.
@@ -44,7 +45,7 @@ class FormationColorsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final highContrast =
-        Theme.of(context).brightness == Brightness.dark ||
+        (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
         MediaQuery.highContrastOf(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Formation colours')),
