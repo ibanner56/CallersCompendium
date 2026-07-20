@@ -145,11 +145,13 @@ class GenericJsonAdapter implements SourceAdapter {
     );
   }
 
-  /// The choreographers this [dance] credits, in its `authorIds` order, deduped
-  /// by id and skipping ids that were not present in the discovered archive
-  /// (best-effort — an unresolved author id is simply dropped, never fatal). The
-  /// single-dance payload carries ONLY these, keeping it minimal and leaking no
-  /// unrelated authors.
+  /// The choreographers this [dance] credits — the ones whose ids appear in its
+  /// `authorIds`, deduped by id, skipping ids that were not present in the
+  /// discovered archive (best-effort — an unresolved author id is simply
+  /// dropped, never fatal). The single-dance payload carries ONLY these, keeping
+  /// it minimal and leaking no unrelated authors. ([parse] recovers names in
+  /// `authorIds` order directly from the decoded dance, so the order of this
+  /// list — which [encodeArchive] canonicalizes by id anyway — is irrelevant.)
   List<Choreographer> _referencedChoreographers(Dance dance) {
     final referenced = <Choreographer>[];
     final seen = <String>{};

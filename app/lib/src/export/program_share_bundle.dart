@@ -25,9 +25,12 @@ import 'package:compendium_core/compendium_core.dart';
 /// the receive-side importer reads incoming author *names* from the bundle's own
 /// `CompendiumArchive.choreographers` (a receiver cannot resolve the sender's
 /// author ids). Only the choreographers actually referenced by the bundled
-/// dances are included (deduped by id, stable first-seen order) — the bundle
-/// stays minimal and never leaks unrelated authors. An id that can't be resolved
-/// is skipped (best-effort, never fatal — mirrors [danceFor]).
+/// dances are included (deduped by id) — the bundle stays minimal and never
+/// leaks unrelated authors. (The emitted archive is canonicalized by
+/// [encodeArchive], which sorts entities by id, so the serialized order is by
+/// id rather than reference order — only the set of included choreographers is
+/// significant.) An id that can't be resolved is skipped (best-effort, never
+/// fatal — mirrors [danceFor]).
 ///
 /// Privacy (issue #412, and the [Choreographer] model's contract): a
 /// choreographer's `email`/`location` are private contact data that MUST NOT
