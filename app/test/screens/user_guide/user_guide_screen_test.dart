@@ -68,6 +68,50 @@ void main() {
     expect(find.byKey(const ValueKey('user-guide-back')), findsNothing);
   });
 
+  testWidgets('reserves the top safe-area inset for the header', (
+    tester,
+  ) async {
+    const topInset = 100.0;
+    // Host the guide without an AppBar (the in-shell IndexedStack path) under a
+    // nonzero top inset, mimicking iOS's status bar / Dynamic Island. The guide
+    // must inset itself so the header stops below the inset rather than sliding
+    // under it.
+    await tester.pumpWidget(
+      const MediaQuery(
+        data: MediaQueryData(padding: EdgeInsets.only(top: topInset)),
+        child: MaterialApp(home: Scaffold(body: UserGuideScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Exactly one top-only SafeArea wraps the guide (no double-insetting).
+    final safeAreas = tester.widgetList<SafeArea>(
+      find.descendant(
+        of: find.byKey(const ValueKey('user-guide-screen')),
+        matching: find.byType(SafeArea),
+      ),
+    );
+    // The guide's own SafeArea is an ancestor of its Column key, so also check
+    // the wrapping SafeArea directly.
+    final wrappingSafeArea = tester.widget<SafeArea>(
+      find
+          .ancestor(
+            of: find.byKey(const ValueKey('user-guide-screen')),
+            matching: find.byType(SafeArea),
+          )
+          .first,
+    );
+    expect(wrappingSafeArea.top, isTrue);
+    expect(wrappingSafeArea.bottom, isFalse);
+    expect(safeAreas, isEmpty);
+
+    // The header title is pushed below the top inset rather than overlapping it.
+    final titleTop = tester
+        .getTopLeft(find.byKey(const ValueKey('user-guide-title')))
+        .dy;
+    expect(titleTop, greaterThanOrEqualTo(topInset));
+  });
+
   testWidgets('an internal link navigates within the panel and back returns', (
     tester,
   ) async {

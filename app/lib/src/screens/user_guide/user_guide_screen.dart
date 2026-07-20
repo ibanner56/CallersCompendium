@@ -107,33 +107,42 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
           setState(() => _stack.removeLast());
         }
       },
-      child: Column(
-        key: const ValueKey('user-guide-screen'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _GuideHeader(
-            title: _title,
-            onBack: _canGoBackInPanel ? _handleBack : null,
-          ),
-          Expanded(
-            child: FutureBuilder<UserGuideDocs>(
-              future: _docsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final docs = snapshot.data;
-                if (snapshot.hasError || docs == null || docs.isEmpty) {
-                  return _UnavailableState(
-                    onOpenOnline: () =>
-                        launchExternalUrl(context, kUserGuideOnlineUrl),
-                  );
-                }
-                return _buildDoc(docs);
-              },
+      // Reserve the top safe-area inset within the widget itself so the header
+      // stops below the status bar / Dynamic Island on the in-shell path
+      // (AppShell's IndexedStack, which has no AppBar to consume the inset),
+      // matching the other destinations. Top-only: the bottom edge is left to
+      // the host. This makes the embeddable guide self-consistent regardless of
+      // where it is hosted, so callers don't need to wrap it in a SafeArea.
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          key: const ValueKey('user-guide-screen'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _GuideHeader(
+              title: _title,
+              onBack: _canGoBackInPanel ? _handleBack : null,
             ),
-          ),
-        ],
+            Expanded(
+              child: FutureBuilder<UserGuideDocs>(
+                future: _docsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final docs = snapshot.data;
+                  if (snapshot.hasError || docs == null || docs.isEmpty) {
+                    return _UnavailableState(
+                      onOpenOnline: () =>
+                          launchExternalUrl(context, kUserGuideOnlineUrl),
+                    );
+                  }
+                  return _buildDoc(docs);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
