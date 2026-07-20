@@ -434,7 +434,8 @@ class Program {
   );
 
   /// Returns a copy in which every **dance-linked** slot (`danceId != null`)
-  /// that has no [ProgramSlot.performedAt] is stamped performed at [fallback].
+  /// that has no [ProgramSlot.performedAt] is stamped performed at this
+  /// program's [eventDate] when set, else at [fallback].
   ///
   /// This backs the "auto-stamp when a program's status becomes performed"
   /// behaviour (issue #356): a program's *status* being performed and its

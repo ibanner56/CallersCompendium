@@ -687,7 +687,6 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
                           Icons.check_circle_outline,
                           size: 20,
                           color: theme.colorScheme.primary,
-                          semanticLabel: 'Performed',
                         ),
                         const SizedBox(width: 4),
                       ],
