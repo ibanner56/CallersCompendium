@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../data/dialect_library_controller.dart';
 import '../../data/dialect_library_scope.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
 import '../dialect_editor_screen.dart';
 
@@ -149,6 +150,7 @@ class _DialectLibrarySection extends StatelessWidget {
     // preset row is selected by default when nothing has been chosen.
     final activeName = controller.active.name;
     return ListView(
+      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
         SectionHeader(title: 'Dialects'),
         Padding(

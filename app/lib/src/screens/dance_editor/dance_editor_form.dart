@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/dance_list_entry.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/section_header.dart';
 import 'custom_field_editor.dart';
@@ -79,6 +80,7 @@ class DanceEditorForm extends StatelessWidget {
     return Form(
       key: formKey,
       child: ListView(
+        keyboardDismissBehavior: kTextEntryKeyboardDismiss,
         // Section headers carry their own padding; each section's content is
         // wrapped in horizontal AppSpacing.md so headers align with the fields
         // they label. A trailing gap keeps the last section off the bottom edge.

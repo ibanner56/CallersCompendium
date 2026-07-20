@@ -12,6 +12,7 @@ import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
+import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../widgets/collection_picker.dart';
 import 'perform_program_screen.dart';
@@ -892,6 +893,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     return Form(
       key: _formKey,
       child: ListView(
+        keyboardDismissBehavior: kTextEntryKeyboardDismiss,
         padding: const EdgeInsets.all(16),
         children: [
           _buildMetadataSection(),

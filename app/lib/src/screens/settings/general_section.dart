@@ -15,6 +15,7 @@ import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
 import '../import_review_screen.dart';
 
@@ -420,6 +421,7 @@ class _GeneralView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
         SectionHeader(title: 'Library'),
         SwitchListTile(
