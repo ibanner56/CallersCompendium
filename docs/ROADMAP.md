@@ -616,9 +616,8 @@ taxonomy are unchanged.
 
 ## Later milestones
 
-- Choreography validation integration (external project)
 - ECD and Squares support
-- Optional device-to-device sync
+- Optional device-to-device sync, beyond Apple-native AirDrop support.
 - **Venue as a reusable entity** (CC `Venue`: address, contacts, sponsor, price,
   website, generic schedule) rather than a per-program free-text `venue` string,
   so venues are picked once and reused across programs.
@@ -670,3 +669,6 @@ Motivating plugins (concrete asks driving the design):
   [dperelman](https://github.com/dperelman)) — a plugin that visualizes and
   renders dances (spatial/animated choreography views) as a net-new view,
   rather than baking it into core.
+- **Choreography validation integration** - dance "compiler" that lets the user
+  know whether the choreography entered progresses correctly the expected number
+  of times, baked into the dance view as a warning alongside the beat counter.
