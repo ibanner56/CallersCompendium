@@ -251,6 +251,7 @@ jobs:
           APPLE_DISTRIBUTION_CERT_P12: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
           APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
           APPLE_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_DISTRIBUTION_PROFILE }}
+          APPLE_SHAREEXT_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_SHAREEXT_DISTRIBUTION_PROFILE }}
         run: |
           set -euo pipefail
           mkdir -p dist
@@ -260,12 +261,13 @@ jobs:
             && [ -n "${APPLE_TEAM_ID:-}" ] \
             && [ -n "${APPLE_DISTRIBUTION_CERT_P12:-}" ] \
             && [ -n "${APPLE_DISTRIBUTION_CERT_PASSWORD:-}" ] \
-            && [ -n "${APPLE_DISTRIBUTION_PROFILE:-}" ]; then
+            && [ -n "${APPLE_DISTRIBUTION_PROFILE:-}" ] \
+            && [ -n "${APPLE_SHAREEXT_DISTRIBUTION_PROFILE:-}" ]; then
             echo "signing=configured" >> "$GITHUB_OUTPUT"
             echo "iOS App Store Connect API-key + distribution cert secrets configured; archiving + signing the .ipa (and uploading to TestFlight on a tag)."
           else
             echo "signing=missing" >> "$GITHUB_OUTPUT"
-            echo "::notice::iOS signing secrets not fully configured (need the App Store Connect API key, team id, distribution .p12 + password, and the App Store provisioning profile); skipping the iOS/TestFlight leg."
+            echo "::notice::iOS signing secrets not fully configured (need the App Store Connect API key, team id, distribution .p12 + password, the App Store provisioning profile, and the ShareExtension App Store provisioning profile); skipping the iOS/TestFlight leg."
           fi
 
       - name: Install Linux desktop dependencies
@@ -558,6 +560,7 @@ jobs:
           APPLE_DISTRIBUTION_CERT_P12: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12 }}
           APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
           APPLE_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_DISTRIBUTION_PROFILE }}
+          APPLE_SHAREEXT_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_SHAREEXT_DISTRIBUTION_PROFILE }}
         run: |
           set -euo pipefail
           # App Store Connect API key, in BOTH well-known locations that
@@ -618,6 +621,10 @@ jobs:
           prof_plist="$RUNNER_TEMP/cc_appstore.plist"
           security cms -D -i "$prof_raw" > "$prof_plist"
           prof_uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$prof_plist")
+          if [ -z "$prof_uuid" ]; then
+            echo "::error::Could not read a UUID from the App Store distribution profile (APPLE_DISTRIBUTION_PROFILE); it is likely empty or malformed." >&2
+            exit 1
+          fi
           prof_name=$(/usr/libexec/PlistBuddy -c "Print :Name" "$prof_plist")
           echo "Installing provisioning profile '${prof_name}' (${prof_uuid})"
           # Persist the UUID so the cleanup step removes ONLY this profile
@@ -627,6 +634,31 @@ jobs:
                      "$HOME/Library/MobileDevice/Provisioning Profiles"; do
             mkdir -p "$dir"
             cp "$prof_raw" "$dir/${prof_uuid}.mobileprovision"
+          done
+
+          # Install the ShareExtension's App Store distribution profile too.
+          # Issue #343 (#394) added a Share Extension target
+          # (org.callerscompendium.compendiumApp.ShareExtension) with an App
+          # Group entitlement. App Store export signs every EMBEDDED target, so
+          # the extension needs its own distribution profile in addition to the
+          # host app's — installed and mapped in ExportOptions exactly like the
+          # main profile above.
+          ext_prof_raw="$RUNNER_TEMP/cc_appstore_shareext.mobileprovision"
+          printf '%s' "$APPLE_SHAREEXT_DISTRIBUTION_PROFILE" | base64 -D > "$ext_prof_raw"
+          ext_prof_plist="$RUNNER_TEMP/cc_appstore_shareext.plist"
+          security cms -D -i "$ext_prof_raw" > "$ext_prof_plist"
+          ext_prof_uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$ext_prof_plist")
+          if [ -z "$ext_prof_uuid" ]; then
+            echo "::error::Could not read a UUID from the ShareExtension App Store distribution profile (APPLE_SHAREEXT_DISTRIBUTION_PROFILE); it is likely empty or malformed." >&2
+            exit 1
+          fi
+          ext_prof_name=$(/usr/libexec/PlistBuddy -c "Print :Name" "$ext_prof_plist")
+          echo "Installing ShareExtension provisioning profile '${ext_prof_name}' (${ext_prof_uuid})"
+          printf '%s' "$ext_prof_uuid" > "$RUNNER_TEMP/cc-ios-shareext-profile-uuid"
+          for dir in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+                     "$HOME/Library/MobileDevice/Provisioning Profiles"; do
+            mkdir -p "$dir"
+            cp "$ext_prof_raw" "$dir/${ext_prof_uuid}.mobileprovision"
           done
 
           # Give automatic signing a team. Release.xcconfig only #includes the
@@ -663,6 +695,7 @@ jobs:
             -c "Add :signingCertificate string Apple Distribution" \
             -c "Add :provisioningProfiles dict" \
             -c "Add :provisioningProfiles:org.callerscompendium.compendiumApp string ${prof_uuid}" \
+            -c "Add :provisioningProfiles:org.callerscompendium.compendiumApp.ShareExtension string ${ext_prof_uuid}" \
             -c "Add :destination string export" \
             -c "Add :uploadSymbols bool true" \
             -c "Add :manageAppVersionAndBuildNumber bool false" \
@@ -686,6 +719,27 @@ jobs:
           # gate (tag core == pubspec semver) stays green.
           build_number=$(( GITHUB_RUN_NUMBER * 1000 + GITHUB_RUN_ATTEMPT ))
           echo "Using CFBundleVersion (build number): ${build_number}"
+
+          # Keep the Share Extension's version + build in lockstep with the host
+          # app. `flutter build --build-number` only stamps the Runner target via
+          # Generated.xcconfig; the ShareExtension (issue #343) has its own
+          # Info.plist and does NOT include the Flutter xcconfig, so its
+          # CFBundleShortVersionString / CFBundleVersion would otherwise stay the
+          # checked-in placeholder (1.0 / 1). App Store validation REJECTS an
+          # embedded extension whose version or build differs from the host, so
+          # stamp them here to the pubspec marketing version + this build number.
+          # Reverted by the always() cleanup step (git checkout), mirroring how
+          # the DEVELOPMENT_TEAM line is appended to Release.xcconfig above.
+          build_name="$(sed -n 's/^version:[[:space:]]*\([^+]*\).*/\1/p' pubspec.yaml | tr -d '[:space:]')"
+          if [ -z "$build_name" ]; then
+            echo "::error::Could not parse a marketing version from app/pubspec.yaml ('version:') to stamp the ShareExtension." >&2
+            exit 1
+          fi
+          echo "Stamping ShareExtension version ${build_name} (${build_number})"
+          /usr/libexec/PlistBuddy \
+            -c "Set :CFBundleShortVersionString ${build_name}" \
+            -c "Set :CFBundleVersion ${build_number}" \
+            ios/ShareExtension/Info.plist
 
           # `flutter build ipa` cannot forward the App Store Connect API-key
           # credentials to its internal `xcodebuild archive`, so that archive
@@ -806,15 +860,24 @@ jobs:
             rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/${prof_uuid}.mobileprovision" \
                   "$HOME/Library/MobileDevice/Provisioning Profiles/${prof_uuid}.mobileprovision" 2>/dev/null || true
           fi
+          ext_prof_uuid="$(cat "$RUNNER_TEMP/cc-ios-shareext-profile-uuid" 2>/dev/null || true)"
+          if [ -n "$ext_prof_uuid" ]; then
+            rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/${ext_prof_uuid}.mobileprovision" \
+                  "$HOME/Library/MobileDevice/Provisioning Profiles/${ext_prof_uuid}.mobileprovision" 2>/dev/null || true
+          fi
           # Remove the decoded profile/plist + generated ExportOptions + UUID
           # marker from $RUNNER_TEMP (derived from secrets; $RUNNER_TEMP is
           # ephemeral, but tear them down explicitly per the cleanup contract).
           rm -f "$RUNNER_TEMP/cc_appstore.mobileprovision" \
                 "$RUNNER_TEMP/cc_appstore.plist" \
+                "$RUNNER_TEMP/cc_appstore_shareext.mobileprovision" \
+                "$RUNNER_TEMP/cc_appstore_shareext.plist" \
                 "$RUNNER_TEMP/ExportOptions.plist" \
                 "$RUNNER_TEMP/cc-ios-profile-uuid" \
+                "$RUNNER_TEMP/cc-ios-shareext-profile-uuid" \
                 "$RUNNER_TEMP/dist.p12" 2>/dev/null || true
           git checkout -- app/ios/Flutter/Release.xcconfig 2>/dev/null || true
+          git checkout -- app/ios/ShareExtension/Info.plist 2>/dev/null || true
           exit 0
 
       # --- Windows: zip (portable) + Inno Setup installer ------------------
