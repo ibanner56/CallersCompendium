@@ -10,11 +10,18 @@ Future<void> _pumpMetronome(
   bool disableAnimations = false,
 }) async {
   await tester.pumpWidget(
-    MediaQuery(
-      data: MediaQueryData(disableAnimations: disableAnimations),
-      child: MaterialApp(
-        home: Scaffold(body: TapTempoMetronome(clock: now)),
+    MaterialApp(
+      // Override disableAnimations *inside* MaterialApp's own MediaQuery
+      // (via builder) — wrapping MediaQuery outside MaterialApp doesn't work
+      // because WidgetsApp installs a fresh MediaQuery.fromView that would
+      // shadow the outer override before it reaches TapTempoMetronome.
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(disableAnimations: disableAnimations),
+        child: child!,
       ),
+      home: Scaffold(body: TapTempoMetronome(clock: now)),
     ),
   );
 }

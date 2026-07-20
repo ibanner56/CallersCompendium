@@ -108,7 +108,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (sheetContext) => const SafeArea(child: TapTempoMetronome()),
+      builder: (_) => const SafeArea(child: TapTempoMetronome()),
     );
   }
 

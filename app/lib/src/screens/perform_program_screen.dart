@@ -268,7 +268,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (sheetContext) => const SafeArea(child: TapTempoMetronome()),
+      builder: (_) => const SafeArea(child: TapTempoMetronome()),
     );
   }
 
