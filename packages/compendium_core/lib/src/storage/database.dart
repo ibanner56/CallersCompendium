@@ -318,6 +318,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         final rows = await customSelect(
           'SELECT id, figures_json FROM dances',
         ).get();
+        var rewroteAny = false;
         for (final row in rows) {
           final id = row.data['id'];
           final figuresJson = row.data['figures_json'];
@@ -328,16 +329,24 @@ class CompendiumDatabase extends _$CompendiumDatabase {
               'UPDATE dances SET figures_json = ? WHERE id = ?',
               [rewritten, id],
             );
+            rewroteAny = true;
           }
         }
-        // The rewritten figures' derived rows need the taxonomy/renderer, which
-        // `MigrationStrategy` can't reach. Durably record that a rebuild is owed
-        // (crash-safe) so `CompendiumRepositories.ensureMigrated()` regenerates
-        // `dance_figures` + `dance_fts` from the rewritten `figures_json`.
-        await customStatement(
-          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
-          [derivedRebuildRequiredKey, 'true'],
-        );
+        // Only schedule a rebuild when a figure actually changed. v12's ONLY
+        // canonical-affecting change is this ocean-wave rewrite (the PR3/PR4
+        // display reworks are `!forCanonical`-gated and never touch
+        // `renderCanonical`), so a database that never held the legacy move
+        // already has correct derived text and needs no work. The rewritten
+        // figures' derived rows need the taxonomy/renderer, which
+        // `MigrationStrategy` can't reach, so durably record that a rebuild is
+        // owed (crash-safe) — `CompendiumRepositories.ensureMigrated()` then
+        // regenerates `dance_figures` + `dance_fts` from `figures_json`.
+        if (rewroteAny) {
+          await customStatement(
+            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+            [derivedRebuildRequiredKey, 'true'],
+          );
+        }
       }
     },
     beforeOpen: (details) async {

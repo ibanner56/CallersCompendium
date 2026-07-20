@@ -1465,6 +1465,72 @@ void main() {
 
       await db.close();
     });
+
+    test('legacy figures present -> the upgrade schedules a rebuild', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      await db.customSelect('SELECT 1').get(); // force onUpgrade
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker,
+        isNotEmpty,
+        reason: 'a form_an_ocean_wave rewrite must schedule a derived rebuild',
+      );
+      await db.close();
+    });
+
+    test('no legacy figures -> the upgrade does NOT schedule a rebuild', () async {
+      // Rewrite the fixture (still at user_version 11) so it holds only a
+      // non-ocean move, and stamp a sentinel into the derived table. v12's only
+      // canonical-affecting change is the ocean-wave rewrite, so a DB that never
+      // held the legacy move must upgrade without touching derived text.
+      final raw = sqlite3.sqlite3.open(dbPath);
+      raw.execute('UPDATE dances SET figures_json = ? WHERE id = ?', [
+        '[{"schemaVersion":1,"move":"swing",'
+            '"params":{"who":"partners","beats":16}}]',
+        'dance-1',
+      ]);
+      raw.execute(
+        "UPDATE dance_figures SET canonical_text = 'SENTINEL' "
+        "WHERE dance_id = 'dance-1'",
+      );
+      expect(raw.select('PRAGMA user_version').first.values.first, 11);
+      raw.close();
+
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      // The rebuild marker was never written, so it is absent.
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(marker, isEmpty, reason: 'no rewrite => no rebuild scheduled');
+
+      // Proof no rebuild ran: the sentinel derived row survived untouched (a
+      // rebuild would have regenerated canonical_text from figures_json).
+      final rows = await db
+          .customSelect(
+            'SELECT canonical_text FROM dance_figures '
+            "WHERE dance_id = 'dance-1'",
+          )
+          .get();
+      expect(rows, hasLength(1));
+      expect(rows.single.read<String?>('canonical_text'), 'SENTINEL');
+
+      // The upgrade still completed to the current schema.
+      final version = await db.customSelect('PRAGMA user_version').get();
+      expect(version.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
   });
 
   test(
