@@ -1,0 +1,86 @@
+name: 🙋 Join the beta
+description: Sign up to become a Caller's Compendium beta tester.
+title: "[Beta signup]: "
+labels: ["beta", "status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for wanting to help test Caller's Compendium! This is a one-time
+        signup so we know who's testing and can line up the right builds (and
+        TestFlight invites for iOS/iPadOS). Already signed up and want to share
+        how a build held up? Use the **Beta check-in** form instead.
+  - type: markdown
+    attributes:
+      value: >-
+        **Privacy:** the app is local-first and collects no telemetry. This form
+        is entirely what you choose to share. The only detail we actually
+        *need* is an Apple ID email **if** you want iOS/iPadOS TestFlight access —
+        everything else is optional. Please don't include other personal or
+        identifying information.
+  - type: dropdown
+    id: platforms
+    attributes:
+      label: Which platform(s) do you plan to test on?
+      description: Check every device you expect to use for calling.
+      multiple: true
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Android
+        - iOS / iPadOS
+    validations:
+      required: true
+  - type: input
+    id: testflight-email
+    attributes:
+      label: Apple ID email for TestFlight (iOS / iPadOS only)
+      description: >-
+        Required only if you selected iOS / iPadOS above — TestFlight invites
+        are sent to an Apple ID email. Leave blank for every other platform.
+      placeholder: you@example.com
+    validations:
+      required: false
+  - type: textarea
+    id: calling-background
+    attributes:
+      label: Tell us a bit about your calling
+      description: >-
+        How long have you been calling, how often, and what kind of dances?
+        This helps us understand whose workflow the app is holding up for.
+    validations:
+      required: false
+  - type: checkboxes
+    id: interested-in
+    attributes:
+      label: What are you most interested in putting through its paces?
+      description: Check whatever you expect to lean on — no commitment.
+      options:
+        - label: Collection / search
+        - label: Programs / matrix
+        - label: Perform mode (calling from the app at a real dance)
+        - label: Dialects
+        - label: Imports (ContraDB, The Caller's Box, etc.)
+        - label: Backup / restore
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else we should know?
+      description: How you heard about the project, what you're hoping for, questions — all welcome.
+    validations:
+      required: false
+  - type: checkboxes
+    id: expectations
+    attributes:
+      label: Beta expectations
+      options:
+        - label: I understand this is pre-1.0 software and may have rough edges or change between builds.
+          required: true
+  - type: checkboxes
+    id: privacy-ack
+    attributes:
+      label: Privacy acknowledgement
+      options:
+        - label: Apart from a TestFlight email (if I asked for iOS access), I haven't included personal or identifying information.
+          required: true
