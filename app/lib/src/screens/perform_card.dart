@@ -1,11 +1,14 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
+import '../theme/set_list_accents.dart';
+import '../widgets/formation_color_badge.dart';
 
 /// Shared large-print rendering for Performance mode (`docs/design/ux.md` §5).
 ///
@@ -493,7 +496,15 @@ class _Header extends StatelessWidget {
           ),
         ],
         const SizedBox(height: AppSpacing.sm),
-        _MetaRow(icon: formationIcon, text: formationLabel(dance.formation)),
+        _MetaRow(
+          icon: formationIcon,
+          text: formationLabel(dance.formation),
+          // Per-formation label colour (issue #367): highlight only when the
+          // user overrode this shape (override-only).
+          highlightColor: FormationColorsScope.of(
+            context,
+          )?.overrideFor(dance.formation.shape),
+        ),
         if (level != null) ...[
           const SizedBox(height: AppSpacing.xs),
           _MetaRow(
@@ -511,10 +522,15 @@ class _Header extends StatelessWidget {
 }
 
 class _MetaRow extends StatelessWidget {
-  const _MetaRow({required this.icon, required this.text});
+  const _MetaRow({required this.icon, required this.text, this.highlightColor});
 
   final IconData icon;
   final String text;
+
+  /// When non-null, the [text] is wrapped in a [FormationColorBadge] of this
+  /// colour (issue #367) with an auto-contrast foreground; otherwise it renders
+  /// as plain meta text.
+  final Color? highlightColor;
 
   @override
   Widget build(BuildContext context) {
@@ -529,7 +545,26 @@ class _MetaRow extends StatelessWidget {
       children: [
         Icon(icon, size: iconSize.clamp(24.0, 96.0)),
         const SizedBox(width: AppSpacing.sm),
-        Expanded(child: Text(text, style: style)),
+        Expanded(
+          child: highlightColor == null
+              ? Text(text, style: style)
+              : Align(
+                  alignment: Alignment.centerLeft,
+                  child: FormationColorBadge(
+                    color: highlightColor!,
+                    // Force the label onto the badge's contrast-safe
+                    // foreground: the themed `style` carries a colour that
+                    // would otherwise merge OVER the badge's DefaultTextStyle
+                    // and defeat the auto-contrast (issue #367, ruling 1).
+                    child: Text(
+                      text,
+                      style: (style ?? const TextStyle()).copyWith(
+                        color: readableForegroundOn(highlightColor!),
+                      ),
+                    ),
+                  ),
+                ),
+        ),
       ],
     );
   }

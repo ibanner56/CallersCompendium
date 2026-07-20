@@ -2,9 +2,11 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/require_performed_for_history_scope.dart';
+import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../screens/dance_detail_screen.dart';
 import '../search/facet_labels.dart';
+import '../theme/set_list_accents.dart';
 import 'program_status_chip.dart';
 
 /// One Collection result row: title, authors, formation chip, status/tag chips
@@ -83,6 +85,15 @@ class DanceListTile extends StatelessWidget {
     final calledCount = entry.callCounts.countFor(
       RequirePerformedForHistoryScope.of(context),
     );
+    // Per-formation label colour (issue #367): highlight the formation chip
+    // only when the user explicitly overrode this shape (override-only). The
+    // label text + icon stay, so colour remains a redundant cue.
+    final formationColor = FormationColorsScope.of(
+      context,
+    )?.overrideFor(dance.formation.shape);
+    final formationFg = formationColor == null
+        ? null
+        : readableForegroundOn(formationColor);
     return ListTile(
       selected: selected,
       visualDensity: VisualDensity.compact,
@@ -132,8 +143,14 @@ class DanceListTile extends StatelessWidget {
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             Chip(
-              avatar: const Icon(formationIcon, size: 16),
-              label: Text(formationLabel(dance.formation)),
+              avatar: Icon(formationIcon, size: 16, color: formationFg),
+              label: Text(
+                formationLabel(dance.formation),
+                style: formationFg == null
+                    ? null
+                    : TextStyle(color: formationFg),
+              ),
+              backgroundColor: formationColor,
               visualDensity: VisualDensity.compact,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),

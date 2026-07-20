@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/widgets.dart';
 
+import 'wcag.dart';
+
 /// Coarse "family" grouping of the 15 canonical [FormationShape]s, used to
 /// drive the optional set-list row **accent colour** (issue #270).
 ///
@@ -86,3 +88,34 @@ Color? setListAccentForShape(
   FormationShape shape, {
   required bool highContrast,
 }) => setListAccent(formationFamilyOf(shape), highContrast: highContrast);
+
+/// Resolves the color to use for a formation **label** (issue #367): the
+/// user's per-shape [overrides] win, otherwise the themed family accent (which
+/// may be `null` for a family with no accent). This is the resolution used to
+/// *seed the settings picker* and in tests; the label surfaces themselves only
+/// paint a highlight when the user explicitly set an override (override-only
+/// rendering), reading [FormationColorsController.overrideFor] directly rather
+/// than this fallback.
+Color? resolveFormationLabelColor(
+  FormationShape shape, {
+  required Map<FormationShape, Color> overrides,
+  required bool highContrast,
+}) =>
+    overrides[shape] ??
+    setListAccentForShape(shape, highContrast: highContrast);
+
+/// Picks a readable foreground (black or white) to lay over [background] for a
+/// formation-label highlight badge (issue #367), choosing whichever clears the
+/// WCAG AA normal-text bar (≥4.5:1); when neither does (a rare mid-tone), the
+/// higher-contrast of the two is returned so the text is still as legible as
+/// possible. Keeps the colored label readable regardless of the user's chosen
+/// hue.
+Color readableForegroundOn(Color background) {
+  const black = Color(0xFF000000);
+  const white = Color(0xFFFFFFFF);
+  final blackRatio = Wcag.contrastRatio(black, background);
+  final whiteRatio = Wcag.contrastRatio(white, background);
+  if (blackRatio >= Wcag.aaText && blackRatio >= whiteRatio) return black;
+  if (whiteRatio >= Wcag.aaText) return white;
+  return blackRatio >= whiteRatio ? black : white;
+}

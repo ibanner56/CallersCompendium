@@ -6,11 +6,13 @@ import '../../data/colour_dance_theme_scope.dart';
 import '../../data/custom_theme.dart';
 import '../../data/custom_themes_controller.dart';
 import '../../data/custom_themes_scope.dart';
+import '../../data/formation_colors_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/set_list_color_coding_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/color_schemes.dart';
 import '../../widgets/section_header.dart';
+import '../formation_colors_screen.dart';
 import '../theme_editor_screen.dart';
 
 /// The Appearance settings section: owns the theme write and reads the live
@@ -149,6 +151,26 @@ class _AppearanceView extends StatelessWidget {
           ),
           value: setListColorCoding,
           onChanged: onSetListColorCodingChanged,
+        ),
+        SectionHeader(title: 'Formation colours'),
+        ListTile(
+          key: const ValueKey('appearance-formation-colours'),
+          leading: const Icon(Icons.palette_outlined),
+          title: const Text('Formation label colours'),
+          subtitle: const Text(
+            'Highlight individual formations in your own colours — e.g. '
+            'Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, '
+            'dance detail, and the Perform header.',
+          ),
+          isThreeLine: true,
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => FormationColorsScreen(
+                controller: FormationColorsScope.controllerOf(context),
+              ),
+            ),
+          ),
         ),
       ],
     );
