@@ -2,17 +2,19 @@ import Flutter
 import UIKit
 
 /// Bridges the OS "open this file with the app" plumbing (AirDrop / "Open
-/// with…" / a share intent) to Dart over the
-/// `is.banner.callerscompendium/incoming_files` channel — issue #298, receive
-/// side.
+/// with…" / a share intent — issue #298) **and** a URL shared from the browser
+/// share sheet (issue #343) to Dart over the
+/// `is.banner.callerscompendium/incoming_files` channel.
 ///
-/// The native side does exactly one thing: hand Dart the **path** of a local
-/// copy of the incoming file. It never parses, trusts, or interprets the
-/// contents — Dart's `ArchiveIntakeService` owns every byte of validation and
-/// import (the file is untrusted input). Incoming files are copied into the
-/// app's temporary directory first, so the path Dart receives is always
-/// readable regardless of security-scoping / open-in-place semantics, and no
-/// file is left behind in the app's shared Inbox.
+/// The native side does exactly one thing per payload: hand Dart either the
+/// **path** of a local copy of an incoming file (#298), or the **raw URL
+/// string** shared into the app (#343). It never parses, trusts, or interprets
+/// a payload — Dart owns every byte of validation and import (`ArchiveIntake`
+/// for files, `validateSharedContraDbProgramUrl` for URLs; both are untrusted
+/// input). Incoming files are copied into the app's temporary directory first,
+/// so the path Dart receives is always readable; the shared URL is delivered by
+/// the Share Extension through the shared App Group, then this app is woken via
+/// its private custom URL scheme (not a universal link).
 ///
 /// Registered manually from `AppDelegate.didInitializeImplicitFlutterEngine`.
 /// It receives scene life-cycle events via `registrar.addSceneDelegate`, so the
@@ -20,9 +22,23 @@ import UIKit
 public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycleDelegate {
   private var channel: FlutterMethodChannel?
 
-  /// Path captured from a launch (cold-start) URL, consumed exactly once by the
-  /// `getInitialFile` pull once the Dart UI is ready.
+  /// App Group shared with the Share Extension; the shared URL is handed over
+  /// through its `UserDefaults` suite.
+  private static let appGroupId = "group.org.callerscompendium.compendiumApp"
+
+  /// Key under which the Share Extension writes the raw shared URL string.
+  private static let sharedUrlKey = "SharedImportURL"
+
+  /// Private custom scheme the Share Extension uses to wake this app.
+  private static let hostScheme = "callerscompendium"
+
+  /// Path captured from a launch (cold-start) file URL, consumed exactly once
+  /// by the `getInitialFile` pull once the Dart UI is ready.
   private var pendingInitialPath: String?
+
+  /// URL string captured from a launch (cold-start) share, consumed exactly
+  /// once by the `getInitialUrl` pull.
+  private var pendingInitialUrl: String?
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let instance = IncomingFilesPlugin()
@@ -42,6 +58,10 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
       let path = pendingInitialPath
       pendingInitialPath = nil
       result(path)
+    case "getInitialUrl":
+      let url = pendingInitialUrl
+      pendingInitialUrl = nil
+      result(url)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -49,9 +69,9 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
 
   // MARK: - FlutterSceneLifeCycleDelegate
 
-  /// Cold start: the app was launched to open a file. Stash the first
-  /// importable path for the `getInitialFile` pull — the Dart UI opens first,
-  /// then imports over the app shell.
+  /// Cold start: the app was launched to open a file or import a shared URL.
+  /// Stash the first importable payload for the matching pull — the Dart UI
+  /// opens first, then imports over the app shell.
   @available(iOS 13.0, *)
   @objc public func scene(
     _ scene: UIScene,
@@ -61,24 +81,50 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     guard let contexts = connectionOptions?.urlContexts, !contexts.isEmpty else {
       return false
     }
+    if let url = sharedImportURL(forContexts: contexts) {
+      pendingInitialUrl = url
+      return true
+    }
     guard let path = localCopyPath(forContexts: contexts) else { return false }
     pendingInitialPath = path
     return true
   }
 
-  /// Warm start: a file arrives while the app is already running. Push it onto
-  /// the Dart `files` stream.
+  /// Warm start: a file or shared URL arrives while the app is already running.
+  /// Push it onto the matching Dart stream.
   @available(iOS 13.0, *)
   @objc public func scene(
     _ scene: UIScene,
     openURLContexts URLContexts: Set<UIOpenURLContext>
   ) -> Bool {
+    if let url = sharedImportURL(forContexts: URLContexts) {
+      channel?.invokeMethod("urlShared", arguments: url)
+      return true
+    }
     guard let path = localCopyPath(forContexts: URLContexts) else { return false }
     channel?.invokeMethod("fileOpened", arguments: path)
     return true
   }
 
   // MARK: - Helpers
+
+  /// If any context is our private custom-scheme wake-up (issue #343), reads and
+  /// clears the URL the Share Extension stashed in the App Group and returns it.
+  /// The string is forwarded verbatim; Dart validates it.
+  @available(iOS 13.0, *)
+  private func sharedImportURL(forContexts contexts: Set<UIOpenURLContext>) -> String? {
+    let woken = contexts.contains { $0.url.scheme == Self.hostScheme }
+    guard woken, let defaults = UserDefaults(suiteName: Self.appGroupId) else {
+      return nil
+    }
+    guard let shared = defaults.string(forKey: Self.sharedUrlKey),
+      !shared.isEmpty
+    else {
+      return nil
+    }
+    defaults.removeObject(forKey: Self.sharedUrlKey)
+    return shared
+  }
 
   @available(iOS 13.0, *)
   private func localCopyPath(forContexts contexts: Set<UIOpenURLContext>) -> String? {

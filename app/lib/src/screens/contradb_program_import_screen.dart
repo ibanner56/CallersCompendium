@@ -44,6 +44,7 @@ class ContraDbProgramImportScreen extends StatefulWidget {
     this.contraDbOnline,
     this.callersBoxOnline,
     this.programSearch,
+    this.initialUrl,
   });
 
   /// Injectable fetcher for the program page HTML; tests supply a seam-backed
@@ -61,6 +62,17 @@ class ContraDbProgramImportScreen extends StatefulWidget {
   /// Injectable program-index search seam (fetch + parse + client-side filter).
   /// Defaults to a network-backed [ContraDbProgramSearch].
   final ContraDbProgramSearch? programSearch;
+
+  /// A ContraDB program URL to pre-fill and fetch automatically on first frame
+  /// (issue #343: the screen was opened by a URL shared from a browser via the
+  /// OS share sheet / an `ACTION_SEND` intent). When non-null the URL field is
+  /// seeded and [_fetchProgram] runs once, dropping the user straight onto the
+  /// preview to review before committing. Null for the normal manual flow.
+  ///
+  /// The caller (`main.dart`) has already OWASP-validated this URL through
+  /// `validateSharedContraDbProgramUrl`; it is a canonical
+  /// `https://contradb.com/programs/N` string.
+  final String? initialUrl;
 
   @override
   State<ContraDbProgramImportScreen> createState() =>
@@ -117,6 +129,17 @@ class _ContraDbProgramImportScreenState
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _search = widget.programSearch ?? ContraDbProgramSearch();
       _titleController.addListener(() => setState(() {}));
+
+      // Opened from a shared URL (issue #343): pre-fill and fetch once, so the
+      // user lands on the preview to review before committing. Deferred to the
+      // first frame so the fetch's setState runs after the initial build.
+      final initialUrl = widget.initialUrl;
+      if (initialUrl != null && initialUrl.trim().isNotEmpty) {
+        _urlController.text = initialUrl.trim();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _fetchProgram();
+        });
+      }
     }
   }
 

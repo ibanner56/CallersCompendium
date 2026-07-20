@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/archive_intake_service.dart';
 import 'package:compendium_app/src/data/incoming_file_channel.dart';
 import 'package:compendium_app/src/data/window_service.dart';
+import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -25,12 +26,15 @@ class _NoopWindowService extends WindowService {
 }
 
 /// A fake [IncomingFileChannel] that delivers a caller-chosen cold-start file
-/// path — no real platform channel is touched.
+/// path and/or shared URL — no real platform channel is touched.
 class _FakeIncomingFileChannel extends IncomingFileChannel {
-  _FakeIncomingFileChannel({this.initialPath});
+  _FakeIncomingFileChannel({this.initialPath, this.initialSharedUrl});
 
   final String? initialPath;
+  final String? initialSharedUrl;
   final StreamController<String> _controller =
+      StreamController<String>.broadcast();
+  final StreamController<String> _urlController =
       StreamController<String>.broadcast();
 
   @override
@@ -40,11 +44,18 @@ class _FakeIncomingFileChannel extends IncomingFileChannel {
   Stream<String> get files => _controller.stream;
 
   @override
+  Stream<String> get urls => _urlController.stream;
+
+  @override
   Future<String?> initialFile() async => initialPath;
+
+  @override
+  Future<String?> initialUrl() async => initialSharedUrl;
 
   @override
   void dispose() {
     unawaited(_controller.close());
+    unawaited(_urlController.close());
   }
 }
 
@@ -142,4 +153,101 @@ void main() {
     expect(find.byType(ProgramSummaryScreen), findsNothing);
     expect(await appData.repositories.programs.listAll(), isEmpty);
   });
+
+  testWidgets(
+    'issue #343: a shared ContraDB program URL opens the import screen '
+    'pre-filled and auto-fetching',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialSharedUrl: 'https://contradb.com/programs/33',
+          ),
+          // Seam-backed so the screen's auto-fetch touches no network.
+          incomingUrlFetcher: (_) async => _sharedProgramHtml,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Routed to the ContraDB program import screen, pre-filled + auto-fetched.
+      expect(find.byType(ContraDbProgramImportScreen), findsOneWidget);
+      expect(find.text('https://contradb.com/programs/33'), findsOneWidget);
+      expect(find.text('Courageous Soul'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'issue #343: a Firefox-style "title\\nurl" share still opens the import '
+    'screen pre-filled with the extracted URL',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialSharedUrl:
+                'A Lovely Contra Program\nhttps://contradb.com/programs/33',
+          ),
+          incomingUrlFetcher: (_) async => _sharedProgramHtml,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ContraDbProgramImportScreen), findsOneWidget);
+      // The extracted, canonical URL (not the raw "title\nurl") is pre-filled.
+      expect(find.text('https://contradb.com/programs/33'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'issue #343: a malicious / non-ContraDB shared URL is rejected with a '
+    'snackbar and never opens the import screen',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialSharedUrl: 'http://evil.com/programs/1',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('shared-url-import-error')),
+        findsOneWidget,
+      );
+      expect(find.byType(ContraDbProgramImportScreen), findsNothing);
+      expect(await appData.repositories.programs.listAll(), isEmpty);
+    },
+  );
 }
+
+/// A minimal, real-shaped ContraDB program page for the shared-URL auto-fetch:
+/// one linked dance, enough for the preview to populate.
+const String _sharedProgramHtml = '''
+<html><body>
+<div class="programs-show-content"><div class="container"><h1>Barn Dance</h1></div></div>
+<div id="activity-1" class="activity-breakdown">
+  <h2 class="activity-breakdown-dance-title"><a href="/dances/185">Courageous Soul</a></h2>
+</div>
+</body></html>
+''';

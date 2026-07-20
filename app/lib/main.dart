@@ -15,6 +15,7 @@ import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
+import 'src/data/import_io.dart';
 import 'src/data/incoming_file_channel.dart';
 import 'src/data/migration_guard.dart';
 import 'src/data/colour_dance_theme_scope.dart';
@@ -30,6 +31,7 @@ import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/licenses.dart';
 import 'src/screens/app_shell.dart';
+import 'src/screens/contradb_program_import_screen.dart';
 import 'src/screens/program_summary_screen.dart';
 import 'src/screens/settings_screen.dart'
     show
@@ -98,6 +100,7 @@ class CompendiumApp extends StatefulWidget {
     this.seedInitialCollection,
     this.incomingFileChannel,
     this.incomingFileReader,
+    this.incomingUrlFetcher,
   });
 
   /// The already-opened database + repositories facade. Injected from [main]
@@ -145,6 +148,12 @@ class CompendiumApp extends StatefulWidget {
   /// no real file I/O — real disk reads would be started inside the test's
   /// faked-time zone and never complete. Left `null` in production.
   final ArchiveByteReader? incomingFileReader;
+
+  /// Program-page fetcher handed to the [ContraDbProgramImportScreen] opened
+  /// from a shared URL (issue #343), so the screen's auto-fetch can be driven
+  /// without real network in widget tests. Defaults to `null` in production,
+  /// where the screen uses its own network-backed `fetchImportUrl`.
+  final UrlFetcher? incomingUrlFetcher;
 
   @override
   State<CompendiumApp> createState() => _CompendiumAppState();
@@ -205,6 +214,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// [CompendiumApp.incomingFileChannel] was injected (intake disabled).
   StreamSubscription<String>? _incomingFileSub;
 
+  /// Subscription to URLs shared into the app while it is running (issue #343).
+  /// Null when no [CompendiumApp.incomingFileChannel] was injected.
+  StreamSubscription<String>? _incomingUrlSub;
+
   /// Guards the one-time cold-start file check so it runs only once, after the
   /// ready UI is first shown.
   bool _initialFileChecked = false;
@@ -227,6 +240,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (channel != null) {
       channel.start();
       _incomingFileSub = channel.files.listen(_handleIncomingFile);
+      _incomingUrlSub = channel.urls.listen(_handleIncomingUrl);
     }
     _bootstrap = _startupSequence();
   }
@@ -284,6 +298,49 @@ class _CompendiumAppState extends State<CompendiumApp> {
     await _navigatorKey.currentState?.push(
       MaterialPageRoute<void>(
         builder: (_) => ProgramSummaryScreen(programId: programId),
+      ),
+    );
+  }
+
+  /// Handles a URL shared into the app from the OS share sheet / an
+  /// `ACTION_SEND` intent (issue #343) — e.g. a ContraDB program page shared
+  /// from Safari or Chrome.
+  ///
+  /// The raw string is **untrusted OS input**: any app or user can share any
+  /// string here. It is OWASP-validated at this ingest boundary by
+  /// [extractSharedContraDbProgramUrl] — which pulls exactly one `https` URL
+  /// token out of the payload (Chrome/Samsung Internet share a bare URL;
+  /// Firefox shares `"title\nurl"`), then runs the strict
+  /// [validateSharedContraDbProgramUrl] (https only, `contradb.com` host
+  /// allow-list, `/programs/N` path) — *before* it reaches the import pipeline.
+  /// A bad share surfaces a generic snackbar (never echoing the raw input) and
+  /// never navigates or writes. A valid share opens
+  /// [ContraDbProgramImportScreen] pre-filled + auto-fetching, so the user
+  /// reviews the preview before committing — the URL then flows through the
+  /// existing hardened `buildContraDbProgramUrl → fetchImportUrl →
+  /// parseContraDbProgram → resolveContraDbProgram` pipeline (SSRF-guarded,
+  /// #332), which re-validates at fetch time. Defense in depth.
+  Future<void> _handleIncomingUrl(String raw) async {
+    final String validated;
+    try {
+      validated = extractSharedContraDbProgramUrl(raw);
+    } on UrlFetchException catch (e) {
+      if (!mounted) return;
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          key: const ValueKey('shared-url-import-error'),
+          content: Text(e.message),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    await _navigatorKey.currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (_) => ContraDbProgramImportScreen(
+          initialUrl: validated,
+          programFetcher: widget.incomingUrlFetcher,
+        ),
       ),
     );
   }
@@ -458,6 +515,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   @override
   void dispose() {
     unawaited(_incomingFileSub?.cancel());
+    unawaited(_incomingUrlSub?.cancel());
     widget.incomingFileChannel?.dispose();
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
@@ -529,8 +587,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
         final path = await channel.initialFile();
-        if (!mounted || path == null) return;
-        await _handleIncomingFile(path);
+        if (mounted && path != null) await _handleIncomingFile(path);
+        if (!mounted) return;
+        // Cold start via a shared URL (issue #343): pull it once too. Files and
+        // URLs are mutually exclusive for a single launch, so at most one of
+        // these does anything.
+        final url = await channel.initialUrl();
+        if (mounted && url != null) await _handleIncomingUrl(url);
       });
     }
     return const AppShell();
