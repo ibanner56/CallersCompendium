@@ -250,8 +250,9 @@ void main() {
 
     test('issue #290 — legacy "form an ocean wave" phrasing stays custom', () {
       // The parser deliberately does NOT recognise the shibboleth phrasing; the
-      // ContraDB adapter still maps it to the retained legacy move. It also must
-      // not be mis-claimed by the new short-wave recognizer.
+      // ContraDB adapter now maps it to pass_the_ocean (the legacy move was
+      // removed at v14). It also must not be mis-claimed by the new short-wave
+      // recognizer.
       final f = parseFigureLine('Form an ocean wave');
       expect(f!.isCustom, isTrue);
     });

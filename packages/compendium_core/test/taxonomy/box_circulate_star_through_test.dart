@@ -6,14 +6,15 @@ import 'package:test/test.dart';
 /// carries a neutral `balance` flag whose balanced beat count comes only from the
 /// CallersBox cross-line merge, so it takes no `paramBeats`. v12: `star_through`
 /// now mirrors `california_twirl` (who + beats only, no balance) per product
-/// decision.
+/// decision. v14: the legacy `form_an_ocean_wave` MoveDef was removed (its #290
+/// split replacements remain), with stored figures migrated by schema v12.
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('contraTaxonomyVersion is 13', () {
-    expect(contraTaxonomyVersion, 13);
-    expect(tax.version, 13);
+  test('contraTaxonomyVersion is 14', () {
+    expect(contraTaxonomyVersion, 14);
+    expect(tax.version, 14);
   });
 
   group('box_circulate', () {

@@ -1063,6 +1063,86 @@ class FigureRenderer {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       return '$swho $move in the center$maybeBalance';
     },
+    // #290 product splits of the retired `form_an_ocean_wave` — OUR extensions
+    // with no ContraDB `words()` analog (see docs/research/parity-fix-decisions
+    // "our extensions/splits — leave as-is"), so the leading phrase is fixed
+    // PRODUCT wording that intentionally diverges from the byte-stable canonical
+    // (`form a wave` / `pass the ocean`). Center hand = the `centerHand` param
+    // (default 'right'); side hand = its OPPOSITE (right<->left), mirroring
+    // ContraDB's `sside_hand = stringParamHand(!center_hand)` derivation — never
+    // hardcoded, so display tracks the data. Unknown/`*` centerHand best-effort
+    // humanizes (never blank-drops, no dangling connective). Consulted only when
+    // `!forCanonical`, so `renderCanonical` stays byte-stable (dedupe/FTS).
+    'form_a_short_wave': (r, def, params, dialect, verbose) {
+      final scenter = r._displaySubject(params['center'], dialect);
+      final ssides = r._displaySubject(params['sides'], dialect);
+      final centerHandRaw = params['centerHand'];
+      final centerHand = _displayScalar(centerHandRaw);
+      final sideHand = centerHandRaw == 'right'
+          ? 'left'
+          : centerHandRaw == 'left'
+          ? 'right'
+          : _displayScalar(centerHandRaw);
+      final centerClause = [
+        scenter,
+        centerHand.isEmpty ? '' : 'by the $centerHand',
+        'in the center',
+      ].where((s) => s.isNotEmpty).join(' ');
+      final sideClause = [
+        ssides,
+        sideHand.isEmpty ? '' : 'by the $sideHand',
+        'on the sides',
+      ].where((s) => s.isNotEmpty).join(' ');
+      final body = [
+        centerClause,
+        sideClause,
+      ].where((s) => s.isNotEmpty).join(', ');
+      return body.isEmpty ? 'form a short wave' : 'form a short wave - $body';
+    },
+    // A non-default `dir` surfaces the diagonal word ("a right diagonal ocean
+    // wave"), silent for the `across` default (ContraDB
+    // `stringParamSetDirectionSilencingDefault('across')`); the indefinite
+    // article tracks the resulting noun phrase. A truthy `balance` appends a
+    // trailing " and balance" clause (product wording; not ContraDB's pre-dash
+    // "& balance").
+    'pass_the_ocean': (r, def, params, dialect, verbose) {
+      final dirRaw = params['dir'];
+      final dirWord = (dirRaw == null || dirRaw == 'across')
+          ? ''
+          : _humanize(dirRaw.toString());
+      final noun = dirWord.isEmpty ? 'ocean wave' : '$dirWord ocean wave';
+      final article = _indefiniteArticle(noun);
+      final scenter = r._displaySubject(params['center'], dialect);
+      final ssides = r._displaySubject(params['sides'], dialect);
+      final centerHandRaw = params['centerHand'];
+      final centerHand = _displayScalar(centerHandRaw);
+      final sideHand = centerHandRaw == 'right'
+          ? 'left'
+          : centerHandRaw == 'left'
+          ? 'right'
+          : _displayScalar(centerHandRaw);
+      final centerClause = [
+        scenter,
+        centerHand.isEmpty ? 'catch hands' : 'catch $centerHand hands',
+        'in the center',
+      ].where((s) => s.isNotEmpty).join(' ');
+      final sideClause = [
+        ssides,
+        sideHand.isEmpty ? 'take hands' : 'take $sideHand hands',
+        'on the sides',
+      ].where((s) => s.isNotEmpty).join(' ');
+      final balance = params['balance'] == true
+          ? ' and balance'
+          : params['balance'] == '*'
+          ? ' and *'
+          : '';
+      final body = [
+        centerClause,
+        sideClause,
+      ].where((s) => s.isNotEmpty).join(', ');
+      final head = 'pass through to $article $noun';
+      return body.isEmpty ? '$head$balance' : '$head - $body$balance';
+    },
   };
 
   /// DISPLAY-ONLY: the four-dancer pairing tokens ContraDB's `dancerIsPair`

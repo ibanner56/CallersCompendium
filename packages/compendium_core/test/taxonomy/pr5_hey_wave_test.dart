@@ -2,8 +2,11 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
 /// Roadmap 2.4a — PR5 "hey/wave family" (final slice): pass_by, hey,
-/// dolphin_hey, form_long_waves, form_a_long_wave, form_an_ocean_wave. No new
-/// ParamKind; the reduced-but-structured hey model + wave formations.
+/// dolphin_hey, form_long_waves, form_a_long_wave. (The wave family also
+/// introduced `form_an_ocean_wave`, later split by #290 into
+/// `form_a_short_wave` / `pass_the_ocean` and removed from the taxonomy at v14
+/// — see ocean_wave_split_test.dart.) No new ParamKind; the reduced-but-
+/// structured hey model + wave formations.
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
@@ -14,7 +17,6 @@ void main() {
     'dolphin_hey',
     'form_long_waves',
     'form_a_long_wave',
-    'form_an_ocean_wave',
   ];
 
   group('registration & defaults', () {
@@ -38,7 +40,6 @@ void main() {
       'ones dolphin hey right': Figure(move: 'dolphin_hey'),
       'role1s form long waves': Figure(move: 'form_long_waves'),
       'role2s form a long wave': Figure(move: 'form_a_long_wave'),
-      'form an ocean wave': Figure(move: 'form_an_ocean_wave'),
     };
     cases.forEach((expected, figure) {
       test('"$expected"', () {
@@ -262,38 +263,14 @@ void main() {
       );
     });
 
-    test(
-      'form_an_ocean_wave carries pass-through, hands, and center/sides',
-      () {
-        expect(
-          tax.validateFigure(
-            Figure(
-              move: 'form_an_ocean_wave',
-              params: {
-                'passThru': false,
-                'dir': 'rightDiagonal',
-                'centerHand': 'left',
-                'center': 'role1s',
-                'sides': 'partners',
-              },
-            ),
-          ),
-          isEmpty,
-        );
-      },
-    );
-
-    test(
-      'form_an_ocean_wave accepts any beats (param-dependent, unencoded)',
-      () {
-        expect(
-          tax.validateFigure(
-            Figure(move: 'form_an_ocean_wave', params: {'beats': 8}),
-          ),
-          isEmpty,
-        );
-      },
-    );
+    test('form_a_long_wave accepts any beats (param-dependent, unencoded)', () {
+      expect(
+        tax.validateFigure(
+          Figure(move: 'form_a_long_wave', params: {'beats': 8}),
+        ),
+        isEmpty,
+      );
+    });
   });
 
   group('dialect round-trip unaffected', () {

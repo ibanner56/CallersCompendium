@@ -1309,6 +1309,230 @@ void main() {
     });
   });
 
+  group('v11 -> v12 upgrade (issue #290 ocean-wave rewrite)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v12_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v11 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v11.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test('rewrites stored figures_json onto the split moves, carrying '
+        'params minus passThru', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final dance = await repos.dances.getById('dance-1');
+      expect(dance, isNotNull);
+      final figures = dance!.figures;
+      expect(figures, hasLength(5));
+
+      // passThru:true (+ balance/center/centerHand/sides/beats) -> pass_the_ocean.
+      expect(figures[0].move, 'pass_the_ocean');
+      expect(figures[0].params.containsKey('passThru'), isFalse);
+      expect(figures[0].params['balance'], true);
+      expect(figures[0].params['center'], 'role2s');
+      expect(figures[0].params['centerHand'], 'right');
+      expect(figures[0].params['sides'], 'neighbors');
+      expect(figures[0].params['beats'], 8);
+
+      // passThru:false -> form_a_short_wave; other params intact.
+      expect(figures[1].move, 'form_a_short_wave');
+      expect(figures[1].params.containsKey('passThru'), isFalse);
+      expect(figures[1].params['centerHand'], 'left');
+      expect(figures[1].params['beats'], 4);
+
+      // passThru:true with no other params -> pass_the_ocean, note/progression
+      // preserved, empty params dropped.
+      expect(figures[2].move, 'pass_the_ocean');
+      expect(figures[2].params, isEmpty);
+      expect(figures[2].note, 'scoop');
+      expect(figures[2].progression, isTrue);
+
+      // Control figure on a normal move: byte-identical.
+      expect(figures[3].move, 'swing');
+      expect(figures[3].params['who'], 'partners');
+      expect(figures[3].params['beats'], 16);
+
+      await db.close();
+    });
+
+    test(
+      'rebuilt dance_figures + canonicalText reflect the new moves',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final rows = await db
+            .customSelect(
+              'SELECT idx, move, canonical_text FROM dance_figures '
+              "WHERE dance_id = 'dance-1' ORDER BY idx",
+            )
+            .get();
+        final move = {
+          for (final r in rows) r.read<int>('idx'): r.read<String>('move'),
+        };
+        final canonical = {
+          for (final r in rows)
+            r.read<int>('idx'): r.read<String?>('canonical_text'),
+        };
+
+        expect(move[0], 'pass_the_ocean');
+        expect(canonical[0], 'pass the ocean');
+        expect(move[1], 'form_a_short_wave');
+        expect(canonical[1], 'form a wave');
+        expect(move[2], 'pass_the_ocean');
+        expect(canonical[2], 'pass the ocean');
+        expect(move[3], 'swing');
+
+        await db.close();
+      },
+    );
+
+    test('dance_fts is reindexed onto the new canonical text', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final row = await db
+          .customSelect(
+            "SELECT figures_text FROM dance_fts WHERE dance_id = 'dance-1'",
+          )
+          .getSingle();
+      final figuresText = row.read<String>('figures_text');
+      expect(figuresText, contains('pass the ocean'));
+      expect(figuresText, contains('form a wave'));
+      // The legacy phrasing must be gone from the index.
+      expect(figuresText, isNot(contains('form an ocean wave')));
+
+      // Full-text search resolves the dance under the NEW canonical phrase.
+      expect(
+        await repos.dances.search(const FullTextFilter('pass the ocean')),
+        ['dance-1'],
+      );
+
+      await db.close();
+    });
+
+    test('an unmapped/unknown move falls through to the #358 safety net '
+        'without data loss or a crash', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      // ensureMigrated must not throw even though `some_removed_move` is not in
+      // the taxonomy — the rebuild renders it via the non-throwing raw-id path.
+      await repos.ensureMigrated();
+
+      final dance = await repos.dances.getById('dance-1');
+      // The unknown-move figure is preserved verbatim (never dropped).
+      expect(dance!.figures[4].move, 'some_removed_move');
+      expect(dance.figures[4].params['beats'], 8);
+
+      final rows = await db
+          .customSelect(
+            'SELECT canonical_text FROM dance_figures '
+            "WHERE dance_id = 'dance-1' AND idx = 4",
+          )
+          .getSingle();
+      // #358: an unknown move renders to its raw id rather than throwing.
+      expect(rows.read<String?>('canonical_text'), 'some_removed_move');
+
+      await db.close();
+    });
+
+    test('legacy figures present -> the upgrade schedules a rebuild', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      await db.customSelect('SELECT 1').get(); // force onUpgrade
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker,
+        isNotEmpty,
+        reason: 'a form_an_ocean_wave rewrite must schedule a derived rebuild',
+      );
+      await db.close();
+    });
+
+    test('no legacy figures -> the upgrade does NOT schedule a rebuild', () async {
+      // Rewrite the fixture (still at user_version 11) so it holds only a
+      // non-ocean move, and stamp a sentinel into the derived table. v12's only
+      // canonical-affecting change is the ocean-wave rewrite, so a DB that never
+      // held the legacy move must upgrade without touching derived text.
+      final raw = sqlite3.sqlite3.open(dbPath);
+      raw.execute('UPDATE dances SET figures_json = ? WHERE id = ?', [
+        '[{"schemaVersion":1,"move":"swing",'
+            '"params":{"who":"partners","beats":16}}]',
+        'dance-1',
+      ]);
+      raw.execute(
+        "UPDATE dance_figures SET canonical_text = 'SENTINEL' "
+        "WHERE dance_id = 'dance-1'",
+      );
+      expect(raw.select('PRAGMA user_version').first.values.first, 11);
+      raw.close();
+
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      // The rebuild marker was never written, so it is absent.
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(marker, isEmpty, reason: 'no rewrite => no rebuild scheduled');
+
+      // Proof no rebuild ran: the sentinel derived row survived untouched (a
+      // rebuild would have regenerated canonical_text from figures_json).
+      final rows = await db
+          .customSelect(
+            'SELECT canonical_text FROM dance_figures '
+            "WHERE dance_id = 'dance-1'",
+          )
+          .get();
+      expect(rows, hasLength(1));
+      expect(rows.single.read<String?>('canonical_text'), 'SENTINEL');
+
+      // The upgrade still completed to the current schema.
+      final version = await db.customSelect('PRAGMA user_version').get();
+      expect(version.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+  });
+
   test(
     'beforeOpen recreates dance_fts if missing from an existing database',
     () async {

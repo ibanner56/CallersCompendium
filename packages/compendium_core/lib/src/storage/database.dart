@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import '../model/enums.dart';
@@ -49,7 +51,7 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 11;
+const int kCompendiumSchemaVersion = 12;
 
 /// The Caller's Compendium local database.
 ///
@@ -123,6 +125,28 @@ const int kCompendiumSchemaVersion = 11;
 ///   performs the full derived rebuild ([DanceRepository.rebuildAllDerived]),
 ///   which repopulates every `dance_fts` row (including the new `sources`
 ///   column) and clears the marker. No table columns are added elsewhere.
+/// - v10 (2026-07-15): program import provenance. Adds one brand-new table
+///   (`program_provenance`); no columns added to existing tables and no
+///   back-fill. It does NOT feed the derived `dance_fts`/`dance_figures`
+///   indexes, so no derived rebuild is required.
+/// - v11 (2026-07-15): CC-parity "hide alternates in set list". Adds a single
+///   additive boolean column `hide_alternates` on `programs` (defaults false).
+///   Programs don't feed the derived indexes, so no derived rebuild is required.
+/// - v12 (2026-07-19): issue #290 ocean-wave cleanup — the sanctioned
+///   canonical-changing migration. The `form_an_ocean_wave` MoveDef was removed
+///   from the taxonomy, so `onUpgrade` REWRITES every stored figure with
+///   `move == 'form_an_ocean_wave'` in each `dances.figures_json` blob to
+///   `pass_the_ocean` (when `passThru` is true — its default) or
+///   `form_a_short_wave` (when false), dropping `passThru` and carrying the rest.
+///   This changes those figures' `canonicalText`/FTS, so — like the v2/v9 steps
+///   — `onUpgrade` durably records [derivedRebuildRequiredKey] and
+///   [CompendiumRepositories.ensureMigrated] runs the full
+///   [DanceRepository.rebuildAllDerived] (which regenerates `dance_figures` +
+///   `dance_fts` from the rewritten `figures_json` through the renderer) and
+///   clears the marker. The rewrite is parse-never-throw and lossless: any row
+///   or figure that can't be cleanly remapped is left byte-identical so it falls
+///   through to the non-destructive unknown-move path (issue #358) at read time,
+///   never dropped or corrupted.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -281,6 +305,49 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // `dance_fts`/`dance_figures` indexes, so no derived rebuild is required.
         await m.addColumn(programs, programs.hideAlternates);
       }
+      if (from < 12) {
+        // Issue #290: `form_an_ocean_wave` was removed from the taxonomy (v14),
+        // so rewrite every stored figure that references it onto the split moves
+        // — `pass_the_ocean` (passThru true, its default) or `form_a_short_wave`
+        // (passThru false), dropping `passThru` and keeping the rest. This is
+        // the SANCTIONED canonical-changing migration: rewriting `figures_json`
+        // changes those figures' derived `canonicalText`/FTS. Per-row and
+        // per-figure parse-never-throw: a blob or entry that can't be cleanly
+        // remapped is left byte-identical, falling through to the #358
+        // unknown-move path rather than being dropped/corrupted.
+        final rows = await customSelect(
+          'SELECT id, figures_json FROM dances',
+        ).get();
+        var rewroteAny = false;
+        for (final row in rows) {
+          final id = row.data['id'];
+          final figuresJson = row.data['figures_json'];
+          if (id is! String || figuresJson is! String) continue;
+          final rewritten = _rewriteOceanWaveFigures(figuresJson);
+          if (rewritten != null && rewritten != figuresJson) {
+            await customStatement(
+              'UPDATE dances SET figures_json = ? WHERE id = ?',
+              [rewritten, id],
+            );
+            rewroteAny = true;
+          }
+        }
+        // Only schedule a rebuild when a figure actually changed. v12's ONLY
+        // canonical-affecting change is this ocean-wave rewrite (the PR3/PR4
+        // display reworks are `!forCanonical`-gated and never touch
+        // `renderCanonical`), so a database that never held the legacy move
+        // already has correct derived text and needs no work. The rewritten
+        // figures' derived rows need the taxonomy/renderer, which
+        // `MigrationStrategy` can't reach, so durably record that a rebuild is
+        // owed (crash-safe) — `CompendiumRepositories.ensureMigrated()` then
+        // regenerates `dance_figures` + `dance_fts` from `figures_json`.
+        if (rewroteAny) {
+          await customStatement(
+            'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+            [derivedRebuildRequiredKey, 'true'],
+          );
+        }
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -305,4 +372,63 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     final rows = await customSelect('PRAGMA quick_check').get();
     return rows.length == 1 && rows.first.data.values.first == 'ok';
   }
+}
+
+/// Rewrites `form_an_ocean_wave` figures in a `figures_json` string onto the
+/// issue #290 split moves for the schema-v12 migration. Returns the rewritten
+/// JSON, or `null` when nothing changed OR the blob can't be safely parsed as a
+/// figure array — in which case the caller leaves the stored `figures_json`
+/// byte-identical so any unmapped/malformed data falls through to the
+/// non-destructive unknown-move path (issue #358).
+///
+/// Operates on the raw decoded JSON (not the [Figure] model) so unknown keys,
+/// `note`, `progression`, and `schemaVersion` are preserved verbatim; only
+/// `move` and `params.passThru` change. Parse-never-throw at both the blob and
+/// the individual-figure level: a single unreadable entry is kept as-is rather
+/// than dropping it or aborting the whole row.
+String? _rewriteOceanWaveFigures(String figuresJson) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(figuresJson);
+  } catch (_) {
+    return null; // malformed JSON: leave the row untouched.
+  }
+  if (decoded is! List) return null;
+  var changed = false;
+  final out = <Object?>[];
+  for (final entry in decoded) {
+    if (entry is! Map) {
+      out.add(entry); // preserve non-object entries verbatim.
+      continue;
+    }
+    try {
+      if (entry['move'] != 'form_an_ocean_wave') {
+        out.add(entry);
+        continue;
+      }
+      final figure = Map<String, Object?>.from(entry);
+      final rawParams = figure['params'];
+      final params = rawParams is Map
+          ? Map<String, Object?>.from(rawParams)
+          : <String, Object?>{};
+      // ContraDB's default is pass_through=true, which is "pass the ocean";
+      // only an explicit `false` selects the short wave. Any non-false value
+      // (including a missing param) maps to `pass_the_ocean`.
+      figure['move'] = params['passThru'] == false
+          ? 'form_a_short_wave'
+          : 'pass_the_ocean';
+      params.remove('passThru');
+      if (params.isEmpty) {
+        figure.remove('params'); // the codec omits an empty params map.
+      } else {
+        figure['params'] = params;
+      }
+      out.add(figure);
+      changed = true;
+    } catch (_) {
+      out.add(entry); // per-figure failure: keep the original entry intact.
+    }
+  }
+  if (!changed) return null;
+  return jsonEncode(out);
 }

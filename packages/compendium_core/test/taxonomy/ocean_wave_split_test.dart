@@ -4,9 +4,11 @@ import 'package:test/test.dart';
 /// Issue #290 — split the overloaded `form_an_ocean_wave` into a default
 /// short-wave `form_a_short_wave` ("form a wave") and a distinct
 /// `pass_the_ocean` ("pass the ocean"). Both inherit the legacy move's sourced
-/// params MINUS `passThru`; neither invents a beat count. The legacy move is
-/// RETAINED unchanged so stored figures keep rendering byte-identically
-/// (additive taxonomy bump v12 -> v13; no schemaVersion / DB migration).
+/// params MINUS `passThru`; neither invents a beat count. As of taxonomy v14 the
+/// legacy `form_an_ocean_wave` MoveDef is REMOVED; stored figures that reference
+/// it are rewritten onto the split moves by the schema-v12 migration (see
+/// database.dart / migration_test.dart). This file asserts the split moves and
+/// that the legacy id is gone from the taxonomy.
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
@@ -50,14 +52,20 @@ void main() {
         );
       });
 
-      test('$id mirrors the legacy move param specs (no invented values)', () {
-        final legacy = tax.resolve('form_an_ocean_wave')!.params;
+      test('$id inherited param defaults match the sibling split move', () {
+        // The legacy `form_an_ocean_wave` is gone (v14); assert the two splits
+        // still carry identical defaults for every inherited param, so neither
+        // drifted or invented a value during the removal.
+        final sibling = id == 'form_a_short_wave'
+            ? 'pass_the_ocean'
+            : 'form_a_short_wave';
         final params = tax.resolve(id)!.params;
+        final other = tax.resolve(sibling)!.params;
         for (final key in inheritedParams) {
           expect(
             params[key]!.defaultValue,
-            legacy[key]!.defaultValue,
-            reason: '$id.$key default must match form_an_ocean_wave',
+            other[key]!.defaultValue,
+            reason: '$id.$key default must match $sibling',
           );
         }
       });
@@ -103,39 +111,21 @@ void main() {
     );
   });
 
-  group('backward compatibility — legacy form_an_ocean_wave retained', () {
-    test('still resolves with passThru default true (unchanged)', () {
-      final def = tax.resolve('form_an_ocean_wave');
-      expect(def?.id, 'form_an_ocean_wave');
-      expect(def!.params['passThru']!.defaultValue, true);
+  group('legacy form_an_ocean_wave removed (v14 / schema v12 migration)', () {
+    test('no longer resolves in the taxonomy', () {
+      expect(tax.resolve('form_an_ocean_wave'), isNull);
     });
 
-    test('bare legacy figure renders byte-identically', () {
-      expect(
-        renderer.renderCanonical(Figure(move: 'form_an_ocean_wave')),
-        'form an ocean wave',
-      );
+    test('an unknown-move figure renders losslessly via the #358 fallback', () {
+      // Stored figures are migrated away by schema v12; any that somehow slip
+      // through resolve to the non-throwing raw-id fallback (issue #358) rather
+      // than crashing.
+      final figure = Figure(move: 'form_an_ocean_wave');
+      expect(renderer.renderCanonical(figure), 'form_an_ocean_wave');
     });
 
-    test('legacy figure with stored params still validates and renders', () {
-      final figure = Figure(
-        move: 'form_an_ocean_wave',
-        params: {
-          'passThru': false,
-          'dir': 'rightDiagonal',
-          'centerHand': 'left',
-          'center': 'role1s',
-          'sides': 'partners',
-          'balance': true,
-          'beats': 8,
-        },
-      );
-      expect(tax.validateFigure(figure), isEmpty);
-      expect(renderer.renderCanonical(figure), 'form an ocean wave');
-    });
-
-    test('no alias hijacks the legacy id to a new move', () {
-      expect(tax.resolve('form_an_ocean_wave')!.id, 'form_an_ocean_wave');
+    test('no alias resurrects the legacy id', () {
+      expect(tax.aliases.containsKey('form_an_ocean_wave'), isFalse);
     });
   });
 }

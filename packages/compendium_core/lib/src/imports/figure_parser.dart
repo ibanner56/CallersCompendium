@@ -860,7 +860,8 @@ _Match? _passThrough(List<String> w) {
 // (plus an optional direction) is emitted; the MoveDef defaults supply the
 // rest. "the" is filler, so "pass ocean" is accepted too. Deliberately does
 // NOT recognise the legacy "form an ocean wave" phrasing — that stays custom
-// here (the ContraDB adapter still maps it to the retained legacy move).
+// here (the ContraDB adapter now maps it to pass_the_ocean; the legacy move
+// was removed at v14).
 _Match? _passTheOcean(List<String> w) {
   if (!_consumePhrase(w, ['pass', 'the', 'ocean']) &&
       !_consumePhrase(w, ['pass', 'ocean'])) {
