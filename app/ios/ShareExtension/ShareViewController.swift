@@ -1,4 +1,3 @@
-import MobileCoreServices
 import UIKit
 import UniformTypeIdentifiers
 
@@ -82,7 +81,7 @@ final class ShareViewController: UIViewController {
   /// legacy `openURL:` selector — the standard technique for this hand-off.
   private func openHostApp() {
     guard let url = URL(string: "\(Self.hostScheme)://import") else { return }
-    let selector = sel_registerName("openURL:")
+    let selector = NSSelectorFromString("openURL:")
     var responder: UIResponder? = self
     while let current = responder {
       if current.responds(to: selector) {
