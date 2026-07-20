@@ -45,8 +45,11 @@ overview and install notes follow.
   defaults, dropping implied subjects, singularizing where appropriate, and adopting
   fuller wording for moves such as zig zag, slice, mad robin, revolving door, box
   circulate, hey, poussette, square through, the long-wave and ocean-wave families,
-  and more. This is **display-only**: the canonical text used for search and
-  duplicate detection is unchanged, so nothing re-indexes or re-dedupes.
+  and more. This wording pass is **display-only** — it leaves the canonical text
+  those figures use for search and duplicate detection untouched, so it triggers no
+  re-indexing or re-deduplication on its own. (The one change to *stored* figures in
+  this release is the separate ocean-wave schema migration under Data / Migrations
+  below, which does rewrite the affected figures and rebuild their search index.)
 - **The Caller's Box compound figures import faithfully.** A compound figure such as
   *revolving door* (a parent line with indented sub-steps) now imports as one figure
   with its definition intact, instead of being split into separate lines.
@@ -64,8 +67,11 @@ overview and install notes follow.
   now refresh the moment an import commits, instead of waiting for a manual reload or
   an app restart.
 - **Dances with unfamiliar moves no longer crash the editor.** A figure whose move is
-  unknown to the current build (authored in a newer version, or since renamed) now
-  degrades gracefully and stays editable instead of throwing.
+  unknown to the current build (authored in a newer version, or since renamed) is now
+  shown as a read-only "unrecognized move" panel — its stored data preserved intact,
+  never coerced — instead of throwing. The rest of the dance stays fully editable, and
+  the unrecognized figure can still be reordered, duplicated, or deleted; re-adding the
+  move to the taxonomy restores normal editing automatically.
 
 ### Data / Migrations
 
