@@ -459,6 +459,138 @@ void main() {
     });
   });
 
+  group('countByDance', () {
+    Future<void> makeDance(String id) => dances.create(
+      Dance(
+        id: id,
+        title: 'Dance $id',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+
+    test('is empty when no dance has ever been called', () async {
+      expect(await repo.countByDance(), isEmpty);
+    });
+
+    test('counts every occurrence by default, incl. repeats within a program, '
+        'and tallies performed separately', () async {
+      await makeDance('d1');
+      await makeDance('d2');
+      await repo.create(
+        sampleProgram(
+          id: 'p1',
+          slots: [
+            // d1 appears twice in one program -> counts twice.
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 1, 1),
+            ),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd1'),
+            ProgramSlot(id: 's3', position: 2, danceId: 'd2'),
+          ],
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          id: 'p2',
+          slots: [
+            ProgramSlot(
+              id: 's4',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 2, 1),
+            ),
+          ],
+        ),
+      );
+
+      final counts = await repo.countByDance();
+      // d1: 3 occurrences total, 2 marked performed. d2: 1 total, 0 performed.
+      expect(counts['d1'], const DanceCallCounts(all: 3, performed: 2));
+      expect(counts['d2'], const DanceCallCounts(all: 1, performed: 0));
+    });
+
+    test(
+      'parity: counts equal the detail calling-history length in each scope '
+      '(same per-slot source of truth, so card & detail never drift)',
+      () async {
+        await makeDance('d1');
+        // Guardrail fixture: d1 appears TWICE in one non-deleted program and
+        // ONCE in another; a single occurrence is performed.
+        await repo.create(
+          sampleProgram(
+            id: 'p1',
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                danceId: 'd1',
+                performedAt: DateTime.utc(2026, 1, 1),
+              ),
+              ProgramSlot(id: 's2', position: 1, danceId: 'd1'),
+            ],
+          ),
+        );
+        await repo.create(
+          sampleProgram(
+            id: 'p2',
+            slots: [ProgramSlot(id: 's3', position: 0, danceId: 'd1')],
+          ),
+        );
+
+        final counts = (await repo.countByDance())['d1'];
+        final historyAll = await repo.callingHistoryForDance('d1');
+        final historyPerformed = await repo.callingHistoryForDance(
+          'd1',
+          performedOnly: true,
+        );
+        // The chip's default N must equal the detail history's record count...
+        expect(counts!.all, historyAll.length);
+        expect(counts.all, 3);
+        // ...and the performed-scope N must equal the performed-only history.
+        expect(counts.performed, historyPerformed.length);
+        expect(counts.performed, 1);
+      },
+    );
+
+    test('ignores slots on soft-deleted programs', () async {
+      await makeDance('d1');
+      await repo.create(
+        sampleProgram(
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        ),
+      );
+      await repo.softDelete('p1', at: DateTime.utc(2026, 2, 1));
+      expect(await repo.countByDance(), isEmpty);
+    });
+
+    test('ignores text-only (dance-less) slots', () async {
+      await repo.create(
+        sampleProgram(
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              text: 'Waltz break',
+              performedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        ),
+      );
+      expect(await repo.countByDance(), isEmpty);
+    });
+  });
+
   group('callingHistoryForDance', () {
     Future<void> makeDance(String id) => dances.create(
       Dance(

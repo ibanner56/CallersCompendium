@@ -2,12 +2,16 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/models/dance_list_entry.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
-DanceListEntry _entry({int? rating}) => DanceListEntry(
+DanceListEntry _entry({
+  int? rating,
+  DanceCallCounts callCounts = const DanceCallCounts(all: 0, performed: 0),
+}) => DanceListEntry(
   dance: Dance(
     id: 'd1',
     title: 'Test Dance',
@@ -19,16 +23,22 @@ DanceListEntry _entry({int? rating}) => DanceListEntry(
   authorNames: const [],
   tagNames: const [],
   listCustomFields: const [],
+  callCounts: callCounts,
 );
 
-Future<void> _pump(WidgetTester tester, DanceListEntry entry) async {
-  await tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: DanceListTile(entry: entry, onTap: () {}),
-      ),
-    ),
-  );
+Future<void> _pump(
+  WidgetTester tester,
+  DanceListEntry entry, {
+  bool? requirePerformed,
+}) async {
+  Widget tile = DanceListTile(entry: entry, onTap: () {});
+  if (requirePerformed != null) {
+    tile = RequirePerformedForHistoryScope(
+      notifier: ValueNotifier<bool>(requirePerformed),
+      child: tile,
+    );
+  }
+  await tester.pumpWidget(MaterialApp(home: Scaffold(body: tile)));
 }
 
 void main() {
@@ -87,5 +97,113 @@ void main() {
       tester.element(find.text('Test Dance')),
     ).textTheme.titleMedium;
     expect(title.style, expected);
+  });
+
+  group('called ×N chip', () {
+    final chipKey = const ValueKey('called-count-d1');
+
+    testWidgets('is hidden when the dance has never been called', (
+      tester,
+    ) async {
+      await _pump(tester, _entry());
+      expect(find.byKey(chipKey), findsNothing);
+    });
+
+    testWidgets('shows the all-occurrences count with plural semantics', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        _entry(callCounts: const DanceCallCounts(all: 3, performed: 1)),
+      );
+      final chip = find.byKey(chipKey);
+      expect(chip, findsOneWidget);
+      final label = tester.widget<Text>(
+        find.descendant(of: chip, matching: find.byType(Text)),
+      );
+      expect(label.data, 'called ×3');
+      expect(label.semanticsLabel, 'called 3 times');
+    });
+
+    testWidgets('uses the singular "1 time" semantic label', (tester) async {
+      await _pump(
+        tester,
+        _entry(callCounts: const DanceCallCounts(all: 1, performed: 0)),
+      );
+      final label = tester.widget<Text>(
+        find.descendant(of: find.byKey(chipKey), matching: find.byType(Text)),
+      );
+      expect(label.data, 'called ×1');
+      expect(label.semanticsLabel, 'called 1 time');
+    });
+
+    testWidgets(
+      'honors Require-mark-performed: shows the performed-only count',
+      (tester) async {
+        await _pump(
+          tester,
+          _entry(callCounts: const DanceCallCounts(all: 3, performed: 1)),
+          requirePerformed: true,
+        );
+        final label = tester.widget<Text>(
+          find.descendant(of: find.byKey(chipKey), matching: find.byType(Text)),
+        );
+        expect(label.data, 'called ×1');
+        expect(label.semanticsLabel, 'called 1 time');
+      },
+    );
+
+    testWidgets(
+      'is hidden when performed count is zero and mark-performed is required',
+      (tester) async {
+        await _pump(
+          tester,
+          _entry(callCounts: const DanceCallCounts(all: 2, performed: 0)),
+          requirePerformed: true,
+        );
+        expect(find.byKey(chipKey), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'count updates live when the RequirePerformedForHistoryScope flips '
+      '(no list reload)',
+      (tester) async {
+        final notifier = ValueNotifier<bool>(false);
+        addTearDown(notifier.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: RequirePerformedForHistoryScope(
+                notifier: notifier,
+                child: DanceListTile(
+                  entry: _entry(
+                    callCounts: const DanceCallCounts(all: 3, performed: 1),
+                  ),
+                  onTap: () {},
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // Default scope: all occurrences.
+        Text label() => tester.widget<Text>(
+          find.descendant(of: find.byKey(chipKey), matching: find.byType(Text)),
+        );
+        expect(label().data, 'called ×3');
+
+        // Flip the setting on — the InheritedNotifier rebuilds the tile with
+        // the performed-only tally, without any reload of the list.
+        notifier.value = true;
+        await tester.pump();
+        expect(label().data, 'called ×1');
+
+        // Flip back off — the tile returns to the all-occurrences tally.
+        notifier.value = false;
+        await tester.pump();
+        expect(label().data, 'called ×3');
+      },
+    );
   });
 }

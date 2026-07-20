@@ -9,6 +9,7 @@ class DanceListEntry {
     required this.authorNames,
     required this.tagNames,
     required this.listCustomFields,
+    required this.callCounts,
     this.lastCalled,
   });
 
@@ -19,6 +20,11 @@ class DanceListEntry {
   /// `showInList` custom field values as `label: display value` pairs, in
   /// [CustomFieldDef] declaration order.
   final List<String> listCustomFields;
+
+  /// How many times this dance has been called (all vs. performed-only),
+  /// loaded once for the whole list. Drives the "called ×N" chip; the tile
+  /// picks the tally matching the active "Require mark-performed" setting.
+  final DanceCallCounts callCounts;
   final DateTime? lastCalled;
 
   String get title => dance.title;
