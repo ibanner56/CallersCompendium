@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../data/require_performed_for_history_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../screens/dance_detail_screen.dart';
 import '../search/facet_labels.dart';
@@ -74,6 +75,14 @@ class DanceListTile extends StatelessWidget {
     final dance = entry.dance;
     final theme = Theme.of(context);
 
+    // Mirror the dance-detail calling history: when "Require mark-performed"
+    // is on the count reflects performed-only occurrences, otherwise every
+    // occurrence — so the card and the detail history never disagree. Reading
+    // the scope here (rather than at load time) keeps the chip live as the
+    // setting toggles, without reloading the list.
+    final calledCount = entry.callCounts.countFor(
+      RequirePerformedForHistoryScope.of(context),
+    );
     return ListTile(
       selected: selected,
       visualDensity: VisualDensity.compact,
@@ -108,6 +117,19 @@ class DanceListTile extends StatelessWidget {
               Text(
                 entry.authorNames.join(', '),
                 style: theme.textTheme.bodyMedium,
+              ),
+            if (calledCount > 0)
+              Chip(
+                key: ValueKey('called-count-${dance.id}'),
+                avatar: const Icon(Icons.campaign_outlined, size: 16),
+                label: Text(
+                  'called ×$calledCount',
+                  semanticsLabel: calledCount == 1
+                      ? 'called 1 time'
+                      : 'called $calledCount times',
+                ),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             Chip(
               avatar: const Icon(formationIcon, size: 16),

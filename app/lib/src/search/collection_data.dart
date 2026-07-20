@@ -22,6 +22,7 @@ class CollectionData {
     required this.textFields,
     required this.numberFields,
     required this.lastCalled,
+    required this.callCounts,
     required this.authors,
     required this.tags,
     required this.citedSources,
@@ -46,6 +47,12 @@ class CollectionData {
   final List<CustomFieldDef> textFields;
   final List<CustomFieldDef> numberFields;
   final Map<String, DateTime> lastCalled;
+
+  /// Per-dance calling tallies (all vs. performed) for the whole collection,
+  /// loaded once so [DanceListTile] can render its "called ×N" chip honoring
+  /// the "Require mark-performed" setting without an N+1 per-row query. Dances
+  /// never called are absent (treated as zero by [entryFor]).
+  final Map<String, DanceCallCounts> callCounts;
   final List<Choreographer> authors;
   final List<Tag> tags;
 
@@ -80,6 +87,7 @@ class CollectionData {
     final defs = await repos.customFieldDefs.listAll();
     final publishedSources = await repos.publishedSources.listAll();
     final lastCalled = await repos.programs.lastCalledByDance();
+    final callCounts = await repos.programs.countByDance();
 
     final dancesById = {for (final d in dances) d.id: d};
     final choreographerNames = {for (final c in choreographers) c.id: c.name};
@@ -142,6 +150,7 @@ class CollectionData {
           .where((d) => d.type == CustomFieldType.number)
           .toList(),
       lastCalled: lastCalled,
+      callCounts: callCounts,
       authors: authors,
       tags: tagList,
       citedSources: citedSources,
@@ -173,5 +182,7 @@ class CollectionData {
           if (value.fieldId == def.id) '${def.label}: ${value.value}',
     ],
     lastCalled: lastCalled[dance.id],
+    callCounts:
+        callCounts[dance.id] ?? const DanceCallCounts(all: 0, performed: 0),
   );
 }

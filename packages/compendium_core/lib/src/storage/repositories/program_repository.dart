@@ -81,6 +81,50 @@ class DanceCallingRecord {
   );
 }
 
+/// How many times a dance has been called, aggregated across every non-deleted
+/// program, produced by [ProgramRepository.countByDance].
+///
+/// Two tallies are surfaced so a caller can honor the "Require mark-performed
+/// for calling history" setting (ROADMAP G.2) the same way the dance-detail
+/// calling history does — WITHOUT a second query:
+/// * [all] counts every occurrence (one per slot referencing the dance; a dance
+///   appearing twice in one program counts twice), mirroring the detail
+///   history's DEFAULT (a program appears as soon as it contains the dance).
+/// * [performed] counts only occurrences whose slot was marked performed
+///   (`performed_at IS NOT NULL`), mirroring the history's `performedOnly` mode.
+///
+/// Always `performed <= all`. A dance that has never been called is simply
+/// absent from [countByDance]'s map rather than mapped to a zero record.
+@immutable
+class DanceCallCounts {
+  const DanceCallCounts({required this.all, required this.performed});
+
+  /// Every occurrence of the dance (one per matching slot), regardless of
+  /// whether the slot was marked performed.
+  final int all;
+
+  /// Occurrences whose slot was marked performed (`performed_at` set).
+  final int performed;
+
+  /// The tally that matches the active calling-history setting: [performed]
+  /// when mark-performed is required, otherwise [all]. Mirrors
+  /// `ProgramRepository.callingHistoryForDance`'s `performedOnly` flag so the
+  /// card's count and the detail history never disagree.
+  int countFor(bool performedOnly) => performedOnly ? performed : all;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DanceCallCounts &&
+      other.all == all &&
+      other.performed == performed;
+
+  @override
+  int get hashCode => Object.hash(all, performed);
+
+  @override
+  String toString() => 'DanceCallCounts(all: $all, performed: $performed)';
+}
+
 /// CRUD for [Program]s and their [ProgramSlot]s.
 ///
 /// Slots are always replaced wholesale on write (delete-then-reinsert inside
@@ -315,6 +359,41 @@ class ProgramRepository {
     return {
       for (final row in rows)
         row.read<String>('dance_id'): asUtc(row.read<DateTime>('last_called')),
+    };
+  }
+
+  /// Maps dance id → its [DanceCallCounts] across every slot of every
+  /// non-deleted program, for dances that have been called at least once
+  /// (dances absent from the map have zero calls). One grouped query — the
+  /// bulk sibling of [lastCalledByDance] — so the Collection list can render a
+  /// per-dance "called ×N" count without an N+1 per-row fan-out.
+  ///
+  /// Surfaces BOTH the all-occurrences tally (`COUNT(*)`, one per matching
+  /// slot) and the performed-only tally (`COUNT(performed_at)`, which counts
+  /// only rows where `performed_at` is non-null) so a caller can honor the
+  /// "Require mark-performed for calling history" setting (ROADMAP G.2) exactly
+  /// as [callingHistoryForDance] does — see [DanceCallCounts.countFor]. The
+  /// `deleted_at IS NULL` join filter matches both [lastCalledByDance] and
+  /// [callingHistoryForDance].
+  Future<Map<String, DanceCallCounts>> countByDance() async {
+    final rows = await _db
+        .customSelect(
+          'SELECT program_slots.dance_id AS dance_id, '
+          'COUNT(*) AS all_count, '
+          'COUNT(program_slots.performed_at) AS performed_count '
+          'FROM program_slots '
+          'JOIN programs ON programs.id = program_slots.program_id '
+          'WHERE program_slots.dance_id IS NOT NULL '
+          'AND programs.deleted_at IS NULL '
+          'GROUP BY program_slots.dance_id',
+        )
+        .get();
+    return {
+      for (final row in rows)
+        row.read<String>('dance_id'): DanceCallCounts(
+          all: row.read<int>('all_count'),
+          performed: row.read<int>('performed_count'),
+        ),
     };
   }
 
