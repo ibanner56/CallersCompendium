@@ -68,6 +68,7 @@ class FacetPanel extends StatelessWidget {
     if (forms.isNotEmpty) {
       sections.add(
         _FacetSection(
+          key: const ValueKey('facet-row-form'),
           label: 'Type',
           sectionId: 'form',
           activeCount: facets.forms.length,
@@ -88,6 +89,7 @@ class FacetPanel extends StatelessWidget {
     if (formations.isNotEmpty) {
       sections.add(
         _FacetSection(
+          key: const ValueKey('facet-row-formation'),
           label: 'Formation',
           sectionId: 'formation',
           activeCount: facets.formations.length,
@@ -108,6 +110,7 @@ class FacetPanel extends StatelessWidget {
     if (progressions.isNotEmpty) {
       sections.add(
         _FacetSection(
+          key: const ValueKey('facet-row-progression'),
           label: 'Progression',
           sectionId: 'progression',
           activeCount: facets.progressions.length,
@@ -128,6 +131,7 @@ class FacetPanel extends StatelessWidget {
     if (statuses.isNotEmpty) {
       sections.add(
         _FacetSection(
+          key: const ValueKey('facet-row-status'),
           label: 'Status',
           sectionId: 'status',
           activeCount: facets.statuses.length,
@@ -148,6 +152,7 @@ class FacetPanel extends StatelessWidget {
     if (levels.isNotEmpty) {
       sections.add(
         _FacetSection(
+          key: const ValueKey('facet-row-level'),
           label: 'Level',
           sectionId: 'level',
           activeCount: facets.levels.length,
@@ -168,6 +173,7 @@ class FacetPanel extends StatelessWidget {
     if (hasMixedLevel) {
       sections.add(
         _FacetSection(
+          key: const ValueKey('facet-row-mixed-level'),
           label: 'Mixed level',
           sectionId: 'mixed-level',
           activeCount: facets.mixedLevel == true ? 1 : 0,
@@ -190,6 +196,7 @@ class FacetPanel extends StatelessWidget {
     if (hasRating) {
       sections.add(
         _FacetSection(
+          key: const ValueKey('facet-row-min-rating'),
           label: 'Minimum rating',
           sectionId: 'min-rating',
           activeCount: facets.minRating != null ? 1 : 0,
@@ -215,6 +222,7 @@ class FacetPanel extends StatelessWidget {
     if (authors.isNotEmpty) {
       sections.add(
         _FacetSection(
+          key: const ValueKey('facet-row-author'),
           label: 'Author',
           sectionId: 'author',
           activeCount: facets.authorIds.length,
@@ -235,6 +243,7 @@ class FacetPanel extends StatelessWidget {
     if (tags.isNotEmpty) {
       sections.add(
         _FacetSection(
+          key: const ValueKey('facet-row-tags'),
           label: 'Tags',
           sectionId: 'tags',
           activeCount: facets.tagIds.length,
@@ -255,6 +264,7 @@ class FacetPanel extends StatelessWidget {
     if (citedSources.isNotEmpty) {
       sections.add(
         _FacetSection(
+          key: const ValueKey('facet-row-source'),
           label: 'Source',
           sectionId: 'source',
           activeCount: facets.sourceIds.length,
@@ -278,6 +288,7 @@ class FacetPanel extends StatelessWidget {
       final selected = facets.choiceValues[def.id] ?? const <String>{};
       sections.add(
         _FacetSection(
+          key: ValueKey('facet-row-cf-choice-${def.id}'),
           label: def.label,
           sectionId: 'cf-choice-${def.id}',
           activeCount: selected.length,
@@ -304,6 +315,7 @@ class FacetPanel extends StatelessWidget {
       final current = facets.booleanValues[def.id];
       sections.add(
         _FacetSection(
+          key: ValueKey('facet-row-cf-bool-${def.id}'),
           label: def.label,
           sectionId: 'cf-bool-${def.id}',
           activeCount: current != null ? 1 : 0,
@@ -366,11 +378,17 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
+    // The Column's direct children are keyed so Flutter reconciles them by key
+    // rather than by position. Without this, conditionally prepending the
+    // Clear-filters row (or a change in the visible section set) shifts every
+    // following child and remounts the keyed ExpansionTiles, reverting any
+    // collapsed section back to its `initiallyExpanded: true` state (#375).
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (!facets.isEmpty)
           Padding(
+            key: const ValueKey('facet-row-clear'),
             padding: const EdgeInsets.only(bottom: 4),
             child: Align(
               alignment: Alignment.centerLeft,
@@ -386,7 +404,11 @@ class FacetPanel extends StatelessWidget {
             ),
           ),
         for (final section in sections)
-          Padding(padding: const EdgeInsets.only(bottom: 8), child: section),
+          Padding(
+            key: section.key,
+            padding: const EdgeInsets.only(bottom: 8),
+            child: section,
+          ),
       ],
     );
   }
@@ -408,6 +430,7 @@ class FacetPanel extends StatelessWidget {
 
 class _FacetSection extends StatelessWidget {
   const _FacetSection({
+    super.key,
     required this.label,
     required this.chips,
     required this.sectionId,
