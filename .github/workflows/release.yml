@@ -621,6 +621,10 @@ jobs:
           prof_plist="$RUNNER_TEMP/cc_appstore.plist"
           security cms -D -i "$prof_raw" > "$prof_plist"
           prof_uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$prof_plist")
+          if [ -z "$prof_uuid" ]; then
+            echo "::error::Could not read a UUID from the App Store distribution profile (APPLE_DISTRIBUTION_PROFILE); it is likely empty or malformed." >&2
+            exit 1
+          fi
           prof_name=$(/usr/libexec/PlistBuddy -c "Print :Name" "$prof_plist")
           echo "Installing provisioning profile '${prof_name}' (${prof_uuid})"
           # Persist the UUID so the cleanup step removes ONLY this profile
@@ -644,6 +648,10 @@ jobs:
           ext_prof_plist="$RUNNER_TEMP/cc_appstore_shareext.plist"
           security cms -D -i "$ext_prof_raw" > "$ext_prof_plist"
           ext_prof_uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$ext_prof_plist")
+          if [ -z "$ext_prof_uuid" ]; then
+            echo "::error::Could not read a UUID from the ShareExtension App Store distribution profile (APPLE_SHAREEXT_DISTRIBUTION_PROFILE); it is likely empty or malformed." >&2
+            exit 1
+          fi
           ext_prof_name=$(/usr/libexec/PlistBuddy -c "Print :Name" "$ext_prof_plist")
           echo "Installing ShareExtension provisioning profile '${ext_prof_name}' (${ext_prof_uuid})"
           printf '%s' "$ext_prof_uuid" > "$RUNNER_TEMP/cc-ios-shareext-profile-uuid"
@@ -723,6 +731,10 @@ jobs:
           # Reverted by the always() cleanup step (git checkout), mirroring how
           # the DEVELOPMENT_TEAM line is appended to Release.xcconfig above.
           build_name="$(sed -n 's/^version:[[:space:]]*\([^+]*\).*/\1/p' pubspec.yaml | tr -d '[:space:]')"
+          if [ -z "$build_name" ]; then
+            echo "::error::Could not parse a marketing version from app/pubspec.yaml ('version:') to stamp the ShareExtension." >&2
+            exit 1
+          fi
           echo "Stamping ShareExtension version ${build_name} (${build_number})"
           /usr/libexec/PlistBuddy \
             -c "Set :CFBundleShortVersionString ${build_name}" \
