@@ -569,7 +569,9 @@ taxonomy are unchanged.
     sheet (AirDrop on Apple platforms, share intent elsewhere). The app is also a
     **share target** — opening a received bundle (AirDrop / "Open with" / share
     intent) launches the app, imports the program and its dances through the
-    standard review pipeline, and auto-opens the program. Platform intake wiring:
+    shared import/commit pipeline (identity-first dedupe, untrusted-input
+    validation) and auto-opens the program without stopping at the step-by-step
+    review queue. Platform intake wiring:
     iOS declares `LSSupportsOpeningDocumentsInPlace` for the share-import type
     (#372); macOS routes incoming files through a native bridge (#361/#377).
 

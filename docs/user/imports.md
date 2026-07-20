@@ -121,8 +121,10 @@ size-checked and validated against the expected format, and a bad file is turned
 away with a message rather than doing any harm), and it's **identity-first** —
 dances and programs you already have are matched and updated, never duplicated.
 Because it opens straight into the program, this path doesn't stop at the
-step-by-step review queue the way a manual import does; nothing is deleted or
-overwritten, and if anything couldn't be matched the app tells you.
+step-by-step review queue the way a manual import does. Nothing is ever deleted:
+dances and programs you already have are updated in place rather than
+duplicated, brand-new material is added, and if anything couldn't be matched the
+app tells you.
 
 ## Bring your library across from Caller's Companion
 
