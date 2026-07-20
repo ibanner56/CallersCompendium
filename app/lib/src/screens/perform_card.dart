@@ -649,9 +649,30 @@ class _Figures extends StatelessWidget {
         );
         lastLabel = sf.label;
       }
+      // Custom-figure text is user-authored, so it may carry inline emphasis
+      // markup. Parse the RAW text into styled spans and dialect-substitute
+      // each span individually — stripping the delimiters BEFORE substitution
+      // so markup can never interfere with role-term word boundaries (the
+      // substitutor treats `_` as a word character). Non-custom lines are
+      // canonical/derived and are rendered verbatim, never emphasis-parsed.
+      List<EmphasisSpan>? mainSpans;
+      if (sf.figure.isCustom) {
+        final raw = (sf.figure.params['text'] as String?) ?? '';
+        if (raw.isNotEmpty) {
+          mainSpans = [
+            for (final span in parseInlineEmphasis(raw))
+              EmphasisSpan(
+                text: renderer.renderFreeText(span.text, dialect),
+                bold: span.bold,
+                underline: span.underline,
+              ),
+          ];
+        }
+      }
       children.add(
         _FigureRow(
           text: renderer.renderSummary(sf.figure, dialect, decimals: decimals),
+          mainSpans: mainSpans,
           verboseText: renderer.renderSummary(
             sf.figure,
             dialect,
@@ -674,14 +695,19 @@ class _Figures extends StatelessWidget {
 class _FigureRow extends StatelessWidget {
   const _FigureRow({
     required this.text,
+    required this.mainSpans,
     required this.verboseText,
     required this.beats,
     required this.progression,
     required this.note,
   });
 
-  /// Terse, dialect-applied text shown on screen.
+  /// Terse, dialect-applied text shown on screen (non-custom figures).
   final String text;
+
+  /// Pre-parsed, dialect-substituted emphasis spans for the main line of a
+  /// user-authored custom figure, or null for canonical (non-custom) lines.
+  final List<EmphasisSpan>? mainSpans;
 
   /// Verbose, spoken-friendly rendering announced to assistive tech in place of
   /// the terse [text] (figure-taxonomy.md §5.4 / accessibility baseline).
@@ -694,14 +720,21 @@ class _FigureRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
+    // Emphasis is a purely visual cue: announce the underlying words with the
+    // markup delimiters stripped so a screen reader never voices stray `*`/`_`.
+    final noteText = note?.trim() ?? '';
     final semanticsLabel = [
-      verboseText,
+      stripInlineEmphasis(verboseText),
       if (progression) 'progression',
       beatsLabel,
-      if (note != null && note!.trim().isNotEmpty) 'note: ${note!.trim()}',
+      if (noteText.isNotEmpty) 'note: ${stripInlineEmphasis(noteText)}',
     ].join(', ');
     final textStyle = theme.textTheme.headlineSmall?.merge(
       AppTypography.performBody,
+    );
+    final noteStyle = theme.textTheme.titleMedium?.copyWith(
+      fontStyle: FontStyle.italic,
+      color: theme.colorScheme.onSurfaceVariant,
     );
     return Semantics(
       label: semanticsLabel,
@@ -730,14 +763,17 @@ class _FigureRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(text, style: textStyle),
-                  if (note != null && note!.trim().isNotEmpty)
-                    Text(
-                      note!.trim(),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+                  if (mainSpans != null)
+                    Text.rich(
+                      _emphasisSpan(mainSpans!, textStyle),
+                      style: textStyle,
+                    )
+                  else
+                    Text(text, style: textStyle),
+                  if (noteText.isNotEmpty)
+                    Text.rich(
+                      _emphasisSpan(parseInlineEmphasis(noteText), noteStyle),
+                      style: noteStyle,
                     ),
                 ],
               ),
@@ -754,6 +790,26 @@ class _FigureRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// Builds a `TextSpan` tree from parsed [EmphasisSpan]s, applying bold and/or
+  /// underline over [baseStyle]. Purely visual — the text itself is unchanged.
+  static TextSpan _emphasisSpan(
+    List<EmphasisSpan> spans,
+    TextStyle? baseStyle,
+  ) {
+    return TextSpan(
+      children: [
+        for (final span in spans)
+          TextSpan(
+            text: span.text,
+            style: TextStyle(
+              fontWeight: span.bold ? FontWeight.bold : null,
+              decoration: span.underline ? TextDecoration.underline : null,
+            ),
+          ),
+      ],
     );
   }
 }

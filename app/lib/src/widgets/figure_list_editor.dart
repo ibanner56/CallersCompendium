@@ -1437,6 +1437,84 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 }
 
 // ---------------------------------------------------------------------------
+// Inline emphasis affordance (issue #369)
+// ---------------------------------------------------------------------------
+
+/// Wraps the current selection of [controller] in [delimiter] (e.g. `*` for
+/// bold, `_` for underline) so callers can mark up their own note / custom
+/// text. With no selection it inserts an empty `delimiter+delimiter` pair and
+/// places the caret between them. The markup lives verbatim in the string; the
+/// Perform view renders it via `parseInlineEmphasis`.
+void _wrapSelectionWith(TextEditingController controller, String delimiter) {
+  final value = controller.value;
+  final text = value.text;
+  var selection = value.selection;
+  // Normalise an invalid/absent selection to the end of the text.
+  if (!selection.isValid) {
+    selection = TextSelection.collapsed(offset: text.length);
+  }
+  final start = selection.start;
+  final end = selection.end;
+  final selected = text.substring(start, end);
+  final replacement = '$delimiter$selected$delimiter';
+  final newText = text.replaceRange(start, end, replacement);
+  final caret = selected.isEmpty
+      ? start +
+            delimiter
+                .length // between the empty pair
+      : end + delimiter.length * 2; // after the closing delimiter
+  controller.value = TextEditingValue(
+    text: newText,
+    selection: TextSelection.collapsed(offset: caret),
+  );
+}
+
+/// A compact bold/underline button pair for marking up user-authored text.
+class _EmphasisToolbar extends StatelessWidget {
+  const _EmphasisToolbar({
+    required this.fieldKey,
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final String fieldKey;
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  void _apply(String delimiter) {
+    _wrapSelectionWith(controller, delimiter);
+    onChanged(controller.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          key: ValueKey('$fieldKey-bold'),
+          onPressed: () => _apply('*'),
+          icon: const Icon(Icons.format_bold, size: 18),
+          tooltip: 'Bold (*text*)',
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          padding: EdgeInsets.zero,
+        ),
+        IconButton(
+          key: ValueKey('$fieldKey-underline'),
+          onPressed: () => _apply('_'),
+          icon: const Icon(Icons.format_underlined, size: 18),
+          tooltip: 'Underline (_text_)',
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          padding: EdgeInsets.zero,
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // _LingoCustomTextField
 // ---------------------------------------------------------------------------
 
@@ -1511,6 +1589,11 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        _EmphasisToolbar(
+          fieldKey: widget.fieldKey,
+          controller: _controller,
+          onChanged: widget.onChanged,
+        ),
         TextField(
           key: ValueKey(widget.fieldKey),
           controller: _controller,
@@ -1621,16 +1704,27 @@ class _NoteFieldState extends State<_NoteField> {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      key: ValueKey(widget.fieldKey),
-      controller: _controller,
-      autofocus: widget.autofocus,
-      decoration: const InputDecoration(
-        labelText: 'Note (optional)',
-        isDense: true,
-        border: OutlineInputBorder(),
-      ),
-      onChanged: widget.onChanged,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _EmphasisToolbar(
+          fieldKey: widget.fieldKey,
+          controller: _controller,
+          onChanged: widget.onChanged,
+        ),
+        TextField(
+          key: ValueKey(widget.fieldKey),
+          controller: _controller,
+          autofocus: widget.autofocus,
+          decoration: const InputDecoration(
+            labelText: 'Note (optional)',
+            isDense: true,
+            border: OutlineInputBorder(),
+          ),
+          onChanged: widget.onChanged,
+        ),
+      ],
     );
   }
 }
