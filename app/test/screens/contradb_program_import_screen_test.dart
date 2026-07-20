@@ -565,6 +565,47 @@ void main() {
       expect((await repos.programs.listAll()).single.eventDate, isNull);
     });
   });
+
+  testWidgets(
+    'issue #343: initialUrl pre-fills the URL field and auto-fetches the '
+    'program preview without any manual entry',
+    (tester) async {
+      final repos = openTestRepositories();
+      final contraDb = ContraDbOnline(
+        htmlFetcher: (url) async {
+          final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+          return _danceHtml(id);
+        },
+      );
+
+      await tester.binding.setSurfaceSize(const Size(600, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) =>
+              RepositoriesScope(repositories: repos, child: child!),
+          home: ContraDbProgramImportScreen(
+            initialUrl: 'https://contradb.com/programs/33',
+            programFetcher: (_) async => _programHtml,
+            contraDbOnline: contraDb,
+          ),
+        ),
+      );
+      // No manual enterText / fetch tap: the shared URL drives the fetch on the
+      // first frame, dropping the user straight onto the preview.
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('contradb-program-url')),
+        findsOneWidget,
+      );
+      // The shared URL was pre-filled into the field (shown as its text).
+      expect(find.text('https://contradb.com/programs/33'), findsOneWidget);
+      // The preview populated from the auto-fetch.
+      expect(find.text('3 activities (2 dances, 1 note)'), findsOneWidget);
+      expect(find.text('Courageous Soul'), findsOneWidget);
+    },
+  );
 }
 
 /// Builds a minimal ContraDB program page with a configurable [title] and an

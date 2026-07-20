@@ -30,10 +30,20 @@ class IncomingFileChannel {
   final MethodChannel _channel;
   final StreamController<String> _controller =
       StreamController<String>.broadcast();
+  final StreamController<String> _urlController =
+      StreamController<String>.broadcast();
 
   /// Paths of files opened while the app is running. Broadcast so multiple
   /// listeners (or none, before wiring) never drop the app.
   Stream<String> get files => _controller.stream;
+
+  /// Raw URL strings shared into the app while it is running (issue #343: a
+  /// browser "Share" of a program page sends a `text/plain` URL via an Android
+  /// `ACTION_SEND` intent or an iOS Share Extension). Broadcast, mirroring
+  /// [files]. The string is **untrusted OS input** — Dart validates it
+  /// (`validateSharedContraDbProgramUrl`) before it reaches the import
+  /// pipeline; the native side forwards it verbatim and interprets nothing.
+  Stream<String> get urls => _urlController.stream;
 
   /// Registers the handler for files delivered while the app is running.
   /// Idempotent-ish: calling again replaces the handler.
@@ -42,11 +52,17 @@ class IncomingFileChannel {
   }
 
   Future<Object?> _handle(MethodCall call) async {
-    if (call.method == 'fileOpened') {
-      final path = call.arguments;
-      if (path is String && path.isNotEmpty) {
-        _controller.add(path);
-      }
+    switch (call.method) {
+      case 'fileOpened':
+        final path = call.arguments;
+        if (path is String && path.isNotEmpty) {
+          _controller.add(path);
+        }
+      case 'urlShared':
+        final url = call.arguments;
+        if (url is String && url.isNotEmpty) {
+          _urlController.add(url);
+        }
     }
     return null;
   }
@@ -66,8 +82,24 @@ class IncomingFileChannel {
     }
   }
 
+  /// The URL the app was **launched** to import (cold start), or `null` when
+  /// the app started normally / on a platform with no native implementation.
+  /// A channel error is treated as "no URL" so the app never fails to start
+  /// over intake — mirroring [initialFile].
+  Future<String?> initialUrl() async {
+    try {
+      final url = await _channel.invokeMethod<String>('getInitialUrl');
+      return (url != null && url.isNotEmpty) ? url : null;
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
   void dispose() {
     _channel.setMethodCallHandler(null);
     unawaited(_controller.close());
+    unawaited(_urlController.close());
   }
 }
