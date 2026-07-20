@@ -143,36 +143,68 @@ void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   group('dance list', () {
-    testWidgets('with confirm OFF, swipe deletes immediately (today)', (
-      tester,
-    ) async {
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance('d1', 'Swipe Me'));
-      await _pumpDanceList(tester, repos, confirmBeforeDelete: false);
+    testWidgets(
+      'with confirm OFF, revealing + tapping Delete deletes (no dialog)',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance('d1', 'Swipe Me'));
+        await _pumpDanceList(tester, repos, confirmBeforeDelete: false);
 
-      await tester.fling(
-        find.byKey(const ValueKey('dismissible-d1')),
-        const Offset(-300, 0),
-        1000,
-      );
-      await tester.pumpAndSettle();
+        await tester.drag(
+          find.byKey(const ValueKey('slidable-d1')),
+          const Offset(-300, 0),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('slide-delete-d1')));
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('confirm-delete-dialog')), findsNothing);
-      expect(find.text('Swipe Me'), findsNothing);
-      final deleted = await repos.dances.getById('d1', includeDeleted: true);
-      expect(deleted!.deletedAt, isNotNull);
-    });
+        expect(
+          find.byKey(const ValueKey('confirm-delete-dialog')),
+          findsNothing,
+        );
+        expect(find.text('Swipe Me'), findsNothing);
+        final deleted = await repos.dances.getById('d1', includeDeleted: true);
+        expect(deleted!.deletedAt, isNotNull);
+      },
+    );
 
-    testWidgets('with confirm ON, Cancel keeps the dance', (tester) async {
+    testWidgets(
+      'with confirm ON, the revealed Delete tap is the confirmation (no '
+      'dialog on the swipe path)',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance('d1', 'Swipe Me'));
+        await _pumpDanceList(tester, repos, confirmBeforeDelete: true);
+
+        await tester.drag(
+          find.byKey(const ValueKey('slidable-d1')),
+          const Offset(-300, 0),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('slide-delete-d1')));
+        await tester.pumpAndSettle();
+
+        // The reveal + tap replaces the dialog: no AlertDialog appears even
+        // with the "Confirm before delete" setting ON, and the dance is gone.
+        expect(
+          find.byKey(const ValueKey('confirm-delete-dialog')),
+          findsNothing,
+        );
+        expect(find.text('Swipe Me'), findsNothing);
+        final deleted = await repos.dances.getById('d1', includeDeleted: true);
+        expect(deleted!.deletedAt, isNotNull);
+      },
+    );
+
+    testWidgets('with confirm ON, the ⋮ menu Delete still shows the dialog; '
+        'Cancel keeps the dance', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance('d1', 'Swipe Me'));
       await _pumpDanceList(tester, repos, confirmBeforeDelete: true);
 
-      await tester.fling(
-        find.byKey(const ValueKey('dismissible-d1')),
-        const Offset(-300, 0),
-        1000,
-      );
+      await tester.tap(find.byKey(const ValueKey('dance-actions-d1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dance-action-delete')));
       await tester.pumpAndSettle();
 
       expect(
@@ -190,18 +222,16 @@ void main() {
       expect(dance!.deletedAt, isNull);
     });
 
-    testWidgets('with confirm ON, Delete soft-deletes the dance', (
+    testWidgets('with confirm ON, the ⋮ menu Delete soft-deletes the dance', (
       tester,
     ) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance('d1', 'Swipe Me'));
       await _pumpDanceList(tester, repos, confirmBeforeDelete: true);
 
-      await tester.fling(
-        find.byKey(const ValueKey('dismissible-d1')),
-        const Offset(-300, 0),
-        1000,
-      );
+      await tester.tap(find.byKey(const ValueKey('dance-actions-d1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dance-action-delete')));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('confirm-delete-confirm')));
@@ -214,27 +244,64 @@ void main() {
   });
 
   group('programs list', () {
-    testWidgets('with confirm OFF, swipe deletes immediately (today)', (
-      tester,
-    ) async {
-      final repos = openTestRepositories();
-      await repos.programs.create(_program('p1', 'Swipe Me'));
-      await _pumpProgramsList(tester, repos, confirmBeforeDelete: false);
+    testWidgets(
+      'with confirm OFF, revealing + tapping Delete deletes (no dialog)',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.programs.create(_program('p1', 'Swipe Me'));
+        await _pumpProgramsList(tester, repos, confirmBeforeDelete: false);
 
-      await tester.drag(find.text('Swipe Me'), const Offset(-500, 0));
-      await tester.pumpAndSettle();
+        await tester.drag(
+          find.byKey(const ValueKey('slidable-p1')),
+          const Offset(-300, 0),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('slide-delete-p1')));
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('confirm-delete-dialog')), findsNothing);
-      expect(find.text('Swipe Me'), findsNothing);
-      expect(await repos.programs.listAll(), isEmpty);
-    });
+        expect(
+          find.byKey(const ValueKey('confirm-delete-dialog')),
+          findsNothing,
+        );
+        expect(find.text('Swipe Me'), findsNothing);
+        expect(await repos.programs.listAll(), isEmpty);
+      },
+    );
 
-    testWidgets('with confirm ON, Cancel keeps the program', (tester) async {
+    testWidgets(
+      'with confirm ON, the revealed Delete tap is the confirmation (no '
+      'dialog on the swipe path)',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.programs.create(_program('p1', 'Swipe Me'));
+        await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
+
+        await tester.drag(
+          find.byKey(const ValueKey('slidable-p1')),
+          const Offset(-300, 0),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('slide-delete-p1')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('confirm-delete-dialog')),
+          findsNothing,
+        );
+        expect(find.text('Swipe Me'), findsNothing);
+        expect(await repos.programs.listAll(), isEmpty);
+      },
+    );
+
+    testWidgets('with confirm ON, the ⋮ menu Delete still shows the dialog; '
+        'Cancel keeps the program', (tester) async {
       final repos = openTestRepositories();
       await repos.programs.create(_program('p1', 'Swipe Me'));
       await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
 
-      await tester.drag(find.text('Swipe Me'), const Offset(-500, 0));
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
       await tester.pumpAndSettle();
 
       expect(
@@ -248,14 +315,16 @@ void main() {
       expect(await repos.programs.listAll(), hasLength(1));
     });
 
-    testWidgets('with confirm ON, Delete soft-deletes the program', (
+    testWidgets('with confirm ON, the ⋮ menu Delete soft-deletes the program', (
       tester,
     ) async {
       final repos = openTestRepositories();
       await repos.programs.create(_program('p1', 'Swipe Me'));
       await _pumpProgramsList(tester, repos, confirmBeforeDelete: true);
 
-      await tester.drag(find.text('Swipe Me'), const Offset(-500, 0));
+      await tester.tap(find.byKey(const ValueKey('program-actions-p1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-action-delete')));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('confirm-delete-confirm')));

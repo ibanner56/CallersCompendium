@@ -122,26 +122,40 @@ void main() {
     expect(titlesInOrder(), ['Alpha', 'Zeta']);
   });
 
-  testWidgets('swipe to delete soft-deletes with undo', (tester) async {
-    final repos = openTestRepositories();
-    await repos.programs.create(_program(id: 'p1', title: 'Swipe Me'));
-    await _pump(tester, repos);
+  testWidgets(
+    'swiping reveals a Delete button; tapping it soft-deletes with undo',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Swipe Me'));
+      await _pump(tester, repos);
 
-    await tester.drag(find.text('Swipe Me'), const Offset(-500, 0));
-    await tester.pumpAndSettle();
+      // Swipe left to reveal the Delete action; the swipe alone must NOT delete.
+      await tester.drag(
+        find.byKey(const ValueKey('slidable-p1')),
+        const Offset(-300, 0),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Swipe Me'), findsNothing);
-    expect(
-      find.byKey(const ValueKey('program-deleted-snackbar')),
-      findsOneWidget,
-    );
-    expect((await repos.programs.listAll()), isEmpty);
+      expect(find.text('Swipe Me'), findsOneWidget);
+      expect((await repos.programs.listAll()), hasLength(1));
 
-    // Undo restores it.
-    await tester.tap(find.text('Undo'));
-    await tester.pumpAndSettle();
-    expect((await repos.programs.listAll()), hasLength(1));
-  });
+      // Tapping the revealed Delete button confirms the delete.
+      await tester.tap(find.byKey(const ValueKey('slide-delete-p1')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Swipe Me'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('program-deleted-snackbar')),
+        findsOneWidget,
+      );
+      expect((await repos.programs.listAll()), isEmpty);
+
+      // Undo restores it.
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.listAll()), hasLength(1));
+    },
+  );
 
   testWidgets(
     'row overflow menu Delete soft-deletes with the same undo snackbar as swipe',

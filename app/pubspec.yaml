@@ -39,6 +39,11 @@ dependencies:
   # successor to the discontinued `flutter_markdown` and exposes the
   # `onTapLink`/`imageBuilder` seams the guide's in-app navigation relies on.
   flutter_markdown_plus: ^1.0.12
+  # Swipe-to-reveal row actions (issue #352): the dance/programs lists swipe left
+  # to reveal a Delete button (tapping it is the confirmation), replacing the
+  # old swipe-to-dismiss. Flutter's Dismissible deletes on drag and can't reveal
+  # a persistent action, so we use flutter_slidable's Slidable/SlidableAction.
+  flutter_slidable: ^4.0.3
 dev_dependencies:
   flutter_test:
     sdk: flutter
