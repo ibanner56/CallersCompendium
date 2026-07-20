@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import 'share_sanitization.dart';
+
 /// Builds a self-contained "share this program + its dances" bundle (ROADMAP
 /// §4.3, issue #298 — AirDrop/OS share-sheet sharing, send side).
 ///
@@ -63,9 +65,7 @@ String buildProgramShareBundle(
       final choreographer = choreographerFor(authorId);
       if (choreographer == null) continue;
       // Strip private contact fields before the record leaves the device.
-      choreographers.add(
-        choreographer.copyWith(clearEmail: true, clearLocation: true),
-      );
+      choreographers.add(sanitizeChoreographerForShare(choreographer));
     }
   }
 
