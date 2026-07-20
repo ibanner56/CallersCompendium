@@ -9,6 +9,11 @@ body:
         Thanks for testing Caller's Compendium! These periodic check-ins are how
         we understand what real callers are using and where the rough edges are.
         Fill in what's relevant — skip anything that doesn't apply.
+
+
+        New here and just want to join the program? Use the **Join the beta**
+        form instead — this one is for reporting how a build held up once you're
+        already testing.
   - type: markdown
     attributes:
       value: >-
