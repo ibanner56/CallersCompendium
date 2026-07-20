@@ -2,6 +2,7 @@ import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/contradb_online.dart';
 import 'package:compendium_app/src/data/contradb_program_search.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
@@ -401,4 +402,190 @@ void main() {
       findsOneWidget,
     );
   });
+
+  group('caller precedence (#350/#351)', () {
+    ContraDbOnline danceSeam() => ContraDbOnline(
+      htmlFetcher: (url) async {
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return _danceHtml(id);
+      },
+    );
+
+    Future<Program> importAndRead(
+      WidgetTester tester, {
+      required String html,
+      String? defaultCaller,
+    }) async {
+      final repos = openTestRepositories();
+      if (defaultCaller != null) {
+        await repos.settings.set(kDefaultProgramCallerKey, defaultCaller);
+      }
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => html,
+        contraDb: danceSeam(),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        'https://contradb.com/programs/33',
+      );
+      await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+      await tester.pumpAndSettle();
+      return (await repos.programs.listAll()).single;
+    }
+
+    testWidgets('contributor wins over the user default caller', (
+      tester,
+    ) async {
+      final program = await importAndRead(
+        tester,
+        html: _programWith(
+          contributorHref: '/users/67',
+          contributor: 'Karl Senseman',
+        ),
+        defaultCaller: 'My Default',
+      );
+      expect(program.caller, 'Karl Senseman');
+    });
+
+    testWidgets('falls back to the default caller when no contributor', (
+      tester,
+    ) async {
+      final program = await importAndRead(
+        tester,
+        html: _programWith(),
+        defaultCaller: 'My Default',
+      );
+      expect(program.caller, 'My Default');
+    });
+
+    testWidgets('leaves the caller blank when neither is present', (
+      tester,
+    ) async {
+      final program = await importAndRead(tester, html: _programWith());
+      expect(program.caller, isNull);
+    });
+  });
+
+  group('event-date auto-detect (#351)', () {
+    ContraDbOnline danceSeam() => ContraDbOnline(
+      htmlFetcher: (url) async {
+        final id = RegExp(r'/dances/(\d+)').firstMatch(url)!.group(1)!;
+        return _danceHtml(id);
+      },
+    );
+
+    testWidgets('high-confidence ISO title populates the date + hint', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async =>
+            _programWith(title: '2024-03-15 Barn Dance'),
+        contraDb: danceSeam(),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        'https://contradb.com/programs/33',
+      );
+      await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+      await tester.pumpAndSettle();
+
+      // The detection hint is shown so the guess is transparent.
+      expect(
+        find.byKey(const ValueKey('contradb-program-date-detected-hint')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+      await tester.pumpAndSettle();
+      final program = (await repos.programs.listAll()).single;
+      expect(program.eventDate, DateTime.utc(2024, 3, 15));
+    });
+
+    testWidgets('a free-form title leaves the date unset (no over-match)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async => _programWith(title: "Spring Fling '24"),
+        contraDb: danceSeam(),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        'https://contradb.com/programs/33',
+      );
+      await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('contradb-program-date-detected-hint')),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.listAll()).single.eventDate, isNull);
+    });
+
+    testWidgets('a detected date is clearable before commit', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        programFetcher: (_) async =>
+            _programWith(title: '2024-03-15 Barn Dance'),
+        contraDb: danceSeam(),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        'https://contradb.com/programs/33',
+      );
+      await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('contradb-program-clear-date')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('contradb-program-date-detected-hint')),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('contradb-program-commit')));
+      await tester.pumpAndSettle();
+      expect((await repos.programs.listAll()).single.eventDate, isNull);
+    });
+  });
+}
+
+/// Builds a minimal ContraDB program page with a configurable [title] and an
+/// optional contributor `user:` link.
+String _programWith({
+  String title = 'Barn Dance',
+  String? contributorHref,
+  String? contributor,
+}) {
+  final userLine = (contributorHref != null && contributor != null)
+      ? '<p>user: <strong><a href="$contributorHref">$contributor</a></strong></p>'
+      : '';
+  return '''
+<html><body>
+<div class="programs-show-content"><div class="container">
+  <h1>$title</h1>
+  $userLine
+</div></div>
+<div id="activity-1" class="activity-breakdown">
+  <h2 class="activity-breakdown-dance-title"><a href="/dances/185">Courageous Soul</a></h2>
+</div>
+</body></html>
+''';
 }

@@ -67,6 +67,74 @@ void main() {
         expect(dance.title, isNotEmpty);
       }
     });
+
+    test('extracts the contributor verbatim from the user: line', () {
+      final program = parseContraDbProgram(fixture);
+      expect(program.contributor, 'Karl Senseman');
+    });
+
+    test('does not pick up the nav sign_up / sign_in user links', () {
+      final program = parseContraDbProgram(fixture);
+      expect(program.contributor, isNot(anyOf('sign up', 'sign in', 'login')));
+    });
+  });
+
+  group('parseContraDbProgram (contributor extraction / hardening)', () {
+    test('reads the numeric /users link inside the program content', () {
+      const html = '''
+<div class="programs-show-content">
+  <h1>Night</h1>
+  <p>user: <strong><a href="/users/67">Karl Senseman</a></strong></p>
+</div>
+''';
+      expect(parseContraDbProgram(html).contributor, 'Karl Senseman');
+    });
+
+    test('ignores non-numeric /users links (sign_up / sign_in)', () {
+      const html = '''
+<ul><li><a href="/users/sign_up">sign up</a></li>
+<li><a href="/users/sign_in">login</a></li></ul>
+<div class="programs-show-content"><h1>Night</h1></div>
+''';
+      expect(parseContraDbProgram(html).contributor, isNull);
+    });
+
+    test('missing contributor → null (falls back to default caller)', () {
+      const html = '<div class="programs-show-content"><h1>Night</h1></div>';
+      expect(parseContraDbProgram(html).contributor, isNull);
+    });
+
+    test('blank/whitespace contributor → null', () {
+      const html = '''
+<div class="programs-show-content"><h1>Night</h1>
+  <a href="/users/9">   </a></div>
+''';
+      expect(parseContraDbProgram(html).contributor, isNull);
+    });
+
+    test('collapses whitespace/newlines in the contributor name', () {
+      const html = '''
+<div class="programs-show-content"><h1>Night</h1>
+  <a href="/users/9">  Karl\n\t  Senseman  </a></div>
+''';
+      expect(parseContraDbProgram(html).contributor, 'Karl Senseman');
+    });
+
+    test('over-long contributor is rejected as implausible → null', () {
+      final huge = 'A' * 500;
+      final html =
+          '<div class="programs-show-content"><h1>Night</h1>'
+          '<a href="/users/9">$huge</a></div>';
+      expect(parseContraDbProgram(html).contributor, isNull);
+    });
+
+    test('a /users link outside the program content is ignored', () {
+      const html = '''
+<div class="sidebar"><a href="/users/5">Someone Else</a></div>
+<div class="programs-show-content"><h1>Night</h1></div>
+''';
+      expect(parseContraDbProgram(html).contributor, isNull);
+    });
   });
 
   group('parseContraDbProgram (robustness / parse-never-throws)', () {
