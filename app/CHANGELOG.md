@@ -11,87 +11,105 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-07-19
+## [0.1.0] - 2026-07-20
 
 Flutter build: `0.1.0+1`.
 
-This section covers the `0.1.0` line. **`v0.1.0-beta.2`** (this pre-release) builds
-on **`v0.1.0-beta.1`** with wider import support, program sharing between devices,
-signed macOS and iOS (TestFlight) builds, and a large round of figure-text display
-refinements. The changes **since beta.1** are grouped first; the standing feature
-overview and install notes follow.
+This section covers the `0.1.0` line. **`v0.1.0-beta.3`** (this pre-release) builds
+on **`v0.1.0-beta.2`** with a broad round of caller-facing features — new Perform
+and analysis tools, richer ContraDB and browser-share importing, and a batch of
+quality-of-life refinements to browsing, editing, and sharing. The changes **since
+beta.2** are grouped first; the standing feature overview and install notes follow.
 
 ### Added
 
-- **Import a whole program from ContraDB.** Paste a `contradb.com/programs/N` link —
-  or **search ContraDB programs by name** right in the app — to import the program
-  and the dances it references, previewed and undoable like every other import.
-- **Share a program together with its dances.** A new share action bundles a program
-  and every dance it references into one self-contained file and hands it to your OS
-  share sheet (AirDrop on macOS/iOS, the share intent elsewhere).
-- **Open a shared program directly.** Caller's Compendium is now a share target:
-  opening a shared bundle (AirDrop / "Open with" / share intent) launches the app,
-  imports the program and its dances, and opens the program automatically.
-- **A starter dance on first launch.** A fresh install now seeds a single dance —
-  *The Baby Rose* by David Kaynor — so the collection is never empty to begin with.
-  You can delete it; it is never re-added, and it is never seeded over existing data.
-- **iOS builds are now available** to TestFlight testers (see Platforms & install);
-  beta.1 had no iOS build.
+- **Tap-tempo visual metronome in Perform.** Tap out the beat on a large target and
+  Perform shows a steady visual pulse and BPM you can follow or hold up to a band.
+  It is opt-in per session, audio-free, and nothing is stored.
+- **First/second-half calling stats for a dance.** The dance detail screen now shows
+  how often a dance has been called in the first vs. second half of a program,
+  including how many times it opened a first half or closed the evening — aggregated
+  across every program that includes it.
+- **First/second-half markers for programs.** A matrix dance now carries an
+  accessible badge showing whether it falls in the first or second half of the set,
+  derived from the program's first "Break" slot — no schema change, no retyping.
+- **"Called ×N" count on the dance card.** Each dance in the Collection now shows how
+  many times you've called it, matching the calling-history rule you've chosen in
+  Settings (all occurrences, or performed-only).
+- **Ascending/descending sort toggle.** Both the Collection and Programs lists gain an
+  up/down direction toggle beside the sort menu — so, for example, Programs ▸ Event
+  date can now show the most recent first. Each sort keeps its previous default, so
+  nothing changes until you flip it.
+- **Import ContraDB programs shared from your browser.** Share a `contradb.com`
+  program link from Safari (iOS) or your browser (Android) and Caller's Compendium
+  opens the import screen pre-filled and fetching, ready for you to review before
+  committing.
+- **Rotation-gated figures from The Caller's Box import with structure.** TCB
+  "gate"-style rotation figures are now modeled as a first-class figure — who turns,
+  which direction, how far, over how many beats, and the resulting facing — instead of
+  being flattened into unstructured text.
+- **User-editable per-formation label colours.** Give each formation its own highlight
+  colour (e.g. Becket CW yellow, Becket CCW pink) from Appearance ▸ Formation colours;
+  the tint appears on dance cards, dance detail, and the Perform header, with an
+  automatically readable (WCAG-AA) text colour.
+- **Opt-in decimal turn display.** A new display preference renders turn amounts as
+  decimals (`0.75`, `1.5`) instead of fraction glyphs (`¾`, `1½`). Default stays
+  fractions; the spoken/screen-reader wording is unaffected.
+- **Inline emphasis for your own figure text.** In your figure notes and custom-figure
+  text you can now mark words bold (`*word*`) or underlined (`_word_`); Perform renders
+  the emphasis so you can stress the words you'll say. Use `\` to type a literal `*` or
+  `_`. The markup is display-only — it changes no stored, searched, or exported text.
 
 ### Changed
 
-- **Figure text reads more naturally.** A large parity pass brought the on-screen
-  wording of many figures in line with ContraDB's phrasing — silencing redundant
-  defaults, dropping implied subjects, singularizing where appropriate, and adopting
-  fuller wording for moves such as zig zag, slice, mad robin, revolving door, box
-  circulate, hey, poussette, square through, the long-wave and ocean-wave families,
-  and more. This wording pass is **display-only** — it leaves the canonical text
-  those figures use for search and duplicate detection untouched, so it triggers no
-  re-indexing or re-deduplication on its own. (The one change to *stored* figures in
-  this release is the separate ocean-wave schema migration under Data / Migrations
-  below, which does rewrite the affected figures and rebuild their search index.)
-- **The Caller's Box compound figures import faithfully.** A compound figure such as
-  *revolving door* (a parent line with indented sub-steps) now imports as one figure
-  with its definition intact, instead of being split into separate lines.
-- **macOS builds are now signed and notarized** with an Apple Developer ID (Android
-  builds remain signed). See Platforms & install for the updated first-launch steps.
-- **Hardened the online-import and update paths.** Online imports (ContraDB and
-  friends) now require `https` and bound how much data a response can pull in; the
-  in-app update path likewise requires `https` manifest URLs and bounds its
-  downloads. These are defense-in-depth limits on untrusted network input — the
-  existing download-integrity (SHA-256) verification is unchanged.
+- **Swiping a list row now reveals a Delete button instead of deleting.** On the
+  Collection and Programs lists, a swipe left uncovers a Delete button and *tapping it*
+  is the confirmation — a stray swipe can no longer delete a row on its own. Delete
+  still routes through the same soft-delete and Undo snackbar.
+- **The author filter is now a searchable multi-select.** The Collection's Author facet
+  replaces its long list of per-author chips with a type-to-filter picker: search a
+  name, add it as a removable chip, and combine several — much tidier as your
+  collection of choreographers grows.
+- **Smarter ContraDB program import.** Importing a ContraDB program now fills the
+  caller from the program's contributor (falling back to your default caller) and
+  best-effort detects the event date from the program title, shown with edit/clear
+  controls and a "detected from title" hint so a wrong guess is easy to correct.
+- **Swipe down to dismiss the keyboard.** Dragging down over the dance editor, program
+  editor, Collection search, and Settings text fields now dismisses the on-screen
+  keyboard on phones and tablets, matching the platform-native gesture.
 
 ### Fixed
 
-- **Imported dances appear immediately.** The Collection list and its author filter
-  now refresh the moment an import commits, instead of waiting for a manual reload or
-  an app restart.
-- **Dances with unfamiliar moves no longer crash the editor.** A figure whose move is
-  unknown to the current build (authored in a newer version, or since renamed) is now
-  shown as a read-only "unrecognized move" panel — its stored data preserved intact,
-  never coerced — instead of throwing. The rest of the dance stays fully editable, and
-  the unrecognized figure can still be reordered, duplicated, or deleted; re-adding the
-  move to the taxonomy restores normal editing automatically.
+- **Sharing a program on macOS no longer fails.** A program-with-dances share could
+  fail on macOS with a generic "Couldn't share this program"; the bundle is now
+  written correctly before it is handed to the share sheet.
+- **AirDrop'd shares reliably open in Caller's Compendium.** Shared bundles now use a
+  dedicated `.ccshare` type that macOS and iOS route back to the app for import,
+  instead of silently saving the file with nothing offered to import.
+- **The User Guide header no longer slides under the status bar.** On iPhone/iPad the
+  in-app User Guide now reserves the top safe-area inset, so its header sits below the
+  status bar and Dynamic Island like every other screen.
+- **Collapsed filter sections stay collapsed.** Collapsing a section in the Collection
+  filter panel and then applying a filter no longer re-expands it.
+- **Imported program dances now count in calling history.** Marking an imported program
+  as performed now stamps each of its dance slots, so those dances correctly appear in
+  each dance's calling history and half-stats (previously they could be missed).
 
 ### Data / Migrations
 
-- **Database schema 11 → 12 (automatic and lossless).** Stored *form an ocean wave*
-  figures are rewritten onto the split moves *pass the ocean* / *form a short wave*
-  to match the current taxonomy. **Your existing data is migrated in place** the
-  first time you launch this build: a backup is taken before the migration runs, the
-  database is integrity-checked at startup, and any figure that cannot be mapped is
-  left untouched rather than dropped. No action is required on your part. (Note:
-  downgrading back to beta.1 after this upgrade is not supported.)
+- **No database schema change since beta.2.** The database schema stays at version 12,
+  so upgrading from beta.2 touches none of your stored data — every change above is
+  display- or behavior-only. (Upgrading *directly from beta.1* still runs the one-time,
+  automatic, lossless ocean-wave migration described in the beta.2 notes.)
 
 ### Known issues
 
-- **Android beta testers must reinstall.** beta.2 unifies the Android application
-  identifier with Apple (`org.callerscompendium.compendiumApp`). Because Android
-  treats a changed application ID as a different app, a beta.1 sideload cannot upgrade
-  in place — the new build installs alongside the old one and local data does **not**
-  carry over automatically. **Before switching: export a backup (Settings ▸ General ▸
-  Export a backup), uninstall the old app, install beta.2, then restore from that
-  backup.**
+- **Coming from beta.1? A one-time Android reinstall is still required.** beta.2
+  unified the Android application identifier with Apple
+  (`org.callerscompendium.compendiumApp`), so a beta.1 sideload cannot upgrade in
+  place. **Export a backup (Settings ▸ General ▸ Export a backup), uninstall the old
+  app, install this build, then restore.** Upgrading from **beta.2 to beta.3 is a
+  normal in-place install** — no reinstall and no data steps needed.
 - **In-app update checks remain minimal for beta.** Automatic checks and the beta
   channel are off by default and opt-in in Settings; watch the GitHub Releases page
   for new betas.
@@ -104,7 +122,8 @@ overview and install notes follow.
 - **Plan Programs.** Assemble a set with event date, venue, ordered slots, and
   alternates; track program status; duplicate a program to reuse a good set.
 - **Perform.** Open a program — or a single dance — in a large-print, auto-sizing
-  Perform view built for reading across a dim hall, and mark dances as you call them.
+  Perform view built for reading across a dim hall, mark dances as you call them, and
+  tap out the tempo on a built-in visual metronome.
 - **Import your existing library.** Bring dances in from a JSON backup, The Caller's
   Box, ContraDB, and Caller's Companion (`.USR`); import **programs** from Caller's
   Companion (`.USR`) and now from **ContraDB** as well. Every import is reviewable and
@@ -139,15 +158,14 @@ overview and install notes follow.
 
 Everything lives locally on your device. There is no telemetry and nothing is sent
 anywhere. Imports are previewed before they commit and are undoable, so trying a new
-source is safe. Before a large import — or before upgrading across the schema change
-noted above — you can export a backup from **Settings ▸ General ▸ Export a backup**
-for extra peace of mind.
+source is safe. Before a large import — or any upgrade — you can export a backup from
+**Settings ▸ General ▸ Export a backup** for extra peace of mind.
 
 ### Feedback
 
 Please tell us what breaks or feels wrong:
 <https://github.com/ibanner56/CallersCompendium/issues>. Include your platform, the
-version (`0.1.0-beta.2`), and the steps you took. For import problems, a small
+version (`0.1.0-beta.3`), and the steps you took. For import problems, a small
 sanitized sample of the file you were importing helps enormously.
 
 ### License
