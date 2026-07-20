@@ -1,3 +1,4 @@
+import '../model/choreographer.dart';
 import '../model/dance.dart';
 import '../model/enums.dart';
 import '../serialization/archive_codec.dart';
@@ -50,6 +51,16 @@ class GenericJsonAdapter implements SourceAdapter {
   /// consults this — it works from the [RawRecord] alone.
   final Map<String, Dance> _dancesById = {};
 
+  /// Choreographers seen during [discover], keyed by their archive id, so
+  /// [fetch] can embed the ones a dance references into its self-contained
+  /// single-dance payload. A received bundle credits its dances by author id,
+  /// but the receiver cannot resolve the sender's ids — so [parse] turns these
+  /// into author *names* on the draft, which the [ImportPipeline] resolves to
+  /// (or creates) real [Choreographer] rows at commit. Without this the dance's
+  /// `authorIds` would reference choreographer rows that never get created,
+  /// failing the `dance_authors` foreign key and dropping the dance (#412).
+  final Map<String, Choreographer> _choreographersById = {};
+
   /// The archive schema version seen during [discover], echoed onto each
   /// [RawRecord.sourceVersion] and used to re-serialize single-dance archives.
   int _schemaVersion = archiveSchemaVersion;
@@ -59,6 +70,7 @@ class GenericJsonAdapter implements SourceAdapter {
     // Reset discovery state up front so a failed attempt never leaves stale
     // records fetchable from a prior successful discover on this instance.
     _dancesById.clear();
+    _choreographersById.clear();
     _schemaVersion = archiveSchemaVersion;
 
     final payload = request.payload;
@@ -85,6 +97,9 @@ class GenericJsonAdapter implements SourceAdapter {
     }
 
     _dancesById.addEntries(result.archive.dances.map((d) => MapEntry(d.id, d)));
+    _choreographersById.addEntries(
+      result.archive.choreographers.map((c) => MapEntry(c.id, c)),
+    );
     _schemaVersion = result.archive.schemaVersion;
 
     return [
@@ -121,9 +136,29 @@ class GenericJsonAdapter implements SourceAdapter {
       source: source,
       externalId: record.externalId,
       sourceVersion: '$_schemaVersion',
-      payload: _encodeSingleDance(dance, _schemaVersion),
+      payload: _encodeSingleDance(
+        dance,
+        _referencedChoreographers(dance),
+        _schemaVersion,
+      ),
       contentType: 'application/json',
     );
+  }
+
+  /// The choreographers this [dance] credits, in its `authorIds` order, deduped
+  /// by id and skipping ids that were not present in the discovered archive
+  /// (best-effort — an unresolved author id is simply dropped, never fatal). The
+  /// single-dance payload carries ONLY these, keeping it minimal and leaking no
+  /// unrelated authors.
+  List<Choreographer> _referencedChoreographers(Dance dance) {
+    final referenced = <Choreographer>[];
+    final seen = <String>{};
+    for (final id in dance.authorIds) {
+      if (!seen.add(id)) continue;
+      final choreographer = _choreographersById[id];
+      if (choreographer != null) referenced.add(choreographer);
+    }
+    return referenced;
   }
 
   @override
@@ -170,12 +205,32 @@ class GenericJsonAdapter implements SourceAdapter {
         ),
     ];
 
+    // Recover author display names from the payload's own choreographers (a
+    // received bundle credits by author id, but the receiver cannot resolve the
+    // sender's ids). Names are emitted in the dance's `authorIds` order, deduped
+    // by id, skipping ids with no choreographer and blank/whitespace-only names
+    // (the archive is untrusted input; a blank name would throw in the
+    // Choreographer model, and parse must never fail a dance). The pipeline
+    // resolves each name to an existing row or creates one at commit.
+    final dance = dances.single;
+    final nameById = {
+      for (final c in result.archive.choreographers) c.id: c.name,
+    };
+    final authorNames = <String>[];
+    final seenAuthorIds = <String>{};
+    for (final id in dance.authorIds) {
+      if (!seenAuthorIds.add(id)) continue;
+      final name = nameById[id]?.trim();
+      if (name != null && name.isNotEmpty) authorNames.add(name);
+    }
+
     // The draft carries no provenance — the pipeline attaches it at commit,
     // derived from `raw` (including the externalId that keys exact dedupe).
     return StructuredDraft(
-      dance: _withoutProvenance(dances.single),
+      dance: _withoutProvenance(dance),
       raw: raw,
       issues: issues,
+      authorNames: authorNames,
     );
   }
 
@@ -191,15 +246,21 @@ class GenericJsonAdapter implements SourceAdapter {
   }
 
   /// Encodes [dance] as a minimal, self-contained single-dance archive so the
-  /// payload is fully decodable by [parse] on its own.
-  static String _encodeSingleDance(Dance dance, int schemaVersion) =>
-      encodeArchive(
-        CompendiumArchive(
-          schemaVersion: schemaVersion,
-          exportedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-          dances: [dance],
-        ),
-      );
+  /// payload is fully decodable by [parse] on its own. [choreographers] are the
+  /// dance's referenced authors, carried alongside so [parse] can recover their
+  /// display names (the pipeline resolves names to ids at commit).
+  static String _encodeSingleDance(
+    Dance dance,
+    List<Choreographer> choreographers,
+    int schemaVersion,
+  ) => encodeArchive(
+    CompendiumArchive(
+      schemaVersion: schemaVersion,
+      exportedAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      dances: [dance],
+      choreographers: choreographers,
+    ),
+  );
 
   /// Strips any embedded provenance from an imported dance; the pipeline owns
   /// provenance and re-derives it from the [RawRecord] at commit time.

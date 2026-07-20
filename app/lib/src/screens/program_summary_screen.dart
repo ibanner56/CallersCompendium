@@ -343,6 +343,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               program: program,
               titleFor: (id) => _danceTitles[id],
               danceFor: (id) => _dances[id],
+              choreographerFor: (id) => _collectionData?.choreographersById[id],
             ),
             if (program.slots.any((s) => s.danceId != null))
               IconButton(

@@ -1,21 +1,35 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:compendium_app/src/data/archive_intake_service.dart';
 import 'package:compendium_app/src/export/program_share_bundle.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/test_repositories.dart';
+
 final _now = DateTime.utc(2026, 1, 1);
 
-Dance _dance(String id, String title) => Dance(
-  id: id,
-  title: title,
-  authorIds: const [],
-  figures: [
-    Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
-  ],
-  sourceCitations: const [],
-  customFields: const [],
-  createdAt: _now,
-  updatedAt: _now,
-);
+Dance _dance(String id, String title, {List<String> authorIds = const []}) =>
+    Dance(
+      id: id,
+      title: title,
+      authorIds: authorIds,
+      figures: [
+        Figure(move: 'swing', params: {'beats': 16, 'who': 'partners'}),
+      ],
+      sourceCitations: const [],
+      customFields: const [],
+      createdAt: _now,
+      updatedAt: _now,
+    );
+
+Choreographer _choreographer(
+  String id,
+  String name, {
+  String? email,
+  String? location,
+}) => Choreographer(id: id, name: name, email: email, location: location);
 
 ProgramSlot _slot(
   int position, {
@@ -63,6 +77,7 @@ void main() {
       'd3': _dance('d3', 'Chinese New Year'),
     };
     Dance? danceFor(String id) => catalog[id];
+    Choreographer? choreographerFor(String id) => null;
 
     test('embeds every referenced dance, deduped, and preserves the program', () {
       final program = _program(
@@ -77,6 +92,7 @@ void main() {
       final json = buildProgramShareBundle(
         program,
         danceFor: danceFor,
+        choreographerFor: choreographerFor,
         now: _now,
       );
       final archive = decodeArchive(json).archive;
@@ -107,7 +123,11 @@ void main() {
       );
 
       final archive = decodeArchive(
-        buildProgramShareBundle(program, danceFor: danceFor),
+        buildProgramShareBundle(
+          program,
+          danceFor: danceFor,
+          choreographerFor: choreographerFor,
+        ),
       ).archive;
 
       expect(archive.dances.map((d) => d.id), ['d1']);
@@ -122,7 +142,11 @@ void main() {
       );
 
       final archive = decodeArchive(
-        buildProgramShareBundle(program, danceFor: danceFor),
+        buildProgramShareBundle(
+          program,
+          danceFor: danceFor,
+          choreographerFor: choreographerFor,
+        ),
       ).archive;
 
       expect(archive.dances, isEmpty);
@@ -144,6 +168,7 @@ void main() {
         final json = buildProgramShareBundle(
           program,
           danceFor: danceFor,
+          choreographerFor: choreographerFor,
           now: _now,
         );
         final imported = await _importedDances(json);
@@ -157,6 +182,140 @@ void main() {
         );
       },
     );
+
+    group('choreographers (author attribution, #412)', () {
+      final authored = {
+        'd1': _dance('d1', 'Rory O\'More', authorIds: ['c1']),
+        'd2': _dance('d2', 'The Nice Combination', authorIds: ['c1', 'c2']),
+        'd3': _dance('d3', 'Chinese New Year', authorIds: ['c-missing']),
+        'd4': _dance('d4', 'Anonymous Reel'),
+      };
+      Dance? authoredDanceFor(String id) => authored[id];
+
+      final choreographers = {
+        'c1': _choreographer(
+          'c1',
+          'Cary Ravitz',
+          email: 'cary@example.com',
+          location: 'Lexington, KY',
+        ),
+        'c2': _choreographer('c2', 'Tom Hinds'),
+      };
+      Choreographer? choreographerCatalogFor(String id) => choreographers[id];
+
+      test('includes only choreographers referenced by bundled dances', () {
+        final program = _program(
+          slots: [
+            _slot(0, danceId: 'd1'),
+            _slot(1, danceId: 'd2'),
+          ],
+        );
+
+        final archive = decodeArchive(
+          buildProgramShareBundle(
+            program,
+            danceFor: authoredDanceFor,
+            choreographerFor: choreographerCatalogFor,
+            now: _now,
+          ),
+        ).archive;
+
+        expect(archive.choreographers.map((c) => c.id).toSet(), {'c1', 'c2'});
+      });
+
+      test('a choreographer shared by several dances appears exactly once', () {
+        // d1 -> c1, d2 -> c1 + c2. c1 is referenced twice but must not double.
+        final program = _program(
+          slots: [
+            _slot(0, danceId: 'd1'),
+            _slot(1, danceId: 'd2'),
+            _slot(2, danceId: 'd1'), // repeated dance id too
+          ],
+        );
+
+        final archive = decodeArchive(
+          buildProgramShareBundle(
+            program,
+            danceFor: authoredDanceFor,
+            choreographerFor: choreographerCatalogFor,
+            now: _now,
+          ),
+        ).archive;
+
+        expect(
+          archive.choreographers.where((c) => c.id == 'c1').length,
+          1,
+          reason: 'a choreographer referenced by multiple dances is deduped',
+        );
+        expect(archive.choreographers.length, 2);
+      });
+
+      test('a dance with no authors bundles fine with no choreographers', () {
+        final program = _program(slots: [_slot(0, danceId: 'd4')]);
+
+        final archive = decodeArchive(
+          buildProgramShareBundle(
+            program,
+            danceFor: authoredDanceFor,
+            choreographerFor: choreographerCatalogFor,
+            now: _now,
+          ),
+        ).archive;
+
+        expect(archive.dances.map((d) => d.id), ['d4']);
+        expect(archive.choreographers, isEmpty);
+      });
+
+      test('an unresolvable author id is skipped, never fatal', () {
+        // d3 references 'c-missing', which choreographerFor cannot resolve.
+        final program = _program(
+          slots: [
+            _slot(0, danceId: 'd1'),
+            _slot(1, danceId: 'd3'),
+          ],
+        );
+
+        final archive = decodeArchive(
+          buildProgramShareBundle(
+            program,
+            danceFor: authoredDanceFor,
+            choreographerFor: choreographerCatalogFor,
+            now: _now,
+          ),
+        ).archive;
+
+        expect(archive.dances.map((d) => d.id).toSet(), {'d1', 'd3'});
+        expect(
+          archive.choreographers.map((c) => c.id),
+          ['c1'],
+          reason: 'the unresolved author id is dropped, the dance still ships',
+        );
+      });
+
+      test('strips private email/location from shared choreographers', () {
+        final program = _program(slots: [_slot(0, danceId: 'd1')]);
+
+        final json = buildProgramShareBundle(
+          program,
+          danceFor: authoredDanceFor,
+          choreographerFor: choreographerCatalogFor,
+          now: _now,
+        );
+        final shared = decodeArchive(json).archive.choreographers.single;
+
+        expect(shared.id, 'c1');
+        expect(shared.name, 'Cary Ravitz', reason: 'attribution is preserved');
+        expect(shared.email, isNull, reason: 'private contact is not shared');
+        expect(
+          shared.location,
+          isNull,
+          reason: 'private contact is not shared',
+        );
+        // Defense in depth: the raw JSON must not carry the private fields.
+        expect(json.contains('cary@example.com'), isFalse);
+        expect(json.contains('Lexington, KY'), isFalse);
+      });
+    });
   });
 
   group('programShareBundleFileName', () {
@@ -189,5 +348,142 @@ void main() {
       );
       expect(name, endsWith('.ccshare'));
     });
+  });
+
+  // The whole point of #412: verify on the RECEIVE side that the choreographers
+  // the builder now embeds actually restore author attribution end-to-end, via
+  // the real shared receive path (ArchiveIntakeService -> CompendiumArchive
+  // importer -> ImportPipeline) over the real CompendiumDatabase (FK enforced).
+  group('end-to-end author attribution on the receiver (#412)', () {
+    Future<ArchiveIntakeResult> receive(
+      CompendiumRepositories repos,
+      String json,
+    ) async {
+      final intake = ArchiveIntakeService(
+        repositories: repos,
+        now: () => DateTime.utc(2026, 7, 20),
+      );
+      return intake.importBytes(Uint8List.fromList(utf8.encode(json)));
+    }
+
+    Future<Dance> danceByTitle(
+      CompendiumRepositories repos,
+      String title,
+    ) async =>
+        (await repos.dances.listAll()).firstWhere((d) => d.title == title);
+
+    Future<List<String>> authorNamesOf(
+      CompendiumRepositories repos,
+      Dance dance,
+    ) async {
+      final names = <String>[];
+      for (final id in dance.authorIds) {
+        final c = await repos.choreographers.getById(id);
+        if (c != null) names.add(c.name);
+      }
+      return names;
+    }
+
+    test('a received authored dance keeps its choreographer', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+
+      final program = _program(slots: [_slot(0, danceId: 'd1')]);
+      final json = buildProgramShareBundle(
+        program,
+        danceFor: (id) =>
+            id == 'd1' ? _dance('d1', 'Rory O\'More', authorIds: ['c1']) : null,
+        choreographerFor: (id) => id == 'c1'
+            ? _choreographer(
+                'c1',
+                'Cary Ravitz',
+                email: 'cary@example.com',
+                location: 'Lexington, KY',
+              )
+            : null,
+        now: _now,
+      );
+
+      final result = await receive(repos, json);
+      expect(result.isImported, isTrue, reason: result.message);
+
+      final imported = await danceByTitle(repos, 'Rory O\'More');
+      expect(
+        await authorNamesOf(repos, imported),
+        ['Cary Ravitz'],
+        reason: 'the received dance is attributed, not authorless',
+      );
+
+      // The program slot resolves to the imported dance (no placeholder).
+      final importedProgram = (await repos.programs.listAll()).single;
+      expect(importedProgram.slots.single.danceId, imported.id);
+      expect(
+        result.issues.where(
+          (i) => i.code == 'archive_program_unresolved_dance',
+        ),
+        isEmpty,
+      );
+
+      // The received choreographer carries no private contact data.
+      final author = await repos.choreographers.getById(
+        imported.authorIds.single,
+      );
+      expect(author!.email, isNull);
+      expect(author.location, isNull);
+    });
+
+    test('reuses a choreographer the receiver already has, by name', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      // The receiver already knows this author under a DIFFERENT id.
+      await repos.choreographers.upsert(
+        Choreographer(id: 'local-cary', name: 'Cary Ravitz'),
+      );
+
+      final program = _program(slots: [_slot(0, danceId: 'd1')]);
+      final json = buildProgramShareBundle(
+        program,
+        danceFor: (id) => id == 'd1'
+            ? _dance('d1', 'Rory O\'More', authorIds: ['sender-cary'])
+            : null,
+        choreographerFor: (id) =>
+            id == 'sender-cary' ? _choreographer(id, 'Cary Ravitz') : null,
+        now: _now,
+      );
+
+      final result = await receive(repos, json);
+      expect(result.isImported, isTrue, reason: result.message);
+
+      final imported = await danceByTitle(repos, 'Rory O\'More');
+      expect(imported.authorIds, ['local-cary'], reason: 'matched by name');
+      expect(
+        await repos.choreographers.listAll(),
+        hasLength(1),
+        reason: 'no duplicate choreographer created',
+      );
+    });
+
+    test(
+      'a received dance with no authors imports fine, unattributed',
+      () async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        final program = _program(slots: [_slot(0, danceId: 'd1')]);
+        final json = buildProgramShareBundle(
+          program,
+          danceFor: (id) => id == 'd1' ? _dance('d1', 'Anonymous Reel') : null,
+          choreographerFor: (_) => null,
+          now: _now,
+        );
+
+        final result = await receive(repos, json);
+        expect(result.isImported, isTrue, reason: result.message);
+
+        final imported = await danceByTitle(repos, 'Anonymous Reel');
+        expect(imported.authorIds, isEmpty);
+        expect(await repos.choreographers.listAll(), isEmpty);
+      },
+    );
   });
 }

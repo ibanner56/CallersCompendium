@@ -20,11 +20,27 @@ import 'package:compendium_core/compendium_core.dart';
 /// program itself (its `slots` carry their own `text`), so nothing extra is
 /// needed for them here.
 ///
+/// [choreographerFor] resolves an author id (from a bundled dance's `authorIds`)
+/// to its full [Choreographer], so author attribution survives the round-trip:
+/// the receive-side importer reads incoming author *names* from the bundle's own
+/// `CompendiumArchive.choreographers` (a receiver cannot resolve the sender's
+/// author ids). Only the choreographers actually referenced by the bundled
+/// dances are included (deduped by id, stable first-seen order) — the bundle
+/// stays minimal and never leaks unrelated authors. An id that can't be resolved
+/// is skipped (best-effort, never fatal — mirrors [danceFor]).
+///
+/// Privacy (issue #412, and the [Choreographer] model's contract): a
+/// choreographer's `email`/`location` are private contact data that MUST NOT
+/// leave the device in a shareable export. Each included choreographer is
+/// therefore sanitized here — `email`/`location` are cleared — before it is
+/// embedded, so sharing carries only public attribution (name/website/notes).
+///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
 String buildProgramShareBundle(
   Program program, {
   required Dance? Function(String danceId) danceFor,
+  required Choreographer? Function(String id) choreographerFor,
   DateTime? now,
 }) {
   final dances = <Dance>[];
@@ -36,11 +52,26 @@ String buildProgramShareBundle(
     if (dance != null) dances.add(dance);
   }
 
+  final choreographers = <Choreographer>[];
+  final seenAuthors = <String>{};
+  for (final dance in dances) {
+    for (final authorId in dance.authorIds) {
+      if (!seenAuthors.add(authorId)) continue;
+      final choreographer = choreographerFor(authorId);
+      if (choreographer == null) continue;
+      // Strip private contact fields before the record leaves the device.
+      choreographers.add(
+        choreographer.copyWith(clearEmail: true, clearLocation: true),
+      );
+    }
+  }
+
   return encodeArchive(
     CompendiumArchive(
       exportedAt: (now ?? DateTime.now()).toUtc(),
       programs: [program],
       dances: dances,
+      choreographers: choreographers,
     ),
   );
 }

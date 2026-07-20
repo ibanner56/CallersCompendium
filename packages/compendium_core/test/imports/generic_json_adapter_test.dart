@@ -10,6 +10,11 @@ import '../storage/test_database.dart';
 
 final _now = DateTime.utc(2026, 7, 15);
 
+String Function() sequentialIds(String prefix) {
+  var n = 0;
+  return () => '$prefix-${++n}';
+}
+
 Dance _dance(
   String id,
   String title, {
@@ -277,6 +282,131 @@ void main() {
       );
       expect(verdict.kind, DedupeKind.reimport);
       expect(verdict.targetDanceId, 'existing-99');
+    });
+
+    // #412: the adapter must carry the referenced choreographers' display names
+    // through parse so the pipeline can resolve/create author rows on commit.
+    // Without this, a received authored dance's raw authorIds reference
+    // choreographer rows the receiver never creates -> FK 787 -> dance dropped.
+    group('author attribution round-trip (#412)', () {
+      test(
+        'parse recovers author names from the payload choreographers',
+        () async {
+          final json = encodeArchive(
+            _archive([
+              _dance('d1', 'Give and Take', authorIds: ['c1']),
+            ]),
+          );
+          final adapter = GenericJsonAdapter();
+          final discovered = await adapter.discover(
+            ImportRequest(payload: json),
+          );
+          final draft = await _importOne(adapter, discovered.single);
+
+          // The draft credits by NAME (resolvable on any receiver), not the
+          // sender's opaque id; dance.authorIds is left untouched.
+          expect(draft.authorNames, ['Cary Ravitz']);
+          expect(draft.dance.authorIds, ['c1']);
+        },
+      );
+
+      test(
+        'an author id with no matching choreographer yields no name',
+        () async {
+          // authorIds references 'ghost', absent from the archive's choreographers.
+          final json = encodeArchive(
+            _archive([
+              _dance('d1', 'Orphaned', authorIds: ['ghost']),
+            ]),
+          );
+          final adapter = GenericJsonAdapter();
+          final discovered = await adapter.discover(
+            ImportRequest(payload: json),
+          );
+          final draft = await _importOne(adapter, discovered.single);
+
+          expect(draft.authorNames, isEmpty);
+          expect(
+            draft.dance.title,
+            'Orphaned',
+            reason: 'still parses, never fatal',
+          );
+        },
+      );
+
+      test('committing creates the choreographer row and points authorIds at it '
+          'with no FK failure', () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final dances = DanceRepository(db, contraTaxonomy);
+        final choreographers = ChoreographerRepository(db);
+        final pipeline = ImportPipeline(dances, choreographers);
+
+        final json = encodeArchive(
+          _archive([
+            _dance('d1', 'Give and Take', authorIds: ['c1']),
+          ]),
+        );
+        final batch = await pipeline.plan(
+          GenericJsonAdapter(),
+          ImportRequest(payload: json),
+        );
+        final session = await pipeline.commit(
+          batch,
+          now: _now,
+          newId: sequentialIds('new'),
+        );
+
+        expect(session.committedCount, 1);
+        final imported = await dances.getById(session.insertedDanceIds.single);
+        // authorIds now reference the RECEIVER's own row (not the sender's 'c1').
+        expect(imported!.authorIds, isNot(contains('c1')));
+        expect(imported.authorIds, hasLength(1));
+        final author = await choreographers.getById(imported.authorIds.single);
+        expect(author!.name, 'Cary Ravitz');
+      });
+
+      test(
+        'reuses a choreographer the receiver already has, matched by name',
+        () async {
+          final db = openTestDatabase();
+          addTearDown(db.close);
+          final dances = DanceRepository(db, contraTaxonomy);
+          final choreographers = ChoreographerRepository(db);
+          final pipeline = ImportPipeline(dances, choreographers);
+          // Receiver knows this author under a DIFFERENT id than the sender.
+          await choreographers.upsert(
+            Choreographer(id: 'local-cary', name: 'Cary Ravitz'),
+          );
+
+          final json = encodeArchive(
+            _archive([
+              _dance('d1', 'Give and Take', authorIds: ['c1']),
+            ]),
+          );
+          final batch = await pipeline.plan(
+            GenericJsonAdapter(),
+            ImportRequest(payload: json),
+          );
+          final session = await pipeline.commit(
+            batch,
+            now: _now,
+            newId: sequentialIds('new'),
+          );
+
+          final imported = await dances.getById(
+            session.insertedDanceIds.single,
+          );
+          expect(imported!.authorIds, [
+            'local-cary',
+          ], reason: 'matched by name');
+          expect(
+            await choreographers.listAll(),
+            hasLength(1),
+            reason: 'no duplicate',
+          );
+        },
+      );
     });
   });
 }

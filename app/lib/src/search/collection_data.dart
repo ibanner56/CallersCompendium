@@ -13,6 +13,7 @@ import '../models/dance_list_entry.dart';
 class CollectionData {
   CollectionData({
     required this.dancesById,
+    required this.choreographersById,
     required this.choreographerNames,
     required this.tagNames,
     required this.customFieldDefs,
@@ -38,6 +39,10 @@ class CollectionData {
   });
 
   final Map<String, Dance> dancesById;
+
+  /// All choreographers keyed by id, so a share/export path can resolve a
+  /// dance's `authorIds` to full [Choreographer] records (mirrors [dancesById]).
+  final Map<String, Choreographer> choreographersById;
   final Map<String, String> choreographerNames;
   final Map<String, String> tagNames;
   final List<CustomFieldDef> customFieldDefs;
@@ -90,6 +95,7 @@ class CollectionData {
     final callCounts = await repos.programs.countByDance();
 
     final dancesById = {for (final d in dances) d.id: d};
+    final choreographersById = {for (final c in choreographers) c.id: c};
     final choreographerNames = {for (final c in choreographers) c.id: c.name};
     final tagNames = {for (final t in tags) t.id: t.name};
 
@@ -133,6 +139,7 @@ class CollectionData {
 
     return CollectionData(
       dancesById: dancesById,
+      choreographersById: choreographersById,
       choreographerNames: choreographerNames,
       tagNames: tagNames,
       customFieldDefs: defs,
