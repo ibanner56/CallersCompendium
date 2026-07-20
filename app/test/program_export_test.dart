@@ -297,7 +297,7 @@ void main() {
     );
 
     testWidgets(
-      'shares a single JSON bundle file with the program + deduped dances',
+      'shares a single .ccshare bundle file with the program + deduped dances',
       (tester) async {
         final dir = Directory.systemTemp.createTempSync('share_bundle_test');
         addTearDown(() => dir.deleteSync(recursive: true));
@@ -343,7 +343,7 @@ void main() {
         final files = captured!.files!;
         expect(files, hasLength(1));
         expect(files.single.mimeType, 'application/json');
-        expect(files.single.path, endsWith('.json'));
+        expect(files.single.path, endsWith('.ccshare'));
 
         final archive = decodeArchive(
           File(files.single.path).readAsStringSync(),

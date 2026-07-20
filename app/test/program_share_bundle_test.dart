@@ -160,23 +160,23 @@ void main() {
   });
 
   group('programShareBundleFileName', () {
-    test('sanitizes illegal characters to underscores and keeps .json', () {
+    test('sanitizes illegal characters to underscores and keeps .ccshare', () {
       expect(
         programShareBundleFileName('Friday Contra: 3/9 <Town Hall>'),
-        'Friday_Contra__3_9__Town_Hall_.json',
+        'Friday_Contra__3_9__Town_Hall_.ccshare',
       );
     });
 
     test('preserves safe characters', () {
       expect(
         programShareBundleFileName('spring-fling_2026.v1'),
-        'spring-fling_2026.v1.json',
+        'spring-fling_2026.v1.ccshare',
       );
     });
 
     test('falls back to a stable default for an empty/all-illegal title', () {
-      expect(programShareBundleFileName('   '), 'program.json');
-      expect(programShareBundleFileName('///'), 'program.json');
+      expect(programShareBundleFileName('   '), 'program.ccshare');
+      expect(programShareBundleFileName('///'), 'program.ccshare');
     });
 
     test('does not allow path traversal through the title', () {
@@ -187,7 +187,7 @@ void main() {
         isTrue,
         reason: 'dots are safe; separators are not',
       );
-      expect(name, endsWith('.json'));
+      expect(name, endsWith('.ccshare'));
     });
   });
 }
