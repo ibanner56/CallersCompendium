@@ -256,6 +256,103 @@ void main() {
     });
   });
 
+  group('extractSharedContraDbProgramUrl', () {
+    // Chrome / Samsung Internet share a bare URL in EXTRA_TEXT (the page title
+    // travels separately in EXTRA_SUBJECT).
+    test('accepts a bare shared URL (Chrome / Samsung Internet) and '
+        'canonicalizes it', () {
+      expect(
+        extractSharedContraDbProgramUrl('https://contradb.com/programs/33'),
+        'https://contradb.com/programs/33',
+      );
+    });
+
+    // Firefox for Android puts "title\nurl" in EXTRA_TEXT — the URL must be
+    // pulled out of the longer payload rather than rejected wholesale.
+    test('extracts the URL from a Firefox "title\\nurl" payload', () {
+      expect(
+        extractSharedContraDbProgramUrl(
+          'A Lovely Contra Program\nhttps://contradb.com/programs/42',
+        ),
+        'https://contradb.com/programs/42',
+      );
+    });
+
+    test('extracts the URL when the title precedes it on the same line', () {
+      expect(
+        extractSharedContraDbProgramUrl(
+          'Check out https://contradb.com/programs/8 today',
+        ),
+        'https://contradb.com/programs/8',
+      );
+    });
+
+    test('runs the full validator on the extracted token '
+        '(rejects a non-ContraDB host embedded after a title)', () {
+      expect(
+        () => extractSharedContraDbProgramUrl(
+          'Nice page\nhttps://evil.com/programs/1',
+        ),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('rejects a payload with no https URL token (title only)', () {
+      expect(
+        () => extractSharedContraDbProgramUrl('Just a program title, no link'),
+        throwsA(isA<UrlFetchException>()),
+      );
+      // A bare http:// token is not an https candidate → zero candidates.
+      expect(
+        () => extractSharedContraDbProgramUrl('http://contradb.com/programs/1'),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('rejects an ambiguous payload carrying more than one https URL', () {
+      // A second, attacker-controlled URL must not be silently smuggled past a
+      // human by hiding it alongside a legitimate-looking one.
+      expect(
+        () => extractSharedContraDbProgramUrl(
+          'https://contradb.com/programs/1 https://evil.com/programs/2',
+        ),
+        throwsA(isA<UrlFetchException>()),
+      );
+      expect(
+        () => extractSharedContraDbProgramUrl(
+          'https://evil.com/x https://contradb.com/programs/1',
+        ),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('rejects empty / whitespace / oversized raw payloads', () {
+      expect(
+        () => extractSharedContraDbProgramUrl('   '),
+        throwsA(isA<UrlFetchException>()),
+      );
+      final oversized =
+          'title https://contradb.com/programs/1 '
+          '${'a' * kMaxSharedImportTextLength}';
+      expect(
+        () => extractSharedContraDbProgramUrl(oversized),
+        throwsA(isA<UrlFetchException>()),
+      );
+    });
+
+    test('the rejection message never echoes the shared payload', () {
+      const secret = 'My Page\nhttps://evil.com/programs/1?token=SUPERSECRET';
+      try {
+        extractSharedContraDbProgramUrl(secret);
+        fail('expected a UrlFetchException');
+      } on UrlFetchException catch (e) {
+        expect(e.message, isNot(contains('SUPERSECRET')));
+        expect(e.message, isNot(contains('evil.com')));
+        expect(e.message, isNot(contains('My Page')));
+      }
+    });
+  });
+
   group('defaultImportSources', () {
     test('returns the canonical [GenericJson, CallersBox, ContraDB, CC .USR] '
         'list', () {

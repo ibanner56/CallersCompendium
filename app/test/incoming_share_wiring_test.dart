@@ -184,6 +184,34 @@ void main() {
   );
 
   testWidgets(
+    'issue #343: a Firefox-style "title\\nurl" share still opens the import '
+    'screen pre-filled with the extracted URL',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialSharedUrl:
+                'A Lovely Contra Program\nhttps://contradb.com/programs/33',
+          ),
+          incomingUrlFetcher: (_) async => _sharedProgramHtml,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ContraDbProgramImportScreen), findsOneWidget);
+      // The extracted, canonical URL (not the raw "title\nurl") is pre-filled.
+      expect(find.text('https://contradb.com/programs/33'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'issue #343: a malicious / non-ContraDB shared URL is rejected with a '
     'snackbar and never opens the import screen',
     (tester) async {

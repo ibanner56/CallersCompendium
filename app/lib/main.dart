@@ -308,8 +308,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
   ///
   /// The raw string is **untrusted OS input**: any app or user can share any
   /// string here. It is OWASP-validated at this ingest boundary by
+  /// [extractSharedContraDbProgramUrl] — which pulls exactly one `https` URL
+  /// token out of the payload (Chrome/Samsung Internet share a bare URL;
+  /// Firefox shares `"title\nurl"`), then runs the strict
   /// [validateSharedContraDbProgramUrl] (https only, `contradb.com` host
-  /// allow-list, `/programs/N` path) *before* it reaches the import pipeline.
+  /// allow-list, `/programs/N` path) — *before* it reaches the import pipeline.
   /// A bad share surfaces a generic snackbar (never echoing the raw input) and
   /// never navigates or writes. A valid share opens
   /// [ContraDbProgramImportScreen] pre-filled + auto-fetching, so the user
@@ -320,7 +323,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   Future<void> _handleIncomingUrl(String raw) async {
     final String validated;
     try {
-      validated = validateSharedContraDbProgramUrl(raw);
+      validated = extractSharedContraDbProgramUrl(raw);
     } on UrlFetchException catch (e) {
       if (!mounted) return;
       _messengerKey.currentState?.showSnackBar(

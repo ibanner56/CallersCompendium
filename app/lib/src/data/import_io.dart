@@ -917,6 +917,78 @@ String validateSharedContraDbProgramUrl(String shared) {
   return Uri.https(contraDbHost, '/programs/${match.group(1)!}').toString();
 }
 
+/// Hard cap on the length of the **raw** OS share payload (issue #343) before
+/// any tokenizing/scanning happens.
+///
+/// Unlike a bare link, this payload may legitimately be `"Title\nURL"` (see
+/// [extractSharedContraDbProgramUrl]), so it can be a little longer than a lone
+/// URL — but it is still untrusted OS input and must be bounded before it
+/// reaches a regex, so a pathological multi-megabyte "share" can't drive
+/// resource consumption (OWASP: uncontrolled input). Comfortably fits a real
+/// page title plus a `contradb.com/programs/N` link.
+const int kMaxSharedImportTextLength = 8192;
+
+/// Matches a single `https://…` token (whitespace-delimited) inside a raw share
+/// payload. Deliberately **ReDoS-safe**: a single linear `\S+` quantifier with
+/// no nesting/alternation/backtracking traps, run only over already
+/// length-bounded input ([kMaxSharedImportTextLength]). Scheme match is
+/// case-insensitive; the token itself is handed to
+/// [validateSharedContraDbProgramUrl] for the real, strict checks.
+final RegExp _sharedHttpsUrlToken = RegExp(
+  r'https://\S+',
+  caseSensitive: false,
+);
+
+/// OWASP-hardens raw text shared into the app from the OS **share sheet** /
+/// `ACTION_SEND` intent (issue #343) and returns the canonical
+/// `https://contradb.com/programs/N` URL, or throws a [UrlFetchException] whose
+/// message is safe to show and **never echoes the raw shared string**.
+///
+/// Why this exists in front of [validateSharedContraDbProgramUrl]: the OS hands
+/// us the sharing app's `EXTRA_TEXT` verbatim, and that is **not** always a bare
+/// URL. Chrome and Samsung Internet share a bare URL (title travels separately
+/// in `EXTRA_SUBJECT`), but Firefox for Android puts `"<page title>\n<url>"` in
+/// `EXTRA_TEXT`. Validating the whole string would silently reject every share
+/// from those browsers. So we first extract exactly one URL token, then run the
+/// full strict validator on it.
+///
+/// The shared string is **untrusted input** — any app or user can share any
+/// string here. Fail-closed, in order:
+/// 1. **Length cap** — reject empty / whitespace-only / longer than
+///    [kMaxSharedImportTextLength] before scanning (bounds the regex).
+/// 2. **Single-candidate extraction** — collect `https://…` tokens with a
+///    ReDoS-safe linear regex ([_sharedHttpsUrlToken]). Require **exactly one**:
+///    zero candidates (a title with no link) and more than one candidate (an
+///    ambiguous payload that could smuggle an attacker URL past a human) are
+///    both rejected. `http`/other-scheme tokens are never candidates.
+/// 3. **Full validation** — the single candidate is passed to
+///    [validateSharedContraDbProgramUrl] (https-only, `contradb.com` host
+///    allow-list, `/programs/<digits>` path, canonical rebuild), which remains
+///    the single source of truth and front-runs — never replaces — the #332
+///    SSRF guard applied at fetch time.
+String extractSharedContraDbProgramUrl(String rawShared) {
+  const rejected = UrlFetchException(
+    "That doesn't look like a ContraDB program link.",
+  );
+
+  final trimmed = rawShared.trim();
+  if (trimmed.isEmpty || trimmed.length > kMaxSharedImportTextLength) {
+    throw rejected;
+  }
+
+  final candidates = _sharedHttpsUrlToken
+      .allMatches(trimmed)
+      .map((m) => m.group(0)!)
+      .toList(growable: false);
+  if (candidates.length != 1) {
+    throw rejected;
+  }
+
+  // Delegates every real check (scheme/host/path/canonicalization) to the
+  // strict validator — extraction only decides *which* token to validate.
+  return validateSharedContraDbProgramUrl(candidates.first);
+}
+
 /// The ContraDB JSON search endpoint. ContraDB (a Rails app) exposes
 /// `POST https://contradb.com/api/v1/dances` (Content-Type application/json);
 /// the controller does `skip_before_action :verify_authenticity_token`, so no
