@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/formation_colors_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../export/dance_pdf.dart';
@@ -21,6 +22,7 @@ import '../widgets/dance_export_menu.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/figure_table.dart';
+import '../widgets/formation_color_badge.dart';
 import '../widgets/skeleton.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
@@ -647,7 +649,26 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   children: [
                     const Icon(formationIcon, size: 18),
                     const SizedBox(width: AppSpacing.xs),
-                    Expanded(child: Text(formationLabel(dance.formation))),
+                    Expanded(
+                      child: Builder(
+                        builder: (context) {
+                          // Per-formation label colour (issue #367): highlight
+                          // only when the user overrode this shape.
+                          final color = FormationColorsScope.of(
+                            context,
+                          )?.overrideFor(dance.formation.shape);
+                          final text = Text(formationLabel(dance.formation));
+                          if (color == null) return text;
+                          return Align(
+                            alignment: Alignment.centerLeft,
+                            child: FormationColorBadge(
+                              color: color,
+                              child: text,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xxs),

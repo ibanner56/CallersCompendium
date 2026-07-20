@@ -2,20 +2,27 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/formation_colors_controller.dart';
+import 'package:compendium_app/src/data/formation_colors_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/models/dance_list_entry.dart';
+import 'package:compendium_app/src/theme/set_list_accents.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
+
+import '../support/test_repositories.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
 DanceListEntry _entry({
   int? rating,
   DanceCallCounts callCounts = const DanceCallCounts(all: 0, performed: 0),
+  Formation formation = const Formation(FormationShape.dupleImproper),
 }) => DanceListEntry(
   dance: Dance(
     id: 'd1',
     title: 'Test Dance',
     form: DanceForm.ecd,
+    formation: formation,
     rating: rating,
     createdAt: _now,
     updatedAt: _now,
@@ -205,5 +212,72 @@ void main() {
         expect(label().data, 'called ×3');
       },
     );
+  });
+
+  group('formation label colour (issue #367)', () {
+    Chip formationChip(WidgetTester tester) {
+      final chip = find.ancestor(
+        of: find.text('Becket (CW)'),
+        matching: find.byType(Chip),
+      );
+      return tester.widget<Chip>(chip);
+    }
+
+    testWidgets('no override ⇒ formation chip renders with no tint', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final controller = FormationColorsController(repos.settings);
+      await controller.load();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FormationColorsScope(
+              controller: controller,
+              child: DanceListTile(
+                entry: _entry(
+                  formation: const Formation(FormationShape.becketCw),
+                ),
+                onTap: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(formationChip(tester).backgroundColor, isNull);
+    });
+
+    testWidgets('an override tints the formation chip with a readable label', (
+      tester,
+    ) async {
+      const yellow = Color(0xFFFFEB3B);
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final controller = FormationColorsController(repos.settings);
+      await controller.load();
+      await controller.setColor(FormationShape.becketCw, yellow);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: FormationColorsScope(
+              controller: controller,
+              child: DanceListTile(
+                entry: _entry(
+                  formation: const Formation(FormationShape.becketCw),
+                ),
+                onTap: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(formationChip(tester).backgroundColor, yellow);
+      // The label stays present (colour is never the only signal) and legible.
+      final label = tester.widget<Text>(find.text('Becket (CW)'));
+      expect(label.style?.color, readableForegroundOn(yellow));
+    });
   });
 }

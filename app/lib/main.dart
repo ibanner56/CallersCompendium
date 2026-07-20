@@ -15,6 +15,8 @@ import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
+import 'src/data/formation_colors_controller.dart';
+import 'src/data/formation_colors_scope.dart';
 import 'src/data/import_io.dart';
 import 'src/data/incoming_file_channel.dart';
 import 'src/data/migration_guard.dart';
@@ -189,6 +191,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// [CollectionRefreshScope].
   final ValueNotifier<int> _collectionRefreshNotifier = ValueNotifier(0);
   late final CustomThemesController _customThemes;
+  late final FormationColorsController _formationColors;
   late final DialectLibraryController _dialectLibrary;
 
   /// Owns the update-check preferences and latest check result (ADR-002 §4/§5).
@@ -227,6 +230,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     super.initState();
     _appData = widget.appData;
     _customThemes = CustomThemesController(_appData.repositories.settings);
+    _formationColors = FormationColorsController(
+      _appData.repositories.settings,
+    );
     // The dialect library owns dialect state; the active dialect flows out
     // through [_dialectNotifier] (read by every existing ActiveDialectScope
     // consumer) via [_syncActiveDialect], so the rest of the app is unchanged.
@@ -498,6 +504,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dateFormatNotifier.value = dateFormatPrefFromStored(dateFormat);
     // Load any locally-saved custom themes and the active one (if set).
     await _customThemes.load();
+    // Load the user's per-formation label colour overrides (issue #367).
+    await _formationColors.load();
     // Load the update-check preferences (beta opt-in, auto-check opt-in, and
     // the dismissed banner version), all defaulting to the safe off/none state.
     await _updateController.load();
@@ -529,6 +537,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dateFormatNotifier.dispose();
     _collectionRefreshNotifier.dispose();
     _customThemes.dispose();
+    _formationColors.dispose();
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
     _updateController.dispose();
@@ -656,31 +665,35 @@ class _CompendiumAppState extends State<CompendiumApp> {
                 notifier: _themeNotifier,
                 child: CustomThemesScope(
                   controller: _customThemes,
-                  child: DialectLibraryScope(
-                    controller: _dialectLibrary,
-                    child: ActiveDialectScope(
-                      notifier: _dialectNotifier,
-                      child: RequirePerformedForHistoryScope(
-                        notifier: _requirePerformedForHistoryNotifier,
-                        child: SortIgnoreArticlesScope(
-                          notifier: _sortIgnoreArticlesNotifier,
-                          child: ReduceMotionScope(
-                            notifier: _reduceMotionNotifier,
-                            child: VerboseFigureRenderingScope(
-                              notifier: _verboseFigureRenderingNotifier,
-                              child: ConfirmBeforeDeleteScope(
-                                notifier: _confirmBeforeDeleteNotifier,
-                                child: ColourDanceThemeScope(
-                                  notifier: _colourDanceThemeNotifier,
-                                  child: SetListColorCodingScope(
-                                    notifier: _setListColorCodingNotifier,
-                                    child: DateFormatScope(
-                                      notifier: _dateFormatNotifier,
-                                      child: BackupControllerScope(
-                                        onRestored: reloadFromSettings,
-                                        child: CollectionRefreshScope(
-                                          revision: _collectionRefreshNotifier,
-                                          child: child!,
+                  child: FormationColorsScope(
+                    controller: _formationColors,
+                    child: DialectLibraryScope(
+                      controller: _dialectLibrary,
+                      child: ActiveDialectScope(
+                        notifier: _dialectNotifier,
+                        child: RequirePerformedForHistoryScope(
+                          notifier: _requirePerformedForHistoryNotifier,
+                          child: SortIgnoreArticlesScope(
+                            notifier: _sortIgnoreArticlesNotifier,
+                            child: ReduceMotionScope(
+                              notifier: _reduceMotionNotifier,
+                              child: VerboseFigureRenderingScope(
+                                notifier: _verboseFigureRenderingNotifier,
+                                child: ConfirmBeforeDeleteScope(
+                                  notifier: _confirmBeforeDeleteNotifier,
+                                  child: ColourDanceThemeScope(
+                                    notifier: _colourDanceThemeNotifier,
+                                    child: SetListColorCodingScope(
+                                      notifier: _setListColorCodingNotifier,
+                                      child: DateFormatScope(
+                                        notifier: _dateFormatNotifier,
+                                        child: BackupControllerScope(
+                                          onRestored: reloadFromSettings,
+                                          child: CollectionRefreshScope(
+                                            revision:
+                                                _collectionRefreshNotifier,
+                                            child: child!,
+                                          ),
                                         ),
                                       ),
                                     ),
