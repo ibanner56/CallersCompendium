@@ -127,9 +127,7 @@
 
   function fileType(url) {
     if (!url) return "";
-    var m = /\.([a-z0-9]+)(?:\?.*)?$/i.exec(url);
-    if (!m) return "";
-    var ext = m[1].toLowerCase();
+    var path = String(url).split(/[?#]/)[0].toLowerCase();
     var names = {
       exe: "Installer (.exe)",
       msix: "Installer (.msix)",
@@ -139,6 +137,12 @@
       apk: "Android package (.apk)",
       "tar.gz": "Archive (.tar.gz)"
     };
+    // Prefer the most specific (compound) extension so `.tar.gz` doesn't render
+    // as `.gz`; fall back to the final segment.
+    if (path.slice(-7) === ".tar.gz") return names["tar.gz"];
+    var m = /\.([a-z0-9]+)$/.exec(path);
+    if (!m) return "";
+    var ext = m[1];
     return names[ext] || ("." + ext);
   }
 

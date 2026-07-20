@@ -80,10 +80,11 @@ prepare_worktree() {
 # the preserved manifest files exactly as they were on the branch.
 sync_site() {
   # Remove previously-published site files (top-level entries we don't preserve).
+  # `--` guards against any gh-pages entry whose name begins with `-`.
   local keep_expr=()
   local name
   for name in "${preserve[@]}"; do keep_expr+=(! -name "$name"); done
-  find "$worktree" -mindepth 1 -maxdepth 1 "${keep_expr[@]}" -exec rm -rf {} +
+  find "$worktree" -mindepth 1 -maxdepth 1 "${keep_expr[@]}" -exec rm -rf -- {} +
 
   # Copy the fresh site tree in (contents of site/, not the directory itself).
   cp -R "$site_abs"/. "$worktree"/
