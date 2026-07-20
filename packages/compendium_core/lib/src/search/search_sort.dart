@@ -41,3 +41,30 @@ enum SearchSort {
   /// Most recently called first, never-called last (Dart post-sort).
   lastCalled,
 }
+
+/// The direction a [SearchSort] is applied in. [ascending] and [descending]
+/// name the *primary* comparison's direction (A→Z / low→high vs Z→A / high→low,
+/// or best-match→worst vs worst→best for `relevance`).
+///
+/// Each [SearchSort] has a [SearchSortDirectionX.defaultDirection] equal to its
+/// historical (pre-toggle) behavior, so a caller that leaves the direction
+/// unset gets exactly the previous ordering. The two direction-independent
+/// invariants — NULL/absent values sort **last**, and `title` is the stable
+/// tiebreak — hold in both directions.
+enum SortDirection { ascending, descending }
+
+extension SearchSortDirectionX on SearchSort {
+  /// The historical direction for this sort key, used as the default when a
+  /// caller does not specify one (so behavior is unchanged until a user flips
+  /// the direction toggle).
+  SortDirection get defaultDirection => switch (this) {
+    SearchSort.title ||
+    SearchSort.author ||
+    SearchSort.composedOn ||
+    SearchSort.relevance => SortDirection.ascending,
+    SearchSort.recentlyAdded ||
+    SearchSort.recentlyEdited ||
+    SearchSort.rating ||
+    SearchSort.lastCalled => SortDirection.descending,
+  };
+}

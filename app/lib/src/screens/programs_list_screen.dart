@@ -24,6 +24,13 @@ enum ProgramSort {
 
   const ProgramSort(this.label);
   final String label;
+
+  /// The historical (pre-toggle) direction for this sort key, used to seed the
+  /// direction toggle so behavior is unchanged until the user flips it.
+  SortDirection get defaultDirection => switch (this) {
+    ProgramSort.title || ProgramSort.eventDate => SortDirection.ascending,
+    ProgramSort.recentlyUpdated => SortDirection.descending,
+  };
 }
 
 /// Programs list (`docs/design/ux.md` §4): non-deleted programs with title,
@@ -63,6 +70,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   List<Program>? _programs;
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
+  SortDirection _sortDir = ProgramSort.title.defaultDirection;
 
   @override
   void didChangeDependencies() {
@@ -109,22 +117,28 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
 
   List<Program> get _sorted {
     final programs = [...?_programs];
+    final descending = _sortDir == SortDirection.descending;
+    int flip(int cmp) => descending ? -cmp : cmp;
     switch (_sort) {
       case ProgramSort.title:
         programs.sort(
-          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+          (a, b) =>
+              flip(a.title.toLowerCase().compareTo(b.title.toLowerCase())),
         );
       case ProgramSort.recentlyUpdated:
-        programs.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+        // Ascending base (oldest-first); the default direction (descending)
+        // flips it to newest-first.
+        programs.sort((a, b) => flip(a.updatedAt.compareTo(b.updatedAt)));
       case ProgramSort.eventDate:
-        // Programs without a date sort last; otherwise soonest-first.
+        // Programs without a date sort last regardless of direction; dated
+        // programs are soonest-first ascending, latest-first descending.
         programs.sort((a, b) {
           final ad = a.eventDate;
           final bd = b.eventDate;
           if (ad == null && bd == null) return 0;
           if (ad == null) return 1;
           if (bd == null) return -1;
-          return ad.compareTo(bd);
+          return flip(ad.compareTo(bd));
         });
     }
     return programs;
@@ -288,24 +302,34 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               onPressed: _openRecentlyDeleted,
             ),
             PopupMenuButton<ProgramSort>(
-              tooltip: 'Sort by',
+              key: const ValueKey('programs-sort'),
+              tooltip: 'Sort by (${_sort.label})',
               initialValue: _sort,
-              onSelected: (value) => setState(() => _sort = value),
+              icon: const Icon(Icons.sort),
+              onSelected: (value) => setState(() {
+                _sort = value;
+                _sortDir = value.defaultDirection;
+              }),
               itemBuilder: (context) => [
                 for (final option in ProgramSort.values)
                   PopupMenuItem(value: option, child: Text(option.label)),
               ],
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.sort),
-                    const SizedBox(width: 4),
-                    Text('Sort: ${_sort.label}'),
-                  ],
-                ),
+            ),
+            IconButton(
+              key: const ValueKey('programs-sort-direction'),
+              tooltip: _sortDir == SortDirection.ascending
+                  ? 'Ascending (tap for descending)'
+                  : 'Descending (tap for ascending)',
+              icon: Icon(
+                _sortDir == SortDirection.ascending
+                    ? Icons.arrow_upward
+                    : Icons.arrow_downward,
               ),
+              onPressed: () => setState(() {
+                _sortDir = _sortDir == SortDirection.ascending
+                    ? SortDirection.descending
+                    : SortDirection.ascending;
+              }),
             ),
           ],
         ],

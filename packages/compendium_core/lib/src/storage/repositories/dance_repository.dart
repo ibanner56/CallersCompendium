@@ -485,17 +485,24 @@ class DanceRepository {
   /// with a leading article ("the"/"a"/"an") ignored (see [titleSortKey]) —
   /// e.g. "The Nice Combination" files under **N**. This is applied as a stable
   /// Dart post-sort over the SQL base order; other sorts are unaffected.
+  ///
+  /// [direction] flips the ordering; when omitted it resolves to the sort key's
+  /// [SearchSortDirectionX.defaultDirection], preserving the historical order.
+  /// NULL/absent and never-called rows stay **last** regardless of direction.
   Future<List<String>> search(
     DanceFilter filter, {
     SearchSort sort = SearchSort.title,
+    SortDirection? direction,
     Dialect? dialect,
     SearchEnrichment? enrichment,
     bool ignoreLeadingArticles = false,
   }) async {
+    final dir = direction ?? sort.defaultDirection;
+    final descending = dir == SortDirection.descending;
     final compiled = FilterCompiler(
       dialect,
       enrichment,
-    ).compile(filter, sort: sort);
+    ).compile(filter, sort: sort, direction: dir);
     final rows = await _db
         .customSelect(
           compiled.sql,
@@ -505,11 +512,13 @@ class DanceRepository {
     final ids = [for (final r in rows) r.read<String>(r.data.keys.first)];
     switch (sort) {
       case SearchSort.author:
-        return _sortByAuthor(ids);
+        return _sortByAuthor(ids, descending: descending);
       case SearchSort.lastCalled:
-        return _sortByLastCalled(ids);
+        return _sortByLastCalled(ids, descending: descending);
       case SearchSort.title:
-        return ignoreLeadingArticles ? _sortByTitleIgnoringArticles(ids) : ids;
+        return ignoreLeadingArticles
+            ? _sortByTitleIgnoringArticles(ids, descending: descending)
+            : ids;
       case SearchSort.recentlyAdded:
       case SearchSort.recentlyEdited:
       case SearchSort.composedOn:
@@ -525,6 +534,7 @@ class DanceRepository {
   Future<List<Dance>> searchDances(
     DanceFilter filter, {
     SearchSort sort = SearchSort.title,
+    SortDirection? direction,
     Dialect? dialect,
     SearchEnrichment? enrichment,
     bool ignoreLeadingArticles = false,
@@ -532,6 +542,7 @@ class DanceRepository {
     final ids = await search(
       filter,
       sort: sort,
+      direction: direction,
       dialect: dialect,
       enrichment: enrichment,
       ignoreLeadingArticles: ignoreLeadingArticles,
@@ -551,7 +562,10 @@ class DanceRepository {
   /// Only the `(id, title)` of the already-filtered [ids] is fetched (via an
   /// `id IN (...)` restriction), so this scales with the result size rather
   /// than the whole library.
-  Future<List<String>> _sortByTitleIgnoringArticles(List<String> ids) async {
+  Future<List<String>> _sortByTitleIgnoringArticles(
+    List<String> ids, {
+    bool descending = false,
+  }) async {
     if (ids.isEmpty) return ids;
     final rows =
         await (_db.selectOnly(_db.dances)
@@ -565,16 +579,21 @@ class DanceRepository {
     final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
     final sorted = [...ids]
       ..sort((a, b) {
-        final cmp = (keys[a] ?? '').compareTo(keys[b] ?? '');
+        var cmp = (keys[a] ?? '').compareTo(keys[b] ?? '');
+        if (descending) cmp = -cmp;
         return cmp != 0 ? cmp : baseOrder[a]!.compareTo(baseOrder[b]!);
       });
     return sorted;
   }
 
-  Future<List<String>> _sortByAuthor(List<String> ids) async {
+  Future<List<String>> _sortByAuthor(
+    List<String> ids, {
+    bool descending = false,
+  }) async {
     if (ids.isEmpty) return ids;
-    // First author (position 0) name per dance; dances with no author sort
-    // first (empty name), matching Phase 3.1's Collection author sort.
+    // First author (position 0) name per dance; dances with no author have an
+    // empty key, so they sort first ascending / last descending, matching
+    // Phase 3.1's Collection author sort.
     final rows = await _db
         .customSelect(
           'SELECT dance_authors.dance_id AS dance_id, '
@@ -593,16 +612,21 @@ class DanceRepository {
     final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
     final sorted = [...ids]
       ..sort((a, b) {
-        final cmp = (names[a] ?? '').compareTo(names[b] ?? '');
+        var cmp = (names[a] ?? '').compareTo(names[b] ?? '');
+        if (descending) cmp = -cmp;
         return cmp != 0 ? cmp : baseOrder[a]!.compareTo(baseOrder[b]!);
       });
     return sorted;
   }
 
-  Future<List<String>> _sortByLastCalled(List<String> ids) async {
+  Future<List<String>> _sortByLastCalled(
+    List<String> ids, {
+    bool descending = true,
+  }) async {
     if (ids.isEmpty) return ids;
     // Mirrors ProgramRepository.lastCalledByDance(): most-recent performed_at
-    // per dance across non-deleted programs. Never-called dances sort last.
+    // per dance across non-deleted programs. Never-called dances sort last
+    // regardless of direction.
     final rows = await _db
         .customSelect(
           'SELECT program_slots.dance_id AS dance_id, '
@@ -629,7 +653,8 @@ class DanceRepository {
         if (ca == null && cb == null) return tie;
         if (ca == null) return 1;
         if (cb == null) return -1;
-        final cmp = cb.compareTo(ca);
+        // Default (descending) is most-recent-first; ascending is oldest-first.
+        final cmp = descending ? cb.compareTo(ca) : ca.compareTo(cb);
         return cmp != 0 ? cmp : tie;
       });
     return sorted;
