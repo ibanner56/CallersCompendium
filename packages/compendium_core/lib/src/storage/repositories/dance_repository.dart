@@ -488,7 +488,10 @@ class DanceRepository {
   ///
   /// [direction] flips the ordering; when omitted it resolves to the sort key's
   /// [SearchSortDirectionX.defaultDirection], preserving the historical order.
-  /// NULL/absent and never-called rows stay **last** regardless of direction.
+  /// For the timestamp, rating, composed-date, and last-called sorts,
+  /// NULL/absent/never-called rows stay **last** in both directions. The author
+  /// sort instead orders author-less dances by an empty key (so they sort first
+  /// ascending, last descending), matching Phase 3.1's Collection author sort.
   Future<List<String>> search(
     DanceFilter filter, {
     SearchSort sort = SearchSort.title,
