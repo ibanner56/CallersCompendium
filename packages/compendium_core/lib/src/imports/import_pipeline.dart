@@ -471,8 +471,10 @@ class ImportPipeline {
   /// source-specific: only callers that opt in (the archive/share receive path)
   /// use it, so the manual review flow and manual-import ambiguity are untouched.
   ///
-  /// Bounded: O(records × candidates) with one repository read per candidate;
-  /// the dedupe candidate list is already threshold-bounded, so there is no
+  /// Bounded: O(records × candidates), with at most one dance read per
+  /// candidate plus, only when the incoming dance declares author names, one
+  /// choreographer-name read per candidate to evaluate the author signal. The
+  /// dedupe candidate list is already threshold-bounded, so there is no
   /// pathological blow-up on a large or hostile batch.
   Future<Map<int, DedupeResolution>> autoResolveAmbiguous(
     ImportBatchResult batch, {
@@ -494,13 +496,18 @@ class ImportPipeline {
         // Exact normalized-title gate: a fuzzy-but-inexact title is never
         // confident (that is the "two different dances share a title" trap).
         if (normalizeTitle(existing.title) != incomingTitle) continue;
-        final existingAuthors = _normalizedAuthorSet(
-          await _authorNamesFor(existing),
-        );
-        final authorsMatch =
-            incomingAuthors.isNotEmpty &&
-            existingAuthors.isNotEmpty &&
-            _setEquals(incomingAuthors, existingAuthors);
+        // The author signal can only fire when the incoming dance declares
+        // authors, so skip the candidate's choreographer read entirely in the
+        // common no-author case and lean on content equality.
+        var authorsMatch = false;
+        if (incomingAuthors.isNotEmpty) {
+          final existingAuthors = _normalizedAuthorSet(
+            await _authorNamesFor(existing),
+          );
+          authorsMatch =
+              existingAuthors.isNotEmpty &&
+              _setEquals(incomingAuthors, existingAuthors);
+        }
         if (authorsMatch || _choreographyEquals(incoming, existing)) {
           linkTarget = candidate.danceId;
           break;
