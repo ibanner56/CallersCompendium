@@ -203,6 +203,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                         isAlt: widget.altDanceIds.contains(
                           matrix.rows[r].danceId,
                         ),
+                        half: matrix.rows[r].half,
                       ),
                   ],
                 ),
@@ -301,17 +302,21 @@ class _ColumnHeader extends StatelessWidget {
 }
 
 class _RowHeader extends StatelessWidget {
-  const _RowHeader({required this.title, required this.isAlt});
+  const _RowHeader({required this.title, required this.isAlt, this.half});
 
   final String title;
   final bool isAlt;
+  final ProgramHalf? half;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final halfLong = half == null ? '' : ', ${_halfLongLabel(half!)}';
     return Semantics(
       header: true,
-      label: isAlt ? 'Alternate dance: $title' : 'Dance: $title',
+      label: isAlt
+          ? 'Alternate dance: $title$halfLong'
+          : 'Dance: $title$halfLong',
       excludeSemantics: true,
       child: Container(
         width: ProgramMatrixTable.rowHeaderWidth,
@@ -331,12 +336,66 @@ class _RowHeader extends StatelessWidget {
               Text('ALT', style: theme.textTheme.labelSmall),
               const SizedBox(width: 6),
             ],
+            if (half != null) ...[
+              _HalfBadge(half: half!),
+              const SizedBox(width: 6),
+            ],
             Expanded(
               child: Text(
                 title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Short/long labels for a program [ProgramHalf], used by the matrix half
+/// badge (short) and its screen-reader semantics (long).
+String _halfShortLabel(ProgramHalf half) =>
+    half == ProgramHalf.first ? '1st' : '2nd';
+
+String _halfLongLabel(ProgramHalf half) =>
+    half == ProgramHalf.first ? 'first half' : 'second half';
+
+/// A "1st"/"2nd" program-half badge. Conveys the half with **icon + text**,
+/// never colour alone (WCAG 1.4.1); the surrounding [_RowHeader]/[_DanceChip]
+/// owns the screen-reader phrasing, so this badge excludes its own semantics.
+class _HalfBadge extends StatelessWidget {
+  const _HalfBadge({required this.half});
+
+  final ProgramHalf half;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ExcludeSemantics(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              half == ProgramHalf.first
+                  ? Icons.looks_one_outlined
+                  : Icons.looks_two_outlined,
+              size: 13,
+              color: theme.colorScheme.onTertiaryContainer,
+            ),
+            const SizedBox(width: 2),
+            Text(
+              _halfShortLabel(half),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onTertiaryContainer,
               ),
             ),
           ],
@@ -455,6 +514,7 @@ class _CompactMatrix extends StatelessWidget {
               first: matrix.isFirst(r, c),
               programDebut: matrix.isProgramDebut(r, c),
               isAlt: altDanceIds.contains(matrix.rows[r].danceId),
+              half: matrix.rows[r].half,
             ),
           );
         }
@@ -575,12 +635,14 @@ class _DanceUse {
     required this.first,
     required this.programDebut,
     required this.isAlt,
+    this.half,
   });
 
   final String title;
   final bool first;
   final bool programDebut;
   final bool isAlt;
+  final ProgramHalf? half;
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -664,6 +726,7 @@ class _MoveCard extends StatelessWidget {
                   first: d.first,
                   programDebut: d.programDebut,
                   isAlt: d.isAlt,
+                  half: d.half,
                 ),
             ],
           ),
@@ -680,6 +743,7 @@ class _DanceChip extends StatelessWidget {
     required this.first,
     required this.programDebut,
     required this.isAlt,
+    this.half,
   });
 
   final String danceTitle;
@@ -687,6 +751,7 @@ class _DanceChip extends StatelessWidget {
   final bool first;
   final bool programDebut;
   final bool isAlt;
+  final ProgramHalf? half;
 
   @override
   Widget build(BuildContext context) {
@@ -696,9 +761,15 @@ class _DanceChip extends StatelessWidget {
       first: first,
       programDebut: programDebut,
     );
-    // Preserve the grid's ALT distinction, which otherwise lives only in the
-    // wide row header, so it isn't lost on phones.
-    final who = isAlt ? '$danceTitle (alternate dance)' : danceTitle;
+    // Preserve the grid's ALT and half distinctions, which otherwise live only
+    // in the wide row header, so they aren't lost on phones.
+    final qualifiers = [
+      if (isAlt) 'alternate dance',
+      if (half != null) _halfLongLabel(half!),
+    ];
+    final who = qualifiers.isEmpty
+        ? danceTitle
+        : '$danceTitle (${qualifiers.join(', ')})';
     final IconData markIcon;
     final Color markColor;
     if (programDebut) {
@@ -738,6 +809,10 @@ class _DanceChip extends StatelessWidget {
             ],
             const SizedBox(width: 4),
             Text(danceTitle, style: theme.textTheme.labelMedium),
+            if (half != null) ...[
+              const SizedBox(width: 4),
+              _HalfBadge(half: half!),
+            ],
           ],
         ),
       ),

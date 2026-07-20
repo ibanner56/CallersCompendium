@@ -376,6 +376,31 @@ void main() {
     });
   });
 
+  group('buildProgramMatrix — half badge', () {
+    test('rows carry the aligned half; null when no halves passed', () {
+      final matrix = buildProgramMatrix([
+        dance('d1', 'A', [move('balance')]),
+        dance('d2', 'B', [move('balance')]),
+      ]);
+      expect(matrix.rows[0].half, isNull);
+      expect(matrix.rows[1].half, isNull);
+    });
+
+    test('half is populated from the parallel halves list', () {
+      final matrix = buildProgramMatrix(
+        [
+          dance('d1', 'A', [move('balance')]),
+          dance('d2', 'B', [move('balance')]),
+          dance('d3', 'C', [move('balance')]),
+        ],
+        halves: const [ProgramHalf.first, null, ProgramHalf.second],
+      );
+      expect(matrix.rows[0].half, ProgramHalf.first);
+      expect(matrix.rows[1].half, isNull);
+      expect(matrix.rows[2].half, ProgramHalf.second);
+    });
+  });
+
   group('matrixColumnLabel — split columns', () {
     MatrixColumn split(String base, String variant) => MatrixColumn(
       moveId: '$base:$variant',

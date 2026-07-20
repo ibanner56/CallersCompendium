@@ -389,4 +389,143 @@ void main() {
       expect(issues.single.message, contains('"x"'));
     });
   });
+
+  group('break recognition & derived half', () {
+    Program program(List<ProgramSlot> slots) => Program(
+      id: 'p1',
+      title: 'T',
+      slots: slots,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    ProgramSlot dance(String id, int pos) =>
+        ProgramSlot(id: id, position: pos, danceId: 'dance-$id');
+    ProgramSlot free(String id, int pos, String text) =>
+        ProgramSlot(id: id, position: pos, text: text);
+    ProgramSlot breakSlot(String id, int pos) =>
+        ProgramSlot(id: id, position: pos, text: Program.breakSlotText);
+
+    group('ProgramSlot.isBreak', () {
+      test('the canonical break token is a break', () {
+        expect(breakSlot('b', 0).isBreak, isTrue);
+      });
+
+      test('is case- and whitespace-insensitive on the token', () {
+        expect(free('b', 0, ' break ').isBreak, isTrue);
+        expect(free('b', 0, 'BREAK').isBreak, isTrue);
+        expect(free('b', 0, 'Break').isBreak, isTrue);
+      });
+
+      test('does not match other free text or partial tokens', () {
+        expect(free('b', 0, 'breakdown').isBreak, isFalse);
+        expect(free('b', 0, 'short break after this one').isBreak, isFalse);
+        expect(free('b', 0, 'Waltz').isBreak, isFalse);
+      });
+
+      test('a dance slot is never a break even if text says break', () {
+        expect(
+          ProgramSlot(
+            id: 'd',
+            position: 0,
+            danceId: 'd1',
+            text: 'break',
+          ).isBreak,
+          isFalse,
+        );
+      });
+    });
+
+    test('no break: no halves, no first-break index', () {
+      final p = program([dance('a', 0), dance('b', 1), free('n', 2, 'Waltz')]);
+      expect(p.hasBreak, isFalse);
+      expect(p.firstBreakSlotIndex, isNull);
+      expect(p.halfAtIndex(0), isNull);
+      expect(p.halfAtIndex(1), isNull);
+      expect(p.halfAtIndex(2), isNull);
+    });
+
+    test('break in the middle splits first/second, break slot is neither', () {
+      final p = program([
+        dance('a', 0),
+        dance('b', 1),
+        breakSlot('brk', 2),
+        dance('c', 3),
+        dance('d', 4),
+      ]);
+      expect(p.hasBreak, isTrue);
+      expect(p.firstBreakSlotIndex, 2);
+      expect(p.halfAtIndex(0), ProgramHalf.first);
+      expect(p.halfAtIndex(1), ProgramHalf.first);
+      expect(p.halfAtIndex(2), isNull);
+      expect(p.halfAtIndex(3), ProgramHalf.second);
+      expect(p.halfAtIndex(4), ProgramHalf.second);
+    });
+
+    test('break first: everything after is second half', () {
+      final p = program([breakSlot('brk', 0), dance('a', 1), dance('b', 2)]);
+      expect(p.firstBreakSlotIndex, 0);
+      expect(p.halfAtIndex(0), isNull);
+      expect(p.halfAtIndex(1), ProgramHalf.second);
+      expect(p.halfAtIndex(2), ProgramHalf.second);
+    });
+
+    test('break last: everything before is first half', () {
+      final p = program([dance('a', 0), dance('b', 1), breakSlot('brk', 2)]);
+      expect(p.firstBreakSlotIndex, 2);
+      expect(p.halfAtIndex(0), ProgramHalf.first);
+      expect(p.halfAtIndex(1), ProgramHalf.first);
+      expect(p.halfAtIndex(2), isNull);
+    });
+
+    test('multiple breaks: the FIRST break defines the halves', () {
+      final p = program([
+        dance('a', 0),
+        breakSlot('brk1', 1),
+        dance('b', 2),
+        breakSlot('brk2', 3),
+        dance('c', 4),
+      ]);
+      expect(p.firstBreakSlotIndex, 1);
+      expect(p.halfAtIndex(0), ProgramHalf.first);
+      expect(p.halfAtIndex(1), isNull);
+      // Everything after the first break — including the second break slot and
+      // slots beyond it — is the second half (except the break slot itself).
+      expect(p.halfAtIndex(2), ProgramHalf.second);
+      expect(p.halfAtIndex(3), isNull);
+      expect(p.halfAtIndex(4), ProgramHalf.second);
+    });
+
+    test('halfAtIndex is null for out-of-range indices', () {
+      final p = program([dance('a', 0), breakSlot('brk', 1), dance('b', 2)]);
+      expect(p.halfAtIndex(-1), isNull);
+      expect(p.halfAtIndex(3), isNull);
+    });
+
+    group('Program.halvesForSlots', () {
+      test('aligns to the slot list and matches halfAtIndex', () {
+        final slots = [
+          dance('a', 0),
+          dance('b', 1),
+          breakSlot('brk', 2),
+          dance('c', 3),
+        ];
+        expect(Program.halvesForSlots(slots), [
+          ProgramHalf.first,
+          ProgramHalf.first,
+          null,
+          ProgramHalf.second,
+        ]);
+      });
+
+      test('all null when there is no break', () {
+        final slots = [dance('a', 0), dance('b', 1)];
+        expect(Program.halvesForSlots(slots), [null, null]);
+      });
+
+      test('empty slot list yields empty halves', () {
+        expect(Program.halvesForSlots(const []), isEmpty);
+      });
+    });
+  });
 }

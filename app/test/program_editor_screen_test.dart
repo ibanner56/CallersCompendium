@@ -331,6 +331,28 @@ void main() {
     expect(saved.slots.single.danceId, isNull);
   });
 
+  testWidgets('one-tap insert break adds a canonical break slot', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    // No dialog: a single tap appends the break with the canonical text the
+    // half-derivation keys off, so the caller never hand-types "break".
+    await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots, hasLength(1));
+    expect(saved.slots.single.text, Program.breakSlotText);
+    expect(saved.slots.single.danceId, isNull);
+    expect(saved.slots.single.isBreak, isTrue);
+  });
+
   testWidgets('slot cards number primaries and mark alternates', (
     tester,
   ) async {
