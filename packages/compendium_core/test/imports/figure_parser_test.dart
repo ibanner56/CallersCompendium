@@ -184,6 +184,43 @@ void main() {
       'Form a wave': (move: 'form_a_short_wave', params: {}),
       'Form short waves': (move: 'form_a_short_wave', params: {}),
       'Form a short wave': (move: 'form_a_short_wave', params: {}),
+      // Issue #294 — TCB rotation-gate, the three corpus lines (verbatim from
+      // ibiblio thecallersbox JSON). The `(ones forward)` parenthetical is
+      // stripped for recognition; beats (8/6/4) are layered from the source, not
+      // emitted here. The ending facing is derived at render time, not parsed.
+      'Neighbor mirror gate 1 (ones forward)': (
+        move: 'rotation_gate',
+        params: {'who': 'neighbors', 'direction': 'mirror', 'turn': 1.0},
+      ),
+      'Partner gate counterclockwise 3/4': (
+        move: 'rotation_gate',
+        params: {
+          'who': 'partners',
+          'direction': 'counterclockwise',
+          'turn': 0.75,
+        },
+      ),
+      'N2 neighbor gate counterclockwise 1/2': (
+        move: 'rotation_gate',
+        params: {
+          'who': 'nextNeighbors',
+          'direction': 'counterclockwise',
+          'turn': 0.5,
+        },
+      ),
+      'N3 neighbor gate counterclockwise 1/2': (
+        move: 'rotation_gate',
+        params: {
+          'who': 'thirdNeighbors',
+          'direction': 'counterclockwise',
+          'turn': 0.5,
+        },
+      ),
+      // Clockwise gates are attested (rarer); the recognizer handles them too.
+      'Partner gate clockwise 1/2': (
+        move: 'rotation_gate',
+        params: {'who': 'partners', 'direction': 'clockwise', 'turn': 0.5},
+      ),
     };
 
     cases.forEach((line, expected) {
@@ -336,13 +373,17 @@ void main() {
       "Neighbor Rory O'More",
       // "square through" spelled out (TCB uses a digit count) stays custom.
       'square through four',
-      // gate: intentionally stays custom. Every surveyed TCB gate (62 lines)
-      // carries a clockwise/counterclockwise/mirror qualifier + turn fraction;
-      // ContraDB gate is facing-only (up/down/in/out, fixed 8 beats). The
-      // domains are DISJOINT (0/62 TCB lines map to `face`), so a `_gate`
-      // recognizer would match nothing or fabricate a `face` value the line
-      // never stated. For import fidelity it stays custom (dance id 519).
-      'N2 neighbor gate counterclockwise 1/2',
+      // gate: the ContraDB facing-gate stays custom (we do not recognize it),
+      // and a TCB rotation-gate line that does NOT fully resolve to
+      // (who, direction, turn) also stays custom — the recognizer never
+      // defaults a missing direction or fraction (issue #294). Fully-resolved
+      // rotation-gate lines ARE structured now (see the rotation_gate group).
+      'gate', // bare anchor: no direction, no fraction.
+      'Partner gate', // direction + fraction both missing.
+      'Neighbor gate up', // ContraDB facing value, not a rotation qualifier.
+      'Partner gate counterclockwise', // direction but no turn fraction.
+      'Partner gate 3/4', // turn fraction but no direction.
+      'Partner gate counterclockwise 3/4 and swing', // trailing second move.
       // A poussette with an unmappable leftover ("draw") stays custom.
       'Neighbor draw poussette clockwise 1/2',
       // "facing star" IS recognised now, but ONLY when BOTH the rotation

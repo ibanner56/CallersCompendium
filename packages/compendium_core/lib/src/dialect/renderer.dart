@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import '../taxonomy/gate_facing.dart';
 import '../taxonomy/move_def.dart';
 import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
@@ -510,6 +511,19 @@ class FigureRenderer {
     ).apply(text);
   }
 
+  /// Human phrasing for a derived rotation-gate ending facing (issue #294).
+  /// The facing token comes from [gateEndFacing]; an unexpected value humanizes
+  /// rather than blanking, surfacing malformed data.
+  static const Map<String, String> _gateFacingPhrases = {
+    'in': 'into the set',
+    'out': 'out of the set',
+    'up': 'up the hall',
+    'down': 'down the hall',
+  };
+
+  static String _gateFacingPhrase(String facing) =>
+      _gateFacingPhrases[facing] ?? _humanize(facing);
+
   /// ContraDB `libfigure` down/up-the-hall ender wording
   /// (`param.js` `stringParamDownTheHallEnder`), keyed by our taxonomy token.
   /// `none` is intentionally absent (renders no clause). `bendTheLine` is a
@@ -605,6 +619,37 @@ class FigureRenderer {
   /// through [_displayDancer] (dialect-aware + PR1 singularization); move names
   /// through [_renderMoveName].
   static final Map<String, _DisplayBaseRenderer> _displayBaseRenderers = {
+    // TCB rotation-gate (issue #294). Word order: `mirror` reads as a modifier
+    // BEFORE the move ("mirror gate"); clockwise/counterclockwise read AFTER it
+    // ("gate counterclockwise"). The ending facing is DERIVED (never authored):
+    // [gateEndFacing] appends a "to face …" clause ONLY when the geometry
+    // resolves unambiguously, so a convention-dependent 90°/270° turn simply
+    // shows no facing clause rather than a fabricated one. Canonical render is
+    // unaffected (it keeps expanding the template — no reorder, no facing).
+    'rotation_gate': (r, def, params, dialect, verbose) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final swho = r._displaySubject(params['who'], dialect);
+      final directionRaw = params['direction'];
+      final direction = directionRaw is String ? directionRaw : '';
+      final turnRaw = params['turn'];
+      final turn = turnRaw is num
+          ? (verbose
+                ? _formatRotationVerbose(turnRaw)
+                : _formatRotation(turnRaw))
+          : _displayScalar(turnRaw);
+      // An unexpected direction value humanizes after the move (surfacing
+      // malformed data) rather than silently vanishing.
+      final head = direction == 'mirror'
+          ? '$swho mirror $move $turn'
+          : '$swho $move ${direction.isEmpty ? '' : '$direction '}$turn';
+      final facing = (directionRaw is String && turnRaw is num)
+          ? gateEndFacing(direction: directionRaw, turn: turnRaw)
+          : null;
+      final facingClause = facing == null
+          ? ''
+          : ' to face ${_gateFacingPhrase(facing)}';
+      return '$head$facingClause';
+    },
     // ContraDB `zigZagWords`: words(twho, "zig", sspin, "zag", return_sspin, …).
     // The zag direction is the mirror of the zig (`turn`) direction. ContraDB
     // omits the partners subject; per the ratified decision we instead surface

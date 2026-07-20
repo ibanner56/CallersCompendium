@@ -8,13 +8,14 @@ import 'package:test/test.dart';
 /// now mirrors `california_twirl` (who + beats only, no balance) per product
 /// decision. v14: the legacy `form_an_ocean_wave` MoveDef was removed (its #290
 /// split replacements remain), with stored figures migrated by schema v12.
+/// v15: adds the TCB rotation-gate figure kind `rotation_gate` (issue #294).
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('contraTaxonomyVersion is 14', () {
-    expect(contraTaxonomyVersion, 14);
-    expect(tax.version, 14);
+  test('contraTaxonomyVersion is 15', () {
+    expect(contraTaxonomyVersion, 15);
+    expect(tax.version, 15);
   });
 
   group('box_circulate', () {

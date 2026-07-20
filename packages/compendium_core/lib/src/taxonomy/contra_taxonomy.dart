@@ -59,7 +59,17 @@ import 'taxonomy.dart';
 ///     `passThru` is true — its default) or `form_a_short_wave` (when false),
 ///     carrying the remaining params. This is a DB migration (distinct from
 ///     this taxonomy version), the sanctioned canonical-changing exception.
-const int contraTaxonomyVersion = 14;
+/// v15: adds the TCB rotation-gate figure kind `rotation_gate` (issue #294,
+///     Option B). A NEW move — distinct from the ContraDB `gate` (the two
+///     vocabularies are disjoint) — carrying `direction`
+///     (clockwise/counterclockwise/mirror) + a `turn` fraction over a VARIABLE
+///     beat count. Its resulting facing is derived deterministically at render
+///     time (gate_facing.dart), never stored. Purely additive taxonomy change:
+///     no existing figure's derived output changes, and distinct from
+///     CompendiumDatabase.schemaVersion — NO persisted-data migration is implied
+///     (new figures serialize under the existing figure codec; stored figures
+///     are untouched).
+const int contraTaxonomyVersion = 15;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -458,6 +468,47 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{who} {move} {whom} {face}',
       goodBeats: [8],
+    ),
+    // --- Issue #294: TCB rotation-gate (Option B, product-owner accepted) ---
+    // A DISTINCT figure kind from the ContraDB `gate` above — the two "gate"
+    // vocabularies are disjoint (0/62 surveyed TCB gate lines map to `face`; see
+    // figure_parser_test.dart and PR #271). ContraDB `gate` encodes a *facing*
+    // (up/down/in/out) at a fixed 8 beats; TCB `gate` encodes a *rotation*
+    // (clockwise / counterclockwise / mirror + a turn fraction) over a VARIABLE
+    // beat count (attested 4 / 6 / 8). Modeling this as `face` would fabricate a
+    // facing the source never stated, so it is its own move.
+    //
+    // The tuple is (who, direction, turn, beats, resulting-facing). The
+    // resulting facing is NOT a stored param: it is DERIVED deterministically
+    // from (start-orientation, direction, turn) by [gateEndFacing] at render
+    // time, so it can never be free-typed, fabricated, or drift from the
+    // geometry (see gate_facing.dart).
+    const MoveDef(
+      id: 'rotation_gate',
+      displayName: 'gate',
+      params: {
+        // role/pair being gated (Partner, Neighbor, N2/N3 neighbor, …).
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        // TCB rotation qualifier. A dedicated choice (NOT ParamKind.spinDirection,
+        // which is cw/ccw only and cannot express the two-couple `mirror` gate).
+        'direction': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'counterclockwise',
+          choices: ['clockwise', 'counterclockwise', 'mirror'],
+        ),
+        // Turn fraction, reusing ParamKind.rotation (turns, quarter steps):
+        // 1/2 -> 0.5, 3/4 -> 0.75, full 1 -> 1.0.
+        'turn': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
+        // Variable as authored; the source line's beat count is layered on by
+        // the parser. The default only applies to a beats-absent line.
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      // Canonical (byte-stable) line. The display renderer rewords `mirror`
+      // ahead of the move name and appends the derived facing clause
+      // (see renderer.dart `_displayBaseRenderers`); canonical stays template-driven.
+      renderTemplate: '{who} {move} {direction} {turn}',
+      searchKeywords: ['rotation gate', 'mirror gate'],
+      goodBeats: [4, 6, 8],
     ),
     const MoveDef(
       id: 'give_and_take',

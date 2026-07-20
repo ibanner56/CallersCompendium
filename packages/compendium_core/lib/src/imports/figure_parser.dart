@@ -545,12 +545,14 @@ final List<_Recognizer> _recognizers = [
   _contraCorners,
   _giveAndTake,
   _poussette,
-  // No `_gate` recognizer — deliberately. TCB gate = clockwise or
-  // counterclockwise or mirror + turn fraction (+ optional which-pair-forward
-  // note); ContraDB gate = facing up/down/in/out, fixed 8 beats. The domains are
-  // disjoint (0/62 surveyed TCB gate lines map to `face`), so a recognizer would
-  // match nothing or fabricate a `face` the line never stated. For import
-  // fidelity, TCB gate stays custom until a source-backed model exists.
+  // TCB rotation-gate (issue #294, Option B). A DISTINCT figure from the
+  // ContraDB `gate` (facing up/down/in/out, fixed 8 beats), which we still do
+  // NOT recognize: the domains are disjoint (0/62 surveyed TCB gate lines map to
+  // `face`), so reusing `face` would fabricate a facing the line never stated.
+  // This recognizer structures ONLY a gate line that fully resolves to
+  // (who, direction, turn); the ending facing is derived at render time
+  // (gate_facing.dart), never parsed. Anything that doesn't resolve stays custom.
+  _rotationGate,
   _californiaTwirl,
   _weaveTheLine,
   _squareThrough,
@@ -702,6 +704,55 @@ _Match? _boxCirculate(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('box_circulate', {'who': who2 ?? 'partners'});
+}
+
+// Takes a TCB rotation-gate direction token (clockwise/cw, counterclockwise/ccw
+// /anticlockwise, or mirror) from anywhere in [w], returning the canonical
+// `direction` choice token, or null if none is present.
+String? _takeGateDirection(List<String> w) {
+  for (var i = 0; i < w.length; i++) {
+    switch (w[i]) {
+      case 'clockwise':
+      case 'cw':
+        w.removeAt(i);
+        return 'clockwise';
+      case 'counterclockwise':
+      case 'anticlockwise':
+      case 'ccw':
+        w.removeAt(i);
+        return 'counterclockwise';
+      case 'mirror':
+        w.removeAt(i);
+        return 'mirror';
+    }
+  }
+  return null;
+}
+
+// TCB rotation-gate (issue #294). Structures a gate line ONLY when it fully
+// resolves to the tuple (who, direction, turn): the `gate` anchor, a rotation
+// direction, and a turn fraction, with nothing left over. A bare "gate", a
+// missing direction or fraction, adversarial tokens, or trailing prose all
+// yield null so the line degrades to a faithful custom figure (never a throw,
+// never a fabricated facing). The `(ones forward)`/`(NR)` parentheticals are
+// dropped by `_normalize` for recognition and survive only on the custom
+// fallback. Beats are layered on from the source line (variable 4/6/8), not here.
+// The ending facing is DERIVED at render time (gate_facing.dart), never parsed.
+_Match? _rotationGate(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['gate'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  final direction = _takeGateDirection(w);
+  if (direction == null) return null;
+  final turn = _takeRotation(w);
+  if (turn == null) return null;
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('rotation_gate', {
+    'who': who2 ?? 'neighbors',
+    'direction': direction,
+    'turn': turn,
+  });
 }
 
 // `star through`: mirrors california_twirl — who only, no `balance` param,
