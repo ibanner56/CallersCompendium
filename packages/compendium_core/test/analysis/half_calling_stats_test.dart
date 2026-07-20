@@ -3,6 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   var seq = 0;
+  setUp(() => seq = 0);
 
   ProgramSlot danceSlot(
     String danceId, {

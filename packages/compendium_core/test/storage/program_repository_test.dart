@@ -686,8 +686,11 @@ void main() {
       ),
     );
 
-    ProgramSlot breakSlot(int position) =>
-        ProgramSlot(id: 'b$position', position: position, text: 'Break');
+    ProgramSlot breakSlot(int position) => ProgramSlot(
+      id: 'b$position',
+      position: position,
+      text: Program.breakSlotText,
+    );
 
     test('is empty when the dance is in no program', () async {
       await makeDance('d1');
@@ -736,7 +739,11 @@ void main() {
           slots: [
             ProgramSlot(id: 'c0', position: 0, danceId: 'd2'),
             ProgramSlot(id: 'c1', position: 1, danceId: 'd1'),
-            ProgramSlot(id: 'c2break', position: 2, text: 'Break'),
+            ProgramSlot(
+              id: 'c2break',
+              position: 2,
+              text: Program.breakSlotText,
+            ),
             ProgramSlot(id: 'c3', position: 3, danceId: 'd2'),
           ],
         ),

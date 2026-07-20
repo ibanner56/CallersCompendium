@@ -1528,7 +1528,7 @@ void main() {
           slots: [
             ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
             ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
-            ProgramSlot(id: 'sbreak', position: 2, text: 'Break'),
+            ProgramSlot(id: 'sbreak', position: 2, text: Program.breakSlotText),
             ProgramSlot(id: 's3', position: 3, danceId: 'd1'),
           ],
         ),
@@ -1592,7 +1592,7 @@ void main() {
           id: 'p1',
           slots: [
             ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
-            ProgramSlot(id: 'sbreak', position: 1, text: 'Break'),
+            ProgramSlot(id: 'sbreak', position: 1, text: Program.breakSlotText),
             ProgramSlot(id: 's2', position: 2, danceId: 'd2'),
             ProgramSlot(id: 's3', position: 3, danceId: 'd1'),
           ],
