@@ -104,6 +104,28 @@ through the review queue; it does not replace what you already have. To move an
 entire library and replace what is on a device, use **Restore** instead — see
 below.
 
+### Open a shared program someone sent you
+
+If another caller shares a **program bundle** with you — the
+**Share (program + dances)** file described in
+[Programs & matrix](./programs.md#print-export-and-email-a-program) — you don't
+have to go through **Settings › Import** by hand. Caller's Compendium registers
+itself as a place that can open those files, so you can just **open the file**:
+AirDrop it (on a Mac, iPhone, or iPad), use your system's **Open with** /
+**Share** menu, or tap it wherever it arrives. The app launches, imports the
+program and every dance it references, and **opens the program for you**
+automatically.
+
+This intake is deliberately safe: the file is treated as untrusted input (it's
+size-checked and validated against the expected format, and a bad file is turned
+away with a message rather than doing any harm), and it's **identity-first** —
+dances and programs you already have are matched and updated, never duplicated.
+Because it opens straight into the program, this path doesn't stop at the
+step-by-step review queue the way a manual import does. Nothing is ever deleted:
+dances and programs you already have are updated in place rather than
+duplicated, brand-new material is added, and if anything couldn't be matched the
+app tells you.
+
 ## Bring your library across from Caller's Companion
 
 Moving from **Caller's Companion**? Caller's Compendium can read its exported

@@ -545,15 +545,17 @@ taxonomy are unchanged.
       phase brief.
     - `Set`/`SetItem` → `Program` **builder** (`buildCcPrograms`) delivered and
       **real-file-validated for FK linkage** — it joins on CC's own field values
-      `zk_Set_ID`/`zk_Dance_ID`, not the FileMaker record ids — but the
-      **app-layer program persistence/undo wiring is still a follow-up**
-      (`ImportPipeline` is dance-only), a key reason this box stays open.
+      `zk_Set_ID`/`zk_Dance_ID`, not the FileMaker record ids. The **app-layer
+      program persistence + undo wiring is now delivered** (#273):
+      `CallersCompanionUsrImporter` commits the built programs alongside the
+      dances in the same review/commit flow and rolls them back on undo, and
+      **program provenance dedupe** landed (#284) so re-importing updates existing
+      programs instead of duplicating them.
     - Honest caveats keeping 6.5 open: the free-text figure → `custom` scrub is
       **unvalidated against real figure data** (the sample library has no
-      `A1`–`B2`/`Moves` notation); `Author`/`Venue`/`Term`/`Dance_Related`
+      `A1`–`B2`/`Moves` notation); and `Author`/`Venue`/`Term`/`Dance_Related`
       tables are confirmed present in the real file but their entity resolution
-      is **deferred** (no models yet); program provenance/dedupe **deferred**
-      (the `Program` model has no `provenance` field).
+      is **deferred** (no models yet).
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
@@ -561,11 +563,22 @@ taxonomy are unchanged.
     `CompendiumArchive` JSON **per dance** through the standard import pipeline
     (discover → fetch → parse → dedupe → commit). App-side wiring / review-queue
     UI now delivered under 6.3, making JSON import user-reachable end to end.
+  - **Program sharing between devices delivered** (send #339; receive #298/#361):
+    a program can be shared as one self-contained `CompendiumArchive` bundle that
+    carries the program *and* every dance it references, handed to the OS share
+    sheet (AirDrop on Apple platforms, share intent elsewhere). The app is also a
+    **share target** — opening a received bundle (AirDrop / "Open with" / share
+    intent) launches the app, imports the program and its dances through the
+    shared import/commit pipeline (identity-first dedupe, untrusted-input
+    validation) and auto-opens the program without stopping at the step-by-step
+    review queue. Platform intake wiring:
+    iOS declares `LSSupportsOpeningDocumentsInPlace` for the share-import type
+    (#372); macOS routes incoming files through a native bridge (#361/#377).
 
 ## Phase 7 — Release
 
 - [ ] 7.1 Packaging/signing for all platforms; update channel
-  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run), but **desktop** builds still ship **unsigned** (deferred signing wave) and update-manifest hosting still awaits enabling GitHub Pages. The **first public beta is cut** — `v0.1.0-beta.1` is published on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases) with desktop + Android assets, and `v0.1.0-beta.2` is tagged to follow (it unifies the Android application id — see the CHANGELOG for the one-time reinstall note).
+  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run) and **macOS release builds are now signed with a Developer ID and notarized**, but **Windows and Linux** desktop builds still ship **unsigned** (deferred signing wave) and update-manifest hosting still awaits enabling GitHub Pages. The **first public beta is shipping** — `v0.1.0-beta.1` (desktop + Android) and `v0.1.0-beta.2` are published on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases); beta.2 adds a **signed + notarized macOS** build, an **iOS build delivered to TestFlight testers**, wider imports, program sharing, and a large figure-text display-parity pass (see the CHANGELOG, including the one-time Android reinstall note for the unified application id).
   - **Delivered**
     - Reusable CI (`_checks.yml` via `workflow_call`) with a thin `ci.yml` caller (#228).
     - Release pipeline `release.yml` (#230): a `v*` tag reuses the checks gate, then a build matrix produces a **draft** GitHub Release of **unsigned** desktop artifacts — Linux x64 (AppImage + tar.gz), macOS universal (dmg + zip), Windows x64 (installer + zip) — under deterministic `CallersCompendium-<ver>-<platform>-<arch>.<ext>` names, plus a `SHA256SUMS` manifest, keyless SLSA build-provenance + artifact attestation, and the per-channel `stable.json` / `beta.json` update manifests. Least-privilege (global `contents: read`; only the publish job elevates), canonical-repo + tag guards, SHA-pinned actions.
@@ -575,12 +588,13 @@ taxonomy are unchanged.
     - **Stage 1.5** assisted download (A11b, #250): desktop-only, user-initiated download → mandatory sha256 verify → OS handoff (mobile stays link-only); fails loudly on every path.
     - Update-manifest hosting (A11c, #249): the pipeline publishes each channel's manifest to a persistent `gh-pages` branch (cross-channel-preserving; [releasing.md](dev/releasing.md#publishing-the-update-manifest-github-pages)).
     - Android release signing **complete**: Gradle `release` `signingConfig` from `key.properties` with a debug fallback in `app/android/app/build.gradle.kts` (#244) + a `release.yml` build+sign+stage universal-APK leg (#251). The upload keystore and all four `ANDROID_*` CI secrets are now configured, and a release run built + signed `CallersCompendium-<ver>-android-universal.apk` end-to-end (the JDK-21 fix in #265 keeps release lint enabled). Users can sideload the signed APK from GitHub Releases — no Play Store required.
-    - iOS release signing + TestFlight leg **wired** (gated on the Apple API-key secrets, which are configured): a `release.yml` iOS leg (`macos-latest`) archives + signs an App Store `.ipa` using **automatic signing driven by an App Store Connect API key** (App Manager role — **no manual cert or provisioning profile**) and uploads it to **TestFlight** via `xcrun altool --upload-app`. The `CFBundleVersion` is a monotonic `GITHUB_RUN_NUMBER` (TestFlight rejects duplicates; `pubspec.yaml` untouched), and the upload is gated to **real `v*` tags** (a `workflow_dispatch` builds + signs for validation but never uploads). iOS is **store-delivered** — the `.ipa` is not a GitHub Release asset / `SHA256SUMS` / manifest entry. Targets **iPhone + iPad**; first channel is internal TestFlight (no Beta App Review). The build/sign path validates on dispatch; the real upload runs on the next tag. See [releasing.md](dev/releasing.md#ios-testflight-via-app-store-connect-api).
+    - iOS release signing + TestFlight leg **wired** (gated on the Apple API-key secrets, which are configured): a `release.yml` iOS leg (`macos-latest`) archives + signs an App Store `.ipa` using **automatic signing driven by an App Store Connect API key** (App Manager role — **no manual cert or provisioning profile**) and uploads it to **TestFlight** via `xcrun altool --upload-app`. The `CFBundleVersion` is a monotonic `GITHUB_RUN_NUMBER` (TestFlight rejects duplicates; `pubspec.yaml` untouched), and the upload is gated to **real `v*` tags** (a `workflow_dispatch` builds + signs for validation but never uploads). iOS is **store-delivered** — the `.ipa` is not a GitHub Release asset / `SHA256SUMS` / manifest entry. Targets **iPhone + iPad**; first channel is internal TestFlight (no Beta App Review). **Now live:** beta.2 was archived, signed, and uploaded to TestFlight, and invited testers are running the iOS/iPadOS build (bug reports have come in against `0.1.0` on iOS). See [releasing.md](dev/releasing.md#ios-testflight-via-app-store-connect-api).
+    - **macOS Developer ID signing + notarization delivered** (#311, notarization wait bounded in #329): the `release.yml` macOS leg signs the universal build with an Apple Developer ID and notarizes it (gated on the configured Apple secrets), so the macOS `.dmg`/`.zip` now open without the Gatekeeper right-click workaround. Shipped in beta.2.
   - **Remaining (maintainer — one-time, $0)**
     - Enable GitHub Pages (Deploy from a branch → `gh-pages` → `/ (root)`); the in-app update client 404s gracefully until then.
     - Document Android upload-keystore custody (owner, secure backup, rotation policy) — the key is generated and wired into CI, so this is governance, not a build blocker (see [ADR-002](adr/002-distribution-and-update-channels.md) §6).
   - **Deferred** (later signing wave — needs paid developer accounts / a decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
-    - macOS Developer ID signing + notarization, Windows Authenticode/Store (MSIX) signing — desktop currently ships UNSIGNED, so users bypass OS trust prompts manually. (iOS distribution via TestFlight is now wired — see **Delivered** above.)
+    - Windows Authenticode/Store (MSIX) signing — Windows and Linux desktop currently ship UNSIGNED, so users bypass OS trust prompts manually. (macOS is now signed + notarized and iOS is distributed via TestFlight — see **Delivered** above.)
     - Optional store distribution (Google Play, F-Droid, Flathub).
     - Reconcile the bundle-id mismatch — **done**: all platforms now unify on the Apple form `org.callerscompendium.compendiumApp` (Android `applicationId`/namespace + Linux `APPLICATION_ID` updated to match; Apple was already the target and is the source of truth, since Apple bundle IDs disallow underscores).
 - [ ] 7.2 User documentation

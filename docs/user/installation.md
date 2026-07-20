@@ -21,10 +21,12 @@ This is a **pre-release beta**. It may be a little rough in places, and that's
 the point: you're among the first callers to use it for real, and what you run
 into shapes the finished 1.0. Two things worth knowing before you begin:
 
-- **The builds aren't code-signed yet.** Because of that, your operating system
-  shows a caution the first time you open the app. The builds are fine — signing
-  is a paid step planned for a later release. The steps below show you exactly
-  how to get past that prompt on each platform.
+- **Signing varies by platform.** The **macOS** build is now signed with an Apple
+  Developer ID and notarized, so it opens normally. **Windows** and **Linux**
+  builds aren't code-signed yet, so those operating systems show a caution the
+  first time you open the app — the builds are fine, and signing is a step planned
+  for a later release. The steps below show you exactly how to get past that
+  prompt where it appears.
 - **Keep a backup habit.** Since your work lives on your own device, it's worth
   exporting a backup now and then — especially during a beta. You can do this any
   time from **Settings › General**; see [Backup & portability](./backup-portability.md).
@@ -73,9 +75,9 @@ macOS has one universal download that runs on both Intel and Apple Silicon Macs.
 - **Disk image** (`...-macos-universal.dmg`) — the usual way.
   1. Open the downloaded `.dmg`.
   2. Drag the Caller's Compendium app onto your **Applications** folder.
-  3. Open the app from **Applications**. The first time, follow
-     [The first-time security warning](#the-first-time-security-warning-explained)
-     below — a plain double-click may refuse until you do.
+  3. Open the app from **Applications**. Because the macOS build is signed and
+     notarized, it opens normally — you may just see a single confirmation the
+     first time.
 - **Archive** (`...-macos-universal.zip`) — unzip it and move the app wherever
   you keep your applications, then open it the same way.
 
@@ -116,22 +118,28 @@ yet, so you install this file directly (sometimes called *sideloading*).
 
 ## On iPhone and iPad
 
-There isn't an iPhone or iPad version in this beta yet. An **iOS/iPadOS** build
-is planned for a later release. If you call from an iPhone or iPad, hold tight —
-and in the meantime you're welcome to try the app on a Linux, macOS, Windows, or
-Android device.
+The iOS/iPadOS build is delivered through **TestFlight**, Apple's app for beta
+testing — not from the Releases page above. Because it's an early beta, it goes
+out to **invited testers** rather than the public App Store.
+
+1. Ask to join the beta (see [Feedback & beta](../beta/beta-guide.md), or reach
+   out through the project's contact links). If you're added, you'll get a
+   TestFlight invitation by email or a link.
+2. Install **TestFlight** from the App Store if you don't have it.
+3. Open the invitation, accept it in TestFlight, and install Caller's Compendium
+   from there. TestFlight handles updates for you when a new beta lands.
+
+It runs on both iPhone and iPad.
 
 ## The first-time security warning, explained
 
-The beta builds aren't code-signed yet, so the first time you open the app your
-operating system shows a caution. Nothing is wrong with the download — signing
-is a paid step planned for a later release. Here's how to get past the prompt on
-each platform.
+The **Windows** and **Linux** builds aren't code-signed yet, so the first time
+you open the app your operating system may show a caution. Nothing is wrong with
+the download — signing is a step planned for a later release. (The **macOS**
+build is signed and notarized, so it opens normally, and **iOS** comes through
+TestFlight, which needs no workaround.) Here's how to get past the prompt where
+it appears.
 
-- **macOS (Gatekeeper).** Instead of double-clicking, right-click (or
-  Control-click) the app and choose **Open**. In the dialog that appears, choose
-  **Open** again to confirm. You only need to do this once; after that the app
-  opens normally.
 - **Windows (SmartScreen).** On the blue **Windows protected your PC** prompt,
   choose **More info**, then choose **Run anyway**.
 - **Linux.** There's no signing prompt to bypass. Just make sure the AppImage is

@@ -95,8 +95,10 @@ Packaged beta builds are ready on the
 [Releases page](https://github.com/ibanner56/CallersCompendium/releases). The
 [Installation guide](../user/installation.md) walks you through downloading and
 opening the app on Linux, macOS, Windows, and Android — including the first-time
-security warning you will see, because the desktop builds are not code-signed yet.
-There is no iPhone or iPad build in this beta.
+security warning you will see on the **Windows and Linux** builds, which aren't
+code-signed yet (macOS is signed and notarized, so it opens normally). The
+**iPhone/iPad** build is delivered through **TestFlight** to invited testers —
+ask in the beta channels if you'd like in.
 
 Prefer to run from source, or want to help with the code? The
 [Getting started section of CONTRIBUTING.md](../../CONTRIBUTING.md#getting-started)

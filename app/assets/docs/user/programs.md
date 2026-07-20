@@ -185,9 +185,12 @@ menu. You can export or print a program as:
 You can also **Share (program + dances)** — this writes one Caller's Compendium
 file that holds the program *and* every dance it uses, so another caller can
 import the whole thing and get the dances too, not just a list of titles. It is
-the same `.json` format the app uses everywhere else, and it comes in through the
-ordinary [import review](./imports.md#review-before-anything-changes) queue on the
-other end.
+the same `.json` format the app uses everywhere else. On the other end, the
+recipient can simply **open the file** (AirDrop, "Open with", or a share intent)
+and Caller's Compendium imports the program and its dances and opens it
+automatically — or they can bring it in from **Settings › Import** like any other
+file. Either way, matching dances they already have are updated, not duplicated.
+See [Open a shared program someone sent you](./imports.md#open-a-shared-program-someone-sent-you).
 
 As with a single dance, the text and PDF exports follow your
 [dialect](./dialects.md), so the wording matches how you — or whoever you are

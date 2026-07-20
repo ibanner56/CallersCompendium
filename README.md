@@ -14,8 +14,10 @@ Squares) callers — on desktop, tablet, and phone.
 > pick the newest release (marked *Pre-release*) and expand its **Assets** for
 > Linux, macOS, Windows, and Android. Not sure which file to grab, or hitting the
 > first-launch security prompt? The
-> [Installation guide](docs/user/installation.md) walks you through it. An
-> iPhone/iPad build is still to come. See [docs/ROADMAP.md](docs/ROADMAP.md) for
+> [Installation guide](docs/user/installation.md) walks you through it. **iPhone
+> and iPad** builds are delivered through **TestFlight** to invited testers rather
+> than the Releases page; the macOS build is now signed and notarized (Linux and
+> Windows remain unsigned). See [docs/ROADMAP.md](docs/ROADMAP.md) for
 > the detailed, item-by-item status.
 
 ## What it does
@@ -27,7 +29,8 @@ Squares) callers — on desktop, tablet, and phone.
   with alternate dances, free-text slots, and a programming matrix computed from
   the choreography itself. Build a program from a plain-text title list or
   straight from a ContraDB event, and share a program together with all the
-  dances it uses. _(built)_
+  dances it uses — or open one you've been sent (AirDrop, "Open with", or a share
+  intent) to import the whole program and its dances in one step. _(built)_
 - **Performance mode** — a large-print, high-contrast, stage-ready calling
   view with wake-lock, program navigation, on-the-fly adjustments, and
   screen-reader-friendly figure rendering. _(built)_
