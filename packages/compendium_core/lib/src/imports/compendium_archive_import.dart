@@ -340,11 +340,22 @@ class CompendiumArchiveImporter {
     );
   }
 
-  /// Convenience end-to-end import of an [archiveJson] payload: [plan]s and
-  /// [commit]s in one call using default dedupe handling (ambiguous records are
-  /// skipped, never guessed — the pipeline default). The app's frictionless
-  /// intake uses this; a review flow could instead call [plan]/[commit]
-  /// separately to let the user resolve ambiguous dances.
+  /// Convenience end-to-end import of an [archiveJson] payload: [plan]s the
+  /// dances, then automatically resolves any **ambiguous** dedupe verdicts for
+  /// this frictionless, non-interactive receive path and [commit]s.
+  ///
+  /// Unlike the manual review flow (which calls [plan]/[commit] separately and
+  /// lets the user adjudicate), a received bundle has no user present, so an
+  /// ambiguous incoming dance must never be silently skipped — that is exactly
+  /// what left every referencing program slot as a `Dance not imported (…)`
+  /// placeholder. Instead, [ImportPipeline.autoResolveAmbiguous] **links** each
+  /// ambiguous dance to an existing one on a *confident* match (reusing the
+  /// dance the receiver already has) or **duplicates** it as a new dance
+  /// otherwise, so the program slot always resolves. Exact `(source,
+  /// externalId)` re-imports and brand-new dances are unaffected.
+  ///
+  /// The receiver cannot resolve the sender's author ids, so incoming author
+  /// names are read from the bundle's own [CompendiumArchive.choreographers].
   Future<CompendiumArchiveImportResult> import(
     String archiveJson,
     CompendiumArchive archive, {
@@ -353,7 +364,24 @@ class CompendiumArchiveImporter {
     String Function()? newSlotId,
   }) async {
     final batch = await plan(archiveJson);
-    return commit(batch, archive, now: now, newId: newId, newSlotId: newSlotId);
+    final authorNameById = <String, String>{
+      for (final c in archive.choreographers) c.id: c.name,
+    };
+    final resolutions = await _pipeline.autoResolveAmbiguous(
+      batch,
+      authorNamesOf: (dance) => [
+        for (final id in dance.authorIds)
+          if (authorNameById[id] != null) authorNameById[id]!,
+      ],
+    );
+    return commit(
+      batch,
+      archive,
+      now: now,
+      newId: newId,
+      newSlotId: newSlotId,
+      resolutions: resolutions,
+    );
   }
 
   /// Reverts a committed [result]: hard-deletes the **inserted** programs (slots

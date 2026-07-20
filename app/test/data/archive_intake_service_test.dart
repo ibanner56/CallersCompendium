@@ -36,6 +36,18 @@ String _validBundleJson({int schemaVersion = archiveSchemaVersion}) {
 
 Uint8List _bytes(String s) => Uint8List.fromList(utf8.encode(s));
 
+Figure _fig(String move, {int beats = 8}) =>
+    Figure(move: move, params: {'beats': beats});
+
+Dance _danceWith(String id, String title, {List<Figure> figures = const []}) =>
+    Dance(
+      id: id,
+      title: title,
+      figures: figures,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+    );
+
 void main() {
   late CompendiumRepositories repos;
 
@@ -79,6 +91,118 @@ void main() {
       expect(result.isImported, isTrue);
       expect(await repos.programs.listAll(), hasLength(1));
     });
+
+    test(
+      'a slot whose dance the receiver already has (ambiguous match, no shared '
+      'externalId) resolves to the existing dance — no "Dance not imported"',
+      () async {
+        // Regression for issue #298 lineage: the receiver already holds an
+        // independent copy (different id, NO shared externalId) with identical
+        // content. Before the fix the ambiguous dance was skipped and the slot
+        // degraded to a "Dance not imported (…)" placeholder.
+        final figures = [
+          _fig('balance_and_swing', beats: 16),
+          _fig('circle_left'),
+        ];
+        await repos.dances.create(
+          _danceWith('recv-d1', 'Simplicity Swing', figures: figures),
+        );
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [_danceWith('orig-d1', 'Simplicity Swing', figures: figures)],
+          programs: [
+            Program(
+              id: 'p1',
+              title: 'Spring Fling',
+              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'orig-d1')],
+              createdAt: DateTime.utc(2026, 4, 1),
+              updatedAt: DateTime.utc(2026, 4, 1),
+            ),
+          ],
+        );
+
+        final result = await service().importBytes(
+          _bytes(encodeArchive(archive)),
+        );
+
+        expect(result.isImported, isTrue);
+        // No new duplicate; the slot points at the existing dance.
+        expect(await repos.dances.listAll(), hasLength(1));
+        final program = (await repos.programs.listAll()).single;
+        expect(program.slots.single.danceId, 'recv-d1');
+        expect(
+          result.issues.where(
+            (i) => i.code == 'archive_program_unresolved_dance',
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    test(
+      'a large archive of many ambiguous same-title dances stays bounded and '
+      'imports without throwing',
+      () async {
+        // Untrusted, adversarial-shaped input: many dances all fuzzy-matching
+        // existing ones. Auto-resolution must handle every ambiguous record
+        // (bounded per candidate) without throwing, and resolve every slot.
+        const n = 60;
+        final receiver = [
+          for (var i = 0; i < n; i++)
+            _danceWith(
+              'recv-$i',
+              'Contra No $i',
+              figures: [_fig('circle_left')],
+            ),
+        ];
+        for (final d in receiver) {
+          await repos.dances.create(d);
+        }
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            for (var i = 0; i < n; i++)
+              // Same titles as the receiver but different content -> ambiguous,
+              // non-confident -> imported as duplicates.
+              _danceWith(
+                'orig-$i',
+                'Contra No $i',
+                figures: [_fig('do_si_do')],
+              ),
+          ],
+          programs: [
+            Program(
+              id: 'p1',
+              title: 'Marathon',
+              slots: [
+                for (var i = 0; i < n; i++)
+                  ProgramSlot(id: 's$i', position: i, danceId: 'orig-$i'),
+              ],
+              createdAt: DateTime.utc(2026, 4, 1),
+              updatedAt: DateTime.utc(2026, 4, 1),
+            ),
+          ],
+        );
+
+        final result = await service().importBytes(
+          _bytes(encodeArchive(archive)),
+        );
+
+        expect(result.isImported, isTrue);
+        // Every slot resolved to a real dance — no placeholders.
+        final program = (await repos.programs.listAll()).single;
+        expect(program.slots, hasLength(n));
+        expect(program.slots.every((s) => s.danceId != null), isTrue);
+        expect(
+          result.issues.where(
+            (i) => i.code == 'archive_program_unresolved_dance',
+          ),
+          isEmpty,
+        );
+      },
+    );
   });
 
   group('rejected gracefully (never throws, no writes)', () {

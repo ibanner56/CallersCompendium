@@ -15,6 +15,37 @@ Dance _dance(String id, String title) => Dance(
   updatedAt: DateTime.utc(2026, 1, 1),
 );
 
+/// A dance carrying choreography content (and optional authors), for the
+/// content/author confidence tests below.
+Dance _danceWith(
+  String id,
+  String title, {
+  List<Figure> figures = const [],
+  List<String> authorIds = const [],
+  Provenance? provenance,
+}) => Dance(
+  id: id,
+  title: title,
+  authorIds: authorIds,
+  figures: figures,
+  provenance: provenance,
+  createdAt: DateTime.utc(2026, 1, 1),
+  updatedAt: DateTime.utc(2026, 1, 1),
+);
+
+Figure _fig(String move, {int beats = 8}) =>
+    Figure(move: move, params: {'beats': beats});
+
+/// A one-slot program referencing [danceId], for the confidence tests.
+Program _programRef(String danceId) => Program(
+  id: 'orig-p1',
+  title: 'Spring Fling',
+  status: ProgramStatus.draft,
+  slots: [ProgramSlot(id: 'orig-sl1', position: 0, danceId: danceId)],
+  createdAt: DateTime.utc(2026, 4, 1),
+  updatedAt: DateTime.utc(2026, 4, 1),
+);
+
 /// An archive carrying one program whose slots reference two dances present in
 /// the bundle, a note-only slot, and a slot referencing a dance id that is NOT
 /// in the bundle (so the importer's graceful degradation is exercised).
@@ -358,5 +389,305 @@ void main() {
     // Original note kept AND the failed reference surfaced.
     expect(slot.text, contains('Caller intro'));
     expect(slot.text, contains('orig-missing'));
+  });
+
+  group('ambiguous share-receive dances resolve instead of skipping', () {
+    test(
+      'links each ambiguous dance to the receiver\'s identical existing copy — '
+      'no duplicate, every slot resolves',
+      () async {
+        // The receiver already holds independent copies (different ids, NO
+        // shared externalId) with IDENTICAL content to the bundle's dances.
+        final figs1 = [
+          _fig('balance_and_swing', beats: 16),
+          _fig('circle_left'),
+        ];
+        final figs2 = [_fig('petronella_turn'), _fig('balance_and_swing')];
+        await dances.create(
+          _danceWith('recv-d1', 'Simplicity Swing', figures: figs1),
+        );
+        await dances.create(
+          _danceWith('recv-d2', 'Petronella', figures: figs2),
+        );
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            _danceWith('orig-d1', 'Simplicity Swing', figures: figs1),
+            _danceWith('orig-d2', 'Petronella', figures: figs2),
+          ],
+          programs: [
+            Program(
+              id: 'orig-p1',
+              title: 'Spring Fling',
+              status: ProgramStatus.draft,
+              slots: [
+                ProgramSlot(id: 'orig-sl1', position: 0, danceId: 'orig-d1'),
+                ProgramSlot(id: 'orig-sl2', position: 1, danceId: 'orig-d2'),
+              ],
+              createdAt: DateTime.utc(2026, 4, 1),
+              updatedAt: DateTime.utc(2026, 4, 1),
+            ),
+          ],
+        );
+
+        final result = await importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('new'),
+          newSlotId: sequentialIds('slot'),
+        );
+
+        // No new duplicates: still exactly the two existing copies.
+        final all = await dances.listAll();
+        expect(all, hasLength(2));
+        expect(all.where((d) => d.title == 'Simplicity Swing'), hasLength(1));
+        expect(all.where((d) => d.title == 'Petronella'), hasLength(1));
+
+        // Both slots resolve to the EXISTING (linked) dance ids.
+        final program = (await programs.listAll()).single;
+        expect(program.slots[0].danceId, 'recv-d1');
+        expect(program.slots[1].danceId, 'recv-d2');
+        expect(program.slots.every((s) => s.danceId != null), isTrue);
+
+        // No "Dance not imported" placeholders/issues.
+        expect(
+          result.programIssues.where(
+            (i) => i.code == 'archive_program_unresolved_dance',
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    test(
+      'imports a same-title but different-content dance as a duplicate — never '
+      'mis-linked to the different existing dance',
+      () async {
+        await dances.create(
+          _danceWith(
+            'recv-x',
+            'Simplicity Swing',
+            figures: [_fig('circle_left'), _fig('do_si_do')],
+          ),
+        );
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            _danceWith(
+              'orig-d1',
+              'Simplicity Swing',
+              figures: [_fig('balance_and_swing', beats: 16)],
+            ),
+          ],
+          programs: [_programRef('orig-d1')],
+        );
+
+        final result = await importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('new'),
+          newSlotId: sequentialIds('slot'),
+        );
+
+        // Two dances now share the title: the existing one + the new import.
+        final all = await dances.listAll();
+        expect(all.where((d) => d.title == 'Simplicity Swing'), hasLength(2));
+
+        // The slot resolves to the NEWLY imported dance, not the different
+        // existing one — and is a real dance reference, not a placeholder note.
+        final slot = (await programs.listAll()).single.slots.single;
+        expect(slot.danceId, isNotNull);
+        expect(slot.danceId, isNot('recv-x'));
+        expect(slot.text, isNull);
+        expect(
+          result.programIssues.where(
+            (i) => i.code == 'archive_program_unresolved_dance',
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    test(
+      'links on matching normalized title + author-set even when content differs',
+      () async {
+        await choreographers.upsert(Choreographer(id: 'alice', name: 'Alice'));
+        await dances.create(
+          _danceWith(
+            'recv-d1',
+            'Simplicity Swing',
+            authorIds: ['alice'],
+            figures: [_fig('circle_left')],
+          ),
+        );
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          choreographers: [Choreographer(id: 'alice', name: 'Alice')],
+          dances: [
+            _danceWith(
+              'orig-d1',
+              'Simplicity Swing',
+              authorIds: ['alice'],
+              figures: [_fig('do_si_do')],
+            ),
+          ],
+          programs: [_programRef('orig-d1')],
+        );
+
+        final result = await importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('new'),
+          newSlotId: sequentialIds('slot'),
+        );
+
+        // Linked onto the existing dance despite the differing figures.
+        final all = await dances.listAll();
+        expect(all.where((d) => d.title == 'Simplicity Swing'), hasLength(1));
+        expect(
+          (await programs.listAll()).single.slots.single.danceId,
+          'recv-d1',
+        );
+        expect(
+          result.programIssues.where(
+            (i) => i.code == 'archive_program_unresolved_dance',
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    test(
+      'a same-title dance with a DIFFERENT author and content is duplicated, '
+      'not mis-linked',
+      () async {
+        await choreographers.upsert(Choreographer(id: 'alice', name: 'Alice'));
+        // 'bob' exists on the receiver so the new duplicate\'s author FK holds.
+        await choreographers.upsert(Choreographer(id: 'bob', name: 'Bob'));
+        await dances.create(
+          _danceWith(
+            'recv-d1',
+            'Simplicity Swing',
+            authorIds: ['alice'],
+            figures: [_fig('circle_left')],
+          ),
+        );
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          choreographers: [Choreographer(id: 'bob', name: 'Bob')],
+          dances: [
+            _danceWith(
+              'orig-d1',
+              'Simplicity Swing',
+              authorIds: ['bob'],
+              figures: [_fig('do_si_do')],
+            ),
+          ],
+          programs: [_programRef('orig-d1')],
+        );
+
+        final result = await importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('new'),
+          newSlotId: sequentialIds('slot'),
+        );
+
+        // A distinct dance sharing only the title -> duplicated, not linked.
+        final all = await dances.listAll();
+        expect(all.where((d) => d.title == 'Simplicity Swing'), hasLength(2));
+        final slot = (await programs.listAll()).single.slots.single;
+        expect(slot.danceId, isNotNull);
+        expect(slot.danceId, isNot('recv-d1'));
+        expect(
+          result.programIssues.where(
+            (i) => i.code == 'archive_program_unresolved_dance',
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    test(
+      'an exact (source, externalId) match still reimports in place — untouched '
+      'by auto-resolution',
+      () async {
+        // A dance previously received from a bundle carries (json, <origId>)
+        // provenance; re-receiving it is an exact reimport, not an ambiguity.
+        await dances.create(
+          _danceWith(
+            'recv-1',
+            'Petronella',
+            provenance: Provenance(
+              source: ProvenanceSource.json,
+              externalId: 'orig-d1',
+              importedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ),
+        );
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [_danceWith('orig-d1', 'Petronella')],
+          programs: [_programRef('orig-d1')],
+        );
+
+        final result = await importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('new'),
+          newSlotId: sequentialIds('slot'),
+        );
+
+        // Reimported onto the existing dance; no duplicate; slot resolves to it.
+        expect((await dances.listAll()), hasLength(1));
+        expect(
+          (await programs.listAll()).single.slots.single.danceId,
+          'recv-1',
+        );
+        expect(
+          result.programIssues.where(
+            (i) => i.code == 'archive_program_unresolved_dance',
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    test('a genuinely missing dance (not in the bundle) still degrades to a '
+        'placeholder + issue', () async {
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: const [],
+        programs: [_programRef('orig-absent')],
+      );
+
+      final result = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('slot'),
+      );
+
+      final slot = (await programs.listAll()).single.slots.single;
+      expect(slot.danceId, isNull);
+      expect(slot.text, contains('orig-absent'));
+      expect(
+        result.programIssues.any(
+          (i) => i.code == 'archive_program_unresolved_dance',
+        ),
+        isTrue,
+      );
+    });
   });
 }
