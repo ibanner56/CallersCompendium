@@ -623,11 +623,15 @@ taxonomy are unchanged.
   so venues are picked once and reused across programs.
 - **Glossary / terms** (CC `Term`: term + definition + source) — a browsable
   reference of caller terminology, dialect-aware.
-- **User-defined quick-entry snippets** — CC's beloved "Insert Call" buttons
-  (per-user label → expansion text + beats + a gender-free alternate). Our
-  taxonomy type-ahead covers entry *speed*, but not personal shortcut phrasing;
-  evaluate whether power users still want savable snippets on top of structured
-  entry. (Decision needed — may be declined in favor of dialect + taxonomy.)
+- **User-defined quick-entry snippets** — CC's "Insert Call" buttons (per-user
+  label → expansion text + beats + a gender-free alternate). **Accepted, reframed**
+  over our structured model (see #401): a user shorthand maps to a fully-configured
+  taxonomy *figure* (move + params) rather than expansion *text* — beats become a
+  figure param and the gender-free alternate is produced by the existing dialect
+  system, so there are no per-snippet text/beats/alternate fields. Tracked as #404
+  (shorthand→figure mappings), which builds on #403 (free-text figure entry mode)
+  and #398 (parser-gap flagging); sequencing #398 → #403 → #404. Post-beta.3. The
+  *structured* analogue already shipped as DD.3 (per-move figure-entry defaults).
 - **UI localization / multi-language** — CC ships ~12 runtime UI languages; we
   have no i18n plan yet. Scope an intl framework if community demand appears.
 
