@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show ValueListenable, listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
@@ -1523,21 +1524,29 @@ class _DanceListScreenState extends State<DanceListScreen> {
             child: tile,
           );
         }
-        return Dismissible(
-          key: ValueKey('dismissible-${entry.dance.id}'),
-          direction: DismissDirection.endToStart,
-          confirmDismiss: (_) =>
-              confirmDeleteIfEnabled(context, itemLabel: entry.dance.title),
-          onDismissed: (_) =>
-              _softDeleteFromList(entry.dance.id, entry.dance.title),
-          background: Container(
-            alignment: Alignment.centerRight,
-            color: Theme.of(context).colorScheme.errorContainer,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            child: Icon(
-              Icons.delete_outline,
-              color: Theme.of(context).colorScheme.onErrorContainer,
-            ),
+        // Swipe left to reveal a Delete button (issue #352). Tapping the
+        // revealed Delete button is the confirmation — a swipe alone never
+        // deletes. The tap routes into the same soft-delete + Undo flow as the
+        // ⋮ menu; there is no extra dialog on this path (the reveal + tap is
+        // the safeguard). The "Confirm before delete" setting continues to gate
+        // only the ⋮ overflow-menu Delete above.
+        return Slidable(
+          key: ValueKey('slidable-${entry.dance.id}'),
+          groupTag: 'dance-list',
+          endActionPane: ActionPane(
+            motion: const DrawerMotion(),
+            extentRatio: 0.25,
+            children: [
+              SlidableAction(
+                key: ValueKey('slide-delete-${entry.dance.id}'),
+                onPressed: (_) =>
+                    _softDeleteFromList(entry.dance.id, entry.dance.title),
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+                icon: Icons.delete_outline,
+                label: 'Delete',
+              ),
+            ],
           ),
           child: tile,
         );

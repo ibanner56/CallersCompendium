@@ -928,10 +928,11 @@ void main() {
     expect(find.text('Chase the Squirrel'), findsOneWidget);
   });
 
-  // ── Swipe-to-delete ────────────────────────────────────────────────────────
+  // ── Swipe-to-reveal Delete (issue #352) ────────────────────────────────────
 
   testWidgets(
-    'swiping a dance removes it from the list and shows undo snackbar',
+    'swiping reveals a Delete button; tapping it removes the dance and shows '
+    'undo snackbar',
     (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Swipe Me'));
@@ -942,12 +943,20 @@ void main() {
 
       expect(find.text('Swipe Me'), findsOneWidget);
 
-      // Fling the Dismissible widget (by key) end-to-start to trigger dismiss.
-      await tester.fling(
-        find.byKey(const ValueKey('dismissible-d1')),
+      // Swipe left to reveal the Delete action; the swipe alone must NOT delete.
+      await tester.drag(
+        find.byKey(const ValueKey('slidable-d1')),
         const Offset(-300, 0),
-        1000,
       );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Swipe Me'), findsOneWidget);
+      var stillThere = await repos.dances.getById('d1');
+      expect(stillThere, isNotNull);
+      expect(stillThere!.deletedAt, isNull);
+
+      // Tapping the revealed Delete button confirms the delete.
+      await tester.tap(find.byKey(const ValueKey('slide-delete-d1')));
       await tester.pumpAndSettle();
 
       // Dance is gone from the list view.
@@ -968,7 +977,7 @@ void main() {
     },
   );
 
-  testWidgets('undo on the list swipe snackbar restores the dance', (
+  testWidgets('undo on the revealed-Delete snackbar restores the dance', (
     tester,
   ) async {
     final repos = openTestRepositories();
@@ -977,11 +986,12 @@ void main() {
     await _pumpScreen(tester, repos);
     await tester.pumpAndSettle();
 
-    await tester.fling(
-      find.byKey(const ValueKey('dismissible-d1')),
+    await tester.drag(
+      find.byKey(const ValueKey('slidable-d1')),
       const Offset(-300, 0),
-      1000,
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('slide-delete-d1')));
     await tester.pumpAndSettle();
 
     expect(find.text('Undo'), findsOneWidget);

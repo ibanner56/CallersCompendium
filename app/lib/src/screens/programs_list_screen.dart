@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../data/repositories_scope.dart';
 import '../utils/confirm_delete.dart';
@@ -436,20 +437,31 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             itemCount: sorted.length,
             itemBuilder: (context, index) {
               final program = sorted[index];
-              return Dismissible(
-                key: ValueKey('dismissible-${program.id}'),
-                direction: DismissDirection.endToStart,
-                confirmDismiss: (_) =>
-                    confirmDeleteIfEnabled(context, itemLabel: program.title),
-                onDismissed: (_) => _softDelete(program),
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Icon(
-                    Icons.delete_outline,
-                    color: Theme.of(context).colorScheme.onErrorContainer,
-                  ),
+              // Swipe left to reveal a Delete button (issue #352). Tapping the
+              // revealed Delete button is the confirmation — a swipe alone
+              // never deletes. It routes into the same soft-delete + Undo flow
+              // as the ⋮ menu, with no extra dialog on this path. The "Confirm
+              // before delete" setting continues to gate only the ⋮ menu below.
+              return Slidable(
+                key: ValueKey('slidable-${program.id}'),
+                groupTag: 'programs-list',
+                endActionPane: ActionPane(
+                  motion: const DrawerMotion(),
+                  extentRatio: 0.25,
+                  children: [
+                    SlidableAction(
+                      key: ValueKey('slide-delete-${program.id}'),
+                      onPressed: (_) => _softDelete(program),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.errorContainer,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onErrorContainer,
+                      icon: Icons.delete_outline,
+                      label: 'Delete',
+                    ),
+                  ],
                 ),
                 child: ProgramListTile(
                   program: program,
