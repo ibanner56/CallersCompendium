@@ -1,7 +1,9 @@
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
 import '../model/choreographer.dart';
 import '../model/dance.dart';
+import '../model/figure.dart';
 import '../model/provenance.dart';
 import '../storage/repositories/choreographer_repository.dart';
 import '../storage/repositories/dance_repository.dart';
@@ -10,6 +12,12 @@ import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
+
+/// Value-equality for the choreography-body comparison in
+/// [ImportPipeline.autoResolveAmbiguous]. [Figure] and `String` both carry
+/// structural equality, so element-wise list comparison is exact.
+const ListEquality<Figure> _figureListEquality = ListEquality<Figure>();
+const ListEquality<String> _stringListEquality = ListEquality<String>();
 
 /// The commit action chosen (or defaulted) for one record of a batch.
 enum CommitAction {
@@ -435,6 +443,87 @@ class ImportPipeline {
     );
   }
 
+  /// Auto-resolves the **ambiguous** records of [batch] for an automated,
+  /// non-interactive receive path (e.g. an incoming shared bundle) where no user
+  /// is present to adjudicate. Each ambiguous record is resolved to either:
+  ///
+  /// - [DedupeResolution.link] to an existing dance — **only** on a *confident*
+  ///   match, so no duplicate is created and a referencing program slot resolves
+  ///   to the dance the receiver already has; or
+  /// - [DedupeResolution.duplicate] — import the record as a new dance so the
+  ///   slot always resolves to the received copy.
+  ///
+  /// It **never** skips and **never** links on a weak match. A match is
+  /// *confident* only when the candidate's normalized title equals the incoming
+  /// title (an exact gate — not merely a fuzzy near-match) **and** one of:
+  ///   - the choreography body is equal (form, formation, progression, phrase
+  ///     structure, figures, hook, calling notes, level, mixed-level, tunes),
+  ///     compared author-independently; or
+  ///   - both sides declare author names whose normalized sets are equal.
+  ///
+  /// The receiver cannot resolve the sender's author ids, so [authorNamesOf]
+  /// supplies the incoming display author names (e.g. from the shared archive's
+  /// choreographers); candidate author names are read from this collection.
+  ///
+  /// Returns a resolutions map keyed by index into `batch.records`, suitable to
+  /// pass straight to [commit]. Non-ambiguous records (new/reimport) get no
+  /// entry — their handling is unchanged. This is a resolution **strategy**, not
+  /// source-specific: only callers that opt in (the archive/share receive path)
+  /// use it, so the manual review flow and manual-import ambiguity are untouched.
+  ///
+  /// Bounded: O(records × candidates), with one dance read per candidate. The
+  /// in-memory content comparison is tried first; a choreographer-name read is
+  /// performed only when content did not already match **and** the incoming
+  /// dance declares author names (to evaluate the author signal). The dedupe
+  /// candidate list is already threshold-bounded, so there is no pathological
+  /// blow-up on a large or hostile batch.
+  Future<Map<int, DedupeResolution>> autoResolveAmbiguous(
+    ImportBatchResult batch, {
+    required List<String> Function(Dance draftDance) authorNamesOf,
+  }) async {
+    final resolutions = <int, DedupeResolution>{};
+    for (var i = 0; i < batch.records.length; i++) {
+      final plan = batch.records[i];
+      if (!plan.verdict.isAmbiguous) continue;
+
+      final incoming = plan.draft.dance;
+      final incomingTitle = normalizeTitle(incoming.title);
+      final incomingAuthors = _normalizedAuthorSet(authorNamesOf(incoming));
+
+      String? linkTarget;
+      for (final candidate in plan.verdict.candidates) {
+        final existing = await _dances.getById(candidate.danceId);
+        if (existing == null) continue;
+        // Exact normalized-title gate: a fuzzy-but-inexact title is never
+        // confident (that is the "two different dances share a title" trap).
+        if (normalizeTitle(existing.title) != incomingTitle) continue;
+        // Try the cheap in-memory content comparison first: a canonical
+        // choreography match is confident on its own and short-circuits before
+        // any author lookup. Only when content differs AND the incoming dance
+        // declares authors do we spend a choreographer read on the author
+        // signal.
+        var confident = _choreographyEquals(incoming, existing);
+        if (!confident && incomingAuthors.isNotEmpty) {
+          final existingAuthors = _normalizedAuthorSet(
+            await _authorNamesFor(existing),
+          );
+          confident =
+              existingAuthors.isNotEmpty &&
+              _setEquals(incomingAuthors, existingAuthors);
+        }
+        if (confident) {
+          linkTarget = candidate.danceId;
+          break;
+        }
+      }
+
+      resolutions[i] = linkTarget == null
+          ? DedupeResolution.duplicate()
+          : DedupeResolution.link(linkTarget);
+    }
+    return resolutions;
+  }
+
   /// Reverts a committed [session]: hard-deletes every inserted dance, restores
   /// every updated dance to its captured prior state, and removes every
   /// choreographer this batch created — but only those no surviving dance still
@@ -530,6 +619,32 @@ class ImportPipeline {
         }
     }
   }
+
+  /// The normalized author-name set for a match comparison (blanks dropped),
+  /// using the same [normalizeAuthor] the deduper uses so names match the way
+  /// fuzzy matching does.
+  Set<String> _normalizedAuthorSet(Iterable<String> names) =>
+      names.map(normalizeAuthor).where((n) => n.isNotEmpty).toSet();
+
+  bool _setEquals(Set<String> a, Set<String> b) =>
+      a.length == b.length && a.containsAll(b);
+
+  /// Whether two dances share the same **choreography body**, compared
+  /// author-independently (author identity is a separate signal). Ignores
+  /// identity, provenance, timestamps, and device-local id collections
+  /// (authorIds, tags, custom fields, links, citations) so a bundle received
+  /// on another device still matches by its intrinsic content.
+  bool _choreographyEquals(Dance a, Dance b) =>
+      a.form == b.form &&
+      a.formation == b.formation &&
+      a.progression == b.progression &&
+      a.phraseStructure == b.phraseStructure &&
+      _figureListEquality.equals(a.figures, b.figures) &&
+      a.hook == b.hook &&
+      a.callingNotes == b.callingNotes &&
+      a.level == b.level &&
+      a.mixedLevel == b.mixedLevel &&
+      _stringListEquality.equals(a.tunes, b.tunes);
 
   Provenance _provenanceFrom(StructuredDraft draft, DateTime now) {
     final raw = draft.raw;
