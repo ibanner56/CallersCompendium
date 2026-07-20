@@ -314,8 +314,24 @@ void main() {
       expect(find.text('Chase the Squirrel'), findsOneWidget);
       expect(find.text('1 dance'), findsOneWidget);
       await _tapVisible(tester, find.byKey(const ValueKey('filters-panel')));
-      expect(find.byKey(const ValueKey('author-c1')), findsOneWidget);
-      expect(find.byKey(const ValueKey('author-c2')), findsNothing);
+      // #341: the author facet is now a searchable multi-select. The seeded
+      // author is discoverable via the search field; the not-yet-imported
+      // author is not.
+      await tester.enterText(
+        find.byKey(const ValueKey('author-facet-search')),
+        'Grace',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('author-facet-option-c2')),
+        findsNothing,
+      );
+      // Reset the query so it doesn't constrain the post-import search below.
+      await tester.enterText(
+        find.byKey(const ValueKey('author-facet-search')),
+        '',
+      );
+      await tester.pumpAndSettle();
 
       // Simulate an import: a new dance by a brand-new author lands in the
       // collection out-of-band, then the app-level signal fires.
@@ -333,10 +349,24 @@ void main() {
       expect(find.text('Petronella'), findsOneWidget);
       expect(find.text('2 dances'), findsOneWidget);
 
-      // The author filter re-derived: the new author is now selectable.
-      // (The name also renders on the dance tile, hence findsWidgets.)
-      expect(find.byKey(const ValueKey('author-c2')), findsOneWidget);
-      expect(find.text('Grace Hopper'), findsWidgets);
+      // The author facet re-derived: the new author is now searchable...
+      await tester.enterText(
+        find.byKey(const ValueKey('author-facet-search')),
+        'Grace',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('author-facet-option-c2')),
+        findsOneWidget,
+      );
+
+      // ...and genuinely filter-able: selecting it narrows the collection to
+      // that author's dance (the actual #340 guarantee).
+      await tester.tap(find.byKey(const ValueKey('author-facet-option-c2')));
+      await tester.pumpAndSettle();
+      expect(find.text('Petronella'), findsOneWidget);
+      expect(find.text('Chase the Squirrel'), findsNothing);
+      expect(find.text('1 dance'), findsOneWidget);
     },
   );
 
