@@ -55,6 +55,10 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   }
 
   final dir = await getTemporaryDirectory();
+  // Create the directory first: on sandboxed macOS `getTemporaryDirectory()`
+  // can return a per-bundle `Caches/` subdirectory that doesn't exist yet, and
+  // writing into a missing directory throws `PathNotFoundException`.
+  await dir.create(recursive: true);
   final file = File('${dir.path}/$suggestedFileName');
   await file.writeAsString(json);
   await SharePlus.instance.share(

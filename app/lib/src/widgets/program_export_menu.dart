@@ -24,14 +24,38 @@ typedef ShareInvoker = Future<void> Function(ShareParams params);
 /// under `flutter test` (its calls would throw `MissingPluginException`).
 typedef BundleFileWriter = Future<XFile> Function(String json, String fileName);
 
-/// Default [BundleFileWriter]: writes [json] to a temp file (via
-/// `path_provider`) and returns it as a JSON [XFile].
-Future<XFile> writeBundleTempFile(String json, String fileName) async {
-  final dir = await getTemporaryDirectory();
+/// Resolves the base directory a share bundle is staged into before it is
+/// handed to the OS share sheet. Defaults to the OS temporary directory (via
+/// `path_provider`); injectable so [writeBundleFile] can be exercised in tests
+/// against a directory that doesn't touch the `path_provider` platform channel.
+typedef ShareTempDirProvider = Future<Directory> Function();
+
+/// Writes [json] to a file named [fileName] inside the directory from
+/// [getDir], **creating that directory first**, and returns it as a JSON
+/// [XFile].
+///
+/// The directory is created (recursively) before the write because on sandboxed
+/// macOS `getTemporaryDirectory()` returns a per-bundle subdirectory under
+/// `Caches/` that does not necessarily exist yet. Writing a file straight into
+/// a missing directory throws `PathNotFoundException` (errno 2), which the
+/// share action's guard surfaces as "Couldn't share this program". Creating the
+/// directory first makes the temp-file write reliable across platforms.
+Future<XFile> writeBundleFile(
+  String json,
+  String fileName, {
+  ShareTempDirProvider getDir = getTemporaryDirectory,
+}) async {
+  final dir = await getDir();
+  await dir.create(recursive: true);
   final file = File('${dir.path}/$fileName');
   await file.writeAsString(json);
   return XFile(file.path, mimeType: 'application/json');
 }
+
+/// Default [BundleFileWriter]: writes [json] to a temp file (via
+/// `path_provider`) and returns it as a JSON [XFile].
+Future<XFile> writeBundleTempFile(String json, String fileName) =>
+    writeBundleFile(json, fileName);
 
 /// Hands a generated PDF to the OS print/save dialog. Defaults to
 /// [Printing.layoutPdf]; overridable so tests can force a failure.
