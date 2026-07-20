@@ -30,14 +30,24 @@ import 'regional_formats.dart';
 /// The title is length-capped before matching and every pattern uses bounded
 /// quantifiers with no nesting or backreferences, so adversarial titles cannot
 /// trigger catastrophic backtracking (ReDoS). All candidates are validated as
-/// real calendar dates within [_minYear]–[_maxYear]; the first high-confidence
-/// match in the title wins.
+/// real calendar dates within [_minYear]–[_maxYear].
+///
+/// ## Precedence
+/// Formats are tried in **confidence-tier order** — ISO → month-name → numeric
+/// (see [_matchers]) — and the first tier that produces a valid date wins,
+/// regardless of where each format appears in the title. The tiers are
+/// mutually near-exclusive in practice (a given substring reads as at most one
+/// of them), and the more specific/unambiguous formats are deliberately
+/// preferred over the ambiguous numeric one. Within a single tier, that
+/// pattern's first textual match in the title is used.
 DateTime? detectEventDateFromTitle(String title, DateFormatPref pref) {
   // Cap work regardless of input size (ReDoS belt-and-suspenders).
   final text = title.length > _kMaxTitleScan
       ? title.substring(0, _kMaxTitleScan)
       : title;
 
+  // Try each confidence tier in order; the first tier to yield a valid date
+  // wins (ISO/month-name are preferred over the ambiguous numeric form).
   for (final matcher in _matchers) {
     final match = matcher.pattern.firstMatch(text);
     if (match == null) continue;
