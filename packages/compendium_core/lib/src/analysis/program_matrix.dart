@@ -319,16 +319,27 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// semantics). Figure-less or deleted dances still produce a row (with an empty
 /// presence set) so the gap is visible; they contribute no columns of their own
 /// (but the swing baseline still appears while any dance exists).
+///
+/// [halves], when provided, is a parallel list aligned to [dances] (same order
+/// and length) supplying each row's derived [ProgramHalf] (see
+/// [Program.halvesForSlots] / [Program.halfAtIndex]); a `null` entry means the
+/// dance has no half (the program has no break, or the slot is itself the
+/// break). It must be exactly the same length as [dances] — a mismatch throws
+/// [ArgumentError] (enforced at runtime, in release builds too). Omit it to
+/// leave every row's [MatrixRow.half] `null`.
 ProgramMatrix buildProgramMatrix(
   List<Dance> dances, {
   Taxonomy? taxonomy,
   List<ProgramHalf?>? halves,
 }) {
   final tax = taxonomy ?? contraTaxonomy;
-  assert(
-    halves == null || halves.length == dances.length,
-    'halves must be aligned to dances (same length)',
-  );
+  if (halves != null && halves.length != dances.length) {
+    throw ArgumentError.value(
+      halves.length,
+      'halves',
+      'must be aligned to dances (same length: ${dances.length})',
+    );
+  }
 
   final rows = <MatrixRow>[];
   final present = <String>{};

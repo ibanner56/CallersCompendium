@@ -399,6 +399,19 @@ void main() {
       expect(matrix.rows[1].half, isNull);
       expect(matrix.rows[2].half, ProgramHalf.second);
     });
+
+    test('throws when halves length does not match dances', () {
+      expect(
+        () => buildProgramMatrix(
+          [
+            dance('d1', 'A', [move('balance')]),
+            dance('d2', 'B', [move('balance')]),
+          ],
+          halves: const [ProgramHalf.first],
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 
   group('matrixColumnLabel — split columns', () {
