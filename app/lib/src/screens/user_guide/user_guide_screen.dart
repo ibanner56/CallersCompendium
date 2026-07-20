@@ -107,14 +107,17 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
           setState(() => _stack.removeLast());
         }
       },
-      // Reserve the top safe-area inset within the widget itself so the header
+      // Reserve the safe-area insets within the widget itself so the header
       // stops below the status bar / Dynamic Island on the in-shell path
-      // (AppShell's IndexedStack, which has no AppBar to consume the inset),
-      // matching the other destinations. Top-only: the bottom edge is left to
-      // the host. This makes the embeddable guide self-consistent regardless of
+      // (AppShell's IndexedStack, which has no AppBar to consume the top inset),
+      // matching the other destinations, and so the scrollable body doesn't run
+      // under the home indicator / gesture bar on hosts without a bottom nav
+      // (the pushed Settings > About route and the wide rail layout). On the
+      // narrow shell the Scaffold's bottomNavigationBar already consumes the
+      // bottom inset, so this stays a no-op there rather than double-insetting.
+      // Making the embeddable guide self-inset keeps it consistent regardless of
       // where it is hosted, so callers don't need to wrap it in a SafeArea.
       child: SafeArea(
-        bottom: false,
         child: Column(
           key: const ValueKey('user-guide-screen'),
           crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -68,42 +68,40 @@ void main() {
     expect(find.byKey(const ValueKey('user-guide-back')), findsNothing);
   });
 
-  testWidgets('reserves the top safe-area inset for the header', (
-    tester,
-  ) async {
+  testWidgets('reserves the safe-area insets around the guide', (tester) async {
     const topInset = 100.0;
-    // Host the guide without an AppBar (the in-shell IndexedStack path) under a
-    // nonzero top inset, mimicking iOS's status bar / Dynamic Island. The guide
-    // must inset itself so the header stops below the inset rather than sliding
-    // under it.
+    const bottomInset = 40.0;
+    // Host the guide without an AppBar (the in-shell IndexedStack path) under
+    // nonzero insets, mimicking iOS's status bar / Dynamic Island and home
+    // indicator. The guide must inset itself so the header stops below the top
+    // inset rather than sliding under it, and its body stays clear of the home
+    // indicator on hosts without a bottom nav bar.
     await tester.pumpWidget(
       const MediaQuery(
-        data: MediaQueryData(padding: EdgeInsets.only(top: topInset)),
+        data: MediaQueryData(
+          padding: EdgeInsets.only(top: topInset, bottom: bottomInset),
+        ),
         child: MaterialApp(home: Scaffold(body: UserGuideScreen())),
       ),
     );
     await tester.pumpAndSettle();
 
-    // Exactly one top-only SafeArea wraps the guide (no double-insetting).
-    final safeAreas = tester.widgetList<SafeArea>(
-      find.descendant(
-        of: find.byKey(const ValueKey('user-guide-screen')),
-        matching: find.byType(SafeArea),
-      ),
+    // Exactly one SafeArea wraps the guide — no double-insetting from a host or
+    // a stray inner SafeArea. Count both ancestors and descendants of the
+    // guide's Column so an extra wrapper anywhere around it would fail here.
+    final guide = find.byKey(const ValueKey('user-guide-screen'));
+    final ancestorSafeAreas = find.ancestor(
+      of: guide,
+      matching: find.byType(SafeArea),
     );
-    // The guide's own SafeArea is an ancestor of its Column key, so also check
-    // the wrapping SafeArea directly.
-    final wrappingSafeArea = tester.widget<SafeArea>(
-      find
-          .ancestor(
-            of: find.byKey(const ValueKey('user-guide-screen')),
-            matching: find.byType(SafeArea),
-          )
-          .first,
+    final descendantSafeAreas = find.descendant(
+      of: guide,
+      matching: find.byType(SafeArea),
     );
+    expect(ancestorSafeAreas, findsOneWidget);
+    expect(descendantSafeAreas, findsNothing);
+    final wrappingSafeArea = tester.widget<SafeArea>(ancestorSafeAreas);
     expect(wrappingSafeArea.top, isTrue);
-    expect(wrappingSafeArea.bottom, isFalse);
-    expect(safeAreas, isEmpty);
 
     // The header title is pushed below the top inset rather than overlapping it.
     final titleTop = tester

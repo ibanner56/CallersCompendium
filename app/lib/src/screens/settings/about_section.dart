@@ -61,8 +61,8 @@ class _AboutView extends StatelessWidget {
                   // self-hosts a Scaffold, so give the pushed route its own
                   // chrome — an AppBar (for a back affordance) and a Scaffold
                   // (so ScaffoldMessenger can show SnackBars). The guide now
-                  // reserves the top safe-area inset itself, so no SafeArea
-                  // wrapper is needed here (that would double-inset).
+                  // reserves the safe-area insets itself, so no SafeArea wrapper
+                  // is needed here (that would double-inset).
                   builder: (_) => Scaffold(
                     appBar: AppBar(title: const Text('User guide')),
                     body: const UserGuideScreen(),
