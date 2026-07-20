@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
+import '../../analysis/half_calling_stats.dart';
 import '../../model/enums.dart';
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
@@ -351,6 +352,46 @@ class ProgramRepository {
           venue: row.read<String?>('venue'),
         ),
     ];
+  }
+
+  /// First/second-half positional calling stats for the dance identified by
+  /// [danceId] (issue #378), aggregated across every non-deleted program that
+  /// includes it. A sibling of [callingHistoryForDance] — that method is left
+  /// untouched — computed via the pure, Flutter-free [computeHalfCallingStats],
+  /// which reuses the derived-half helper [Program.halvesForSlots].
+  ///
+  /// Bounded read: it loads full slot lists ONLY for the programs that actually
+  /// contain the dance (found via one parameterized `dance_id = ?` query), not
+  /// an all-programs scan; each program is a night's worth of slots.
+  ///
+  /// [performedOnly] mirrors [callingHistoryForDance]: when true only
+  /// occurrences whose slot was marked performed are counted (ROADMAP G.2, off
+  /// by default). Program structure — and therefore the derived halves and the
+  /// first/last-in-half positions — is always taken from the full slot list,
+  /// independent of [performedOnly].
+  Future<HalfCallingStats> halfCallingStatsForDance(
+    String danceId, {
+    bool performedOnly = false,
+  }) async {
+    final idRows = await _db
+        .customSelect(
+          'SELECT DISTINCT program_slots.program_id AS program_id '
+          'FROM program_slots '
+          'JOIN programs ON programs.id = program_slots.program_id '
+          'WHERE program_slots.dance_id = ? '
+          'AND programs.deleted_at IS NULL',
+          variables: [Variable<String>(danceId)],
+        )
+        .get();
+    final programIds = [for (final r in idRows) r.read<String>('program_id')];
+    if (programIds.isEmpty) return HalfCallingStats.empty;
+
+    final byProgram = await _slotsForMany(programIds);
+    return computeHalfCallingStats(
+      danceId: danceId,
+      programs: byProgram.values,
+      performedOnly: performedOnly,
+    );
   }
 
   /// Duplicates the program identified by [id] under [newId] via

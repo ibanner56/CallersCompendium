@@ -1501,6 +1501,116 @@ void main() {
     });
   });
 
+  // ── First/second-half calling stats (issue #378) ────────────────────────────
+  group('half calling stats', () {
+    Program program({
+      required String id,
+      String title = 'Autumn Ball',
+      List<ProgramSlot> slots = const [],
+    }) => Program(
+      id: id,
+      title: title,
+      eventDate: DateTime.utc(2026, 10, 3),
+      slots: slots,
+      createdAt: _now,
+      updatedAt: _now,
+    );
+
+    testWidgets('renders the half breakdown when the dance has half data', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Other'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+            ProgramSlot(id: 'sbreak', position: 2, text: 'Break'),
+            ProgramSlot(id: 's3', position: 3, danceId: 'd1'),
+          ],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      final summary = find.byKey(const ValueKey('half-calling-stats'));
+      expect(summary, findsOneWidget);
+      expect(
+        find.descendant(
+          of: summary,
+          matching: find.textContaining('first half'),
+        ),
+        findsOneWidget,
+      );
+      // d1 opens the first half and closes the second → both extra stats show.
+      expect(
+        find.descendant(
+          of: summary,
+          matching: find.textContaining('opened the first half'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: summary,
+          matching: find.textContaining('closed the evening'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('is absent when the dance has no half data (no break)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      // Calling history still renders, but the half summary must not.
+      expect(find.byKey(const ValueKey('calling-history-s0')), findsOneWidget);
+      expect(find.byKey(const ValueKey('half-calling-stats')), findsNothing);
+    });
+
+    testWidgets('exposes a single screen-reader label for the breakdown', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Other'));
+      await repos.programs.create(
+        program(
+          id: 'p1',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 'sbreak', position: 1, text: 'Break'),
+            ProgramSlot(id: 's2', position: 2, danceId: 'd2'),
+            ProgramSlot(id: 's3', position: 3, danceId: 'd1'),
+          ],
+        ),
+      );
+      final handle = tester.ensureSemantics();
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      final summary = find.byKey(const ValueKey('half-calling-stats'));
+      final label = tester.getSemantics(summary).label;
+      expect(label, startsWith('Half breakdown:'));
+      expect(label, contains('first half'));
+      expect(label, contains('second half'));
+      handle.dispose();
+    });
+  });
+
   // ── Auto cross-reference links (hook / calling notes) ───────────────────────
   group('dance cross-reference links', () {
     testWidgets('a title in calling notes links to that dance and navigates', (

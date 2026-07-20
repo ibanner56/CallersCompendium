@@ -800,6 +800,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 record: record,
                 onTap: () => _openProgram(record.programId),
               ),
+          if (detail.halfCallingStats.hasAny) ...[
+            const SizedBox(height: AppSpacing.xs),
+            _HalfStatsSummary(
+              key: const ValueKey('half-calling-stats'),
+              stats: detail.halfCallingStats,
+            ),
+          ],
         ],
       ],
     );
@@ -1083,6 +1090,71 @@ class _CallingHistoryRow extends StatelessWidget {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact, screen-reader-friendly summary of the dance's first/second-half
+/// calling stats (issue #378), shown under the calling-history list when any
+/// half-attributed occurrence exists. Uses icon + text (never colour or a
+/// glyph alone; matrix WCAG 1.4.1 rule) and a single explicit [Semantics]
+/// label so assistive tech announces the whole breakdown as one phrase.
+class _HalfStatsSummary extends StatelessWidget {
+  const _HalfStatsSummary({super.key, required this.stats});
+
+  final HalfCallingStats stats;
+
+  /// Builds the human phrasing shared by the visible text and the semantics
+  /// label, so they never drift apart.
+  String _describe() {
+    String times(int n) => n == 1 ? '1 time' : '$n times';
+    final parts = <String>[
+      'Called ${times(stats.firstHalfCount)} in the first half',
+      '${times(stats.secondHalfCount)} in the second half',
+    ];
+    if (stats.openedFirstHalfCount > 0) {
+      parts.add('opened the first half ${times(stats.openedFirstHalfCount)}');
+    }
+    if (stats.closedSecondHalfCount > 0) {
+      parts.add(
+        'closed the evening (last dance of the second half) '
+        '${times(stats.closedSecondHalfCount)}',
+      );
+    }
+    return '${parts.join('; ')}.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final description = _describe();
+    return Semantics(
+      label: 'Half breakdown: $description',
+      container: true,
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.balance_outlined,
+                size: 16,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
