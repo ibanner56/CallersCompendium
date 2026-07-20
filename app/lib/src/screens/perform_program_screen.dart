@@ -11,6 +11,7 @@ import '../data/repositories_scope.dart';
 import '../search/collection_data.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
+import '../widgets/tap_tempo_metronome.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
@@ -263,6 +264,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         widget.data.choreographerNames[id]!,
   ];
 
+  Future<void> _openMetronomeSheet() {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => const SafeArea(child: TapTempoMetronome()),
+    );
+  }
+
   Future<void> _openJumpSheet() async {
     final target = await showModalBottomSheet<int>(
       context: context,
@@ -478,6 +487,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 tooltip: 'Jump to slot',
                 icon: const Icon(Icons.list),
                 onPressed: _openJumpSheet,
+              ),
+              IconButton(
+                key: const ValueKey('perform-metronome'),
+                tooltip: 'Tap tempo',
+                icon: const Icon(Icons.av_timer),
+                onPressed: _openMetronomeSheet,
               ),
               if (hasAlternates)
                 IconButton(

@@ -5,6 +5,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
+import '../widgets/tap_tempo_metronome.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
 import 'settings_screen.dart' show kAutoSizePerformKey;
@@ -103,6 +104,14 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
     });
   }
 
+  Future<void> _openMetronomeSheet() {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => const SafeArea(child: TapTempoMetronome()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeDialect = ActiveDialectScope.of(context);
@@ -126,6 +135,12 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
             title: const Text('Perform'),
             actions: [
               const DialectQuickSwitch(),
+              IconButton(
+                key: const ValueKey('perform-metronome'),
+                tooltip: 'Tap tempo',
+                icon: const Icon(Icons.av_timer),
+                onPressed: _openMetronomeSheet,
+              ),
               PerformSizeControls(
                 canDecrease: canDecrease,
                 onDecrease: _decreaseTextSize,
