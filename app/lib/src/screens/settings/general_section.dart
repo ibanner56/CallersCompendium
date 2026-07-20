@@ -14,6 +14,7 @@ import '../../data/require_performed_for_history_scope.dart';
 import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
+import '../../data/decimal_turns_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
@@ -321,6 +322,12 @@ class _GeneralSectionState extends State<GeneralSection> {
     await repos.settings.set(kVerboseFigureRenderingKey, value);
   }
 
+  Future<void> _onDecimalTurnsChanged(bool value) async {
+    DecimalTurnsScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kDecimalTurnsKey, value);
+  }
+
   Future<void> _onConfirmBeforeDeleteChanged(bool value) async {
     ConfirmBeforeDeleteScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
@@ -341,6 +348,8 @@ class _GeneralSectionState extends State<GeneralSection> {
       onReduceMotionChanged: _onReduceMotionChanged,
       verboseFigureRendering: VerboseFigureRenderingScope.of(context),
       onVerboseFigureRenderingChanged: _onVerboseFigureRenderingChanged,
+      decimalTurns: DecimalTurnsScope.of(context),
+      onDecimalTurnsChanged: _onDecimalTurnsChanged,
       confirmBeforeDelete: ConfirmBeforeDeleteScope.of(context),
       onConfirmBeforeDeleteChanged: _onConfirmBeforeDeleteChanged,
       autoSizePerform: _autoSizePerform ?? true,
@@ -374,6 +383,8 @@ class _GeneralView extends StatelessWidget {
     required this.onReduceMotionChanged,
     required this.verboseFigureRendering,
     required this.onVerboseFigureRenderingChanged,
+    required this.decimalTurns,
+    required this.onDecimalTurnsChanged,
     required this.confirmBeforeDelete,
     required this.onConfirmBeforeDeleteChanged,
     required this.autoSizePerform,
@@ -396,6 +407,8 @@ class _GeneralView extends StatelessWidget {
   final ValueChanged<bool> onReduceMotionChanged;
   final bool verboseFigureRendering;
   final ValueChanged<bool> onVerboseFigureRenderingChanged;
+  final bool decimalTurns;
+  final ValueChanged<bool> onDecimalTurnsChanged;
   final bool confirmBeforeDelete;
   final ValueChanged<bool> onConfirmBeforeDeleteChanged;
   final bool autoSizePerform;
@@ -480,6 +493,17 @@ class _GeneralView extends StatelessWidget {
           subtitle: const Text(
             'Show the full spoken-style figure wording on screen in the dance '
             'view, not only to screen readers. Turn off for the terse notation.',
+          ),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-decimal-turns'),
+          value: decimalTurns,
+          onChanged: onDecimalTurnsChanged,
+          title: const Text('Show turns as decimals'),
+          subtitle: const Text(
+            'Show turn and rotation amounts as decimals (0.75) instead of '
+            'fractions (¾). Screen-reader wording is unaffected.',
           ),
           isThreeLine: true,
         ),

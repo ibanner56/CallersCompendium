@@ -25,6 +25,7 @@ typedef _DisplayBaseRenderer =
       Map<String, Object?> params,
       Dialect dialect,
       bool verbose,
+      bool decimals,
     );
 
 /// Where a move's `balance` flag renders relative to the terse base line, per
@@ -56,7 +57,12 @@ class FigureRenderer {
       _render(figure, Dialect.canonical, forCanonical: true);
 
   /// Display text for [figure] under [dialect] (roles + move names mapped).
-  String render(Figure figure, Dialect dialect) => _render(figure, dialect);
+  ///
+  /// DISPLAY-ONLY [decimals]: renders turn amounts as decimals (`0.75`) instead
+  /// of fraction glyphs (`¾`) — the opt-in "Show turns as decimals" preference
+  /// (#368). Never applied to [renderCanonical], so canonical text stays stable.
+  String render(Figure figure, Dialect dialect, {bool decimals = false}) =>
+      _render(figure, dialect, decimals: decimals);
 
   /// A verbose, spoken-friendly rendering of [figure] under [dialect] for
   /// assistive tech (accessibility baseline "Robust"; figure-taxonomy.md §5.4).
@@ -90,8 +96,13 @@ class FigureRenderer {
   /// modifier phrases are fixed structural vocabulary (not role/move tokens),
   /// so they are dialect-independent; the dialect-aware part is the [_render]
   /// base, which already maps roles and move names under [dialect].
-  String renderSummary(Figure figure, Dialect dialect, {bool verbose = false}) {
-    final base = _render(figure, dialect, verbose: verbose);
+  String renderSummary(
+    Figure figure,
+    Dialect dialect, {
+    bool verbose = false,
+    bool decimals = false,
+  }) {
+    final base = _render(figure, dialect, verbose: verbose, decimals: decimals);
     if (figure.isCustom) return base;
     final def = taxonomy.resolve(figure.move);
     if (def == null) return base;
@@ -196,6 +207,7 @@ class FigureRenderer {
     Figure figure,
     Dialect dialect, {
     bool verbose = false,
+    bool decimals = false,
     bool forCanonical = false,
   }) {
     if (figure.isCustom) {
@@ -217,7 +229,7 @@ class FigureRenderer {
       final displayBase = _displayBaseRenderers[def.id];
       if (displayBase != null) {
         return _collapseSpaces(
-          displayBase(this, def, params, dialect, verbose),
+          displayBase(this, def, params, dialect, verbose, decimals),
         );
       }
     }
@@ -252,6 +264,7 @@ class FigureRenderer {
         def.params[name],
         dialect,
         verbose,
+        decimals,
         forCanonical,
       );
     });
@@ -432,6 +445,7 @@ class FigureRenderer {
     ParamSpec? spec,
     Dialect dialect,
     bool verbose,
+    bool decimals,
     bool forCanonical,
   ) {
     if (value == null) return '';
@@ -457,7 +471,9 @@ class FigureRenderer {
       }
     }
     if (spec?.kind == ParamKind.rotation && value is num) {
-      return verbose ? _formatRotationVerbose(value) : _formatRotation(value);
+      return verbose
+          ? _formatRotationVerbose(value)
+          : _formatRotation(value, decimals: decimals);
     }
     if (spec?.kind == ParamKind.fraction && value is String && verbose) {
       return _formatFractionVerbose(value);
@@ -626,7 +642,7 @@ class FigureRenderer {
     // resolves unambiguously, so a convention-dependent 90°/270° turn simply
     // shows no facing clause rather than a fabricated one. Canonical render is
     // unaffected (it keeps expanding the template — no reorder, no facing).
-    'rotation_gate': (r, def, params, dialect, verbose) {
+    'rotation_gate': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
       final directionRaw = params['direction'];
@@ -635,7 +651,7 @@ class FigureRenderer {
       final turn = turnRaw is num
           ? (verbose
                 ? _formatRotationVerbose(turnRaw)
-                : _formatRotation(turnRaw))
+                : _formatRotation(turnRaw, decimals: decimals))
           : _displayScalar(turnRaw);
       // An unexpected direction value humanizes after the move (surfacing
       // malformed data) rather than silently vanishing.
@@ -655,7 +671,7 @@ class FigureRenderer {
     // omits the partners subject; per the ratified decision we instead surface
     // it as a trailing "with <subject>" (singular, per PR1). The ender clause is
     // appended separately by [_summarySuffix].
-    'zig_zag': (r, def, params, dialect, verbose) {
+    'zig_zag': (r, def, params, dialect, verbose, decimals) {
       final turnRaw = params['turn'];
       final turn = turnRaw is String
           ? turnRaw
@@ -679,7 +695,7 @@ class FigureRenderer {
     // straight→"and straight back", diagonal→"and diagonal back", none→""
     // (`stringParamSliceReturn`). Unknown non-null by/return values humanize
     // (surfacing malformed data) rather than rendering as the empty default.
-    'slice': (r, def, params, dialect, verbose) {
+    'slice': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final slideRaw = params['slice'];
       final slide = slideRaw is String
@@ -708,11 +724,11 @@ class FigureRenderer {
     // (1.0 == 360° == once), so the "<turn> around" clause is shown only for a
     // non-default turn (formatted via our rotation vocabulary — an approximation
     // of ContraDB's degrees wording).
-    'mad_robin': (r, def, params, dialect, verbose) {
+    'mad_robin': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final turn = params['turn'];
       final around = (turn is num && turn != 1.0)
-          ? ' ${verbose ? _formatRotationVerbose(turn) : _formatRotation(turn)} around'
+          ? ' ${verbose ? _formatRotationVerbose(turn) : _formatRotation(turn, decimals: decimals)} around'
           : '';
       final swho = r._displaySubject(params['who'], dialect);
       // Only emit the comma + "<subject> in front" when the subject renders
@@ -726,7 +742,7 @@ class FigureRenderer {
     // PR1. Unknown non-null who/whom/hand values humanize (surfacing malformed
     // data) rather than blanking out. This base line already carries the
     // drop-off outcome, so [_summarySuffix] no longer appends its own clarifier.
-    'revolving_door': (r, def, params, dialect, verbose) {
+    'revolving_door': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
       final hand = _displayScalar(params['hand']);
@@ -741,7 +757,7 @@ class FigureRenderer {
     // loop right" and only the summary prepends "balance &". `who` (partners)
     // is outside ContraDB's invert domain, so the loop pair renders "others"
     // (ContraDB's own empty-subject fallback).
-    'box_circulate': (r, def, params, dialect, verbose) {
+    'box_circulate': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
       final other = r._invertPair(params['who'], dialect);
@@ -754,7 +770,7 @@ class FigureRenderer {
     // (ContraDB: hand truthy/right -> "counter clockwise", left/false ->
     // "clockwise"). "allemande"/"orbit" are fixed structural literals (not
     // moveSubstitution). Rotations format through our rotation vocabulary.
-    'allemande_orbit': (r, def, params, dialect, verbose) {
+    'allemande_orbit': (r, def, params, dialect, verbose, decimals) {
       final swho = r._displaySubject(params['who'], dialect);
       final handRaw = params['hand'];
       final hand = _displayScalar(handRaw);
@@ -775,12 +791,12 @@ class FigureRenderer {
       final inner = innerRaw is num
           ? (verbose
                 ? _formatRotationVerbose(innerRaw)
-                : _formatRotation(innerRaw))
+                : _formatRotation(innerRaw, decimals: decimals))
           : _displayScalar(innerRaw);
       final outer = outerRaw is num
           ? (verbose
                 ? _formatRotationVerbose(outerRaw)
-                : _formatRotation(outerRaw))
+                : _formatRotation(outerRaw, decimals: decimals))
           : _displayScalar(outerRaw);
       return [
         swho,
@@ -800,7 +816,7 @@ class FigureRenderer {
     // second dir/shoulder are the fixed structural inverse of the first
     // (across<->"along the set"; right<->left shoulders). Shoulders render in
     // full ("right shoulders"), matching ContraDB `stringParamShoulders`.
-    'cross_trails': (r, def, params, dialect, verbose) {
+    'cross_trails': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
       final swho2 = r._displaySubject(params['who2'], dialect);
@@ -842,7 +858,7 @@ class FigureRenderer {
     // swhom, tturn). tturn: turn truthy (clockwise) -> "back then left", falsy
     // (counterclockwise) -> "back then right", "*"" -> "back then *". The
     // half/full fraction word leads the clause.
-    'poussette': (r, def, params, dialect, verbose) {
+    'poussette': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final half = _displayScalar(params['half']);
       final swho = r._displaySubject(params['who'], dialect);
@@ -873,7 +889,7 @@ class FigureRenderer {
     // "counterclockwise") — matching the canonical text and every other spin
     // render — rather than ContraDB's hyphenated "counter-clockwise" spelling;
     // the default (clockwise) is identical either way.
-    'facing_star': (r, def, params, dialect, verbose) {
+    'facing_star': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final turn = params['turn'];
       final turnWord = _displayScalar(turn);
@@ -906,7 +922,7 @@ class FigureRenderer {
     // 4 -> "then repeat", 3 -> repeat the first (balance &) pull. Places outside
     // {2,3,4} degrade to a humanized count with no tail (never throws, unlike
     // ContraDB's `throw_up`).
-    'square_through': (r, def, params, dialect, verbose) {
+    'square_through': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
       final swho2 = r._displaySubject(params['who2'], dialect);
@@ -954,7 +970,7 @@ class FigureRenderer {
     // [the second time]". A non-`across` dir prefixes the phrase. Ricochet flags
     // add " - <who> ricochet[ first time| second time], …". Because the base
     // line now carries the length, [_summarySuffix] no longer appends "(half)".
-    'hey': (r, def, params, dialect, verbose) {
+    'hey': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final pass1 = params['pass1'];
       final pass2 = params['pass2'];
@@ -1049,7 +1065,7 @@ class FigureRenderer {
     // swhom, "by", sshoulder). `whom` is a single-dancer identity, rendered via
     // [_singleDancerLabel] ("first lark"); the shoulder renders in full
     // ("right shoulders").
-    'dolphin_hey': (r, def, params, dialect, verbose) {
+    'dolphin_hey': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
       final swhom = r._singleDancerLabel(params['whom'], dialect);
@@ -1067,7 +1083,7 @@ class FigureRenderer {
     },
     // ContraDB `formLongWavesWords`: words(smove, "-", ssubject, "face in,",
     // invertPair(subject), "face out").
-    'form_long_waves': (r, def, params, dialect, verbose) {
+    'form_long_waves': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
       final other = r._invertPair(params['who'], dialect);
@@ -1079,7 +1095,7 @@ class FigureRenderer {
     // neither -> "<who> form a long wave in the center". A truthy balance
     // appends " - balance the wave" (except the out-only branch, which uses
     // "& balance").
-    'form_a_long_wave': (r, def, params, dialect, verbose) {
+    'form_a_long_wave': (r, def, params, dialect, verbose, decimals) {
       final swho = r._displaySubject(params['who'], dialect);
       final other = r._invertPair(params['who'], dialect);
       final inFlag = params['in'] == true;
@@ -1118,7 +1134,7 @@ class FigureRenderer {
     // hardcoded, so display tracks the data. Unknown/`*` centerHand best-effort
     // humanizes (never blank-drops, no dangling connective). Consulted only when
     // `!forCanonical`, so `renderCanonical` stays byte-stable (dedupe/FTS).
-    'form_a_short_wave': (r, def, params, dialect, verbose) {
+    'form_a_short_wave': (r, def, params, dialect, verbose, decimals) {
       final scenter = r._displaySubject(params['center'], dialect);
       final ssides = r._displaySubject(params['sides'], dialect);
       final centerHandRaw = params['centerHand'];
@@ -1150,7 +1166,7 @@ class FigureRenderer {
     // article tracks the resulting noun phrase. A truthy `balance` appends a
     // trailing " and balance" clause (product wording; not ContraDB's pre-dash
     // "& balance").
-    'pass_the_ocean': (r, def, params, dialect, verbose) {
+    'pass_the_ocean': (r, def, params, dialect, verbose, decimals) {
       final dirRaw = params['dir'];
       final dirWord = (dirRaw == null || dirRaw == 'across')
           ? ''
@@ -1272,7 +1288,16 @@ class FigureRenderer {
       places == 1 ? '1 place' : '$places places';
 
   /// Formats a rotation in full turns using caller vocabulary.
-  static String _formatRotation(num turns) {
+  ///
+  /// DISPLAY-ONLY [decimals]: when true, renders the amount as a plain decimal
+  /// number (`0.75`, `1.5`, `2`) instead of the fraction glyphs (`¾`, `1½`,
+  /// `twice`) — the opt-in "Show turns as decimals" preference (#368). This is
+  /// a display-time transform only; [renderCanonical] never sets it, so the
+  /// canonical (search/FTS/dedupe) text keeps the glyph form and stays
+  /// byte-stable. The spoken [_formatRotationVerbose] path is intentionally
+  /// unaffected (word fractions read better aloud).
+  static String _formatRotation(num turns, {bool decimals = false}) {
+    if (decimals) return _formatNumber(turns);
     if (turns == 1) return 'once';
     if (turns == 2) return 'twice';
     final whole = turns ~/ 1;

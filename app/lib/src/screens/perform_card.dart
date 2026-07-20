@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
+import '../data/decimal_turns_scope.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
@@ -621,6 +622,7 @@ class _Figures extends StatelessWidget {
     }
 
     final sectioned = deriveSections(figures, phraseStructure);
+    final decimals = DecimalTurnsScope.of(context);
     final children = <Widget>[];
     String? lastLabel;
     for (final sf in sectioned) {
@@ -649,7 +651,7 @@ class _Figures extends StatelessWidget {
       }
       children.add(
         _FigureRow(
-          text: renderer.renderSummary(sf.figure, dialect),
+          text: renderer.renderSummary(sf.figure, dialect, decimals: decimals),
           verboseText: renderer.renderSummary(
             sf.figure,
             dialect,

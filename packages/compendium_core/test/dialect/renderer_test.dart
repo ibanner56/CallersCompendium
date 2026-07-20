@@ -1803,4 +1803,112 @@ void main() {
       });
     });
   });
+
+  group('decimals display flag (#368)', () {
+    Figure allemande(num turn) =>
+        Figure(move: 'allemande', params: {'turn': turn});
+
+    test('renders turn amounts as leading-zero decimals when opted in', () {
+      String d(num t) => renderer.render(allemande(t), larks, decimals: true);
+      expect(d(0.25), endsWith('0.25'));
+      expect(d(0.5), endsWith('0.5'));
+      expect(d(0.75), endsWith('0.75'));
+      expect(d(1.5), endsWith('1.5'));
+      expect(d(1.75), endsWith('1.75'));
+    });
+
+    test('whole turns render as plain numbers (no once/twice) in decimals', () {
+      expect(
+        renderer.render(allemande(1), larks, decimals: true),
+        endsWith('1'),
+      );
+      expect(
+        renderer.render(allemande(2), larks, decimals: true),
+        endsWith('2'),
+      );
+      expect(
+        renderer.render(allemande(3), larks, decimals: true),
+        endsWith('3'),
+      );
+    });
+
+    test('default (flag off) keeps fraction glyphs / caller words', () {
+      expect(renderer.render(allemande(0.75), larks), endsWith('¾'));
+      expect(renderer.render(allemande(1), larks), endsWith('once'));
+      expect(renderer.render(allemande(2), larks), endsWith('twice'));
+      expect(renderer.render(allemande(1.5), larks), endsWith('1½'));
+    });
+
+    test('renderSummary honors the decimals flag', () {
+      expect(
+        renderer.renderSummary(allemande(0.75), larks, decimals: true),
+        endsWith('0.75'),
+      );
+    });
+
+    test('canonical text stays byte-stable (glyphs), never decimal', () {
+      // The dedupe/FTS invariant: renderCanonical must not expose decimals.
+      expect(renderer.renderCanonical(allemande(0.75)), contains('¾'));
+      expect(
+        renderer.renderCanonical(allemande(0.75)),
+        isNot(contains('0.75')),
+      );
+      expect(renderer.renderCanonical(allemande(1.5)), contains('1½'));
+    });
+
+    test('verbose (spoken) path is unaffected by decimals — Option A', () {
+      // decimals is visual-only; the spoken form keeps word fractions even
+      // when the flag rides through the same render call.
+      final verbose = renderer.renderSummary(
+        allemande(0.75),
+        larks,
+        verbose: true,
+        decimals: true,
+      );
+      expect(verbose, contains('three quarters'));
+      expect(verbose, isNot(contains('0.75')));
+    });
+
+    test('composes with rotation_gate turn fraction (#294)', () {
+      final f = Figure(
+        move: 'rotation_gate',
+        params: {
+          'who': 'partners',
+          'direction': 'counterclockwise',
+          'turn': 0.75,
+          'beats': 6,
+        },
+      );
+      expect(
+        renderer.render(f, Dialect.canonical, decimals: true),
+        'partner gate counterclockwise 0.75',
+      );
+      // Untouched default keeps the glyph.
+      expect(renderer.render(f, Dialect.canonical), endsWith('¾'));
+    });
+
+    test('composes with allemande_orbit inner/outer turns', () {
+      // Display reorder: 'ones allemande left 1½ around while the twos orbit
+      // clockwise ½ around' — both rotations honor the flag.
+      expect(
+        renderer.render(
+          Figure(move: 'allemande_orbit'),
+          Dialect.canonical,
+          decimals: true,
+        ),
+        'ones allemande left 1.5 around while the twos orbit clockwise 0.5 around',
+      );
+    });
+
+    test('composes with mad_robin turn', () {
+      expect(
+        renderer.render(
+          Figure(move: 'mad_robin', params: {'turn': 1.5}),
+          Dialect.canonical,
+          decimals: true,
+        ),
+        'mad robin 1.5 around, ones in front',
+      );
+    });
+  });
 }
