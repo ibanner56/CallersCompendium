@@ -107,33 +107,45 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
           setState(() => _stack.removeLast());
         }
       },
-      child: Column(
-        key: const ValueKey('user-guide-screen'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _GuideHeader(
-            title: _title,
-            onBack: _canGoBackInPanel ? _handleBack : null,
-          ),
-          Expanded(
-            child: FutureBuilder<UserGuideDocs>(
-              future: _docsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final docs = snapshot.data;
-                if (snapshot.hasError || docs == null || docs.isEmpty) {
-                  return _UnavailableState(
-                    onOpenOnline: () =>
-                        launchExternalUrl(context, kUserGuideOnlineUrl),
-                  );
-                }
-                return _buildDoc(docs);
-              },
+      // Reserve the safe-area insets within the widget itself so the header
+      // stops below the status bar / Dynamic Island on the in-shell path
+      // (AppShell's IndexedStack, which has no AppBar to consume the top inset),
+      // matching the other destinations, and so the scrollable body doesn't run
+      // under the home indicator / gesture bar on hosts without a bottom nav
+      // (the pushed Settings > About route and the wide rail layout). On the
+      // narrow shell the Scaffold's bottomNavigationBar already consumes the
+      // bottom inset, so this stays a no-op there rather than double-insetting.
+      // Making the embeddable guide self-inset keeps it consistent regardless of
+      // where it is hosted, so callers don't need to wrap it in a SafeArea.
+      child: SafeArea(
+        child: Column(
+          key: const ValueKey('user-guide-screen'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _GuideHeader(
+              title: _title,
+              onBack: _canGoBackInPanel ? _handleBack : null,
             ),
-          ),
-        ],
+            Expanded(
+              child: FutureBuilder<UserGuideDocs>(
+                future: _docsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final docs = snapshot.data;
+                  if (snapshot.hasError || docs == null || docs.isEmpty) {
+                    return _UnavailableState(
+                      onOpenOnline: () =>
+                          launchExternalUrl(context, kUserGuideOnlineUrl),
+                    );
+                  }
+                  return _buildDoc(docs);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
