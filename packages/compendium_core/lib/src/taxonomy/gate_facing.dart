@@ -6,23 +6,57 @@
 /// is a **computed, verifiable value derived from the rotation geometry**, never
 /// free-typed or fabricated. [gateEndFacing] is that derivation: a pure function
 /// of `(startFacing, direction, turn)`. It is deliberately CONSERVATIVE — it
-/// returns a facing ONLY for the cases that are unambiguous regardless of the
-/// (still-unratified) clockwise-vs-counterclockwise cardinal-cycle convention,
-/// and returns `null` otherwise so the renderer emits no facing clause rather
-/// than inventing one.
-library;
-
+/// returns a facing ONLY for the cases that are unambiguous, and returns `null`
+/// otherwise so the renderer emits no facing clause rather than guessing.
+///
+/// ## Derivation table (start = [gateStartFacing] = `in`, across the set)
+///
+/// | direction        | turn (mod full) | result | rationale                    |
+/// |------------------|-----------------|--------|------------------------------|
+/// | cw / ccw         | full (360°·n)   | `in`   | back to the start orientation |
+/// | cw / ccw         | half (180°)     | `out`  | opposite of the start        |
+/// | cw / ccw         | 90° / 270°      | `null` | cardinal depends on the (unratified) rotation-cycle convention |
+/// | mirror           | full            | `in`   | full turn ⇒ unchanged        |
+/// | mirror           | anything else   | `null` | per-role sense differs; only the full-turn mirror is attested |
+/// | (any)            | non-quarter     | `null` | lands on no cardinal facing  |
+///
+/// Only the full-turn and half-turn rows are emitted; every convention- or
+/// context-dependent case returns `null`. The 90°/270° cardinal is intentionally
+/// NOT derived pending a ratified cw/ccw→cardinal cycle convention (issue #294
+/// open question).
+///
+/// ## Start-orientation assumption (`in`) — verified against the corpus
+///
+/// A gate is danced from an **across-the-set** body facing (you rotate around a
+/// dancer you face across the set), modeled as `in`. Confirmed against the three
+/// corpus contexts:
+///   * #15 "Back to Dublin" — the gate is the dance opener in improper duple
+///     minor, where neighbors begin facing across (`in`). Full turn ⇒ `in`.
+///   * #519 "A Rose…" — the gates immediately follow `In long lines, go forward
+///     and back`, which returns dancers to the across facing (`in`).
+///   * #289 "Run Around Susie" — a 3/4 turn, which is convention-dependent and
+///     yields `null` regardless, so the start orientation does not matter here.
+///
+/// CAVEAT (surfaced for review): in a *sequence* of gates (e.g. #519's second,
+/// N3 gate directly after the first) the physical start orientation carries over
+/// from the preceding gate rather than resetting to `in`. This context-free
+/// function has no cross-figure state, so it derives from the nominal `in`
+/// start; a subsequent gate's true facing may differ. `in` is therefore a
+/// documented *nominal* reference orientation, not a runtime claim.
+///
 /// The four cardinal facings, relative to a longways contra set:
 /// `up`/`down` the hall, and `in`/`out` across the set (toward / away from the
 /// other line). These reuse the tokens already in the taxonomy's `direction`
 /// vocabulary (see [ParamVocab.directions]).
+library;
+
+/// The four cardinal facings a gate can end in (see the library docs).
 const List<String> gateFacings = ['up', 'down', 'in', 'out'];
 
 /// Start-orientation assumption for a gate: dancers begin facing **into the
 /// set** (across, toward the other role). This is the ratifiable assumption
-/// called out in issue #294; it is confirmed by the corpus contexts (improper
-/// openers and post-`long lines` gates both start from an across-the-set
-/// facing). Isolated here so a corrected assumption is a one-line change.
+/// called out in issue #294, verified against the corpus contexts in the
+/// library docs. Isolated here so a corrected assumption is a one-line change.
 const String gateStartFacing = 'in';
 
 const Map<String, String> _opposite = {
