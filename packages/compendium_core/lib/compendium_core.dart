@@ -5,6 +5,7 @@
 /// domain layer stays portable and independently testable (ADR-001).
 library;
 
+export 'src/analysis/half_calling_stats.dart';
 export 'src/analysis/program_matrix.dart';
 export 'src/dialect/canonicalize.dart';
 export 'src/dialect/dialect.dart';

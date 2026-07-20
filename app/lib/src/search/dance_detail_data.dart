@@ -24,6 +24,7 @@ class DanceDetailData {
     required this.sourcesById,
     required this.callingHistory,
     required this.crossRefLinker,
+    this.halfCallingStats = HalfCallingStats.empty,
   });
 
   final Dance dance;
@@ -47,6 +48,13 @@ class DanceDetailData {
   /// Matches other dances' titles inside this dance's free text (hook /
   /// calling notes) so they can render as tappable cross-reference links.
   final DanceTitleLinker crossRefLinker;
+
+  /// First/second-half positional calling stats for this dance (issue #378),
+  /// derived across every program that includes it. Defaults to
+  /// [HalfCallingStats.empty] so the online-preview constructors need no
+  /// changes; only [load] populates it via the repository. Respects
+  /// [performedOnly] the same way [callingHistory] does.
+  final HalfCallingStats halfCallingStats;
 
   /// Hydrates the detail data for the dance identified by [danceId] from
   /// [repos], returning `null` when no such dance exists. [performedOnly]
@@ -132,6 +140,10 @@ class DanceDetailData {
         performedOnly: performedOnly,
       ),
       crossRefLinker: crossRefLinker,
+      halfCallingStats: await repos.programs.halfCallingStatsForDance(
+        danceId,
+        performedOnly: performedOnly,
+      ),
     );
   }
 }

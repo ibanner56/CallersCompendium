@@ -676,6 +676,143 @@ void main() {
     });
   });
 
+  group('halfCallingStatsForDance', () {
+    Future<void> makeDance(String id) => dances.create(
+      Dance(
+        id: id,
+        title: 'Dance $id',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+
+    ProgramSlot breakSlot(int position) => ProgramSlot(
+      id: 'b$position',
+      position: position,
+      text: Program.breakSlotText,
+    );
+
+    test('is empty when the dance is in no program', () async {
+      await makeDance('d1');
+      await repo.create(sampleProgram());
+      expect(await repo.halfCallingStatsForDance('d1'), HalfCallingStats.empty);
+    });
+
+    test('derives halves and positions end-to-end for one program', () async {
+      await makeDance('d1');
+      await makeDance('d2');
+      await makeDance('d3');
+      await repo.create(
+        sampleProgram(
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+            breakSlot(2),
+            ProgramSlot(id: 's3', position: 3, danceId: 'd3'),
+            ProgramSlot(id: 's4', position: 4, danceId: 'd1'),
+          ],
+        ),
+      );
+      final stats = await repo.halfCallingStatsForDance('d1');
+      expect(stats.firstHalfCount, 1);
+      expect(stats.secondHalfCount, 1);
+      expect(stats.openedFirstHalfCount, 1); // d1 opens the first half
+      expect(stats.closedSecondHalfCount, 1); // d1 closes the second half
+    });
+
+    test('aggregates across multiple programs', () async {
+      await makeDance('d1');
+      await makeDance('d2');
+      await repo.create(
+        sampleProgram(
+          id: 'p1',
+          slots: [
+            ProgramSlot(id: 'a0', position: 0, danceId: 'd1'),
+            breakSlot(1),
+            ProgramSlot(id: 'a2', position: 2, danceId: 'd1'),
+          ],
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          id: 'p2',
+          slots: [
+            ProgramSlot(id: 'c0', position: 0, danceId: 'd2'),
+            ProgramSlot(id: 'c1', position: 1, danceId: 'd1'),
+            ProgramSlot(
+              id: 'c2break',
+              position: 2,
+              text: Program.breakSlotText,
+            ),
+            ProgramSlot(id: 'c3', position: 3, danceId: 'd2'),
+          ],
+        ),
+      );
+      final stats = await repo.halfCallingStatsForDance('d1');
+      expect(stats.firstHalfCount, 2);
+      expect(stats.secondHalfCount, 1);
+    });
+
+    test('excludes soft-deleted programs', () async {
+      await makeDance('d1');
+      await repo.create(
+        sampleProgram(
+          id: 'p1',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            breakSlot(1),
+            ProgramSlot(id: 's2', position: 2, danceId: 'd1'),
+          ],
+        ),
+      );
+      await repo.softDelete('p1', at: DateTime.utc(2026, 6, 1));
+      expect(await repo.halfCallingStatsForDance('d1'), HalfCallingStats.empty);
+    });
+
+    test('performedOnly counts only performed occurrences', () async {
+      await makeDance('d1');
+      await makeDance('d2');
+      await repo.create(
+        sampleProgram(
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 3, 1),
+            ),
+            breakSlot(1),
+            ProgramSlot(id: 's2', position: 2, danceId: 'd2'),
+            ProgramSlot(id: 's3', position: 3, danceId: 'd1'),
+          ],
+        ),
+      );
+      final all = await repo.halfCallingStatsForDance('d1');
+      expect(all.firstHalfCount, 1);
+      expect(all.secondHalfCount, 1);
+
+      final performed = await repo.halfCallingStatsForDance(
+        'd1',
+        performedOnly: true,
+      );
+      expect(performed.firstHalfCount, 1);
+      expect(performed.secondHalfCount, 0);
+    });
+
+    test('a break-less program contributes nothing', () async {
+      await makeDance('d1');
+      await repo.create(
+        sampleProgram(
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd1'),
+          ],
+        ),
+      );
+      expect(await repo.halfCallingStatsForDance('d1'), HalfCallingStats.empty);
+    });
+  });
+
   group('duplicate', () {
     test('mints fresh ids, resets to draft, and persists the copy', () async {
       await dances.create(
