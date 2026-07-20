@@ -612,5 +612,17 @@ void main() {
         }
       },
     );
+
+    testWidgets('the tap-tempo button opens the metronome sheet', (
+      tester,
+    ) async {
+      await _pumpPerform(tester, dance: _dance());
+
+      await tester.tap(find.byKey(const ValueKey('perform-metronome')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('tap-tempo-target')), findsOneWidget);
+      expect(find.text('Tap to set tempo'), findsOneWidget);
+    });
   });
 }
