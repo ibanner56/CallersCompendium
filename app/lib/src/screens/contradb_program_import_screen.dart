@@ -6,7 +6,11 @@ import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/contradb_program_import.dart';
 import '../data/contradb_program_search.dart';
+import '../data/date_format_scope.dart';
+import '../data/display_defaults.dart';
 import '../data/import_io.dart';
+import '../data/program_title_date.dart';
+import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 
 /// How the user is choosing which ContraDB program to import.
@@ -89,6 +93,15 @@ class _ContraDbProgramImportScreenState
   /// The most recently fetched + parsed program (null before the first fetch).
   ContraDbProgram? _program;
 
+  /// Event date auto-detected from the fetched program title (issue #351),
+  /// editable/clearable in the preview before commit. Null when nothing was
+  /// detected or the user cleared it.
+  DateTime? _eventDate;
+
+  /// Whether [_eventDate]'s current value came from title auto-detection (drives
+  /// the "detected from title" hint). Cleared once the user edits/clears it.
+  bool _dateAutoDetected = false;
+
   bool _fetching = false;
   bool _committing = false;
   Object? _fetchError;
@@ -135,12 +148,26 @@ class _ContraDbProgramImportScreenState
       final html = await _fetch(url);
       final program = parseContraDbProgram(html);
       if (!mounted) return;
+      final datePref = DateFormatScope.of(context);
       setState(() {
         _program = program;
         _fetching = false;
         // Pre-fill an empty title from the program page (editable).
         if (_titleController.text.trim().isEmpty && program.title.isNotEmpty) {
           _titleController.text = program.title;
+        }
+        // Best-effort, high-confidence event-date detection from the title
+        // (#351). Only overwrites when nothing has been set/edited yet, so a
+        // re-fetch never clobbers a date the user already picked.
+        if (_eventDate == null) {
+          final detected = detectEventDateFromTitle(
+            _titleController.text,
+            datePref,
+          );
+          if (detected != null) {
+            _eventDate = detected;
+            _dateAutoDetected = true;
+          }
         }
       });
       if (program.activities.isEmpty) {
@@ -247,9 +274,12 @@ class _ContraDbProgramImportScreenState
 
     final id = uuidV4();
     final slots = buildContraDbProgramSlots(resolved, newSlotId: uuidV4);
+    final caller = await _resolveCaller(_program!.contributor);
     final program = Program(
       id: id,
       title: _titleController.text.trim(),
+      eventDate: _eventDate,
+      caller: caller,
       slots: slots,
       createdAt: now,
       updatedAt: now,
@@ -292,6 +322,65 @@ class _ContraDbProgramImportScreenState
       ),
     );
     navigator.pop(id);
+  }
+
+  /// Maximum caller length accepted from a scraped contributor. Defense-in-depth
+  /// on top of the core parser's own cap so an unexpectedly large value can
+  /// never reach the stored program.
+  static const int _kMaxCallerLength = 100;
+
+  /// Resolves the imported program's caller with the ratified precedence
+  /// (#350/#351): the ContraDB **contributor** when present → else the user's
+  /// **default caller** (`kDefaultProgramCallerKey`, the same setting the manual
+  /// new-program path prefills) → else null (blank).
+  ///
+  /// The contributor is untrusted scraped text: it is trimmed, collapsed, and
+  /// length-bounded here (the core parser already sanitizes it too) and an
+  /// empty/oversized value is ignored so we fall through to the default.
+  Future<String?> _resolveCaller(String? contributor) async {
+    final fromContributor = _sanitizeCaller(contributor);
+    if (fromContributor != null) return fromContributor;
+    try {
+      final stored = await _repos.settings.get(kDefaultProgramCallerKey);
+      final value = stored is String ? stored.trim() : '';
+      if (value.isNotEmpty) return value;
+    } catch (_) {
+      // Unreadable/corrupt default → leave the caller blank.
+    }
+    return null;
+  }
+
+  String? _sanitizeCaller(String? raw) {
+    if (raw == null) return null;
+    final cleaned = raw
+        .replaceAll(RegExp(r'[\u0000-\u001F\u007F-\u009F]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (cleaned.isEmpty || cleaned.length > _kMaxCallerLength) return null;
+    return cleaned;
+  }
+
+  /// Opens the date picker to edit the (possibly auto-detected) event date. A
+  /// manual pick clears the "detected from title" hint since it's now the
+  /// user's own value. The range is wide enough to cover historical programs.
+  Future<void> _pickEventDate() async {
+    final now = DateTime.now();
+    final stored = _eventDate;
+    final initial = stored == null
+        ? now
+        : DateTime(stored.year, stored.month, stored.day);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year - 30),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (picked != null) {
+      setState(() {
+        _eventDate = DateTime.utc(picked.year, picked.month, picked.day);
+        _dateAutoDetected = false;
+      });
+    }
   }
 
   @override
@@ -519,6 +608,8 @@ class _ContraDbProgramImportScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        _buildEventDateRow(),
+        const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
@@ -537,6 +628,78 @@ class _ContraDbProgramImportScreenState
                 _previewTile(activities[index], index),
           ),
         ),
+      ],
+    );
+  }
+
+  /// The editable event-date row shown above the activity preview. Displays the
+  /// (possibly auto-detected) date with edit + clear controls, plus a
+  /// transparent "detected from title" hint when the value came from #351's
+  /// auto-detection so a wrong guess is obvious and cheap to correct.
+  Widget _buildEventDateRow() {
+    final scheme = Theme.of(context).colorScheme;
+    final dateLabel = _eventDate == null
+        ? 'No date set'
+        : formatEventDate(
+            _eventDate!,
+            DateFormatScope.of(context),
+            MaterialLocalizations.of(context),
+          );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InputDecorator(
+          decoration: const InputDecoration(
+            labelText: 'Event date',
+            border: OutlineInputBorder(),
+            isDense: true,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  dateLabel,
+                  key: const ValueKey('contradb-program-event-date'),
+                ),
+              ),
+              TextButton.icon(
+                key: const ValueKey('contradb-program-pick-date'),
+                onPressed: _pickEventDate,
+                icon: const Icon(Icons.calendar_today_outlined, size: 18),
+                label: Text(_eventDate == null ? 'Set date' : 'Change'),
+              ),
+              if (_eventDate != null)
+                IconButton(
+                  key: const ValueKey('contradb-program-clear-date'),
+                  tooltip: 'Clear event date',
+                  icon: const Icon(Icons.clear),
+                  onPressed: () => setState(() {
+                    _eventDate = null;
+                    _dateAutoDetected = false;
+                  }),
+                ),
+            ],
+          ),
+        ),
+        if (_dateAutoDetected && _eventDate != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              key: const ValueKey('contradb-program-date-detected-hint'),
+              children: [
+                Icon(Icons.auto_awesome, size: 14, color: scheme.outline),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'Date detected from title — check it before importing.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: scheme.outline),
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }

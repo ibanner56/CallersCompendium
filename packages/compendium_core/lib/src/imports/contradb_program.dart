@@ -78,14 +78,25 @@ class ContraDbProgramActivity {
       : 'ContraDbProgramActivity.note($text)';
 }
 
-/// A parsed **ContraDB program** (set list): its [title] and its ordered
-/// [activities].
+/// A parsed **ContraDB program** (set list): its [title], the [contributor]
+/// who uploaded it (when present), and its ordered [activities].
 @immutable
 class ContraDbProgram {
-  const ContraDbProgram({required this.title, required this.activities});
+  const ContraDbProgram({
+    required this.title,
+    required this.activities,
+    this.contributor,
+  });
 
   /// The program title (the page `h1`); may be empty if the page had none.
   final String title;
+
+  /// The ContraDB user who uploaded the program (the `user:` line on the page),
+  /// taken **verbatim**, or null when the page has no contributor or the value
+  /// was empty/implausible. Sanitized on parse (whitespace/control chars
+  /// collapsed, bounded length) so untrusted page markup can never inject into
+  /// downstream display; see [parseContraDbProgram].
+  final String? contributor;
 
   /// The program's activities in source order (dances + notes interleaved).
   final List<ContraDbProgramActivity> activities;
@@ -94,21 +105,28 @@ class ContraDbProgram {
   bool operator ==(Object other) =>
       other is ContraDbProgram &&
       other.title == title &&
+      other.contributor == contributor &&
       _listEquals(other.activities, activities);
 
   @override
-  int get hashCode => Object.hash(title, Object.hashAll(activities));
+  int get hashCode =>
+      Object.hash(title, contributor, Object.hashAll(activities));
 
   @override
   String toString() =>
-      'ContraDbProgram(title: $title, activities: $activities)';
+      'ContraDbProgram(title: $title, contributor: $contributor, '
+      'activities: $activities)';
 }
 
 /// Parses the **server-rendered HTML** of a ContraDB program page
 /// (`contradb.com/programs/{id}`) into an ordered [ContraDbProgram].
 ///
 /// ## Confirmed DOM (live, `contradb.com/programs/33`)
-/// The program title is the `.programs-show-content h1`. The activity list is
+/// The program title is the `.programs-show-content h1`. The **contributor**
+/// (uploader) is the sole user link inside the program content —
+/// `.programs-show-content a[href="/users/{numericId}"]` (the `user:` line);
+/// the nav's `/users/sign_up` & `/users/sign_in` links live outside that
+/// container and the numeric-id guard excludes them. The activity list is
 /// the sequence of `div.activity-breakdown` blocks, in document order. Each is:
 /// - **linked dance** — `h2.activity-breakdown-dance-title` containing
 ///   `<a href="/dances/{id}">Title</a>`. A sibling `p.activity-breakdown-text`
@@ -142,6 +160,8 @@ ContraDbProgram parseContraDbProgram(String html) {
           ?.text
           .trim() ??
       '';
+
+  final contributor = _parseContributor(document);
 
   final activities = <ContraDbProgramActivity>[];
   for (final block in document.querySelectorAll('.activity-breakdown')) {
@@ -178,7 +198,60 @@ ContraDbProgram parseContraDbProgram(String html) {
     // Empty activity (`~ ~ ~`) or an unrecognised block: nothing to preserve.
   }
 
-  return ContraDbProgram(title: title, activities: activities);
+  return ContraDbProgram(
+    title: title,
+    contributor: contributor,
+    activities: activities,
+  );
+}
+
+/// Maximum contributor length we accept from the untrusted page. ContraDB
+/// display names are short; anything longer is implausible/adversarial and is
+/// rejected (treated as no contributor) so a hostile page can't push a giant
+/// string downstream.
+const int _kMaxContributorLength = 100;
+
+/// Extracts the ContraDB contributor (uploader) from the program page, or null
+/// when absent/implausible.
+///
+/// Scoped to `.programs-show-content` and to `/users/{numericId}` links so the
+/// nav's `/users/sign_up`/`/users/sign_in` are never mistaken for a
+/// contributor. The visible text is taken **verbatim** (fidelity rule) but
+/// defensively sanitized — `package:html` already strips tags/decodes entities,
+/// and we additionally collapse whitespace/control characters and bound the
+/// length so untrusted markup cannot inject into or bloat the caller field.
+/// Never throws: any failure yields null and the import falls back to the
+/// user's default caller.
+String? _parseContributor(dom.Document document) {
+  try {
+    final content = document.querySelector('.programs-show-content');
+    if (content == null) return null;
+    for (final link in content.querySelectorAll('a[href]')) {
+      final href = link.attributes['href'];
+      if (href == null) continue;
+      if (!RegExp(r'^/users/\d+$').hasMatch(href)) continue;
+      final name = _sanitizeContributor(link.text);
+      if (name != null) return name;
+    }
+    return null;
+  } on Object {
+    return null;
+  }
+}
+
+/// Collapses internal whitespace, strips control characters, trims, and bounds
+/// the length of a scraped contributor name. Returns null for an empty or
+/// over-long (implausible) value so the caller can fall back to the default.
+String? _sanitizeContributor(String raw) {
+  // Drop C0/C1 control chars (incl. newlines/tabs) then collapse runs of
+  // whitespace to single spaces so a multi-line/padded name normalizes cleanly.
+  final cleaned = raw
+      .replaceAll(RegExp(r'[\u0000-\u001F\u007F-\u009F]'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  if (cleaned.isEmpty) return null;
+  if (cleaned.length > _kMaxContributorLength) return null;
+  return cleaned;
 }
 
 /// Extracts the numeric dance id from a `/dances/{id}` href (absolute or
