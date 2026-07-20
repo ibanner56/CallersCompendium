@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Caller's Compendium — a local-first dance organizer for callers</title>
+  <meta name="description" content="Caller's Compendium is an open-source, local-first dance organizer for Contra callers — catalog dances, build programs, and call from a stage-ready view on desktop, tablet, and phone. First public beta is live." />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Open Graph / social preview -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Caller's Compendium — a local-first dance organizer for callers" />
+  <meta property="og:description" content="Catalog dances, build programs, and call from a stage-ready view. Open-source, local-first, no telemetry. First public beta is live." />
+  <meta property="og:url" content="https://ibanner56.github.io/CallersCompendium/" />
+  <meta property="og:image" content="assets/social-card.svg" />
+  <meta name="twitter:card" content="summary_large_image" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#top" aria-label="Caller's Compendium home">
+        <img src="assets/logo.svg" alt="" width="34" height="34" />
+        <span>Caller's Compendium</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="#downloads">Download</a>
+        <a href="#beta">Beta</a>
+        <a href="#guide">User guide</a>
+        <a href="https://github.com/ibanner56/CallersCompendium" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- HERO -->
+    <section class="hero" id="top">
+      <div class="wrap hero-inner">
+        <p class="eyebrow">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="hero-status">First public beta is live</span>
+        </p>
+        <h1>The caller's notebook, reimagined.</h1>
+        <p class="lede">
+          Caller's Compendium is an open-source, <strong>local-first</strong> dance
+          organizer for Contra callers — catalog your dances with structured,
+          searchable figures, build and share programs, and call from a
+          large-print, stage-ready view. On desktop, tablet, and phone.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#downloads">Download the beta</a>
+          <a class="btn btn-ghost" href="#beta">Join the beta program</a>
+        </div>
+        <p class="hero-meta">
+          <span class="pill" id="hero-version">v0.1.0-beta.2</span>
+          <span>Local-first</span><span aria-hidden="true">·</span>
+          <span>No telemetry</span><span aria-hidden="true">·</span>
+          <span>Works fully offline</span><span aria-hidden="true">·</span>
+          <span>AGPL-3.0</span>
+        </p>
+      </div>
+    </section>
+
+    <!-- STATUS -->
+    <section class="status" aria-labelledby="status-h">
+      <div class="wrap">
+        <h2 id="status-h" class="section-title">Where the project is today</h2>
+        <p class="section-lede">
+          The core app is built and working. Collection management, search,
+          programs, and performance mode are complete; importing from community
+          sources and migrating from Caller's Companion have landed; and the
+          release pipeline now produces downloadable builds for every platform.
+        </p>
+        <ul class="status-grid">
+          <li><span class="tag ok">Shipped</span> Collection, search, programs &amp; perform mode</li>
+          <li><span class="tag ok">Shipped</span> Imports — ContraDB, The Caller's Box &amp; Caller's Companion</li>
+          <li><span class="tag ok">Shipped</span> Program sharing (send &amp; receive)</li>
+          <li><span class="tag ok">Shipped</span> Named-dialect library &amp; per-gig switching</li>
+          <li><span class="tag work">In flight</span> Desktop code-signing for Windows &amp; Linux</li>
+          <li><span class="tag work">Next</span> Documentation polish &amp; store distribution</li>
+        </ul>
+        <p class="section-note">
+          Full, item-by-item status lives in the
+          <a href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/ROADMAP.md" rel="noopener">roadmap</a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features" id="features" aria-labelledby="features-h">
+      <div class="wrap">
+        <h2 id="features-h" class="section-title">What it does</h2>
+        <div class="feature-grid">
+          <article class="card">
+            <h3>Collection</h3>
+            <p>Catalog dance transcriptions with structured, searchable figures.
+              Search by title, author, type, formation, level — even
+              “chain then swing in B2” — plus your own custom fields.</p>
+          </article>
+          <article class="card">
+            <h3>Programs</h3>
+            <p>Create, edit, duplicate, and print or email set lists, with
+              alternates, free-text slots, and a programming matrix computed from
+              the choreography itself. Build from a title list or straight from a
+              ContraDB event.</p>
+          </article>
+          <article class="card">
+            <h3>Performance mode</h3>
+            <p>A large-print, high-contrast, stage-ready calling view with
+              wake-lock, program navigation, on-the-fly adjustments, and
+              screen-reader-friendly figure rendering.</p>
+          </article>
+          <article class="card">
+            <h3>Dialect</h3>
+            <p>Your terms, your phrasing. Role names, move and dancer-term
+              substitutions, and discouraged-term flags are editable presentation
+              settings over a canonical vocabulary — so search always works and
+              your data stays portable.</p>
+          </article>
+          <article class="card">
+            <h3>Imports</h3>
+            <p>Bring dances in from The Caller's Box and ContraDB by link or id,
+              and migrate from Caller's Companion — including its binary
+              <code>.USR</code> library — all through a review-and-commit queue.</p>
+          </article>
+          <article class="card">
+            <h3>Local-first &amp; cross-platform</h3>
+            <p>Everything is stored on your device and the app is fully usable
+              offline. No accounts, no telemetry. One codebase across Linux,
+              macOS, Windows, Android, and iOS/iPadOS.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCREENSHOTS -->
+    <section class="screenshots" id="screenshots" aria-labelledby="shots-h">
+      <div class="wrap">
+        <h2 id="shots-h" class="section-title">See it in action</h2>
+        <p class="section-lede">A look at Caller's Compendium across the surfaces callers actually use.</p>
+        <div class="shot-grid">
+          <figure class="shot">
+            <div class="shot-frame placeholder" role="img" aria-label="Screenshot placeholder: the collection browser on desktop">
+              <span class="shot-badge">Desktop</span>
+              <span class="shot-caption-hint">Collection browser</span>
+            </div>
+            <figcaption>Browse and search your collection</figcaption>
+          </figure>
+          <figure class="shot">
+            <div class="shot-frame placeholder" role="img" aria-label="Screenshot placeholder: performance mode on a tablet">
+              <span class="shot-badge">Tablet</span>
+              <span class="shot-caption-hint">Performance mode</span>
+            </div>
+            <figcaption>Call from a large-print, stage-ready view</figcaption>
+          </figure>
+          <figure class="shot">
+            <div class="shot-frame placeholder" role="img" aria-label="Screenshot placeholder: the program editor on a phone">
+              <span class="shot-badge">Phone</span>
+              <span class="shot-caption-hint">Program editor</span>
+            </div>
+            <figcaption>Build programs anywhere</figcaption>
+          </figure>
+        </div>
+        <p class="section-note">Real screenshots are on the way — these placeholders will be replaced with captures from each platform.</p>
+      </div>
+    </section>
+
+    <!-- DOWNLOADS -->
+    <section class="downloads" id="downloads" aria-labelledby="dl-h">
+      <div class="wrap">
+        <h2 id="dl-h" class="section-title">Download the beta</h2>
+        <p class="section-lede">
+          <span id="dl-version-line">Latest beta</span>. Pick your platform below.
+          Not sure which file to grab, or hitting a first-launch security prompt?
+          The <a href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/user/installation.md" rel="noopener">installation guide</a>
+          walks you through it.
+        </p>
+
+        <div id="download-grid" class="download-grid" data-state="loading">
+          <p class="dl-loading">Loading the latest release…</p>
+        </div>
+
+        <div class="ios-note card">
+          <h3>iPhone &amp; iPad</h3>
+          <p>iOS and iPadOS builds are delivered through <strong>TestFlight</strong>
+            to invited testers rather than the Releases page.
+            <a href="#beta">Join the beta</a> to request an invite.</p>
+        </div>
+
+        <p class="section-note">
+          Every download is checksummed. Compare the <code>sha256</code> shown here
+          against the file you downloaded (the full <code>SHA256SUMS</code> manifest
+          ships with each release). See all builds and notes on the
+          <a href="https://github.com/ibanner56/CallersCompendium/releases" rel="noopener">Releases page</a>.
+        </p>
+      </div>
+    </section>
+
+    <!-- BETA -->
+    <section class="beta" id="beta" aria-labelledby="beta-h">
+      <div class="wrap beta-inner">
+        <div>
+          <h2 id="beta-h" class="section-title">Join the beta program</h2>
+          <p class="section-lede">
+            We're looking for real callers to put the app through real gigs. Testing
+            is informal: install a build, use it for your calling, and tell us how it
+            held up — what worked, what got in the way, what's missing.
+          </p>
+          <ul class="beta-list">
+            <li>No account or sign-in — just grab a build and go.</li>
+            <li><strong>Local-first &amp; private:</strong> the app collects no telemetry.
+              A check-in is only ever what you choose to share.</li>
+            <li>Periodic <strong>check-ins</strong> are structured through a short GitHub
+              form so feedback is easy to triage.</li>
+            <li>On iOS/iPadOS? A check-in is also how we line up your TestFlight invite.</li>
+          </ul>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_check_in.yml" rel="noopener">Sign up / send a check-in</a>
+            <a class="btn btn-ghost" href="https://github.com/ibanner56/CallersCompendium/discussions" rel="noopener">Ask in Discussions</a>
+          </div>
+        </div>
+        <aside class="beta-card card" aria-label="How the beta check-in works">
+          <h3>How the check-in works</h3>
+          <ol>
+            <li>Click <em>Sign up / send a check-in</em>.</li>
+            <li>GitHub opens a short, structured issue form.</li>
+            <li>Fill in what's relevant — skip anything that doesn't apply.</li>
+            <li>Submit. It lands in triage and helps shape the next build.</li>
+          </ol>
+          <p class="tiny">Prefer to share privately? Email
+            <a href="mailto:isaac@banner.is">isaac@banner.is</a> — please leave out
+            personal or identifying data.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- USER GUIDE -->
+    <section class="guide" id="guide" aria-labelledby="guide-h">
+      <div class="wrap">
+        <h2 id="guide-h" class="section-title">User guide</h2>
+        <p class="section-lede">Everything you need to get going and get the most out of the app.</p>
+        <div class="guide-grid">
+          <a class="guide-link card" href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/user/getting-started.md" rel="noopener">
+            <h3>Getting started</h3><p>Install, add your first dance, and find your way around.</p>
+          </a>
+          <a class="guide-link card" href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/user/installation.md" rel="noopener">
+            <h3>Installation</h3><p>Per-platform install steps and the first-launch security prompts.</p>
+          </a>
+          <a class="guide-link card" href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/user/imports.md" rel="noopener">
+            <h3>Imports</h3><p>Bring dances in from ContraDB, The Caller's Box, and Caller's Companion.</p>
+          </a>
+          <a class="guide-link card" href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/user/programs.md" rel="noopener">
+            <h3>Programs</h3><p>Build, print, email, and share set lists for your events.</p>
+          </a>
+          <a class="guide-link card" href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/user/perform.md" rel="noopener">
+            <h3>Performance mode</h3><p>Call from the large-print, stage-ready view.</p>
+          </a>
+          <a class="guide-link card" href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/user/dialects.md" rel="noopener">
+            <h3>Dialects</h3><p>Make the app speak your terms without breaking search.</p>
+          </a>
+          <a class="guide-link card" href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/user/faq.md" rel="noopener">
+            <h3>FAQ</h3><p>Quick answers to the questions callers ask most.</p>
+          </a>
+          <a class="guide-link card" href="https://github.com/ibanner56/CallersCompendium/tree/main/docs/user" rel="noopener">
+            <h3>All docs →</h3><p>Browse the complete user documentation.</p>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <div class="footer-brand">
+        <img src="assets/logo.svg" alt="" width="28" height="28" />
+        <div>
+          <p class="footer-name">Caller's Compendium</p>
+          <p class="tiny">Open-source, local-first software for dance callers.</p>
+        </div>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="https://github.com/ibanner56/CallersCompendium" rel="noopener">Source code</a>
+        <a href="https://github.com/ibanner56/CallersCompendium/releases" rel="noopener">Releases</a>
+        <a href="https://github.com/ibanner56/CallersCompendium/blob/main/docs/ROADMAP.md" rel="noopener">Roadmap</a>
+        <a href="https://github.com/ibanner56/CallersCompendium/discussions" rel="noopener">Discussions</a>
+        <a href="https://github.com/ibanner56/CallersCompendium/blob/main/LICENSE" rel="noopener">License (AGPL-3.0)</a>
+        <a href="mailto:isaac@banner.is">Contact</a>
+      </nav>
+    </div>
+    <div class="wrap footer-fine">
+      <p class="tiny">Built with Flutter. No accounts, no tracking — your collection stays on your device.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
