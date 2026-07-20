@@ -52,8 +52,19 @@ String buildProgramShareBundle(
 /// separators, spaces, control characters — becomes `_`) so it is safe to use
 /// as a temp-file name and share-sheet file name without path traversal or
 /// odd-character surprises. An empty/all-illegal title falls back to a stable
-/// default. The `.json` extension matches the canonical archive content type
-/// and what the importer's file picker accepts.
+/// default.
+///
+/// The `.ccshare` extension (issue #298, PR 2) makes Caller's Compendium a
+/// first-class handler for received share bundles: it maps to the app's own
+/// exported UTI (`org.callerscompendium.compendiumApp.share`, which conforms to
+/// `public.json`), so an AirDrop'd/"Open with…" file routes back into the app
+/// instead of being treated as a generic `.json`. The payload is still the
+/// canonical [CompendiumArchive] JSON, so the importer also keeps accepting
+/// plain `.json` for backward compatibility.
+const String programShareBundleExtension = 'ccshare';
+
+/// A filesystem-safe file name for a program share bundle. See the library-level
+/// notes above for the extension rationale.
 String programShareBundleFileName(String title) {
   final sanitized = title.trim().replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
   // Fall back when the title has no alphanumeric content (empty, all
@@ -61,5 +72,5 @@ String programShareBundleFileName(String title) {
   // a meaningful, path-safe name.
   final hasContent = sanitized.contains(RegExp(r'[A-Za-z0-9]'));
   final base = hasContent ? sanitized : 'program';
-  return '$base.json';
+  return '$base.$programShareBundleExtension';
 }

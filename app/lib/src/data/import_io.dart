@@ -18,18 +18,24 @@ import '../search/collection_query.dart' show ByPhraseSelections;
 typedef ImportPicker = Future<String?> Function();
 
 /// Default [ImportPicker]: opens the native open-file dialog (via
-/// `file_selector`), restricted to `.json`, and reads the chosen file's text.
-/// Returns `null` when the user cancels.
+/// `file_selector`), restricted to Compendium share bundles, and reads the
+/// chosen file's text. Returns `null` when the user cancels.
 ///
-/// Currently the only wired source is the generic Caller's Compendium JSON
-/// format (`GenericJsonAdapter`), so the picker accepts `.json`. The review
-/// flow itself is adapter-agnostic; a future source (CallersBox/ContraDB/CC)
+/// Accepts both the app's dedicated share-bundle type — extension `.ccshare`,
+/// exported UTI `org.callerscompendium.compendiumApp.share` (issue #298, PR 2) —
+/// **and** plain `.json`/`public.json` for backward compatibility with bundles
+/// produced before the dedicated type existed. The payload is the same
+/// canonical Caller's Compendium JSON (`GenericJsonAdapter`) in either case. The
+/// review flow itself is adapter-agnostic; a future source (CallersBox/ContraDB)
 /// can supply its own picker/type group without changing the queue UI.
 Future<String?> pickImportFile() async {
   const jsonGroup = XTypeGroup(
-    label: 'Compendium JSON',
-    extensions: ['json'],
-    uniformTypeIdentifiers: ['public.json'],
+    label: 'Compendium share',
+    extensions: ['ccshare', 'json'],
+    uniformTypeIdentifiers: [
+      'org.callerscompendium.compendiumApp.share',
+      'public.json',
+    ],
     mimeTypes: ['application/json'],
   );
   final file = await openFile(acceptedTypeGroups: const [jsonGroup]);

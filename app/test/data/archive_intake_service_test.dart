@@ -91,6 +91,19 @@ void main() {
       expect(await repos.dances.listAll(), isEmpty);
     });
 
+    test('non-UTF-8 bytes are rejected', () async {
+      // A hostile/binary payload that is not valid UTF-8 (a lone 0xFF byte and
+      // friends). The service must reject it gracefully, not throw.
+      final result = await service().importBytes(
+        Uint8List.fromList([0xFF, 0xFE, 0x00, 0x80, 0xC0]),
+      );
+
+      expect(result.isRejected, isTrue);
+      expect(result.message, isNotNull);
+      expect(await repos.programs.listAll(), isEmpty);
+      expect(await repos.dances.listAll(), isEmpty);
+    });
+
     test('a non-object JSON root is rejected', () async {
       final result = await service().importBytes(_bytes('[1, 2, 3]'));
 

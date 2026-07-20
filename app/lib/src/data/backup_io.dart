@@ -55,9 +55,10 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   }
 
   final dir = await getTemporaryDirectory();
-  // Create the directory first: on sandboxed macOS `getTemporaryDirectory()`
-  // can return a per-bundle `Caches/` subdirectory that doesn't exist yet, and
-  // writing into a missing directory throws `PathNotFoundException`.
+  // Create the directory first: this branch runs on mobile (iOS/Android), and
+  // on sandboxed platforms `getTemporaryDirectory()` can hand back a per-app
+  // subdirectory that doesn't exist yet — writing into a missing directory
+  // throws `PathNotFoundException`. Defensive I/O for the share-staging path.
   await dir.create(recursive: true);
   final file = File('${dir.path}/$suggestedFileName');
   await file.writeAsString(json);
