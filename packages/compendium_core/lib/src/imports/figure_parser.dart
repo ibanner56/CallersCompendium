@@ -693,7 +693,8 @@ _Match? _boxTheGnat(List<String> w) {
   return _Match(moveId, {'who': who2 ?? 'partners'});
 }
 
-// ContraDB `box circulate`. A single "box circulate" line states no balance, so// the `balance` flag is left absent (neutral); the CallersBox cross-line merge
+// ContraDB `box circulate`. A single "box circulate" line states no balance, so
+// the `balance` flag is left absent (neutral); the CallersBox cross-line merge
 // folds a preceding balance line in as true. `hand` stays on the taxonomy
 // default (ContraDB right_hand_spin) — TCB does not write it inline.
 _Match? _boxCirculate(List<String> w) {
