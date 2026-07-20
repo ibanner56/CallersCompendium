@@ -722,9 +722,16 @@ class _FigureRow extends StatelessWidget {
     final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
     // Emphasis is a purely visual cue: announce the underlying words with the
     // markup delimiters stripped so a screen reader never voices stray `*`/`_`.
+    // For a custom line, use the already delimiter-stripped + dialect-
+    // substituted [mainSpans] so the label matches the on-screen words (the
+    // verbose rendering can leave role tokens unsubstituted when an underscore
+    // sits against them); otherwise strip the canonical verbose text.
     final noteText = note?.trim() ?? '';
+    final mainSemantics = mainSpans != null
+        ? mainSpans!.map((s) => s.text).join()
+        : stripInlineEmphasis(verboseText);
     final semanticsLabel = [
-      stripInlineEmphasis(verboseText),
+      mainSemantics,
       if (progression) 'progression',
       beatsLabel,
       if (noteText.isNotEmpty) 'note: ${stripInlineEmphasis(noteText)}',
@@ -764,16 +771,12 @@ class _FigureRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (mainSpans != null)
-                    Text.rich(
-                      _emphasisSpan(mainSpans!, textStyle),
-                      style: textStyle,
-                    )
+                    Text.rich(_emphasisSpan(mainSpans!, textStyle))
                   else
                     Text(text, style: textStyle),
                   if (noteText.isNotEmpty)
                     Text.rich(
                       _emphasisSpan(parseInlineEmphasis(noteText), noteStyle),
-                      style: noteStyle,
                     ),
                 ],
               ),
@@ -794,12 +797,14 @@ class _FigureRow extends StatelessWidget {
   }
 
   /// Builds a `TextSpan` tree from parsed [EmphasisSpan]s, applying bold and/or
-  /// underline over [baseStyle]. Purely visual — the text itself is unchanged.
+  /// underline over [baseStyle] (carried on the root span). Purely visual — the
+  /// text itself is unchanged.
   static TextSpan _emphasisSpan(
     List<EmphasisSpan> spans,
     TextStyle? baseStyle,
   ) {
     return TextSpan(
+      style: baseStyle,
       children: [
         for (final span in spans)
           TextSpan(

@@ -1453,8 +1453,11 @@ void _wrapSelectionWith(TextEditingController controller, String delimiter) {
   if (!selection.isValid) {
     selection = TextSelection.collapsed(offset: text.length);
   }
-  final start = selection.start;
-  final end = selection.end;
+  // `isValid` only guarantees non-negative offsets; clamp to the current text
+  // length so a stale selection can never throw a RangeError on substring /
+  // replaceRange.
+  final start = selection.start.clamp(0, text.length);
+  final end = selection.end.clamp(0, text.length);
   final selected = text.substring(start, end);
   final replacement = '$delimiter$selected$delimiter';
   final newText = text.replaceRange(start, end, replacement);

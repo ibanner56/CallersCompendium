@@ -134,6 +134,28 @@ void main() {
     expect(bold.style?.fontWeight, FontWeight.bold);
   });
 
+  testWidgets('custom underline semantics announces the substituted word', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      _danceWith([
+        Figure(
+          move: customMove,
+          params: const {'text': '_role1s_ swing', 'beats': 8},
+        ),
+      ]),
+    );
+
+    final handle = tester.ensureSemantics();
+    // The label must announce the dialect-substituted word ("larks"), never the
+    // raw role token or the underscore delimiters.
+    expect(find.bySemanticsLabel(RegExp('larks swing')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('role1s')), findsNothing);
+    expect(find.bySemanticsLabel(RegExp('_')), findsNothing);
+    handle.dispose();
+  });
+
   testWidgets('non-custom canonical line is plain (no emphasis parsing)', (
     tester,
   ) async {
