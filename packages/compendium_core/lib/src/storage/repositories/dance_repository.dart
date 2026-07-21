@@ -432,11 +432,11 @@ class DanceRepository {
   /// transaction, for the Collection multi-select "batch set level" flow.
   ///
   /// Contract: to *set* a level pass a non-null [level]; to *unset* it pass
-  /// [clearLevel] `true`. These are mutually exclusive — asserting
-  /// `clearLevel || level != null` prevents the footgun of accidentally
-  /// clearing every dance by omitting [level] (which would otherwise diverge
-  /// from [Dance.copyWith], where a null value without a clear flag keeps the
-  /// existing value). A set [clearLevel] wins over any [level] value, matching
+  /// [clearLevel] `true`. These are mutually exclusive — calling with neither
+  /// throws an [ArgumentError] (and trips a debug assert) to prevent the
+  /// footgun of accidentally clearing every dance by omitting [level] (which
+  /// would otherwise diverge from [Dance.copyWith], where a null value without
+  /// a clear flag keeps the existing value). A set [clearLevel] wins over any [level] value, matching
   /// [Dance.copyWith]. Each affected dance is rewritten through the same upsert
   /// path as [update], so the derived figure/FTS indexes stay consistent.
   ///
@@ -451,9 +451,18 @@ class DanceRepository {
     bool clearLevel = false,
     required DateTime now,
   }) {
+    // Release-safe guard (asserts are stripped in release): a caller must pass
+    // a concrete level, or opt in to clearing via clearLevel. This is checked
+    // before the debug-only assert so the thrown ArgumentError is deterministic
+    // across build modes. clearLevel still takes precedence when both are set.
+    if (!clearLevel && level == null) {
+      throw ArgumentError(
+        'setLevelForMany requires a non-null level unless clearLevel is true',
+      );
+    }
     assert(
       clearLevel || level != null,
-      'setLevelForMany requires a non-null level unless clearLevel is true',
+      'setLevelForMany: pass a non-null level, or clearLevel: true to unset',
     );
     assertUtc(now, 'now');
     final target = clearLevel ? null : level;
