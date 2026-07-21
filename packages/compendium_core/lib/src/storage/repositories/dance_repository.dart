@@ -8,6 +8,7 @@ import '../../model/dance.dart';
 import '../../model/dance_link.dart';
 import '../../model/enums.dart';
 import '../../model/formation.dart';
+import '../../imports/reparse_custom_figures.dart';
 import '../../model/partial_date.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/source_citation.dart';
@@ -487,7 +488,88 @@ class DanceRepository {
     });
   }
 
-  /// Duplicates the dance identified by [id] under [newId] via
+  /// Read-only dry-run for the #417 "re-check custom figures" flow: scans every
+  /// non-deleted dance and returns a [CustomReparsePreview] for each one that
+  /// has at least one import-gap custom figure whose stored text now parses to
+  /// a structured taxonomy move. Dances with nothing to upgrade are omitted, so
+  /// an empty result means "nothing to do". Writes nothing.
+  ///
+  /// Reads only the three columns it needs (`id`, `title`, `figures_json`) and
+  /// decodes the figures locally — deliberately avoiding [listAll]/[_toModel],
+  /// whose six per-dance relationship queries (authors, tags, links, custom
+  /// values, sources, provenance) are irrelevant to a figure-only check and
+  /// would make this an O(1 + 6N)-query scan. Results are ordered
+  /// case-insensitively by title to match the collection's `COLLATE NOCASE`
+  /// display order.
+  Future<List<CustomReparsePreview>> previewImportGapReparse() async {
+    final rows =
+        await (_db.selectOnly(_db.dances)
+              ..addColumns([
+                _db.dances.id,
+                _db.dances.title,
+                _db.dances.figuresJson,
+              ])
+              ..where(_db.dances.deletedAt.isNull()))
+            .get();
+
+    final previews = <CustomReparsePreview>[];
+    for (final row in rows) {
+      final figures = decodeFigures(row.read(_db.dances.figuresJson)!);
+      final outcome = reparseImportGapFigures(figures, taxonomy: _taxonomy);
+      if (outcome.upgradedCount > 0) {
+        previews.add(
+          CustomReparsePreview(
+            danceId: row.read(_db.dances.id)!,
+            title: row.read(_db.dances.title)!,
+            upgradeCount: outcome.upgradedCount,
+          ),
+        );
+      }
+    }
+    previews.sort(
+      (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+    );
+    return previews;
+  }
+
+  /// Applies the #417 re-parse to the dances in [ids], upgrading import-gap
+  /// custom figures whose stored text now maps to a structured move. Only the
+  /// individual upgraded figures are rewritten (in place); every other field —
+  /// tags, rating, tunes, notes, custom fields, author/program links, id,
+  /// favorite/updated status, and all non-import-gap figures — is preserved
+  /// exactly, because each dance is rewritten via [Dance.copyWith] through the
+  /// same upsert path as [update].
+  ///
+  /// Stamps [now] as `updatedAt` only on dances that actually change; dances
+  /// with nothing to upgrade are skipped, so the operation is idempotent
+  /// (re-running changes nothing further). Skips unknown ids. Returns the
+  /// number of dances changed. An empty [ids] is a no-op returning `0`. The
+  /// whole batch runs in one transaction, so an error leaves the collection
+  /// untouched rather than half-updated.
+  Future<int> reparseImportGapFiguresForMany(
+    Iterable<String> ids, {
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      var changed = 0;
+      for (final id in list) {
+        final dance = await getById(id);
+        if (dance == null) continue;
+        final outcome = reparseImportGapFigures(
+          dance.figures,
+          taxonomy: _taxonomy,
+        );
+        if (outcome.upgradedCount == 0) continue;
+        await _upsert(dance.copyWith(figures: outcome.figures, updatedAt: now));
+        changed++;
+      }
+      return changed;
+    });
+  }
+
   /// [Dance.duplicate] (fresh identity, no provenance) and persists it.
   Future<Dance> duplicate({
     required String id,
@@ -854,4 +936,20 @@ class DanceRepository {
       deletedAt: asUtcOrNull(row.deletedAt),
     );
   }
+}
+
+/// A single dance's dry-run result for the #417 re-parse flow: how many of its
+/// import-gap custom figures would be upgraded to structured moves. Produced by
+/// [DanceRepository.previewImportGapReparse]; UI shows these before the user
+/// confirms the (opt-in, non-destructive) apply.
+class CustomReparsePreview {
+  const CustomReparsePreview({
+    required this.danceId,
+    required this.title,
+    required this.upgradeCount,
+  });
+
+  final String danceId;
+  final String title;
+  final int upgradeCount;
 }

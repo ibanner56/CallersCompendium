@@ -35,6 +35,7 @@ export 'src/imports/generic_json_adapter.dart';
 export 'src/imports/import_error.dart';
 export 'src/imports/import_pipeline.dart';
 export 'src/imports/raw_record.dart';
+export 'src/imports/reparse_custom_figures.dart';
 export 'src/imports/source_adapter.dart';
 export 'src/imports/structured_draft.dart';
 export 'src/model/choreographer.dart';
