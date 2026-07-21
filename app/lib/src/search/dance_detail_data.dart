@@ -19,6 +19,7 @@ class DanceDetailData {
     required this.dance,
     required this.authorNames,
     required this.tagNames,
+    this.tags = const [],
     required this.customFields,
     required this.relatedDanceTitles,
     required this.sourcesById,
@@ -30,6 +31,13 @@ class DanceDetailData {
   final Dance dance;
   final List<String> authorNames;
   final List<String> tagNames;
+
+  /// The dance's tags as `(id, name)` pairs, in [Dance.tagIds] order, for tags
+  /// whose name resolves. Carries the id (unlike [tagNames]) so a tapped tag
+  /// chip can drive the Collection's id-based tag filter (issue #414). Empty in
+  /// the online-preview constructors (an un-imported dance has no tags to
+  /// filter the local collection by).
+  final List<({String id, String name})> tags;
   final List<CustomFieldDisplay> customFields;
 
   /// Maps targetDanceId → title for relatedDance links whose target exists.
@@ -127,6 +135,10 @@ class DanceDetailData {
       tagNames: [
         for (final id in dance.tagIds)
           if (tagNames[id] != null) tagNames[id]!,
+      ],
+      tags: [
+        for (final id in dance.tagIds)
+          if (tagNames[id] != null) (id: id, name: tagNames[id]!),
       ],
       customFields: [
         for (final value in dance.customFields)

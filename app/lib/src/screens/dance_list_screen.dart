@@ -8,6 +8,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
+import '../data/collection_filter_scope.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/dialect_library_scope.dart';
@@ -172,6 +173,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// from Settings) bumps it. Tracked so listeners are swapped correctly.
   ValueListenable<int>? _collectionRefresh;
 
+  /// The app-level tag-filter coordinator (issue #414). When a tag chip is
+  /// tapped (here, on a dance detail, or on a list row), this list applies a
+  /// single-tag filter. Tracked so the listener is swapped correctly.
+  CollectionFilterController? _filterController;
+
+  /// The seq of the last tag-filter request applied, so a repeat request (even
+  /// for the same tag) re-applies exactly once.
+  int _lastFilterSeq = 0;
+
   CollectionData? _data;
   Object? _loadError;
 
@@ -258,6 +268,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _collectionRefresh = refresh;
       _collectionRefresh?.addListener(_onRefreshTriggered);
     }
+
+    // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
+    // anywhere publishes a request; this list reacts by applying a single-tag
+    // filter. Registers a rebuild dependency; the controller is stable across
+    // the app's lifetime, so this attaches once.
+    final filter = CollectionFilterScope.maybeOf(context);
+    if (!identical(filter, _filterController)) {
+      _filterController?.removeListener(_onTagFilterRequested);
+      _filterController = filter;
+      _filterController?.addListener(_onTagFilterRequested);
+      // Apply any request that arrived before we subscribed (e.g. the very
+      // first frame), so a tag tap on the initial screen isn't missed.
+      _onTagFilterRequested();
+    }
   }
 
   @override
@@ -282,10 +306,49 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (mounted) _boot();
   }
 
+  /// Reacts to an app-level "filter the Collection to this tag" request (issue
+  /// #414). Applies a **single-tag** filter that *replaces* the current query:
+  /// arriving from a dance detail with unknown prior filter state, a clean
+  /// "show every dance with this tag" result is the predictable behavior (the
+  /// user can then clear it via the Filters panel). Handled once per request.
+  void _onTagFilterRequested() {
+    final request = _filterController?.pending;
+    if (request == null || request.seq == _lastFilterSeq) return;
+    _lastFilterSeq = request.seq;
+    if (!mounted) return;
+    _applyExternalTagFilter(request.tagId);
+  }
+
+  /// Replaces the current search with a single-tag facet filter for [tagId] and
+  /// re-runs the search. Clears the text query, other facets, by-phrase and
+  /// advanced state, and exits online mode so the (local) filtered list is what
+  /// the user lands on.
+  void _applyExternalTagFilter(String tagId) {
+    _debounceTimer?.cancel();
+    setState(() {
+      _ftsController.clear();
+      _facets.clear();
+      _byPhrase.clear();
+      _advancedRoot.children.clear();
+      _advancedRoot.kind = GroupKind.all;
+      _advancedEnabled = false;
+      _onlineEnabled = false;
+      // Invalidate any in-flight online search so a late response can't
+      // repopulate _onlineResults/_onlineError after we've left online mode.
+      _onlineSeq++;
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineSearching = false;
+      _facets.tagIds.add(tagId);
+    });
+    _runSearch();
+  }
+
   @override
   void dispose() {
     widget.refreshTrigger?.removeListener(_onRefreshTriggered);
     _collectionRefresh?.removeListener(_onRefreshTriggered);
+    _filterController?.removeListener(_onTagFilterRequested);
     _debounceTimer?.cancel();
     _ftsController.dispose();
     super.dispose();
@@ -1572,6 +1635,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             }
           },
           onDuplicate: () => _duplicateFromList(entry.dance.id),
+          onTagTap: _applyExternalTagFilter,
           onAddToProgram: () => showAddToProgramSheet(
             context,
             repositories: _repos,

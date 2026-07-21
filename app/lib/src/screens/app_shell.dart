@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/collection_filter_scope.dart';
 import '../screens/dance_detail_screen.dart';
 import '../screens/program_editor_screen.dart';
 import '../theme/app_spacing.dart';
@@ -36,6 +37,50 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
+
+  /// The app-level tag-filter coordinator (issue #414). Subscribed so a tag tap
+  /// anywhere switches to the Collection destination and reveals the (now
+  /// filtered) list. Tracked so the listener is swapped/removed correctly.
+  CollectionFilterController? _filterController;
+
+  /// The seq of the last tag-filter request this shell reacted to, so a repeat
+  /// request (even for the same tag) is handled exactly once.
+  int _lastFilterSeq = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final controller = CollectionFilterScope.maybeOf(context);
+    if (!identical(controller, _filterController)) {
+      _filterController?.removeListener(_onTagFilterRequested);
+      _filterController = controller;
+      _filterController?.addListener(_onTagFilterRequested);
+    }
+  }
+
+  @override
+  void dispose() {
+    _filterController?.removeListener(_onTagFilterRequested);
+    super.dispose();
+  }
+
+  /// Reacts to a "filter the Collection to this tag" request: selects the
+  /// Collection destination and pops any pushed route (e.g. a full-screen dance
+  /// detail on narrow layouts) so the filtered list is visible. The live
+  /// [DanceListScreen] applies the actual filter by listening to the same
+  /// controller. A no-op pop on wide layouts, where detail is embedded.
+  void _onTagFilterRequested() {
+    final request = _filterController?.pending;
+    if (request == null || request.seq == _lastFilterSeq) return;
+    _lastFilterSeq = request.seq;
+    if (!mounted) return;
+    setState(() => _index = 0);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    });
+  }
 
   /// The core destinations shared by both layouts: rail destinations on wide
   /// and the first three bottom-bar destinations on narrow. The User Guide is
