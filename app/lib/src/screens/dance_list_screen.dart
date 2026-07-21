@@ -24,6 +24,7 @@ import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
+import '../widgets/batch_level_dialog.dart';
 import '../widgets/batch_tag_dialog.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/by_phrase_panel.dart';
@@ -822,6 +823,95 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (mounted) await _boot();
   }
 
+  /// Sets the difficulty level on the selected dances. Opens the level picker,
+  /// persists the choice via the batched, single-transaction
+  /// [DanceRepository.setLevelForMany], announces the result to AT, and offers
+  /// Undo. Unlike batch tagging (additive), setting a level replaces it, so the
+  /// picker is single-choice and includes an explicit "clear" option.
+  Future<void> _batchSetLevel() async {
+    final data = _data;
+    if (data == null || _selectedIds.isEmpty) return;
+
+    final selectedIds = Set<String>.of(_selectedIds);
+    final choice = await showBatchLevelDialog(context);
+    if (choice == null || !mounted) return;
+
+    // Capture prior levels so Undo can restore each dance individually (the
+    // batch write collapses them to a single target level).
+    final priorLevels = <String, DanceLevel?>{};
+    for (final id in selectedIds) {
+      final dance = await _repos.dances.getById(id);
+      if (dance == null) continue;
+      priorLevels[id] = dance.level;
+    }
+
+    final count = await _repos.dances.setLevelForMany(
+      priorLevels.keys,
+      level: choice.level,
+      clearLevel: choice.clear,
+      now: DateTime.now().toUtc(),
+    );
+
+    // Narrow the captured priors to only the dances that actually changed, so
+    // Undo doesn't rewrite (and re-stamp) untouched dances.
+    final target = choice.clear ? null : choice.level;
+    priorLevels.removeWhere((_, prior) => prior == target);
+
+    if (!mounted) return;
+    final label = choice.clear ? 'Cleared level on' : 'Set level on';
+    final message = count == 0
+        ? 'No changes'
+        : '$label $count ${count == 1 ? 'dance' : 'dances'}';
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      Directionality.of(context),
+    );
+
+    _exitSelectionMode();
+    await _boot();
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    if (count == 0) {
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('batch-level-snackbar'),
+          content: Text(message),
+        ),
+      );
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('batch-level-snackbar'),
+        content: Text(message),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => _undoBatchLevel(priorLevels),
+        ),
+      ),
+    );
+  }
+
+  /// Restores the captured [priorLevels] for each affected dance (app-side undo;
+  /// the repository has no batch-undo primitive).
+  Future<void> _undoBatchLevel(Map<String, DanceLevel?> priorLevels) async {
+    for (final entry in priorLevels.entries) {
+      final dance = await _repos.dances.getById(entry.key);
+      if (dance == null) continue;
+      await _repos.dances.update(
+        dance.copyWith(
+          level: entry.value,
+          clearLevel: entry.value == null,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+    }
+    if (mounted) await _boot();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -945,6 +1035,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
           tooltip: 'Remove tags',
           icon: const Icon(Icons.label_off_outlined),
           onPressed: hasSelection ? () => _batchTag(BatchTagMode.remove) : null,
+        ),
+        IconButton(
+          key: const ValueKey('batch-set-level'),
+          tooltip: 'Set level',
+          icon: const Icon(Icons.signal_cellular_alt),
+          onPressed: hasSelection ? _batchSetLevel : null,
         ),
       ],
     );

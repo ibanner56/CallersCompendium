@@ -428,6 +428,48 @@ class DanceRepository {
     });
   }
 
+  /// Sets the difficulty [level] on many dances at once, in a single
+  /// transaction, for the Collection multi-select "batch set level" flow.
+  ///
+  /// Pass [clearLevel] `true` to unset the level (`null`) across the selection;
+  /// a set [clearLevel] wins over any [level] value, mirroring
+  /// [Dance.copyWith]. Each affected dance is rewritten through the same upsert
+  /// path as [update], so the derived figure/FTS indexes stay consistent.
+  ///
+  /// Skips unknown ids and dances already at the target level (idempotent), and
+  /// stamps [now] as `updatedAt` only on dances that actually change. Returns
+  /// the number of dances changed. An empty [ids] is a no-op returning `0`.
+  /// Because the whole batch runs in one transaction, an error leaves the
+  /// collection untouched rather than half-updated.
+  Future<int> setLevelForMany(
+    Iterable<String> ids, {
+    DanceLevel? level,
+    bool clearLevel = false,
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    final target = clearLevel ? null : level;
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      var changed = 0;
+      for (final id in list) {
+        final dance = await getById(id);
+        if (dance == null) continue;
+        if (dance.level == target) continue;
+        await _upsert(
+          dance.copyWith(
+            level: target,
+            clearLevel: target == null,
+            updatedAt: now,
+          ),
+        );
+        changed++;
+      }
+      return changed;
+    });
+  }
+
   /// Duplicates the dance identified by [id] under [newId] via
   /// [Dance.duplicate] (fresh identity, no provenance) and persists it.
   Future<Dance> duplicate({
