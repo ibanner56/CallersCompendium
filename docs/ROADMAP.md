@@ -422,13 +422,23 @@ defaults) live in the **Defaults** pane section below.
   and confirm-before-delete (an explicit confirm dialog instead of the
   undo-snackbar delete pattern). Persisted via `SettingsRepository`.
 
-- [x] G.8 **Localization & regional formats** *(placeholder / later)* — Caller's
-  Companion ships ~12 runtime UI languages; we have no i18n yet ("UI
-  localization / multi-language" under Later milestones). Ahead of full i18n,
-  the cheap, useful pieces are regional: date format and first-day-of-week,
-  which affect program event dates. This item stubs a home for those regional
-  preferences and anticipates a future language selector. Persisted via
-  `SettingsRepository`.
+- [x] G.8 **Localization & regional formats** — the i18n **framework has landed**
+  (PR 1 of a phased extraction). The app now wires `flutter_localizations` +
+  `flutter gen-l10n` with **English as the source locale** (`app/lib/l10n/app_en.arb`),
+  a live **app-language selector**, and regional-format preferences — a
+  **date format** (which controls how program event dates render) plus a
+  **first day of week** preference — all persisted via `SettingsRepository` and
+  validated on load (OWASP: a
+  corrupted/unknown stored value falls back safely, never crashing). Translations
+  are **community-driven**: dropping an `app_<locale>.arb` into `lib/l10n/` makes a
+  language appear in the selector with no code change (see
+  [docs/dev/localization.md](dev/localization.md)). Remaining UI strings are
+  extracted into the ARB incrementally in follow-up PRs ("UI localization /
+  multi-language" under Later milestones). NOTE: Flutter's `showDatePicker` derives
+  its first day of week from the locale and can't be overridden per-call, so the
+  first-day-of-week preference is stored and exposed app-wide (via
+  `FirstDayOfWeekScope`) for date surfaces the app draws itself to honor as they
+  land; it has no visible effect on the system date picker today.
 
 ## Defaults (settings pane)
 
@@ -632,8 +642,12 @@ taxonomy are unchanged.
   (shorthand→figure mappings), which builds on #403 (free-text figure entry mode)
   and #398 (parser-gap flagging); sequencing #398 → #403 → #404. Post-beta.3. The
   *structured* analogue already shipped as DD.3 (per-move figure-entry defaults).
-- **UI localization / multi-language** — CC ships ~12 runtime UI languages; we
-  have no i18n plan yet. Scope an intl framework if community demand appears.
+- **UI localization / multi-language** — the i18n **framework has landed** (see
+  G.8): `flutter_localizations` + `gen-l10n`, an app-language selector, and
+  **English as the source locale**. What remains is incremental: extracting the
+  rest of the ~900 UI strings into `app_en.arb` (phased PRs) and welcoming
+  **community-contributed** `app_<locale>.arb` translations, which require no code
+  change to appear. See [docs/dev/localization.md](dev/localization.md).
 
 ### Plugin system (user-installable extensions)
 

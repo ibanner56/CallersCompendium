@@ -17,6 +17,7 @@ import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -84,6 +85,8 @@ _pumpSettings(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(

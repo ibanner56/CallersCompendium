@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 /// Pumps the [SettingsScreen] (Appearance is the default section) with the
 /// scopes it depends on, including a [SetListColorCodingScope] seeded from
@@ -35,6 +36,8 @@ Future<ValueNotifier<bool>> _pumpAppearance(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(

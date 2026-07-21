@@ -1,0 +1,113 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Caller's Compendium",
+  "@appTitle": {
+    "description": "The application's name. Shown as the window/task-switcher title via MaterialApp.onGenerateTitle."
+  },
+
+  "navCollection": "Collection",
+  "@navCollection": {
+    "description": "Bottom/rail navigation label for the dance collection destination."
+  },
+  "navPrograms": "Programs",
+  "@navPrograms": {
+    "description": "Bottom/rail navigation label for the programs destination."
+  },
+  "navSettings": "Settings",
+  "@navSettings": {
+    "description": "Bottom/rail navigation label for the settings destination."
+  },
+  "navGuide": "Guide",
+  "@navGuide": {
+    "description": "Bottom/rail navigation label for the in-app user guide destination."
+  },
+  "navGuideTooltip": "User guide",
+  "@navGuideTooltip": {
+    "description": "Tooltip for the wide-layout navigation-rail Help button that opens the in-app user guide."
+  },
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title of the Settings screen (sidebar header on wide layouts, app bar on narrow)."
+  },
+
+  "commonSystemDefault": "System default",
+  "@commonSystemDefault": {
+    "description": "Generic option meaning 'follow the device/platform setting'. Shared by the date-format, first-day-of-week, and app-language controls."
+  },
+
+  "settingsLanguageRegionTitle": "Language & region",
+  "@settingsLanguageRegionTitle": {
+    "description": "Label of the Settings section that groups app-language and regional-format preferences."
+  },
+  "settingsRegionalFormatsHeader": "Formats",
+  "@settingsRegionalFormatsHeader": {
+    "description": "Header for the group of regional-format controls (date format, first day of week)."
+  },
+  "settingsRegionalLanguageHeader": "Language",
+  "@settingsRegionalLanguageHeader": {
+    "description": "Header for the app-language group in the Language & region settings section."
+  },
+
+  "settingsDateFormatTitle": "Date format",
+  "@settingsDateFormatTitle": {
+    "description": "Title of the control that chooses how program event dates are formatted."
+  },
+  "settingsDateFormatSubtitle": "How program event dates appear. Example: {example}",
+  "@settingsDateFormatSubtitle": {
+    "description": "Subtitle for the date-format control, showing a live example of today's date in the chosen format.",
+    "placeholders": {
+      "example": {
+        "type": "String",
+        "example": "2026-07-15"
+      }
+    }
+  },
+  "settingsDateFormatYmd": "Year-month-day (2026-07-15)",
+  "@settingsDateFormatYmd": {
+    "description": "Date-format option: ISO-like year-month-day. The parenthetical is an illustrative sample date."
+  },
+  "settingsDateFormatDmy": "Day/month/year (15/07/2026)",
+  "@settingsDateFormatDmy": {
+    "description": "Date-format option: day/month/year. The parenthetical is an illustrative sample date."
+  },
+  "settingsDateFormatMdy": "Month/day/year (07/15/2026)",
+  "@settingsDateFormatMdy": {
+    "description": "Date-format option: month/day/year. The parenthetical is an illustrative sample date."
+  },
+
+  "settingsFirstDayOfWeekTitle": "First day of week",
+  "@settingsFirstDayOfWeekTitle": {
+    "description": "Title of the control that chooses which day the week starts on."
+  },
+  "settingsFirstDayOfWeekSubtitle": "Choose which day the week starts on.",
+  "@settingsFirstDayOfWeekSubtitle": {
+    "description": "Subtitle for the first-day-of-week control."
+  },
+  "settingsFirstDayOfWeekSunday": "Sunday",
+  "@settingsFirstDayOfWeekSunday": {
+    "description": "First-day-of-week option: the week starts on Sunday."
+  },
+  "settingsFirstDayOfWeekMonday": "Monday",
+  "@settingsFirstDayOfWeekMonday": {
+    "description": "First-day-of-week option: the week starts on Monday."
+  },
+  "settingsFirstDayOfWeekSaturday": "Saturday",
+  "@settingsFirstDayOfWeekSaturday": {
+    "description": "First-day-of-week option: the week starts on Saturday."
+  },
+  "settingsFirstDayOfWeekPickerNote": "The system date picker follows the app's active language, so this setting doesn't change it.",
+  "@settingsFirstDayOfWeekPickerNote": {
+    "description": "Caption noting that the platform date picker derives its first day of week from the app's active locale (set by the App language preference), so the first-day-of-week setting cannot override it."
+  },
+
+  "settingsAppLanguageTitle": "App language",
+  "@settingsAppLanguageTitle": {
+    "description": "Title of the control that chooses the language of the app's interface."
+  },
+  "settingsAppLanguageSubtitle": "Choose the language of the app's interface.",
+  "@settingsAppLanguageSubtitle": {
+    "description": "Subtitle for the app-language control."
+  }
+}

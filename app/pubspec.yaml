@@ -10,6 +10,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Flutter's bundled localizations + delegates (Material/Cupertino/Widgets) and
+  # the i18n framework. Declared directly (not just transitively) because the
+  # gen-l10n output imports `package:intl` and its setup instructions require it;
+  # `any` lets `flutter pub get` select the version the Flutter SDK pins.
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   compendium_core:
     path: ../packages/compendium_core
   cupertino_icons: ^1.0.8
@@ -54,6 +61,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Enable gen-l10n: `flutter pub get` / `flutter gen-l10n` reads app/l10n.yaml
+  # and generates the AppLocalizations sources into lib/l10n/ (checked in).
+  generate: true
   assets:
     - assets/fonts/Roboto-VariableFont.ttf
     # Bundled font license texts, loaded at runtime via LicenseRegistry so
