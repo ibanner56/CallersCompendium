@@ -134,7 +134,7 @@ CompendiumArchive _sampleArchive() {
     title: 'All Custom',
     figures: [
       Figure(move: customMove, params: {'text': 'weave the ring', 'beats': 8}),
-      Figure(move: customMove, params: {'text': 'do something odd'}),
+      customFigure('do something odd'),
     ],
     createdAt: DateTime.utc(2026, 1, 3),
     updatedAt: DateTime.utc(2026, 1, 3),
@@ -226,6 +226,11 @@ void main() {
       expect(d1.figures, hasLength(2));
       expect(d1.figures[1].params['turn'], 1.5);
       expect(d1.figures[1].progression, isTrue);
+
+      // The customOrigin discriminator survives the archive/.ccshare path.
+      final d2 = result.archive.dances.firstWhere((d) => d.id == 'd2');
+      expect(d2.figures[0].customOrigin, CustomOrigin.userEntered);
+      expect(d2.figures[1].customOrigin, CustomOrigin.importGap);
       expect(d1.level, DanceLevel.intermediate);
       expect(d1.rating, 5);
       expect(d1.tunes, hasLength(2));

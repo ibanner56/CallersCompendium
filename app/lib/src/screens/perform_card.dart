@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../theme/app_typography.dart';
 import '../theme/set_list_accents.dart';
 import '../widgets/formation_color_badge.dart';
+import '../widgets/import_gap_badge.dart';
 
 /// Shared large-print rendering for Performance mode (`docs/design/ux.md` §5).
 ///
@@ -681,6 +682,9 @@ class _Figures extends StatelessWidget {
           beats: sf.figure.beats,
           progression: sf.figure.progression,
           note: sf.figure.note,
+          isImportGap:
+              sf.figure.isCustom &&
+              sf.figure.customOrigin == CustomOrigin.importGap,
         ),
       );
     }
@@ -700,6 +704,7 @@ class _FigureRow extends StatelessWidget {
     required this.beats,
     required this.progression,
     required this.note,
+    required this.isImportGap,
   });
 
   /// Terse, dialect-applied text shown on screen (non-custom figures).
@@ -715,6 +720,10 @@ class _FigureRow extends StatelessWidget {
   final int beats;
   final bool progression;
   final String? note;
+
+  /// Whether this is a parser-gap custom figure ([CustomOrigin.importGap]),
+  /// which gets a badge + subtle row shading.
+  final bool isImportGap;
 
   @override
   Widget build(BuildContext context) {
@@ -732,6 +741,7 @@ class _FigureRow extends StatelessWidget {
         : stripInlineEmphasis(verboseText);
     final semanticsLabel = [
       mainSemantics,
+      if (isImportGap) importGapMessage,
       if (progression) 'progression',
       beatsLabel,
       if (noteText.isNotEmpty) 'note: ${stripInlineEmphasis(noteText)}',
@@ -746,7 +756,10 @@ class _FigureRow extends StatelessWidget {
     return Semantics(
       label: semanticsLabel,
       excludeSemantics: true,
-      child: Padding(
+      child: Container(
+        color: isImportGap
+            ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.35)
+            : null,
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -783,6 +796,10 @@ class _FigureRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.md),
+            if (isImportGap) ...[
+              const ImportGapBadge(),
+              const SizedBox(width: AppSpacing.md),
+            ],
             Text(
               beatsLabel,
               textAlign: TextAlign.end,

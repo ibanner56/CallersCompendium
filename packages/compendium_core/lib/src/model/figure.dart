@@ -13,6 +13,23 @@ const String customMoveId = customMove;
 
 const DeepCollectionEquality _paramsEquality = DeepCollectionEquality();
 
+/// How a [customMove] [Figure] came to exist. Only meaningful when
+/// [Figure.isCustom]; non-custom figures always carry [userEntered].
+///
+/// A custom figure can arise two ways that are otherwise indistinguishable:
+/// the user deliberately authored it, or an import hit a taxonomy coverage gap
+/// and kept the source line verbatim (the parse-never-fails invariant). This
+/// discriminator lets the UI flag the parse-gap flavor. It is a passive flag
+/// only — it never triggers a re-parse or rewrite (that is a separate concern).
+enum CustomOrigin {
+  /// The user authored this custom figure (the default for every figure).
+  userEntered,
+
+  /// An import parser could not map the source line to a structured move and
+  /// kept it verbatim as a custom figure.
+  importGap,
+}
+
 /// One figure (move instance) in a dance transcription.
 ///
 /// A value object: canonical [move] id from the form's taxonomy plus NAMED
@@ -28,6 +45,7 @@ class Figure {
     Map<String, Object?> params = const {},
     this.note,
     this.progression = false,
+    this.customOrigin = CustomOrigin.userEntered,
   }) : params = Map.unmodifiable(params) {
     if (move.trim().isEmpty) {
       throw ArgumentError.value(move, 'move', 'must be non-empty');
@@ -56,6 +74,12 @@ class Figure {
   /// Marks a progression point in the dance.
   final bool progression;
 
+  /// How this custom figure originated (see [CustomOrigin]). Only meaningful
+  /// when [isCustom]; defaults to [CustomOrigin.userEntered] so plain-built and
+  /// non-custom figures — and existing stored data lacking the key — are
+  /// unaffected.
+  final CustomOrigin customOrigin;
+
   bool get isCustom => move == customMove;
 
   /// Duration in beats; 0 when unset (taxonomy defaults apply at a higher
@@ -68,12 +92,14 @@ class Figure {
     Map<String, Object?>? params,
     String? note,
     bool? progression,
+    CustomOrigin? customOrigin,
   }) => Figure(
     schemaVersion: schemaVersion ?? this.schemaVersion,
     move: move ?? this.move,
     params: params ?? this.params,
     note: note ?? this.note,
     progression: progression ?? this.progression,
+    customOrigin: customOrigin ?? this.customOrigin,
   );
 
   @override
@@ -83,7 +109,8 @@ class Figure {
       other.move == move &&
       _paramsEquality.equals(other.params, params) &&
       other.note == note &&
-      other.progression == progression;
+      other.progression == progression &&
+      other.customOrigin == customOrigin;
 
   @override
   int get hashCode => Object.hash(
@@ -92,6 +119,7 @@ class Figure {
     _paramsEquality.hash(params),
     note,
     progression,
+    customOrigin,
   );
 
   @override

@@ -133,7 +133,9 @@ class StructuredDraft {
 /// [text] is stored in `params['text']` (the taxonomy's [customMove] `text`
 /// parameter — this is what the renderer reads to feed canonical/search text);
 /// [beats] (when > 0) is stored in `params['beats']` so the custom figure still
-/// contributes to the dance's timing.
+/// contributes to the dance's timing. The returned figure is stamped
+/// [CustomOrigin.importGap] so the UI can flag it as a parser-gap custom
+/// (distinct from a user-authored custom); this is a passive flag only.
 Figure customFigure(String text, {int beats = 0, bool progression = false}) {
   if (beats < 0) {
     throw ArgumentError.value(beats, 'beats', 'must be non-negative');
@@ -142,5 +144,6 @@ Figure customFigure(String text, {int beats = 0, bool progression = false}) {
     move: customMove,
     params: {'text': text, if (beats > 0) 'beats': beats},
     progression: progression,
+    customOrigin: CustomOrigin.importGap,
   );
 }

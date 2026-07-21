@@ -60,6 +60,10 @@ void main() {
     test('rejects negative beats', () {
       expect(() => customFigure('x', beats: -1), throwsArgumentError);
     });
+
+    test('stamps CustomOrigin.importGap (parser-gap provenance)', () {
+      expect(customFigure('mystery move').customOrigin, CustomOrigin.importGap);
+    });
   });
 
   group('StructuredDraft', () {

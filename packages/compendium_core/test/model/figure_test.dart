@@ -79,5 +79,30 @@ void main() {
       expect(g.progression, isTrue);
       expect(g.note, 'gently');
     });
+
+    group('customOrigin', () {
+      test('defaults to userEntered', () {
+        expect(Figure(move: 'swing').customOrigin, CustomOrigin.userEntered);
+        expect(
+          Figure(move: customMove, params: {'text': 'x'}).customOrigin,
+          CustomOrigin.userEntered,
+        );
+      });
+
+      test('copyWith sets and overrides the origin', () {
+        final f = Figure(move: customMove, params: {'text': 'x'});
+        final g = f.copyWith(customOrigin: CustomOrigin.importGap);
+        expect(g.customOrigin, CustomOrigin.importGap);
+        // Untouched copyWith preserves the origin.
+        expect(g.copyWith(note: 'hi').customOrigin, CustomOrigin.importGap);
+      });
+
+      test('== and hashCode distinguish origins', () {
+        final user = Figure(move: customMove, params: {'text': 'x'});
+        final gap = user.copyWith(customOrigin: CustomOrigin.importGap);
+        expect(user, isNot(equals(gap)));
+        expect(user.hashCode, isNot(equals(gap.hashCode)));
+      });
+    });
   });
 }

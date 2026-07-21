@@ -99,6 +99,36 @@ void main() {
       },
     );
 
+    test('round-trips a customOrigin.importGap flag and defaults on '
+        'legacy figures_json lacking the key', () async {
+      final gap = customFigure('kept verbatim', beats: 8);
+      expect(gap.customOrigin, CustomOrigin.importGap);
+      final dance = sampleDance(
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 8}),
+          gap,
+        ],
+      );
+      await dances.create(dance);
+
+      final loaded = await dances.getById(dance.id);
+      expect(loaded, dance, reason: 'whole dance round-trips by value');
+      expect(loaded!.figures[1].customOrigin, CustomOrigin.importGap);
+      // A user-entered figure stays userEntered.
+      expect(loaded.figures[0].customOrigin, CustomOrigin.userEntered);
+
+      // Simulate a legacy row whose figures_json predates the discriminator:
+      // it must read back as userEntered, never mislabeled as importGap.
+      const legacyJson =
+          '[{"schemaVersion":1,"move":"custom","params":{"text":"old"}}]';
+      await db.customStatement(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        [legacyJson, dance.id],
+      );
+      final legacy = await dances.getById(dance.id);
+      expect(legacy!.figures.single.customOrigin, CustomOrigin.userEntered);
+    });
+
     test('round-trips a rating and its cleared (NULL) state', () async {
       final rated = sampleDance().copyWith(rating: 5);
       await dances.create(rated);

@@ -77,7 +77,8 @@
             "text": "star left 4 places to new neighbors",
             "beats": 8
           },
-          "progression": true
+          "progression": true,
+          "customOrigin": "importGap"
         }
       ],
       "hook": "",
