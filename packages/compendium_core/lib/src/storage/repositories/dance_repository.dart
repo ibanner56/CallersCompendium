@@ -428,6 +428,65 @@ class DanceRepository {
     });
   }
 
+  /// Sets the difficulty [level] on many dances at once, in a single
+  /// transaction, for the Collection multi-select "batch set level" flow.
+  ///
+  /// Contract: to *set* a level pass a non-null [level]; to *unset* it pass
+  /// [clearLevel] `true`. These are mutually exclusive — calling with neither
+  /// throws an [ArgumentError] (and trips a debug assert) to prevent the
+  /// footgun of accidentally clearing every dance by omitting [level] (which
+  /// would otherwise diverge from [Dance.copyWith], where a null value without
+  /// a clear flag keeps the existing value). A set [clearLevel] wins over any [level] value, matching
+  /// [Dance.copyWith]. Each affected dance is rewritten through the same upsert
+  /// path as [update], so the derived figure/FTS indexes stay consistent.
+  ///
+  /// Skips unknown ids and dances already at the target level (idempotent), and
+  /// stamps [now] as `updatedAt` only on dances that actually change. Returns
+  /// the number of dances changed. An empty [ids] is a no-op returning `0`.
+  /// Because the whole batch runs in one transaction, an error leaves the
+  /// collection untouched rather than half-updated.
+  Future<int> setLevelForMany(
+    Iterable<String> ids, {
+    DanceLevel? level,
+    bool clearLevel = false,
+    required DateTime now,
+  }) {
+    // Release-safe guard (asserts are stripped in release): a caller must pass
+    // a concrete level, or opt in to clearing via clearLevel. This is checked
+    // before the debug-only assert so the thrown ArgumentError is deterministic
+    // across build modes. clearLevel still takes precedence when both are set.
+    if (!clearLevel && level == null) {
+      throw ArgumentError(
+        'setLevelForMany requires a non-null level unless clearLevel is true',
+      );
+    }
+    assert(
+      clearLevel || level != null,
+      'setLevelForMany: pass a non-null level, or clearLevel: true to unset',
+    );
+    assertUtc(now, 'now');
+    final target = clearLevel ? null : level;
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      var changed = 0;
+      for (final id in list) {
+        final dance = await getById(id);
+        if (dance == null) continue;
+        if (dance.level == target) continue;
+        await _upsert(
+          dance.copyWith(
+            level: target,
+            clearLevel: target == null,
+            updatedAt: now,
+          ),
+        );
+        changed++;
+      }
+      return changed;
+    });
+  }
+
   /// Duplicates the dance identified by [id] under [newId] via
   /// [Dance.duplicate] (fresh identity, no provenance) and persists it.
   Future<Dance> duplicate({
