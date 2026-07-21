@@ -431,8 +431,12 @@ class DanceRepository {
   /// Sets the difficulty [level] on many dances at once, in a single
   /// transaction, for the Collection multi-select "batch set level" flow.
   ///
-  /// Pass [clearLevel] `true` to unset the level (`null`) across the selection;
-  /// a set [clearLevel] wins over any [level] value, mirroring
+  /// Contract: to *set* a level pass a non-null [level]; to *unset* it pass
+  /// [clearLevel] `true`. These are mutually exclusive — asserting
+  /// `clearLevel || level != null` prevents the footgun of accidentally
+  /// clearing every dance by omitting [level] (which would otherwise diverge
+  /// from [Dance.copyWith], where a null value without a clear flag keeps the
+  /// existing value). A set [clearLevel] wins over any [level] value, matching
   /// [Dance.copyWith]. Each affected dance is rewritten through the same upsert
   /// path as [update], so the derived figure/FTS indexes stay consistent.
   ///
@@ -447,6 +451,10 @@ class DanceRepository {
     bool clearLevel = false,
     required DateTime now,
   }) {
+    assert(
+      clearLevel || level != null,
+      'setLevelForMany requires a non-null level unless clearLevel is true',
+    );
     assertUtc(now, 'now');
     final target = clearLevel ? null : level;
     final list = ids.toList();

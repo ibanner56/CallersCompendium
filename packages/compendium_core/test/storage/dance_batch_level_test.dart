@@ -120,4 +120,14 @@ void main() {
     );
     expect((await dances.getById('a'))!.level, isNull);
   });
+
+  test('setLevelForMany asserts a level or clearLevel is provided', () async {
+    await dances.create(sampleDance(id: 'a', title: 'Alpha'));
+
+    // Neither a level nor clearLevel — must not silently clear.
+    expect(
+      () => dances.setLevelForMany(['a'], now: now),
+      throwsA(isA<AssertionError>()),
+    );
+  });
 }
