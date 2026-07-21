@@ -101,7 +101,11 @@ void main() {
 
     test('round-trips a customOrigin.importGap flag and defaults on '
         'legacy figures_json lacking the key', () async {
-      final gap = customFigure('kept verbatim', beats: 8);
+      final gap = customFigure(
+        'kept verbatim',
+        beats: 8,
+        origin: CustomOrigin.importGap,
+      );
       expect(gap.customOrigin, CustomOrigin.importGap);
       final dance = sampleDance(
         figures: [

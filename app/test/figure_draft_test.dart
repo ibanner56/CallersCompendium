@@ -11,7 +11,11 @@ void main() {
 
     test('editing an importGap custom in the editor takes ownership '
         '(commits as userEntered)', () {
-      final gap = customFigure('kept verbatim', beats: 8);
+      final gap = customFigure(
+        'kept verbatim',
+        beats: 8,
+        origin: CustomOrigin.importGap,
+      );
       expect(gap.customOrigin, CustomOrigin.importGap);
 
       // Loading it into the editor and committing = taking ownership.

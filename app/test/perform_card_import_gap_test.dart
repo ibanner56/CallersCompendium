@@ -51,7 +51,11 @@ void main() {
     await _pump(
       tester,
       _danceWith([
-        customFigure('kept verbatim', beats: 8), // importGap
+        customFigure(
+          'kept verbatim',
+          beats: 8,
+          origin: CustomOrigin.importGap,
+        ), // importGap
         Figure(move: customMove, params: const {'text': 'hand-written'}),
         Figure(move: 'swing', params: const {'beats': 8}),
       ]),

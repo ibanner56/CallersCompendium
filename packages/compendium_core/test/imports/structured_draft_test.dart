@@ -61,8 +61,21 @@ void main() {
       expect(() => customFigure('x', beats: -1), throwsArgumentError);
     });
 
-    test('stamps CustomOrigin.importGap (parser-gap provenance)', () {
-      expect(customFigure('mystery move').customOrigin, CustomOrigin.importGap);
+    test('defaults to CustomOrigin.userEntered (safe, less-privileged)', () {
+      expect(
+        customFigure('mystery move').customOrigin,
+        CustomOrigin.userEntered,
+      );
+    });
+
+    test('stamps CustomOrigin.importGap when the caller opts in', () {
+      expect(
+        customFigure(
+          'mystery move',
+          origin: CustomOrigin.importGap,
+        ).customOrigin,
+        CustomOrigin.importGap,
+      );
     });
   });
 

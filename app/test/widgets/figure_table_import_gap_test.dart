@@ -26,7 +26,11 @@ void main() {
     tester,
   ) async {
     await _pump(tester, [
-      customFigure('kept verbatim', beats: 8), // importGap
+      customFigure(
+        'kept verbatim',
+        beats: 8,
+        origin: CustomOrigin.importGap,
+      ), // importGap
       Figure(move: customMove, params: const {'text': 'hand-written'}),
       Figure(move: 'swing', params: const {'beats': 8}),
     ]);
@@ -52,7 +56,9 @@ void main() {
   });
 
   testWidgets('tapping the badge opens the explanation dialog', (tester) async {
-    await _pump(tester, [customFigure('kept verbatim', beats: 8)]);
+    await _pump(tester, [
+      customFigure('kept verbatim', beats: 8, origin: CustomOrigin.importGap),
+    ]);
 
     await tester.tap(find.byType(ImportGapBadge));
     await tester.pumpAndSettle();

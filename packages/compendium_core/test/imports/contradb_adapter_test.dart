@@ -314,6 +314,42 @@ void main() {
         },
       );
 
+      test('provenance: explicit custom move is userEntered; missing/unknown '
+          'move is importGap', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              figures: [
+                // Explicit ContraDB `custom` move → source-authored intent.
+                _fig('custom', const [8], customFigure: 'do a thing'),
+                // Missing move data → genuine gap.
+                _fig('', const [8]),
+                // Unknown move with no taxonomy mapping → genuine gap.
+                _fig('flibber', const ['x'], beats: 8),
+              ],
+            ),
+          ),
+        );
+        final figs = draft.dance.figures;
+        expect(figs[0].customOrigin, CustomOrigin.userEntered);
+        expect(figs[1].customOrigin, CustomOrigin.importGap);
+        expect(figs[2].customOrigin, CustomOrigin.importGap);
+      });
+
+      test('an unreadable (non-map) figure entry is importGap', () async {
+        final adapter = ContraDbAdapter();
+        final payload = jsonEncode(
+          _dance(figures: null)..['figures_json'] = ['not a figure object'],
+        );
+        final discovered = await adapter.discover(
+          ImportRequest(payload: payload),
+        );
+        final draft = adapter.parse(await adapter.fetch(discovered.single));
+        final fig = draft.dance.figures.single;
+        expect(fig.params['text'], '(unreadable figure)');
+        expect(fig.customOrigin, CustomOrigin.importGap);
+      });
+
       test('a fully-unmapped dance is a valid, committable draft', () async {
         final draft = await _importOne(
           jsonEncode(
