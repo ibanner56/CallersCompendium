@@ -610,6 +610,84 @@ void main() {
     expect(find.text('Choreographer details'), findsNothing);
   });
 
+  testWidgets(
+    'committing a tag clears the input, keeps focus, and supports back-to-back adds',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+      await repos.tags.upsert(Tag(id: 't2', name: 'smooth'));
+      await _pumpEditor(tester, repos);
+
+      await _expandMoreDetails(tester);
+
+      TextField tagField() =>
+          tester.widget<TextField>(find.byKey(const ValueKey('tag-input')));
+
+      // First tag: type, pick the existing option.
+      await tester.enterText(find.byKey(const ValueKey('tag-input')), 'flowy');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('tag-option-t1')));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(Chip, 'flowy'), findsOneWidget);
+      // The typed text is cleared and focus stays in the field so the next tag
+      // can be typed immediately (issue #402).
+      expect(tagField().controller!.text, isEmpty);
+      expect(tagField().focusNode!.hasFocus, isTrue);
+
+      // Second tag added straight away from the now-empty field.
+      await tester.enterText(find.byKey(const ValueKey('tag-input')), 'smooth');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('tag-option-t2')));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(Chip, 'flowy'), findsOneWidget);
+      expect(find.widgetWithText(Chip, 'smooth'), findsOneWidget);
+      expect(tagField().controller!.text, isEmpty);
+    },
+  );
+
+  testWidgets('creating a new tag inline clears the input', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+
+    await _expandMoreDetails(tester);
+
+    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'sparkly');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('tag-option-create:sparkly')));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(Chip, 'sparkly'), findsOneWidget);
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('tag-input')),
+    );
+    expect(field.controller!.text, isEmpty);
+  });
+
+  testWidgets('an empty tag entry does not add a chip or corrupt state', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+    await _pumpEditor(tester, repos);
+
+    await _expandMoreDetails(tester);
+
+    // Whitespace-only input never opens options, so nothing can be committed.
+    await tester.enterText(find.byKey(const ValueKey('tag-input')), '   ');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('tag-option-t1')), findsNothing);
+    expect(find.byType(Chip), findsNothing);
+
+    // The field is still usable: a real tag can still be added afterwards.
+    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'flowy');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('tag-option-t1')));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(Chip, 'flowy'), findsOneWidget);
+  });
+
   testWidgets('surfaces non-blocking phrase warnings', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(

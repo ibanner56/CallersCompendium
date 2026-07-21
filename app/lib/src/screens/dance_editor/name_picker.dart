@@ -71,7 +71,7 @@ class NamePicker extends StatelessWidget {
   }
 }
 
-class _AddAutocomplete extends StatelessWidget {
+class _AddAutocomplete extends StatefulWidget {
   const _AddAutocomplete({
     required this.fieldKey,
     required this.selectedIds,
@@ -87,33 +87,61 @@ class _AddAutocomplete extends StatelessWidget {
   final Future<String> Function(String name) onCreate;
 
   @override
+  State<_AddAutocomplete> createState() => _AddAutocompleteState();
+}
+
+class _AddAutocompleteState extends State<_AddAutocomplete> {
+  // Owned so we can clear the field and keep focus after a tag is committed
+  // (issue #402: the typed text lingered because Flutter's Autocomplete fills
+  // the field with the selected option's label before onSelected runs).
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final fieldKey = widget.fieldKey;
     return Autocomplete<_PickerChoice>(
       key: ValueKey('$fieldKey-autocomplete'),
+      textEditingController: _controller,
+      focusNode: _focusNode,
       displayStringForOption: (choice) => choice.label,
       optionsBuilder: (value) {
         final q = value.text.trim();
         if (q.isEmpty) return const Iterable<_PickerChoice>.empty();
         final lower = q.toLowerCase();
-        final matches = options
+        final matches = widget.options
             .where(
               (o) =>
-                  !selectedIds.contains(o.id) &&
+                  !widget.selectedIds.contains(o.id) &&
                   o.name.toLowerCase().contains(lower),
             )
             .map((o) => _PickerChoice.existing(o.id, o.name))
             .toList();
-        final exact = options.any((o) => o.name.toLowerCase() == lower);
+        final exact = widget.options.any((o) => o.name.toLowerCase() == lower);
         if (!exact) matches.add(_PickerChoice.create(q));
         return matches;
       },
       onSelected: (choice) async {
         if (choice.isCreate) {
-          final id = await onCreate(choice.name);
-          onAdd(id);
+          // Only clear after the create + add succeeds; a thrown onCreate
+          // short-circuits before we touch the field.
+          final id = await widget.onCreate(choice.name);
+          widget.onAdd(id);
         } else {
-          onAdd(choice.id!);
+          widget.onAdd(choice.id!);
         }
+        // Reset the field and keep focus so the next tag can be typed straight
+        // away. Clearing lives only here, so empty/duplicate/no-op submits
+        // (which never reach onSelected) leave state untouched.
+        _controller.clear();
+        _focusNode.requestFocus();
       },
       fieldViewBuilder: (context, controller, focusNode, onSubmit) {
         return TextField(
