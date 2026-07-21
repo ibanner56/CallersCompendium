@@ -8,6 +8,7 @@ class DanceListEntry {
     required this.dance,
     required this.authorNames,
     required this.tagNames,
+    this.tags = const [],
     required this.listCustomFields,
     required this.callCounts,
     this.lastCalled,
@@ -16,6 +17,12 @@ class DanceListEntry {
   final Dance dance;
   final List<String> authorNames;
   final List<String> tagNames;
+
+  /// The dance's tags as `(id, name)` pairs, in [Dance.tagIds] order, for tags
+  /// whose name resolves. Carries the id (unlike [tagNames]) so a tapped tag
+  /// chip in a list row can drive the Collection's id-based tag filter
+  /// (issue #414).
+  final List<({String id, String name})> tags;
 
   /// `showInList` custom field values as `label: display value` pairs, in
   /// [CustomFieldDef] declaration order.

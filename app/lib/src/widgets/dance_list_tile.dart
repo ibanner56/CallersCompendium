@@ -33,6 +33,7 @@ class DanceListTile extends StatelessWidget {
     this.onDelete,
     this.onDuplicate,
     this.onAddToProgram,
+    this.onTagTap,
   }) : assert(
          !selectionMode || selected == selectedForBatch,
          'In selection mode the row highlight (selected) must match the '
@@ -71,6 +72,12 @@ class DanceListTile extends StatelessWidget {
   /// Opens the add-to-program flow for this dance. When non-null (and not in
   /// [selectionMode]) the ⋮ menu exposes an "Add to program" action.
   final VoidCallback? onAddToProgram;
+
+  /// Called with a tag's id when its chip is tapped, to filter the Collection
+  /// to that tag (issue #414). When null (e.g. the Programs dance picker) the
+  /// tag chips stay non-interactive. Ignored while in [selectionMode], where
+  /// the whole row drives batch selection.
+  final void Function(String tagId)? onTagTap;
 
   @override
   Widget build(BuildContext context) {
@@ -184,13 +191,24 @@ class DanceListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            for (final tag in entry.tagNames)
-              Chip(
-                avatar: const Icon(Icons.label_outline, size: 16),
-                label: Text(tag),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
+            for (final tag in entry.tags)
+              if (onTagTap != null && !selectionMode)
+                ActionChip(
+                  key: ValueKey('tag-filter-chip-${tag.id}'),
+                  avatar: const Icon(Icons.label_outline, size: 16),
+                  label: Text(tag.name),
+                  tooltip: 'Show dances tagged “${tag.name}”',
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  onPressed: () => onTagTap!(tag.id),
+                )
+              else
+                Chip(
+                  avatar: const Icon(Icons.label_outline, size: 16),
+                  label: Text(tag.name),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
             for (final field in entry.listCustomFields)
               Chip(
                 label: Text(field),

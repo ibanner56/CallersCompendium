@@ -183,6 +183,10 @@ class CollectionData {
       for (final id in dance.tagIds)
         if (tagNames[id] != null) tagNames[id]!,
     ],
+    tags: [
+      for (final id in dance.tagIds)
+        if (tagNames[id] != null) (id: id, name: tagNames[id]!),
+    ],
     listCustomFields: [
       for (final def in listFieldDefs)
         for (final value in dance.customFields)

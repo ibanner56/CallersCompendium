@@ -5,6 +5,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/collection_filter_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/formation_colors_scope.dart';
@@ -700,17 +701,37 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             ),
           ),
         ),
-        if (detail.tagNames.isNotEmpty) ...[
+        if (detail.tags.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final tag in detail.tagNames)
-                Chip(
-                  avatar: const Icon(Icons.label_outline, size: 16),
-                  label: Text(tag),
-                ),
-            ],
+          Builder(
+            builder: (context) {
+              // Tapping a tag filters the Collection to it (issue #414). Only
+              // wired for a saved dance (not an online preview) and only when
+              // the app-level coordinator scope is present; otherwise the chips
+              // stay non-interactive, preserving prior behaviour.
+              final filter = _isPreview
+                  ? null
+                  : CollectionFilterScope.maybeOf(context);
+              return Wrap(
+                spacing: 8,
+                children: [
+                  for (final tag in detail.tags)
+                    if (filter != null)
+                      ActionChip(
+                        key: ValueKey('tag-filter-chip-${tag.id}'),
+                        avatar: const Icon(Icons.label_outline, size: 16),
+                        label: Text(tag.name),
+                        tooltip: 'Show dances tagged “${tag.name}”',
+                        onPressed: () => filter.filterByTag(tag.id),
+                      )
+                    else
+                      Chip(
+                        avatar: const Icon(Icons.label_outline, size: 16),
+                        label: Text(tag.name),
+                      ),
+                ],
+              );
+            },
           ),
         ],
         const SizedBox(height: AppSpacing.lg),

@@ -8,6 +8,7 @@ import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_service.dart';
 import 'src/data/backup_controller_scope.dart';
+import 'src/data/collection_filter_scope.dart';
 import 'src/data/collection_refresh_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
 import 'src/data/custom_themes_controller.dart';
@@ -192,6 +193,12 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// Collection list re-boots without a relaunch. Exposed via
   /// [CollectionRefreshScope].
   final ValueNotifier<int> _collectionRefreshNotifier = ValueNotifier(0);
+
+  /// App-level "tap a tag → show the Collection filtered to it" coordinator
+  /// (issue #414). Provided via [CollectionFilterScope] above the root
+  /// navigator so pushed detail routes can reach it.
+  final CollectionFilterController _collectionFilterController =
+      CollectionFilterController();
   late final CustomThemesController _customThemes;
   late final FormationColorsController _formationColors;
   late final DialectLibraryController _dialectLibrary;
@@ -549,6 +556,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _setListColorCodingNotifier.dispose();
     _dateFormatNotifier.dispose();
     _collectionRefreshNotifier.dispose();
+    _collectionFilterController.dispose();
     _customThemes.dispose();
     _formationColors.dispose();
     _dialectLibrary.removeListener(_syncActiveDialect);
@@ -707,7 +715,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                             child: CollectionRefreshScope(
                                               revision:
                                                   _collectionRefreshNotifier,
-                                              child: child!,
+                                              child: CollectionFilterScope(
+                                                controller:
+                                                    _collectionFilterController,
+                                                child: child!,
+                                              ),
                                             ),
                                           ),
                                         ),
