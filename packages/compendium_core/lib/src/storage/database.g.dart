@@ -2480,6 +2480,17 @@ class $ProgramsTable extends Programs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _venueIdMeta = const VerificationMeta(
+    'venueId',
+  );
+  @override
+  late final GeneratedColumn<String> venueId = GeneratedColumn<String>(
+    'venue_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _bandMeta = const VerificationMeta('band');
   @override
   late final GeneratedColumn<String> band = GeneratedColumn<String>(
@@ -2582,6 +2593,7 @@ class $ProgramsTable extends Programs
     title,
     eventDate,
     venue,
+    venueId,
     band,
     caller,
     dancerLevel,
@@ -2627,6 +2639,12 @@ class $ProgramsTable extends Programs
       context.handle(
         _venueMeta,
         venue.isAcceptableOrUnknown(data['venue']!, _venueMeta),
+      );
+    }
+    if (data.containsKey('venue_id')) {
+      context.handle(
+        _venueIdMeta,
+        venueId.isAcceptableOrUnknown(data['venue_id']!, _venueIdMeta),
       );
     }
     if (data.containsKey('band')) {
@@ -2712,6 +2730,10 @@ class $ProgramsTable extends Programs
         DriftSqlType.string,
         data['${effectivePrefix}venue'],
       ),
+      venueId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}venue_id'],
+      ),
       band: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}band'],
@@ -2767,6 +2789,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   final String title;
   final DateTime? eventDate;
   final String? venue;
+
+  /// Optional reference to a first-class [Venues] row (`venues.id`), added in
+  /// schema v13. A deliberately un-constrained soft reference (no drift
+  /// `.references()`/FK): the free-text [venue] label and this entity link
+  /// coexist non-destructively, and referential integrity is enforced at the
+  /// app layer by `VenueRepository.delete`'s guard rather than a DB constraint
+  /// (so an import can carry a program whose venue record is absent without
+  /// tripping a foreign key).
+  final String? venueId;
   final String? band;
   final String? caller;
   final String? dancerLevel;
@@ -2781,6 +2812,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     required this.title,
     this.eventDate,
     this.venue,
+    this.venueId,
     this.band,
     this.caller,
     this.dancerLevel,
@@ -2801,6 +2833,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     }
     if (!nullToAbsent || venue != null) {
       map['venue'] = Variable<String>(venue);
+    }
+    if (!nullToAbsent || venueId != null) {
+      map['venue_id'] = Variable<String>(venueId);
     }
     if (!nullToAbsent || band != null) {
       map['band'] = Variable<String>(band);
@@ -2836,6 +2871,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       venue: venue == null && nullToAbsent
           ? const Value.absent()
           : Value(venue),
+      venueId: venueId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(venueId),
       band: band == null && nullToAbsent ? const Value.absent() : Value(band),
       caller: caller == null && nullToAbsent
           ? const Value.absent()
@@ -2864,6 +2902,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       title: serializer.fromJson<String>(json['title']),
       eventDate: serializer.fromJson<DateTime?>(json['eventDate']),
       venue: serializer.fromJson<String?>(json['venue']),
+      venueId: serializer.fromJson<String?>(json['venueId']),
       band: serializer.fromJson<String?>(json['band']),
       caller: serializer.fromJson<String?>(json['caller']),
       dancerLevel: serializer.fromJson<String?>(json['dancerLevel']),
@@ -2885,6 +2924,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       'title': serializer.toJson<String>(title),
       'eventDate': serializer.toJson<DateTime?>(eventDate),
       'venue': serializer.toJson<String?>(venue),
+      'venueId': serializer.toJson<String?>(venueId),
       'band': serializer.toJson<String?>(band),
       'caller': serializer.toJson<String?>(caller),
       'dancerLevel': serializer.toJson<String?>(dancerLevel),
@@ -2904,6 +2944,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     String? title,
     Value<DateTime?> eventDate = const Value.absent(),
     Value<String?> venue = const Value.absent(),
+    Value<String?> venueId = const Value.absent(),
     Value<String?> band = const Value.absent(),
     Value<String?> caller = const Value.absent(),
     Value<String?> dancerLevel = const Value.absent(),
@@ -2918,6 +2959,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     title: title ?? this.title,
     eventDate: eventDate.present ? eventDate.value : this.eventDate,
     venue: venue.present ? venue.value : this.venue,
+    venueId: venueId.present ? venueId.value : this.venueId,
     band: band.present ? band.value : this.band,
     caller: caller.present ? caller.value : this.caller,
     dancerLevel: dancerLevel.present ? dancerLevel.value : this.dancerLevel,
@@ -2934,6 +2976,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       title: data.title.present ? data.title.value : this.title,
       eventDate: data.eventDate.present ? data.eventDate.value : this.eventDate,
       venue: data.venue.present ? data.venue.value : this.venue,
+      venueId: data.venueId.present ? data.venueId.value : this.venueId,
       band: data.band.present ? data.band.value : this.band,
       caller: data.caller.present ? data.caller.value : this.caller,
       dancerLevel: data.dancerLevel.present
@@ -2957,6 +3000,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('title: $title, ')
           ..write('eventDate: $eventDate, ')
           ..write('venue: $venue, ')
+          ..write('venueId: $venueId, ')
           ..write('band: $band, ')
           ..write('caller: $caller, ')
           ..write('dancerLevel: $dancerLevel, ')
@@ -2976,6 +3020,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     title,
     eventDate,
     venue,
+    venueId,
     band,
     caller,
     dancerLevel,
@@ -2994,6 +3039,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.title == this.title &&
           other.eventDate == this.eventDate &&
           other.venue == this.venue &&
+          other.venueId == this.venueId &&
           other.band == this.band &&
           other.caller == this.caller &&
           other.dancerLevel == this.dancerLevel &&
@@ -3010,6 +3056,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<String> title;
   final Value<DateTime?> eventDate;
   final Value<String?> venue;
+  final Value<String?> venueId;
   final Value<String?> band;
   final Value<String?> caller;
   final Value<String?> dancerLevel;
@@ -3025,6 +3072,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.title = const Value.absent(),
     this.eventDate = const Value.absent(),
     this.venue = const Value.absent(),
+    this.venueId = const Value.absent(),
     this.band = const Value.absent(),
     this.caller = const Value.absent(),
     this.dancerLevel = const Value.absent(),
@@ -3041,6 +3089,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     required String title,
     this.eventDate = const Value.absent(),
     this.venue = const Value.absent(),
+    this.venueId = const Value.absent(),
     this.band = const Value.absent(),
     this.caller = const Value.absent(),
     this.dancerLevel = const Value.absent(),
@@ -3061,6 +3110,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<String>? title,
     Expression<DateTime>? eventDate,
     Expression<String>? venue,
+    Expression<String>? venueId,
     Expression<String>? band,
     Expression<String>? caller,
     Expression<String>? dancerLevel,
@@ -3077,6 +3127,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (title != null) 'title': title,
       if (eventDate != null) 'event_date': eventDate,
       if (venue != null) 'venue': venue,
+      if (venueId != null) 'venue_id': venueId,
       if (band != null) 'band': band,
       if (caller != null) 'caller': caller,
       if (dancerLevel != null) 'dancer_level': dancerLevel,
@@ -3095,6 +3146,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<String>? title,
     Value<DateTime?>? eventDate,
     Value<String?>? venue,
+    Value<String?>? venueId,
     Value<String?>? band,
     Value<String?>? caller,
     Value<String?>? dancerLevel,
@@ -3111,6 +3163,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       title: title ?? this.title,
       eventDate: eventDate ?? this.eventDate,
       venue: venue ?? this.venue,
+      venueId: venueId ?? this.venueId,
       band: band ?? this.band,
       caller: caller ?? this.caller,
       dancerLevel: dancerLevel ?? this.dancerLevel,
@@ -3138,6 +3191,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     }
     if (venue.present) {
       map['venue'] = Variable<String>(venue.value);
+    }
+    if (venueId.present) {
+      map['venue_id'] = Variable<String>(venueId.value);
     }
     if (band.present) {
       map['band'] = Variable<String>(band.value);
@@ -3181,6 +3237,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('title: $title, ')
           ..write('eventDate: $eventDate, ')
           ..write('venue: $venue, ')
+          ..write('venueId: $venueId, ')
           ..write('band: $band, ')
           ..write('caller: $caller, ')
           ..write('dancerLevel: $dancerLevel, ')
@@ -7879,6 +7936,1240 @@ class ProgramProvenanceCompanion extends UpdateCompanion<ProgramProvenanceRow> {
   }
 }
 
+class $VenuesTable extends Venues with TableInfo<$VenuesTable, VenueRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VenuesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _address1Meta = const VerificationMeta(
+    'address1',
+  );
+  @override
+  late final GeneratedColumn<String> address1 = GeneratedColumn<String>(
+    'address1',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _address2Meta = const VerificationMeta(
+    'address2',
+  );
+  @override
+  late final GeneratedColumn<String> address2 = GeneratedColumn<String>(
+    'address2',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cityMeta = const VerificationMeta('city');
+  @override
+  late final GeneratedColumn<String> city = GeneratedColumn<String>(
+    'city',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _stateProvMeta = const VerificationMeta(
+    'stateProv',
+  );
+  @override
+  late final GeneratedColumn<String> stateProv = GeneratedColumn<String>(
+    'state_prov',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _countryMeta = const VerificationMeta(
+    'country',
+  );
+  @override
+  late final GeneratedColumn<String> country = GeneratedColumn<String>(
+    'country',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _postalCodeMeta = const VerificationMeta(
+    'postalCode',
+  );
+  @override
+  late final GeneratedColumn<String> postalCode = GeneratedColumn<String>(
+    'postal_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _plus4Meta = const VerificationMeta('plus4');
+  @override
+  late final GeneratedColumn<String> plus4 = GeneratedColumn<String>(
+    'plus4',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _websiteMeta = const VerificationMeta(
+    'website',
+  );
+  @override
+  late final GeneratedColumn<String> website = GeneratedColumn<String>(
+    'website',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sponsorMeta = const VerificationMeta(
+    'sponsor',
+  );
+  @override
+  late final GeneratedColumn<String> sponsor = GeneratedColumn<String>(
+    'sponsor',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eventNameMeta = const VerificationMeta(
+    'eventName',
+  );
+  @override
+  late final GeneratedColumn<String> eventName = GeneratedColumn<String>(
+    'event_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _timeMeta = const VerificationMeta('time');
+  @override
+  late final GeneratedColumn<String> time = GeneratedColumn<String>(
+    'time',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _genericScheduleMeta = const VerificationMeta(
+    'genericSchedule',
+  );
+  @override
+  late final GeneratedColumn<String> genericSchedule = GeneratedColumn<String>(
+    'generic_schedule',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _priceMeta = const VerificationMeta('price');
+  @override
+  late final GeneratedColumn<String> price = GeneratedColumn<String>(
+    'price',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _contact1NameMeta = const VerificationMeta(
+    'contact1Name',
+  );
+  @override
+  late final GeneratedColumn<String> contact1Name = GeneratedColumn<String>(
+    'contact1_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _contact1PhoneMeta = const VerificationMeta(
+    'contact1Phone',
+  );
+  @override
+  late final GeneratedColumn<String> contact1Phone = GeneratedColumn<String>(
+    'contact1_phone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _contact1EmailMeta = const VerificationMeta(
+    'contact1Email',
+  );
+  @override
+  late final GeneratedColumn<String> contact1Email = GeneratedColumn<String>(
+    'contact1_email',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _contact2NameMeta = const VerificationMeta(
+    'contact2Name',
+  );
+  @override
+  late final GeneratedColumn<String> contact2Name = GeneratedColumn<String>(
+    'contact2_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _contact2PhoneMeta = const VerificationMeta(
+    'contact2Phone',
+  );
+  @override
+  late final GeneratedColumn<String> contact2Phone = GeneratedColumn<String>(
+    'contact2_phone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _contact2EmailMeta = const VerificationMeta(
+    'contact2Email',
+  );
+  @override
+  late final GeneratedColumn<String> contact2Email = GeneratedColumn<String>(
+    'contact2_email',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    address1,
+    address2,
+    city,
+    stateProv,
+    country,
+    postalCode,
+    plus4,
+    website,
+    sponsor,
+    eventName,
+    time,
+    genericSchedule,
+    price,
+    notes,
+    contact1Name,
+    contact1Phone,
+    contact1Email,
+    contact2Name,
+    contact2Phone,
+    contact2Email,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'venues';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VenueRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('address1')) {
+      context.handle(
+        _address1Meta,
+        address1.isAcceptableOrUnknown(data['address1']!, _address1Meta),
+      );
+    }
+    if (data.containsKey('address2')) {
+      context.handle(
+        _address2Meta,
+        address2.isAcceptableOrUnknown(data['address2']!, _address2Meta),
+      );
+    }
+    if (data.containsKey('city')) {
+      context.handle(
+        _cityMeta,
+        city.isAcceptableOrUnknown(data['city']!, _cityMeta),
+      );
+    }
+    if (data.containsKey('state_prov')) {
+      context.handle(
+        _stateProvMeta,
+        stateProv.isAcceptableOrUnknown(data['state_prov']!, _stateProvMeta),
+      );
+    }
+    if (data.containsKey('country')) {
+      context.handle(
+        _countryMeta,
+        country.isAcceptableOrUnknown(data['country']!, _countryMeta),
+      );
+    }
+    if (data.containsKey('postal_code')) {
+      context.handle(
+        _postalCodeMeta,
+        postalCode.isAcceptableOrUnknown(data['postal_code']!, _postalCodeMeta),
+      );
+    }
+    if (data.containsKey('plus4')) {
+      context.handle(
+        _plus4Meta,
+        plus4.isAcceptableOrUnknown(data['plus4']!, _plus4Meta),
+      );
+    }
+    if (data.containsKey('website')) {
+      context.handle(
+        _websiteMeta,
+        website.isAcceptableOrUnknown(data['website']!, _websiteMeta),
+      );
+    }
+    if (data.containsKey('sponsor')) {
+      context.handle(
+        _sponsorMeta,
+        sponsor.isAcceptableOrUnknown(data['sponsor']!, _sponsorMeta),
+      );
+    }
+    if (data.containsKey('event_name')) {
+      context.handle(
+        _eventNameMeta,
+        eventName.isAcceptableOrUnknown(data['event_name']!, _eventNameMeta),
+      );
+    }
+    if (data.containsKey('time')) {
+      context.handle(
+        _timeMeta,
+        time.isAcceptableOrUnknown(data['time']!, _timeMeta),
+      );
+    }
+    if (data.containsKey('generic_schedule')) {
+      context.handle(
+        _genericScheduleMeta,
+        genericSchedule.isAcceptableOrUnknown(
+          data['generic_schedule']!,
+          _genericScheduleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('price')) {
+      context.handle(
+        _priceMeta,
+        price.isAcceptableOrUnknown(data['price']!, _priceMeta),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('contact1_name')) {
+      context.handle(
+        _contact1NameMeta,
+        contact1Name.isAcceptableOrUnknown(
+          data['contact1_name']!,
+          _contact1NameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('contact1_phone')) {
+      context.handle(
+        _contact1PhoneMeta,
+        contact1Phone.isAcceptableOrUnknown(
+          data['contact1_phone']!,
+          _contact1PhoneMeta,
+        ),
+      );
+    }
+    if (data.containsKey('contact1_email')) {
+      context.handle(
+        _contact1EmailMeta,
+        contact1Email.isAcceptableOrUnknown(
+          data['contact1_email']!,
+          _contact1EmailMeta,
+        ),
+      );
+    }
+    if (data.containsKey('contact2_name')) {
+      context.handle(
+        _contact2NameMeta,
+        contact2Name.isAcceptableOrUnknown(
+          data['contact2_name']!,
+          _contact2NameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('contact2_phone')) {
+      context.handle(
+        _contact2PhoneMeta,
+        contact2Phone.isAcceptableOrUnknown(
+          data['contact2_phone']!,
+          _contact2PhoneMeta,
+        ),
+      );
+    }
+    if (data.containsKey('contact2_email')) {
+      context.handle(
+        _contact2EmailMeta,
+        contact2Email.isAcceptableOrUnknown(
+          data['contact2_email']!,
+          _contact2EmailMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  VenueRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VenueRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      address1: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}address1'],
+      ),
+      address2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}address2'],
+      ),
+      city: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}city'],
+      ),
+      stateProv: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state_prov'],
+      ),
+      country: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}country'],
+      ),
+      postalCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}postal_code'],
+      ),
+      plus4: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plus4'],
+      ),
+      website: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}website'],
+      ),
+      sponsor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sponsor'],
+      ),
+      eventName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_name'],
+      ),
+      time: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}time'],
+      ),
+      genericSchedule: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}generic_schedule'],
+      ),
+      price: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}price'],
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      contact1Name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact1_name'],
+      ),
+      contact1Phone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact1_phone'],
+      ),
+      contact1Email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact1_email'],
+      ),
+      contact2Name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact2_name'],
+      ),
+      contact2Phone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact2_phone'],
+      ),
+      contact2Email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}contact2_email'],
+      ),
+    );
+  }
+
+  @override
+  $VenuesTable createAlias(String alias) {
+    return $VenuesTable(attachedDatabase, alias);
+  }
+}
+
+class VenueRow extends DataClass implements Insertable<VenueRow> {
+  final String id;
+  final String name;
+  final String? address1;
+  final String? address2;
+  final String? city;
+  final String? stateProv;
+  final String? country;
+  final String? postalCode;
+  final String? plus4;
+  final String? website;
+  final String? sponsor;
+  final String? eventName;
+  final String? time;
+  final String? genericSchedule;
+  final String? price;
+  final String? notes;
+  final String? contact1Name;
+  final String? contact1Phone;
+  final String? contact1Email;
+  final String? contact2Name;
+  final String? contact2Phone;
+  final String? contact2Email;
+  const VenueRow({
+    required this.id,
+    required this.name,
+    this.address1,
+    this.address2,
+    this.city,
+    this.stateProv,
+    this.country,
+    this.postalCode,
+    this.plus4,
+    this.website,
+    this.sponsor,
+    this.eventName,
+    this.time,
+    this.genericSchedule,
+    this.price,
+    this.notes,
+    this.contact1Name,
+    this.contact1Phone,
+    this.contact1Email,
+    this.contact2Name,
+    this.contact2Phone,
+    this.contact2Email,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || address1 != null) {
+      map['address1'] = Variable<String>(address1);
+    }
+    if (!nullToAbsent || address2 != null) {
+      map['address2'] = Variable<String>(address2);
+    }
+    if (!nullToAbsent || city != null) {
+      map['city'] = Variable<String>(city);
+    }
+    if (!nullToAbsent || stateProv != null) {
+      map['state_prov'] = Variable<String>(stateProv);
+    }
+    if (!nullToAbsent || country != null) {
+      map['country'] = Variable<String>(country);
+    }
+    if (!nullToAbsent || postalCode != null) {
+      map['postal_code'] = Variable<String>(postalCode);
+    }
+    if (!nullToAbsent || plus4 != null) {
+      map['plus4'] = Variable<String>(plus4);
+    }
+    if (!nullToAbsent || website != null) {
+      map['website'] = Variable<String>(website);
+    }
+    if (!nullToAbsent || sponsor != null) {
+      map['sponsor'] = Variable<String>(sponsor);
+    }
+    if (!nullToAbsent || eventName != null) {
+      map['event_name'] = Variable<String>(eventName);
+    }
+    if (!nullToAbsent || time != null) {
+      map['time'] = Variable<String>(time);
+    }
+    if (!nullToAbsent || genericSchedule != null) {
+      map['generic_schedule'] = Variable<String>(genericSchedule);
+    }
+    if (!nullToAbsent || price != null) {
+      map['price'] = Variable<String>(price);
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || contact1Name != null) {
+      map['contact1_name'] = Variable<String>(contact1Name);
+    }
+    if (!nullToAbsent || contact1Phone != null) {
+      map['contact1_phone'] = Variable<String>(contact1Phone);
+    }
+    if (!nullToAbsent || contact1Email != null) {
+      map['contact1_email'] = Variable<String>(contact1Email);
+    }
+    if (!nullToAbsent || contact2Name != null) {
+      map['contact2_name'] = Variable<String>(contact2Name);
+    }
+    if (!nullToAbsent || contact2Phone != null) {
+      map['contact2_phone'] = Variable<String>(contact2Phone);
+    }
+    if (!nullToAbsent || contact2Email != null) {
+      map['contact2_email'] = Variable<String>(contact2Email);
+    }
+    return map;
+  }
+
+  VenuesCompanion toCompanion(bool nullToAbsent) {
+    return VenuesCompanion(
+      id: Value(id),
+      name: Value(name),
+      address1: address1 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(address1),
+      address2: address2 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(address2),
+      city: city == null && nullToAbsent ? const Value.absent() : Value(city),
+      stateProv: stateProv == null && nullToAbsent
+          ? const Value.absent()
+          : Value(stateProv),
+      country: country == null && nullToAbsent
+          ? const Value.absent()
+          : Value(country),
+      postalCode: postalCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(postalCode),
+      plus4: plus4 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plus4),
+      website: website == null && nullToAbsent
+          ? const Value.absent()
+          : Value(website),
+      sponsor: sponsor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sponsor),
+      eventName: eventName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(eventName),
+      time: time == null && nullToAbsent ? const Value.absent() : Value(time),
+      genericSchedule: genericSchedule == null && nullToAbsent
+          ? const Value.absent()
+          : Value(genericSchedule),
+      price: price == null && nullToAbsent
+          ? const Value.absent()
+          : Value(price),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      contact1Name: contact1Name == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contact1Name),
+      contact1Phone: contact1Phone == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contact1Phone),
+      contact1Email: contact1Email == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contact1Email),
+      contact2Name: contact2Name == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contact2Name),
+      contact2Phone: contact2Phone == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contact2Phone),
+      contact2Email: contact2Email == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contact2Email),
+    );
+  }
+
+  factory VenueRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VenueRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      address1: serializer.fromJson<String?>(json['address1']),
+      address2: serializer.fromJson<String?>(json['address2']),
+      city: serializer.fromJson<String?>(json['city']),
+      stateProv: serializer.fromJson<String?>(json['stateProv']),
+      country: serializer.fromJson<String?>(json['country']),
+      postalCode: serializer.fromJson<String?>(json['postalCode']),
+      plus4: serializer.fromJson<String?>(json['plus4']),
+      website: serializer.fromJson<String?>(json['website']),
+      sponsor: serializer.fromJson<String?>(json['sponsor']),
+      eventName: serializer.fromJson<String?>(json['eventName']),
+      time: serializer.fromJson<String?>(json['time']),
+      genericSchedule: serializer.fromJson<String?>(json['genericSchedule']),
+      price: serializer.fromJson<String?>(json['price']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      contact1Name: serializer.fromJson<String?>(json['contact1Name']),
+      contact1Phone: serializer.fromJson<String?>(json['contact1Phone']),
+      contact1Email: serializer.fromJson<String?>(json['contact1Email']),
+      contact2Name: serializer.fromJson<String?>(json['contact2Name']),
+      contact2Phone: serializer.fromJson<String?>(json['contact2Phone']),
+      contact2Email: serializer.fromJson<String?>(json['contact2Email']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'address1': serializer.toJson<String?>(address1),
+      'address2': serializer.toJson<String?>(address2),
+      'city': serializer.toJson<String?>(city),
+      'stateProv': serializer.toJson<String?>(stateProv),
+      'country': serializer.toJson<String?>(country),
+      'postalCode': serializer.toJson<String?>(postalCode),
+      'plus4': serializer.toJson<String?>(plus4),
+      'website': serializer.toJson<String?>(website),
+      'sponsor': serializer.toJson<String?>(sponsor),
+      'eventName': serializer.toJson<String?>(eventName),
+      'time': serializer.toJson<String?>(time),
+      'genericSchedule': serializer.toJson<String?>(genericSchedule),
+      'price': serializer.toJson<String?>(price),
+      'notes': serializer.toJson<String?>(notes),
+      'contact1Name': serializer.toJson<String?>(contact1Name),
+      'contact1Phone': serializer.toJson<String?>(contact1Phone),
+      'contact1Email': serializer.toJson<String?>(contact1Email),
+      'contact2Name': serializer.toJson<String?>(contact2Name),
+      'contact2Phone': serializer.toJson<String?>(contact2Phone),
+      'contact2Email': serializer.toJson<String?>(contact2Email),
+    };
+  }
+
+  VenueRow copyWith({
+    String? id,
+    String? name,
+    Value<String?> address1 = const Value.absent(),
+    Value<String?> address2 = const Value.absent(),
+    Value<String?> city = const Value.absent(),
+    Value<String?> stateProv = const Value.absent(),
+    Value<String?> country = const Value.absent(),
+    Value<String?> postalCode = const Value.absent(),
+    Value<String?> plus4 = const Value.absent(),
+    Value<String?> website = const Value.absent(),
+    Value<String?> sponsor = const Value.absent(),
+    Value<String?> eventName = const Value.absent(),
+    Value<String?> time = const Value.absent(),
+    Value<String?> genericSchedule = const Value.absent(),
+    Value<String?> price = const Value.absent(),
+    Value<String?> notes = const Value.absent(),
+    Value<String?> contact1Name = const Value.absent(),
+    Value<String?> contact1Phone = const Value.absent(),
+    Value<String?> contact1Email = const Value.absent(),
+    Value<String?> contact2Name = const Value.absent(),
+    Value<String?> contact2Phone = const Value.absent(),
+    Value<String?> contact2Email = const Value.absent(),
+  }) => VenueRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    address1: address1.present ? address1.value : this.address1,
+    address2: address2.present ? address2.value : this.address2,
+    city: city.present ? city.value : this.city,
+    stateProv: stateProv.present ? stateProv.value : this.stateProv,
+    country: country.present ? country.value : this.country,
+    postalCode: postalCode.present ? postalCode.value : this.postalCode,
+    plus4: plus4.present ? plus4.value : this.plus4,
+    website: website.present ? website.value : this.website,
+    sponsor: sponsor.present ? sponsor.value : this.sponsor,
+    eventName: eventName.present ? eventName.value : this.eventName,
+    time: time.present ? time.value : this.time,
+    genericSchedule: genericSchedule.present
+        ? genericSchedule.value
+        : this.genericSchedule,
+    price: price.present ? price.value : this.price,
+    notes: notes.present ? notes.value : this.notes,
+    contact1Name: contact1Name.present ? contact1Name.value : this.contact1Name,
+    contact1Phone: contact1Phone.present
+        ? contact1Phone.value
+        : this.contact1Phone,
+    contact1Email: contact1Email.present
+        ? contact1Email.value
+        : this.contact1Email,
+    contact2Name: contact2Name.present ? contact2Name.value : this.contact2Name,
+    contact2Phone: contact2Phone.present
+        ? contact2Phone.value
+        : this.contact2Phone,
+    contact2Email: contact2Email.present
+        ? contact2Email.value
+        : this.contact2Email,
+  );
+  VenueRow copyWithCompanion(VenuesCompanion data) {
+    return VenueRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      address1: data.address1.present ? data.address1.value : this.address1,
+      address2: data.address2.present ? data.address2.value : this.address2,
+      city: data.city.present ? data.city.value : this.city,
+      stateProv: data.stateProv.present ? data.stateProv.value : this.stateProv,
+      country: data.country.present ? data.country.value : this.country,
+      postalCode: data.postalCode.present
+          ? data.postalCode.value
+          : this.postalCode,
+      plus4: data.plus4.present ? data.plus4.value : this.plus4,
+      website: data.website.present ? data.website.value : this.website,
+      sponsor: data.sponsor.present ? data.sponsor.value : this.sponsor,
+      eventName: data.eventName.present ? data.eventName.value : this.eventName,
+      time: data.time.present ? data.time.value : this.time,
+      genericSchedule: data.genericSchedule.present
+          ? data.genericSchedule.value
+          : this.genericSchedule,
+      price: data.price.present ? data.price.value : this.price,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      contact1Name: data.contact1Name.present
+          ? data.contact1Name.value
+          : this.contact1Name,
+      contact1Phone: data.contact1Phone.present
+          ? data.contact1Phone.value
+          : this.contact1Phone,
+      contact1Email: data.contact1Email.present
+          ? data.contact1Email.value
+          : this.contact1Email,
+      contact2Name: data.contact2Name.present
+          ? data.contact2Name.value
+          : this.contact2Name,
+      contact2Phone: data.contact2Phone.present
+          ? data.contact2Phone.value
+          : this.contact2Phone,
+      contact2Email: data.contact2Email.present
+          ? data.contact2Email.value
+          : this.contact2Email,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VenueRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('address1: $address1, ')
+          ..write('address2: $address2, ')
+          ..write('city: $city, ')
+          ..write('stateProv: $stateProv, ')
+          ..write('country: $country, ')
+          ..write('postalCode: $postalCode, ')
+          ..write('plus4: $plus4, ')
+          ..write('website: $website, ')
+          ..write('sponsor: $sponsor, ')
+          ..write('eventName: $eventName, ')
+          ..write('time: $time, ')
+          ..write('genericSchedule: $genericSchedule, ')
+          ..write('price: $price, ')
+          ..write('notes: $notes, ')
+          ..write('contact1Name: $contact1Name, ')
+          ..write('contact1Phone: $contact1Phone, ')
+          ..write('contact1Email: $contact1Email, ')
+          ..write('contact2Name: $contact2Name, ')
+          ..write('contact2Phone: $contact2Phone, ')
+          ..write('contact2Email: $contact2Email')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    name,
+    address1,
+    address2,
+    city,
+    stateProv,
+    country,
+    postalCode,
+    plus4,
+    website,
+    sponsor,
+    eventName,
+    time,
+    genericSchedule,
+    price,
+    notes,
+    contact1Name,
+    contact1Phone,
+    contact1Email,
+    contact2Name,
+    contact2Phone,
+    contact2Email,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VenueRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.address1 == this.address1 &&
+          other.address2 == this.address2 &&
+          other.city == this.city &&
+          other.stateProv == this.stateProv &&
+          other.country == this.country &&
+          other.postalCode == this.postalCode &&
+          other.plus4 == this.plus4 &&
+          other.website == this.website &&
+          other.sponsor == this.sponsor &&
+          other.eventName == this.eventName &&
+          other.time == this.time &&
+          other.genericSchedule == this.genericSchedule &&
+          other.price == this.price &&
+          other.notes == this.notes &&
+          other.contact1Name == this.contact1Name &&
+          other.contact1Phone == this.contact1Phone &&
+          other.contact1Email == this.contact1Email &&
+          other.contact2Name == this.contact2Name &&
+          other.contact2Phone == this.contact2Phone &&
+          other.contact2Email == this.contact2Email);
+}
+
+class VenuesCompanion extends UpdateCompanion<VenueRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String?> address1;
+  final Value<String?> address2;
+  final Value<String?> city;
+  final Value<String?> stateProv;
+  final Value<String?> country;
+  final Value<String?> postalCode;
+  final Value<String?> plus4;
+  final Value<String?> website;
+  final Value<String?> sponsor;
+  final Value<String?> eventName;
+  final Value<String?> time;
+  final Value<String?> genericSchedule;
+  final Value<String?> price;
+  final Value<String?> notes;
+  final Value<String?> contact1Name;
+  final Value<String?> contact1Phone;
+  final Value<String?> contact1Email;
+  final Value<String?> contact2Name;
+  final Value<String?> contact2Phone;
+  final Value<String?> contact2Email;
+  final Value<int> rowid;
+  const VenuesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.address1 = const Value.absent(),
+    this.address2 = const Value.absent(),
+    this.city = const Value.absent(),
+    this.stateProv = const Value.absent(),
+    this.country = const Value.absent(),
+    this.postalCode = const Value.absent(),
+    this.plus4 = const Value.absent(),
+    this.website = const Value.absent(),
+    this.sponsor = const Value.absent(),
+    this.eventName = const Value.absent(),
+    this.time = const Value.absent(),
+    this.genericSchedule = const Value.absent(),
+    this.price = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.contact1Name = const Value.absent(),
+    this.contact1Phone = const Value.absent(),
+    this.contact1Email = const Value.absent(),
+    this.contact2Name = const Value.absent(),
+    this.contact2Phone = const Value.absent(),
+    this.contact2Email = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VenuesCompanion.insert({
+    required String id,
+    required String name,
+    this.address1 = const Value.absent(),
+    this.address2 = const Value.absent(),
+    this.city = const Value.absent(),
+    this.stateProv = const Value.absent(),
+    this.country = const Value.absent(),
+    this.postalCode = const Value.absent(),
+    this.plus4 = const Value.absent(),
+    this.website = const Value.absent(),
+    this.sponsor = const Value.absent(),
+    this.eventName = const Value.absent(),
+    this.time = const Value.absent(),
+    this.genericSchedule = const Value.absent(),
+    this.price = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.contact1Name = const Value.absent(),
+    this.contact1Phone = const Value.absent(),
+    this.contact1Email = const Value.absent(),
+    this.contact2Name = const Value.absent(),
+    this.contact2Phone = const Value.absent(),
+    this.contact2Email = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name);
+  static Insertable<VenueRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? address1,
+    Expression<String>? address2,
+    Expression<String>? city,
+    Expression<String>? stateProv,
+    Expression<String>? country,
+    Expression<String>? postalCode,
+    Expression<String>? plus4,
+    Expression<String>? website,
+    Expression<String>? sponsor,
+    Expression<String>? eventName,
+    Expression<String>? time,
+    Expression<String>? genericSchedule,
+    Expression<String>? price,
+    Expression<String>? notes,
+    Expression<String>? contact1Name,
+    Expression<String>? contact1Phone,
+    Expression<String>? contact1Email,
+    Expression<String>? contact2Name,
+    Expression<String>? contact2Phone,
+    Expression<String>? contact2Email,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (address1 != null) 'address1': address1,
+      if (address2 != null) 'address2': address2,
+      if (city != null) 'city': city,
+      if (stateProv != null) 'state_prov': stateProv,
+      if (country != null) 'country': country,
+      if (postalCode != null) 'postal_code': postalCode,
+      if (plus4 != null) 'plus4': plus4,
+      if (website != null) 'website': website,
+      if (sponsor != null) 'sponsor': sponsor,
+      if (eventName != null) 'event_name': eventName,
+      if (time != null) 'time': time,
+      if (genericSchedule != null) 'generic_schedule': genericSchedule,
+      if (price != null) 'price': price,
+      if (notes != null) 'notes': notes,
+      if (contact1Name != null) 'contact1_name': contact1Name,
+      if (contact1Phone != null) 'contact1_phone': contact1Phone,
+      if (contact1Email != null) 'contact1_email': contact1Email,
+      if (contact2Name != null) 'contact2_name': contact2Name,
+      if (contact2Phone != null) 'contact2_phone': contact2Phone,
+      if (contact2Email != null) 'contact2_email': contact2Email,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VenuesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String?>? address1,
+    Value<String?>? address2,
+    Value<String?>? city,
+    Value<String?>? stateProv,
+    Value<String?>? country,
+    Value<String?>? postalCode,
+    Value<String?>? plus4,
+    Value<String?>? website,
+    Value<String?>? sponsor,
+    Value<String?>? eventName,
+    Value<String?>? time,
+    Value<String?>? genericSchedule,
+    Value<String?>? price,
+    Value<String?>? notes,
+    Value<String?>? contact1Name,
+    Value<String?>? contact1Phone,
+    Value<String?>? contact1Email,
+    Value<String?>? contact2Name,
+    Value<String?>? contact2Phone,
+    Value<String?>? contact2Email,
+    Value<int>? rowid,
+  }) {
+    return VenuesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      address1: address1 ?? this.address1,
+      address2: address2 ?? this.address2,
+      city: city ?? this.city,
+      stateProv: stateProv ?? this.stateProv,
+      country: country ?? this.country,
+      postalCode: postalCode ?? this.postalCode,
+      plus4: plus4 ?? this.plus4,
+      website: website ?? this.website,
+      sponsor: sponsor ?? this.sponsor,
+      eventName: eventName ?? this.eventName,
+      time: time ?? this.time,
+      genericSchedule: genericSchedule ?? this.genericSchedule,
+      price: price ?? this.price,
+      notes: notes ?? this.notes,
+      contact1Name: contact1Name ?? this.contact1Name,
+      contact1Phone: contact1Phone ?? this.contact1Phone,
+      contact1Email: contact1Email ?? this.contact1Email,
+      contact2Name: contact2Name ?? this.contact2Name,
+      contact2Phone: contact2Phone ?? this.contact2Phone,
+      contact2Email: contact2Email ?? this.contact2Email,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (address1.present) {
+      map['address1'] = Variable<String>(address1.value);
+    }
+    if (address2.present) {
+      map['address2'] = Variable<String>(address2.value);
+    }
+    if (city.present) {
+      map['city'] = Variable<String>(city.value);
+    }
+    if (stateProv.present) {
+      map['state_prov'] = Variable<String>(stateProv.value);
+    }
+    if (country.present) {
+      map['country'] = Variable<String>(country.value);
+    }
+    if (postalCode.present) {
+      map['postal_code'] = Variable<String>(postalCode.value);
+    }
+    if (plus4.present) {
+      map['plus4'] = Variable<String>(plus4.value);
+    }
+    if (website.present) {
+      map['website'] = Variable<String>(website.value);
+    }
+    if (sponsor.present) {
+      map['sponsor'] = Variable<String>(sponsor.value);
+    }
+    if (eventName.present) {
+      map['event_name'] = Variable<String>(eventName.value);
+    }
+    if (time.present) {
+      map['time'] = Variable<String>(time.value);
+    }
+    if (genericSchedule.present) {
+      map['generic_schedule'] = Variable<String>(genericSchedule.value);
+    }
+    if (price.present) {
+      map['price'] = Variable<String>(price.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (contact1Name.present) {
+      map['contact1_name'] = Variable<String>(contact1Name.value);
+    }
+    if (contact1Phone.present) {
+      map['contact1_phone'] = Variable<String>(contact1Phone.value);
+    }
+    if (contact1Email.present) {
+      map['contact1_email'] = Variable<String>(contact1Email.value);
+    }
+    if (contact2Name.present) {
+      map['contact2_name'] = Variable<String>(contact2Name.value);
+    }
+    if (contact2Phone.present) {
+      map['contact2_phone'] = Variable<String>(contact2Phone.value);
+    }
+    if (contact2Email.present) {
+      map['contact2_email'] = Variable<String>(contact2Email.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VenuesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('address1: $address1, ')
+          ..write('address2: $address2, ')
+          ..write('city: $city, ')
+          ..write('stateProv: $stateProv, ')
+          ..write('country: $country, ')
+          ..write('postalCode: $postalCode, ')
+          ..write('plus4: $plus4, ')
+          ..write('website: $website, ')
+          ..write('sponsor: $sponsor, ')
+          ..write('eventName: $eventName, ')
+          ..write('time: $time, ')
+          ..write('genericSchedule: $genericSchedule, ')
+          ..write('price: $price, ')
+          ..write('notes: $notes, ')
+          ..write('contact1Name: $contact1Name, ')
+          ..write('contact1Phone: $contact1Phone, ')
+          ..write('contact1Email: $contact1Email, ')
+          ..write('contact2Name: $contact2Name, ')
+          ..write('contact2Phone: $contact2Phone, ')
+          ..write('contact2Email: $contact2Email, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -7905,6 +9196,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $SnapshotsTable snapshots = $SnapshotsTable(this);
   late final $ProgramProvenanceTable programProvenance =
       $ProgramProvenanceTable(this);
+  late final $VenuesTable venues = $VenuesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7927,6 +9219,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     settings,
     snapshots,
     programProvenance,
+    venues,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -10531,6 +11824,7 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       required String title,
       Value<DateTime?> eventDate,
       Value<String?> venue,
+      Value<String?> venueId,
       Value<String?> band,
       Value<String?> caller,
       Value<String?> dancerLevel,
@@ -10548,6 +11842,7 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<DateTime?> eventDate,
       Value<String?> venue,
+      Value<String?> venueId,
       Value<String?> band,
       Value<String?> caller,
       Value<String?> dancerLevel,
@@ -10634,6 +11929,11 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<String> get venue => $composableBuilder(
     column: $table.venue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get venueId => $composableBuilder(
+    column: $table.venueId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10763,6 +12063,11 @@ class $$ProgramsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get venueId => $composableBuilder(
+    column: $table.venueId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get band => $composableBuilder(
     column: $table.band,
     builder: (column) => ColumnOrderings(column),
@@ -10829,6 +12134,9 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumn<String> get venue =>
       $composableBuilder(column: $table.venue, builder: (column) => column);
+
+  GeneratedColumn<String> get venueId =>
+      $composableBuilder(column: $table.venueId, builder: (column) => column);
 
   GeneratedColumn<String> get band =>
       $composableBuilder(column: $table.band, builder: (column) => column);
@@ -10948,6 +12256,7 @@ class $$ProgramsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<DateTime?> eventDate = const Value.absent(),
                 Value<String?> venue = const Value.absent(),
+                Value<String?> venueId = const Value.absent(),
                 Value<String?> band = const Value.absent(),
                 Value<String?> caller = const Value.absent(),
                 Value<String?> dancerLevel = const Value.absent(),
@@ -10963,6 +12272,7 @@ class $$ProgramsTableTableManager
                 title: title,
                 eventDate: eventDate,
                 venue: venue,
+                venueId: venueId,
                 band: band,
                 caller: caller,
                 dancerLevel: dancerLevel,
@@ -10980,6 +12290,7 @@ class $$ProgramsTableTableManager
                 required String title,
                 Value<DateTime?> eventDate = const Value.absent(),
                 Value<String?> venue = const Value.absent(),
+                Value<String?> venueId = const Value.absent(),
                 Value<String?> band = const Value.absent(),
                 Value<String?> caller = const Value.absent(),
                 Value<String?> dancerLevel = const Value.absent(),
@@ -10995,6 +12306,7 @@ class $$ProgramsTableTableManager
                 title: title,
                 eventDate: eventDate,
                 venue: venue,
+                venueId: venueId,
                 band: band,
                 caller: caller,
                 dancerLevel: dancerLevel,
@@ -15229,6 +16541,542 @@ typedef $$ProgramProvenanceTableProcessedTableManager =
       ProgramProvenanceRow,
       PrefetchHooks Function({bool programId})
     >;
+typedef $$VenuesTableCreateCompanionBuilder =
+    VenuesCompanion Function({
+      required String id,
+      required String name,
+      Value<String?> address1,
+      Value<String?> address2,
+      Value<String?> city,
+      Value<String?> stateProv,
+      Value<String?> country,
+      Value<String?> postalCode,
+      Value<String?> plus4,
+      Value<String?> website,
+      Value<String?> sponsor,
+      Value<String?> eventName,
+      Value<String?> time,
+      Value<String?> genericSchedule,
+      Value<String?> price,
+      Value<String?> notes,
+      Value<String?> contact1Name,
+      Value<String?> contact1Phone,
+      Value<String?> contact1Email,
+      Value<String?> contact2Name,
+      Value<String?> contact2Phone,
+      Value<String?> contact2Email,
+      Value<int> rowid,
+    });
+typedef $$VenuesTableUpdateCompanionBuilder =
+    VenuesCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String?> address1,
+      Value<String?> address2,
+      Value<String?> city,
+      Value<String?> stateProv,
+      Value<String?> country,
+      Value<String?> postalCode,
+      Value<String?> plus4,
+      Value<String?> website,
+      Value<String?> sponsor,
+      Value<String?> eventName,
+      Value<String?> time,
+      Value<String?> genericSchedule,
+      Value<String?> price,
+      Value<String?> notes,
+      Value<String?> contact1Name,
+      Value<String?> contact1Phone,
+      Value<String?> contact1Email,
+      Value<String?> contact2Name,
+      Value<String?> contact2Phone,
+      Value<String?> contact2Email,
+      Value<int> rowid,
+    });
+
+class $$VenuesTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $VenuesTable> {
+  $$VenuesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get address1 => $composableBuilder(
+    column: $table.address1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get address2 => $composableBuilder(
+    column: $table.address2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get city => $composableBuilder(
+    column: $table.city,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stateProv => $composableBuilder(
+    column: $table.stateProv,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get postalCode => $composableBuilder(
+    column: $table.postalCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plus4 => $composableBuilder(
+    column: $table.plus4,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get website => $composableBuilder(
+    column: $table.website,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sponsor => $composableBuilder(
+    column: $table.sponsor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventName => $composableBuilder(
+    column: $table.eventName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get time => $composableBuilder(
+    column: $table.time,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get genericSchedule => $composableBuilder(
+    column: $table.genericSchedule,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contact1Name => $composableBuilder(
+    column: $table.contact1Name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contact1Phone => $composableBuilder(
+    column: $table.contact1Phone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contact1Email => $composableBuilder(
+    column: $table.contact1Email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contact2Name => $composableBuilder(
+    column: $table.contact2Name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contact2Phone => $composableBuilder(
+    column: $table.contact2Phone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contact2Email => $composableBuilder(
+    column: $table.contact2Email,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$VenuesTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $VenuesTable> {
+  $$VenuesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get address1 => $composableBuilder(
+    column: $table.address1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get address2 => $composableBuilder(
+    column: $table.address2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get city => $composableBuilder(
+    column: $table.city,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stateProv => $composableBuilder(
+    column: $table.stateProv,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get country => $composableBuilder(
+    column: $table.country,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get postalCode => $composableBuilder(
+    column: $table.postalCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get plus4 => $composableBuilder(
+    column: $table.plus4,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get website => $composableBuilder(
+    column: $table.website,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sponsor => $composableBuilder(
+    column: $table.sponsor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventName => $composableBuilder(
+    column: $table.eventName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get time => $composableBuilder(
+    column: $table.time,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get genericSchedule => $composableBuilder(
+    column: $table.genericSchedule,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get price => $composableBuilder(
+    column: $table.price,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contact1Name => $composableBuilder(
+    column: $table.contact1Name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contact1Phone => $composableBuilder(
+    column: $table.contact1Phone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contact1Email => $composableBuilder(
+    column: $table.contact1Email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contact2Name => $composableBuilder(
+    column: $table.contact2Name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contact2Phone => $composableBuilder(
+    column: $table.contact2Phone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contact2Email => $composableBuilder(
+    column: $table.contact2Email,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$VenuesTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $VenuesTable> {
+  $$VenuesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get address1 =>
+      $composableBuilder(column: $table.address1, builder: (column) => column);
+
+  GeneratedColumn<String> get address2 =>
+      $composableBuilder(column: $table.address2, builder: (column) => column);
+
+  GeneratedColumn<String> get city =>
+      $composableBuilder(column: $table.city, builder: (column) => column);
+
+  GeneratedColumn<String> get stateProv =>
+      $composableBuilder(column: $table.stateProv, builder: (column) => column);
+
+  GeneratedColumn<String> get country =>
+      $composableBuilder(column: $table.country, builder: (column) => column);
+
+  GeneratedColumn<String> get postalCode => $composableBuilder(
+    column: $table.postalCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get plus4 =>
+      $composableBuilder(column: $table.plus4, builder: (column) => column);
+
+  GeneratedColumn<String> get website =>
+      $composableBuilder(column: $table.website, builder: (column) => column);
+
+  GeneratedColumn<String> get sponsor =>
+      $composableBuilder(column: $table.sponsor, builder: (column) => column);
+
+  GeneratedColumn<String> get eventName =>
+      $composableBuilder(column: $table.eventName, builder: (column) => column);
+
+  GeneratedColumn<String> get time =>
+      $composableBuilder(column: $table.time, builder: (column) => column);
+
+  GeneratedColumn<String> get genericSchedule => $composableBuilder(
+    column: $table.genericSchedule,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get price =>
+      $composableBuilder(column: $table.price, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get contact1Name => $composableBuilder(
+    column: $table.contact1Name,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contact1Phone => $composableBuilder(
+    column: $table.contact1Phone,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contact1Email => $composableBuilder(
+    column: $table.contact1Email,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contact2Name => $composableBuilder(
+    column: $table.contact2Name,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contact2Phone => $composableBuilder(
+    column: $table.contact2Phone,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contact2Email => $composableBuilder(
+    column: $table.contact2Email,
+    builder: (column) => column,
+  );
+}
+
+class $$VenuesTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $VenuesTable,
+          VenueRow,
+          $$VenuesTableFilterComposer,
+          $$VenuesTableOrderingComposer,
+          $$VenuesTableAnnotationComposer,
+          $$VenuesTableCreateCompanionBuilder,
+          $$VenuesTableUpdateCompanionBuilder,
+          (
+            VenueRow,
+            BaseReferences<_$CompendiumDatabase, $VenuesTable, VenueRow>,
+          ),
+          VenueRow,
+          PrefetchHooks Function()
+        > {
+  $$VenuesTableTableManager(_$CompendiumDatabase db, $VenuesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VenuesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$VenuesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$VenuesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> address1 = const Value.absent(),
+                Value<String?> address2 = const Value.absent(),
+                Value<String?> city = const Value.absent(),
+                Value<String?> stateProv = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> postalCode = const Value.absent(),
+                Value<String?> plus4 = const Value.absent(),
+                Value<String?> website = const Value.absent(),
+                Value<String?> sponsor = const Value.absent(),
+                Value<String?> eventName = const Value.absent(),
+                Value<String?> time = const Value.absent(),
+                Value<String?> genericSchedule = const Value.absent(),
+                Value<String?> price = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<String?> contact1Name = const Value.absent(),
+                Value<String?> contact1Phone = const Value.absent(),
+                Value<String?> contact1Email = const Value.absent(),
+                Value<String?> contact2Name = const Value.absent(),
+                Value<String?> contact2Phone = const Value.absent(),
+                Value<String?> contact2Email = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VenuesCompanion(
+                id: id,
+                name: name,
+                address1: address1,
+                address2: address2,
+                city: city,
+                stateProv: stateProv,
+                country: country,
+                postalCode: postalCode,
+                plus4: plus4,
+                website: website,
+                sponsor: sponsor,
+                eventName: eventName,
+                time: time,
+                genericSchedule: genericSchedule,
+                price: price,
+                notes: notes,
+                contact1Name: contact1Name,
+                contact1Phone: contact1Phone,
+                contact1Email: contact1Email,
+                contact2Name: contact2Name,
+                contact2Phone: contact2Phone,
+                contact2Email: contact2Email,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String?> address1 = const Value.absent(),
+                Value<String?> address2 = const Value.absent(),
+                Value<String?> city = const Value.absent(),
+                Value<String?> stateProv = const Value.absent(),
+                Value<String?> country = const Value.absent(),
+                Value<String?> postalCode = const Value.absent(),
+                Value<String?> plus4 = const Value.absent(),
+                Value<String?> website = const Value.absent(),
+                Value<String?> sponsor = const Value.absent(),
+                Value<String?> eventName = const Value.absent(),
+                Value<String?> time = const Value.absent(),
+                Value<String?> genericSchedule = const Value.absent(),
+                Value<String?> price = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<String?> contact1Name = const Value.absent(),
+                Value<String?> contact1Phone = const Value.absent(),
+                Value<String?> contact1Email = const Value.absent(),
+                Value<String?> contact2Name = const Value.absent(),
+                Value<String?> contact2Phone = const Value.absent(),
+                Value<String?> contact2Email = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VenuesCompanion.insert(
+                id: id,
+                name: name,
+                address1: address1,
+                address2: address2,
+                city: city,
+                stateProv: stateProv,
+                country: country,
+                postalCode: postalCode,
+                plus4: plus4,
+                website: website,
+                sponsor: sponsor,
+                eventName: eventName,
+                time: time,
+                genericSchedule: genericSchedule,
+                price: price,
+                notes: notes,
+                contact1Name: contact1Name,
+                contact1Phone: contact1Phone,
+                contact1Email: contact1Email,
+                contact2Name: contact2Name,
+                contact2Phone: contact2Phone,
+                contact2Email: contact2Email,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$VenuesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $VenuesTable,
+      VenueRow,
+      $$VenuesTableFilterComposer,
+      $$VenuesTableOrderingComposer,
+      $$VenuesTableAnnotationComposer,
+      $$VenuesTableCreateCompanionBuilder,
+      $$VenuesTableUpdateCompanionBuilder,
+      (VenueRow, BaseReferences<_$CompendiumDatabase, $VenuesTable, VenueRow>),
+      VenueRow,
+      PrefetchHooks Function()
+    >;
 
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
@@ -15266,4 +17114,6 @@ class $CompendiumDatabaseManager {
       $$SnapshotsTableTableManager(_db, _db.snapshots);
   $$ProgramProvenanceTableTableManager get programProvenance =>
       $$ProgramProvenanceTableTableManager(_db, _db.programProvenance);
+  $$VenuesTableTableManager get venues =>
+      $$VenuesTableTableManager(_db, _db.venues);
 }

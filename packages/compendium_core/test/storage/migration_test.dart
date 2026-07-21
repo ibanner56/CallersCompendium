@@ -1533,6 +1533,93 @@ void main() {
     });
   });
 
+  group('v12 -> v13 upgrade (venue entity)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v13_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v12 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v12.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+      expect(db.schemaVersion, 13);
+
+      await db.close();
+    });
+
+    test('creates the venues table', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='venues'",
+          )
+          .get();
+      expect(rows, hasLength(1));
+
+      // The new table is usable end-to-end through its repository.
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
+      expect((await repos.venues.getById('v1'))!.name, 'Guiding Star Grange');
+
+      await db.close();
+    });
+
+    test('adds the programs.venue_id column, defaulting existing rows to null',
+        () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final cols = await db.customSelect('PRAGMA table_info(programs)').get();
+      final names = cols.map((r) => r.read<String>('name')).toList();
+      expect(names, contains('venue_id'));
+
+      // The pre-existing program carries a null venueId (no silent dangling ref).
+      final program = await repos.programs.getById('prog-1');
+      expect(program, isNotNull);
+      expect(program!.venueId, isNull);
+
+      await db.close();
+    });
+
+    test('a program can be linked to a venue after the upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
+      final program = await repos.programs.getById('prog-1');
+      await repos.programs.update(program!.copyWith(venueId: 'v1'));
+
+      final reloaded = await repos.programs.getById('prog-1');
+      expect(reloaded!.venueId, 'v1');
+
+      await db.close();
+    });
+  });
+
   test(
     'beforeOpen recreates dance_fts if missing from an existing database',
     () async {

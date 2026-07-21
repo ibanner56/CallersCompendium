@@ -11,6 +11,7 @@ import 'published_source_repository.dart';
 import 'settings_repository.dart';
 import 'snapshot_repository.dart';
 import 'tag_repository.dart';
+import 'venue_repository.dart';
 
 /// Bundles every repository over a single [CompendiumDatabase], so app code
 /// wires up storage once (`CompendiumRepositories(db, taxonomy)`) instead of
@@ -26,6 +27,7 @@ class CompendiumRepositories {
        customFieldDefs = CustomFieldDefRepository(db),
        programs = ProgramRepository(db),
        publishedSources = PublishedSourceRepository(db),
+       venues = VenueRepository(db),
        settings = settings ?? SettingsRepository(db),
        snapshots = SnapshotRepository(db);
 
@@ -36,6 +38,7 @@ class CompendiumRepositories {
   final CustomFieldDefRepository customFieldDefs;
   final ProgramRepository programs;
   final PublishedSourceRepository publishedSources;
+  final VenueRepository venues;
   final SettingsRepository settings;
   final SnapshotRepository snapshots;
 

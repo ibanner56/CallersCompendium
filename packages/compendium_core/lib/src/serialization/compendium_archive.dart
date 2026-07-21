@@ -7,6 +7,7 @@ import '../model/dance.dart';
 import '../model/program.dart';
 import '../model/published_source.dart';
 import '../model/tag.dart';
+import '../model/venue.dart';
 
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
 
@@ -39,8 +40,8 @@ enum RestoreMode {
 /// This is the in-memory form of the canonical JSON backup/exchange format
 /// (`docs/design/imports.md` §"Generic JSON (6.6)"). It carries user *content*
 /// — dances (with figures, links, citations, provenance), programs (with
-/// slots), custom-field definitions, tags, choreographers, and published
-/// sources — at full fidelity. App-local concerns (settings, dialect library,
+/// slots), custom-field definitions, tags, choreographers, published sources,
+/// and venues — at full fidelity. App-local concerns (settings, dialect library,
 /// themes) are intentionally excluded; they are layered in at ROADMAP G.5.
 ///
 /// Serialize with `encodeArchive`/`decodeArchive` in `archive_codec.dart`.
@@ -55,6 +56,7 @@ class CompendiumArchive {
     this.publishedSources = const [],
     this.customFields = const [],
     this.tags = const [],
+    this.venues = const [],
   });
 
   /// The [archiveSchemaVersion] this archive was written under.
@@ -70,6 +72,11 @@ class CompendiumArchive {
   final List<CustomFieldDef> customFields;
   final List<Tag> tags;
 
+  /// Reusable venue entities referenced by programs' `venueId`. Added
+  /// alongside the schema-v13 venue entity; older archives simply omit the
+  /// `venues` array and decode to an empty list.
+  final List<Venue> venues;
+
   @override
   bool operator ==(Object other) =>
       other is CompendiumArchive &&
@@ -80,7 +87,8 @@ class CompendiumArchive {
       _listEq.equals(other.choreographers, choreographers) &&
       _listEq.equals(other.publishedSources, publishedSources) &&
       _listEq.equals(other.customFields, customFields) &&
-      _listEq.equals(other.tags, tags);
+      _listEq.equals(other.tags, tags) &&
+      _listEq.equals(other.venues, venues);
 
   @override
   int get hashCode => Object.hash(
@@ -92,6 +100,7 @@ class CompendiumArchive {
     _listEq.hash(publishedSources),
     _listEq.hash(customFields),
     _listEq.hash(tags),
+    _listEq.hash(venues),
   );
 }
 

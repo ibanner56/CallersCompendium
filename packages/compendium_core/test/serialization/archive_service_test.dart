@@ -260,4 +260,113 @@ void main() {
       expect(tagIds, containsAll(<String>['keep', 't1']));
     });
   });
+
+  group('venue restore', () {
+    Program programWithVenue(String? venueId) => Program(
+      id: 'p1',
+      title: 'Spring Fling',
+      venueId: venueId,
+      slots: const [],
+      createdAt: DateTime.utc(2026, 4, 1),
+      updatedAt: DateTime.utc(2026, 4, 20),
+    );
+
+    test('replace materializes venues and resolves a program.venueId', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [programWithVenue('v1')],
+        venues: [
+          Venue(id: 'v1', name: 'Guiding Star Grange', city: 'Greenfield'),
+        ],
+      );
+
+      final result = await ArchiveRestorer(repos).restore(archive);
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+      // The venue landed and the program's link resolves (venues load first).
+      final venue = await repos.venues.getById('v1');
+      expect(venue, isNotNull);
+      expect(venue!.city, 'Greenfield');
+      final program = await repos.programs.getById('p1');
+      expect(program!.venueId, 'v1');
+    });
+
+    test('export -> restore round-trips venues and the venueId link', () async {
+      final sourceDb = openTestDatabase();
+      addTearDown(sourceDb.close);
+      final sourceRepos = CompendiumRepositories(sourceDb, contraTaxonomy);
+      await sourceRepos.venues.upsert(
+        Venue(id: 'v1', name: 'Guiding Star Grange', contact1Email: 'p@x.com'),
+      );
+      await sourceRepos.programs.create(programWithVenue('v1'));
+
+      final archive = await ArchiveExporter(
+        sourceRepos,
+      ).export(exportedAt: DateTime.utc(2026, 7, 15));
+      final json = encodeArchive(archive);
+
+      final targetDb = openTestDatabase();
+      addTearDown(targetDb.close);
+      final targetRepos = CompendiumRepositories(targetDb, contraTaxonomy);
+      final decoded = decodeArchive(json);
+      expect(decoded.hasErrors, isFalse, reason: decoded.errors.join('\n'));
+      await ArchiveRestorer(targetRepos).restore(decoded.archive);
+
+      final reexport = await ArchiveExporter(
+        targetRepos,
+      ).export(exportedAt: DateTime.utc(2026, 7, 15));
+      expect(encodeArchive(reexport), json);
+
+      expect((await targetRepos.venues.getById('v1'))!.contact1Email, 'p@x.com');
+      expect((await targetRepos.programs.getById('p1'))!.venueId, 'v1');
+    });
+
+    test('a dangling venueId (venue absent everywhere) is nulled, not persisted',
+        () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+
+      // The program references 'ghost', which is in neither the archive nor db.
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [programWithVenue('ghost')],
+      );
+
+      final result = await ArchiveRestorer(repos).restore(archive);
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+      final program = await repos.programs.getById('p1');
+      expect(program, isNotNull);
+      // The dangling reference is cleared rather than left silently orphaned.
+      expect(program!.venueId, isNull);
+    });
+
+    test('a venueId resolvable only in the target db is preserved on merge',
+        () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+
+      // The venue exists in the target database but not in the incoming bundle.
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Existing Hall'));
+
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [programWithVenue('v1')],
+      );
+
+      final result = await ArchiveRestorer(
+        repos,
+      ).restore(archive, mode: RestoreMode.merge);
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+      // The link survives because the referenced venue resolves against the db.
+      expect((await repos.programs.getById('p1'))!.venueId, 'v1');
+    });
+  });
 }

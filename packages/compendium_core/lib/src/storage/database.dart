@@ -51,7 +51,7 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 12;
+const int kCompendiumSchemaVersion = 13;
 
 /// The Caller's Compendium local database.
 ///
@@ -147,6 +147,18 @@ const int kCompendiumSchemaVersion = 12;
 ///   or figure that can't be cleanly remapped is left byte-identical so it falls
 ///   through to the non-destructive unknown-move path (issue #358) at read time,
 ///   never dropped or corrupted.
+/// - v13 (2026-07-21): first-class venue entity. Adds one brand-new table,
+///   `venues` (a reusable venue — id/name plus 20 nullable address/contact/
+///   schedule columns, faithful to CC's `Venue` table), and a single nullable
+///   `programs.venue_id` soft reference to it. Purely additive: `createTable` +
+///   `addColumn`, no data back-fill (fresh table starts empty; existing
+///   programs get `venue_id` NULL and keep their free-text `venue` label). The
+///   free-text `programs.venue` label and the `venue_id` entity link coexist
+///   non-destructively. `venue_id` is a deliberately un-constrained soft
+///   reference (no FK) — referential integrity is enforced at the app layer by
+///   `VenueRepository.delete`'s guard — so this migration adds NO FK and no
+///   rebuild marker. Venues do NOT feed the derived `dance_fts`/`dance_figures`
+///   indexes, so NO derived rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -177,6 +189,7 @@ const int kCompendiumSchemaVersion = 12;
     Settings,
     Snapshots,
     ProgramProvenance,
+    Venues,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -347,6 +360,17 @@ class CompendiumDatabase extends _$CompendiumDatabase {
             [derivedRebuildRequiredKey, 'true'],
           );
         }
+      }
+      if (from < 13) {
+        // First-class venue entity. One brand-new table (`venues`) plus a
+        // single nullable soft-reference column `programs.venue_id`. Purely
+        // additive: existing programs get `venue_id` NULL and keep their
+        // free-text `venue` label (the two coexist non-destructively). `venues`
+        // does NOT feed the derived `dance_fts`/`dance_figures` indexes, and no
+        // data is back-filled, so — unlike the v9 step — NO derived rebuild is
+        // required and no rebuild marker is written.
+        await m.createTable(venues);
+        await m.addColumn(programs, programs.venueId);
       }
     },
     beforeOpen: (details) async {

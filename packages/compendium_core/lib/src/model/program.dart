@@ -164,6 +164,7 @@ class Program {
     required this.title,
     this.eventDate,
     this.venue,
+    this.venueId,
     this.band,
     this.caller,
     this.dancerLevel,
@@ -188,6 +189,14 @@ class Program {
   final String title;
   final DateTime? eventDate;
   final String? venue;
+
+  /// Optional reference to a first-class venue entity (`venues.id`; see
+  /// `Venue`). A soft reference — not a DB foreign key — kept independently of
+  /// the free-text [venue] label so the two coexist non-destructively: the
+  /// display layer prefers a resolvable [venueId], falling back to [venue]
+  /// (`docs/design/domain-model.md`). `null` when the program has no linked
+  /// venue entity (the default, and every program before schema v13).
+  final String? venueId;
 
   /// The band playing the event.
   final String? band;
@@ -362,6 +371,7 @@ class Program {
     String? title,
     DateTime? eventDate,
     String? venue,
+    String? venueId,
     String? band,
     String? caller,
     String? dancerLevel,
@@ -374,6 +384,7 @@ class Program {
     Provenance? provenance,
     bool clearEventDate = false,
     bool clearVenue = false,
+    bool clearVenueId = false,
     bool clearBand = false,
     bool clearCaller = false,
     bool clearDancerLevel = false,
@@ -384,6 +395,7 @@ class Program {
     title: title ?? this.title,
     eventDate: clearEventDate ? null : (eventDate ?? this.eventDate),
     venue: clearVenue ? null : (venue ?? this.venue),
+    venueId: clearVenueId ? null : (venueId ?? this.venueId),
     band: clearBand ? null : (band ?? this.band),
     caller: clearCaller ? null : (caller ?? this.caller),
     dancerLevel: clearDancerLevel ? null : (dancerLevel ?? this.dancerLevel),
@@ -411,6 +423,7 @@ class Program {
     title: newTitle ?? title,
     eventDate: eventDate,
     venue: venue,
+    venueId: venueId,
     band: band,
     caller: caller,
     dancerLevel: dancerLevel,
@@ -475,6 +488,7 @@ class Program {
       other.title == title &&
       other.eventDate == eventDate &&
       other.venue == venue &&
+      other.venueId == venueId &&
       other.band == band &&
       other.caller == caller &&
       other.dancerLevel == dancerLevel &&

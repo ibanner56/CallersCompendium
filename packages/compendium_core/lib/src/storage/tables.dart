@@ -145,6 +145,15 @@ class Programs extends Table {
   TextColumn get title => text()();
   DateTimeColumn get eventDate => dateTime().nullable()();
   TextColumn get venue => text().nullable()();
+
+  /// Optional reference to a first-class [Venues] row (`venues.id`), added in
+  /// schema v13. A deliberately un-constrained soft reference (no drift
+  /// `.references()`/FK): the free-text [venue] label and this entity link
+  /// coexist non-destructively, and referential integrity is enforced at the
+  /// app layer by `VenueRepository.delete`'s guard rather than a DB constraint
+  /// (so an import can carry a program whose venue record is absent without
+  /// tripping a foreign key).
+  TextColumn get venueId => text().nullable()();
   TextColumn get band => text().nullable()();
   TextColumn get caller => text().nullable()();
   TextColumn get dancerLevel => text().nullable()();
@@ -293,6 +302,44 @@ class DanceSources extends Table {
   List<Set<Column>> get uniqueKeys => [
     {danceId, position},
   ];
+}
+
+/// A reusable venue (hall, church, grange, festival site) that programs are
+/// held at. A first-class entity (like [PublishedSources]/[Choreographers]);
+/// a program links to it by [Programs.venueId] while the free-text
+/// [Programs.venue] label persists independently. Added in schema v13.
+///
+/// Faithful to Caller's Companion's `Venue` table minus its FileMaker plumbing
+/// (`VenueDisplay_c`, `zc_*`/`zi_*`, `zk_Constant`, `SiteID`): CC's stored
+/// display column is reimplemented as the computed `Venue.displayName` getter,
+/// not persisted here. All columns are `.nullable()` except [id] and [name].
+@DataClassName('VenueRow')
+class Venues extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get address1 => text().nullable()();
+  TextColumn get address2 => text().nullable()();
+  TextColumn get city => text().nullable()();
+  TextColumn get stateProv => text().nullable()();
+  TextColumn get country => text().nullable()();
+  TextColumn get postalCode => text().nullable()();
+  TextColumn get plus4 => text().nullable()();
+  TextColumn get website => text().nullable()();
+  TextColumn get sponsor => text().nullable()();
+  TextColumn get eventName => text().nullable()();
+  TextColumn get time => text().nullable()();
+  TextColumn get genericSchedule => text().nullable()();
+  TextColumn get price => text().nullable()();
+  TextColumn get notes => text().nullable()();
+  TextColumn get contact1Name => text().nullable()();
+  TextColumn get contact1Phone => text().nullable()();
+  TextColumn get contact1Email => text().nullable()();
+  TextColumn get contact2Name => text().nullable()();
+  TextColumn get contact2Phone => text().nullable()();
+  TextColumn get contact2Email => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
 
 /// Import provenance, one row per dance (at most).
