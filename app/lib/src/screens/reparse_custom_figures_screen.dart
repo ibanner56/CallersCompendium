@@ -5,6 +5,16 @@ import '../data/collection_refresh_scope.dart';
 import '../data/repositories_scope.dart';
 import '../theme/app_spacing.dart';
 
+/// Signature for loading the re-parse preview; defaults to
+/// [DanceRepository.previewImportGapReparse]. A test seam.
+typedef ReparsePreviewLoader =
+    Future<List<CustomReparsePreview>> Function(CompendiumRepositories repos);
+
+/// Signature for applying the re-parse to the given dance ids; defaults to
+/// [DanceRepository.reparseImportGapFiguresForMany]. A test seam.
+typedef ReparseApplier =
+    Future<int> Function(CompendiumRepositories repos, List<String> ids);
+
 /// Settings → "Re-check custom figures" (issue #417).
 ///
 /// Re-runs the current figure parser locally over the stored text of every
@@ -18,7 +28,19 @@ import '../theme/app_spacing.dart';
 /// writes anything. User-entered customs and already-structured figures are
 /// never touched, and applying is idempotent.
 class ReparseCustomFiguresScreen extends StatefulWidget {
-  const ReparseCustomFiguresScreen({super.key});
+  const ReparseCustomFiguresScreen({
+    super.key,
+    this.previewLoader,
+    this.applier,
+  });
+
+  /// Test seam for the preview scan; defaults to
+  /// [DanceRepository.previewImportGapReparse].
+  final ReparsePreviewLoader? previewLoader;
+
+  /// Test seam for the apply write; defaults to
+  /// [DanceRepository.reparseImportGapFiguresForMany] (stamped with `now`).
+  final ReparseApplier? applier;
 
   @override
   State<ReparseCustomFiguresScreen> createState() =>
@@ -29,17 +51,43 @@ class _ReparseCustomFiguresScreenState
     extends State<ReparseCustomFiguresScreen> {
   /// The dry-run result; `null` until the first scan resolves.
   List<CustomReparsePreview>? _previews;
+
+  /// Set when the preview scan fails, so the body can offer a retry instead of
+  /// spinning forever.
+  Object? _loadError;
   bool _loadRequested = false;
   bool _applying = false;
 
   void _ensurePreviewLoaded() {
     if (_loadRequested) return;
     _loadRequested = true;
+    _load();
+  }
+
+  void _load() {
     final repos = RepositoriesScope.of(context);
-    repos.dances.previewImportGapReparse().then((previews) {
-      if (!mounted) return;
-      setState(() => _previews = previews);
+    final loader =
+        widget.previewLoader ?? (r) => r.dances.previewImportGapReparse();
+    loader(repos)
+        .then((previews) {
+          if (!mounted) return;
+          setState(() {
+            _previews = previews;
+            _loadError = null;
+          });
+        })
+        .catchError((Object error) {
+          if (!mounted) return;
+          setState(() => _loadError = error);
+        });
+  }
+
+  void _retryLoad() {
+    setState(() {
+      _previews = null;
+      _loadError = null;
     });
+    _load();
   }
 
   int get _totalFigures =>
@@ -52,6 +100,10 @@ class _ReparseCustomFiguresScreenState
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final repos = RepositoriesScope.of(context);
+    // Capture the refresh notifier BEFORE the await: if the user navigates Back
+    // while the batch runs, this widget's context is defunct by the time the
+    // write completes, so we must not read it (or bump via context) afterwards.
+    final refresh = CollectionRefreshScope.maybeOf(context);
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -80,13 +132,33 @@ class _ReparseCustomFiguresScreenState
 
     setState(() => _applying = true);
     final ids = [for (final p in previews) p.danceId];
-    final changed = await repos.dances.reparseImportGapFiguresForMany(
-      ids,
-      now: DateTime.now().toUtc(),
-    );
-    if (!mounted) return;
+    final applier =
+        widget.applier ??
+        (r, danceIds) => r.dances.reparseImportGapFiguresForMany(
+          danceIds,
+          now: DateTime.now().toUtc(),
+        );
+    int changed;
+    try {
+      changed = await applier(repos, ids);
+    } catch (_) {
+      // Re-enable the button and tell the user; nothing was committed because
+      // the batch is a single transaction (it rolls back as a whole).
+      if (!mounted) return;
+      setState(() => _applying = false);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Could not upgrade figures. Please try again.'),
+        ),
+      );
+      return;
+    }
 
-    if (changed > 0) CollectionRefreshScope.bump(context);
+    // The write committed. Refresh the (possibly kept-alive) Collection tab via
+    // the notifier we captured up front, so it re-loads even if this route has
+    // since been popped.
+    if (changed > 0) refresh?.value++;
+    if (!mounted) return;
     messenger.showSnackBar(
       SnackBar(
         content: Text(
@@ -112,6 +184,9 @@ class _ReparseCustomFiguresScreenState
   }
 
   Widget _buildBody(BuildContext context) {
+    if (_loadError != null) {
+      return _ErrorState(onRetry: _retryLoad);
+    }
     final previews = _previews;
     if (previews == null) {
       return const Center(child: CircularProgressIndicator());
@@ -202,6 +277,49 @@ class _EmptyState extends StatelessWidget {
               'figure parsing.',
               style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      key: const ValueKey('reparse-customs-error'),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Could not check your figures',
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Something went wrong while scanning your collection. Nothing was '
+              'changed. You can try again.',
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            FilledButton.tonalIcon(
+              key: const ValueKey('reparse-customs-retry-button'),
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try again'),
             ),
           ],
         ),

@@ -494,25 +494,41 @@ class DanceRepository {
   /// a structured taxonomy move. Dances with nothing to upgrade are omitted, so
   /// an empty result means "nothing to do". Writes nothing.
   ///
-  /// Ordered by dance title to match the rest of the listing surface.
+  /// Reads only the three columns it needs (`id`, `title`, `figures_json`) and
+  /// decodes the figures locally — deliberately avoiding [listAll]/[_toModel],
+  /// whose six per-dance relationship queries (authors, tags, links, custom
+  /// values, sources, provenance) are irrelevant to a figure-only check and
+  /// would make this an O(1 + 6N)-query scan. Results are ordered
+  /// case-insensitively by title to match the collection's `COLLATE NOCASE`
+  /// display order.
   Future<List<CustomReparsePreview>> previewImportGapReparse() async {
-    final dances = await listAll();
+    final rows =
+        await (_db.selectOnly(_db.dances)
+              ..addColumns([
+                _db.dances.id,
+                _db.dances.title,
+                _db.dances.figuresJson,
+              ])
+              ..where(_db.dances.deletedAt.isNull()))
+            .get();
+
     final previews = <CustomReparsePreview>[];
-    for (final dance in dances) {
-      final outcome = reparseImportGapFigures(
-        dance.figures,
-        taxonomy: _taxonomy,
-      );
+    for (final row in rows) {
+      final figures = decodeFigures(row.read(_db.dances.figuresJson)!);
+      final outcome = reparseImportGapFigures(figures, taxonomy: _taxonomy);
       if (outcome.upgradedCount > 0) {
         previews.add(
           CustomReparsePreview(
-            danceId: dance.id,
-            title: dance.title,
+            danceId: row.read(_db.dances.id)!,
+            title: row.read(_db.dances.title)!,
             upgradeCount: outcome.upgradedCount,
           ),
         );
       }
     }
+    previews.sort(
+      (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+    );
     return previews;
   }
 

@@ -87,8 +87,12 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
 
   final rawText = figure.params['text'];
   if (rawText is! String) return null;
+  // Reject an oversized raw string BEFORE trimming/copying it: `trim()` on a
+  // multi-megabyte malformed value would already do the unbounded work we want
+  // to avoid. Guard on the raw length first, then normalise.
+  if (rawText.length > maxReparseTextLength) return null;
   final text = rawText.trim();
-  if (text.isEmpty || text.length > maxReparseTextLength) return null;
+  if (text.isEmpty) return null;
 
   final rawBeats = figure.params['beats'];
   final beats = rawBeats is int && rawBeats > 0 ? rawBeats : 0;
@@ -104,7 +108,16 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
   // figure that re-parses to custom stays exactly as it was (idempotent).
   if (parsed == null || parsed.isCustom) return null;
 
-  // A newly structured figure carries no note across; the source note (if any)
-  // is preserved so nothing the user could see is dropped.
-  return figure.note == null ? parsed : parsed.copyWith(note: figure.note);
+  return parsed.copyWith(note: _mergeNotes(figure.note, parsed.note));
+}
+
+/// Combines the [original] custom figure's note with the newly structured
+/// figure's recognizer [parsed] note so neither is silently dropped when a
+/// figure is upgraded. Keeps the single note when only one is present (or they
+/// are equal), and joins two distinct notes with `'; '` in a stable order
+/// (original first) when both exist.
+String? _mergeNotes(String? original, String? parsed) {
+  if (original == null || original == parsed) return parsed;
+  if (parsed == null) return original;
+  return '$original; $parsed';
 }

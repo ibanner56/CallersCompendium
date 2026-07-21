@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
+import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/screens/reparse_custom_figures_screen.dart';
@@ -181,5 +184,129 @@ void main() {
       find.byKey(const ValueKey('reparse-customs-appbar')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('shows a retryable error state when the preview load fails', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+
+    var attempt = 0;
+    await tester.pumpWidget(
+      RepositoriesScope(
+        repositories: repos,
+        child: MaterialApp(
+          home: ReparseCustomFiguresScreen(
+            previewLoader: (r) async {
+              attempt++;
+              if (attempt == 1) throw StateError('boom');
+              return const <CustomReparsePreview>[];
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Error UI with retry, not a stuck spinner.
+    expect(find.byKey(const ValueKey('reparse-customs-error')), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('reparse-customs-retry-button')),
+    );
+    await tester.pumpAndSettle();
+
+    // Second attempt succeeds → empty state (no lingering error).
+    expect(find.byKey(const ValueKey('reparse-customs-error')), findsNothing);
+    expect(find.byKey(const ValueKey('reparse-customs-empty')), findsOneWidget);
+  });
+
+  testWidgets('apply failure re-enables the button and shows an error', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Alpha', figures: [_importGap('Neighbor swing')]),
+    );
+
+    await tester.pumpWidget(
+      RepositoriesScope(
+        repositories: repos,
+        child: MaterialApp(
+          home: ReparseCustomFiguresScreen(
+            applier: (r, ids) async => throw StateError('write failed'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('reparse-customs-apply-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('reparse-confirm-apply')));
+    await tester.pumpAndSettle();
+
+    // Still on the screen with an error snackbar, and the button is usable
+    // again (not permanently disabled).
+    expect(
+      find.byKey(const ValueKey('reparse-customs-appbar')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Could not upgrade figures. Please try again.'),
+      findsOneWidget,
+    );
+    final button = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('reparse-customs-apply-button')),
+    );
+    expect(button.onPressed, isNotNull);
+  });
+
+  testWidgets('a commit after the screen is disposed still refreshes the '
+      'collection', (tester) async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    await repos.dances.create(
+      _dance(id: 'a', title: 'Alpha', figures: [_importGap('Neighbor swing')]),
+    );
+
+    final revision = ValueNotifier<int>(0);
+    addTearDown(revision.dispose);
+    final gate = Completer<int>();
+
+    await tester.pumpWidget(
+      CollectionRefreshScope(
+        revision: revision,
+        child: RepositoriesScope(
+          repositories: repos,
+          child: MaterialApp(
+            home: ReparseCustomFiguresScreen(applier: (r, ids) => gate.future),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('reparse-customs-apply-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('reparse-confirm-apply')));
+    await tester.pump(); // apply is now awaiting the gate
+
+    // Dispose the screen before the write completes.
+    await tester.pumpWidget(const SizedBox());
+
+    // The commit lands after dispose; the captured notifier must still fire so
+    // a kept-alive Collection tab reloads.
+    gate.complete(1);
+    await tester.pump();
+
+    expect(revision.value, 1);
   });
 }

@@ -145,6 +145,72 @@ void main() {
           expect(result.figures.single, same(figure));
         },
       );
+
+      test('oversized RAW text is rejected before trimming', () {
+        // A huge raw string that would trim down to a small parseable line must
+        // still be rejected on its RAW length — we never do the multi-MB
+        // trim/copy just to discover it is short after whitespace removal.
+        final huge = '${' ' * (maxReparseTextLength + 1)}Neighbor swing ';
+        final figure = Figure(
+          move: customMove,
+          params: {'text': huge},
+          customOrigin: CustomOrigin.importGap,
+        );
+
+        final result = reparseImportGapFigures([figure]);
+        expect(result.upgradedCount, 0);
+        expect(result.figures.single, same(figure));
+      });
+    });
+
+    group('note handling on upgrade', () {
+      test('merges a distinct original note with the recognizer note', () {
+        final figure = Figure(
+          move: customMove,
+          params: const {'text': 'Ladies chain to neighbor'},
+          note: 'scoop them up',
+          customOrigin: CustomOrigin.importGap,
+        );
+
+        final result = reparseImportGapFigures([figure]);
+        expect(result.upgradedCount, 1);
+        final f = result.figures.single;
+        expect(f.move, 'chain');
+        // Both notes retained (original first), so neither is dropped.
+        expect(f.note, 'scoop them up; to neighbor');
+      });
+
+      test('keeps the original note when the recognizer adds none', () {
+        final figure = Figure(
+          move: customMove,
+          params: const {'text': 'Neighbor swing'},
+          note: 'big smiles',
+          customOrigin: CustomOrigin.importGap,
+        );
+
+        final result = reparseImportGapFigures([figure]);
+        expect(result.figures.single.move, 'swing');
+        expect(result.figures.single.note, 'big smiles');
+      });
+
+      test('keeps the recognizer note when the original had none', () {
+        final result = reparseImportGapFigures([
+          importGap('Ladies chain to neighbor'),
+        ]);
+        expect(result.figures.single.note, 'to neighbor');
+      });
+
+      test('does not duplicate an identical note', () {
+        final figure = Figure(
+          move: customMove,
+          params: const {'text': 'Ladies chain to neighbor'},
+          note: 'to neighbor',
+          customOrigin: CustomOrigin.importGap,
+        );
+
+        final result = reparseImportGapFigures([figure]);
+        expect(result.figures.single.note, 'to neighbor');
+      });
     });
 
     test('empty figure list is a no-op', () {

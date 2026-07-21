@@ -82,6 +82,33 @@ void main() {
       expect(await dances.previewImportGapReparse(), isEmpty);
     });
 
+    test('orders previews case-insensitively by title', () async {
+      await dances.create(
+        sampleDance(
+          id: 'z',
+          title: 'zebra',
+          figures: [importGap('Neighbor swing')],
+        ),
+      );
+      await dances.create(
+        sampleDance(
+          id: 'a',
+          title: 'Apple',
+          figures: [importGap('Neighbor swing')],
+        ),
+      );
+      await dances.create(
+        sampleDance(
+          id: 'b',
+          title: 'banana',
+          figures: [importGap('Neighbor swing')],
+        ),
+      );
+
+      final previews = await dances.previewImportGapReparse();
+      expect(previews.map((p) => p.title), ['Apple', 'banana', 'zebra']);
+    });
+
     test('writes nothing (dry-run leaves updatedAt untouched)', () async {
       await dances.create(
         sampleDance(id: 'a', figures: [importGap('Neighbor swing')]),
