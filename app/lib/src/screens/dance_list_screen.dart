@@ -333,6 +333,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _advancedRoot.kind = GroupKind.all;
       _advancedEnabled = false;
       _onlineEnabled = false;
+      // Invalidate any in-flight online search so a late response can't
+      // repopulate _onlineResults/_onlineError after we've left online mode.
+      _onlineSeq++;
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
