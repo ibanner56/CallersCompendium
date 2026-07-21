@@ -60,6 +60,23 @@ void main() {
     test('rejects negative beats', () {
       expect(() => customFigure('x', beats: -1), throwsArgumentError);
     });
+
+    test('defaults to CustomOrigin.userEntered (safe, less-privileged)', () {
+      expect(
+        customFigure('mystery move').customOrigin,
+        CustomOrigin.userEntered,
+      );
+    });
+
+    test('stamps CustomOrigin.importGap when the caller opts in', () {
+      expect(
+        customFigure(
+          'mystery move',
+          origin: CustomOrigin.importGap,
+        ).customOrigin,
+        CustomOrigin.importGap,
+      );
+    });
   });
 
   group('StructuredDraft', () {

@@ -56,8 +56,12 @@ Figure? parseFigureLine(
   final scrubbed = scrubFn(rawText);
   if (scrubbed.isEmpty) return null;
 
-  Figure fallback() =>
-      customFigure(scrubbed, beats: safeBeats, progression: progression);
+  Figure fallback() => customFigure(
+    scrubbed,
+    beats: safeBeats,
+    progression: progression,
+    origin: CustomOrigin.importGap,
+  );
 
   try {
     final match = _recognize(scrubbed);

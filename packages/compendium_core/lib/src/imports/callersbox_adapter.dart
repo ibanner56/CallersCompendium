@@ -379,7 +379,11 @@ class CallersBoxAdapter implements SourceAdapter {
         if (parsed == null) return null;
         base = parsed;
       } else {
-        base = customFigure(scrubbed, beats: parentBeats);
+        base = customFigure(
+          scrubbed,
+          beats: parentBeats,
+          origin: CustomOrigin.importGap,
+        );
       }
     }
 

@@ -15,6 +15,11 @@ void main() {
       Figure(move: 'balance_the_ring', params: {'beats': 4}, note: 'gently'),
       Figure(move: customMove, params: {'text': 'weave the ring', 'beats': 8}),
       Figure(move: 'petronella'),
+      Figure(
+        move: customMove,
+        params: {'text': 'kept verbatim', 'beats': 8},
+        customOrigin: CustomOrigin.importGap,
+      ),
     ];
 
     test('encode then decode preserves every figure', () {
@@ -43,6 +48,47 @@ void main() {
         figureToJson(Figure(move: 'swing', progression: true))['progression'],
         isTrue,
       );
+    });
+
+    test('omits customOrigin for the default userEntered', () {
+      final json = figureToJson(
+        Figure(move: customMove, params: {'text': 'x'}),
+      );
+      expect(json.containsKey('customOrigin'), isFalse);
+    });
+
+    test('writes customOrigin only for importGap', () {
+      final json = figureToJson(
+        Figure(
+          move: customMove,
+          params: {'text': 'x'},
+          customOrigin: CustomOrigin.importGap,
+        ),
+      );
+      expect(json['customOrigin'], 'importGap');
+    });
+  });
+
+  group('customOrigin decoding', () {
+    test('missing key defaults to userEntered (backward compatible)', () {
+      final f = figureFromJson({
+        'move': customMove,
+        'params': {'text': 'x'},
+      });
+      expect(f.customOrigin, CustomOrigin.userEntered);
+    });
+
+    test('unknown value falls back to userEntered', () {
+      final f = figureFromJson({'move': customMove, 'customOrigin': 'bogus'});
+      expect(f.customOrigin, CustomOrigin.userEntered);
+    });
+
+    test('parses importGap by name', () {
+      final f = figureFromJson({
+        'move': customMove,
+        'customOrigin': 'importGap',
+      });
+      expect(f.customOrigin, CustomOrigin.importGap);
     });
   });
 

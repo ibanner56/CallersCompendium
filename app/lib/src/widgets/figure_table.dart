@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../data/verbose_figure_rendering_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../search/facet_labels.dart';
+import 'import_gap_badge.dart';
 
 /// Read-only figure table grouped by derived phrase section (`docs/design/ux.md`
 /// §2). Each section (A1, A2, …) heads a group; rows show the rendered figure
@@ -65,6 +66,9 @@ class FigureTable extends StatelessWidget {
           beats: sf.figure.beats,
           progression: sf.figure.progression,
           note: sf.figure.note,
+          isImportGap:
+              sf.figure.isCustom &&
+              sf.figure.customOrigin == CustomOrigin.importGap,
         ),
       );
       isFirstRowInSection = false;
@@ -106,6 +110,7 @@ class _FigureRow extends StatelessWidget {
     required this.beats,
     required this.progression,
     required this.note,
+    required this.isImportGap,
   });
 
   /// Terse, dialect-applied text shown on screen (unless [showVerbose]).
@@ -123,12 +128,17 @@ class _FigureRow extends StatelessWidget {
   final bool progression;
   final String? note;
 
+  /// Whether this is a parser-gap custom figure ([CustomOrigin.importGap]),
+  /// which gets a badge + subtle row shading.
+  final bool isImportGap;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
     final semanticsLabel = [
       verboseText,
+      if (isImportGap) importGapMessage,
       if (progression) 'progression',
       beatsLabel,
       if (note != null && note!.trim().isNotEmpty) 'note: ${note!.trim()}',
@@ -136,7 +146,10 @@ class _FigureRow extends StatelessWidget {
     return Semantics(
       label: semanticsLabel,
       excludeSemantics: true,
-      child: Padding(
+      child: Container(
+        color: isImportGap
+            ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.35)
+            : null,
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,6 +188,10 @@ class _FigureRow extends StatelessWidget {
                 ],
               ),
             ),
+            if (isImportGap) ...[
+              const SizedBox(width: 8),
+              const ImportGapBadge(),
+            ],
             const SizedBox(width: 8),
             Text(
               beatsLabel,

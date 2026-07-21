@@ -250,7 +250,10 @@ class ContraDbAdapter implements SourceAdapter {
           figureIndex: index,
         ),
       );
-      return customFigure('(unreadable figure)');
+      return customFigure(
+        '(unreadable figure)',
+        origin: CustomOrigin.importGap,
+      );
     }
     final fig = Map<String, Object?>.from(raw);
     final moveName = _asString(fig['move'])?.trim() ?? '';
@@ -261,7 +264,9 @@ class ContraDbAdapter implements SourceAdapter {
     final explicitBeats = _asBeats(fig['beats']);
 
     // ContraDB `custom` move: free-text `custom_figure` + beats, mapped
-    // directly to our custom figure (parse-never-fails).
+    // directly to our custom figure (parse-never-fails). Provenance splits by
+    // condition: an explicit `custom` move is source-authored intent
+    // (userEntered), while a MISSING move is a genuine data gap (importGap).
     if (moveName == 'custom' || moveName.isEmpty) {
       final text = _asString(fig['custom_figure'])?.trim();
       final reconstructed = (text != null && text.isNotEmpty)
@@ -275,6 +280,9 @@ class ContraDbAdapter implements SourceAdapter {
         reconstructed,
         beats: explicitBeats ?? _trailingBeats(paramList) ?? 0,
         progression: progression,
+        origin: moveName.isEmpty
+            ? CustomOrigin.importGap
+            : CustomOrigin.userEntered,
       );
     }
 
@@ -295,6 +303,7 @@ class ContraDbAdapter implements SourceAdapter {
         _reconstructText(moveName, paramList, note),
         beats: explicitBeats ?? _trailingBeats(paramList) ?? 0,
         progression: progression,
+        origin: CustomOrigin.importGap,
       );
     }
 

@@ -125,16 +125,28 @@ class StructuredDraft {
       'StructuredDraft(${dance.title}, $quality, ${issues.length} issues)';
 }
 
-/// Builds a [customMove] [Figure] for an unparseable source line, preserving
-/// its beats and text so nothing is ever dropped (the parse-never-fails
-/// invariant, `docs/design/imports.md`). Adapters (6.2+) call this whenever a
-/// figure line does not map to a structured taxonomy move.
+/// Builds a [customMove] [Figure] for a source line kept as free text,
+/// preserving its beats and text so nothing is ever dropped (the
+/// parse-never-fails invariant, `docs/design/imports.md`). Adapters (6.2+)
+/// call this whenever a figure line is represented as a custom figure.
 ///
 /// [text] is stored in `params['text']` (the taxonomy's [customMove] `text`
 /// parameter — this is what the renderer reads to feed canonical/search text);
 /// [beats] (when > 0) is stored in `params['beats']` so the custom figure still
 /// contributes to the dance's timing.
-Figure customFigure(String text, {int beats = 0, bool progression = false}) {
+///
+/// [origin] defaults to [CustomOrigin.userEntered] — the safe, less-privileged
+/// classification. Callers pass [CustomOrigin.importGap] ONLY at genuine
+/// parser-gap sites (an unparseable line / unknown-or-missing move), so an
+/// explicitly source-authored custom is never mislabeled as a parse failure.
+/// Under-flagging a gap is the safe direction; over-flagging authored content
+/// is the defect this guards against (and matters for the #417 re-parse offer).
+Figure customFigure(
+  String text, {
+  int beats = 0,
+  bool progression = false,
+  CustomOrigin origin = CustomOrigin.userEntered,
+}) {
   if (beats < 0) {
     throw ArgumentError.value(beats, 'beats', 'must be non-negative');
   }
@@ -142,5 +154,6 @@ Figure customFigure(String text, {int beats = 0, bool progression = false}) {
     move: customMove,
     params: {'text': text, if (beats > 0) 'beats': beats},
     progression: progression,
+    customOrigin: origin,
   );
 }

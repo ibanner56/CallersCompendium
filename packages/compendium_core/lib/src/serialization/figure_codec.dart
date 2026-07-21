@@ -11,9 +11,12 @@ import '../model/figure.dart';
 ///  "note": "scoop", "progression": true}
 /// ```
 /// `note` and `progression` are omitted when absent/false; `params` is
-/// omitted when empty. Decoding is tolerant: unknown keys are ignored (so
-/// files written by newer app versions still load) and a missing
-/// `schemaVersion` is treated as version 1.
+/// omitted when empty. `customOrigin` is written only when it is not the
+/// default `userEntered` (i.e. `"importGap"` for parser-gap customs), so
+/// existing data and ordinary customs stay byte-for-byte compatible. Decoding
+/// is tolerant: unknown keys are ignored (so files written by newer app
+/// versions still load), a missing `schemaVersion` is treated as version 1,
+/// and a missing/unknown `customOrigin` decodes as `userEntered`.
 
 Map<String, Object?> figureToJson(Figure figure) => {
   'schemaVersion': figure.schemaVersion,
@@ -21,6 +24,8 @@ Map<String, Object?> figureToJson(Figure figure) => {
   if (figure.params.isNotEmpty) 'params': figure.params,
   if (figure.note != null) 'note': figure.note,
   if (figure.progression) 'progression': true,
+  if (figure.customOrigin != CustomOrigin.userEntered)
+    'customOrigin': figure.customOrigin.name,
 };
 
 Figure figureFromJson(Map<String, Object?> json) {
@@ -44,12 +49,21 @@ Figure figureFromJson(Map<String, Object?> json) {
   if (progression is! bool) {
     throw FormatException('figure "progression" must be a bool: $json');
   }
+  // Decoding is tolerant: a missing key (existing stored data) and any
+  // unrecognized value both fall back to userEntered, so no real user custom
+  // is ever mislabeled as an import-gap custom.
+  final originName = json['customOrigin'];
+  final customOrigin = CustomOrigin.values.firstWhere(
+    (o) => o.name == originName,
+    orElse: () => CustomOrigin.userEntered,
+  );
   return Figure(
     schemaVersion: schemaVersion,
     move: move,
     params: params.map((k, v) => MapEntry(k.toString(), v)),
     note: note as String?,
     progression: progression,
+    customOrigin: customOrigin,
   );
 }
 
