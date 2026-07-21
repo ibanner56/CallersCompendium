@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +11,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
+import 'package:compendium_app/src/screens/dance_editor/name_picker.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
@@ -687,6 +690,82 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(Chip, 'flowy'), findsOneWidget);
   });
+
+  testWidgets(
+    'disposing the picker mid-create does not touch the disposed controller',
+    (tester) async {
+      // Reproduces the async gap on the create path (#402 follow-up): onCreate
+      // is a real Future, so if the editor is dismissed before it completes the
+      // owned controller/focus node must not be used. Guarded by !mounted.
+      final createCompleter = Completer<String>();
+      var addCount = 0;
+
+      Widget harness(bool showPicker) => MaterialApp(
+        home: Scaffold(
+          body: showPicker
+              ? NamePicker(
+                  fieldKey: 'tag',
+                  selectedIds: const [],
+                  namesById: const {},
+                  options: const [],
+                  onAdd: (_) => addCount++,
+                  onRemove: (_) {},
+                  onCreate: (_) => createCompleter.future,
+                )
+              : const SizedBox.shrink(),
+        ),
+      );
+
+      await tester.pumpWidget(harness(true));
+      await tester.enterText(
+        find.byKey(const ValueKey('tag-input')),
+        'sparkly',
+      );
+      await tester.pumpAndSettle();
+      // Commit via the create option; onSelected now awaits onCreate.
+      await tester.tap(find.byKey(const ValueKey('tag-option-create:sparkly')));
+      await tester.pump();
+
+      // Tear the picker down while the create is still in flight, then let the
+      // future resolve. Without the !mounted guard this would throw
+      // "A TextEditingController was used after being disposed."
+      await tester.pumpWidget(harness(false));
+      createCompleter.complete('t-new');
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      // The guard short-circuits before onAdd/clear once disposed.
+      expect(addCount, 0);
+    },
+  );
+
+  testWidgets(
+    'committing an author clears the shared picker input and keeps focus',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Gene Hubert'),
+      );
+      await _pumpEditor(tester, repos, danceId: null);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('author-input')),
+        'Gene',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-option-c1')));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(InputChip, 'Gene Hubert'), findsOneWidget);
+      // The shared NamePicker clears + keeps focus for authors too, so the
+      // guarantee can't silently regress for one field but not the other.
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('author-input')),
+      );
+      expect(field.controller!.text, isEmpty);
+      expect(field.focusNode!.hasFocus, isTrue);
+    },
+  );
 
   testWidgets('surfaces non-blocking phrase warnings', (tester) async {
     final repos = openTestRepositories();
