@@ -133,6 +133,9 @@ class _AddAutocompleteState extends State<_AddAutocomplete> {
           // Only clear after the create + add succeeds; a thrown onCreate
           // short-circuits before we touch the field.
           final id = await widget.onCreate(choice.name);
+          // Guard against the widget being disposed during the await (e.g. the
+          // editor route closed while the tag was being created).
+          if (!mounted) return;
           widget.onAdd(id);
         } else {
           widget.onAdd(choice.id!);

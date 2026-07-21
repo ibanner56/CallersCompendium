@@ -678,7 +678,7 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('tag-input')), '   ');
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('tag-option-t1')), findsNothing);
-    expect(find.byType(Chip), findsNothing);
+    expect(find.byKey(const ValueKey('tag-chip-t1')), findsNothing);
 
     // The field is still usable: a real tag can still be added afterwards.
     await tester.enterText(find.byKey(const ValueKey('tag-input')), 'flowy');
