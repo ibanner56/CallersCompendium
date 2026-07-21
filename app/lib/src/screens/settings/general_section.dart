@@ -19,6 +19,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
 import '../import_review_screen.dart';
+import '../reparse_custom_figures_screen.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race
@@ -291,6 +292,17 @@ class _GeneralSectionState extends State<GeneralSection> {
     );
   }
 
+  /// Opens the #417 "re-check custom figures" flow: a local re-parse of
+  /// import-gap custom figures that previews upgrades and applies them behind an
+  /// explicit confirmation, preserving all dance metadata.
+  Future<void> _onReparseCustomFigures() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const ReparseCustomFiguresScreen(),
+      ),
+    );
+  }
+
   Future<void> _onRequirePerformedForHistoryChanged(bool value) async {
     // Same instant-notifier-then-persist pattern as dialect/theme: flip the
     // live notifier so every dependent (including an open dance-detail screen)
@@ -363,6 +375,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       onExportBackup: _onExportBackup,
       onRestoreBackup: _onRestoreBackup,
       onImportDances: _onImportDances,
+      onReparseCustomFigures: _onReparseCustomFigures,
     );
   }
 }
@@ -397,6 +410,7 @@ class _GeneralView extends StatelessWidget {
     required this.onExportBackup,
     required this.onRestoreBackup,
     required this.onImportDances,
+    required this.onReparseCustomFigures,
   });
 
   final bool requirePerformedForHistory;
@@ -430,6 +444,9 @@ class _GeneralView extends StatelessWidget {
 
   /// Opens the import review flow (ROADMAP 6.3).
   final Future<void> Function() onImportDances;
+
+  /// Opens the #417 re-check-custom-figures flow.
+  final Future<void> Function() onReparseCustomFigures;
 
   @override
   Widget build(BuildContext context) {
@@ -555,6 +572,22 @@ class _GeneralView extends StatelessWidget {
             onPressed: onImportDances,
             icon: const Icon(Icons.file_download_outlined),
             label: const Text('Import…'),
+          ),
+        ),
+        ListTile(
+          title: const Text('Re-check custom figures'),
+          subtitle: const Text(
+            'Re-parse imported dances whose figures were kept as custom only '
+            'because they could not be recognised at import time. Improved '
+            'parsing upgrades them in place — your tags, ratings, and notes '
+            'are preserved. You preview and confirm before anything changes.',
+          ),
+          isThreeLine: true,
+          trailing: OutlinedButton.icon(
+            key: const ValueKey('reparse-custom-figures-button'),
+            onPressed: onReparseCustomFigures,
+            icon: const Icon(Icons.auto_fix_high_outlined),
+            label: const Text('Re-check…'),
           ),
         ),
         SectionHeader(title: 'Backup & restore'),
