@@ -132,6 +132,8 @@ void main() {
     final repos = openTestRepositories();
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: RepositoriesScope(
           repositories: repos,
           child: ImportReviewScreen(

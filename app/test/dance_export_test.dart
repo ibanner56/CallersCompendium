@@ -333,6 +333,8 @@ void main() {
       String? capturedName;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -369,6 +371,8 @@ void main() {
       String? capturedName;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
