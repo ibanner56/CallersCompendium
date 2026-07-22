@@ -8,6 +8,7 @@ void main() {
     String title = 'Friday Contra',
     DateTime? eventDate,
     String? venue,
+    String? venueId,
     String? band,
     String? caller,
     String? dancerLevel,
@@ -19,6 +20,7 @@ void main() {
     title: title,
     eventDate: eventDate,
     venue: venue,
+    venueId: venueId,
     band: band,
     caller: caller,
     dancerLevel: dancerLevel,
@@ -254,6 +256,61 @@ void main() {
       );
       expect(text, contains('2026-03-09 · Town Hall'));
     });
+
+    test('resolves a linked venue id to its label over the free text', () {
+      final text = programToPlainText(
+        program(
+          eventDate: DateTime.utc(2026, 3, 9),
+          venue: 'Town Hall',
+          venueId: 'v1',
+        ),
+        titleFor: titles,
+        venueNameFor: (id) => id == 'v1' ? 'Grange Hall, Montpelier, VT' : null,
+      );
+      expect(text, contains('2026-03-09 · Grange Hall, Montpelier, VT'));
+      expect(text, isNot(contains('Town Hall')));
+    });
+
+    test(
+      'falls back to free text when the linked venue id does not resolve',
+      () {
+        final text = programToPlainText(
+          program(
+            eventDate: DateTime.utc(2026, 3, 9),
+            venue: 'Town Hall',
+            venueId: 'missing',
+          ),
+          titleFor: titles,
+          venueNameFor: (_) => null,
+        );
+        expect(text, contains('2026-03-09 · Town Hall'));
+      },
+    );
+
+    test('uses free text when no venueNameFor callback is given (legacy)', () {
+      final text = programToPlainText(
+        program(
+          eventDate: DateTime.utc(2026, 3, 9),
+          venue: 'Town Hall',
+          venueId: 'v1',
+        ),
+        titleFor: titles,
+      );
+      expect(text, contains('2026-03-09 · Town Hall'));
+    });
+
+    test(
+      'omits the venue when neither a resolved link nor free text exists',
+      () {
+        final text = programToPlainText(
+          program(eventDate: DateTime.utc(2026, 3, 9), venueId: 'missing'),
+          titleFor: titles,
+          venueNameFor: (_) => null,
+        );
+        expect(text, contains('2026-03-09'));
+        expect(text, isNot(contains(' · ')));
+      },
+    );
 
     test('uses a provided formatDate callback', () {
       final text = programToPlainText(
