@@ -561,6 +561,19 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _buildContent(
+        context,
+        // Collapse the AppBar's secondary actions into an overflow menu on
+        // narrow widths (issue #433). LayoutBuilder reflects the actual
+        // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
+        // in widget tests).
+        wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, {required bool wide}) {
     final activeDialect = ActiveDialectScope.of(context);
     final isCanonicalDialect = activeDialect == Dialect.canonical;
     final dialect = _canonicalView ? Dialect.canonical : activeDialect;
@@ -618,57 +631,123 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 onPressed: _confirmAndExit,
               ),
               title: Text(widget.program.title),
-              actions: [
-                const DialectQuickSwitch(),
-                IconButton(
-                  key: const ValueKey('perform-adjust'),
-                  tooltip: 'Adjust program',
-                  icon: const Icon(Icons.tune),
-                  onPressed: _openAdjustSheet,
-                ),
-                IconButton(
-                  key: const ValueKey('perform-jump'),
-                  tooltip: 'Jump to slot',
-                  icon: const Icon(Icons.list),
-                  onPressed: _openJumpSheet,
-                ),
-                IconButton(
-                  key: const ValueKey('perform-metronome'),
-                  tooltip: 'Tap tempo',
-                  icon: const Icon(Icons.av_timer),
-                  onPressed: _openMetronomeSheet,
-                ),
-                if (hasAlternates)
+              // Responsive AppBar actions (issue #433): the full set shows
+              // inline on tablets/large windows; on narrow phones the secondary
+              // controls collapse into a "More actions" overflow so the toolbar
+              // can't RenderFlex-overflow at 360–430px. The stage-mode toggle
+              // (and the per-gig dialect quick-switch) stay inline.
+              actions: buildPerformAppBarActions(
+                wide: wide,
+                leadingPrimary: const DialectQuickSwitch(),
+                secondaryInline: [
                   IconButton(
-                    key: const ValueKey('perform-alt-swap'),
-                    tooltip: 'Show alternate',
-                    icon: const Icon(Icons.swap_horiz),
-                    onPressed: _swapAlternate,
+                    key: const ValueKey('perform-adjust'),
+                    tooltip: 'Adjust program',
+                    icon: const Icon(Icons.tune),
+                    onPressed: _openAdjustSheet,
                   ),
-                PerformSizeControls(
-                  canDecrease: canDecrease,
-                  onDecrease: _decreaseTextSize,
-                  onIncrease: _increaseTextSize,
-                ),
-                PerformAutoSizeToggle(
-                  autoSizeOn: _autoSize,
-                  onChanged: (value) => setState(() {
-                    _autoSizeUserSet = true;
-                    _autoSize = value;
-                  }),
-                ),
-                if (!isCanonicalDialect)
-                  PerformDialectToggle(
-                    canonical: _canonicalView,
-                    onChanged: (value) =>
-                        setState(() => _canonicalView = value),
+                  IconButton(
+                    key: const ValueKey('perform-jump'),
+                    tooltip: 'Jump to slot',
+                    icon: const Icon(Icons.list),
+                    onPressed: _openJumpSheet,
                   ),
-                PerformStageToggle(
+                  IconButton(
+                    key: const ValueKey('perform-metronome'),
+                    tooltip: 'Tap tempo',
+                    icon: const Icon(Icons.av_timer),
+                    onPressed: _openMetronomeSheet,
+                  ),
+                  if (hasAlternates)
+                    IconButton(
+                      key: const ValueKey('perform-alt-swap'),
+                      tooltip: 'Show alternate',
+                      icon: const Icon(Icons.swap_horiz),
+                      onPressed: _swapAlternate,
+                    ),
+                  PerformSizeControls(
+                    canDecrease: canDecrease,
+                    onDecrease: _decreaseTextSize,
+                    onIncrease: _increaseTextSize,
+                  ),
+                  PerformAutoSizeToggle(
+                    autoSizeOn: _autoSize,
+                    onChanged: (value) => setState(() {
+                      _autoSizeUserSet = true;
+                      _autoSize = value;
+                    }),
+                  ),
+                  if (!isCanonicalDialect)
+                    PerformDialectToggle(
+                      canonical: _canonicalView,
+                      onChanged: (value) =>
+                          setState(() => _canonicalView = value),
+                    ),
+                ],
+                overflowActions: [
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-adjust-menu'),
+                    icon: Icons.tune,
+                    label: 'Adjust program',
+                    onSelected: _openAdjustSheet,
+                  ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-jump-menu'),
+                    icon: Icons.list,
+                    label: 'Jump to slot',
+                    onSelected: _openJumpSheet,
+                  ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-metronome-menu'),
+                    icon: Icons.av_timer,
+                    label: 'Tap tempo',
+                    onSelected: _openMetronomeSheet,
+                  ),
+                  if (hasAlternates)
+                    PerformMenuAction(
+                      menuKey: const ValueKey('perform-alt-swap-menu'),
+                      icon: Icons.swap_horiz,
+                      label: 'Show alternate',
+                      onSelected: _swapAlternate,
+                    ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('decrease-text-size-menu'),
+                    icon: Icons.text_decrease,
+                    label: 'Decrease text size',
+                    onSelected: _decreaseTextSize,
+                    enabled: canDecrease,
+                  ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('increase-text-size-menu'),
+                    icon: Icons.text_increase,
+                    label: 'Increase text size',
+                    onSelected: _increaseTextSize,
+                  ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-autosize-toggle-menu'),
+                    icon: Icons.fit_screen,
+                    label: 'Auto-size text to screen',
+                    toggledOn: _autoSize,
+                    onSelected: () => setState(() {
+                      _autoSizeUserSet = true;
+                      _autoSize = !_autoSize;
+                    }),
+                  ),
+                  if (!isCanonicalDialect)
+                    PerformMenuAction(
+                      menuKey: const ValueKey('perform-dialect-toggle-menu'),
+                      icon: Icons.groups,
+                      label: 'Show canonical terms',
+                      toggledOn: _canonicalView,
+                      onSelected: () =>
+                          setState(() => _canonicalView = !_canonicalView),
+                    ),
+                ],
+                trailingPrimary: PerformStageToggle(
                   stageOn: _stageMode,
                   onChanged: (value) => setState(() => _stageMode = value),
                 ),
-                const SizedBox(width: 8),
-              ],
+              ),
             ),
             body: CallbackShortcuts(
               bindings: <ShortcutActivator, VoidCallback>{
@@ -828,40 +907,47 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         return Semantics(
           label: label.toString(),
           child: ExcludeSemantics(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.timer_outlined, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  _formatDuration(elapsed),
-                  key: const ValueKey('perform-clock'),
-                  style: style,
-                ),
-                Text('  ·  ', style: style),
-                Text(
-                  _formatDuration(slotElapsed),
-                  key: const ValueKey('perform-slot-elapsed'),
-                  style: style,
-                ),
-                if (planned != null) ...[
-                  Text('  ·  ', style: style),
+            // On very narrow phones (~360px) the readout is a few pixels wider
+            // than its slot in the bottom bar; scale it down to fit rather than
+            // RenderFlex-overflow (issue #433). It renders at natural size on
+            // anything wider.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.timer_outlined, size: 16),
+                  const SizedBox(width: 4),
                   Text(
-                    'planned $planned min',
-                    key: const ValueKey('perform-planned'),
+                    _formatDuration(elapsed),
+                    key: const ValueKey('perform-clock'),
                     style: style,
                   ),
-                  if (isOver) ...[
-                    const SizedBox(width: 4),
-                    const Icon(Icons.timelapse, size: 16),
+                  Text('  ·  ', style: style),
+                  Text(
+                    _formatDuration(slotElapsed),
+                    key: const ValueKey('perform-slot-elapsed'),
+                    style: style,
+                  ),
+                  if (planned != null) ...[
+                    Text('  ·  ', style: style),
                     Text(
-                      ' over',
-                      key: const ValueKey('perform-over'),
+                      'planned $planned min',
+                      key: const ValueKey('perform-planned'),
                       style: style,
                     ),
+                    if (isOver) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.timelapse, size: 16),
+                      Text(
+                        ' over',
+                        key: const ValueKey('perform-over'),
+                        style: style,
+                      ),
+                    ],
                   ],
                 ],
-              ],
+              ),
             ),
           ),
         );

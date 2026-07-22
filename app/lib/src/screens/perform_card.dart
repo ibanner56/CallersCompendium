@@ -558,6 +558,115 @@ class PerformStageToggle extends StatelessWidget {
   }
 }
 
+/// Width (logical px) at or above which a Perform AppBar shows its full action
+/// set inline; below it, secondary actions collapse into an overflow menu
+/// (issue #433). 600 is Material's compact/medium window boundary: phones in
+/// portrait sit below it (so the ~10-button row can't RenderFlex-overflow a
+/// 360–430px screen), while tablets/large windows show everything inline. The
+/// full inline set needs ~544px (leading + 10 icon buttons), so it always fits
+/// once the layout is >= 600px wide.
+const double kPerformActionsCollapseWidth = 600;
+
+/// One secondary Perform AppBar action, rendered as an item inside
+/// [PerformOverflowMenu] when the AppBar collapses on narrow widths (issue
+/// #433). [toggledOn] being non-null marks a toggle, rendered as a
+/// [CheckedPopupMenuItem] so assistive tech announces its on/off state; the
+/// [icon] is used as the leading glyph for plain (non-toggle) actions.
+@immutable
+class PerformMenuAction {
+  const PerformMenuAction({
+    required this.menuKey,
+    required this.icon,
+    required this.label,
+    required this.onSelected,
+    this.enabled = true,
+    this.toggledOn,
+  });
+
+  final Key menuKey;
+  final IconData icon;
+  final String label;
+  final VoidCallback onSelected;
+  final bool enabled;
+  final bool? toggledOn;
+}
+
+/// The "More actions" overflow control for the Perform AppBar (issue #433).
+/// Collapses [actions] (the secondary controls) into a single
+/// [PopupMenuButton] on narrow phone widths so the toolbar can't overflow,
+/// while the primary stage-mode toggle stays inline. Carries a 'More actions'
+/// tooltip/semantics label, and each item keeps a clear text label.
+class PerformOverflowMenu extends StatelessWidget {
+  const PerformOverflowMenu({super.key, required this.actions});
+
+  final List<PerformMenuAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<VoidCallback>(
+      key: const ValueKey('perform-overflow-menu'),
+      icon: const Icon(Icons.more_vert),
+      tooltip: 'More actions',
+      // onSelected fires after the menu has closed, so actions that open a
+      // sheet (e.g. adjust/jump/tap-tempo) don't fight the menu's own pop.
+      onSelected: (action) => action(),
+      itemBuilder: (context) => [
+        for (final action in actions)
+          if (action.toggledOn != null)
+            CheckedPopupMenuItem<VoidCallback>(
+              key: action.menuKey,
+              value: action.onSelected,
+              checked: action.toggledOn!,
+              enabled: action.enabled,
+              child: Text(action.label),
+            )
+          else
+            PopupMenuItem<VoidCallback>(
+              key: action.menuKey,
+              value: action.onSelected,
+              enabled: action.enabled,
+              child: Row(
+                children: [
+                  Icon(action.icon),
+                  const SizedBox(width: 12),
+                  // Flexible so a long label wraps within the popup's width
+                  // instead of RenderFlex-overflowing the menu item.
+                  Flexible(child: Text(action.label)),
+                ],
+              ),
+            ),
+      ],
+    );
+  }
+}
+
+/// Builds a Perform AppBar's trailing [AppBar.actions] with responsive overflow
+/// (issue #433). When [wide] (the caller measures the available width against
+/// [kPerformActionsCollapseWidth] with a [LayoutBuilder]) every action renders
+/// inline in its original order ([leadingPrimary], then [secondaryInline], then
+/// [trailingPrimary]) — the full tablet/large-window toolbar. Otherwise only
+/// [leadingPrimary] and [trailingPrimary] (the stage-mode toggle, which must
+/// stay reachable mid-gig) stay inline and the [secondaryInline] controls
+/// collapse into a single [PerformOverflowMenu] built from [overflowActions],
+/// so a 360–430px phone can't overflow.
+List<Widget> buildPerformAppBarActions({
+  required bool wide,
+  required Widget leadingPrimary,
+  required List<Widget> secondaryInline,
+  required List<PerformMenuAction> overflowActions,
+  required Widget trailingPrimary,
+}) {
+  return [
+    leadingPrimary,
+    if (wide) ...secondaryInline else trailingPrimary,
+    if (wide)
+      trailingPrimary
+    else
+      PerformOverflowMenu(actions: overflowActions),
+    const SizedBox(width: 8),
+  ];
+}
+
 class _Header extends StatelessWidget {
   const _Header({required this.dance, required this.authorNames});
 
