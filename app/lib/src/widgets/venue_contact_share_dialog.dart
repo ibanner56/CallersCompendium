@@ -22,7 +22,7 @@ const List<VenueContactField> _orderedContactFields = [
 /// Share/export is a privacy boundary: a venue's contact people are personal
 /// details that are OMIT-BY-DEFAULT. This dialog lists only the contact fields
 /// actually populated on the venue, each as an initially **unchecked**
-/// (opt-out-by-default) checkbox, and returns the set the user affirmatively
+/// (opt-in) checkbox, and returns the set the user affirmatively
 /// checked. The same dialog serves every export flow, so its copy is worded
 /// generically ("this export") rather than naming a single flow.
 ///

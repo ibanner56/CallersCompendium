@@ -148,18 +148,6 @@ class ProgramExportMenu extends StatelessWidget {
     );
   }
 
-  /// Writes a self-contained program-plus-referenced-dances bundle (the
-  /// canonical [CompendiumArchive] JSON — see [buildProgramShareBundle]) to a
-  /// temp file and hands it to the OS share sheet as a JSON [XFile].
-  ///
-  /// The bundle *carries* the program plus the full definition of every dance
-  /// its slots reference. On the receiving device the **existing** manual
-  /// Import flow (`GenericJsonAdapter`) imports the embedded **dances** today;
-  /// it does not yet import the program. The program travels in the bundle for
-  /// the forthcoming receive-side auto-open (issue #298, PR 2), which will
-  /// import the program itself. This send-side action ships first, so a
-  /// recipient on a build without the receive side gets the dances now and the
-  /// program once PR 2 lands.
   /// Resolves the linked venue's contact-PII consent before an export flow.
   ///
   /// Returns the empty set (**proceed, no prompt**) when the program links no
@@ -181,6 +169,18 @@ class ProgramExportMenu extends StatelessWidget {
     return VenueContactShareDialog.show(context, venue: linkedVenue);
   }
 
+  /// Writes a self-contained program-plus-referenced-dances bundle (the
+  /// canonical [CompendiumArchive] JSON — see [buildProgramShareBundle]) to a
+  /// temp file and hands it to the OS share sheet as a JSON [XFile].
+  ///
+  /// The bundle *carries* the program plus the full definition of every dance
+  /// its slots reference. On the receiving device the **existing** manual
+  /// Import flow (`GenericJsonAdapter`) imports the embedded **dances** today;
+  /// it does not yet import the program. The program travels in the bundle for
+  /// the forthcoming receive-side auto-open (issue #298, PR 2), which will
+  /// import the program itself. This send-side action ships first, so a
+  /// recipient on a build without the receive side gets the dances now and the
+  /// program once PR 2 lands.
   Future<void> _shareBundle(BuildContext context, Rect? origin) async {
     final resolveDance = danceFor;
     if (resolveDance == null) return;
