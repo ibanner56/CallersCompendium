@@ -484,6 +484,93 @@ void main() {
     );
   });
 
+  testWidgets(
+    're-entry preserves the per-slot timer and a paused (frozen) session',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
+      await repos.programs.create(
+        _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+          _slot(id: 's2', position: 1, danceId: 'd2'),
+        ]),
+      );
+      final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(notifier.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
+          home: const ProgramEditorScreen(programId: 'p1'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      // Move to slot 2 so the resumed group is not the default slot 1, accrue
+      // per-slot time, then pause so the whole session is frozen on exit.
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      expect(_textOf(tester, 'perform-position'), 'Slot 2 of 2');
+      await tester.pump(const Duration(seconds: 6));
+      await tester.tap(find.byKey(const ValueKey('perform-timer-pause')));
+      await tester.pump();
+
+      final slotBefore = _textOf(tester, 'perform-slot-elapsed');
+      final clockBefore = _textOf(tester, 'perform-clock');
+      expect(_seconds(slotBefore), greaterThanOrEqualTo(6));
+      // Paused reflected in the toggle state before we leave.
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('perform-timer-pause')),
+            )
+            .isSelected,
+        isTrue,
+      );
+
+      // Guarded exit and re-entry.
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+      // The per-slot timer resumes where it was (slotStartSeconds preserved),
+      // not reset to 0:00, and the session is still paused.
+      expect(_textOf(tester, 'perform-position'), 'Slot 2 of 2');
+      expect(_textOf(tester, 'perform-slot-elapsed'), slotBefore);
+      expect(_textOf(tester, 'perform-clock'), clockBefore);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('perform-timer-pause')),
+            )
+            .isSelected,
+        isTrue,
+      );
+
+      // Still frozen after re-entry: advancing time changes nothing.
+      await tester.pump(const Duration(seconds: 5));
+      expect(_textOf(tester, 'perform-slot-elapsed'), slotBefore);
+      expect(_textOf(tester, 'perform-clock'), clockBefore);
+    },
+  );
+
   testWidgets('the perform-program affordance is hidden for an empty program', (
     tester,
   ) async {
