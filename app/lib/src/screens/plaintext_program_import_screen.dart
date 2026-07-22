@@ -158,14 +158,17 @@ class _PlaintextProgramImportScreenState
         service: _online,
         repos: _repos,
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      debugPrint(
+        'Plaintext title-list online resolve failed: $error\n$stackTrace',
+      );
       setState(() => _resolving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('plaintext-import-resolve-error-snackbar'),
           content: Text(
-            AppLocalizations.of(context).importPlaintextSearchError('$error'),
+            AppLocalizations.of(context).importPlaintextSearchError,
           ),
         ),
       );
@@ -226,15 +229,14 @@ class _PlaintextProgramImportScreenState
 
     try {
       await _repos.programs.create(program);
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      debugPrint('Plaintext program import write failed: $error\n$stackTrace');
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('plaintext-import-error-snackbar'),
-          content: Text(
-            AppLocalizations.of(context).importProgramCreateError('$error'),
-          ),
+          content: Text(AppLocalizations.of(context).importProgramCreateError),
         ),
       );
       return;

@@ -403,15 +403,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (!mounted) return;
       // Edits made in the editor also need to surface in the live Collection.
       CollectionRefreshScope.bump(context);
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+      debugPrint('Import commit-for-edit failed: $e\n$stackTrace');
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('import-edit-error'),
-          content: Text(
-            AppLocalizations.of(context).importReviewImportError('$e'),
-          ),
+          content: Text(AppLocalizations.of(context).importReviewImportError),
         ),
       );
     }
@@ -466,15 +465,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           onUndo: () => pipeline.undo(session),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+      debugPrint('Import commit failed: $e\n$stackTrace');
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('import-commit-error'),
-          content: Text(
-            AppLocalizations.of(context).importReviewImportError('$e'),
-          ),
+          content: Text(AppLocalizations.of(context).importReviewImportError),
         ),
       );
     }

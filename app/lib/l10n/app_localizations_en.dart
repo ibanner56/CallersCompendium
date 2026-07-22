@@ -1765,9 +1765,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importProgramTitleLabel => 'Program title';
 
   @override
-  String importProgramCreateError(String error) {
-    return 'Could not import program: $error';
-  }
+  String get importProgramCreateError => 'Couldn\'t save the imported program.';
 
   @override
   String importProgramCommitted(
@@ -1831,8 +1829,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String importContraDbFetchError(String error) {
-    return 'Could not fetch that program.\n$error';
+    return 'Couldn\'t fetch that program.\n$error';
   }
+
+  @override
+  String get importContraDbFetchGenericError => 'Couldn\'t fetch that program.';
 
   @override
   String get importContraDbPastePrompt =>
@@ -1843,9 +1844,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'No dances or notes found on that program page.';
 
   @override
-  String importContraDbResolveError(String error) {
-    return 'Could not import the ContraDB program: $error';
-  }
+  String get importContraDbResolveError =>
+      'Couldn\'t import the ContraDB program.';
 
   @override
   String importContraDbActivityCount(int activities, int dances, int notes) {
@@ -1925,9 +1925,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importPlaintextUnmatched => 'No match — added as note';
 
   @override
-  String importPlaintextSearchError(String error) {
-    return 'Could not search The Caller\'s Box: $error';
-  }
+  String get importPlaintextSearchError =>
+      'Couldn\'t search The Caller\'s Box.';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -2161,7 +2160,5 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importReviewEditError => 'Couldn\'t import that dance to edit.';
 
   @override
-  String importReviewImportError(String error) {
-    return 'Couldn\'t import: $error';
-  }
+  String get importReviewImportError => 'Couldn\'t complete the import.';
 }

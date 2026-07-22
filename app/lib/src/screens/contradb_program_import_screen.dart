@@ -117,7 +117,15 @@ class _ContraDbProgramImportScreenState
 
   bool _fetching = false;
   bool _committing = false;
-  Object? _fetchError;
+
+  /// Whether the most recent fetch attempt failed (drives the error UI).
+  bool _fetchFailed = false;
+
+  /// A safe-to-show detail for a fetch failure. Only ever a curated
+  /// [UrlFetchException.message] (scheme/redirect/size guards, etc.); it is
+  /// null when the failure was an unexpected exception, whose raw text is
+  /// logged but never shown so no internals leak to the UI (CWE-209).
+  String? _fetchErrorDetail;
 
   @override
   void didChangeDependencies() {
@@ -165,7 +173,8 @@ class _ContraDbProgramImportScreenState
     if (!_canFetch) return;
     setState(() {
       _fetching = true;
-      _fetchError = null;
+      _fetchFailed = false;
+      _fetchErrorDetail = null;
     });
     try {
       final url = buildContraDbProgramUrl(_urlController.text);
@@ -204,11 +213,16 @@ class _ContraDbProgramImportScreenState
           ),
         );
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      // Log the raw error for debugging/support, but only surface a curated,
+      // safe-to-show UrlFetchException.message to the UI — never an arbitrary
+      // caught exception, which could leak internals (CWE-209).
+      debugPrint('ContraDB program fetch failed: $error\n$stackTrace');
       setState(() {
         _fetching = false;
-        _fetchError = error;
+        _fetchFailed = true;
+        _fetchErrorDetail = error is UrlFetchException ? error.message : null;
       });
     }
   }
@@ -221,7 +235,8 @@ class _ContraDbProgramImportScreenState
       _mode = mode;
       if (mode == _ImportMode.search) {
         _program = null;
-        _fetchError = null;
+        _fetchFailed = false;
+        _fetchErrorDetail = null;
       }
     });
     if (mode == _ImportMode.search &&
@@ -259,7 +274,8 @@ class _ContraDbProgramImportScreenState
       // Editing the query returns to the results list even after a program was
       // picked + previewed, so the user can refine and choose a different one.
       _program = null;
-      _fetchError = null;
+      _fetchFailed = false;
+      _fetchErrorDetail = null;
       _searchResults = filterProgramIndex(_allEntries, query);
     });
   }
@@ -286,14 +302,15 @@ class _ContraDbProgramImportScreenState
         repos: _repos,
         now: now,
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      debugPrint('ContraDB program resolve failed: $error\n$stackTrace');
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('contradb-program-resolve-error-snackbar'),
           content: Text(
-            AppLocalizations.of(context).importContraDbResolveError('$error'),
+            AppLocalizations.of(context).importContraDbResolveError,
           ),
         ),
       );
@@ -315,15 +332,14 @@ class _ContraDbProgramImportScreenState
 
     try {
       await _repos.programs.create(program);
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      debugPrint('ContraDB program import write failed: $error\n$stackTrace');
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('contradb-program-error-snackbar'),
-          content: Text(
-            AppLocalizations.of(context).importProgramCreateError('$error'),
-          ),
+          content: Text(AppLocalizations.of(context).importProgramCreateError),
         ),
       );
       return;
@@ -608,7 +624,8 @@ class _ContraDbProgramImportScreenState
 
   Widget _buildPreview() {
     final l10n = AppLocalizations.of(context);
-    if (_fetchError != null) {
+    if (_fetchFailed) {
+      final detail = _fetchErrorDetail;
       return Center(
         key: const ValueKey('contradb-program-fetch-error'),
         child: Column(
@@ -617,7 +634,9 @@ class _ContraDbProgramImportScreenState
             const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 8),
             Text(
-              l10n.importContraDbFetchError('$_fetchError'),
+              detail != null
+                  ? l10n.importContraDbFetchError(detail)
+                  : l10n.importContraDbFetchGenericError,
               textAlign: TextAlign.center,
             ),
           ],

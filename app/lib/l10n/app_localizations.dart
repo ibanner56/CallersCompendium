@@ -2745,11 +2745,11 @@ abstract class AppLocalizations {
   /// **'Program title'**
   String get importProgramTitleLabel;
 
-  /// Snackbar shown when writing an imported program to the collection fails. {error} is a caught-exception string rendered as plain text.
+  /// Snackbar shown when writing an imported program to the collection fails. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Could not import program: {error}'**
-  String importProgramCreateError(String error);
+  /// **'Couldn\'t save the imported program.'**
+  String get importProgramCreateError;
 
   /// Snackbar summarising a committed program import. The title is an untrusted external value rendered as plain text.
   ///
@@ -2829,11 +2829,17 @@ abstract class AppLocalizations {
   /// **'No matching programs.'**
   String get importContraDbNoMatches;
 
-  /// Error shown when fetching a ContraDB program fails. {error} is a safe-to-show fetch message rendered as plain text.
+  /// Error shown when fetching a ContraDB program fails. {error} is ONLY ever a curated, safe-to-show UrlFetchException.message (e.g. a scheme/redirect/size guard message); unexpected raw exceptions are logged and shown via importContraDbFetchGenericError instead, so no internals leak (CWE-209). Rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Could not fetch that program.\n{error}'**
+  /// **'Couldn\'t fetch that program.\n{error}'**
   String importContraDbFetchError(String error);
+
+  /// Error shown when fetching a ContraDB program fails with an unexpected (non-curated) exception. The raw exception is logged (debugPrint), never shown, to avoid leaking internals (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t fetch that program.'**
+  String get importContraDbFetchGenericError;
 
   /// Prompt shown in the preview area before a ContraDB program has been fetched.
   ///
@@ -2847,11 +2853,11 @@ abstract class AppLocalizations {
   /// **'No dances or notes found on that program page.'**
   String get importContraDbEmptyProgram;
 
-  /// Snackbar shown when resolving a ContraDB program's activities before commit fails. {error} is a caught-exception string rendered as plain text.
+  /// Snackbar shown when resolving a ContraDB program's activities before commit fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Could not import the ContraDB program: {error}'**
-  String importContraDbResolveError(String error);
+  /// **'Couldn\'t import the ContraDB program.'**
+  String get importContraDbResolveError;
 
   /// Summary of a fetched ContraDB program's activities shown above the preview list.
   ///
@@ -2961,11 +2967,11 @@ abstract class AppLocalizations {
   /// **'No match — added as note'**
   String get importPlaintextUnmatched;
 
-  /// Snackbar shown when resolving unmatched title-list lines online fails. {error} is a caught-exception string rendered as plain text.
+  /// Snackbar shown when resolving unmatched title-list lines online fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Could not search The Caller\'s Box: {error}'**
-  String importPlaintextSearchError(String error);
+  /// **'Couldn\'t search The Caller\'s Box.'**
+  String get importPlaintextSearchError;
 
   /// Count of slots in the title-list import preview.
   ///
@@ -3267,11 +3273,11 @@ abstract class AppLocalizations {
   /// **'Couldn\'t import that dance to edit.'**
   String get importReviewEditError;
 
-  /// Snackbar shown when an import commit throws. {error} is a caught-exception string rendered as plain text.
+  /// Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t import: {error}'**
-  String importReviewImportError(String error);
+  /// **'Couldn\'t complete the import.'**
+  String get importReviewImportError;
 }
 
 class _AppLocalizationsDelegate
