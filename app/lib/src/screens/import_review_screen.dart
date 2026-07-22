@@ -825,7 +825,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   key: const ValueKey('import-close'),
                   tooltip: l10n.importReviewClose,
                   icon: const Icon(Icons.close),
-                  onPressed: widget.onClose,
+                  // Disabled mid-commit to mirror the PopScope guard: the
+                  // embedded Close invokes [widget.onClose] directly (not a
+                  // route pop), which PopScope does not intercept, so a tap
+                  // during [_Phase.committing] would unmount the screen while
+                  // the write is in flight and strand the imported data without
+                  // its Undo/refresh (issue #432).
+                  onPressed: _phase == _Phase.committing
+                      ? null
+                      : widget.onClose,
                 ),
         ),
         body: switch (_phase) {

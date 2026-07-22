@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -8,6 +9,8 @@ import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/utils/undo_snack_bar.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -16,6 +19,46 @@ import 'package:http/testing.dart';
 import '../support/fmp_fixture_builder.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
+
+/// A drift [drift.QueryInterceptor] that can hold the first write of a commit
+/// open on a caller-controlled gate. Used to freeze [ImportReviewScreen] in its
+/// `committing` phase deterministically (an in-memory DB otherwise resolves the
+/// commit within a single microtask, so the transient committing frame would
+/// never render). Reads and open-time work are never gated, so it only bites
+/// once the test arms a gate right before pressing Import.
+class _CommitGate extends drift.QueryInterceptor {
+  Completer<void>? _gate;
+
+  /// Arms the interceptor so the next data write awaits [gate] before running.
+  void arm(Completer<void> gate) => _gate = gate;
+
+  Future<void> _maybeBlock() async {
+    final gate = _gate;
+    if (gate != null && !gate.isCompleted) {
+      _gate = null; // Block only the first write of the armed commit.
+      await gate.future;
+    }
+  }
+
+  @override
+  Future<int> runInsert(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    await _maybeBlock();
+    return executor.runInsert(statement, args);
+  }
+
+  @override
+  Future<void> runBatched(
+    drift.QueryExecutor executor,
+    drift.BatchedStatements statements,
+  ) async {
+    await _maybeBlock();
+    return executor.runBatched(statements);
+  }
+}
 
 Dance _dance(
   String id,
@@ -1763,6 +1806,81 @@ void main() {
           find.byKey(const ValueKey('shared-import-undo-snackbar')),
           findsOneWidget,
         );
+      },
+    );
+
+    testWidgets(
+      'embedded: the Close button is disabled while committing so a mid-commit '
+      'close cannot strand the imported data',
+      (tester) async {
+        // A gate-wrapped in-memory DB lets us hold the commit open in the
+        // `committing` phase long enough to inspect the guarded Close button.
+        final gate = _CommitGate();
+        final repos = CompendiumRepositories(
+          CompendiumDatabase(NativeDatabase.memory().interceptWith(gate)),
+          contraTaxonomy,
+        );
+        addTearDown(repos.db.close);
+        var closed = 0;
+        final refresh = ValueNotifier<int>(0);
+        addTearDown(refresh.dispose);
+        await tester.binding.setSurfaceSize(const Size(1000, 1600));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        // Embedded (onClose provided): the leading Close invokes onClose
+        // directly, which PopScope does NOT intercept — so it must be disabled
+        // mid-commit or it would unmount the screen and strand the write.
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: RepositoriesScope(
+              repositories: repos,
+              child: CollectionRefreshScope(
+                revision: refresh,
+                child: ImportReviewScreen(
+                  sources: [
+                    ImportSource(
+                      label: 'test JSON',
+                      adapterFactory: GenericJsonAdapter.new,
+                    ),
+                  ],
+                  sharedBundle: bundleFor(danceProgramVenueArchive()),
+                  onClose: () => closed++,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        IconButton closeButton() => tester.widget<IconButton>(
+          find.byKey(const ValueKey('import-close')),
+        );
+        // Enabled while reviewing.
+        expect(closeButton().onPressed, isNotNull);
+
+        // Arm the gate, then begin the commit: the first write blocks, so the
+        // screen stays in its committing phase until we release the gate.
+        final commitGate = Completer<void>();
+        gate.arm(commitGate);
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pump();
+        expect(find.byKey(const ValueKey('import-committing')), findsOneWidget);
+        // Guarded: Close is disabled mid-commit, mirroring the PopScope.
+        expect(closeButton().onPressed, isNull);
+        expect(closed, 0);
+
+        // Release the gate: the commit finishes, the data lands, the post-commit
+        // onClose fires exactly once, and the live collection is refreshed —
+        // nothing stranded.
+        commitGate.complete();
+        await tester.pumpAndSettle();
+        expect(await repos.dances.listAll(), hasLength(1));
+        expect(await repos.programs.listAll(), hasLength(1));
+        expect(await repos.venues.listAll(), hasLength(1));
+        expect(closed, 1);
+        expect(refresh.value, greaterThan(0));
       },
     );
   });
