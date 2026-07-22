@@ -33,6 +33,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonSystemDefault => 'System default';
 
   @override
+  String get commonComingSoon => 'Coming soon';
+
+  @override
   String get settingsLanguageRegionTitle => 'Language & region';
 
   @override
@@ -63,20 +66,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsFirstDayOfWeekSubtitle =>
-      'Choose which day the week starts on.';
-
-  @override
-  String get settingsFirstDayOfWeekSunday => 'Sunday';
-
-  @override
-  String get settingsFirstDayOfWeekMonday => 'Monday';
-
-  @override
-  String get settingsFirstDayOfWeekSaturday => 'Saturday';
-
-  @override
-  String get settingsFirstDayOfWeekPickerNote =>
-      'The system date picker follows the app\'s active language, so this setting doesn\'t change it.';
+      'Which day the week starts on in the app\'s date views. Coming in a future update.';
 
   @override
   String get settingsAppLanguageTitle => 'App language';

@@ -435,10 +435,11 @@ defaults) live in the **Defaults** pane section below.
   [docs/dev/localization.md](dev/localization.md)). Remaining UI strings are
   extracted into the ARB incrementally in follow-up PRs ("UI localization /
   multi-language" under Later milestones). NOTE: Flutter's `showDatePicker` derives
-  its first day of week from the locale and can't be overridden per-call, so the
-  first-day-of-week preference is stored and exposed app-wide (via
-  `FirstDayOfWeekScope`) for date surfaces the app draws itself to honor as they
-  land; it has no visible effect on the system date picker today.
+  its first day of week from the locale and can't be overridden per-call, and the
+  app draws no week/month grid of its own yet, so the first-day-of-week preference
+  has no consumer today. Its plumbing (pref/`FirstDayOfWeekScope`/storage, validated
+  on load) still ships for a future consumer, but the Settings control is presented
+  as a disabled "Coming soon" row rather than a live control that changes nothing.
 
 ## Defaults (settings pane)
 

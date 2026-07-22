@@ -165,11 +165,14 @@ You do **not** need to write code to translate the app.
 
 Flutter's `showDatePicker` derives its **first day of week from the active
 locale** and offers no per-call override, so the platform calendar picker — the
-app's current date-entry surface — always follows the locale. The
-first-day-of-week preference is therefore persisted and exposed app-wide (via
-`FirstDayOfWeekScope`, with `FirstDayOfWeekPref.startWeekday` for consumers) so
-that date surfaces the app draws itself can honor it as they are added; today
-its visible effect is limited because date entry goes through the system picker.
-Overriding `showDatePicker`'s first day of week is intentionally avoided rather
-than hacked around. This is surfaced to users as a note in the Language & region
-settings section and is intentional, not a bug.
+app's current date-entry surface — always follows the locale. The app also draws
+no week/month grid of its own, so the first-day-of-week preference has **no
+consumer yet**. Its plumbing still ships — the value is persisted and exposed
+app-wide (via `FirstDayOfWeekScope`, with `FirstDayOfWeekPref.startWeekday` for
+consumers) and validated on load — so a future date surface can honor it without
+re-plumbing. Until then, rather than surface a live control that changes nothing
+observable, the Language & region settings section presents first-day-of-week as
+a **disabled "Coming soon" row** (matching the app's convention for not-yet-wired
+options). Overriding `showDatePicker`'s first day of week is intentionally avoided
+rather than hacked around. When a real consumer lands, flip the row back to a live
+control and re-add its option labels to `app_en.arb`.
