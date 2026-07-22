@@ -417,21 +417,36 @@ class DanceRepository {
   }) async {
     assertUtc(now, 'now');
     final cutoff = now.subtract(retention);
-    final toPurge = await (_db.select(
-      _db.dances,
-    )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
     return _db.transaction(() async {
+      // Select eligibility INSIDE the transaction so selection, cleanup, and
+      // deletion all operate on one consistent snapshot. Selecting outside the
+      // txn opened a TOCTOU race: a dance restored between the SELECT and the
+      // DELETE would keep its row (it no longer matches the cutoff predicate)
+      // while its dance-only slots were already tombstoned and its incoming
+      // relatedDance links deleted — corrupting a dance that ends up surviving.
+      final toPurge = await (_db.select(
+        _db.dances,
+      )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
+      if (toPurge.isEmpty) return 0;
       await _cleanupDanglingReferences([
         for (final r in toPurge) (id: r.id, title: r.title),
       ]);
-      for (final row in toPurge) {
+      final ids = [for (final r in toPurge) r.id];
+      for (final id in ids) {
         await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
-          row.id,
+          id,
         ]);
       }
-      return (_db.delete(
-        _db.dances,
-      )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).go();
+      // Delete exactly the rows we selected and cleaned up — by id, not by a
+      // re-evaluated cutoff predicate — so cleanup and deletion can never
+      // diverge onto different sets of dances.
+      var deleted = 0;
+      for (final chunk in _chunkIds(ids)) {
+        deleted += await (_db.delete(
+          _db.dances,
+        )..where((t) => t.id.isIn(chunk))).go();
+      }
+      return deleted;
     });
   }
 

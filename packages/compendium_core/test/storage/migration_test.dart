@@ -1846,25 +1846,32 @@ void main() {
         expect(owner.links.single.id, 'l-good');
         expect(owner.links.single.targetDanceId, 'd-target');
 
-        // The database is referentially clean and its FTS index is complete.
+        // The database is referentially clean and its FTS index is a perfect
+        // 1:1 mirror of `dances`. We compare the ORDERED id multisets (not just
+        // row counts): dance_fts.dance_id is an unconstrained FTS column, so a
+        // count-only check would pass even if one dance were missing while
+        // another had a duplicate row. Comparing sorted id lists catches
+        // missing, orphaned, and duplicated FTS rows alike.
         final fkViolations = await db
             .customSelect('PRAGMA foreign_key_check')
             .get();
         expect(fkViolations, isEmpty, reason: 'no dangling FKs after repair');
-        final ftsCount =
+        final ftsIds =
             (await db
-                    .customSelect('SELECT COUNT(*) AS c FROM dance_fts')
-                    .getSingle())
-                .read<int>('c');
-        final danceCount =
-            (await db
-                    .customSelect('SELECT COUNT(*) AS c FROM dances')
-                    .getSingle())
-                .read<int>('c');
+                    .customSelect(
+                      'SELECT dance_id FROM dance_fts ORDER BY dance_id',
+                    )
+                    .get())
+                .map((r) => r.read<String>('dance_id'))
+                .toList();
+        final danceIds =
+            (await db.customSelect('SELECT id FROM dances ORDER BY id').get())
+                .map((r) => r.read<String>('id'))
+                .toList();
         expect(
-          ftsCount,
-          danceCount,
-          reason: 'every dance must have exactly one dance_fts row',
+          ftsIds,
+          danceIds,
+          reason: 'dance_fts must be an exact 1:1 mirror of dances',
         );
 
         // The one-shot marker is durably recorded.

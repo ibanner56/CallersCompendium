@@ -692,6 +692,100 @@ void main() {
       expect(all.single.links, isEmpty);
     });
 
+    test('purgeDeleted cleans references only for the dances it actually '
+        'deletes (single-snapshot guarantee, #473 review)', () async {
+      // Regression guard for the TOCTOU race fixed by moving the eligibility
+      // SELECT inside the purge transaction and deleting by the exact selected
+      // ids. The observable invariant: a dance that SURVIVES the purge must
+      // never have its dance-only slots tombstoned or its incoming
+      // relatedDance links deleted. We prove it by giving a still-retained
+      // (soft-deleted but not-yet-past-cutoff) dance the identical reference
+      // shapes as the purged one and asserting they are left completely
+      // untouched — cleanup and deletion operate on one consistent set.
+      final programs = ProgramRepository(db);
+      // 'old' is past the cutoff (eligible); 'recent' is within retention.
+      await dances.create(
+        sampleDance(
+          id: 'old',
+          title: 'Old Dance',
+          deletedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await dances.create(
+        sampleDance(
+          id: 'recent',
+          title: 'Recent Dance',
+          deletedAt: DateTime.utc(2026, 3, 20),
+        ),
+      );
+      // A surviving owner links to BOTH — only the link to 'old' should go.
+      await dances.create(
+        sampleDance(
+          id: 'owner',
+          title: 'Owner',
+          links: [
+            DanceLink(
+              id: 'l-old',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'old',
+            ),
+            DanceLink(
+              id: 'l-recent',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'recent',
+            ),
+          ],
+        ),
+      );
+      // Two dance-only slots — only the one referencing 'old' should tombstone.
+      await programs.create(
+        Program(
+          id: 'p1',
+          title: 'Set',
+          slots: [
+            ProgramSlot(id: 's-old', position: 0, danceId: 'old'),
+            ProgramSlot(id: 's-recent', position: 1, danceId: 'recent'),
+          ],
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+
+      final purged = await dances.purgeDeleted(
+        now: DateTime.utc(2026, 4, 1),
+        retention: const Duration(days: 30),
+      );
+
+      // Exactly the eligible dance was removed; the retained one survives.
+      expect(purged, 1);
+      expect(await dances.getById('old', includeDeleted: true), isNull);
+      expect(await dances.getById('recent', includeDeleted: true), isNotNull);
+
+      // The surviving owner kept its link to the retained target and lost only
+      // the link to the purged one.
+      final owner = await dances.getById('owner');
+      expect(owner, isNotNull);
+      expect(owner!.links.map((l) => l.id), ['l-recent']);
+      expect(owner.links.single.targetDanceId, 'recent');
+
+      // Only the purged dance's slot was tombstoned; the retained dance's slot
+      // is completely untouched (still linked, no spurious caption).
+      final program = await programs.getById('p1');
+      expect(program, isNotNull);
+      final byId = {for (final s in program!.slots) s.id: s};
+      expect(byId['s-old']!.danceId, isNull);
+      expect(byId['s-old']!.text, 'Old Dance');
+      expect(byId['s-recent']!.danceId, 'recent');
+      expect(byId['s-recent']!.text, isNull);
+
+      // Loads succeed and the database is referentially clean.
+      expect(await dances.listAll(), isNotEmpty);
+      final fkViolations = await db
+          .customSelect('PRAGMA foreign_key_check')
+          .get();
+      expect(fkViolations, isEmpty);
+    });
+
     test('loading tolerates a legacy orphaned relatedDance link rather than '
         'throwing (#466 belt-and-suspenders)', () async {
       // Simulate a link left corrupt by a build that predates the fix: a
