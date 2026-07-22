@@ -344,19 +344,25 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   // the FAB) and fold the secondary actions into a single overflow menu. Every
   // action keeps its key, tooltip/label and behaviour in both layouts.
 
-  Widget _performButton(DanceDetailData detail) => IconButton(
-    key: const ValueKey('perform-dance'),
-    tooltip: 'Perform this dance',
-    icon: const Icon(Icons.slideshow),
-    onPressed: () => _perform(detail),
-  );
+  Widget _performButton(DanceDetailData detail) {
+    final l10n = AppLocalizations.of(context);
+    return IconButton(
+      key: const ValueKey('perform-dance'),
+      tooltip: l10n.dancePerformTooltip,
+      icon: const Icon(Icons.slideshow),
+      onPressed: () => _perform(detail),
+    );
+  }
 
-  Widget _addToProgramButton(DanceDetailData detail) => IconButton(
-    key: const ValueKey('add-dance-to-program'),
-    tooltip: 'Add to program',
-    icon: const Icon(Icons.playlist_add),
-    onPressed: () => _addToProgram(detail.dance.title),
-  );
+  Widget _addToProgramButton(DanceDetailData detail) {
+    final l10n = AppLocalizations.of(context);
+    return IconButton(
+      key: const ValueKey('add-dance-to-program'),
+      tooltip: l10n.commonAddToProgram,
+      icon: const Icon(Icons.playlist_add),
+      onPressed: () => _addToProgram(detail.dance.title),
+    );
+  }
 
   DanceExportMenu _exportMenu(BuildContext context, DanceDetailData detail) =>
       DanceExportMenu(

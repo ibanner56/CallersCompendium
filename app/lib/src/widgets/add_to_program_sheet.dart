@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
 
@@ -26,6 +27,7 @@ Future<void> showAddToProgramSheet(
   final programs = await repositories.programs.listAll();
   if (!context.mounted) return;
   programs.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   await showModalBottomSheet<void>(
     context: context,
@@ -43,7 +45,7 @@ Future<void> showAddToProgramSheet(
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Add to program',
+                    l10n.commonAddToProgram,
                     style: Theme.of(sheetContext).textTheme.titleMedium,
                   ),
                 ),
@@ -57,6 +59,7 @@ Future<void> showAddToProgramSheet(
                         danceId: danceId,
                         danceTitle: danceTitle,
                         messenger: messenger,
+                        l10n: l10n,
                       )
                     : ListView.builder(
                         itemCount: programs.length,
@@ -68,6 +71,7 @@ Future<void> showAddToProgramSheet(
                           danceId: danceId,
                           danceTitle: danceTitle,
                           messenger: messenger,
+                          l10n: l10n,
                         ),
                       ),
               ),
@@ -89,6 +93,7 @@ Widget _buildProgramPickRow(
   required String danceId,
   required String danceTitle,
   required ScaffoldMessengerState messenger,
+  required AppLocalizations l10n,
 }) {
   final slotCount = program.slots.length;
   final dateLabel = program.eventDate == null
@@ -98,14 +103,16 @@ Widget _buildProgramPickRow(
           DateFormatScope.of(context),
           MaterialLocalizations.of(context),
         );
-  final countLabel = '$slotCount ${slotCount == 1 ? 'dance' : 'dances'}';
+  final countLabel = l10n.collectionDanceCount(slotCount);
   final subtitleParts = [?dateLabel, countLabel];
   return MergeSemantics(
     child: Semantics(
       button: true,
-      label:
-          'Add "$danceTitle" to ${program.title}, '
-          '${subtitleParts.join(', ')}',
+      label: l10n.programsAddDanceToProgramSemantic(
+        danceTitle,
+        program.title,
+        subtitleParts.join(', '),
+      ),
       child: ListTile(
         key: ValueKey('program-pick-${program.id}'),
         title: ExcludeSemantics(child: Text(program.title)),
@@ -117,6 +124,7 @@ Widget _buildProgramPickRow(
           danceId: danceId,
           danceTitle: danceTitle,
           messenger: messenger,
+          l10n: l10n,
         ),
       ),
     ),
@@ -132,6 +140,7 @@ Widget _buildEmptyPrograms(
   required String danceId,
   required String danceTitle,
   required ScaffoldMessengerState messenger,
+  required AppLocalizations l10n,
 }) {
   final theme = Theme.of(context);
   return ListView(
@@ -139,14 +148,14 @@ Widget _buildEmptyPrograms(
     children: [
       const SizedBox(height: 16),
       Text(
-        'No programs yet',
+        l10n.programsEmptyTitle,
         key: const ValueKey('add-to-program-empty'),
         style: theme.textTheme.titleMedium,
         textAlign: TextAlign.center,
       ),
       const SizedBox(height: 8),
       Text(
-        'Create a program to start building a set list.',
+        l10n.programsAddToProgramEmptyBody,
         style: theme.textTheme.bodyMedium,
         textAlign: TextAlign.center,
       ),
@@ -160,9 +169,10 @@ Widget _buildEmptyPrograms(
             danceId: danceId,
             danceTitle: danceTitle,
             messenger: messenger,
+            l10n: l10n,
           ),
           icon: const Icon(Icons.add),
-          label: const Text('Create a new program with this dance'),
+          label: Text(l10n.programsCreateWithDance),
         ),
       ),
     ],
@@ -179,6 +189,7 @@ Future<void> _selectProgram(
   required String danceId,
   required String danceTitle,
   required ScaffoldMessengerState messenger,
+  required AppLocalizations l10n,
 }) async {
   // Re-load fresh so we append onto the latest persisted slot list.
   final fresh = await repositories.programs.getById(program.id);
@@ -200,9 +211,9 @@ Future<void> _selectProgram(
   messenger.showSnackBar(
     SnackBar(
       key: const ValueKey('added-to-program-snackbar'),
-      content: Text('Added "$danceTitle" to ${fresh.title}.'),
+      content: Text(l10n.programsAddedToProgramSnack(danceTitle, fresh.title)),
       action: SnackBarAction(
-        label: 'Undo',
+        label: l10n.commonUndo,
         onPressed: () async {
           final current = await repositories.programs.getById(fresh.id);
           if (current == null) return;
@@ -227,11 +238,12 @@ Future<void> _createProgramWith(
   required String danceId,
   required String danceTitle,
   required ScaffoldMessengerState messenger,
+  required AppLocalizations l10n,
 }) async {
   final now = DateTime.now().toUtc();
   final program = Program(
     id: uuidV4(),
-    title: 'New program',
+    title: l10n.programsNewProgram,
     slots: [ProgramSlot(id: uuidV4(), position: 0, danceId: danceId)],
     createdAt: now,
     updatedAt: now,
@@ -241,7 +253,9 @@ Future<void> _createProgramWith(
   messenger.showSnackBar(
     SnackBar(
       key: const ValueKey('created-program-snackbar'),
-      content: Text('Created "${program.title}" with "$danceTitle".'),
+      content: Text(
+        l10n.programsCreatedProgramSnack(program.title, danceTitle),
+      ),
     ),
   );
 }

@@ -135,17 +135,54 @@ class ProgramRepository {
 
   final CompendiumDatabase _db;
 
-  Future<void> create(Program program) => _upsert(program);
+  /// Persists a new program. Pass [knownVenueIds] on the bulk restore/import
+  /// paths to validate a non-null `venueId` against a preloaded set instead of
+  /// a per-row SELECT (keeps persisting N programs O(1) in venue queries); see
+  /// [_upsert].
+  Future<void> create(Program program, {Set<String>? knownVenueIds}) =>
+      _upsert(program, knownVenueIds: knownVenueIds);
 
-  Future<void> update(Program program) => _upsert(program);
+  /// Updates an existing program. See [create] for [knownVenueIds].
+  Future<void> update(Program program, {Set<String>? knownVenueIds}) =>
+      _upsert(program, knownVenueIds: knownVenueIds);
 
-  Future<void> _upsert(Program program) => _db.transaction(() async {
+  Future<void> _upsert(
+    Program program, {
+    Set<String>? knownVenueIds,
+  }) => _db.transaction(() async {
     assertUtc(program.createdAt, 'program.createdAt');
     assertUtc(program.updatedAt, 'program.updatedAt');
     assertUtcOrNull(program.deletedAt, 'program.deletedAt');
     assertUtcOrNull(program.eventDate, 'program.eventDate');
     for (final slot in program.slots) {
       assertUtcOrNull(slot.performedAt, 'slot.performedAt');
+    }
+    // `venueId` is a soft reference (no DB foreign key — see [Programs.venueId]),
+    // so referential integrity is enforced here at the app layer instead: a
+    // non-null `venueId` must point at an existing venue. For a single write
+    // (the [knownVenueIds] set is null) this is checked with a SELECT *inside*
+    // this transaction, so the reference cannot become dangling between the
+    // check and the write. Bulk callers (ArchiveRestorer, CompendiumArchive
+    // importer) instead pass a set of venue ids preloaded once and always
+    // resolve-or-null a dangling `venueId` *before* calling the repo — so a
+    // bundle referencing an absent venue never reaches the throw below, and
+    // persisting N programs stays O(1) in venue queries. Either way the
+    // integrity guarantee is identical: an unknown `venueId` throws.
+    final venueId = program.venueId;
+    if (venueId != null) {
+      final venueExists = knownVenueIds != null
+          ? knownVenueIds.contains(venueId)
+          : await (_db.select(_db.venues)
+                      ..where((t) => t.id.equals(venueId))
+                      ..limit(1))
+                    .getSingleOrNull() !=
+                null;
+      if (!venueExists) {
+        throw StateError(
+          'cannot save program "${program.id}": venueId "$venueId" '
+          'references a venue that does not exist',
+        );
+      }
     }
     // Auto-stamp performed slots on a status transition to `performed`
     // (issue #356): a program's *status* being performed and its per-slot
@@ -172,6 +209,7 @@ class ProgramRepository {
             title: program.title,
             eventDate: Value(program.eventDate),
             venue: Value(program.venue),
+            venueId: Value(program.venueId),
             band: Value(program.band),
             caller: Value(program.caller),
             dancerLevel: Value(program.dancerLevel),
@@ -296,7 +334,7 @@ class ProgramRepository {
               ..where((t) => t.programId.equals(programId))
               ..orderBy([(t) => OrderingTerm(expression: t.position)]))
             .get();
-    return rows.map(_slotFromRow).toList();
+    return rows.map(_slotFromRow).whereType<ProgramSlot>().toList();
   }
 
   /// Batched sibling of [_slotsFor]: loads the slots for many programs in a
@@ -322,21 +360,36 @@ class ProgramRepository {
             .get();
     final byProgram = <String, List<ProgramSlot>>{};
     for (final row in rows) {
-      (byProgram[row.programId] ??= <ProgramSlot>[]).add(_slotFromRow(row));
+      final slot = _slotFromRow(row);
+      if (slot == null) continue;
+      (byProgram[row.programId] ??= <ProgramSlot>[]).add(slot);
     }
     return byProgram;
   }
 
-  ProgramSlot _slotFromRow(ProgramSlotRow r) => ProgramSlot(
-    id: r.id,
-    position: r.position,
-    danceId: r.danceId,
-    text: r.text_,
-    isAlt: r.isAlt,
-    guestCaller: r.guestCaller,
-    plannedMinutes: r.plannedMinutes,
-    performedAt: asUtcOrNull(r.performedAt),
-  );
+  /// Maps a slot row to a [ProgramSlot], returning `null` for a row the domain
+  /// invariants reject rather than throwing. A pre-fix purge could leave a
+  /// *dance-only* slot as `(danceId, text) = (null, null)` when the SET NULL FK
+  /// fired (#429); tolerating it here means one corrupt row can't fail the whole
+  /// Programs load (`listAll`/`getById`). [DanceRepository.purgeDeleted]
+  /// tombstones such slots going forward, and the one-time repair in
+  /// `CompendiumRepositories.ensureMigrated` clears any left by a prior build.
+  ProgramSlot? _slotFromRow(ProgramSlotRow r) {
+    try {
+      return ProgramSlot(
+        id: r.id,
+        position: r.position,
+        danceId: r.danceId,
+        text: r.text_,
+        isAlt: r.isAlt,
+        guestCaller: r.guestCaller,
+        plannedMinutes: r.plannedMinutes,
+        performedAt: asUtcOrNull(r.performedAt),
+      );
+    } on ArgumentError {
+      return null;
+    }
+  }
 
   /// Maps dance id → the most recent `performedAt` timestamp across every
   /// slot of every non-deleted program, for dances that have actually been
@@ -568,6 +621,7 @@ class ProgramRepository {
     title: row.title,
     eventDate: asUtcOrNull(row.eventDate),
     venue: row.venue,
+    venueId: row.venueId,
     band: row.band,
     caller: row.caller,
     dancerLevel: row.dancerLevel,

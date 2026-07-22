@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/repositories_scope.dart';
+import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
@@ -235,7 +236,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     if (!mounted) return;
     SemanticsService.sendAnnouncement(
       View.of(context),
-      'Slot ${_groupIndex + 1} of ${_groups.length}',
+      AppLocalizations.of(
+        context,
+      ).performSlotPosition(_groupIndex + 1, _groups.length),
       TextDirection.ltr,
     );
   }
@@ -254,23 +257,24 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       _resetSlotTimer();
     });
     final slot = members[_selectedMember[_groupIndex]];
+    final l10n = AppLocalizations.of(context);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      'Showing ${_slotLabel(slot)}',
+      l10n.performShowingSlot(_slotLabel(l10n, slot)),
       TextDirection.ltr,
     );
   }
 
   /// Display label for a slot: the dance title when it resolves, otherwise its
   /// free text (or a neutral fallback).
-  String _slotLabel(ProgramSlot slot) {
+  String _slotLabel(AppLocalizations l10n, ProgramSlot slot) {
     if (slot.danceId != null) {
       final dance = widget.data.dancesById[slot.danceId];
       if (dance != null) return dance.title;
     }
     final text = slot.text?.trim();
     if (text != null && text.isNotEmpty) return text;
-    return 'Untitled slot';
+    return l10n.performUntitledSlot;
   }
 
   List<String> _authorNamesFor(Dance dance) => [
@@ -292,6 +296,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       context: context,
       showDragHandle: true,
       builder: (sheetContext) {
+        final l10n = AppLocalizations.of(sheetContext);
         return SafeArea(
           child: ListView.builder(
             key: const ValueKey('perform-jump-list'),
@@ -301,13 +306,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               final group = _groups[index];
               final members = _membersOf(group);
               final subtitle = members.length > 1
-                  ? '${members.length - 1} alternate'
-                        '${members.length - 1 == 1 ? '' : 's'}'
+                  ? l10n.performAlternatesCount(members.length - 1)
                   : null;
               return ListTile(
                 key: ValueKey('perform-jump-slot-$index'),
                 leading: CircleAvatar(child: Text('${index + 1}')),
-                title: Text(_slotLabel(group.primary)),
+                title: Text(_slotLabel(l10n, group.primary)),
                 subtitle: subtitle == null ? null : Text(subtitle),
                 selected: index == _groupIndex,
                 onTap: () => Navigator.of(sheetContext).pop(index),
@@ -386,15 +390,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final previous = _program;
     _applyProgram(updated, announce: announce);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
         SnackBar(
           content: Text(message),
           action: SnackBarAction(
-            label: 'Undo',
+            label: l10n.commonUndo,
             onPressed: () =>
-                _applyProgram(previous, announce: 'Adjustment undone'),
+                _applyProgram(previous, announce: l10n.performAdjustmentUndone),
           ),
         ),
       );
@@ -432,15 +437,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       ),
     );
     if (edited == null || !mounted) return;
+    final l10n = AppLocalizations.of(context);
     _applyWithUndo(
       edited,
-      message: 'Program adjusted.',
-      announce: 'Program adjusted',
+      message: l10n.performProgramAdjustedSnack,
+      announce: l10n.performProgramAdjustedAnnounce,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final activeDialect = ActiveDialectScope.of(context);
     final isCanonicalDialect = activeDialect == Dialect.canonical;
     final dialect = _canonicalView ? Dialect.canonical : activeDialect;
@@ -456,13 +463,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           appBar: AppBar(
             leading: IconButton(
               key: const ValueKey('perform-program-exit'),
-              tooltip: 'Exit performance view',
+              tooltip: l10n.performExitTooltip,
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text(widget.program.title),
           ),
-          body: const Center(child: Text('This program has no slots.')),
+          body: Center(child: Text(l10n.performNoSlots)),
         ),
       );
     }
@@ -477,14 +484,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final slot = members[memberIndex];
 
     return ColourDanceTheme(
-      title: _slotLabel(slot),
+      title: _slotLabel(l10n, slot),
       child: PerformStageTheme(
         enabled: _stageMode,
         child: Scaffold(
           appBar: AppBar(
             leading: IconButton(
               key: const ValueKey('perform-program-exit'),
-              tooltip: 'Exit performance view',
+              tooltip: l10n.performExitTooltip,
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.of(context).pop(),
             ),
@@ -493,26 +500,26 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
               const DialectQuickSwitch(),
               IconButton(
                 key: const ValueKey('perform-adjust'),
-                tooltip: 'Adjust program',
+                tooltip: l10n.performAdjustProgram,
                 icon: const Icon(Icons.tune),
                 onPressed: _openAdjustSheet,
               ),
               IconButton(
                 key: const ValueKey('perform-jump'),
-                tooltip: 'Jump to slot',
+                tooltip: l10n.performJumpToSlot,
                 icon: const Icon(Icons.list),
                 onPressed: _openJumpSheet,
               ),
               IconButton(
                 key: const ValueKey('perform-metronome'),
-                tooltip: 'Tap tempo',
+                tooltip: l10n.performTapTempo,
                 icon: const Icon(Icons.av_timer),
                 onPressed: _openMetronomeSheet,
               ),
               if (hasAlternates)
                 IconButton(
                   key: const ValueKey('perform-alt-swap'),
-                  tooltip: 'Show alternate',
+                  tooltip: l10n.performShowAlternate,
                   icon: const Icon(Icons.swap_horiz),
                   onPressed: _swapAlternate,
                 ),
@@ -596,7 +603,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 _buildPauseButton(),
                 IconButton(
                   key: const ValueKey('perform-prev'),
-                  tooltip: 'Previous slot',
+                  tooltip: l10n.performPreviousSlot,
                   icon: const Icon(Icons.chevron_left),
                   onPressed: _hasPrev ? _goPrev : null,
                 ),
@@ -614,7 +621,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Slot ${_groupIndex + 1} of ${_groups.length}',
+                              l10n.performSlotPosition(
+                                _groupIndex + 1,
+                                _groups.length,
+                              ),
                               key: const ValueKey('perform-position'),
                               style: textTheme.titleMedium,
                             ),
@@ -628,7 +638,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 ),
                 IconButton(
                   key: const ValueKey('perform-next'),
-                  tooltip: 'Next slot',
+                  tooltip: l10n.performNextSlot,
                   icon: const Icon(Icons.chevron_right),
                   onPressed: _hasNext ? _goNext : null,
                 ),
@@ -644,7 +654,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// role, name, tap action, and toggled (paused) state — same pattern as the
   /// stage toggle — so a caller who gets interrupted can freeze the clock.
   Widget _buildPauseButton() {
-    final tooltip = _paused ? 'Resume timers' : 'Pause timers';
+    final l10n = AppLocalizations.of(context);
+    final tooltip = _paused
+        ? l10n.performResumeTimers
+        : l10n.performPauseTimers;
     return MergeSemantics(
       child: Semantics(
         toggled: _paused,
@@ -673,6 +686,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// focused, wrapping [ExcludeSemantics] visuals. A per-second live region
   /// would spam AT, so the value is read at focus time instead of on every tick.
   Widget _buildTimingLine(ProgramSlot slot, TextTheme textTheme) {
+    final l10n = AppLocalizations.of(context);
     final planned = slot.plannedMinutes;
     final style = textTheme.bodyMedium;
 
@@ -682,20 +696,17 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         final slotElapsed = _slotElapsedFrom(elapsed);
         final isOver = planned != null && slotElapsed > planned * 60;
 
-        final label = StringBuffer(
-          'Program time ${_formatDuration(elapsed)}, '
-          'slot time ${_formatDuration(slotElapsed)}',
+        final label = l10n.performTimingSemantic(
+          _formatDuration(elapsed),
+          _formatDuration(slotElapsed),
+          planned != null ? 'yes' : 'no',
+          planned ?? 0,
+          isOver ? 'yes' : 'no',
+          _paused ? 'yes' : 'no',
         );
-        if (planned != null) {
-          label.write(
-            ', planned $planned ${planned == 1 ? 'minute' : 'minutes'}',
-          );
-          if (isOver) label.write(', over planned');
-        }
-        if (_paused) label.write(', paused');
 
         return Semantics(
-          label: label.toString(),
+          label: label,
           child: ExcludeSemantics(
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -716,7 +727,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                 if (planned != null) ...[
                   Text('  ·  ', style: style),
                   Text(
-                    'planned $planned min',
+                    l10n.performPlannedMin(planned),
                     key: const ValueKey('perform-planned'),
                     style: style,
                   ),
@@ -724,7 +735,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                     const SizedBox(width: 4),
                     const Icon(Icons.timelapse, size: 16),
                     Text(
-                      ' over',
+                      l10n.performOverSuffix,
                       key: const ValueKey('perform-over'),
                       style: style,
                     ),
@@ -756,7 +767,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     // Free-text-only slot (or an unresolved dance id): a simple large-print
     // text card with no figures.
     return PerformTextCard(
-      text: _slotLabel(slot),
+      text: _slotLabel(AppLocalizations.of(context), slot),
       textScale: _textScale,
       autoSize: _autoSize,
       fitScaleCache: _fitScaleCache,

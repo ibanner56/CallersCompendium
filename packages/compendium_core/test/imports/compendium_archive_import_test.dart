@@ -89,6 +89,7 @@ void main() {
   late DanceRepository dances;
   late ChoreographerRepository choreographers;
   late ProgramRepository programs;
+  late VenueRepository venues;
   late ImportPipeline pipeline;
   late CompendiumArchiveImporter importer;
 
@@ -97,8 +98,9 @@ void main() {
     dances = DanceRepository(db, contraTaxonomy);
     choreographers = ChoreographerRepository(db);
     programs = ProgramRepository(db);
+    venues = VenueRepository(db);
     pipeline = ImportPipeline(dances, choreographers);
-    importer = CompendiumArchiveImporter(pipeline, programs);
+    importer = CompendiumArchiveImporter(pipeline, programs, venues);
   });
 
   tearDown(() => db.close());
@@ -688,6 +690,349 @@ void main() {
         ),
         isTrue,
       );
+    });
+  });
+
+  group('venue wiring (community import path)', () {
+    CompendiumArchive bundleWithVenue({
+      String? programVenueId,
+      List<Venue> venues = const [],
+    }) {
+      final d1 = _dance('orig-d1', 'Simplicity Swing');
+      final program = Program(
+        id: 'orig-p1',
+        title: 'Spring Fling',
+        venueId: programVenueId,
+        status: ProgramStatus.draft,
+        slots: [ProgramSlot(id: 'orig-sl1', position: 0, danceId: 'orig-d1')],
+        createdAt: DateTime.utc(2026, 4, 1),
+        updatedAt: DateTime.utc(2026, 4, 1),
+      );
+      return CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [d1],
+        programs: [program],
+        venues: venues,
+      );
+    }
+
+    Future<CompendiumArchiveImportResult> run(CompendiumArchive archive) =>
+        importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('new'),
+          newSlotId: sequentialIds('slot'),
+        );
+
+    test('persists bundled venues and remaps the program venueId', () async {
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [
+          Venue(id: 'orig-v1', name: 'Guiding Star Grange', city: 'Greenfield'),
+          Venue(id: 'orig-v2', name: 'Town Hall'),
+        ],
+      );
+      final result = await run(archive);
+
+      final allVenues = await venues.listAll();
+      expect(
+        allVenues.map((v) => v.name),
+        containsAll(<String>['Guiding Star Grange', 'Town Hall']),
+      );
+      expect(result.insertedVenueCount, 2);
+
+      final program = (await programs.listAll()).single;
+      // The link is remapped to the newly-inserted venue, never the untrusted
+      // bundle id (which could otherwise clobber an existing venue).
+      expect(program.venueId, isNotNull);
+      expect(program.venueId, isNot('orig-v1'));
+      final linked = await venues.getById(program.venueId!);
+      expect(linked, isNotNull);
+      expect(linked!.name, 'Guiding Star Grange');
+      expect(linked.city, 'Greenfield');
+    });
+
+    test(
+      'does not overwrite an existing venue that shares the bundle id',
+      () async {
+        // A venue the receiver already holds under the same id the (untrusted)
+        // bundle reuses must survive untouched — the import inserts a fresh copy.
+        await venues.upsert(
+          Venue(id: 'orig-v1', name: 'Receiver Hall', city: 'Local'),
+        );
+        final archive = bundleWithVenue(
+          programVenueId: 'orig-v1',
+          venues: [Venue(id: 'orig-v1', name: 'Bundle Grange')],
+        );
+        await run(archive);
+
+        final existing = await venues.getById('orig-v1');
+        expect(existing?.name, 'Receiver Hall');
+        // A distinct new venue was inserted for the bundle's record.
+        expect(
+          (await venues.listAll()).map((v) => v.name),
+          containsAll(<String>['Receiver Hall', 'Bundle Grange']),
+        );
+      },
+    );
+
+    test(
+      'nulls a program venueId absent from the bundle (dangling ref)',
+      () async {
+        final archive = bundleWithVenue(
+          programVenueId: 'orig-missing',
+          venues: [Venue(id: 'orig-v2', name: 'Town Hall')],
+        );
+        final result = await run(archive);
+
+        final program = (await programs.listAll()).single;
+        // OWASP: an unresolvable reference is nulled, never persisted dangling.
+        expect(program.venueId, isNull);
+        // The drop is surfaced as a non-fatal issue, not silently swallowed.
+        expect(
+          result.programIssues.map((i) => i.code),
+          contains('archive_program_unresolved_venue'),
+        );
+        // The unrelated bundled venue still landed.
+        expect((await venues.listAll()).map((v) => v.name), ['Town Hall']);
+      },
+    );
+
+    test('a legacy bundle with no venues imports cleanly', () async {
+      final result = await run(bundleWithVenue());
+
+      expect(await venues.listAll(), isEmpty);
+      expect(result.insertedVenueCount, 0);
+      expect((await programs.listAll()).single.venueId, isNull);
+    });
+
+    test('undo removes the venues the import inserted', () async {
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [Venue(id: 'orig-v1', name: 'Guiding Star Grange')],
+      );
+      final result = await run(archive);
+      expect(await venues.listAll(), hasLength(1));
+
+      await importer.undo(result);
+      expect(await venues.listAll(), isEmpty);
+      expect(await programs.listAll(), isEmpty);
+      // Idempotent — a second undo is a no-op.
+      await importer.undo(result);
+      expect(await venues.listAll(), isEmpty);
+    });
+
+    test('undo retains an imported venue a surviving program references', () async {
+      // After a successful import a user program can link to an imported venue.
+      // Undo must NOT hard-delete that venue out from under the survivor (which
+      // would orphan its venueId); the guarded delete retains it.
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [Venue(id: 'orig-v1', name: 'Guiding Star Grange')],
+      );
+      final result = await run(archive);
+      final importedVenueId = (await venues.listAll()).single.id;
+
+      await programs.create(
+        Program(
+          id: 'user-p1',
+          title: 'Local Dance',
+          venueId: importedVenueId,
+          status: ProgramStatus.draft,
+          slots: const [],
+          createdAt: DateTime.utc(2026, 5, 1),
+          updatedAt: DateTime.utc(2026, 5, 1),
+        ),
+      );
+
+      await importer.undo(result);
+
+      // The imported program is reverted, but the venue survives because the
+      // user program still references it — no dangling venueId.
+      final survivor = await programs.getById('user-p1');
+      expect(survivor, isNotNull);
+      expect(survivor!.venueId, importedVenueId);
+      expect(await venues.getById(importedVenueId), isNotNull);
+    });
+
+    test('collapses duplicate venue ids within one bundle (no orphan)', () async {
+      // Untrusted input: two venue entries sharing the same original id must
+      // collapse to a single minted row (last-seen content wins), never leaving
+      // an orphaned extra venue.
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [
+          Venue(id: 'orig-v1', name: 'First Name'),
+          Venue(id: 'orig-v1', name: 'Second Name'),
+        ],
+      );
+      final result = await run(archive);
+
+      final all = await venues.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.name, 'Second Name');
+      expect(result.insertedVenueCount, 1);
+      expect((await programs.listAll()).single.venueId, all.single.id);
+    });
+
+    test('re-import currently duplicates venues (accepted, tracked #456)', () async {
+      // Cross-import venue dedupe is deliberately deferred (issue #456): venues
+      // carry no provenance key, so a fresh venue is minted on each import while
+      // the program dedupes by provenance and is repointed to the newest venue.
+      // This pins the accepted PR A additive behavior; it will change when #456
+      // adds a dedupe/provenance key.
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [Venue(id: 'orig-v1', name: 'Guiding Star Grange')],
+      );
+      await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('first'),
+        newSlotId: sequentialIds('firstslot'),
+      );
+      final result2 = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now.add(const Duration(days: 1)),
+        newId: sequentialIds('second'),
+        newSlotId: sequentialIds('secondslot'),
+      );
+
+      // The program deduped by provenance (updated in place, not re-inserted)...
+      final programsAfter = await programs.listAll();
+      expect(programsAfter, hasLength(1));
+      expect(result2.insertedProgramCount, 0);
+      expect(result2.updatedProgramCount, 1);
+      // ...but venues accumulate — the known cross-import limitation (#456).
+      final venuesAfter = await venues.listAll();
+      expect(venuesAfter, hasLength(2));
+      // The surviving program links to one of the (most-recently minted) venues.
+      expect(programsAfter.single.venueId, isNotNull);
+      expect(
+        venuesAfter.map((v) => v.id),
+        contains(programsAfter.single.venueId),
+      );
+    });
+
+    test('validates venueIds against the minted set (no per-program venue '
+        'SELECT)', () async {
+      final counter = VenueSelectCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final countingPrograms = ProgramRepository(countingDb);
+      final countingVenues = VenueRepository(countingDb);
+      final countingImporter = CompendiumArchiveImporter(
+        ImportPipeline(
+          DanceRepository(countingDb, contraTaxonomy),
+          ChoreographerRepository(countingDb),
+        ),
+        countingPrograms,
+        countingVenues,
+      );
+
+      Program p(String id, String venueId) => Program(
+        id: id,
+        title: 'P $id',
+        venueId: venueId,
+        status: ProgramStatus.draft,
+        slots: [ProgramSlot(id: '$id-s0', position: 0, danceId: 'orig-d1')],
+        createdAt: DateTime.utc(2026, 4, 1),
+        updatedAt: DateTime.utc(2026, 4, 1),
+      );
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [_dance('orig-d1', 'Simplicity Swing')],
+        programs: [
+          p('orig-p1', 'orig-v1'),
+          p('orig-p2', 'orig-v2'),
+          p('orig-p3', 'orig-v1'),
+        ],
+        venues: [
+          Venue(id: 'orig-v1', name: 'Grange A'),
+          Venue(id: 'orig-v2', name: 'Grange B'),
+        ],
+      );
+
+      counter.reset();
+      await countingImporter.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('slot'),
+      );
+
+      // Built programs only reference freshly-minted venues, so the write phase
+      // validates each `venueId` against the in-memory minted set — issuing no
+      // per-program venue existence SELECT.
+      expect(counter.count, 0);
+      expect(await countingPrograms.listAll(), hasLength(3));
+    });
+
+    test(
+      'preserves a user-linked venueId when re-importing a pre-venue archive',
+      () async {
+        // A program first imported from a pre-venue (venue-less) bundle: its
+        // requiredSchemaVersion is the base version, so the importer treats it as
+        // unable to express `venueId`.
+        final preVenue = bundleWithVenue();
+        await run(preVenue);
+        final imported = (await programs.listAll()).single;
+        expect(imported.venueId, isNull);
+
+        // The user later links that program to a venue locally.
+        await venues.upsert(Venue(id: 'user-v1', name: 'User Hall'));
+        await programs.update(imported.copyWith(venueId: 'user-v1'));
+
+        // Re-importing the SAME pre-venue bundle must NOT clobber that link: the
+        // source cannot express `venueId`, so the rebuilt program's null is
+        // "unknown", not "explicitly cleared" — mirroring the `.USR` re-import.
+        await importer.import(
+          encodeArchive(preVenue),
+          preVenue,
+          now: now.add(const Duration(days: 1)),
+          newId: sequentialIds('second'),
+          newSlotId: sequentialIds('secondslot'),
+        );
+
+        final after = (await programs.listAll()).single;
+        expect(after.id, imported.id, reason: 'deduped in place, not inserted');
+        expect(after.venueId, 'user-v1', reason: 'app-local link preserved');
+        expect(await venues.getById('user-v1'), isNotNull);
+      },
+    );
+
+    test('a venue-aware re-import honors an explicit cleared venueId', () async {
+      // A program imported from a venue-aware bundle, linked to a venue.
+      final withVenue = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [Venue(id: 'orig-v1', name: 'Guiding Star Grange')],
+      );
+      await run(withVenue);
+      final imported = (await programs.listAll()).single;
+      expect(imported.venueId, isNotNull);
+
+      // Re-import a bundle that is still venue-aware (it carries venue records)
+      // but whose SAME program now has no venue link. Because the source *can*
+      // express venue semantics, the explicit absence overwrites the match —
+      // the link is cleared, unlike the pre-venue case above.
+      final cleared = bundleWithVenue(
+        venues: [Venue(id: 'orig-v2', name: 'Town Hall')],
+      );
+      await importer.import(
+        encodeArchive(cleared),
+        cleared,
+        now: now.add(const Duration(days: 1)),
+        newId: sequentialIds('second'),
+        newSlotId: sequentialIds('secondslot'),
+      );
+
+      final after = (await programs.listAll()).single;
+      expect(after.id, imported.id, reason: 'deduped in place, not inserted');
+      expect(after.venueId, isNull, reason: 'v2 explicit clear honored');
     });
   });
 }

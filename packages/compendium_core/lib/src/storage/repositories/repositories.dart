@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
+import '../../model/enums.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
 import 'choreographer_repository.dart';
@@ -11,6 +12,7 @@ import 'published_source_repository.dart';
 import 'settings_repository.dart';
 import 'snapshot_repository.dart';
 import 'tag_repository.dart';
+import 'venue_repository.dart';
 
 /// Bundles every repository over a single [CompendiumDatabase], so app code
 /// wires up storage once (`CompendiumRepositories(db, taxonomy)`) instead of
@@ -26,6 +28,7 @@ class CompendiumRepositories {
        customFieldDefs = CustomFieldDefRepository(db),
        programs = ProgramRepository(db),
        publishedSources = PublishedSourceRepository(db),
+       venues = VenueRepository(db),
        settings = settings ?? SettingsRepository(db),
        snapshots = SnapshotRepository(db);
 
@@ -36,6 +39,7 @@ class CompendiumRepositories {
   final CustomFieldDefRepository customFieldDefs;
   final ProgramRepository programs;
   final PublishedSourceRepository publishedSources;
+  final VenueRepository venues;
   final SettingsRepository settings;
   final SnapshotRepository snapshots;
 
@@ -73,6 +77,7 @@ class CompendiumRepositories {
           derivedRebuildRequiredKey,
         ]);
       }
+      await _repairPurgeCorruptionIfNeeded();
     } catch (_) {
       // Don't cache a failed migration: clear the memo so a subsequent call
       // retries. The durable marker is still set (only deleted after a
@@ -88,4 +93,40 @@ class CompendiumRepositories {
   @protected
   @visibleForTesting
   Future<void> runDerivedRebuild() => dances.rebuildAllDerived();
+
+  /// One-time repair for databases corrupted by a pre-fix hard purge (#429,
+  /// #466). A `program_slots` row nulled to `(danceId, text) = (null, null)`
+  /// carries no dance and no caption, so it is removed; a `relatedDance`
+  /// `dance_links` row whose `targetDanceId` was SET NULL no longer points at
+  /// anything, so it too is removed. Both cases otherwise throw on load and
+  /// take down the whole Programs / Collection listing.
+  ///
+  /// Guarded by [purgeCorruptionRepairDoneKey] so it runs at most once per
+  /// database (idempotent — a healthy database simply deletes nothing and marks
+  /// the sweep done). Runs in a single transaction with the marker write so an
+  /// interrupted repair is retried on the next open. Deliberately schema-version
+  /// agnostic: the corruption can exist in databases already at the current
+  /// version, which a version-gated migration would miss.
+  Future<void> _repairPurgeCorruptionIfNeeded() async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ?',
+          variables: [Variable.withString(purgeCorruptionRepairDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return;
+    await db.transaction(() async {
+      await db.customStatement(
+        'DELETE FROM program_slots WHERE dance_id IS NULL AND text IS NULL',
+      );
+      await db.customStatement(
+        'DELETE FROM dance_links WHERE kind = ? AND target_dance_id IS NULL',
+        [LinkKind.relatedDance.name],
+      );
+      await db.customStatement(
+        'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+        [purgeCorruptionRepairDoneKey, 'true'],
+      );
+    });
+  }
 }

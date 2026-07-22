@@ -133,7 +133,7 @@ List<pw.Widget> _figureWidgets(
           children: [
             pw.Expanded(
               child: pw.Text(
-                '${renderer.render(sf.figure, dialect)}$marker',
+                '${renderer.renderSummary(sf.figure, dialect)}$marker',
                 style: const pw.TextStyle(fontSize: 12),
               ),
             ),

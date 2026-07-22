@@ -184,6 +184,7 @@ class ArchiveIntakeService {
       final importer = CompendiumArchiveImporter(
         pipeline,
         repositories.programs,
+        repositories.venues,
       );
       final result = await importer.import(
         json,

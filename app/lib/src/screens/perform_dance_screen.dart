@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
+import '../../l10n/app_localizations.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
@@ -114,6 +115,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final activeDialect = ActiveDialectScope.of(context);
     final isCanonicalDialect = activeDialect == Dialect.canonical;
     final dialect = _canonicalView ? Dialect.canonical : activeDialect;
@@ -128,16 +130,16 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
           appBar: AppBar(
             leading: IconButton(
               key: const ValueKey('exit-perform'),
-              tooltip: 'Exit performance view',
+              tooltip: l10n.performExitTooltip,
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.of(context).pop(),
             ),
-            title: const Text('Perform'),
+            title: Text(l10n.performTitle),
             actions: [
               const DialectQuickSwitch(),
               IconButton(
                 key: const ValueKey('perform-metronome'),
-                tooltip: 'Tap tempo',
+                tooltip: l10n.performTapTempo,
                 icon: const Icon(Icons.av_timer),
                 onPressed: _openMetronomeSheet,
               ),

@@ -183,8 +183,22 @@ void main() {
     );
     await _toReview(tester);
 
-    // The reimport option is offered and selected by default.
+    // The reimport option is offered but is NOT selected by default (issue
+    // #446): the row defaults to skip/keep-local so a re-import never silently
+    // overwrites local edits. The user must deliberately choose to overwrite.
     expect(find.byKey(const ValueKey('import-row-0-reimport')), findsOneWidget);
+    expect(find.text('0 of 1 will be imported'), findsOneWidget);
+    // No overwrite is queued yet, so the pre-commit warning is absent.
+    expect(
+      find.byKey(const ValueKey('import-overwrite-warning')),
+      findsNothing,
+    );
+
+    // Deliberately choose to re-import (overwrite) the matched dance.
+    await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+    await tester.pumpAndSettle();
+    expect(find.text('1 of 1 will be imported'), findsOneWidget);
+
     await tester.tap(find.byKey(const ValueKey('import-commit-button')));
     await tester.pumpAndSettle();
 
@@ -193,6 +207,200 @@ void main() {
     expect(all.single.id, 'existing');
     expect(all.single.title, 'Refreshed Title');
   });
+
+  testWidgets(
+    'reimport row defaults to keep-local (skip) and shows an accessible '
+    'overwrite warning only once overwrite is chosen',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          'existing',
+          'Old Title',
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            externalId: 'ext1',
+            importedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ),
+      );
+
+      await _pump(
+        tester,
+        repos,
+        payload: _archivePayload([
+          _dance(
+            'incoming',
+            'Refreshed Title',
+            provenance: Provenance(
+              source: ProvenanceSource.json,
+              externalId: 'ext1',
+              importedAt: DateTime.utc(2026, 6, 1),
+            ),
+          ),
+        ]),
+      );
+      await _toReview(tester);
+
+      // Default is skip: nothing importable, commit disabled, no warning.
+      expect(find.text('0 of 1 will be imported'), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey('import-commit-button')),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        find.byKey(const ValueKey('import-overwrite-warning')),
+        findsNothing,
+      );
+
+      // Choosing to overwrite surfaces the accessible count banner.
+      await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('import-overwrite-warning')),
+        findsOneWidget,
+      );
+      expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
+      // The count is announced to assistive tech as a warning (not color-only).
+      expect(
+        find.bySemanticsLabel('Warning: 1 existing dance will be overwritten'),
+        findsOneWidget,
+      );
+
+      // Switching back to skip removes the warning again.
+      await tester.tap(find.byKey(const ValueKey('import-row-0-skip')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('import-overwrite-warning')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'the overwrite warning aggregates and pluralizes across reimport rows',
+    (tester) async {
+      final repos = openTestRepositories();
+      for (final ext in ['ext1', 'ext2']) {
+        await repos.dances.create(
+          _dance(
+            'existing-$ext',
+            'Old $ext',
+            provenance: Provenance(
+              source: ProvenanceSource.json,
+              externalId: ext,
+              importedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ),
+        );
+      }
+
+      await _pump(
+        tester,
+        repos,
+        payload: _archivePayload([
+          for (final ext in ['ext1', 'ext2'])
+            _dance(
+              'incoming-$ext',
+              'Fresh $ext',
+              provenance: Provenance(
+                source: ProvenanceSource.json,
+                externalId: ext,
+                importedAt: DateTime.utc(2026, 6, 1),
+              ),
+            ),
+        ]),
+      );
+      await _toReview(tester);
+
+      // Both rows default to skip (keep-local): no overwrites queued.
+      expect(
+        find.byKey(const ValueKey('import-overwrite-warning')),
+        findsNothing,
+      );
+
+      // Choose overwrite on the first row → singular banner.
+      await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+      await tester.pumpAndSettle();
+      expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
+
+      // Choose overwrite on the second row → aggregated, pluralized banner.
+      await tester.tap(find.byKey(const ValueKey('import-row-1-reimport')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('2 existing dances will be overwritten'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('Warning: 2 existing dances will be overwritten'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'the overwrite warning counts distinct target dances, not re-import rows',
+    (tester) async {
+      final repos = openTestRepositories();
+      // A single existing local dance.
+      await repos.dances.create(
+        _dance(
+          'existing',
+          'Old Title',
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            externalId: 'ext1',
+            importedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ),
+      );
+
+      // Two incoming records that share the same provenance key, so both
+      // dedupe onto the *same* local dance ('existing').
+      await _pump(
+        tester,
+        repos,
+        payload: _archivePayload([
+          for (final id in ['incoming-a', 'incoming-b'])
+            _dance(
+              id,
+              'Fresh $id',
+              provenance: Provenance(
+                source: ProvenanceSource.json,
+                externalId: 'ext1',
+                importedAt: DateTime.utc(2026, 6, 1),
+              ),
+            ),
+        ]),
+      );
+      await _toReview(tester);
+
+      // Both rows are re-import verdicts against the one existing dance.
+      expect(
+        find.byKey(const ValueKey('import-row-0-reimport')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('import-row-1-reimport')),
+        findsOneWidget,
+      );
+
+      // Overwrite both rows: the banner counts the single distinct target once,
+      // not two rows.
+      await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-row-1-reimport')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
+      expect(find.text('2 existing dances will be overwritten'), findsNothing);
+    },
+  );
 
   testWidgets('ambiguous row defaults to skip and is not committed silently', (
     tester,

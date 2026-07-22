@@ -13,6 +13,7 @@ import '../model/provenance.dart';
 import '../model/published_source.dart';
 import '../model/source_citation.dart';
 import '../model/tag.dart';
+import '../model/venue.dart';
 import 'compendium_archive.dart';
 import 'figure_codec.dart';
 
@@ -41,7 +42,12 @@ String encodeArchive(CompendiumArchive archive) =>
 
 /// The canonical JSON object for [archive] (entities sorted by id).
 Map<String, Object?> archiveToJson(CompendiumArchive archive) => {
-  'schemaVersion': archive.schemaVersion,
+  // Stamp at least the version the content requires (v2 when venue data is
+  // present) so an older reader warns rather than silently dropping venues,
+  // while honoring an explicitly higher requested version.
+  'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
+      ? archive.schemaVersion
+      : requiredSchemaVersion(archive),
   'exportedAt': _iso(archive.exportedAt),
   'choreographers': [
     for (final c in _sortedById(archive.choreographers, (c) => c.id))
@@ -65,6 +71,13 @@ Map<String, Object?> archiveToJson(CompendiumArchive archive) => {
     for (final p in _sortedById(archive.programs, (p) => p.id))
       _programToJson(p),
   ],
+  // Omit the `venues` array entirely when empty so archives produced before
+  // the venue entity (and any that simply have no venues) stay byte-identical
+  // to the pre-v14 format and older readers are unaffected.
+  if (archive.venues.isNotEmpty)
+    'venues': [
+      for (final v in _sortedById(archive.venues, (v) => v.id)) _venueToJson(v),
+    ],
 };
 
 List<T> _sortedById<T>(List<T> items, String Function(T) id) =>
@@ -176,6 +189,7 @@ Map<String, Object?> _programToJson(Program p) => {
   'title': p.title,
   if (p.eventDate != null) 'eventDate': _iso(p.eventDate!),
   if (p.venue != null) 'venue': p.venue,
+  if (p.venueId != null) 'venueId': p.venueId,
   if (p.band != null) 'band': p.band,
   if (p.caller != null) 'caller': p.caller,
   if (p.dancerLevel != null) 'dancerLevel': p.dancerLevel,
@@ -197,6 +211,34 @@ Map<String, Object?> _programSlotToJson(ProgramSlot s) => {
   if (s.guestCaller != null) 'guestCaller': s.guestCaller,
   if (s.plannedMinutes != null) 'plannedMinutes': s.plannedMinutes,
   if (s.performedAt != null) 'performedAt': _iso(s.performedAt!),
+};
+
+/// Emits only the venue's non-null fields (plus the always-present id/name), so
+/// the serialized shape stays compact and the round-trip is stable (the model's
+/// `_normalize` maps empty/whitespace to null on the way back in).
+Map<String, Object?> _venueToJson(Venue v) => {
+  'id': v.id,
+  'name': v.name,
+  if (v.address1 != null) 'address1': v.address1,
+  if (v.address2 != null) 'address2': v.address2,
+  if (v.city != null) 'city': v.city,
+  if (v.stateProv != null) 'stateProv': v.stateProv,
+  if (v.country != null) 'country': v.country,
+  if (v.postalCode != null) 'postalCode': v.postalCode,
+  if (v.plus4 != null) 'plus4': v.plus4,
+  if (v.website != null) 'website': v.website,
+  if (v.sponsor != null) 'sponsor': v.sponsor,
+  if (v.eventName != null) 'eventName': v.eventName,
+  if (v.time != null) 'time': v.time,
+  if (v.genericSchedule != null) 'genericSchedule': v.genericSchedule,
+  if (v.price != null) 'price': v.price,
+  if (v.notes != null) 'notes': v.notes,
+  if (v.contact1Name != null) 'contact1Name': v.contact1Name,
+  if (v.contact1Phone != null) 'contact1Phone': v.contact1Phone,
+  if (v.contact1Email != null) 'contact1Email': v.contact1Email,
+  if (v.contact2Name != null) 'contact2Name': v.contact2Name,
+  if (v.contact2Phone != null) 'contact2Phone': v.contact2Phone,
+  if (v.contact2Email != null) 'contact2Email': v.contact2Email,
 };
 
 // ---------------------------------------------------------------------------
@@ -299,6 +341,10 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     _programFromJson,
     errors,
   );
+  // Tolerate a missing/absent `venues` array (older bundles predate the venue
+  // entity): `_decodeList` returns an empty list for a null field and records
+  // a structured error for a present-but-malformed one, never throwing.
+  final venues = _decodeList(root['venues'], 'venue', _venueFromJson, errors);
 
   return ArchiveReadResult(
     archive: CompendiumArchive(
@@ -310,6 +356,7 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
       publishedSources: publishedSources,
       customFields: customFields,
       tags: tags,
+      venues: venues,
     ),
     errors: errors,
     warnings: warnings,
@@ -538,6 +585,7 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   title: _str(m, 'title'),
   eventDate: _dtOrNull(m, 'eventDate'),
   venue: _strOrNull(m, 'venue'),
+  venueId: _strOrNull(m, 'venueId'),
   band: _strOrNull(m, 'band'),
   caller: _strOrNull(m, 'caller'),
   dancerLevel: _strOrNull(m, 'dancerLevel'),
@@ -574,6 +622,45 @@ List<ProgramSlot> _programSlotsFromJson(Object? raw) {
         );
       }(),
   ];
+}
+
+/// Decodes an untrusted venue object from a shared/imported bundle. Every field
+/// is type-checked (`_str`/`_strOrNull` throw a [FormatException] for a
+/// non-string value); a missing/extra field is tolerated (nullable fields
+/// default to null, unknown keys are ignored). The blank-name case is rejected
+/// *here* with a [FormatException] — which [_decodeList] records as a per-entity
+/// [ArchiveError] and skips — rather than letting the [Venue] constructor's
+/// `ArgumentError` (a Dart `Error`, not an `Exception`) escape [_decodeList] and
+/// abort the whole import.
+Venue _venueFromJson(Map<String, Object?> m) {
+  final name = _str(m, 'name');
+  if (name.trim().isEmpty) {
+    throw const FormatException('venue "name" must be non-empty');
+  }
+  return Venue(
+    id: _str(m, 'id'),
+    name: name,
+    address1: _strOrNull(m, 'address1'),
+    address2: _strOrNull(m, 'address2'),
+    city: _strOrNull(m, 'city'),
+    stateProv: _strOrNull(m, 'stateProv'),
+    country: _strOrNull(m, 'country'),
+    postalCode: _strOrNull(m, 'postalCode'),
+    plus4: _strOrNull(m, 'plus4'),
+    website: _strOrNull(m, 'website'),
+    sponsor: _strOrNull(m, 'sponsor'),
+    eventName: _strOrNull(m, 'eventName'),
+    time: _strOrNull(m, 'time'),
+    genericSchedule: _strOrNull(m, 'genericSchedule'),
+    price: _strOrNull(m, 'price'),
+    notes: _strOrNull(m, 'notes'),
+    contact1Name: _strOrNull(m, 'contact1Name'),
+    contact1Phone: _strOrNull(m, 'contact1Phone'),
+    contact1Email: _strOrNull(m, 'contact1Email'),
+    contact2Name: _strOrNull(m, 'contact2Name'),
+    contact2Phone: _strOrNull(m, 'contact2Phone'),
+    contact2Email: _strOrNull(m, 'contact2Email'),
+  );
 }
 
 // ---------------------------------------------------------------------------

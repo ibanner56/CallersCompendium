@@ -278,12 +278,12 @@ class DanceListTile extends StatelessWidget {
             ),
           ),
         if (onAddToProgram != null)
-          const PopupMenuItem<_DanceRowAction>(
-            key: ValueKey('dance-action-add-to-program'),
+          PopupMenuItem<_DanceRowAction>(
+            key: const ValueKey('dance-action-add-to-program'),
             value: _DanceRowAction.addToProgram,
             child: ListTile(
-              leading: Icon(Icons.playlist_add),
-              title: Text('Add to program'),
+              leading: const Icon(Icons.playlist_add),
+              title: Text(l10n.commonAddToProgram),
               contentPadding: EdgeInsets.zero,
             ),
           ),

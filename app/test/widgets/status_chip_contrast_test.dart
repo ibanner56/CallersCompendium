@@ -7,6 +7,7 @@ import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/theme/wcag.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
+import '../support/l10n_harness.dart';
 
 /// The status tokens shared by [StatusChip] (both program and dance status),
 /// keyed by a human-readable role for failure messages.
@@ -52,6 +53,9 @@ void main() {
   Future<void> pumpDanceChip(WidgetTester tester, DanceStatus status) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+
         theme: AppTheme.light,
         home: Scaffold(
           body: Center(child: DanceStatusChip(status: status)),
@@ -93,6 +97,9 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+
         theme: AppTheme.light,
         home: const Scaffold(
           body: Column(
