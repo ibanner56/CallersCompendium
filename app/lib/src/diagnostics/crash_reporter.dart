@@ -72,16 +72,23 @@ class CrashReporter implements CrashLogSink {
 
   @override
   void record(Object error, StackTrace? stack, {required String source}) {
-    final record = buildRecord(error, stack, source: source);
-    unawaited(_appendGuarded(record));
+    unawaited(_recordGuarded(error, stack, source));
   }
 
-  Future<void> _appendGuarded(CrashLogRecord record) async {
+  Future<void> _recordGuarded(
+    Object error,
+    StackTrace? stack,
+    String source,
+  ) async {
     try {
+      // Build inside the guard: a custom [error]'s `toString()` (or a
+      // misbehaving [StackTrace]) can itself throw, and this runs from a global
+      // error handler where an escaping exception would be lost or loop.
+      final record = buildRecord(error, stack, source: source);
       await store.append(record);
-    } catch (error, stack) {
-      onAppendError?.call(error, stack);
-      if (kDebugMode) debugPrint('Crash log append failed: $error');
+    } catch (e, s) {
+      onAppendError?.call(e, s);
+      if (kDebugMode) debugPrint('Crash log record failed: $e');
     }
   }
 }

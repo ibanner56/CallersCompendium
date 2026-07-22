@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('CrashRedactor PII patterns', () {
-    const redactor = CrashRedactor();
+    final redactor = CrashRedactor();
 
     test('redacts email addresses', () {
       final out = redactor.scrub('contact caller.jane+tag@example.co.uk now');
@@ -49,10 +49,37 @@ void main() {
       expect(out, isNot(contains(r'C:\Users\Jane')));
       expect(out, contains('<path>/backup.json'));
     });
+
+    test('collapses a POSIX path with spaces in a segment', () {
+      // The username must not leak because the path contains a space.
+      final out = redactor.scrub('read /Users/Jane Doe/project/main.dart ok');
+      expect(out, isNot(contains('Jane Doe')));
+      expect(out, contains('<path>/main.dart'));
+      expect(out, contains('ok'));
+    });
+
+    test('collapses Windows forward-slash drive paths', () {
+      final out = redactor.scrub('load C:/Users/Jane Doe/app/config.json here');
+      expect(out, isNot(contains('Jane Doe')));
+      expect(out, isNot(contains('C:/Users')));
+      expect(out, contains('<path>/config.json'));
+    });
+
+    test('collapses UNC paths, dropping server and share', () {
+      final out = redactor.scrub(r'open \\fileserver\team\notes.txt now');
+      expect(out, isNot(contains('fileserver')));
+      expect(out, isNot(contains('team')));
+      expect(out, contains('<path>/notes.txt'));
+    });
+
+    test('does not mistake a URL scheme for a Windows drive', () {
+      final out = redactor.scrub('see https://example.com/help for details');
+      expect(out, contains('https://example.com/help'));
+    });
   });
 
   group('CrashRedactor preserves diagnostic skeleton', () {
-    const redactor = CrashRedactor();
+    final redactor = CrashRedactor();
 
     test('keeps package: stack frames and line:col refs', () {
       const frame =
@@ -72,7 +99,7 @@ void main() {
 
   group('CrashRedactor user-content terms', () {
     test('redacts each seeded user-content class', () {
-      const redactor = CrashRedactor(
+      final redactor = CrashRedactor(
         userContentTerms: {
           'Chinquapin Reel', // dance title
           'Autumn Gathering 2025', // program title
@@ -99,7 +126,7 @@ void main() {
     });
 
     test('is case-insensitive and ignores very short terms', () {
-      const redactor = CrashRedactor(userContentTerms: {'Reel', 'a'});
+      final redactor = CrashRedactor(userContentTerms: {'Reel', 'a'});
       final out = redactor.scrub('the REEL and a note');
       expect(out, isNot(contains(RegExp('reel', caseSensitive: false))));
       // The single-character term must not blank out unrelated text.
@@ -107,7 +134,7 @@ void main() {
     });
 
     test('combined scrub removes every class at once', () {
-      const redactor = CrashRedactor(userContentTerms: {'Chinquapin Reel'});
+      final redactor = CrashRedactor(userContentTerms: {'Chinquapin Reel'});
       const raw =
           'Chinquapin Reel crashed; email jane@example.com phone 555-123-4567 '
           'at /Users/jane/app/lib/main.dart:10:2';

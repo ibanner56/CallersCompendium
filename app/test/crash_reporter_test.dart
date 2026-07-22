@@ -86,6 +86,23 @@ void main() {
         expect(seen, isNotNull);
       },
     );
+
+    test(
+      'an error whose toString() throws is guarded, not propagated',
+      () async {
+        Object? seen;
+        final r = CrashReporter(
+          store: store,
+          onAppendError: (error, _) => seen = error,
+        );
+        // buildRecord reads error.toString(); a hostile toString must be caught
+        // inside the no-throw guard rather than escaping the global handler.
+        r.record(_HostileError(), StackTrace.current, source: 'unit');
+        await Future<void>.delayed(Duration.zero);
+        expect(seen, isNotNull);
+        expect(await store.readRecords(), isEmpty);
+      },
+    );
   });
 
   group('installGlobalErrorHandlers', () {
@@ -172,4 +189,11 @@ class _ThrowingStore extends CrashLogStore {
   @override
   Future<void> append(CrashLogRecord record) async =>
       throw StateError('disk full');
+}
+
+/// An error whose `toString()` throws, to exercise the no-throw guard around
+/// record building.
+class _HostileError implements Exception {
+  @override
+  String toString() => throw StateError('toString blew up');
 }

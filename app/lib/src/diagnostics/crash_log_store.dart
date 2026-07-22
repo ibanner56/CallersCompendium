@@ -29,20 +29,34 @@ class CrashLogStore {
     required this.directoryProvider,
     this.maxFileBytes = defaultMaxFileBytes,
     this.maxRolledFiles = defaultMaxRolledFiles,
+    this.maxRecordBytes = defaultMaxRecordBytes,
   });
 
-  /// Production store rooted at `<applicationSupportDirectory>/diagnostics`.
+  /// Process-wide store for the real app-support crash log.
+  ///
+  /// Returns a single shared instance: the global error handlers (installed in
+  /// `main`) and the Settings ▸ Diagnostics UI must write/read/clear through the
+  /// **same** object, because each store serializes its own operations through a
+  /// private queue ([_enqueue]). Two stores over the same files would each have
+  /// their own queue, so an append/rotation on one could interleave with a
+  /// read/export/clear on the other and tear a line. Tests never take this path
+  /// — they inject their own store via [directoryProvider], so there is no
+  /// shared global state to leak between tests.
   factory CrashLogStore.appSupport({
     int maxFileBytes = defaultMaxFileBytes,
     int maxRolledFiles = defaultMaxRolledFiles,
-  }) => CrashLogStore(
+    int maxRecordBytes = defaultMaxRecordBytes,
+  }) => _sharedAppSupport ??= CrashLogStore(
     directoryProvider: () async {
       final support = await getApplicationSupportDirectory();
       return Directory(p.join(support.path, 'diagnostics'));
     },
     maxFileBytes: maxFileBytes,
     maxRolledFiles: maxRolledFiles,
+    maxRecordBytes: maxRecordBytes,
   );
+
+  static CrashLogStore? _sharedAppSupport;
 
   /// Base file name of the active log; rolled files are `crash.log.1`, `.2`, …
   static const String baseName = 'crash.log';
@@ -53,6 +67,11 @@ class CrashLogStore {
   /// Default number of rolled files retained in addition to the active log.
   static const int defaultMaxRolledFiles = 3;
 
+  /// Default per-record size cap (64 KiB). A single record is truncated to fit
+  /// this (or [maxFileBytes] when smaller) so one pathological error can't grow
+  /// the log without bound (see [append]).
+  static const int defaultMaxRecordBytes = 64 * 1024;
+
   /// Resolves the directory the log lives in (see [CrashLogDirProvider]).
   final CrashLogDirProvider directoryProvider;
 
@@ -61,6 +80,9 @@ class CrashLogStore {
 
   /// How many rolled files (`crash.log.1` … `crash.log.N`) to keep.
   final int maxRolledFiles;
+
+  /// Upper bound on a single serialized record; larger records are truncated.
+  final int maxRecordBytes;
 
   Directory? _dir;
   Future<void> _tail = Future<void>.value();
@@ -82,10 +104,16 @@ class CrashLogStore {
   }
 
   /// Appends [record] to the active log, rotating first if it would overflow
-  /// [maxFileBytes].
+  /// [maxFileBytes]. A single oversized record is truncated to [maxRecordBytes]
+  /// (or [maxFileBytes] when that is smaller) first, so no one record can make a
+  /// log file grow without bound.
   Future<void> append(CrashLogRecord record) => _enqueue(() async {
     final dir = await _resolveDir();
-    final bytes = utf8.encode('${record.toJsonLine()}\n');
+    final cap = maxRecordBytes < maxFileBytes ? maxRecordBytes : maxFileBytes;
+    // Reserve one byte for the trailing newline so the record plus its newline
+    // still fits the per-record budget.
+    final bounded = record.truncatedToFit(cap - 1);
+    final bytes = utf8.encode('${bounded.toJsonLine()}\n');
     final current = File(p.join(dir.path, baseName));
     if (await current.exists()) {
       final length = await current.length();

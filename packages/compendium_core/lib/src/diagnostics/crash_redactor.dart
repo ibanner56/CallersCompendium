@@ -19,9 +19,10 @@ library;
 ///
 /// Construct with the set of [userContentTerms] to strip (usually gathered from
 /// the local database at export time); the email/phone/path patterns are always
-/// applied. Stateless and `const`-constructible.
+/// applied. Immutable; the term matcher is precomputed once per instance and
+/// reused across every [scrub] call (see [_termsPattern]).
 class CrashRedactor {
-  const CrashRedactor({
+  CrashRedactor({
     this.userContentTerms = const <String>{},
     this.minTermLength = 3,
   });
@@ -67,15 +68,29 @@ class CrashRedactor {
 
   // POSIX absolute paths (`/a/b/c.dart`). The lookbehind avoids matching the
   // second slash of a scheme (`https://`, `file://`) or a `package:`/`dart:`
-  // URI, so app-symbol stack frames survive. Trailing `:line:col` is excluded
-  // from the char class, so it stays outside the match and is preserved.
+  // URI, so app-symbol stack frames survive. Directory segments may contain
+  // spaces (a home dir like `/Users/Jane Doe/...` must not leak the username by
+  // stopping at the first space); only `/`, line breaks, `:` and `)` end a
+  // segment. The trailing basename stops at whitespace so surrounding prose is
+  // not swallowed, and any `:line:col` ref is left outside the match.
   static final RegExp _posixPath = RegExp(
-    r'(?<![\w:/])/(?:[^/\s:)]+/)+[^/\s:)]*',
+    r'(?<![\w:/])/(?:[^/\r\n:)]+/)+[^/\s:)]*',
   );
 
-  // Windows absolute paths (`C:\Users\me\x.dart`).
+  // Windows drive paths, either separator: `C:\Users\me\x.dart` or
+  // `C:/Users/me/x.dart`. The leading lookbehind keeps a URI scheme letter
+  // (the `p` in `http://`) from being mistaken for a drive letter. Directory
+  // segments may contain spaces; the basename stops at whitespace.
   static final RegExp _windowsPath = RegExp(
-    r'[A-Za-z]:\\(?:[^\\\s:)]+\\)*[^\\\s:)]*',
+    r'(?<![A-Za-z0-9])[A-Za-z]:[\\/](?:[^\\/\r\n:)]+[\\/])*[^\\/\s:)]*',
+  );
+
+  // UNC paths (`\\server\share\file.dart`). Directory segments may contain
+  // spaces; the basename stops at whitespace so trailing prose isn't swallowed.
+  // The whole path collapses to its basename, dropping the (potentially
+  // sensitive) server/share.
+  static final RegExp _uncPath = RegExp(
+    r'\\\\(?:[^\\/\r\n:)]+[\\/])*[^\\/\s:)]*',
   );
 
   /// Applies every redaction pass to [input] and returns the scrubbed text.
@@ -93,10 +108,26 @@ class CrashRedactor {
   }
 
   /// Redacts every configured user-content term (case-insensitive) from [input].
+  ///
+  /// Uses a single precomputed matcher ([_termsPattern]) so the cost is one pass
+  /// over [input] regardless of how many terms there are — with a large
+  /// collection (tens of thousands of dances) and two scrubs per retained
+  /// record, a per-term rescan would be prohibitively slow.
   String redactTerms(String input) {
-    if (userContentTerms.isEmpty) return input;
-    // Longest first so a title that contains a shorter title is redacted whole
-    // rather than leaving a dangling fragment.
+    final pattern = _termsPattern;
+    if (pattern == null) return input;
+    return input.replaceAll(pattern, contentPlaceholder);
+  }
+
+  /// A single alternation regex over every eligible term, or `null` when there
+  /// is nothing to redact. Built once per instance (the export path reuses one
+  /// redactor across all records). Terms are de-duplicated and sorted
+  /// longest-first so that, at any position, the longest matching term wins and
+  /// a title containing a shorter title is redacted whole.
+  late final RegExp? _termsPattern = _buildTermsPattern();
+
+  RegExp? _buildTermsPattern() {
+    if (userContentTerms.isEmpty) return null;
     final terms =
         userContentTerms
             .map((t) => t.trim())
@@ -104,21 +135,18 @@ class CrashRedactor {
             .toSet()
             .toList()
           ..sort((a, b) => b.length.compareTo(a.length));
-    var out = input;
-    for (final term in terms) {
-      out = out.replaceAll(
-        RegExp(RegExp.escape(term), caseSensitive: false),
-        contentPlaceholder,
-      );
-    }
-    return out;
+    if (terms.isEmpty) return null;
+    return RegExp(terms.map(RegExp.escape).join('|'), caseSensitive: false);
   }
 
   /// Collapses absolute filesystem paths to [pathPlaceholder], keeping the file
-  /// basename (e.g. `/Users/me/app/main.dart` → `<path>/main.dart`).
+  /// basename (e.g. `/Users/me/app/main.dart` → `<path>/main.dart`). Handles
+  /// `file://` URIs, POSIX paths, Windows drive paths (either separator), and
+  /// UNC paths.
   String redactPaths(String input) {
     var out = input.replaceAllMapped(_fileUri, (m) => _collapse(m[0]!, '/'));
-    out = out.replaceAllMapped(_windowsPath, (m) => _collapse(m[0]!, r'\'));
+    out = out.replaceAllMapped(_uncPath, (m) => _collapse(m[0]!, r'\'));
+    out = out.replaceAllMapped(_windowsPath, (m) => _collapseWindows(m[0]!));
     out = out.replaceAllMapped(_posixPath, (m) => _collapse(m[0]!, '/'));
     return out;
   }
@@ -135,6 +163,11 @@ class CrashRedactor {
         final digitCount = m[0]!.replaceAll(_nonDigits, '').length;
         return (digitCount >= 7 && digitCount <= 15) ? phonePlaceholder : m[0]!;
       });
+
+  // A Windows match may use either separator (`C:\...` or `C:/...`); collapse on
+  // whichever it actually contains so the basename is found correctly.
+  static String _collapseWindows(String path) =>
+      _collapse(path, path.contains(r'\') ? r'\' : '/');
 
   static String _collapse(String path, String separator) {
     final trimmed = path.endsWith(separator)

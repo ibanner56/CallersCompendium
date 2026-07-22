@@ -62,6 +62,25 @@ class _InMemoryCrashLogStore extends CrashLogStore {
   Future<void> clear() async => _records.clear();
 }
 
+/// A store whose reads always fail, to exercise the Diagnostics load-failure
+/// state (a null `snapshot.data` must not be treated as "healthy/empty").
+class _FailingReadCrashLogStore extends CrashLogStore {
+  _FailingReadCrashLogStore()
+    : super(directoryProvider: () async => throw StateError('no I/O in test'));
+
+  @override
+  Future<void> append(CrashLogRecord record) async {}
+
+  @override
+  Future<List<CrashLogRecord>> readRecords({
+    int? limit,
+    bool newestFirst = true,
+  }) async => throw StateError('cannot read log');
+
+  @override
+  Future<void> clear() async {}
+}
+
 /// Pumps [SettingsScreen] with the diagnostics seams wired to [store] and opens
 /// the Diagnostics section. [onExport] captures the text handed to the saver.
 Future<void> _pumpDiagnostics(
@@ -202,5 +221,19 @@ void main() {
 
     expect(await store.readRecords(), isEmpty);
     expect(find.byKey(const ValueKey('diagnostics-empty')), findsOneWidget);
+  });
+
+  testWidgets('shows a load-failure state when the log cannot be read', (
+    tester,
+  ) async {
+    await _pumpDiagnostics(
+      tester,
+      store: _FailingReadCrashLogStore(),
+      onExport: (_) {},
+    );
+
+    // A read failure must surface, not masquerade as the healthy empty state.
+    expect(find.byKey(const ValueKey('diagnostics-error')), findsOneWidget);
+    expect(find.byKey(const ValueKey('diagnostics-empty')), findsNothing);
   });
 }

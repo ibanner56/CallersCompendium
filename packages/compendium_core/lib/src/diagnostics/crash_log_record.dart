@@ -77,21 +77,31 @@ class CrashLogRecord {
       final decoded = jsonDecode(trimmed);
       if (decoded is! Map<String, dynamic>) return null;
       if (decoded['v'] != schemaVersion) return null;
-      final ts = DateTime.tryParse(decoded['ts'] as String? ?? '');
+      final tsRaw = decoded['ts'];
+      if (tsRaw is! String) return null;
+      final ts = DateTime.tryParse(tsRaw);
       if (ts == null) return null;
       return CrashLogRecord(
         timestampUtc: ts.toUtc(),
-        appVersion: decoded['app'] as String? ?? '',
-        platform: decoded['platform'] as String? ?? '',
-        source: decoded['source'] as String? ?? '',
-        errorType: decoded['type'] as String? ?? '',
-        errorMessage: decoded['msg'] as String? ?? '',
-        stack: decoded['stack'] as String? ?? '',
+        appVersion: _asString(decoded['app']),
+        platform: _asString(decoded['platform']),
+        source: _asString(decoded['source']),
+        errorType: _asString(decoded['type']),
+        errorMessage: _asString(decoded['msg']),
+        stack: _asString(decoded['stack']),
       );
-    } on FormatException {
+    } catch (_) {
+      // A malformed line must never abort reading the rest of the log. As well
+      // as invalid JSON (FormatException), a syntactically valid line can carry
+      // a wrong-typed field (e.g. `"msg":42`) that would throw a TypeError from
+      // the extraction; skip any such line rather than failing the whole read.
       return null;
     }
   }
+
+  /// Coerces a decoded JSON value to a string, treating a wrong-typed or missing
+  /// field as empty rather than throwing.
+  static String _asString(Object? value) => value is String ? value : '';
 
   /// A human-readable multi-line rendering of this record, used both for the
   /// in-app "recent entries" view and the exported log file.
@@ -126,4 +136,47 @@ class CrashLogRecord {
     errorMessage: redactor.scrub(errorMessage),
     stack: redactor.scrub(stack),
   );
+
+  /// Returns a copy whose serialized JSON line fits within [maxBytes] (UTF-8),
+  /// or this record unchanged when it already fits.
+  ///
+  /// A single pathological record (e.g. a megabyte-long message or stack) must
+  /// not be able to grow a rotating log file without bound. The free-text
+  /// fields are trimmed — the stack first, then the message — with a marker
+  /// appended so a reader can see the record was truncated; the structural
+  /// skeleton (timestamp, version, platform, source, type) is always kept.
+  CrashLogRecord truncatedToFit(int maxBytes) {
+    CrashLogRecord build(String message, String stackText) => CrashLogRecord(
+      timestampUtc: timestampUtc,
+      appVersion: appVersion,
+      platform: platform,
+      source: source,
+      errorType: errorType,
+      errorMessage: message,
+      stack: stackText,
+    );
+    int lineBytes(CrashLogRecord r) => utf8.encode(r.toJsonLine()).length;
+    if (lineBytes(this) <= maxBytes) return this;
+
+    const marker = '…[truncated]';
+    String clip(String text, int keep) =>
+        keep <= 0 ? '' : text.substring(0, keep) + marker;
+
+    // Shrink the stack first (least essential), keeping the full message, by
+    // halving a strictly-decreasing keep count until the line fits or the stack
+    // is gone. Halving the *count* (not the resulting string) guarantees
+    // termination — re-appending the marker can't make it oscillate.
+    for (var keep = stack.length; keep > 0; keep ~/= 2) {
+      final candidate = build(errorMessage, clip(stack, keep ~/ 2));
+      if (lineBytes(candidate) <= maxBytes) return candidate;
+    }
+    // Stack dropped entirely and it still doesn't fit: shrink the message too.
+    for (var keep = errorMessage.length; keep > 0; keep ~/= 2) {
+      final candidate = build(clip(errorMessage, keep ~/ 2), '');
+      if (lineBytes(candidate) <= maxBytes) return candidate;
+    }
+    // Only the structural skeleton remains and it still exceeds the cap; return
+    // it stripped of free text (nothing more can be trimmed).
+    return build('', '');
+  }
 }

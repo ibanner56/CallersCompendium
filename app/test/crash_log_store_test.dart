@@ -101,4 +101,28 @@ void main() {
     expect(records, hasLength(1));
     expect(records.single.errorMessage, contains('boom 1 '));
   });
+
+  test(
+    'truncates a single oversized record so the file stays bounded',
+    () async {
+      final store = storeWith(maxFileBytes: 2048, maxRolledFiles: 2);
+      final huge = CrashLogRecord(
+        timestampUtc: DateTime.utc(2026),
+        appVersion: '0.1.0',
+        platform: 'testos',
+        source: 'unit',
+        errorType: 'StateError',
+        errorMessage: 'x' * 100000,
+        stack: 'y' * 100000,
+      );
+      await store.append(huge);
+      // The lone record must not blow past the file cap even on an empty file.
+      final active = File('${dir.path}/${CrashLogStore.baseName}');
+      expect(await active.length(), lessThanOrEqualTo(2048));
+      // ...and the truncated record is still parseable, skeleton intact.
+      final records = await store.readRecords();
+      expect(records, hasLength(1));
+      expect(records.single.errorType, 'StateError');
+    },
+  );
 }

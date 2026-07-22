@@ -47,6 +47,45 @@ void main() {
     expect(CrashLogRecord.tryParseLine('{"v":999,"ts":"x"}'), isNull);
   });
 
+  test('tryParseLine skips a valid-JSON line with wrong-typed fields', () {
+    // Wrong-typed fields must be skipped, not throw a TypeError out of the read
+    // (which would abort reading the rest of the log).
+    expect(CrashLogRecord.tryParseLine('{"v":1,"ts":3}'), isNull);
+    expect(CrashLogRecord.tryParseLine('{"v":1,"ts":"not-a-date"}'), isNull);
+    // A wrong-typed non-timestamp field is coerced to empty rather than fatal.
+    final parsed = CrashLogRecord.tryParseLine(
+      '{"v":1,"ts":"2026-01-02T03:04:05.000Z","msg":42,"type":true,"app":7}',
+    );
+    expect(parsed, isNotNull);
+    expect(parsed!.errorMessage, '');
+    expect(parsed.errorType, '');
+    expect(parsed.appVersion, '');
+    expect(parsed.timestampUtc, DateTime.utc(2026, 1, 2, 3, 4, 5));
+  });
+
+  test('truncatedToFit bounds an oversized record and stays parseable', () {
+    final huge = CrashLogRecord(
+      timestampUtc: DateTime.utc(2026),
+      appVersion: '0.1.0',
+      platform: 'linux',
+      source: 'zone',
+      errorType: 'Exception',
+      errorMessage: 'x' * 5000,
+      stack: 'y' * 5000,
+    );
+    final fitted = huge.truncatedToFit(1024);
+    expect(fitted.toJsonLine().length, lessThanOrEqualTo(1024));
+    // Still a valid record with its skeleton intact.
+    final parsed = CrashLogRecord.tryParseLine(fitted.toJsonLine());
+    expect(parsed, isNotNull);
+    expect(parsed!.errorType, 'Exception');
+    expect(parsed.appVersion, '0.1.0');
+  });
+
+  test('truncatedToFit leaves an already-small record unchanged', () {
+    expect(identical(record.truncatedToFit(1 << 20), record), isTrue);
+  });
+
   test('scrubbed() redacts message and stack but keeps structural fields', () {
     final raw = CrashLogRecord(
       timestampUtc: DateTime.utc(2026),
@@ -58,7 +97,7 @@ void main() {
       stack: 'at /Users/jane/app/lib/main.dart:10:2',
     );
     final scrubbed = raw.scrubbed(
-      const CrashRedactor(userContentTerms: {'Chinquapin Reel'}),
+      CrashRedactor(userContentTerms: {'Chinquapin Reel'}),
     );
     expect(scrubbed.errorMessage, isNot(contains('Chinquapin Reel')));
     expect(scrubbed.errorMessage, isNot(contains('jane@example.com')));

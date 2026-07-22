@@ -57,11 +57,18 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
   @override
   void initState() {
     super.initState();
+    // Reuse the app-wide store (the same instance the global crash reporter in
+    // main.dart appends to): CrashLogStore.appSupport() returns a shared
+    // singleton, so reads/exports/clears here serialize against those writes
+    // through one queue instead of racing a second store over the same files.
     _store = widget.store ?? CrashLogStore.appSupport();
     _recordsFuture = _store.readRecords(limit: DiagnosticsSection.viewLimit);
   }
 
   void _reload() {
+    // The clear/export flows are async; the user may have navigated away by the
+    // time they finish, so never call setState on a disposed State.
+    if (!mounted) return;
     setState(() {
       _recordsFuture = _store.readRecords(limit: DiagnosticsSection.viewLimit);
     });
@@ -110,9 +117,25 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
       if (full) {
         forExport = records;
       } else {
-        final terms = provider != null
-            ? await provider()
-            : await collectSensitiveTerms(repositories!);
+        final Set<String> terms;
+        try {
+          terms = provider != null
+              ? await provider()
+              : await collectSensitiveTerms(repositories!);
+        } catch (_) {
+          // Fail-closed (OWASP): if we can't gather the terms to redact, do NOT
+          // fall back to writing a file labelled "scrubbed" that could still
+          // contain user content. Abort with a clear message instead.
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Couldn't prepare a safe (scrubbed) export, so nothing was "
+                'saved. Please try again, or use full detail deliberately.',
+              ),
+            ),
+          );
+          return;
+        }
         final redactor = CrashRedactor(userContentTerms: terms);
         forExport = [for (final r in records) r.scrubbed(redactor)];
       }
@@ -204,6 +227,24 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
               return const Padding(
                 padding: EdgeInsets.all(AppSpacing.md),
                 child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            // Check for a read failure BEFORE the empty state: on error
+            // snapshot.data is null, and treating that as "no records" would
+            // render the reassuring "No errors recorded" tile while actually
+            // hiding a log we couldn't read. Surface the failure instead.
+            if (snapshot.hasError) {
+              return ListTile(
+                key: const ValueKey('diagnostics-error'),
+                leading: Icon(
+                  Icons.error_outline,
+                  color: theme.colorScheme.error,
+                ),
+                title: const Text("Couldn't read the diagnostics log"),
+                subtitle: const Text(
+                  'The local log may be inaccessible on this device. You can '
+                  'still try to export or clear it.',
+                ),
               );
             }
             final records = snapshot.data ?? const <CrashLogRecord>[];
