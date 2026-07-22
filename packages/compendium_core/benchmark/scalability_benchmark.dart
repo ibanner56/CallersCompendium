@@ -21,6 +21,7 @@
 //   SCALE_PROGRAMS=500     number of programs to seed
 //   SCALE_ONLY=load,export,author,lastcalled,narrow,search,rebuild
 //                          comma-separated scenario keys to run (default: all)
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -330,6 +331,9 @@ Future<void> _seed(String dbPath) async {
 
   final rng = Random(1234);
   const now = 1767225600; // fixed epoch seconds
+  // Same renderer DanceRepository._rebuildDerived uses, so the seeded
+  // dance_figures / FTS text matches what a real create + rebuild produces.
+  final renderer = FigureRenderer(contraTaxonomy);
 
   final insAuthor = raw.prepare(
     'INSERT INTO choreographers (id, name) VALUES (?, ?)',
@@ -408,6 +412,23 @@ Future<void> _seed(String dbPath) async {
   for (var i = 0; i < danceCount; i++) {
     final id = 'dance-$i';
     final title = 'Dance ${_titleWord(rng)} $i';
+
+    // Build the figures FIRST, then persist canonical `figures_json` alongside
+    // the derived `dance_figures` / FTS rows so all three agree. listAll()
+    // hydrates figures from figures_json and rebuildAllDerived() recomputes the
+    // derived rows from it, so seeding an empty figures_json (with derived rows
+    // populated out of band) would make both paths skip the figure decode /
+    // render / insert work this audit is meant to measure.
+    final figureCount = 8 + rng.nextInt(5); // 8..12
+    final figures = <Figure>[
+      for (var f = 0; f < figureCount; f++)
+        Figure(
+          move: _moves[rng.nextInt(_moves.length)],
+          params: {'who': _whos[rng.nextInt(_whos.length)], 'beats': 16},
+          progression: f == figureCount - 1,
+        ),
+    ];
+
     insDance.execute([
       id,
       title,
@@ -415,7 +436,7 @@ Future<void> _seed(String dbPath) async {
       shapes[i % shapes.length].name,
       progressions[i % progressions.length].name,
       '',
-      '[]',
+      encodeFigures(figures),
       '',
       '',
       statuses[i % statuses.length].name,
@@ -424,18 +445,23 @@ Future<void> _seed(String dbPath) async {
       now + i,
     ]);
 
-    final figureCount = 8 + rng.nextInt(5); // 8..12
-    final figuresText = StringBuffer();
-    var beat = 0;
-    for (var f = 0; f < figureCount; f++) {
-      final move = _moves[rng.nextInt(_moves.length)];
-      final who = _whos[rng.nextInt(_whos.length)];
-      final section = _sections[(beat ~/ 16) % _sections.length];
-      final params = '{"who":"$who","beats":16}';
-      figuresText.write('$who $move ');
-      insFigure.execute([id, f, move, 16, 0, params, '$who $move', section]);
-      beat += 16;
+    final canonicalTexts = <String>[];
+    for (var f = 0; f < figures.length; f++) {
+      final figure = figures[f];
+      final canonicalText = renderer.renderCanonical(figure);
+      canonicalTexts.add(canonicalText);
+      insFigure.execute([
+        id,
+        f,
+        figure.move,
+        figure.beats,
+        figure.progression ? 1 : 0,
+        jsonEncode(figure.params),
+        canonicalText,
+        _sections[f % _sections.length],
+      ]);
     }
+    final figuresText = canonicalTexts.join(' ');
 
     insAuthorLink.execute([id, 'author-${i % _authorCount}', 0]);
 
@@ -478,7 +504,7 @@ Future<void> _seed(String dbPath) async {
       'Author ${i % _authorCount}',
       '',
       '',
-      figuresText.toString().trim(),
+      figuresText.trim(),
       'origin ${i % 7} ${1 + i % 5}',
       i % 2 == 0 ? 'Collection ${i % _sourceCount}' : '',
     ]);
