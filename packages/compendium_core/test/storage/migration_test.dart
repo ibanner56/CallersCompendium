@@ -1586,23 +1586,25 @@ void main() {
       await db.close();
     });
 
-    test('adds the programs.venue_id column, defaulting existing rows to null',
-        () async {
-      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-      final repos = CompendiumRepositories(db, contraTaxonomy);
-      await repos.ensureMigrated();
+    test(
+      'adds the programs.venue_id column, defaulting existing rows to null',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
 
-      final cols = await db.customSelect('PRAGMA table_info(programs)').get();
-      final names = cols.map((r) => r.read<String>('name')).toList();
-      expect(names, contains('venue_id'));
+        final cols = await db.customSelect('PRAGMA table_info(programs)').get();
+        final names = cols.map((r) => r.read<String>('name')).toList();
+        expect(names, contains('venue_id'));
 
-      // The pre-existing program carries a null venueId (no silent dangling ref).
-      final program = await repos.programs.getById('prog-1');
-      expect(program, isNotNull);
-      expect(program!.venueId, isNull);
+        // The pre-existing program carries a null venueId (no silent dangling ref).
+        final program = await repos.programs.getById('prog-1');
+        expect(program, isNotNull);
+        expect(program!.venueId, isNull);
 
-      await db.close();
-    });
+        await db.close();
+      },
+    );
 
     test('a program can be linked to a venue after the upgrade', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));

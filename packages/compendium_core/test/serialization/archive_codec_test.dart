@@ -521,13 +521,16 @@ void main() {
       final map = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
       expect(map.containsKey('venues'), isFalse);
       // A program without a venue omits the venueId key too.
-      final program = (map['programs'] as List).cast<Map<String, Object?>>().single;
+      final program = (map['programs'] as List)
+          .cast<Map<String, Object?>>()
+          .single;
       expect(program.containsKey('venueId'), isFalse);
     });
 
     test('a legacy bundle with no venues array imports cleanly', () {
-      final map = jsonDecode(encodeArchive(archiveWithVenues()))
-          as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       // Simulate a bundle produced before the venue entity existed.
       map.remove('venues');
 
@@ -540,8 +543,9 @@ void main() {
     });
 
     test('a non-array venues field is reported and skipped', () {
-      final map = jsonDecode(encodeArchive(archiveWithVenues()))
-          as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       map['venues'] = {'not': 'an array'};
 
       final result = decodeArchive(jsonEncode(map));
@@ -553,8 +557,9 @@ void main() {
     });
 
     test('a venues entry that is not an object is skipped', () {
-      final map = jsonDecode(encodeArchive(archiveWithVenues()))
-          as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       (map['venues'] as List).add('i am not an object');
 
       final result = decodeArchive(jsonEncode(map));
@@ -564,24 +569,29 @@ void main() {
       expect(result.archive.venues.map((v) => v.id), containsAll(['v1', 'v2']));
     });
 
-    test('a venue with a blank name is skipped without aborting the import', () {
-      final map = jsonDecode(encodeArchive(archiveWithVenues()))
-          as Map<String, Object?>;
-      final venues = (map['venues'] as List).cast<Map<String, Object?>>();
-      venues.firstWhere((v) => v['id'] == 'v2')['name'] = '   ';
+    test(
+      'a venue with a blank name is skipped without aborting the import',
+      () {
+        final map =
+            jsonDecode(encodeArchive(archiveWithVenues()))
+                as Map<String, Object?>;
+        final venues = (map['venues'] as List).cast<Map<String, Object?>>();
+        venues.firstWhere((v) => v['id'] == 'v2')['name'] = '   ';
 
-      final result = decodeArchive(jsonEncode(map));
-      expect(result.hasErrors, isTrue);
-      expect(result.errors.single.entityType, 'venue');
-      expect(result.errors.single.entityId, 'v2');
-      // The valid venue and the program still load.
-      expect(result.archive.venues.map((v) => v.id), ['v1']);
-      expect(result.archive.programs, hasLength(1));
-    });
+        final result = decodeArchive(jsonEncode(map));
+        expect(result.hasErrors, isTrue);
+        expect(result.errors.single.entityType, 'venue');
+        expect(result.errors.single.entityId, 'v2');
+        // The valid venue and the program still load.
+        expect(result.archive.venues.map((v) => v.id), ['v1']);
+        expect(result.archive.programs, hasLength(1));
+      },
+    );
 
     test('a venue field of the wrong type is rejected per-entity', () {
-      final map = jsonDecode(encodeArchive(archiveWithVenues()))
-          as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       final venues = (map['venues'] as List).cast<Map<String, Object?>>();
       // city must be a string; an attacker-supplied number is rejected.
       venues.firstWhere((v) => v['id'] == 'v1')['city'] = 42;
@@ -595,8 +605,9 @@ void main() {
     });
 
     test('a missing required venue id is rejected per-entity', () {
-      final map = jsonDecode(encodeArchive(archiveWithVenues()))
-          as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       final venues = (map['venues'] as List).cast<Map<String, Object?>>();
       venues.firstWhere((v) => v['id'] == 'v1').remove('id');
 
@@ -607,8 +618,9 @@ void main() {
     });
 
     test('unknown/extra venue keys are ignored', () {
-      final map = jsonDecode(encodeArchive(archiveWithVenues()))
-          as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       final venues = (map['venues'] as List).cast<Map<String, Object?>>();
       venues.first['futureField'] = {'anything': true};
 
@@ -622,8 +634,9 @@ void main() {
     });
 
     test('a non-string program.venueId is rejected per-entity', () {
-      final map = jsonDecode(encodeArchive(archiveWithVenues()))
-          as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       final programs = (map['programs'] as List).cast<Map<String, Object?>>();
       programs.single['venueId'] = 7;
 

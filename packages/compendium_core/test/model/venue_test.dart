@@ -4,14 +4,8 @@ import 'package:test/test.dart';
 void main() {
   group('validation', () {
     test('requires a non-empty name', () {
-      expect(
-        () => Venue(id: 'v1', name: ''),
-        throwsA(isA<ArgumentError>()),
-      );
-      expect(
-        () => Venue(id: 'v1', name: '   '),
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => Venue(id: 'v1', name: ''), throwsA(isA<ArgumentError>()));
+      expect(() => Venue(id: 'v1', name: '   '), throwsA(isA<ArgumentError>()));
     });
 
     test('accepts a minimal venue with just id + name', () {
@@ -90,20 +84,23 @@ void main() {
   });
 
   group('displayName', () {
-    test('joins name + address1 + city + stateProv + country, skipping nulls', () {
-      final v = Venue(
-        id: 'v1',
-        name: 'Guiding Star Grange',
-        address1: '401 Chapman St',
-        city: 'Greenfield',
-        stateProv: 'MA',
-        country: 'USA',
-      );
-      expect(
-        v.displayName,
-        'Guiding Star Grange, 401 Chapman St, Greenfield, MA, USA',
-      );
-    });
+    test(
+      'joins name + address1 + city + stateProv + country, skipping nulls',
+      () {
+        final v = Venue(
+          id: 'v1',
+          name: 'Guiding Star Grange',
+          address1: '401 Chapman St',
+          city: 'Greenfield',
+          stateProv: 'MA',
+          country: 'USA',
+        );
+        expect(
+          v.displayName,
+          'Guiding Star Grange, 401 Chapman St, Greenfield, MA, USA',
+        );
+      },
+    );
 
     test('omits missing components', () {
       final v = Venue(id: 'v1', name: 'Hall', city: 'Greenfield');

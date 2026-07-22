@@ -1292,13 +1292,16 @@ void main() {
 
     setUp(() => venues = VenueRepository(db));
 
-    test('accepts a program whose venueId references an existing venue', () async {
-      await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
-      final program = sampleProgram().copyWith(venueId: 'v1');
+    test(
+      'accepts a program whose venueId references an existing venue',
+      () async {
+        await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
+        final program = sampleProgram().copyWith(venueId: 'v1');
 
-      await repo.create(program);
-      expect((await repo.getById('p1'))!.venueId, 'v1');
-    });
+        await repo.create(program);
+        expect((await repo.getById('p1'))!.venueId, 'v1');
+      },
+    );
 
     test('rejects a program whose venueId references no venue', () async {
       final program = sampleProgram().copyWith(venueId: 'ghost');
@@ -1317,18 +1320,21 @@ void main() {
       expect(await repo.getById('p1'), isNull);
     });
 
-    test('rejects an update that repoints venueId at a missing venue', () async {
-      await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
-      await repo.create(sampleProgram().copyWith(venueId: 'v1'));
+    test(
+      'rejects an update that repoints venueId at a missing venue',
+      () async {
+        await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
+        await repo.create(sampleProgram().copyWith(venueId: 'v1'));
 
-      final stored = await repo.getById('p1');
-      await expectLater(
-        repo.update(stored!.copyWith(venueId: 'gone')),
-        throwsA(isA<StateError>()),
-      );
-      // The original link is intact — the failed update rolled back.
-      expect((await repo.getById('p1'))!.venueId, 'v1');
-    });
+        final stored = await repo.getById('p1');
+        await expectLater(
+          repo.update(stored!.copyWith(venueId: 'gone')),
+          throwsA(isA<StateError>()),
+        );
+        // The original link is intact — the failed update rolled back.
+        expect((await repo.getById('p1'))!.venueId, 'v1');
+      },
+    );
 
     test('allows clearing venueId back to null', () async {
       await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));

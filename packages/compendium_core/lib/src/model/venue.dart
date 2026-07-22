@@ -135,9 +135,7 @@ class Venue {
   /// [stateProv] and [country] (in that order), skipping any that are null,
   /// joined by ", ". Since [name] is always present, this is never empty.
   String get displayName =>
-      [name, address1, city, stateProv, country]
-          .whereType<String>()
-          .join(', ');
+      [name, address1, city, stateProv, country].whereType<String>().join(', ');
 
   /// Normalizes a freeform optional string: trims and treats empty/whitespace
   /// as `null`, so "unset" is a single canonical value (mirrors the
@@ -212,14 +210,18 @@ class Venue {
         : (genericSchedule ?? this.genericSchedule),
     price: clearPrice ? null : (price ?? this.price),
     notes: clearNotes ? null : (notes ?? this.notes),
-    contact1Name: clearContact1Name ? null : (contact1Name ?? this.contact1Name),
+    contact1Name: clearContact1Name
+        ? null
+        : (contact1Name ?? this.contact1Name),
     contact1Phone: clearContact1Phone
         ? null
         : (contact1Phone ?? this.contact1Phone),
     contact1Email: clearContact1Email
         ? null
         : (contact1Email ?? this.contact1Email),
-    contact2Name: clearContact2Name ? null : (contact2Name ?? this.contact2Name),
+    contact2Name: clearContact2Name
+        ? null
+        : (contact2Name ?? this.contact2Name),
     contact2Phone: clearContact2Phone
         ? null
         : (contact2Phone ?? this.contact2Phone),
