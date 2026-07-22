@@ -7,8 +7,8 @@
 
 ## Context
 
-[ADR-002](002-distribution-and-update-channels.md) established the distribution
-spine: **GitHub Releases is the sole artifact host**, with a static per-channel
+[ADR-002](002-distribution-and-update-channels.md) (Status: *Proposed*) lays out
+the distribution spine: **GitHub Releases as the sole artifact host**, with a static per-channel
 update manifest. For Linux the baseline is `.AppImage` + `.tar.gz` published on
 GitHub Releases, plus `SHA256SUMS`, keyless SLSA build provenance, and an SBOM
 for integrity (ADR-002 §6). Linux has **no OS trust-wall** (no Gatekeeper /
