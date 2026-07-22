@@ -896,15 +896,22 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       for (var i = 0; i < _choices.length; i++)
         if (!_committed.contains(i) && _choices[i].kind != _ActionKind.skip) i,
     ].length;
-    // How many existing local dances a commit would overwrite (issue #446):
-    // rows the user has (re)set to "Re-import onto …", excluding rows already
-    // committed on their own via Edit. Surfaced as a warning before commit so an
-    // overwrite is always a deliberate choice, never silent.
-    final overwriteCount = [
+    // How many *distinct* existing local dances a commit would overwrite (issue
+    // #446): the unique re-import target ids across rows the user has set to
+    // "Re-import onto …", excluding rows already committed on their own via
+    // Edit. Counting unique targets (not rows) is deliberate — planning reuses
+    // one DedupeIndex, so several incoming records that share a provenance key
+    // can all target the same local dance; only that one dance is overwritten.
+    // Surfaced as a warning before commit so an overwrite is always a
+    // deliberate choice, never silent.
+    final overwriteTargets = <String>{
       for (var i = 0; i < _choices.length; i++)
-        if (!_committed.contains(i) && _choices[i].kind == _ActionKind.reimport)
-          i,
-    ].length;
+        if (!_committed.contains(i) &&
+            _choices[i].kind == _ActionKind.reimport &&
+            _choices[i].linkTargetId != null)
+          _choices[i].linkTargetId!,
+    };
+    final overwriteCount = overwriteTargets.length;
     return Column(
       children: [
         Expanded(

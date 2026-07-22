@@ -343,6 +343,65 @@ void main() {
     },
   );
 
+  testWidgets(
+    'the overwrite warning counts distinct target dances, not re-import rows',
+    (tester) async {
+      final repos = openTestRepositories();
+      // A single existing local dance.
+      await repos.dances.create(
+        _dance(
+          'existing',
+          'Old Title',
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            externalId: 'ext1',
+            importedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ),
+      );
+
+      // Two incoming records that share the same provenance key, so both
+      // dedupe onto the *same* local dance ('existing').
+      await _pump(
+        tester,
+        repos,
+        payload: _archivePayload([
+          for (final id in ['incoming-a', 'incoming-b'])
+            _dance(
+              id,
+              'Fresh $id',
+              provenance: Provenance(
+                source: ProvenanceSource.json,
+                externalId: 'ext1',
+                importedAt: DateTime.utc(2026, 6, 1),
+              ),
+            ),
+        ]),
+      );
+      await _toReview(tester);
+
+      // Both rows are re-import verdicts against the one existing dance.
+      expect(
+        find.byKey(const ValueKey('import-row-0-reimport')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('import-row-1-reimport')),
+        findsOneWidget,
+      );
+
+      // Overwrite both rows: the banner counts the single distinct target once,
+      // not two rows.
+      await tester.tap(find.byKey(const ValueKey('import-row-0-reimport')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-row-1-reimport')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 existing dance will be overwritten'), findsOneWidget);
+      expect(find.text('2 existing dances will be overwritten'), findsNothing);
+    },
+  );
+
   testWidgets('ambiguous row defaults to skip and is not committed silently', (
     tester,
   ) async {
