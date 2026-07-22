@@ -49,6 +49,17 @@ class SlotSelectCounter extends QueryCounter {
   }
 }
 
+/// A [QueryCounter] that only counts SELECTs touching `venues` — used to assert
+/// bulk restore/import validate `venueId`s against a preloaded set (O(1) venue
+/// queries) rather than an N+1 of per-program existence reads.
+class VenueSelectCounter extends QueryCounter {
+  @override
+  bool matches(String statement) {
+    final s = statement.toLowerCase();
+    return s.startsWith('select') && s.contains('venues');
+  }
+}
+
 /// A [QueryCounter] that counts SELECTs against any of [DanceRepository]'s six
 /// child-relation tables — the per-dance fan-out that
 /// [DanceRepository.listAll] batches. A batched load issues a fixed number of

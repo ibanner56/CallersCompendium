@@ -171,6 +171,7 @@ class CallersCompanionUsrImporter {
             program,
             id: existingId,
             createdAt: prior.createdAt,
+            priorVenueId: prior.venueId,
           );
           priorStates.add(prior);
           await _programs.update(target);
@@ -238,15 +239,24 @@ class CallersCompanionUsrImporter {
   /// the matched program's identity/creation stamp on a re-import) while keeping
   /// every other field — title, slots, event metadata, provenance, updatedAt —
   /// from the freshly built program.
+  ///
+  /// [priorVenueId] carries the matched program's existing `venueId` forward.
+  /// A `.USR` archive has no concept of this app-local venue entity link, so a
+  /// freshly built program never supplies one; overwriting with null would
+  /// silently drop a link the user established after the original import.
+  /// Preserving it (like [id]/[createdAt]) keeps the re-import from destroying
+  /// app-local state the source cannot reconstruct.
   Program _rebuildProgramWithId(
     Program src, {
     required String id,
     required DateTime createdAt,
+    required String? priorVenueId,
   }) => Program(
     id: id,
     title: src.title,
     eventDate: src.eventDate,
     venue: src.venue,
+    venueId: priorVenueId,
     band: src.band,
     caller: src.caller,
     dancerLevel: src.dancerLevel,

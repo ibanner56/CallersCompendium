@@ -151,4 +151,62 @@ void main() {
     expect(popped, isNull);
     expect(validationError(), findsOneWidget);
   });
+
+  testWidgets(
+    'substitution fields expose their canonical term via semantics (a11y)',
+    (tester) async {
+      // A dialect carrying two move and two dancer substitutions, so each
+      // editor renders multiple rows that must be told apart by AT.
+      final dialect = Dialect(
+        name: 'A11y',
+        moves: const {'swing': 'twirl', 'balance': 'rock'},
+        dancers: const {
+          'neighbors': 'buddies',
+          'nextNeighbors': 'next buddies',
+        },
+      );
+      await tester.pumpWidget(
+        MaterialApp(home: DialectEditorScreen(initial: dialect)),
+      );
+
+      // Reveal both collapsed substitution editors.
+      final movesToggle = find.byKey(const ValueKey('dialect-moves-toggle'));
+      await tester.ensureVisible(movesToggle);
+      await tester.tap(movesToggle);
+      await tester.pumpAndSettle();
+
+      final dancersToggle = find.byKey(
+        const ValueKey('dialect-dancers-toggle'),
+      );
+      await tester.ensureVisible(dancersToggle);
+      await tester.tap(dancersToggle);
+      await tester.pumpAndSettle();
+
+      Future<void> expectFieldLabel(String key, String term) async {
+        final field = find.byKey(ValueKey(key));
+        await tester.ensureVisible(field);
+        await tester.pumpAndSettle();
+        // Target the field's editable node directly; the leading Text label
+        // shares the same term, so we assert the term lands on the text field
+        // itself (its programmatic name), not merely somewhere in the row.
+        final editable = find.descendant(
+          of: field,
+          matching: find.byType(EditableText),
+        );
+        expect(
+          tester.getSemantics(editable),
+          isSemantics(label: term, isTextField: true),
+          reason: 'field "$key" should announce its canonical term "$term"',
+        );
+      }
+
+      // Each field carries its own programmatic label (canonical move display
+      // name / humanized dancer token), not a shared generic hint — so a
+      // screen-reader user can tell the substitution rows apart.
+      await expectFieldLabel('dialect-move-swing', 'swing');
+      await expectFieldLabel('dialect-move-balance', 'balance');
+      await expectFieldLabel('dialect-dancer-neighbors', 'neighbors');
+      await expectFieldLabel('dialect-dancer-nextNeighbors', 'next neighbors');
+    },
+  );
 }

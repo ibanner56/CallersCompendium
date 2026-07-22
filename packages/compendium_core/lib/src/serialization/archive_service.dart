@@ -1,3 +1,4 @@
+import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
 import 'compendium_archive.dart';
 
@@ -30,6 +31,7 @@ class ArchiveExporter {
     publishedSources: await _repos.publishedSources.listAll(),
     customFields: await _repos.customFieldDefs.listAll(),
     tags: await _repos.tags.listAll(),
+    venues: await _repos.venues.listAll(),
   );
 }
 
@@ -116,7 +118,8 @@ class ArchiveRestorer {
 
   /// Writes every archive entity in foreign-key-safe order: the entities a
   /// dance references (published sources, choreographers, tags, custom-field
-  /// defs) first, then dances, then programs (whose slots reference dances).
+  /// defs) first, then dances, then venues, then programs (whose slots
+  /// reference dances and whose `venueId` references a venue).
   Future<void> _load(
     CompendiumArchive archive,
     List<ArchiveError> errors,
@@ -146,11 +149,44 @@ class ArchiveRestorer {
         await _repos.dances.create(d);
       });
     }
-    for (final p in archive.programs) {
-      await _guard('program', p.id, errors, () async {
-        await _repos.programs.create(p);
+    // Venues before programs: a program's `venueId` soft-references a venue, so
+    // the referenced record must land first for the link to resolve.
+    for (final v in archive.venues) {
+      await _guard('venue', v.id, errors, () async {
+        await _repos.venues.upsert(v);
       });
     }
+    // Load the set of known venue ids **once** for the whole programs phase:
+    // both the dangling-ref resolve-or-null below and the repository's
+    // write-time integrity guard validate against this single snapshot, so
+    // restoring N venue-linked programs issues one venue query instead of 2·N
+    // (a per-program existence read here plus another inside each write).
+    // Sound because restore only inserts venues (above) and never deletes one
+    // mid-batch, so the snapshot cannot go stale under us.
+    final knownVenueIds = await _repos.venues.listAllIds();
+    for (final p in archive.programs) {
+      await _guard('program', p.id, errors, () async {
+        await _repos.programs.create(
+          _withResolvedVenue(p, knownVenueIds),
+          knownVenueIds: knownVenueIds,
+        );
+      });
+    }
+  }
+
+  /// Guards against a **dangling** `venueId` from an untrusted bundle: if the
+  /// program references a venue absent from [knownVenueIds] (the venues present
+  /// after the archive's own venues were loaded, plus any pre-existing ones),
+  /// the link is cleared before the program is written. `venueId` is a soft
+  /// reference (no DB foreign key), so a dangling value would not fail at
+  /// commit — but leaving one silently in place is exactly what the
+  /// OWASP-aligned import contract forbids, so it is nulled rather than
+  /// persisted as an unresolvable reference. A resolvable (or already-null)
+  /// `venueId` is left untouched.
+  Program _withResolvedVenue(Program p, Set<String> knownVenueIds) {
+    final venueId = p.venueId;
+    if (venueId == null) return p;
+    return knownVenueIds.contains(venueId) ? p : p.copyWith(clearVenueId: true);
   }
 
   /// Removes every user-content row (and its derived indexes) so a
@@ -174,6 +210,7 @@ class ArchiveRestorer {
     await db.delete(db.tags).go();
     await db.delete(db.choreographers).go();
     await db.delete(db.publishedSources).go();
+    await db.delete(db.venues).go();
   }
 
   Future<void> _guard(

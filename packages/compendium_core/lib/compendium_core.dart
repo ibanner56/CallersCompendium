@@ -52,6 +52,7 @@ export 'src/model/provenance.dart';
 export 'src/model/published_source.dart';
 export 'src/model/source_citation.dart';
 export 'src/model/tag.dart';
+export 'src/model/venue.dart';
 export 'src/search/search_sort.dart';
 export 'src/search/title_sort_key.dart';
 export 'src/search/filter.dart';
@@ -66,6 +67,7 @@ export 'src/storage/database.dart'
     show
         CompendiumDatabase,
         derivedRebuildRequiredKey,
+        purgeCorruptionRepairDoneKey,
         kCompendiumSchemaVersion;
 export 'src/storage/repositories/choreographer_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
@@ -80,6 +82,7 @@ export 'src/storage/repositories/repositories.dart';
 export 'src/storage/repositories/settings_repository.dart';
 export 'src/storage/repositories/snapshot_repository.dart';
 export 'src/storage/repositories/tag_repository.dart';
+export 'src/storage/repositories/venue_repository.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
 export 'src/taxonomy/gate_facing.dart';
 export 'src/taxonomy/move_def.dart';
