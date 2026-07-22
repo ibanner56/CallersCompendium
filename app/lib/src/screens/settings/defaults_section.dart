@@ -1,11 +1,11 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../editor/figure_draft.dart';
-import '../../models/dance_list_entry.dart' show formationShapeLabel;
 import '../../search/collection_query.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
@@ -541,6 +541,7 @@ class _DefaultsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
@@ -635,7 +636,7 @@ class _DefaultsView extends StatelessWidget {
               for (final form in DanceForm.values)
                 DropdownMenuItem(
                   value: form,
-                  child: Text(danceFormLabel(form)),
+                  child: Text(danceFormLabel(l10n, form)),
                 ),
             ],
           ),
@@ -656,7 +657,7 @@ class _DefaultsView extends StatelessWidget {
               for (final shape in FormationShape.values)
                 DropdownMenuItem(
                   value: shape,
-                  child: Text(formationShapeLabel(shape)),
+                  child: Text(formationShapeLabel(l10n, shape)),
                 ),
             ],
           ),
@@ -677,7 +678,7 @@ class _DefaultsView extends StatelessWidget {
               for (final progression in Progression.values)
                 DropdownMenuItem(
                   value: progression,
-                  child: Text(progressionLabel(progression)),
+                  child: Text(progressionLabel(l10n, progression)),
                 ),
             ],
           ),

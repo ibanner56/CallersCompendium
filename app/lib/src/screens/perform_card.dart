@@ -2,7 +2,6 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/formation_colors_scope.dart';
-import '../models/dance_list_entry.dart';
 import '../data/decimal_turns_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
@@ -596,6 +595,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final level = dance.level;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -619,7 +619,7 @@ class _Header extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         _MetaRow(
           icon: formationIcon,
-          text: formationLabel(dance.formation),
+          text: formationLabel(l10n, dance.formation),
           // Per-formation label colour (issue #367): highlight only when the
           // user overrode this shape (override-only).
           highlightColor: FormationColorsScope.of(
@@ -630,7 +630,7 @@ class _Header extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           _MetaRow(
             icon: Icons.signal_cellular_alt_outlined,
-            text: danceLevelLabel(level),
+            text: danceLevelLabel(l10n, level),
           ),
         ],
         if (dance.status != DanceStatus.active) ...[
@@ -966,6 +966,7 @@ class _StatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final (icon, color) = switch (status) {
       DanceStatus.broken => (Icons.error_outline, theme.colorScheme.error),
       DanceStatus.deprecated => (
@@ -992,7 +993,7 @@ class _StatusBanner extends StatelessWidget {
         children: [
           Icon(icon, size: iconSize.clamp(22.0, 72.0), color: color),
           const SizedBox(width: AppSpacing.sm),
-          Text(danceStatusLabel(status), style: style),
+          Text(danceStatusLabel(l10n, status), style: style),
         ],
       ),
     );

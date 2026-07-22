@@ -2,7 +2,6 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../models/dance_list_entry.dart' show formationShapeLabel;
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
 
@@ -78,7 +77,7 @@ class FacetPanel extends StatelessWidget {
             for (final f in forms)
               _chip(
                 key: 'form-${f.name}',
-                label: danceFormLabel(f),
+                label: danceFormLabel(l10n, f),
                 icon: Icons.category_outlined,
                 selected: facets.forms.contains(f),
                 onSelected: (s) => toggle(facets.forms, f, s),
@@ -99,7 +98,7 @@ class FacetPanel extends StatelessWidget {
             for (final shape in formations)
               _chip(
                 key: 'formation-${shape.name}',
-                label: formationShapeLabel(shape),
+                label: formationShapeLabel(l10n, shape),
                 icon: formationIcon,
                 selected: facets.formations.contains(shape),
                 onSelected: (s) => toggle(facets.formations, shape, s),
@@ -120,7 +119,7 @@ class FacetPanel extends StatelessWidget {
             for (final p in progressions)
               _chip(
                 key: 'progression-${p.name}',
-                label: progressionLabel(p),
+                label: progressionLabel(l10n, p),
                 icon: progressionIcon,
                 selected: facets.progressions.contains(p),
                 onSelected: (s) => toggle(facets.progressions, p, s),
@@ -141,7 +140,7 @@ class FacetPanel extends StatelessWidget {
             for (final s in statuses)
               _chip(
                 key: 'status-${s.name}',
-                label: danceStatusLabel(s),
+                label: danceStatusLabel(l10n, s),
                 icon: Icons.flag_outlined,
                 selected: facets.statuses.contains(s),
                 onSelected: (sel) => toggle(facets.statuses, s, sel),
@@ -162,7 +161,7 @@ class FacetPanel extends StatelessWidget {
             for (final l in levels)
               _chip(
                 key: 'level-${l.name}',
-                label: danceLevelLabel(l),
+                label: danceLevelLabel(l10n, l),
                 icon: Icons.signal_cellular_alt,
                 selected: facets.levels.contains(l),
                 onSelected: (sel) => toggle(facets.levels, l, sel),

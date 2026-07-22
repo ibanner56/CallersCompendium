@@ -268,6 +268,192 @@ abstract class AppLocalizations {
   /// **'Progression'**
   String get commonProgression;
 
+  /// Dance form value: contra dancing. Shown on facet chips, the command palette, and the default-form picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Contra'**
+  String get commonDanceFormContra;
+
+  /// Dance form value: English Country Dance (ECD).
+  ///
+  /// In en, this message translates to:
+  /// **'English (ECD)'**
+  String get commonDanceFormEcd;
+
+  /// Dance form value: square dancing.
+  ///
+  /// In en, this message translates to:
+  /// **'Square'**
+  String get commonDanceFormSquare;
+
+  /// Progression value: the dance does not progress dancers to new neighbours.
+  ///
+  /// In en, this message translates to:
+  /// **'No progression'**
+  String get commonProgressionNone;
+
+  /// Progression value: a single progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Single'**
+  String get commonProgressionSingle;
+
+  /// Progression value: a double progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Double'**
+  String get commonProgressionDouble;
+
+  /// Progression value: a triple progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Triple'**
+  String get commonProgressionTriple;
+
+  /// Progression value: a quadruple progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Quadruple'**
+  String get commonProgressionQuadruple;
+
+  /// Progression value: some other progression not covered by the named options.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get commonProgressionOther;
+
+  /// Dance status value: the dance is active/current.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get commonDanceStatusActive;
+
+  /// Dance status value: the dance is deprecated (kept but discouraged).
+  ///
+  /// In en, this message translates to:
+  /// **'Deprecated'**
+  String get commonDanceStatusDeprecated;
+
+  /// Dance status value: the dance is marked broken/unusable.
+  ///
+  /// In en, this message translates to:
+  /// **'Broken'**
+  String get commonDanceStatusBroken;
+
+  /// Dance difficulty value: beginner level.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner'**
+  String get commonDanceLevelBeginner;
+
+  /// Dance difficulty value: intermediate level.
+  ///
+  /// In en, this message translates to:
+  /// **'Intermediate'**
+  String get commonDanceLevelIntermediate;
+
+  /// Dance difficulty value: advanced level.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get commonDanceLevelAdvanced;
+
+  /// Formation shape value: duple improper.
+  ///
+  /// In en, this message translates to:
+  /// **'Duple improper'**
+  String get commonFormationDupleImproper;
+
+  /// Formation shape value: Becket, clockwise progression (CW).
+  ///
+  /// In en, this message translates to:
+  /// **'Becket (CW)'**
+  String get commonFormationBecketCw;
+
+  /// Formation shape value: Becket, counter-clockwise progression (CCW).
+  ///
+  /// In en, this message translates to:
+  /// **'Becket (CCW)'**
+  String get commonFormationBecketCcw;
+
+  /// Formation shape value: duple proper.
+  ///
+  /// In en, this message translates to:
+  /// **'Duple proper'**
+  String get commonFormationDupleProper;
+
+  /// Formation shape value: duple indecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Duple indecent'**
+  String get commonFormationDupleIndecent;
+
+  /// Formation shape value: triple minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Triple minor'**
+  String get commonFormationTripleMinor;
+
+  /// Formation shape value: three-face-three.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-face-three'**
+  String get commonFormationThreeFaceThree;
+
+  /// Formation shape value: four-face-four.
+  ///
+  /// In en, this message translates to:
+  /// **'Four-face-four'**
+  String get commonFormationFourFaceFour;
+
+  /// Formation shape value: circle mixer.
+  ///
+  /// In en, this message translates to:
+  /// **'Circle mixer'**
+  String get commonFormationCircleMixer;
+
+  /// Formation shape value: Sicilian circle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sicilian circle'**
+  String get commonFormationSicilianCircle;
+
+  /// Formation shape value: scatter mixer.
+  ///
+  /// In en, this message translates to:
+  /// **'Scatter mixer'**
+  String get commonFormationScatterMixer;
+
+  /// Formation shape value: longways.
+  ///
+  /// In en, this message translates to:
+  /// **'Longways'**
+  String get commonFormationLongways;
+
+  /// Formation shape value: triplet.
+  ///
+  /// In en, this message translates to:
+  /// **'Triplet'**
+  String get commonFormationTriplet;
+
+  /// Formation shape value: grid.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid'**
+  String get commonFormationGrid;
+
+  /// Formation shape value: some other formation not covered by the named shapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get commonFormationOther;
+
+  /// A formation shape label followed by its free-text detail. {shape} is a localized formation shape name; {detail} is untrusted free text entered by the user, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'{shape} — {detail}'**
+  String commonFormationWithDetail(String shape, String detail);
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:

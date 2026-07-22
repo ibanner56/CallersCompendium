@@ -43,21 +43,23 @@ Color programStatusColor(ProgramStatus status, ThemeData theme) {
 /// Icon + text label for a [DanceStatus]. Mirrors [programStatusPresentation]
 /// so dance and program status are built the same way. `active` renders no chip
 /// in the UI, but is mapped here for exhaustiveness.
-({IconData icon, String label}) danceStatusPresentation(DanceStatus status) =>
-    switch (status) {
-      DanceStatus.active => (
-        icon: Icons.check_circle_outline,
-        label: danceStatusLabel(DanceStatus.active),
-      ),
-      DanceStatus.deprecated => (
-        icon: Icons.history_toggle_off,
-        label: danceStatusLabel(DanceStatus.deprecated),
-      ),
-      DanceStatus.broken => (
-        icon: Icons.report_problem_outlined,
-        label: danceStatusLabel(DanceStatus.broken),
-      ),
-    };
+({IconData icon, String label}) danceStatusPresentation(
+  DanceStatus status,
+  AppLocalizations l10n,
+) => switch (status) {
+  DanceStatus.active => (
+    icon: Icons.check_circle_outline,
+    label: danceStatusLabel(l10n, DanceStatus.active),
+  ),
+  DanceStatus.deprecated => (
+    icon: Icons.history_toggle_off,
+    label: danceStatusLabel(l10n, DanceStatus.deprecated),
+  ),
+  DanceStatus.broken => (
+    icon: Icons.report_problem_outlined,
+    label: danceStatusLabel(l10n, DanceStatus.broken),
+  ),
+};
 
 /// The §2 semantic color for a [DanceStatus], read from [AppThemeExtension]
 /// (`statusDeprecated` / `statusBroken`) so it tracks light / dark /
@@ -142,7 +144,7 @@ class DanceStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final p = danceStatusPresentation(status);
+    final p = danceStatusPresentation(status, AppLocalizations.of(context));
     return StatusChip(
       icon: p.icon,
       label: p.label,

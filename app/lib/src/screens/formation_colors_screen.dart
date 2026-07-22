@@ -1,9 +1,10 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/app_theme_scope.dart';
 import '../data/formation_colors_controller.dart';
-import '../models/dance_list_entry.dart';
+import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import '../widgets/color_edit_dialog.dart';
@@ -25,6 +26,7 @@ class FormationColorsScreen extends StatelessWidget {
   final FormationColorsController controller;
 
   Future<void> _edit(BuildContext context, FormationShape shape) async {
+    final l10n = AppLocalizations.of(context);
     final highContrast =
         (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
         MediaQuery.highContrastOf(context);
@@ -36,8 +38,10 @@ class FormationColorsScreen extends StatelessWidget {
         Theme.of(context).colorScheme.primary;
     final picked = await showDialog<Color>(
       context: context,
-      builder: (_) =>
-          ColorEditDialog(title: formationShapeLabel(shape), initial: seed),
+      builder: (_) => ColorEditDialog(
+        title: formationShapeLabel(l10n, shape),
+        initial: seed,
+      ),
     );
     if (picked != null) await controller.setColor(shape, picked);
   }
@@ -108,7 +112,8 @@ class _FormationColorTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = formationShapeLabel(shape);
+    final l10n = AppLocalizations.of(context);
+    final label = formationShapeLabel(l10n, shape);
     final overridden = overrideColor != null;
     // Preview the exact badge for an override; for a not-yet-customised shape,
     // preview against the family seed so the user sees where it starts.

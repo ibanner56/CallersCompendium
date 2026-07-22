@@ -8,7 +8,6 @@ import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/app_theme_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
-import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
@@ -642,8 +641,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       }
 
       final secondaryParts = <String>[
-        if (dance != null) formationLabel(dance.formation),
-        if (dance?.level != null) danceLevelLabel(dance!.level!),
+        if (dance != null) formationLabel(l10n, dance.formation),
+        if (dance?.level != null) danceLevelLabel(l10n, dance!.level!),
         // A dance slot may also carry a per-slot caller note (per ProgramSlot
         // docs); surface it like the builder UI does.
         if (slot.text != null && slot.text!.trim().isNotEmpty)
@@ -664,7 +663,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // colour (ux.md §4): the accent is never the sole carrier of type/form.
       final semanticsLabel = [
         slot.isAlt ? l10n.programsSummaryAlternateSemantic(title) : title,
-        if (dance != null) formationLabel(dance.formation),
+        if (dance != null) formationLabel(l10n, dance.formation),
         if (performed) l10n.programsPerformed,
       ].join('. ');
 

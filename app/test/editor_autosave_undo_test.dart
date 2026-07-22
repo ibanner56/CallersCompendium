@@ -13,6 +13,7 @@ import 'package:compendium_app/src/editor/editor_snapshot.dart';
 import 'package:compendium_app/src/editor/editor_undo_stack.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 
+import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
 
 // ---------------------------------------------------------------------------
@@ -45,6 +46,8 @@ Future<void> _pumpEditor(
   addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: ActiveDialectScope(notifier: notifier, child: child!),

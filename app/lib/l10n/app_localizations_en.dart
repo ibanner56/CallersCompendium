@@ -100,6 +100,101 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonProgression => 'Progression';
 
   @override
+  String get commonDanceFormContra => 'Contra';
+
+  @override
+  String get commonDanceFormEcd => 'English (ECD)';
+
+  @override
+  String get commonDanceFormSquare => 'Square';
+
+  @override
+  String get commonProgressionNone => 'No progression';
+
+  @override
+  String get commonProgressionSingle => 'Single';
+
+  @override
+  String get commonProgressionDouble => 'Double';
+
+  @override
+  String get commonProgressionTriple => 'Triple';
+
+  @override
+  String get commonProgressionQuadruple => 'Quadruple';
+
+  @override
+  String get commonProgressionOther => 'Other';
+
+  @override
+  String get commonDanceStatusActive => 'Active';
+
+  @override
+  String get commonDanceStatusDeprecated => 'Deprecated';
+
+  @override
+  String get commonDanceStatusBroken => 'Broken';
+
+  @override
+  String get commonDanceLevelBeginner => 'Beginner';
+
+  @override
+  String get commonDanceLevelIntermediate => 'Intermediate';
+
+  @override
+  String get commonDanceLevelAdvanced => 'Advanced';
+
+  @override
+  String get commonFormationDupleImproper => 'Duple improper';
+
+  @override
+  String get commonFormationBecketCw => 'Becket (CW)';
+
+  @override
+  String get commonFormationBecketCcw => 'Becket (CCW)';
+
+  @override
+  String get commonFormationDupleProper => 'Duple proper';
+
+  @override
+  String get commonFormationDupleIndecent => 'Duple indecent';
+
+  @override
+  String get commonFormationTripleMinor => 'Triple minor';
+
+  @override
+  String get commonFormationThreeFaceThree => 'Three-face-three';
+
+  @override
+  String get commonFormationFourFaceFour => 'Four-face-four';
+
+  @override
+  String get commonFormationCircleMixer => 'Circle mixer';
+
+  @override
+  String get commonFormationSicilianCircle => 'Sicilian circle';
+
+  @override
+  String get commonFormationScatterMixer => 'Scatter mixer';
+
+  @override
+  String get commonFormationLongways => 'Longways';
+
+  @override
+  String get commonFormationTriplet => 'Triplet';
+
+  @override
+  String get commonFormationGrid => 'Grid';
+
+  @override
+  String get commonFormationOther => 'Other';
+
+  @override
+  String commonFormationWithDetail(String shape, String detail) {
+    return '$shape — $detail';
+  }
+
+  @override
   String get commonMixedLevel => 'Mixed level';
 
   @override
@@ -1362,6 +1457,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get performExitTooltip => 'Exit performance view';
+
+  @override
+  String get performExitTitle => 'Exit Perform?';
+
+  @override
+  String get performExitBody =>
+      'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.';
+
+  @override
+  String get performExitCancel => 'Keep performing';
+
+  @override
+  String get performExitConfirm => 'Exit';
 
   @override
   String get performTapTempo => 'Tap tempo';

@@ -132,6 +132,138 @@
   "@commonProgression": {
     "description": "Label for the progression concept: used as a filter section heading and the figure-row progression-marker tooltip."
   },
+  "commonDanceFormContra": "Contra",
+  "@commonDanceFormContra": {
+    "description": "Dance form value: contra dancing. Shown on facet chips, the command palette, and the default-form picker."
+  },
+  "commonDanceFormEcd": "English (ECD)",
+  "@commonDanceFormEcd": {
+    "description": "Dance form value: English Country Dance (ECD)."
+  },
+  "commonDanceFormSquare": "Square",
+  "@commonDanceFormSquare": {
+    "description": "Dance form value: square dancing."
+  },
+  "commonProgressionNone": "No progression",
+  "@commonProgressionNone": {
+    "description": "Progression value: the dance does not progress dancers to new neighbours."
+  },
+  "commonProgressionSingle": "Single",
+  "@commonProgressionSingle": {
+    "description": "Progression value: a single progression."
+  },
+  "commonProgressionDouble": "Double",
+  "@commonProgressionDouble": {
+    "description": "Progression value: a double progression."
+  },
+  "commonProgressionTriple": "Triple",
+  "@commonProgressionTriple": {
+    "description": "Progression value: a triple progression."
+  },
+  "commonProgressionQuadruple": "Quadruple",
+  "@commonProgressionQuadruple": {
+    "description": "Progression value: a quadruple progression."
+  },
+  "commonProgressionOther": "Other",
+  "@commonProgressionOther": {
+    "description": "Progression value: some other progression not covered by the named options."
+  },
+  "commonDanceStatusActive": "Active",
+  "@commonDanceStatusActive": {
+    "description": "Dance status value: the dance is active/current."
+  },
+  "commonDanceStatusDeprecated": "Deprecated",
+  "@commonDanceStatusDeprecated": {
+    "description": "Dance status value: the dance is deprecated (kept but discouraged)."
+  },
+  "commonDanceStatusBroken": "Broken",
+  "@commonDanceStatusBroken": {
+    "description": "Dance status value: the dance is marked broken/unusable."
+  },
+  "commonDanceLevelBeginner": "Beginner",
+  "@commonDanceLevelBeginner": {
+    "description": "Dance difficulty value: beginner level."
+  },
+  "commonDanceLevelIntermediate": "Intermediate",
+  "@commonDanceLevelIntermediate": {
+    "description": "Dance difficulty value: intermediate level."
+  },
+  "commonDanceLevelAdvanced": "Advanced",
+  "@commonDanceLevelAdvanced": {
+    "description": "Dance difficulty value: advanced level."
+  },
+  "commonFormationDupleImproper": "Duple improper",
+  "@commonFormationDupleImproper": {
+    "description": "Formation shape value: duple improper."
+  },
+  "commonFormationBecketCw": "Becket (CW)",
+  "@commonFormationBecketCw": {
+    "description": "Formation shape value: Becket, clockwise progression (CW)."
+  },
+  "commonFormationBecketCcw": "Becket (CCW)",
+  "@commonFormationBecketCcw": {
+    "description": "Formation shape value: Becket, counter-clockwise progression (CCW)."
+  },
+  "commonFormationDupleProper": "Duple proper",
+  "@commonFormationDupleProper": {
+    "description": "Formation shape value: duple proper."
+  },
+  "commonFormationDupleIndecent": "Duple indecent",
+  "@commonFormationDupleIndecent": {
+    "description": "Formation shape value: duple indecent."
+  },
+  "commonFormationTripleMinor": "Triple minor",
+  "@commonFormationTripleMinor": {
+    "description": "Formation shape value: triple minor."
+  },
+  "commonFormationThreeFaceThree": "Three-face-three",
+  "@commonFormationThreeFaceThree": {
+    "description": "Formation shape value: three-face-three."
+  },
+  "commonFormationFourFaceFour": "Four-face-four",
+  "@commonFormationFourFaceFour": {
+    "description": "Formation shape value: four-face-four."
+  },
+  "commonFormationCircleMixer": "Circle mixer",
+  "@commonFormationCircleMixer": {
+    "description": "Formation shape value: circle mixer."
+  },
+  "commonFormationSicilianCircle": "Sicilian circle",
+  "@commonFormationSicilianCircle": {
+    "description": "Formation shape value: Sicilian circle."
+  },
+  "commonFormationScatterMixer": "Scatter mixer",
+  "@commonFormationScatterMixer": {
+    "description": "Formation shape value: scatter mixer."
+  },
+  "commonFormationLongways": "Longways",
+  "@commonFormationLongways": {
+    "description": "Formation shape value: longways."
+  },
+  "commonFormationTriplet": "Triplet",
+  "@commonFormationTriplet": {
+    "description": "Formation shape value: triplet."
+  },
+  "commonFormationGrid": "Grid",
+  "@commonFormationGrid": {
+    "description": "Formation shape value: grid."
+  },
+  "commonFormationOther": "Other",
+  "@commonFormationOther": {
+    "description": "Formation shape value: some other formation not covered by the named shapes."
+  },
+  "commonFormationWithDetail": "{shape} — {detail}",
+  "@commonFormationWithDetail": {
+    "description": "A formation shape label followed by its free-text detail. {shape} is a localized formation shape name; {detail} is untrusted free text entered by the user, rendered as plain text.",
+    "placeholders": {
+      "shape": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "commonMixedLevel": "Mixed level",
   "@commonMixedLevel": {
     "description": "Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip."

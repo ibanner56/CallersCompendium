@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/repositories_scope.dart';
 import '../search/facet_labels.dart';
@@ -88,13 +89,14 @@ class _CommandPaletteState extends State<CommandPalette> {
     final dances = await dancesFuture;
     final programs = await programsFuture;
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final all = <CommandResult>[
       for (final d in dances)
         CommandResult(
           kind: CommandResultKind.dance,
           id: d.id,
           title: d.title,
-          subtitle: danceFormLabel(d.form),
+          subtitle: danceFormLabel(l10n, d.form),
           icon: danceFormIcon(d.form),
         ),
       for (final p in programs)
