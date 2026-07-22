@@ -980,6 +980,49 @@ void main() {
       },
     );
 
+    testWidgets(
+      'revisiting a dance across a free-text slot keeps its scale (mixed '
+      'program)',
+      (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+        await _pumpProgram(
+          tester,
+          data: data,
+          autoSize: true,
+          // Mixed program: a dance card then a free-text card. Navigating
+          // between them swaps card types, which disposes the dance card's
+          // `_FitToHeight` state — so only a cache held above that switch keeps
+          // the dance's fitted scale for the return visit.
+          program: _program([
+            _slot(id: 's1', position: 0, danceId: 'd1'),
+            _slot(id: 's2', position: 1, text: 'Break — grab water and rest'),
+          ]),
+        );
+
+        // Dance slot settled at its fitted scale.
+        final fitted = tester.getSize(
+          find.byKey(const ValueKey('perform-title')),
+        );
+
+        // Go to the free-text slot (a different card type replaces the dance
+        // subtree), then back to the dance.
+        await tester.tap(find.byKey(const ValueKey('perform-next')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('perform-text')), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey('perform-prev')));
+        // One frame after returning: the parent-owned scale cache means the
+        // dance renders at its remembered fit immediately — no grow-in flash,
+        // even though its own fit state was disposed while on the text slot.
+        await tester.pump();
+
+        final revisitFirstFrame = tester.getSize(
+          find.byKey(const ValueKey('perform-title')),
+        );
+        expect(revisitFirstFrame.height, closeTo(fitted.height, 1.0));
+      },
+    );
+
     testWidgets('auto-size toggle is AT-reachable and reflects its state', (
       tester,
     ) async {

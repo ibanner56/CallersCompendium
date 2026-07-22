@@ -196,6 +196,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// view only; persistence to Settings is a documented later follow-up.
   bool _stageMode = true;
 
+  /// Auto-fit scale cache shared across all slots (ROADMAP G.1). Owned here —
+  /// *above* the per-slot dance/free-text card-type switch in [_buildCard] — so
+  /// it survives that switch: navigating dance → free-text → dance disposes the
+  /// card's `_FitToHeight` state, but the remembered fit lives on here, so the
+  /// return visit reuses it instead of flashing a re-grow from the minimum.
+  final PerformFitScaleCache _fitScaleCache = PerformFitScaleCache();
+
   @override
   void initState() {
     super.initState();
@@ -873,6 +880,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           textScale: _textScale,
           autoSize: _autoSize,
           authorNames: _authorNamesFor(dance),
+          fitScaleCache: _fitScaleCache,
         );
       }
     }
@@ -882,6 +890,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       text: _slotLabel(slot),
       textScale: _textScale,
       autoSize: _autoSize,
+      fitScaleCache: _fitScaleCache,
     );
   }
 }
