@@ -121,6 +121,7 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
       await _repos.venues.delete(venue.id);
       if (!mounted) return;
       await _load();
+      if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text('Deleted “${venue.name}”')),
       );
