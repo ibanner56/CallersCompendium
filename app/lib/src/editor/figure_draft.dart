@@ -71,6 +71,23 @@ class FigureDraft {
 
   int get beats => (params['beats'] as int?) ?? 0;
 
+  /// Returns an independent copy with a FRESH [id] (the stable-identity
+  /// contract: a duplicate is a distinct row) and every other field copied
+  /// verbatim — the `params` map is deep-copied, and provenance/ownership flags
+  /// ([assumedSubject], [beatsTouched]) are carried over so a duplicate behaves
+  /// exactly like its source. Centralizing cloning here keeps the duplicate
+  /// paths (dance editor and settings template) from silently dropping
+  /// newly-added fields — the bug that lost [assumedSubject] on duplicate (#460).
+  FigureDraft clone() => FigureDraft(
+    move: move,
+    params: Map<String, Object?>.of(params),
+    note: note,
+    progression: progression,
+    schemaVersion: schemaVersion,
+    beatsTouched: beatsTouched,
+    assumedSubject: assumedSubject,
+  );
+
   /// Builds the immutable figure, or `null` when no move is chosen yet.
   Figure? toFigure() {
     final id = move;

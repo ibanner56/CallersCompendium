@@ -59,4 +59,49 @@ void main() {
       expect(draft.toFigure()!.assumedSubject, isFalse);
     });
   });
+
+  group('FigureDraft.clone (#460)', () {
+    test('preserves the assumed-subject marker and other fields', () {
+      final source = FigureDraft(
+        move: 'allemande',
+        params: {'who': 'neighbors', 'hand': 'left', 'beats': 8},
+        note: 'from CallersBox',
+        progression: true,
+        beatsTouched: true,
+        assumedSubject: true,
+      );
+      final copy = source.clone();
+
+      // Provenance + ownership flags survive the clone (the #460 bug lost these).
+      expect(copy.assumedSubject, isTrue);
+      expect(copy.beatsTouched, isTrue);
+      expect(copy.move, 'allemande');
+      expect(copy.note, 'from CallersBox');
+      expect(copy.progression, isTrue);
+      expect(copy.params, source.params);
+      expect(copy.toFigure()!.assumedSubject, isTrue);
+    });
+
+    test('gives the copy a fresh id and an independent params map', () {
+      final source = FigureDraft(
+        move: 'swing',
+        params: {'who': 'partners'},
+        assumedSubject: true,
+      );
+      final copy = source.clone();
+      expect(copy.id, isNot(source.id));
+      // Deep copy: mutating the copy must not bleed into the source.
+      copy.params['who'] = 'neighbors';
+      expect(source.params['who'], 'partners');
+    });
+
+    test('a stated subject clones as not assumed', () {
+      final copy = FigureDraft(
+        move: 'swing',
+        params: {'who': 'partners'},
+      ).clone();
+      expect(copy.assumedSubject, isFalse);
+      expect(copy.toFigure()!.assumedSubject, isFalse);
+    });
+  });
 }

@@ -2042,5 +2042,43 @@ void main() {
       expect(summary, contains('(assumed)'));
       expect(summary, contains('balance'));
     });
+
+    test('marker splices at the true subject even when a custom dialect repeats '
+        'the subject word in the move name (indexOf regression #460)', () {
+      // A custom move substitution that opens with the subject word would fool
+      // a naive line-search into marking the MOVE NAME and leaving the real
+      // subject authoritative. box_circulate renders its move name BEFORE the
+      // subject, so it is the canonical trap: `moves: {box_circulate:
+      // 'partner circulate'}` yields "partner circulate - partner cross …",
+      // where a `line.indexOf('partner')` finds the move-name "partner" first.
+      final dialect = Dialect(
+        name: 'Trap',
+        moves: const {'box_circulate': 'partner circulate'},
+      );
+      final assumed = Figure(
+        move: 'box_circulate',
+        params: {'who': 'partners', 'hand': 'right'},
+        assumedSubject: true,
+      );
+      final out = renderer.render(assumed, dialect);
+      // The move name is intact — the marker did NOT land inside it …
+      expect(out, contains('partner circulate -'));
+      expect(out, isNot(startsWith('partner (assumed) circulate')));
+      // … and the marker trails the ACTUAL subject token instead.
+      expect(out, contains('partner (assumed) cross'));
+      // Exactly one marker (no residue, no double-marking).
+      expect('(assumed)'.allMatches(out).length, 1);
+
+      // The explicit-subject counterpart is unchanged and marker-free.
+      final statedOut = renderer.render(
+        Figure(
+          move: 'box_circulate',
+          params: {'who': 'partners', 'hand': 'right'},
+        ),
+        dialect,
+      );
+      expect(statedOut, isNot(contains('(assumed)')));
+      expect(statedOut, startsWith('partner circulate -'));
+    });
   });
 }
