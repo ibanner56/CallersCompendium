@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../search/collection_query.dart';
+import '../search/collection_query_labels.dart';
 import '../search/facet_labels.dart';
 
 /// The "Advanced" boolean-tree query builder (`docs/design/search.md`
@@ -83,7 +84,10 @@ class _GroupView extends StatelessWidget {
                     },
                     items: [
                       for (final kind in GroupKind.values)
-                        DropdownMenuItem(value: kind, child: Text(kind.label)),
+                        DropdownMenuItem(
+                          value: kind,
+                          child: Text(groupKindLabel(l10n, kind)),
+                        ),
                     ],
                   ),
                 ),
@@ -455,7 +459,10 @@ class _FigureGroupEditor extends StatelessWidget {
                 },
                 items: [
                   for (final kind in GroupKind.values)
-                    DropdownMenuItem(value: kind, child: Text(kind.label)),
+                    DropdownMenuItem(
+                      value: kind,
+                      child: Text(groupKindLabel(l10n, kind)),
+                    ),
                 ],
               ),
             ),

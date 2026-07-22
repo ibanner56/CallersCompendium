@@ -136,6 +136,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get collectionSortRelevance => 'Best match';
+
+  @override
+  String get collectionSortTitle => 'Title';
+
+  @override
+  String get collectionSortAuthor => 'Author';
+
+  @override
+  String get collectionSortRecentlyAdded => 'Recently added';
+
+  @override
+  String get collectionSortLastCalled => 'Last called';
+
+  @override
   String get collectionSortAscendingTooltip => 'Ascending (tap for descending)';
 
   @override
@@ -425,6 +440,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionQueryMatchLabel => 'Match';
+
+  @override
+  String get collectionQueryGroupAll => 'All of';
+
+  @override
+  String get collectionQueryGroupAny => 'Any of';
+
+  @override
+  String get collectionQueryGroupNone => 'None of';
 
   @override
   String get collectionQueryTheseConditions => 'these conditions';

@@ -328,6 +328,36 @@ abstract class AppLocalizations {
   /// **'Sort by ({sortLabel})'**
   String collectionSortByTooltip(String sortLabel);
 
+  /// Collection sort option: order by full-text search relevance.
+  ///
+  /// In en, this message translates to:
+  /// **'Best match'**
+  String get collectionSortRelevance;
+
+  /// Collection sort option: order by dance title.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get collectionSortTitle;
+
+  /// Collection sort option: order by author name.
+  ///
+  /// In en, this message translates to:
+  /// **'Author'**
+  String get collectionSortAuthor;
+
+  /// Collection sort option: order by when the dance was added.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently added'**
+  String get collectionSortRecentlyAdded;
+
+  /// Collection sort option: order by when the dance was last called.
+  ///
+  /// In en, this message translates to:
+  /// **'Last called'**
+  String get collectionSortLastCalled;
+
   /// Tooltip for the sort-direction toggle while ascending; tapping switches to descending.
   ///
   /// In en, this message translates to:
@@ -735,6 +765,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Match'**
   String get collectionQueryMatchLabel;
+
+  /// Advanced-query group match kind: every condition must match.
+  ///
+  /// In en, this message translates to:
+  /// **'All of'**
+  String get collectionQueryGroupAll;
+
+  /// Advanced-query group match kind: at least one condition must match.
+  ///
+  /// In en, this message translates to:
+  /// **'Any of'**
+  String get collectionQueryGroupAny;
+
+  /// Advanced-query group match kind: no condition may match.
+  ///
+  /// In en, this message translates to:
+  /// **'None of'**
+  String get collectionQueryGroupNone;
 
   /// Text after the match-kind dropdown in an advanced-query group (e.g. 'All of these conditions').
   ///

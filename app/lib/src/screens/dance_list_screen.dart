@@ -21,6 +21,7 @@ import '../data/sort_ignore_articles_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
+import '../search/collection_query_labels.dart';
 import '../theme/app_spacing.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
@@ -1041,7 +1042,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
             onPressed: _openRecentlyDeleted,
           ),
           PopupMenuButton<CollectionSort>(
-            tooltip: l10n.collectionSortByTooltip(_sort.label),
+            tooltip: l10n.collectionSortByTooltip(
+              collectionSortLabel(l10n, _sort),
+            ),
             initialValue: _sort,
             icon: const Icon(Icons.sort),
             onSelected: (value) {
@@ -1054,7 +1057,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
             },
             itemBuilder: (context) => [
               for (final option in _availableSorts)
-                PopupMenuItem(value: option, child: Text(option.label)),
+                PopupMenuItem(
+                  value: option,
+                  child: Text(collectionSortLabel(l10n, option)),
+                ),
             ],
           ),
           IconButton(

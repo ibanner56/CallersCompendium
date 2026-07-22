@@ -191,6 +191,26 @@
       }
     }
   },
+  "collectionSortRelevance": "Best match",
+  "@collectionSortRelevance": {
+    "description": "Collection sort option: order by full-text search relevance."
+  },
+  "collectionSortTitle": "Title",
+  "@collectionSortTitle": {
+    "description": "Collection sort option: order by dance title."
+  },
+  "collectionSortAuthor": "Author",
+  "@collectionSortAuthor": {
+    "description": "Collection sort option: order by author name."
+  },
+  "collectionSortRecentlyAdded": "Recently added",
+  "@collectionSortRecentlyAdded": {
+    "description": "Collection sort option: order by when the dance was added."
+  },
+  "collectionSortLastCalled": "Last called",
+  "@collectionSortLastCalled": {
+    "description": "Collection sort option: order by when the dance was last called."
+  },
   "collectionSortAscendingTooltip": "Ascending (tap for descending)",
   "@collectionSortAscendingTooltip": {
     "description": "Tooltip for the sort-direction toggle while ascending; tapping switches to descending."
@@ -608,6 +628,18 @@
   "collectionQueryMatchLabel": "Match",
   "@collectionQueryMatchLabel": {
     "description": "Accessible label for the advanced-query group match-kind dropdown (all/any/none)."
+  },
+  "collectionQueryGroupAll": "All of",
+  "@collectionQueryGroupAll": {
+    "description": "Advanced-query group match kind: every condition must match."
+  },
+  "collectionQueryGroupAny": "Any of",
+  "@collectionQueryGroupAny": {
+    "description": "Advanced-query group match kind: at least one condition must match."
+  },
+  "collectionQueryGroupNone": "None of",
+  "@collectionQueryGroupNone": {
+    "description": "Advanced-query group match kind: no condition may match."
   },
   "collectionQueryTheseConditions": "these conditions",
   "@collectionQueryTheseConditions": {
