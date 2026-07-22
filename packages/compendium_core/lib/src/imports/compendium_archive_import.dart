@@ -13,6 +13,7 @@ import 'generic_json_adapter.dart';
 import 'import_pipeline.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
+import 'venue_dedupe.dart';
 
 /// The result of building [Program]s from a [CompendiumArchive]: the rebuilt
 /// programs plus the non-fatal [ImportIssue]s raised while building them.
@@ -332,33 +333,67 @@ class CompendiumArchiveImporter {
     try {
       // Venues first — a program's `venueId` soft-references a venue, so the
       // record must exist before the program is written (the repository rejects
-      // a non-existent `venueId`). Each bundled venue is inserted under a
+      // a non-existent `venueId`). Each *new* bundled venue is inserted under a
       // **freshly-minted** id, never the untrusted bundle id, so an import can
       // never overwrite an existing venue; the original→new remap is what the
       // rebuilt programs resolve their `venueId` against (a reference to a venue
       // absent from the bundle is nulled — see [buildArchivePrograms]).
       //
-      // Known limitation (tracked, PR A-accepted): venues carry no provenance /
-      // dedupe key *across imports*, so re-importing the same bundle inserts
-      // duplicate venue records rather than matching the previously-imported
-      // ones. This is consistent with the additive-import model used elsewhere;
-      // a cross-import dedupe/provenance primitive is deferred to a later PR.
-      // TODO(follow-up, issue #456): add a venue dedupe/provenance key so a
-      // re-imported bundle matches existing venues instead of duplicating them.
+      // Cross-import dedupe (issue #456): before minting, an incoming venue is
+      // matched against the venues the receiver already holds by a **content
+      // fingerprint** ([venueFingerprint]). On a unique match the incoming venue
+      // is *dropped* and the program is repointed to the existing venue, so
+      // re-importing the same bundle no longer duplicates venues. This is
+      // strictly a **repoint, never an overwrite**: the matched venue's fields
+      // are left untouched, so the fresh-mint guarantee (an untrusted bundle
+      // cannot mutate a local venue by claiming its identity) is preserved — a
+      // deliberate departure from the program/dance `(source, externalId)`
+      // update-in-place dedupe. A weakly-described venue (see the strong-key
+      // threshold in [venueFingerprint]) or an ambiguous match (>1 existing
+      // venue shares the fingerprint) always fresh-mints — never a wrong guess.
       //
       // *Within* a single (untrusted) bundle, a repeated original id must NOT
       // leave an orphaned extra row: it collapses to one minted venue whose
       // content is the last-seen occurrence (mirroring the duplicate-program-id
-      // handling below), and it is counted/tracked once.
+      // handling below), and it is counted/tracked once. Two *distinct* ids that
+      // fingerprint-equal within one bundle likewise collapse to one inserted
+      // venue, because each mint is folded into the fingerprint index.
       final venueIdByOriginalId = <String, String>{};
+      final insertedVenueIdSet = <String>{};
+      // Seed the fingerprint index once from the current collection (a single
+      // load — venue counts are small — never an N+1 of per-venue queries), then
+      // fold in each venue this commit mints. Skipped entirely when the bundle
+      // carries no venues so a venue-less import issues zero venue reads.
+      final venueIndex = archive.venues.isEmpty
+          ? VenueFingerprintIndex()
+          : VenueFingerprintIndex(await _venues.listAll());
       for (final venue in archive.venues) {
-        final existingMinted = venueIdByOriginalId[venue.id];
-        final mintedVenueId = existingMinted ?? mintId();
-        await _venues.upsert(_venueWithId(venue, mintedVenueId));
-        if (existingMinted == null) {
-          venueIdByOriginalId[venue.id] = mintedVenueId;
-          insertedVenueIds.add(mintedVenueId);
+        final existingMapped = venueIdByOriginalId[venue.id];
+        if (existingMapped != null) {
+          // A repeated original id within this bundle. If it resolved to a venue
+          // *this commit minted*, refresh that row to the last-seen content (as
+          // before); if it deduped to a pre-existing venue, never touch it.
+          if (insertedVenueIdSet.contains(existingMapped)) {
+            await _venues.upsert(_venueWithId(venue, existingMapped));
+            venueIndex.add(existingMapped, venue);
+          }
+          continue;
         }
+        final matchedVenueId = venueIndex.matchFor(venue);
+        if (matchedVenueId != null) {
+          // Dedupe: repoint the program to the existing venue. No insert, no
+          // upsert, no mutation of the matched record, and — critically — not
+          // added to [insertedVenueIds], so undo never deletes a venue the user
+          // already had.
+          venueIdByOriginalId[venue.id] = matchedVenueId;
+          continue;
+        }
+        final mintedVenueId = mintId();
+        await _venues.upsert(_venueWithId(venue, mintedVenueId));
+        venueIdByOriginalId[venue.id] = mintedVenueId;
+        insertedVenueIds.add(mintedVenueId);
+        insertedVenueIdSet.add(mintedVenueId);
+        venueIndex.add(mintedVenueId, venue);
       }
 
       final built = buildArchivePrograms(
@@ -370,12 +405,13 @@ class CompendiumArchiveImporter {
         now: now,
       );
 
-      // Every non-null `venueId` on a built program is one of the venues just
-      // minted above (buildArchivePrograms remaps against `venueIdByOriginalId`
-      // and nulls anything else), so this preloaded set lets the repository
-      // validate each write against memory instead of an N+1 of per-program
-      // venue SELECTs. Safe: this commit only inserts venues, never deletes one.
-      final knownVenueIds = insertedVenueIds.toSet();
+      // Every non-null `venueId` on a built program resolves (via
+      // `venueIdByOriginalId`) to either a venue this commit just minted or a
+      // pre-existing venue it deduped to — both are present in the DB — so this
+      // set lets the repository validate each write against memory instead of an
+      // N+1 of per-program venue SELECTs. Safe: this commit only inserts/reads
+      // venues, never deletes one, so a referenced venue can't vanish mid-write.
+      final knownVenueIds = venueIdByOriginalId.values.toSet();
 
       // A pre-venue archive cannot express `venueId` at all, so on a
       // provenance-matched re-import its programs carry a null one; honoring that
