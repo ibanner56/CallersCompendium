@@ -39,9 +39,11 @@ void main() {
   });
 
   group('sanitizeImportedText strips invisible/format characters', () {
-    test('removes zero-width space, joiners and the word joiner', () {
+    test('removes the zero-width space and word joiner', () {
+      // ZWSP (U+200B) and the word joiner (U+2060) are stripped; the shaping
+      // joiners ZWNJ (U+200C) and ZWJ (U+200D) between them are preserved.
       final input = 'a\u200Bb\u200Cc\u200Dd\u2060e';
-      expect(sanitizeImportedText(input), 'abcde');
+      expect(sanitizeImportedText(input), 'ab\u200Cc\u200Dde');
     });
 
     test('removes the byte-order mark and interlinear anchors', () {
@@ -78,12 +80,23 @@ void main() {
       expect(sanitizeImportedText(input), input);
     });
 
-    test('strips ZWJ, degrading an emoji ZWJ sequence (intentional)', () {
-      // The zero-width joiner (U+200D) is a spoofing/dedup-evasion vector, so it
-      // is stripped even though this degrades composed emoji ZWJ sequences to
-      // their component base emoji. See the sanitizer dartdoc tradeoff note.
+    test('preserves an emoji ZWJ sequence intact', () {
+      // The zero-width joiner (U+200D) is a shaping control, not a spoofing
+      // vector, so a family emoji ZWJ sequence must survive unchanged.
       const family = '👨\u200D👩\u200D👧';
-      expect(sanitizeImportedText(family), '👨👩👧');
+      expect(sanitizeImportedText(family), family);
+    });
+
+    test('preserves ZWNJ used for script shaping', () {
+      // Zero-width non-joiner (U+200C) is required by e.g. Persian rendering.
+      const input = 'می\u200Cخواهم';
+      expect(sanitizeImportedText(input), input);
+    });
+
+    test('still strips ZWSP and bidi override even beside joiners', () {
+      // ZWSP (U+200B) and RLO (U+202E) are stripped; the ZWJ (U+200D) is kept.
+      final input = 'a\u200Bb\u202Ec\u200Dd';
+      expect(sanitizeImportedText(input), 'abc\u200Dd');
     });
 
     test('returns an empty string untouched', () {

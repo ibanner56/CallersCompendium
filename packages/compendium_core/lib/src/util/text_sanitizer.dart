@@ -36,7 +36,7 @@ library;
 ///   `U+061C` (Arabic letter mark) — the characters used for RTL-override
 ///   spoofing.
 /// - **Invisible / default-ignorable format characters** used to hide or
-///   fragment text: the zero-width set `U+200B–U+200D`, the word-joiner /
+///   fragment text: the zero-width space `U+200B`, the word-joiner /
 ///   invisible-operator block `U+2060–U+2064`, deprecated format controls
 ///   `U+206A–U+206F`, the byte-order mark `U+FEFF`, `U+180E`, the interlinear
 ///   annotation anchors `U+FFF9–U+FFFB`, the tag block `U+E0000–U+E007F`, and a
@@ -48,20 +48,20 @@ library;
 ///   every plane.
 ///
 /// Legitimate content is preserved: ordinary letters/marks/punctuation in any
-/// script, standalone emoji, and variation selectors (`U+FE00–U+FE0F`,
-/// `U+E0100–U+E01EF`).
+/// script, emoji (including emoji *ZWJ sequences* such as family/profession
+/// glyphs) and variation selectors (`U+FE00–U+FE0F`, `U+E0100–U+E01EF`).
 ///
-/// **Intentional tradeoff — joiners are stripped.** The zero-width joiner
-/// (`U+200D`, ZWJ) and non-joiner (`U+200C`, ZWNJ) fall in the stripped
-/// `U+200B–U+200F` range, so this sanitizer does **not** preserve emoji *ZWJ
-/// sequences* (a composed glyph like a family/profession emoji degrades to its
-/// component base emoji) and drops the joiners some scripts (e.g. Persian, a few
-/// Indic scripts) use for shaping. This is deliberate: ZWJ/ZWNJ are
-/// default-ignorable format characters that double as a display-spoofing and
-/// dedup-evasion vector (imported titles feed external-id derivation and
-/// duplicate detection), so we fail safe and strip rather than trust — matching
-/// the OWASP guidance above. Callers that must keep joiners should normalize
-/// upstream before storage.
+/// **Joiners are preserved.** The zero-width joiner (`U+200D`, ZWJ) and
+/// non-joiner (`U+200C`, ZWNJ) are *shaping* controls, not bidi-reordering
+/// ones: emoji ZWJ sequences and several scripts (Arabic, Persian, a number of
+/// Indic scripts) require them for correct rendering, and — unlike bidi
+/// overrides — they do not visually reorder surrounding text, so they are not a
+/// display-spoofing vector. Stripping them would corrupt legitimate data, so we
+/// keep them. (Confusable/homoglyph folding — the tool that would treat
+/// joiner-based look-alikes — is intentionally out of scope; see below.) Note
+/// the neighbouring bidi marks `U+200E`/`U+200F` (LRM/RLM) and the zero-width
+/// space `U+200B` *are* stripped: those are spoofing/hiding vectors with no
+/// shaping role.
 ///
 /// The function is a pure, idempotent transform, so applying it more than once
 /// (e.g. at both an adapter and a shared chokepoint) is safe. When nothing is
@@ -116,8 +116,13 @@ bool _isDisallowed(int cp, bool allowLineBreaks) {
   // Mongolian vowel separator (invisible format).
   if (cp == 0x180E) return true;
 
-  // Zero-width chars, bidi marks, embeddings, overrides and isolates.
-  if (cp >= 0x200B && cp <= 0x200F) return true; // ZWSP..RLM
+  // Zero-width space and bidi marks (spoofing/hiding vectors). The zero-width
+  // joiner U+200D (ZWJ) and non-joiner U+200C (ZWNJ) that sit between are
+  // deliberately NOT stripped: they are shaping controls required by emoji ZWJ
+  // sequences and Arabic/Persian/Indic scripts, and they do not reorder text,
+  // so they are not a display-spoofing vector (see the library dartdoc).
+  if (cp == 0x200B) return true; // ZWSP (zero-width space)
+  if (cp == 0x200E || cp == 0x200F) return true; // LRM / RLM (bidi marks)
   if (cp >= 0x202A && cp <= 0x202E) return true; // LRE..RLO
   if (cp == 0x2028 || cp == 0x2029) return true; // line/paragraph separators
   if (cp >= 0x2060 && cp <= 0x2064) return true; // word joiner..invisible plus
