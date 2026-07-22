@@ -74,6 +74,8 @@ void main() {
       repos.settings,
       service: UpdateService(
         fetcher: (channel, {http.Client? client}) async => manifestBody,
+        signatureFetcher: (channel, {http.Client? client}) async => "sig",
+        signatureVerifier: (bytes, sig) async => true,
       ),
       currentVersion: SemVer.tryParse('0.1.0'),
       platform: platform,
@@ -91,7 +93,7 @@ void main() {
             return DownloadOutcome.success(destination);
           },
       verifier: verifier ?? (file, expected) async => true,
-      handoff: handoff ?? (file, platform) async => true,
+      handoff: handoff ?? (file, platform) async => HandoffResult.launched,
       temporaryDirectoryProvider: () async => tempDir,
     );
   }
@@ -104,7 +106,7 @@ void main() {
       manifestBody: _manifest(),
       handoff: (file, platform) async {
         handoffs.add(_HandoffCall(file, platform));
-        return true;
+        return HandoffResult.launched;
       },
     );
     addTearDown(c.dispose);
@@ -143,7 +145,7 @@ void main() {
       verifier: (file, expected) async => false,
       handoff: (file, platform) async {
         handoffs.add(_HandoffCall(file, platform));
-        return true;
+        return HandoffResult.launched;
       },
     );
     addTearDown(c.dispose);
@@ -175,7 +177,7 @@ void main() {
           }) async => DownloadOutcome.networkError('offline'),
       handoff: (file, platform) async {
         handoffs.add(_HandoffCall(file, platform));
-        return true;
+        return HandoffResult.launched;
       },
     );
     addTearDown(c.dispose);
@@ -189,12 +191,52 @@ void main() {
     expect(handoffs, isEmpty);
   });
 
+  test(
+    'a reveal handoff (Windows/Linux) completes and reports revealed',
+    () async {
+      final repos = openTestRepositories();
+      final c = controller(
+        repos,
+        manifestBody: _manifest(platform: 'linux', arch: 'x64'),
+        platform: UpdatePlatform.linux,
+        arch: UpdateArch.x64,
+        handoff: (file, platform) async => HandoffResult.revealed,
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.completed);
+      expect(c.downloadError, isNull);
+      expect(c.handoffResult, HandoffResult.revealed);
+    },
+  );
+
+  test('a launch handoff (macOS) completes and reports launched', () async {
+    final repos = openTestRepositories();
+    final c = controller(
+      repos,
+      manifestBody: _manifest(),
+      handoff: (file, platform) async => HandoffResult.launched,
+    );
+    addTearDown(c.dispose);
+    await c.load();
+    await c.checkNow();
+
+    await c.startAssistedDownload();
+
+    expect(c.downloadStatus, AssistedDownloadStatus.completed);
+    expect(c.handoffResult, HandoffResult.launched);
+  });
+
   test('a failed handoff surfaces an error but keeps the file', () async {
     final repos = openTestRepositories();
     final c = controller(
       repos,
       manifestBody: _manifest(),
-      handoff: (file, platform) async => false,
+      handoff: (file, platform) async => HandoffResult.failed,
     );
     addTearDown(c.dispose);
     await c.load();
@@ -277,7 +319,8 @@ void main() {
     final c = controller(
       repos,
       manifestBody: _manifest(),
-      handoff: (file, platform) async => false, // force a failure
+      handoff: (file, platform) async =>
+          HandoffResult.failed, // force a failure
     );
     addTearDown(c.dispose);
     await c.load();
@@ -296,7 +339,7 @@ void main() {
     final c = controller(
       repos,
       manifestBody: _manifest(),
-      handoff: (file, platform) async => false,
+      handoff: (file, platform) async => HandoffResult.failed,
     );
     addTearDown(c.dispose);
     await c.load();

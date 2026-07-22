@@ -42,6 +42,8 @@ UpdateController _controller(
     repos.settings,
     service: UpdateService(
       fetcher: (channel, {http.Client? client}) async => bodyRef.value,
+      signatureFetcher: (channel, {http.Client? client}) async => "sig",
+      signatureVerifier: (bytes, sig) async => true,
     ),
     currentVersion: SemVer.tryParse('0.1.0'),
     platform: UpdatePlatform.linux,
@@ -227,6 +229,8 @@ void main() {
         repos.settings,
         service: UpdateService(
           fetcher: (channel, {http.Client? client}) async => body,
+          signatureFetcher: (channel, {http.Client? client}) async => "sig",
+          signatureVerifier: (bytes, sig) async => true,
         ),
         currentVersion: SemVer.tryParse('0.1.0'),
         platform: platform,
@@ -243,7 +247,7 @@ void main() {
               cancelToken,
             }) async => DownloadOutcome.success(destination),
         verifier: verifier ?? (file, expected) async => true,
-        handoff: handoff ?? (file, platform) async => true,
+        handoff: handoff ?? (file, platform) async => HandoffResult.launched,
         temporaryDirectoryProvider: () async => tempDir,
       );
     }
@@ -334,7 +338,7 @@ void main() {
         platform: UpdatePlatform.linux,
         handoff: (file, platform) async {
           handoffs++;
-          return true;
+          return HandoffResult.revealed;
         },
       );
       addTearDown(controller.dispose);

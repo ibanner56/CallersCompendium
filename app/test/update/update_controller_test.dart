@@ -43,6 +43,8 @@ void main() {
         repos.settings,
         service: UpdateService(
           fetcher: (channel, {http.Client? client}) => gate.future,
+          signatureFetcher: (channel, {http.Client? client}) async => "sig",
+          signatureVerifier: (bytes, sig) async => true,
         ),
         currentVersion: SemVer.tryParse('0.1.0'),
         platform: UpdatePlatform.linux,
@@ -77,6 +79,8 @@ void main() {
       repos.settings,
       service: UpdateService(
         fetcher: (channel, {http.Client? client}) => gate.future,
+        signatureFetcher: (channel, {http.Client? client}) async => 'sig',
+        signatureVerifier: (bytes, sig) async => true,
       ),
       currentVersion: SemVer.tryParse('0.1.0'),
       platform: UpdatePlatform.linux,

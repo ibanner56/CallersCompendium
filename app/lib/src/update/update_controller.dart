@@ -64,7 +64,9 @@ enum AssistedDownloadStatus {
   /// Verification passed; the verified file is being handed to the OS installer.
   handingOff,
 
-  /// The OS-handoff was initiated — the user finishes installing from here.
+  /// The OS-handoff succeeded — the user finishes installing from here. On
+  /// macOS the installer was launched; on Windows/Linux it was revealed in the
+  /// file manager for the user to run (see [UpdateController.handoffResult]).
   completed,
 
   /// The download, verification, or handoff failed. [UpdateController.downloadError]
@@ -127,6 +129,7 @@ class UpdateController extends ChangeNotifier {
   AssistedDownloadStatus _downloadStatus = AssistedDownloadStatus.idle;
   DownloadProgress? _downloadProgress;
   String? _downloadError;
+  HandoffResult? _handoffResult;
   DownloadCancelToken? _cancelToken;
   int _lastNotifiedProgressTick = -1;
 
@@ -174,6 +177,12 @@ class UpdateController extends ChangeNotifier {
   /// [AssistedDownloadStatus.failed], else `null`.
   String? get downloadError => _downloadError;
 
+  /// How the verified artifact was handed off when [downloadStatus] is
+  /// [AssistedDownloadStatus.completed] — [HandoffResult.launched] on macOS,
+  /// [HandoffResult.revealed] on Windows/Linux — so the UI can instruct the
+  /// user accurately (open vs. run-it-yourself). `null` before completion.
+  HandoffResult? get handoffResult => _handoffResult;
+
   /// Whether an assisted download/verify/handoff is currently in flight (so the
   /// UI shows progress + a cancel affordance and suppresses a second start).
   bool get isDownloadInFlight =>
@@ -210,6 +219,7 @@ class UpdateController extends ChangeNotifier {
     _cancelToken = token;
     _downloadError = null;
     _downloadProgress = null;
+    _handoffResult = null;
     _lastNotifiedProgressTick = -1;
     _downloadStatus = AssistedDownloadStatus.downloading;
     notifyListeners();
@@ -264,8 +274,8 @@ class UpdateController extends ChangeNotifier {
       _downloadStatus = AssistedDownloadStatus.handingOff;
       notifyListeners();
 
-      final handedOff = await _handoff(file, _platform);
-      if (!handedOff) {
+      final handoff = await _handoff(file, _platform);
+      if (handoff == HandoffResult.failed) {
         _failDownload(
           'The update was downloaded and verified, but could not be opened '
           'automatically. Use "View release" to finish installing.',
@@ -273,6 +283,7 @@ class UpdateController extends ChangeNotifier {
         return;
       }
 
+      _handoffResult = handoff;
       _downloadStatus = AssistedDownloadStatus.completed;
       _downloadProgress = null;
       notifyListeners();
@@ -304,6 +315,7 @@ class UpdateController extends ChangeNotifier {
     _downloadStatus = AssistedDownloadStatus.idle;
     _downloadProgress = null;
     _downloadError = null;
+    _handoffResult = null;
     notifyListeners();
   }
 
@@ -327,6 +339,7 @@ class UpdateController extends ChangeNotifier {
     _downloadStatus = AssistedDownloadStatus.cancelled;
     _downloadProgress = null;
     _downloadError = null;
+    _handoffResult = null;
     _cancelToken = null;
     notifyListeners();
   }
@@ -335,6 +348,7 @@ class UpdateController extends ChangeNotifier {
     _downloadStatus = AssistedDownloadStatus.failed;
     _downloadError = message;
     _downloadProgress = null;
+    _handoffResult = null;
     _cancelToken = null;
     notifyListeners();
   }
@@ -344,6 +358,9 @@ class UpdateController extends ChangeNotifier {
       case DownloadResultKind.sizeMismatch:
         return 'The download was incomplete and was deleted. Please try again, '
             'or use "View release".';
+      case DownloadResultKind.refusedHost:
+        return 'The update download was refused because it pointed at an '
+            'unexpected location. Use "View release" to download it manually.';
       case DownloadResultKind.networkError:
       case DownloadResultKind.success:
       case DownloadResultKind.cancelled:
@@ -372,6 +389,7 @@ class UpdateController extends ChangeNotifier {
     _downloadStatus = AssistedDownloadStatus.idle;
     _downloadProgress = null;
     _downloadError = null;
+    _handoffResult = null;
   }
 
   /// Loads the persisted prefs into memory. Defensive: any read failure or

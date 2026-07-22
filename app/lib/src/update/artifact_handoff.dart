@@ -4,71 +4,114 @@
 /// the running binary in place — that is Stage 2 (Sparkle/WinSparkle), gated on
 /// code-signing.
 ///
-/// The default implementation shells out via `dart:io` `Process` (no new
-/// dependency) and is the one place the flow touches the real OS, so it is kept
-/// behind an injectable typedef: tests substitute a fake that records the
-/// `(file, platform)` call without launching anything. Mobile platforms return
-/// `false` — they never hand off; A11a's "open release page" link is their only
-/// path.
+/// **Launch is gated on verification** (issue #431): the controller only calls
+/// this after the manifest signature *and* the artifact sha256 have passed, and
+/// the per-platform behavior distinguishes launch from reveal:
+///
+/// - **macOS** (signed + notarized): `open` the `.dmg`/`.zip` so it auto-mounts
+///   / expands — [HandoffResult.launched].
+/// - **Windows / Linux** (OS-unsigned): **reveal** the verified installer in the
+///   file manager and let the *user* run it — never auto-execute. Windows uses
+///   `explorer /select,<file>`; Linux `xdg-open`s the containing folder. No
+///   `chmod +x`, no direct `.exe`/`.AppImage` execution — [HandoffResult.revealed].
+/// - **Android/iOS**: no handoff — [HandoffResult.failed].
+///
+/// The default implementation shells out via `dart:io` `Process` behind an
+/// injectable [ProcessRunner] seam, so tests assert the exact command invoked
+/// (and that Windows/Linux are only ever *revealed*, never executed) without
+/// launching anything real.
 library;
 
 import 'dart:io';
 
 import 'update_manifest.dart';
 
+/// The outcome of an OS-handoff attempt (issue #431). Distinguishes an
+/// auto-launch from a reveal-only so the UI can instruct the user accurately.
+enum HandoffResult {
+  /// The artifact was opened/launched for the user (macOS `open`).
+  launched,
+
+  /// The artifact was revealed in the file manager for the user to run
+  /// manually (Windows/Linux — never auto-executed).
+  revealed,
+
+  /// No handoff happened: an unsupported platform (mobile) or the reveal/launch
+  /// command could not be started.
+  failed,
+}
+
 /// The injectable handoff seam. The [UpdateController] depends on this typedef
 /// (default [handoffArtifactToOs]).
 typedef ArtifactHandoff =
-    Future<bool> Function(File file, UpdatePlatform platform);
+    Future<HandoffResult> Function(File file, UpdatePlatform platform);
 
-/// Default [ArtifactHandoff]: opens/reveals the verified [file] per-platform so
-/// the user finishes installing.
+/// An injectable process-launch seam so [handoffArtifactToOs] is unit-testable
+/// without touching the real OS. [runToCompletion] mirrors `Process.run` (used
+/// for the macOS `open`, whose exit code we check); [startDetached] mirrors
+/// `Process.start(mode: detached)` (used to reveal a folder/file without
+/// blocking). Both return whether the command was *initiated* successfully.
+class ProcessRunner {
+  const ProcessRunner();
+
+  /// Runs [executable] with [arguments] to completion; returns `true` on a
+  /// zero exit code. Any [ProcessException]/error is reported as `false`.
+  Future<bool> runToCompletion(
+    String executable,
+    List<String> arguments,
+  ) async {
+    final result = await Process.run(executable, arguments);
+    return result.exitCode == 0;
+  }
+
+  /// Starts [executable] with [arguments] detached (fire-and-forget); returns
+  /// `true` once the process is started. Any [ProcessException]/error is
+  /// reported as `false`.
+  Future<bool> startDetached(String executable, List<String> arguments) async {
+    await Process.start(executable, arguments, mode: ProcessStartMode.detached);
+    return true;
+  }
+}
+
+/// Default [ArtifactHandoff]: opens (macOS) or reveals (Windows/Linux) the
+/// verified [file] per-platform so the user finishes installing. See the
+/// library doc for the exact per-platform behavior. [runner] is injectable for
+/// tests; production uses the real [ProcessRunner].
 ///
-/// - **macOS** (`.dmg`/`.zip`): `open` the file (mounts the disk image / expands
-///   the archive so the user can drag the app to Applications).
-/// - **Windows**: launch an `.exe` installer directly (detached); otherwise
-///   reveal the file in Explorer.
-/// - **Linux**: mark an `.AppImage` executable, then reveal the containing
-///   folder via `xdg-open` (a `.tar.gz` is just revealed).
-/// - **Android/iOS**: no handoff — returns `false`.
-///
-/// Returns whether the handoff was initiated; any thrown [ProcessException]
-/// (e.g. a missing `xdg-open`) is caught and reported as `false` so the caller
-/// can fall back to the release-page link.
-Future<bool> handoffArtifactToOs(File file, UpdatePlatform platform) async {
+/// Never throws — any thrown [ProcessException] (e.g. a missing `xdg-open`) is
+/// caught and reported as [HandoffResult.failed] so the caller can fall back to
+/// the release-page link.
+Future<HandoffResult> handoffArtifactToOs(
+  File file,
+  UpdatePlatform platform, {
+  ProcessRunner runner = const ProcessRunner(),
+}) async {
   try {
     switch (platform) {
       case UpdatePlatform.macos:
-        final result = await Process.run('open', [file.path]);
-        return result.exitCode == 0;
+        // macOS ships signed + notarized, so auto-open is safe: the .dmg mounts
+        // / the .zip expands and the user drags the app to Applications.
+        final ok = await runner.runToCompletion('open', [file.path]);
+        return ok ? HandoffResult.launched : HandoffResult.failed;
       case UpdatePlatform.windows:
-        if (file.path.toLowerCase().endsWith('.exe')) {
-          await Process.start(
-            file.path,
-            const [],
-            mode: ProcessStartMode.detached,
-          );
-          return true;
-        }
-        await Process.start('explorer.exe', [
+        // OS-unsigned: never auto-execute. Reveal the installer in Explorer and
+        // let the user run it themselves.
+        final ok = await runner.startDetached('explorer.exe', [
           '/select,${file.path}',
-        ], mode: ProcessStartMode.detached);
-        return true;
+        ]);
+        return ok ? HandoffResult.revealed : HandoffResult.failed;
       case UpdatePlatform.linux:
-        if (file.path.toLowerCase().endsWith('.appimage')) {
-          await Process.run('chmod', ['+x', file.path]);
-        }
-        await Process.start('xdg-open', [
-          file.parent.path,
-        ], mode: ProcessStartMode.detached);
-        return true;
+        // OS-unsigned: never mark executable and never launch. Reveal the
+        // containing folder so the user runs the installer themselves.
+        final ok = await runner.startDetached('xdg-open', [file.parent.path]);
+        return ok ? HandoffResult.revealed : HandoffResult.failed;
       case UpdatePlatform.android:
       case UpdatePlatform.ios:
-        return false;
+        return HandoffResult.failed;
     }
   } on ProcessException {
-    return false;
+    return HandoffResult.failed;
   } on Object {
-    return false;
+    return HandoffResult.failed;
   }
 }

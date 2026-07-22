@@ -52,7 +52,8 @@ def _manifest(channel: str, version: str) -> str:
 
 
 def _publish(checkout: Path, worktree: Path, manifest_path: Path,
-             channel: str, tag: str) -> subprocess.CompletedProcess:
+             channel: str, tag: str,
+             signature_path: Path | None = None) -> subprocess.CompletedProcess:
     """Run the publisher from within ``checkout`` (a working clone of origin)."""
     env = dict(os.environ)
     env.update(
@@ -64,13 +65,16 @@ def _publish(checkout: Path, worktree: Path, manifest_path: Path,
         # Deterministic + fast; the test never actually races.
         PUSH_RETRIES="3",
     )
+    args = [
+        "bash", str(SCRIPT),
+        "--manifest", str(manifest_path),
+        "--channel", channel,
+        "--tag", tag,
+    ]
+    if signature_path is not None:
+        args += ["--signature", str(signature_path)]
     return subprocess.run(
-        [
-            "bash", str(SCRIPT),
-            "--manifest", str(manifest_path),
-            "--channel", channel,
-            "--tag", tag,
-        ],
+        args,
         cwd=str(checkout),
         env=env,
         capture_output=True,
@@ -174,7 +178,35 @@ def _cases() -> None:
         assert _commit_count(origin, REMOTE_BRANCH) == 3, \
             "unchanged content must not create a commit"
 
-    # 5. Argument validation: bad channel and missing manifest fail loudly.
+        # 6. SIGNATURE PUBLISH (issue #431): a stable release carrying a detached
+        #    signature publishes <channel>.json.sig alongside the manifest and
+        #    must NOT disturb the other channel's manifest or its .sig-lessness.
+        stable_v3 = _write(man / "stable.json", _manifest("stable", "0.4.0"))
+        sig = _write(man / "stable.json.sig", "c2lnbmF0dXJlLWJ5dGVz\n")
+        r = _publish(checkout, tmp / "wt5", stable_v3, "stable", "v0.4.0",
+                     signature_path=sig)
+        assert r.returncode == 0, f"signed publish failed:\n{r.stderr}\n{r.stdout}"
+        assert _exists(origin, f"{REMOTE_BRANCH}:stable.json.sig"), \
+            "stable.json.sig was not published"
+        assert _show(origin, f"{REMOTE_BRANCH}:stable.json.sig") == \
+            "c2lnbmF0dXJlLWJ5dGVz", "published signature body mismatch"
+        # The signed publish must still preserve the other channel.
+        assert _exists(origin, f"{REMOTE_BRANCH}:beta.json"), \
+            "PRESERVATION FAILED: signed stable publish erased beta.json"
+        # beta had no signature published, so beta.json.sig must not exist.
+        assert not _exists(origin, f"{REMOTE_BRANCH}:beta.json.sig"), \
+            "beta.json.sig must not appear when no beta signature was published"
+
+        # 7. Publishing WITHOUT --signature must not disturb an existing .sig
+        #    (the manifest changes; the previously published sig is left as-is).
+        stable_v4 = _write(man / "stable.json", _manifest("stable", "0.5.0"))
+        r = _publish(checkout, tmp / "wt6", stable_v4, "stable", "v0.5.0")
+        assert r.returncode == 0, f"unsigned republish failed:\n{r.stderr}\n{r.stdout}"
+        assert json.loads(_show(origin, f"{REMOTE_BRANCH}:stable.json"))["version"] == "0.5.0"
+        assert _exists(origin, f"{REMOTE_BRANCH}:stable.json.sig"), \
+            "an unsigned republish must not delete the existing signature"
+
+    # 8. Argument validation: bad channel and missing manifest fail loudly.
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         _, checkout = _setup(tmp)
@@ -198,6 +230,24 @@ def _cases() -> None:
         )
         assert no_value.returncode != 0
         assert "requires a value" in no_value.stderr.lower()
+
+        # A missing signature file (when --signature is given) fails loudly.
+        good2 = _write(tmp / "stable.json", _manifest("stable", "0.1.0"))
+        missing_sig = _publish(checkout, tmp / "wts", good2, "stable", "v0.1.0",
+                               signature_path=tmp / "nope.sig")
+        assert missing_sig.returncode != 0
+        assert "signature file not found" in missing_sig.stderr.lower()
+
+        # --signature with no value fails with a CLEAR message.
+        env2 = dict(os.environ, REMOTE="origin", BRANCH=REMOTE_BRANCH,
+                    WORKTREE=str(tmp / "wtsv"))
+        sig_no_value = subprocess.run(
+            ["bash", str(SCRIPT), "--manifest", str(good2),
+             "--channel", "stable", "--tag", "v0.1.0", "--signature"],
+            cwd=str(checkout), env=env2, capture_output=True, text=True,
+        )
+        assert sig_no_value.returncode != 0
+        assert "requires a value" in sig_no_value.stderr.lower()
 
 
 def main() -> int:

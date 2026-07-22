@@ -23,6 +23,12 @@ import 'update_manifest.dart';
 typedef UpdateManifestFetcher =
     Future<String?> Function(UpdateChannel channel, {http.Client? client});
 
+/// Fetches the raw detached-signature text for [channel]'s manifest, or `null`
+/// on any failure. Same injectable-seam pattern as [UpdateManifestFetcher] so
+/// tests can return a canned signature (or `null`) without a real network call.
+typedef UpdateManifestSignatureFetcher =
+    Future<String?> Function(UpdateChannel channel, {http.Client? client});
+
 /// Default [UpdateManifestFetcher]: a **plain HTTPS `GET`** of the channel's
 /// static manifest with a short [kUpdateCheckTimeout]. Privacy contract
 /// (ADR-002 §5): no query params, no fingerprinting/identifying headers (no
@@ -54,6 +60,45 @@ Future<String?> fetchUpdateManifest(
     // Any transport failure (offline, DNS, TLS) is a silent no-op per the
     // privacy contract — never surfaced as an error. A malformed URL is caught
     // earlier by the Uri.tryParse guard above.
+    return null;
+  } finally {
+    if (ownClient) effectiveClient.close();
+  }
+}
+
+/// Default [UpdateManifestSignatureFetcher]: a **plain HTTPS `GET`** of the
+/// channel manifest's `<channel>.json.sig` with the same short
+/// [kUpdateCheckTimeout] and privacy contract as [fetchUpdateManifest] (no query
+/// params, no identifying headers).
+///
+/// Returns the response body on a 2xx with a non-empty, within-bounds body, or
+/// `null` for a timeout, an unreachable host, a non-2xx status (e.g. a 404
+/// before the signature is published, or when signing is not yet enabled), an
+/// empty body, or a body exceeding [kMaxSignatureBytes]. Never throws — a
+/// missing signature is a silent no-op the caller turns into "no update"
+/// (fail-closed) rather than an error dialog.
+Future<String?> fetchUpdateManifestSignature(
+  UpdateChannel channel, {
+  http.Client? client,
+}) async {
+  final uri = Uri.tryParse(signatureUrlForChannel(channel));
+  if (uri == null) return null;
+  final ownClient = client == null;
+  final effectiveClient = client ?? http.Client();
+  try {
+    final response = await effectiveClient
+        .get(uri)
+        .timeout(kUpdateCheckTimeout);
+    if (response.statusCode < 200 || response.statusCode >= 300) return null;
+    // Bound the signature body before trusting it: a detached Ed25519 signature
+    // is tiny (~88 base64 chars), so a larger body is malformed/hostile input.
+    if (response.bodyBytes.length > kMaxSignatureBytes) return null;
+    final body = response.body;
+    if (body.trim().isEmpty) return null;
+    return body;
+  } on TimeoutException {
+    return null;
+  } on Object {
     return null;
   } finally {
     if (ownClient) effectiveClient.close();
