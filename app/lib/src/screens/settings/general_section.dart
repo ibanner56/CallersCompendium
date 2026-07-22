@@ -1,8 +1,11 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'settings_keys.dart';
 import '../../data/backup_controller_scope.dart';
+import '../../data/backup_crypto.dart';
 import '../../data/backup_io.dart';
 import '../../data/backup_reminder.dart';
 import '../../data/backup_service.dart';
@@ -31,6 +34,8 @@ class GeneralSection extends StatefulWidget {
     super.key,
     this.backupSaver,
     this.backupPicker,
+    this.backupEncryptor,
+    this.backupDecryptor,
     this.importPicker,
     this.urlFetcher,
   });
@@ -42,6 +47,15 @@ class GeneralSection extends StatefulWidget {
   /// Test seam for choosing a backup file to restore; defaults to
   /// [pickBackupFile] (native open-file dialog).
   final BackupPicker? backupPicker;
+
+  /// Test seam for encrypting a backup export; defaults to
+  /// [encryptBackupOffThread] (isolate-backed). Overridden in tests to avoid
+  /// spawning an isolate / paying the full KDF cost (issue #461).
+  final BackupEncryptor? backupEncryptor;
+
+  /// Test seam for decrypting an encrypted backup on restore; defaults to
+  /// [decryptBackupOffThread] (isolate-backed).
+  final BackupDecryptor? backupDecryptor;
 
   /// Test seam for choosing an import file; defaults to [pickImportFile]
   /// (native open-file dialog). Forwarded to [ImportReviewScreen].
@@ -190,25 +204,56 @@ class _GeneralSectionState extends State<GeneralSection> {
 
   /// Suggested filename for an exported backup, dated (UTC) so backups sort and
   /// are easy to tell apart, e.g. `callers-compendium-backup-2026-07-15.json`.
-  String _backupFileName(DateTime when) {
+  String _backupFileName(DateTime when) => '${_backupFileStem(when)}.json';
+
+  /// Suggested filename for an *encrypted* backup export (issue #461):
+  /// `callers-compendium-backup-2026-07-15.ccbackup`.
+  String _encryptedBackupFileName(DateTime when) =>
+      '${_backupFileStem(when)}.$kEncryptedBackupExtension';
+
+  String _backupFileStem(DateTime when) {
     final d = when.toUtc();
     String two(int n) => n.toString().padLeft(2, '0');
-    return 'callers-compendium-backup-'
-        '${d.year}-${two(d.month)}-${two(d.day)}.json';
+    return 'callers-compendium-backup-${d.year}-${two(d.month)}-${two(d.day)}';
   }
 
   /// Builds the whole-app backup and hands it to the save/share seam, then
-  /// stamps the last-backup time on success. If the user cancels the native
-  /// save/share dialog, this is a clean no-op: no snackbar, no stamped time.
+  /// stamps the last-backup time on success.
+  ///
+  /// First offers an export-options dialog (issue #461): the backup is plain
+  /// JSON by default, or the user can opt in to encrypting it with a passphrase.
+  /// If the user cancels either the options dialog or the native save/share
+  /// dialog, this is a clean no-op: no snackbar, no stamped time.
   Future<void> _onExportBackup() async {
     final messenger = ScaffoldMessenger.of(context);
     final repos = RepositoriesScope.of(context);
     final saver = widget.backupSaver ?? saveBackupToFile;
+    final encryptor = widget.backupEncryptor ?? encryptBackupOffThread;
+
+    final choice = await showDialog<_ExportChoice>(
+      context: context,
+      builder: (_) => const _EncryptExportDialog(),
+    );
+    if (choice == null) return; // cancelled the options dialog
+
     try {
       final service = BackupService(repos);
       final now = DateTime.now();
       final json = await service.exportToJson(createdAt: now);
-      final delivered = await saver(json, _backupFileName(now));
+
+      var payload = json;
+      var fileName = _backupFileName(now);
+      if (choice.encrypt) {
+        final passphrase = choice.passphrase!;
+        if (!mounted) return;
+        payload = await _runWithProgress(
+          () => encryptor(json, passphrase),
+          message: 'Encrypting backup…',
+        );
+        fileName = _encryptedBackupFileName(now);
+      }
+
+      final delivered = await saver(payload, fileName);
       if (!delivered) return;
       await service.recordBackup(now);
       if (!mounted) return;
@@ -216,7 +261,13 @@ class _GeneralSectionState extends State<GeneralSection> {
         _backupPrefsRequested = true;
         _lastBackupAt = now.toUtc();
       });
-      messenger.showSnackBar(const SnackBar(content: Text('Backup exported.')));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            choice.encrypt ? 'Encrypted backup exported.' : 'Backup exported.',
+          ),
+        ),
+      );
     } on Exception catch (e, st) {
       debugPrint('Backup export failed: $e\n$st');
       messenger.showSnackBar(
@@ -228,17 +279,55 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// Prompts for a backup (file or pasted JSON) behind a destructive-replace
   /// confirmation, applies it, then refreshes the live app so the restore shows
   /// without a relaunch.
+  ///
+  /// If the chosen backup is an encrypted container (issue #461), this prompts
+  /// for its passphrase and decrypts it *before* the normal restore path. A
+  /// wrong/empty passphrase or a tampered/corrupt container surfaces a clean,
+  /// non-destructive error and the restore never runs — zero entities written.
   Future<void> _onRestoreBackup() async {
     final messenger = ScaffoldMessenger.of(context);
     final repos = RepositoriesScope.of(context);
     final picker = widget.backupPicker ?? pickBackupFile;
+    final decryptor = widget.backupDecryptor ?? decryptBackupOffThread;
     final onRestored = BackupControllerScope.maybeOf(context)?.onRestored;
 
-    final json = await showDialog<String>(
+    final raw = await showDialog<String>(
       context: context,
       builder: (_) => _RestoreBackupDialog(picker: picker),
     );
-    if (json == null || json.trim().isEmpty) return;
+    if (raw == null || raw.trim().isEmpty) return;
+
+    var json = raw;
+    if (isEncryptedBackup(raw)) {
+      if (!mounted) return;
+      final passphrase = await showDialog<String>(
+        context: context,
+        builder: (_) => const _PassphrasePromptDialog(),
+      );
+      if (passphrase == null || passphrase.isEmpty) return; // cancelled
+      try {
+        json = await _runWithProgress(
+          () => decryptor(raw, passphrase),
+          message: 'Decrypting backup…',
+        );
+      } on BackupDecryptException catch (e) {
+        // Fail closed: the restore never runs, so live data is untouched.
+        if (!mounted) return;
+        messenger.showSnackBar(SnackBar(content: Text(e.message)));
+        return;
+      } on Exception catch (e, st) {
+        debugPrint('Backup decrypt failed: $e\n$st');
+        if (!mounted) return;
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Couldn't decrypt the backup. Your data is unchanged.",
+            ),
+          ),
+        );
+        return;
+      }
+    }
 
     try {
       final outcome = await BackupService(repos).restoreFromJson(json);
@@ -274,6 +363,29 @@ class _GeneralSectionState extends State<GeneralSection> {
       messenger.showSnackBar(
         const SnackBar(content: Text("Couldn't restore the backup.")),
       );
+    }
+  }
+
+  /// Runs [task] while showing a non-dismissible modal progress dialog, popping
+  /// the dialog when [task] completes or throws. Used to give feedback during
+  /// the memory-hard encrypt/decrypt step (issue #461), which is offloaded to a
+  /// background isolate but can still take a moment.
+  Future<T> _runWithProgress<T>(
+    Future<T> Function() task, {
+    required String message,
+  }) async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _ProgressDialog(message: message),
+      ),
+    );
+    try {
+      return await task();
+    } finally {
+      if (mounted) navigator.pop();
     }
   }
 
@@ -846,6 +958,326 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
           child: const Text('Replace all data'),
         ),
       ],
+    );
+  }
+}
+
+/// Result of the export-options dialog: whether to encrypt, and (if so) the
+/// chosen passphrase. `null` from the dialog means the user cancelled.
+class _ExportChoice {
+  const _ExportChoice({required this.encrypt, this.passphrase});
+
+  final bool encrypt;
+  final String? passphrase;
+}
+
+/// Coarse, advisory passphrase-strength label (issue #461). Purely a UX hint —
+/// export is never blocked on strength, only on a non-empty, matching confirm.
+({String label, double fraction}) _passphraseStrength(String value) {
+  if (value.isEmpty) return (label: '', fraction: 0);
+  var score = 0;
+  if (value.length >= 8) score++;
+  if (value.length >= 12) score++;
+  if (value.length >= 16) score++;
+  final classes = [
+    RegExp(r'[a-z]'),
+    RegExp(r'[A-Z]'),
+    RegExp(r'\d'),
+    RegExp(r'[^A-Za-z0-9]'),
+  ].where((r) => r.hasMatch(value)).length;
+  if (classes >= 2) score++;
+  if (classes >= 3) score++;
+  if (score <= 1) return (label: 'Weak', fraction: 0.25);
+  if (score <= 3) return (label: 'Fair', fraction: 0.6);
+  return (label: 'Strong', fraction: 1);
+}
+
+/// Export-options dialog (issue #461): plain JSON by default, with an opt-in to
+/// encrypt the backup with a passphrase. When encryption is on it collects a
+/// passphrase + confirmation, shows an advisory strength hint, and makes the
+/// no-recovery caveat explicit. Returns an [_ExportChoice], or `null` on cancel.
+class _EncryptExportDialog extends StatefulWidget {
+  const _EncryptExportDialog();
+
+  @override
+  State<_EncryptExportDialog> createState() => _EncryptExportDialogState();
+}
+
+class _EncryptExportDialogState extends State<_EncryptExportDialog> {
+  final TextEditingController _passphrase = TextEditingController();
+  final TextEditingController _confirm = TextEditingController();
+  bool _encrypt = false;
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _passphrase.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  bool get _canExport {
+    if (!_encrypt) return true;
+    final pass = _passphrase.text;
+    return pass.isNotEmpty && pass == _confirm.text;
+  }
+
+  void _submit() {
+    if (!_canExport) return;
+    Navigator.of(context).pop(
+      _ExportChoice(
+        encrypt: _encrypt,
+        passphrase: _encrypt ? _passphrase.text : null,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final passphrasesDiffer =
+        _encrypt &&
+        _confirm.text.isNotEmpty &&
+        _passphrase.text != _confirm.text;
+    final strength = _passphraseStrength(_passphrase.text);
+    return AlertDialog(
+      key: const ValueKey('export-backup-dialog'),
+      title: const Text('Export a backup'),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'This saves everything in the app — your collection, programs, '
+                'dialects, themes, and settings — to a file you can keep or '
+                'move to another device.',
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SwitchListTile(
+                key: const ValueKey('export-encrypt-toggle'),
+                contentPadding: EdgeInsets.zero,
+                value: _encrypt,
+                onChanged: (v) => setState(() => _encrypt = v),
+                title: const Text('Encrypt this backup with a passphrase'),
+                subtitle: const Text(
+                  'Protects the file so only someone with the passphrase can '
+                  'open it.',
+                ),
+              ),
+              if (_encrypt) ...[
+                const SizedBox(height: AppSpacing.sm),
+                TextField(
+                  key: const ValueKey('export-passphrase-field'),
+                  controller: _passphrase,
+                  obscureText: _obscure,
+                  autofocus: true,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: 'Passphrase',
+                    suffixIcon: IconButton(
+                      key: const ValueKey('export-passphrase-visibility'),
+                      icon: Icon(
+                        _obscure
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                      tooltip: _obscure ? 'Show passphrase' : 'Hide passphrase',
+                      onPressed: () => setState(() => _obscure = !_obscure),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextField(
+                  key: const ValueKey('export-confirm-field'),
+                  controller: _confirm,
+                  obscureText: _obscure,
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) => _submit(),
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: 'Confirm passphrase',
+                    errorText: passphrasesDiffer
+                        ? "Passphrases don't match"
+                        : null,
+                  ),
+                ),
+                if (strength.label.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: LinearProgressIndicator(
+                          value: strength.fraction,
+                          minHeight: 6,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        'Strength: ${strength.label}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.md),
+                Container(
+                  key: const ValueKey('export-no-recovery-warning'),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        color: theme.colorScheme.onErrorContainer,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          "We can't recover this passphrase. If you lose it, "
+                          'this backup can never be opened — there is no reset '
+                          'and no recovery. Store it somewhere safe.',
+                          style: TextStyle(
+                            color: theme.colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('export-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const ValueKey('export-confirm'),
+          onPressed: _canExport ? _submit : null,
+          child: Text(_encrypt ? 'Encrypt & export' : 'Export'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Prompts for the passphrase of an encrypted backup during restore (issue
+/// #461). Returns the passphrase, or `null` on cancel.
+class _PassphrasePromptDialog extends StatefulWidget {
+  const _PassphrasePromptDialog();
+
+  @override
+  State<_PassphrasePromptDialog> createState() =>
+      _PassphrasePromptDialogState();
+}
+
+class _PassphrasePromptDialogState extends State<_PassphrasePromptDialog> {
+  final TextEditingController _controller = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_controller.text.isEmpty) return;
+    Navigator.of(context).pop(_controller.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasContent = _controller.text.isNotEmpty;
+    return AlertDialog(
+      key: const ValueKey('decrypt-passphrase-dialog'),
+      title: const Text('Enter passphrase'),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This backup is encrypted. Enter its passphrase to unlock and '
+              'restore it.',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              key: const ValueKey('decrypt-passphrase-field'),
+              controller: _controller,
+              obscureText: _obscure,
+              autofocus: true,
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) => _submit(),
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: 'Passphrase',
+                suffixIcon: IconButton(
+                  key: const ValueKey('decrypt-passphrase-visibility'),
+                  icon: Icon(
+                    _obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
+                  tooltip: _obscure ? 'Show passphrase' : 'Hide passphrase',
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('decrypt-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const ValueKey('decrypt-confirm'),
+          onPressed: hasContent ? _submit : null,
+          child: const Text('Unlock & restore'),
+        ),
+      ],
+    );
+  }
+}
+
+/// A minimal non-dismissible progress dialog shown while the encrypt/decrypt
+/// step runs (issue #461).
+class _ProgressDialog extends StatelessWidget {
+  const _ProgressDialog({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      key: const ValueKey('backup-progress-dialog'),
+      content: Row(
+        children: [
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: Text(message)),
+        ],
+      ),
     );
   }
 }

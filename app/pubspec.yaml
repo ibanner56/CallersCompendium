@@ -27,6 +27,12 @@ dependencies:
   # no-op. Pinned to the version already in the root lock, so the resolve is a
   # `--enforce-lockfile` no-op.
   crypto: ^3.0.6
+  # Optional passphrase-encrypted backup export (issue #461). Provides the vetted
+  # primitives we must NOT hand-roll: Argon2id (memory-hard KDF),
+  # XChaCha20-Poly1305 + AES-GCM (AEAD), and PBKDF2-HMAC-SHA256 (fallback KDF).
+  # Pure-Dart (works on every target and in tests) so it needs no native plugin;
+  # the heavy KDF runs off the UI isolate. See src/data/backup_crypto.dart.
+  cryptography: ^2.9.0
   drift: ^2.34.2
   drift_flutter: ^0.3.1
   path: ^1.9.0
