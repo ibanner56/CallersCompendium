@@ -137,7 +137,7 @@ void main() {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       final rel = entity.path
           .replaceFirst(RegExp(r'^lib[/\\]'), 'lib/')
-          .replaceAll(r'\', '/');
+          .replaceAll('\\', '/');
       final relFromLib = rel.substring('lib/'.length);
       if (hardcodedUiStringAllowlist.contains(relFromLib)) continue;
       final hits = scan(entity);
