@@ -1096,6 +1096,57 @@ jobs:
             --pub-date "${{ needs.meta.outputs.pub_date }}" \
             --extra-file "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
 
+      # Update-manifest signing availability gate (issue #431), mirroring the
+      # Apple/Android signing gates above: `secrets` context is NOT allowed in a
+      # step-level `if:`, so read the secret via `env:` and export a plain
+      # `signing=configured|missing` output the sign step below gates on. The
+      # signing key is the maintainer's Ed25519 PRIVATE key (PEM). When it is
+      # absent the whole signing path is skipped with a ::notice:: so CI stays
+      # green WITHOUT the secret (the client then fails closed and simply never
+      # offers an update until the key + pinned public key are provisioned).
+      - name: Determine update-signing availability
+        id: update_signing
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${UPDATE_SIGNING_KEY:-}" ]; then
+            echo "signing=configured" >> "$GITHUB_OUTPUT"
+            echo "Update-signing key configured; signing the channel manifest."
+          else
+            echo "signing=missing" >> "$GITHUB_OUTPUT"
+            echo "::notice::UPDATE_SIGNING_KEY not configured; skipping update-manifest signing (client fails closed until the key + pinned public key are provisioned)."
+          fi
+
+      # Produce the manifest's detached Ed25519 signature (issue #431): a raw
+      # (PureEdDSA) signature over the EXACT bytes of dist/<channel>.json,
+      # base64-encoded into dist/<channel>.json.sig — the format the in-app
+      # client verifies against the pinned public key. `openssl pkeyutl -rawin`
+      # is required for Ed25519 (one-shot over the whole message; no external
+      # digest). The private key never touches disk beyond RUNNER_TEMP and is
+      # removed immediately. Gated on the secret being present, so this step is a
+      # no-op when unsigned (CI stays green).
+      - name: Sign the channel manifest (Ed25519 detached)
+        if: steps.update_signing.outputs.signing == 'configured'
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+          CHANNEL: ${{ needs.meta.outputs.channel }}
+        run: |
+          set -euo pipefail
+          key_file="$RUNNER_TEMP/update_signing_key.pem"
+          umask 077
+          printf '%s' "$UPDATE_SIGNING_KEY" > "$key_file"
+          trap 'rm -f "$key_file"' EXIT
+          sig_raw="$RUNNER_TEMP/${CHANNEL}.json.sig.raw"
+          openssl pkeyutl -sign -rawin \
+            -inkey "$key_file" \
+            -in "dist/${CHANNEL}.json" \
+            -out "$sig_raw"
+          # 64-byte Ed25519 signature -> single-line standard base64.
+          base64 -w0 "$sig_raw" > "dist/${CHANNEL}.json.sig" 2>/dev/null \
+            || base64 "$sig_raw" | tr -d '\n' > "dist/${CHANNEL}.json.sig"
+          echo "Wrote dist/${CHANNEL}.json.sig ($(wc -c < "dist/${CHANNEL}.json.sig") base64 bytes)"
+
       # Hand the freshly-generated channel manifest to the `pages` job (A11c),
       # which publishes it to the gh-pages branch so the client's fixed URL
       # (kUpdateManifestBaseUrl) resolves. Uploading just this one file keeps the
@@ -1105,7 +1156,13 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: channel-manifest
-          path: dist/${{ needs.meta.outputs.channel }}.json
+          # The manifest is always present; the `.sig` is included only when the
+          # signing step ran (secret present). `if-no-files-found: error` still
+          # guards the required manifest — a missing optional `.sig` does not
+          # fail the upload because the manifest pattern always matches.
+          path: |
+            dist/${{ needs.meta.outputs.channel }}.json
+            dist/${{ needs.meta.outputs.channel }}.json.sig
           if-no-files-found: error
           retention-days: 7
 
@@ -1180,6 +1237,11 @@ jobs:
         run: |
           set -euo pipefail
           files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/${CHANNEL}.json" "dist/sbom-${VERSION}.cdx.json")
+          # Attach the manifest's detached signature too when it was produced
+          # (issue #431); absent when UPDATE_SIGNING_KEY is not configured.
+          if [ -f "dist/${CHANNEL}.json.sig" ]; then
+            files+=("dist/${CHANNEL}.json.sig")
+          fi
 
           pre_flag=()
           if [ "$PRERELEASE" = "true" ]; then pre_flag=(--prerelease); fi
@@ -1308,7 +1370,15 @@ jobs:
           TAG: ${{ needs.meta.outputs.tag }}
         run: |
           set -euo pipefail
+          sig_args=()
+          # Publish the detached signature next to the manifest when it exists
+          # (issue #431); the client fetches <channel>.json.sig and verifies it
+          # against the pinned public key. Absent when signing was skipped.
+          if [ -f "manifest/${CHANNEL}.json.sig" ]; then
+            sig_args=(--signature "manifest/${CHANNEL}.json.sig")
+          fi
           bash tools/release/publish_pages_manifest.sh \
             --manifest "manifest/${CHANNEL}.json" \
             --channel "$CHANNEL" \
-            --tag "$TAG"
+            --tag "$TAG" \
+            "${sig_args[@]}"

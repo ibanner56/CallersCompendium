@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:compendium_app/src/update/semver.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
@@ -38,11 +39,13 @@ void main() {
       final repos = openTestRepositories();
       // The fetcher completes only when we choose, so we can flip channels
       // while the (stable) check is still in flight.
-      final gate = Completer<String?>();
+      final gate = Completer<List<int>?>();
       final controller = UpdateController(
         repos.settings,
         service: UpdateService(
           fetcher: (channel, {http.Client? client}) => gate.future,
+          signatureFetcher: (channel, {http.Client? client}) async => "sig",
+          signatureVerifier: (bytes, sig) async => true,
         ),
         currentVersion: SemVer.tryParse('0.1.0'),
         platform: UpdatePlatform.linux,
@@ -59,7 +62,7 @@ void main() {
       expect(controller.status, UpdateCheckStatus.idle);
 
       // The in-flight stable check now completes with a newer stable manifest.
-      gate.complete(_stableManifest);
+      gate.complete(utf8.encode(_stableManifest));
       await pending;
 
       // The stale cross-channel result must be dropped: no banner, and the
@@ -72,11 +75,13 @@ void main() {
 
   test('a check whose channel is unchanged applies its result', () async {
     final repos = openTestRepositories();
-    final gate = Completer<String?>();
+    final gate = Completer<List<int>?>();
     final controller = UpdateController(
       repos.settings,
       service: UpdateService(
         fetcher: (channel, {http.Client? client}) => gate.future,
+        signatureFetcher: (channel, {http.Client? client}) async => 'sig',
+        signatureVerifier: (bytes, sig) async => true,
       ),
       currentVersion: SemVer.tryParse('0.1.0'),
       platform: UpdatePlatform.linux,
@@ -86,7 +91,7 @@ void main() {
     await controller.load();
 
     final pending = controller.checkNow();
-    gate.complete(_stableManifest);
+    gate.complete(utf8.encode(_stableManifest));
     await pending;
 
     expect(controller.status, UpdateCheckStatus.updateAvailable);

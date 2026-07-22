@@ -326,6 +326,98 @@ cross-channel-preservation contract:
 python3 tools/release/test_publish_pages_manifest.py
 ```
 
+## Signing the update manifest (Ed25519, issue #431)
+
+The in-app update client verifies **integrity** with the per-artifact `sha256`
+in the manifest, but that only proves an artifact matches what the manifest
+claims — not that the manifest itself is authentic. To close that gap the client
+also verifies a **detached Ed25519 signature** over the manifest against an
+**in-app pinned public key**. A manifest with a missing, invalid, or malformed
+signature — or when no key is pinned — is **refused as a silent no-op** (never an
+install). This is a fail-closed security gate (ADR-002 §6, OWASP A08).
+
+### Signature format
+
+- **Algorithm:** Ed25519 (PureEdDSA — signs the whole message, no external
+  prehash).
+- **Signed bytes:** the **exact bytes** of `<channel>.json` as published (the
+  client verifies over the raw fetched bytes, before any JSON parse).
+- **File:** `<channel>.json.sig`, served next to `<channel>.json` on `gh-pages`
+  (e.g. `stable.json.sig`). Its body is the **standard base64** of the raw
+  **64-byte** Ed25519 signature (a trailing newline is tolerated).
+- **Pinned key:** `kUpdateManifestPublicKey` in
+  `app/lib/src/update/update_config.dart` — the standard base64 of the **32-byte**
+  Ed25519 public key. It ships as an **empty-string placeholder**, which makes
+  verification fail closed so the client never offers an update until the real
+  key is pinned.
+
+Client verification lives in `app/lib/src/update/update_signature.dart` and is
+fully unit-tested with in-test keypairs.
+
+### How CI signs it (non-breaking without the secret)
+
+The `publish` job signs the manifest **only when** the `UPDATE_SIGNING_KEY`
+secret (the Ed25519 **private key** in PEM form) is present. A
+`Determine update-signing availability` gate reads the secret via `env:` and, if
+absent, **skips signing with a `::notice::`** — the release still succeeds, just
+without a `.sig` (the client then fails closed and offers no update). When the
+secret is present, the `Sign the channel manifest` step runs:
+
+```sh
+openssl pkeyutl -sign -rawin \
+  -inkey "$UPDATE_SIGNING_KEY_PEM" \
+  -in "dist/<channel>.json" \
+  -out "<channel>.json.sig.raw"
+base64 -w0 "<channel>.json.sig.raw" > "dist/<channel>.json.sig"
+```
+
+The `.sig` is attached to the draft release and published to `gh-pages` next to
+the manifest (via `publish_pages_manifest.sh --signature …`).
+
+### Maintainer ops: enabling signed updates
+
+Signed updates are **off until a maintainer provisions the key** (the shipped
+placeholder makes the client fail closed). To turn them on:
+
+1. **Generate an Ed25519 keypair** (private key stays secret; never commit it):
+
+   ```sh
+   openssl genpkey -algorithm ed25519 -out update_signing_key.pem
+   # Extract the raw 32-byte public key as standard base64 (what the app pins):
+   openssl pkey -in update_signing_key.pem -pubout -outform DER \
+     | tail -c 32 | base64
+   ```
+
+2. **Add the private key as a CI secret** named `UPDATE_SIGNING_KEY`
+   (repo/organization **Settings → Secrets and variables → Actions**). Paste the
+   full PEM (`-----BEGIN PRIVATE KEY----- … -----END PRIVATE KEY-----`).
+
+3. **Pin the public key**: replace the empty `kUpdateManifestPublicKey` in
+   `app/lib/src/update/update_config.dart` with the base64 from step 1, and
+   **ship an app release** carrying it. Only clients built with the pinned key
+   can verify — so the pinned key must reach users **before** the first signed
+   manifest is the only one they can use.
+
+4. **Verify end-to-end** after the next release: confirm
+   `https://ibanner56.github.io/CallersCompendium/stable.json.sig` resolves and a
+   client build with the pinned key offers the update.
+
+### Key rotation
+
+Because each client **pins** a public key, rotation must be staged so old
+clients are not stranded:
+
+1. Generate the new keypair and **pin the new public key in an app release**
+   first (clients now trust the new key).
+2. Give users time to update to that build.
+3. **Then** swap `UPDATE_SIGNING_KEY` to the new private key so subsequent
+   manifests are signed with it.
+
+Never swap the CI signing key before the matching public key has shipped to
+clients — those clients would reject every new manifest (fail closed) until they
+update. If a private key is compromised, rotate immediately and treat any
+manifest signed by the old key as untrusted.
+
 ## Landing page (GitHub Pages)
 
 The public landing page at <https://ibanner56.github.io/CallersCompendium/> lives

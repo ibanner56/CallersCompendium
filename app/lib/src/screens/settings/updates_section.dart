@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../app_metadata.dart';
 import '../../theme/app_spacing.dart';
+import '../../update/artifact_handoff.dart';
 import '../../update/update_controller.dart';
 import '../../update/update_scope.dart';
 import '../../widgets/section_header.dart';
@@ -147,11 +148,12 @@ class UpdatesSection extends StatelessWidget {
         return const ListTile(
           key: ValueKey('updates-download'),
           leading: Icon(Icons.open_in_new),
-          title: Text('Opening the installer'),
+          title: Text('Preparing the installer'),
           subtitle: Text('Handing the verified update to your system…'),
           trailing: spinner,
         );
       case AssistedDownloadStatus.completed:
+        final revealed = controller.handoffResult == HandoffResult.revealed;
         return ListTile(
           key: const ValueKey('updates-download'),
           leading: Icon(
@@ -159,8 +161,11 @@ class UpdatesSection extends StatelessWidget {
             color: theme.colorScheme.primary,
           ),
           title: const Text('Update downloaded'),
-          subtitle: const Text(
-            'Follow your system installer to finish updating.',
+          subtitle: Text(
+            revealed
+                ? 'Verified and revealed in your file manager — run the '
+                      'installer to finish updating.'
+                : 'Follow your system installer to finish updating.',
           ),
         );
       case AssistedDownloadStatus.failed:
