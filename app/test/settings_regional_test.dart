@@ -103,28 +103,22 @@ Future<_RegionalNotifiers> _pumpRegional(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('regional section renders three live format/language controls', (
+  testWidgets('renders two live controls and a disabled first-day-of-week row', (
     tester,
   ) async {
     final repos = openTestRepositories();
     await _pumpRegional(tester, repos);
 
-    // All three controls are real, enabled dropdowns (no "Coming soon").
+    // Language and date format are real, enabled controls.
     expect(find.byKey(const ValueKey('regional-language')), findsOneWidget);
     expect(find.byKey(const ValueKey('regional-date-format')), findsOneWidget);
+    // First day of week is present but disabled with a "Coming soon" badge: its
+    // plumbing ships, but no consumer applies it yet.
     expect(
       find.byKey(const ValueKey('regional-first-day-of-week')),
       findsOneWidget,
     );
-    expect(find.text('Coming soon'), findsNothing);
-    // The platform-picker limitation note is surfaced to the user.
-    expect(
-      find.text(
-        "The system date picker follows the app's active language, so this "
-        "setting doesn't change it.",
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Coming soon'), findsOneWidget);
   });
 
   testWidgets('the date-format dropdown shows the persisted value', (
@@ -237,21 +231,26 @@ void main() {
     expect(notifiers.locale.value, isNull);
   });
 
-  testWidgets('changing first day of week persists its key and updates state', (
+  testWidgets('the first-day-of-week row is disabled and does not persist', (
     tester,
   ) async {
     final repos = openTestRepositories();
     final notifiers = await _pumpRegional(tester, repos);
 
-    await tester.tap(find.byKey(const ValueKey('regional-first-day-of-week')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Monday').last);
+    // The row is a disabled ListTile (not an interactive control): tapping it
+    // opens no menu and writes nothing, and the notifier keeps its default.
+    final tile = tester.widget<ListTile>(
+      find.byKey(const ValueKey('regional-first-day-of-week')),
+    );
+    expect(tile.enabled, isFalse);
+
+    await tester.tap(
+      find.byKey(const ValueKey('regional-first-day-of-week')),
+      warnIfMissed: false,
+    );
     await tester.pumpAndSettle();
 
-    expect(
-      await repos.settings.get(kFirstDayOfWeekKey),
-      FirstDayOfWeekPref.monday.token,
-    );
-    expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.monday);
+    expect(await repos.settings.get(kFirstDayOfWeekKey), isNull);
+    expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.system);
   });
 }

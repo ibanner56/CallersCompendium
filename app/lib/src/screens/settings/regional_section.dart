@@ -1,7 +1,6 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
 import '../../data/date_format_scope.dart';
-import '../../data/first_day_of_week_scope.dart';
 import '../../data/locale_scope.dart';
 import '../../data/regional_formats.dart';
 import '../../data/repositories_scope.dart';
@@ -9,10 +8,13 @@ import '../../../l10n/app_localizations.dart';
 import '../../widgets/section_header.dart';
 
 /// The Language & region settings section (ROADMAP G.8): the app-language
-/// selector plus regional-format preferences (date format, first day of week).
+/// selector plus the date-format preference.
 ///
-/// Owns the writes for all three controls and reads their live scopes so the UI
-/// (and the rest of the app) re-renders immediately when a value changes.
+/// Owns the writes for the two live controls (app language, date format) and
+/// reads their live scopes so the UI (and the rest of the app) re-renders
+/// immediately when a value changes. The first-day-of-week preference has no
+/// active consumer yet, so it is shown as a disabled "Coming soon" row while
+/// its notifier/scope/storage still ship for a future consumer.
 class RegionalSection extends StatefulWidget {
   const RegionalSection({super.key});
 
@@ -29,12 +31,6 @@ class _RegionalSectionState extends State<RegionalSection> {
     await repos.settings.set(kDateFormatKey, value.token);
   }
 
-  Future<void> _onFirstDayOfWeekChanged(FirstDayOfWeekPref value) async {
-    FirstDayOfWeekScope.notifierOf(context).value = value;
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kFirstDayOfWeekKey, value.token);
-  }
-
   Future<void> _onLocaleChanged(Locale? value) async {
     // Changing the locale notifier drives MaterialApp.locale, so the whole app
     // re-renders in the selected language live.
@@ -49,10 +45,8 @@ class _RegionalSectionState extends State<RegionalSection> {
   Widget build(BuildContext context) {
     return _RegionalView(
       dateFormat: DateFormatScope.of(context),
-      firstDayOfWeek: FirstDayOfWeekScope.of(context),
       locale: LocaleScope.of(context),
       onDateFormatChanged: _onDateFormatChanged,
-      onFirstDayOfWeekChanged: _onFirstDayOfWeekChanged,
       onLocaleChanged: _onLocaleChanged,
     );
   }
@@ -60,25 +54,22 @@ class _RegionalSectionState extends State<RegionalSection> {
 
 /// The Language & region section's presentational body (ROADMAP G.8).
 ///
-/// Ships three live controls: the app-language selector, the date-format
-/// preference (how program event dates render), and the first-day-of-week
-/// preference. All strings come from [AppLocalizations] — this section is the
-/// extraction proof for the i18n foundation (PR 1).
+/// Ships two live controls — the app-language selector and the date-format
+/// preference (how program event dates render) — plus a disabled "Coming soon"
+/// first-day-of-week row (no active consumer yet). All strings come from
+/// [AppLocalizations] — this section is the extraction proof for the i18n
+/// foundation (PR 1).
 class _RegionalView extends StatelessWidget {
   const _RegionalView({
     required this.dateFormat,
-    required this.firstDayOfWeek,
     required this.locale,
     required this.onDateFormatChanged,
-    required this.onFirstDayOfWeekChanged,
     required this.onLocaleChanged,
   });
 
   final DateFormatPref dateFormat;
-  final FirstDayOfWeekPref firstDayOfWeek;
   final Locale? locale;
   final ValueChanged<DateFormatPref> onDateFormatChanged;
-  final ValueChanged<FirstDayOfWeekPref> onFirstDayOfWeekChanged;
   final ValueChanged<Locale?> onLocaleChanged;
 
   static String _dateFormatLabel(AppLocalizations l10n, DateFormatPref pref) {
@@ -91,19 +82,6 @@ class _RegionalView extends StatelessWidget {
         return l10n.settingsDateFormatDmy;
       case DateFormatPref.mdy:
         return l10n.settingsDateFormatMdy;
-    }
-  }
-
-  static String _firstDayLabel(AppLocalizations l10n, FirstDayOfWeekPref pref) {
-    switch (pref) {
-      case FirstDayOfWeekPref.system:
-        return l10n.commonSystemDefault;
-      case FirstDayOfWeekPref.sunday:
-        return l10n.settingsFirstDayOfWeekSunday;
-      case FirstDayOfWeekPref.monday:
-        return l10n.settingsFirstDayOfWeekMonday;
-      case FirstDayOfWeekPref.saturday:
-        return l10n.settingsFirstDayOfWeekSaturday;
     }
   }
 
@@ -168,33 +146,18 @@ class _RegionalView extends StatelessWidget {
             ],
           ),
         ),
+        // Plumbing (pref/scope/storage) ships, but there is no consumer yet:
+        // showDatePicker takes its first day of week from the locale, and the
+        // app draws no week/month grid of its own. Rather than surface a live
+        // control that changes nothing observable, show a disabled "Coming
+        // soon" row (matching the app's convention) until a real consumer lands.
         ListTile(
+          key: const ValueKey('regional-first-day-of-week'),
+          enabled: false,
           title: Text(l10n.settingsFirstDayOfWeekTitle),
           subtitle: Text(l10n.settingsFirstDayOfWeekSubtitle),
           isThreeLine: true,
-          trailing: DropdownButton<FirstDayOfWeekPref>(
-            key: const ValueKey('regional-first-day-of-week'),
-            value: firstDayOfWeek,
-            onChanged: (value) {
-              if (value != null) onFirstDayOfWeekChanged(value);
-            },
-            items: [
-              for (final pref in FirstDayOfWeekPref.values)
-                DropdownMenuItem(
-                  value: pref,
-                  child: Text(_firstDayLabel(l10n, pref)),
-                ),
-            ],
-          ),
-        ),
-        // Documents the platform limitation (ROADMAP G.8): showDatePicker takes
-        // its first day of week from the locale and can't be overridden.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Text(
-            l10n.settingsFirstDayOfWeekPickerNote,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          trailing: Text(l10n.commonComingSoon),
         ),
       ],
     );

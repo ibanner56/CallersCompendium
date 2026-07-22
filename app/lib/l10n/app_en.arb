@@ -34,7 +34,12 @@
 
   "commonSystemDefault": "System default",
   "@commonSystemDefault": {
-    "description": "Generic option meaning 'follow the device/platform setting'. Shared by the date-format, first-day-of-week, and app-language controls."
+    "description": "Generic option meaning 'follow the device/platform setting'. Shared by the date-format and app-language controls."
+  },
+
+  "commonComingSoon": "Coming soon",
+  "@commonComingSoon": {
+    "description": "Trailing badge on a settings control whose feature is not available yet."
   },
 
   "settingsLanguageRegionTitle": "Language & region",
@@ -81,25 +86,9 @@
   "@settingsFirstDayOfWeekTitle": {
     "description": "Title of the control that chooses which day the week starts on."
   },
-  "settingsFirstDayOfWeekSubtitle": "Choose which day the week starts on.",
+  "settingsFirstDayOfWeekSubtitle": "Which day the week starts on in the app's date views. Coming in a future update.",
   "@settingsFirstDayOfWeekSubtitle": {
-    "description": "Subtitle for the first-day-of-week control."
-  },
-  "settingsFirstDayOfWeekSunday": "Sunday",
-  "@settingsFirstDayOfWeekSunday": {
-    "description": "First-day-of-week option: the week starts on Sunday."
-  },
-  "settingsFirstDayOfWeekMonday": "Monday",
-  "@settingsFirstDayOfWeekMonday": {
-    "description": "First-day-of-week option: the week starts on Monday."
-  },
-  "settingsFirstDayOfWeekSaturday": "Saturday",
-  "@settingsFirstDayOfWeekSaturday": {
-    "description": "First-day-of-week option: the week starts on Saturday."
-  },
-  "settingsFirstDayOfWeekPickerNote": "The system date picker follows the app's active language, so this setting doesn't change it.",
-  "@settingsFirstDayOfWeekPickerNote": {
-    "description": "Caption noting that the platform date picker derives its first day of week from the app's active locale (set by the App language preference), so the first-day-of-week setting cannot override it."
+    "description": "Subtitle for the disabled, not-yet-available first-day-of-week row. Describes the future feature without implying it works today."
   },
 
   "settingsAppLanguageTitle": "App language",

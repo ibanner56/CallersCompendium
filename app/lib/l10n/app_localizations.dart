@@ -136,11 +136,17 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
-  /// Generic option meaning 'follow the device/platform setting'. Shared by the date-format, first-day-of-week, and app-language controls.
+  /// Generic option meaning 'follow the device/platform setting'. Shared by the date-format and app-language controls.
   ///
   /// In en, this message translates to:
   /// **'System default'**
   String get commonSystemDefault;
+
+  /// Trailing badge on a settings control whose feature is not available yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get commonComingSoon;
 
   /// Label of the Settings section that groups app-language and regional-format preferences.
   ///
@@ -196,35 +202,11 @@ abstract class AppLocalizations {
   /// **'First day of week'**
   String get settingsFirstDayOfWeekTitle;
 
-  /// Subtitle for the first-day-of-week control.
+  /// Subtitle for the disabled, not-yet-available first-day-of-week row. Describes the future feature without implying it works today.
   ///
   /// In en, this message translates to:
-  /// **'Choose which day the week starts on.'**
+  /// **'Which day the week starts on in the app\'s date views. Coming in a future update.'**
   String get settingsFirstDayOfWeekSubtitle;
-
-  /// First-day-of-week option: the week starts on Sunday.
-  ///
-  /// In en, this message translates to:
-  /// **'Sunday'**
-  String get settingsFirstDayOfWeekSunday;
-
-  /// First-day-of-week option: the week starts on Monday.
-  ///
-  /// In en, this message translates to:
-  /// **'Monday'**
-  String get settingsFirstDayOfWeekMonday;
-
-  /// First-day-of-week option: the week starts on Saturday.
-  ///
-  /// In en, this message translates to:
-  /// **'Saturday'**
-  String get settingsFirstDayOfWeekSaturday;
-
-  /// Caption noting that the platform date picker derives its first day of week from the app's active locale (set by the App language preference), so the first-day-of-week setting cannot override it.
-  ///
-  /// In en, this message translates to:
-  /// **'The system date picker follows the app\'s active language, so this setting doesn\'t change it.'**
-  String get settingsFirstDayOfWeekPickerNote;
 
   /// Title of the control that chooses the language of the app's interface.
   ///
