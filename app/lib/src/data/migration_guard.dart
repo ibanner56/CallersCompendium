@@ -47,6 +47,104 @@ class DatabaseDowngradeError implements Exception {
       'version $appVersion)';
 }
 
+/// The most likely reason a pre-migration snapshot could not be written, so the
+/// consent surface can name the probable cause in plain language. Classified by
+/// [_classifySnapshotFailure] (invoked from [runMigrationPreflight]) from the
+/// underlying [FileSystemException]'s OS error code; never trusts raw exception
+/// text for control flow.
+enum SnapshotFailureCause {
+  /// The volume holding the database has no room for the snapshot copy
+  /// (`ENOSPC` / Windows disk-full codes).
+  diskFull,
+
+  /// The `db_backups` directory (or a parent) cannot be created or written
+  /// (`EACCES`/`EPERM`/`EROFS`/`ENOTDIR` / Windows access-denied).
+  unwritableBackupsDir,
+
+  /// Anything else (a WAL checkpoint failure, an unexpected I/O error, …).
+  unknown,
+}
+
+/// Describes a failed pre-migration snapshot attempt, handed to the injected
+/// [SnapshotFailureDecision] so the app can ask the user whether to migrate
+/// without a recoverable backup. Carries only classified, non-sensitive data;
+/// [error] is retained for diagnostics/logging and must not be rendered raw
+/// (it can embed absolute filesystem paths).
+@immutable
+class SnapshotFailure {
+  const SnapshotFailure({
+    required this.fromVersion,
+    required this.toVersion,
+    required this.cause,
+    required this.error,
+  });
+
+  /// The `user_version` currently persisted in the database file (the version
+  /// the pending migration is upgrading *from*).
+  final int fromVersion;
+
+  /// The running app's schema version (the version being upgraded *to*).
+  final int toVersion;
+
+  /// The classified likely cause, used to phrase the consent copy.
+  final SnapshotFailureCause cause;
+
+  /// The underlying error, for logging/diagnostics only — never surfaced raw.
+  final Object error;
+
+  /// A short, plain-language sentence naming the probable cause, safe to embed
+  /// in user-facing copy. Empty when the cause could not be determined.
+  String get likelyCause {
+    switch (cause) {
+      case SnapshotFailureCause.diskFull:
+        return 'Your device appears to be low on storage space.';
+      case SnapshotFailureCause.unwritableBackupsDir:
+        return 'The automatic backups folder could not be written to.';
+      case SnapshotFailureCause.unknown:
+        return '';
+    }
+  }
+
+  @override
+  String toString() =>
+      'SnapshotFailure(from $fromVersion -> $toVersion, cause: $cause, '
+      'error: $error)';
+}
+
+/// Decision seam invoked by [runMigrationPreflight] when the pre-migration
+/// snapshot fails. Returns `true` to proceed with the migration anyway (with no
+/// recoverable backup) or `false` to abort startup. Kept UI-free so the guard
+/// stays testable; the app supplies an implementation that surfaces a blocking
+/// consent dialog and returns the user's explicit choice.
+typedef SnapshotFailureDecision =
+    Future<bool> Function(SnapshotFailure failure);
+
+/// Thrown by [runMigrationPreflight] when the pre-migration snapshot fails and
+/// the [SnapshotFailureDecision] declines to proceed (or none was supplied).
+///
+/// Fail-closed, mirroring [DatabaseDowngradeError]: the migration must NOT run,
+/// so no schema change happens and the file is left intact for the user to back
+/// up manually / free disk / fix permissions before reopening the app.
+class MigrationSnapshotAborted implements Exception {
+  const MigrationSnapshotAborted(this.failure);
+
+  /// The classified failure that prompted the aborted migration.
+  final SnapshotFailure failure;
+
+  /// User-facing explanation rendered on the startup terminal screen.
+  String get message {
+    final cause = failure.likelyCause;
+    return 'Caller\u2019s Compendium didn\u2019t start because it couldn\u2019t '
+        'create an automatic backup before upgrading your saved data. '
+        '${cause.isEmpty ? '' : '$cause '}'
+        'Free up space (or fix the backups folder), then reopen the app \u2014 '
+        'or reopen and choose to continue without a backup.';
+  }
+
+  @override
+  String toString() => 'MigrationSnapshotAborted($failure)';
+}
+
 /// Runs the data-safety preflight against the database file *before* drift opens
 /// it. Two guards, in order:
 ///
@@ -56,8 +154,13 @@ class DatabaseDowngradeError implements Exception {
 /// 2. **Backup-before-migrate** — if an upgrade is pending (file version <
 ///    running), snapshot the file into [snapshotDir] first (retaining the
 ///    newest [retain]), so a botched migration is recoverable. This step is
-///    *fail-open*: if the snapshot cannot be written, it is logged and the
-///    migration proceeds (a safety net must never block startup).
+///    **fail-CLOSED**: if the snapshot cannot be written, the migration is
+///    *not* allowed to silently proceed. Instead the failure is classified into
+///    a [SnapshotFailure] and handed to [onSnapshotFailure], which returns the
+///    user's explicit choice — `true` to proceed without a backup, `false` to
+///    abort. If the callback declines (or none is supplied — the safest
+///    default), a [MigrationSnapshotAborted] is thrown and no schema change
+///    happens (issue #442).
 ///
 /// A missing file (fresh install) or an uninitialized file (`user_version == 0`,
 /// which drift will populate via `onCreate`) is a no-op.
@@ -71,6 +174,7 @@ Future<void> runMigrationPreflight({
   required int runningSchemaVersion,
   int retain = kDefaultSnapshotRetention,
   DateTime Function() now = _utcNow,
+  SnapshotFailureDecision? onSnapshotFailure,
 }) async {
   if (!await dbFile.exists()) return;
 
@@ -86,12 +190,13 @@ Future<void> runMigrationPreflight({
   }
 
   if (fileVersion < runningSchemaVersion) {
-    // Asymmetric by design: the downgrade guard above is fail-CLOSED (it must
-    // refuse to open), but the pre-migration snapshot is fail-OPEN. The
-    // snapshot is a safety net; if it can't be written (disk full, unwritable
-    // db_backups, checkpoint failure) we log and proceed so drift still
-    // migrates. A failing backup must never be more harmful than the pre-PR
-    // behavior, which ran upgrades with no snapshot at all.
+    // Symmetric with the downgrade guard above: both are fail-CLOSED. The
+    // pre-migration snapshot is a recoverability safety net; if it can't be
+    // written (disk full, unwritable db_backups, checkpoint failure) we must
+    // NOT silently migrate, because a botched upgrade would then be
+    // unrecoverable. We gate the migration on an explicit user decision
+    // ([onSnapshotFailure]); absent a decision — or a decision to decline — we
+    // abort (issue #442).
     try {
       await snapshotBeforeMigrate(
         dbFile: dbFile,
@@ -101,19 +206,68 @@ Future<void> runMigrationPreflight({
         timestamp: now(),
       );
     } on Object catch (error) {
+      final failure = SnapshotFailure(
+        fromVersion: fileVersion,
+        toVersion: runningSchemaVersion,
+        cause: _classifySnapshotFailure(error),
+        error: error,
+      );
+      // No seam to ask the user (e.g. a headless/test caller that opted out) is
+      // treated as a decline: fail closed rather than assume consent.
+      final proceed = onSnapshotFailure == null
+          ? false
+          : await onSnapshotFailure(failure);
+      if (!proceed) {
+        throw MigrationSnapshotAborted(failure);
+      }
       debugPrint(
-        'Migration preflight: pre-migration snapshot failed, proceeding '
-        'with migration anyway: $error',
+        'Migration preflight: pre-migration snapshot failed; user chose to '
+        'proceed without a backup: $error',
       );
     }
   }
 }
 
+/// Classifies a snapshot [error] into a [SnapshotFailureCause] using the
+/// platform error code first (locale-independent) and the OS message only as a
+/// fallback. Never trusts message text for anything but a coarse hint.
+SnapshotFailureCause _classifySnapshotFailure(Object error) {
+  if (error is FileSystemException) {
+    final code = error.osError?.errorCode;
+    // Disk full: POSIX ENOSPC (28); Windows ERROR_DISK_FULL (112) /
+    // ERROR_HANDLE_DISK_FULL (39).
+    if (code == 28 || code == 112 || code == 39) {
+      return SnapshotFailureCause.diskFull;
+    }
+    // Unwritable path: POSIX EPERM (1), EACCES (13), ENOTDIR (20), EROFS (30);
+    // Windows ERROR_ACCESS_DENIED (5).
+    if (code == 1 || code == 13 || code == 20 || code == 30 || code == 5) {
+      return SnapshotFailureCause.unwritableBackupsDir;
+    }
+    final message = error.osError?.message.toLowerCase() ?? '';
+    if (message.contains('no space') || message.contains('disk full')) {
+      return SnapshotFailureCause.diskFull;
+    }
+    if (message.contains('permission') ||
+        message.contains('denied') ||
+        message.contains('read-only') ||
+        message.contains('not a directory')) {
+      return SnapshotFailureCause.unwritableBackupsDir;
+    }
+  }
+  return SnapshotFailureCause.unknown;
+}
+
 /// App-facing entry point: resolves the real database file + snapshot directory
 /// (via `path_provider`) and runs [runMigrationPreflight]. Wired into
-/// `main.dart`'s startup sequence.
+/// `main.dart`'s startup sequence. [onSnapshotFailure] is the consent seam
+/// invoked only when the pre-migration snapshot fails (see
+/// [runMigrationPreflight]); `main.dart` supplies an implementation that
+/// surfaces a blocking dialog. Left `null` only by callers that intentionally
+/// opt out, in which case a snapshot failure fails closed.
 Future<void> runMigrationPreflightForApp({
   required int runningSchemaVersion,
+  SnapshotFailureDecision? onSnapshotFailure,
 }) async {
   final dbFile = await resolveDatabaseFile();
   final snapshotDir = Directory(
@@ -123,6 +277,7 @@ Future<void> runMigrationPreflightForApp({
     dbFile: dbFile,
     snapshotDir: snapshotDir,
     runningSchemaVersion: runningSchemaVersion,
+    onSnapshotFailure: onSnapshotFailure,
   );
 }
 
