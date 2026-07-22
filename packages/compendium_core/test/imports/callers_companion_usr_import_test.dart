@@ -345,6 +345,41 @@ void main() {
       expect(await dances.listAll(), hasLength(2));
     });
 
+    test(
+      're-import preserves a venueId linked after the first import',
+      () async {
+        final venues = VenueRepository(db);
+
+        final first = await importer.import(
+          _ccUsrBytes(),
+          now: now,
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+        final programId = first.programs.single.id;
+
+        // Simulate a user linking the imported program to a venue entity (the
+        // work PR B wires into the UI). `.USR` data can never supply this id.
+        await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
+        final imported = await programs.getById(programId);
+        await programs.update(imported!.copyWith(venueId: 'v1'));
+
+        // Re-import the identical archive: the provenance-matched rebuild must
+        // carry the app-local venueId forward rather than overwriting it with
+        // null (a silent link loss).
+        final second = await importer.import(
+          _ccUsrBytes(),
+          now: DateTime.utc(2026, 8, 1),
+          newId: sequentialIds(),
+          newSlotId: sequentialIds(),
+        );
+        expect(second.updatedProgramCount, 1);
+
+        final reloaded = await programs.getById(programId);
+        expect(reloaded!.venueId, 'v1', reason: 'venueId survives re-import');
+      },
+    );
+
     test('undo after a re-import restores the prior program state', () async {
       await importer.import(
         _ccUsrBytes(),
