@@ -37,6 +37,24 @@ const List<String> searchIndexSql = [
       'ON dance_figures(move, section)',
 ];
 
+/// Lookup index for `dance_id` on `dance_links` (schema v13).
+///
+/// Unlike the other dance-child tables — `dance_figures {danceId, idx}`,
+/// `dance_authors {danceId, choreographerId}`, `dance_tags {danceId, tagId}`,
+/// `dance_sources {danceId, sourceId}`, `custom_field_values {danceId, fieldId}`
+/// and `provenance {danceId}` — whose composite primary keys lead with
+/// `danceId` (so SQLite's implicit PK index already serves `WHERE dance_id IN
+/// (…)`), `dance_links` is keyed on its own `id` alone. Without this index every
+/// `dance_id IN (…)` chunk in [DanceRepository.listAll]'s batched link loader
+/// (and the single-id lookup behind `getById`) is a full table scan, making the
+/// link hydration O(N²) in row work as links grow with the collection. This
+/// index turns each lookup into an index seek (`SEARCH … USING INDEX`) — the
+/// loader still visits the matched `dance_links` rows to read the other columns
+/// (it is a lookup index, not a covering one), but it no longer scans the whole
+/// table — so the batching scales in execution work, not only in query count.
+const String danceLinksDanceIdIndexSql =
+    'CREATE INDEX IF NOT EXISTS dance_links_dance_id ON dance_links(dance_id)';
+
 /// Settings key marking that a schema migration touched the derived figure
 /// index and the `dance_figures` rows must be rebuilt from `figures_json`.
 ///
@@ -51,7 +69,7 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 12;
+const int kCompendiumSchemaVersion = 13;
 
 /// The Caller's Compendium local database.
 ///
@@ -147,6 +165,13 @@ const int kCompendiumSchemaVersion = 12;
 ///   or figure that can't be cleanly remapped is left byte-identical so it falls
 ///   through to the non-destructive unknown-move path (issue #358) at read time,
 ///   never dropped or corrupted.
+/// - v13 (2026-07-22): performance-only index. Adds
+///   `dance_links_dance_id` (`dance_links(dance_id)`) so the batched link
+///   hydration in [DanceRepository.listAll] (and the single-id lookup behind
+///   `getById`) seeks by index instead of full-scanning `dance_links` on every
+///   `dance_id IN (…)` chunk. Pure DDL: no columns/tables added, no data
+///   rewritten, and the derived `dance_fts`/`dance_figures` indexes are
+///   untouched, so no derived rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -193,6 +218,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       for (final sql in searchIndexSql) {
         await customStatement(sql);
       }
+      await customStatement(danceLinksDanceIdIndexSql);
     },
     onUpgrade: (m, from, to) async {
       // Belt-and-suspenders downgrade guard. drift is forward-only and has no
@@ -347,6 +373,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
             [derivedRebuildRequiredKey, 'true'],
           );
         }
+      }
+      if (from < 13) {
+        // Performance-only index on `dance_links(dance_id)`. `dance_links` is
+        // the one dance-child table not keyed by a `danceId`-leading composite
+        // PK, so before this every batched `dance_id IN (…)` link lookup in
+        // `DanceRepository.listAll` full-scanned the table (O(N²) as links grow
+        // with the collection). Pure DDL — no data touched, no derived rebuild.
+        await customStatement(danceLinksDanceIdIndexSql);
       }
     },
     beforeOpen: (details) async {

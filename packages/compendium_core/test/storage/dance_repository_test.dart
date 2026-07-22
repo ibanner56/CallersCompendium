@@ -352,6 +352,139 @@ void main() {
       final withDeleted = await dances.listAll(includeDeleted: true);
       expect(withDeleted, hasLength(3));
     });
+
+    test(
+      'batched hydration matches single-row getById for every relation',
+      () async {
+        // Two authors, tags, a published source, custom-field defs, and a
+        // related dance so the batched child loaders exercise authors, tags,
+        // links, sources, custom fields, and provenance at once.
+        await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
+        await choreographers.upsert(Choreographer(id: 'c2', name: 'Bob'));
+        await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+        await tags.upsert(Tag(id: 't2', name: 'smooth'));
+        await PublishedSourceRepository(
+          db,
+        ).upsert(PublishedSource(id: 's1', title: 'Zesty Contras'));
+        await customFieldDefs.upsert(
+          CustomFieldDef(
+            id: 'f-text',
+            key: 'origin',
+            label: 'Origin',
+            type: CustomFieldType.text,
+          ),
+        );
+
+        await dances.create(sampleDance(id: 'target', title: 'Aaa Related'));
+        final rich = sampleDance(
+          id: 'rich',
+          title: 'Bbb Rich Dance',
+          // authorIds reversed vs. choreographer id order to prove position
+          // order (not id order) survives the batched load.
+          authorIds: const ['c2', 'c1'],
+          tagIds: const ['t2', 't1'],
+          links: [
+            DanceLink(id: 'l1', kind: LinkKind.video, url: 'https://v.example'),
+            DanceLink(
+              id: 'l2',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'target',
+              label: 'similar',
+            ),
+          ],
+          sourceCitations: [SourceCitation(sourceId: 's1', page: '7')],
+          customFields: [
+            CustomFieldValue(fieldId: 'f-text', value: 'New England'),
+          ],
+          provenance: Provenance(
+            source: ProvenanceSource.contradb,
+            externalId: 'CDB-9',
+            importedAt: DateTime.utc(2026, 2, 1),
+          ),
+        );
+        await dances.create(rich);
+
+        final all = await dances.listAll();
+        final fromList = all.firstWhere((d) => d.id == 'rich');
+        final fromGet = await dances.getById('rich');
+        // The batched list path must produce a value-identical Dance to the
+        // per-row getById path (same fields, same child-collection ordering).
+        expect(fromList, fromGet);
+        expect(fromList, rich);
+        expect(fromList.authorIds, ['c2', 'c1']);
+        expect(fromList.tagIds, ['t2', 't1']);
+        expect(fromList.links.map((l) => l.id), ['l1', 'l2']);
+      },
+    );
+
+    test('batched load spans an id chunk boundary', () async {
+      // More than one _idChunkSize (500) worth of dances, each with an author
+      // and a tag, so the batched loaders must stitch results across chunks.
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
+      await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+      const total = 1050;
+      for (var i = 0; i < total; i++) {
+        await dances.create(
+          sampleDance(
+            id: 'd${i.toString().padLeft(4, '0')}',
+            title: 'Dance ${i.toString().padLeft(4, '0')}',
+            authorIds: const ['c1'],
+            tagIds: const ['t1'],
+          ),
+        );
+      }
+      final all = await dances.listAll();
+      expect(all, hasLength(total));
+      // Every dance keeps its author + tag regardless of which chunk it fell
+      // in (a grouping/merge bug would drop children for later chunks).
+      expect(all.every((d) => d.authorIds.length == 1), isTrue);
+      expect(all.every((d) => d.tagIds.length == 1), isTrue);
+    });
+
+    test(
+      'batches child hydration into a constant number of queries (no N+1)',
+      () async {
+        // The regression guard for the fix: parity tests alone would still pass
+        // against the old per-row _toModel, so assert the query SHAPE too. A
+        // single id-chunk (<= 500 dances) must issue exactly six child selects
+        // total — one per relation table — not six per dance (the old N+1 sent
+        // 6 * N).
+        final counter = DanceChildSelectCounter();
+        final countingDb = openCountingTestDatabase(counter);
+        addTearDown(countingDb.close);
+        final countingDances = DanceRepository(countingDb, contraTaxonomy);
+
+        for (var i = 0; i < 25; i++) {
+          await countingDances.create(
+            sampleDance(id: 'd$i', title: 'Dance $i'),
+          );
+        }
+        counter.reset();
+        final loaded = await countingDances.listAll();
+        expect(loaded, hasLength(25));
+        expect(counter.count, 6);
+      },
+    );
+
+    test('child-query count grows per id-chunk, not per dance', () async {
+      // 501 dances => two id-chunks (500 + 1). Each of the six child loaders
+      // runs once per chunk, so the total is 12 — O(chunks), still constant in
+      // the dance count within a chunk, never the 6 * 501 an N+1 would produce.
+      final counter = DanceChildSelectCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final countingDances = DanceRepository(countingDb, contraTaxonomy);
+
+      for (var i = 0; i < 501; i++) {
+        await countingDances.create(
+          sampleDance(id: 'd${i.toString().padLeft(4, '0')}', title: 'D $i'),
+        );
+      }
+      counter.reset();
+      final loaded = await countingDances.listAll();
+      expect(loaded, hasLength(501));
+      expect(counter.count, 12);
+    });
   });
 
   group('hasAny', () {

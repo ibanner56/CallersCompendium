@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../../dialect/dialect.dart';
 import '../../dialect/renderer.dart';
+import '../../model/custom_field.dart';
 import '../../model/dance.dart';
 import '../../model/dance_link.dart';
 import '../../model/enums.dart';
@@ -294,7 +295,32 @@ class DanceRepository {
       query.where((t) => t.deletedAt.isNull());
     }
     final rows = await query.get();
-    return [for (final row in rows) await _toModel(row)];
+    final ids = [for (final row in rows) row.id];
+    // Batch-load every child relation in a bounded number of `dance_id IN (…)`
+    // queries, then hydrate in memory — instead of the per-row [_toModel]
+    // fan-out (six child queries each) that made a full load O(1 + 6N) queries
+    // (~120k at 20k dances). Mirrors the batched `_slotsForMany` /
+    // `_provenanceForMany` approach ProgramRepository already uses. The `IN`
+    // lists are chunked (see [_chunkIds]) so the collection can grow past the
+    // SQLite bound-variable limit.
+    final authors = await _authorsForMany(ids);
+    final tags = await _tagsForMany(ids);
+    final links = await _linksForMany(ids);
+    final sources = await _sourcesForMany(ids);
+    final customFields = await _customFieldsForMany(ids);
+    final provenance = await _provenanceForMany(ids);
+    return [
+      for (final row in rows)
+        _buildDance(
+          row,
+          authorIds: authors[row.id] ?? const [],
+          tagIds: tags[row.id] ?? const [],
+          links: links[row.id] ?? const [],
+          sourceCitations: sources[row.id] ?? const [],
+          customFields: customFields[row.id] ?? const [],
+          provenance: provenance[row.id],
+        ),
+    ];
   }
 
   /// Whether the collection contains at least one dance, reading at most a
@@ -845,39 +871,43 @@ class DanceRepository {
   }
 
   Future<Dance> _toModel(DanceRow row) async {
-    final authorRows =
-        await (_db.select(_db.danceAuthors)
-              ..where((t) => t.danceId.equals(row.id))
-              ..orderBy([(t) => OrderingTerm(expression: t.position)]))
-            .get();
-    final tagRows = await (_db.select(
-      _db.danceTags,
-    )..where((t) => t.danceId.equals(row.id))).get();
-    final linkRows = await (_db.select(
-      _db.danceLinks,
-    )..where((t) => t.danceId.equals(row.id))).get();
-    final sourceRows =
-        await (_db.select(_db.danceSources)
-              ..where((t) => t.danceId.equals(row.id))
-              ..orderBy([(t) => OrderingTerm(expression: t.position)]))
-            .get();
-    final customRows =
-        await (_db.select(
-          _db.customFieldValues,
-        )..where((t) => t.danceId.equals(row.id))).join([
-          innerJoin(
-            _db.customFieldDefs,
-            _db.customFieldDefs.id.equalsExp(_db.customFieldValues.fieldId),
-          ),
-        ]).get();
-    final provRow = await (_db.select(
-      _db.provenance,
-    )..where((t) => t.danceId.equals(row.id))).getSingleOrNull();
+    // Single-dance hydration reuses the same batched child loaders as
+    // [listAll] (each becomes a one-`id` `IN (…)` query), so the two paths
+    // stay byte-for-byte consistent in field ordering and decoding.
+    final id = row.id;
+    final authors = await _authorsForMany([id]);
+    final tags = await _tagsForMany([id]);
+    final links = await _linksForMany([id]);
+    final sources = await _sourcesForMany([id]);
+    final customFields = await _customFieldsForMany([id]);
+    final provenance = await _provenanceForMany([id]);
+    return _buildDance(
+      row,
+      authorIds: authors[id] ?? const [],
+      tagIds: tags[id] ?? const [],
+      links: links[id] ?? const [],
+      sourceCitations: sources[id] ?? const [],
+      customFields: customFields[id] ?? const [],
+      provenance: provenance[id],
+    );
+  }
 
+  /// Assembles a [Dance] from a fetched [DanceRow] and its already-resolved
+  /// child collections. Pure (no I/O), so both the single-row [_toModel] and
+  /// the batched [listAll] feed it the same way.
+  Dance _buildDance(
+    DanceRow row, {
+    required List<String> authorIds,
+    required List<String> tagIds,
+    required List<DanceLink> links,
+    required List<SourceCitation> sourceCitations,
+    required List<CustomFieldValue> customFields,
+    required model.Provenance? provenance,
+  }) {
     return Dance(
       id: row.id,
       title: row.title,
-      authorIds: [for (final a in authorRows) a.choreographerId],
+      authorIds: authorIds,
       form: row.form,
       formation: Formation(row.formationShape, detail: row.formationDetail),
       progression: row.progression,
@@ -896,45 +926,184 @@ class DanceRepository {
           ? null
           : PartialDate.parse(row.revisedOn!),
       tunes: (jsonDecode(row.tunesJson) as List).cast<String>(),
-      customFields: [
-        for (final r in customRows)
-          decodeCustomFieldValue(
-            fieldId: r.readTable(_db.customFieldValues).fieldId,
-            type: r.readTable(_db.customFieldDefs).type,
-            valueText: r.readTable(_db.customFieldValues).valueText,
-            valueNum: r.readTable(_db.customFieldValues).valueNum,
-          ),
-      ],
-      tagIds: [for (final t in tagRows) t.tagId],
-      links: [
-        for (final l in linkRows)
-          DanceLink(
-            id: l.id,
-            kind: l.kind,
-            url: l.url,
-            targetDanceId: l.targetDanceId,
-            label: l.label,
-          ),
-      ],
-      sourceCitations: [
-        for (final s in sourceRows)
-          SourceCitation(sourceId: s.sourceId, page: s.page, number: s.number),
-      ],
-      provenance: provRow == null
-          ? null
-          : model.Provenance(
-              source: provRow.source,
-              externalId: provRow.externalId,
-              importedAt: asUtc(provRow.importedAt),
-              permission: provRow.permission,
-              license: provRow.license,
-              rawPayload: provRow.rawPayload,
-              sourceVersion: provRow.sourceVersion,
-            ),
+      customFields: customFields,
+      tagIds: tagIds,
+      links: links,
+      sourceCitations: sourceCitations,
+      provenance: provenance,
       createdAt: asUtc(row.createdAt),
       updatedAt: asUtc(row.updatedAt),
       deletedAt: asUtcOrNull(row.deletedAt),
     );
+  }
+
+  /// Max ids per `IN (…)` clause. Kept well under SQLite's default
+  /// `SQLITE_MAX_VARIABLE_NUMBER` (999 on older builds) so a full-collection
+  /// load stays correct no matter how large the library grows; the batched
+  /// loaders below split their id list into chunks of this size.
+  static const int _idChunkSize = 500;
+
+  Iterable<List<String>> _chunkIds(List<String> ids) sync* {
+    for (var i = 0; i < ids.length; i += _idChunkSize) {
+      final end = i + _idChunkSize;
+      yield ids.sublist(i, end > ids.length ? ids.length : end);
+    }
+  }
+
+  /// First-author-first `dance_id → [choreographerId]` in position order.
+  Future<Map<String, List<String>>> _authorsForMany(List<String> ids) async {
+    if (ids.isEmpty) return const {};
+    final byDance = <String, List<String>>{};
+    for (final chunk in _chunkIds(ids)) {
+      final rows =
+          await (_db.select(_db.danceAuthors)
+                ..where((t) => t.danceId.isIn(chunk))
+                ..orderBy([
+                  (t) => OrderingTerm(expression: t.danceId),
+                  (t) => OrderingTerm(expression: t.position),
+                ]))
+              .get();
+      for (final r in rows) {
+        (byDance[r.danceId] ??= <String>[]).add(r.choreographerId);
+      }
+    }
+    return byDance;
+  }
+
+  /// `dance_id → [tagId]` in insertion (row) order, matching the un-ordered
+  /// per-dance query the single-row path historically used.
+  Future<Map<String, List<String>>> _tagsForMany(List<String> ids) async {
+    if (ids.isEmpty) return const {};
+    final byDance = <String, List<String>>{};
+    for (final chunk in _chunkIds(ids)) {
+      final rows =
+          await (_db.select(_db.danceTags)
+                ..where((t) => t.danceId.isIn(chunk))
+                ..orderBy([
+                  (t) => OrderingTerm(expression: t.danceId),
+                  (t) => OrderingTerm(expression: t.rowId),
+                ]))
+              .get();
+      for (final r in rows) {
+        (byDance[r.danceId] ??= <String>[]).add(r.tagId);
+      }
+    }
+    return byDance;
+  }
+
+  /// `dance_id → [DanceLink]` in insertion (row) order.
+  Future<Map<String, List<DanceLink>>> _linksForMany(List<String> ids) async {
+    if (ids.isEmpty) return const {};
+    final byDance = <String, List<DanceLink>>{};
+    for (final chunk in _chunkIds(ids)) {
+      final rows =
+          await (_db.select(_db.danceLinks)
+                ..where((t) => t.danceId.isIn(chunk))
+                ..orderBy([
+                  (t) => OrderingTerm(expression: t.danceId),
+                  (t) => OrderingTerm(expression: t.rowId),
+                ]))
+              .get();
+      for (final r in rows) {
+        (byDance[r.danceId] ??= <DanceLink>[]).add(
+          DanceLink(
+            id: r.id,
+            kind: r.kind,
+            url: r.url,
+            targetDanceId: r.targetDanceId,
+            label: r.label,
+          ),
+        );
+      }
+    }
+    return byDance;
+  }
+
+  /// `dance_id → [SourceCitation]` in position order.
+  Future<Map<String, List<SourceCitation>>> _sourcesForMany(
+    List<String> ids,
+  ) async {
+    if (ids.isEmpty) return const {};
+    final byDance = <String, List<SourceCitation>>{};
+    for (final chunk in _chunkIds(ids)) {
+      final rows =
+          await (_db.select(_db.danceSources)
+                ..where((t) => t.danceId.isIn(chunk))
+                ..orderBy([
+                  (t) => OrderingTerm(expression: t.danceId),
+                  (t) => OrderingTerm(expression: t.position),
+                ]))
+              .get();
+      for (final r in rows) {
+        (byDance[r.danceId] ??= <SourceCitation>[]).add(
+          SourceCitation(sourceId: r.sourceId, page: r.page, number: r.number),
+        );
+      }
+    }
+    return byDance;
+  }
+
+  /// `dance_id → [CustomFieldValue]` in insertion (row) order, decoded against
+  /// each value's field definition (inner-joined, so a value whose def is gone
+  /// is dropped — exactly as the single-row path did).
+  Future<Map<String, List<CustomFieldValue>>> _customFieldsForMany(
+    List<String> ids,
+  ) async {
+    if (ids.isEmpty) return const {};
+    final byDance = <String, List<CustomFieldValue>>{};
+    for (final chunk in _chunkIds(ids)) {
+      final query = _db.select(_db.customFieldValues)
+        ..where((t) => t.danceId.isIn(chunk));
+      final joined =
+          query.join([
+            innerJoin(
+              _db.customFieldDefs,
+              _db.customFieldDefs.id.equalsExp(_db.customFieldValues.fieldId),
+            ),
+          ])..orderBy([
+            OrderingTerm(expression: _db.customFieldValues.danceId),
+            OrderingTerm(expression: _db.customFieldValues.rowId),
+          ]);
+      final rows = await joined.get();
+      for (final r in rows) {
+        final value = r.readTable(_db.customFieldValues);
+        final def = r.readTable(_db.customFieldDefs);
+        (byDance[value.danceId] ??= <CustomFieldValue>[]).add(
+          decodeCustomFieldValue(
+            fieldId: value.fieldId,
+            type: def.type,
+            valueText: value.valueText,
+            valueNum: value.valueNum,
+          ),
+        );
+      }
+    }
+    return byDance;
+  }
+
+  /// `dance_id → Provenance` (at most one row per dance).
+  Future<Map<String, model.Provenance>> _provenanceForMany(
+    List<String> ids,
+  ) async {
+    if (ids.isEmpty) return const {};
+    final byDance = <String, model.Provenance>{};
+    for (final chunk in _chunkIds(ids)) {
+      final rows = await (_db.select(
+        _db.provenance,
+      )..where((t) => t.danceId.isIn(chunk))).get();
+      for (final r in rows) {
+        byDance[r.danceId] = model.Provenance(
+          source: r.source,
+          externalId: r.externalId,
+          importedAt: asUtc(r.importedAt),
+          permission: r.permission,
+          license: r.license,
+          rawPayload: r.rawPayload,
+          sourceVersion: r.sourceVersion,
+        );
+      }
+    }
+    return byDance;
   }
 }
 
