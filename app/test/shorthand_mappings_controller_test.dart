@@ -99,6 +99,33 @@ void main() {
     expect(controller.mappings, isEmpty);
   });
 
+  test('upsert rejects an empty or oversized figures list', () async {
+    final repos = openTestRepositories();
+    final controller = ShorthandMappingsController(repos.settings);
+    addTearDown(controller.dispose);
+
+    // Empty expansion (would make resolve() return `[]`, a no-op HIT).
+    expect(
+      () => controller.upsert(
+        ShorthandMapping(token: 'empty', figures: const []),
+      ),
+      throwsArgumentError,
+    );
+    // Over the bounded target-figure count.
+    expect(
+      () => controller.upsert(
+        ShorthandMapping(
+          token: 'huge',
+          figures: [
+            for (var i = 0; i < maxShorthandTargetFigures + 1; i++) _swing(),
+          ],
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect(controller.mappings, isEmpty);
+  });
+
   test('upsert with an index replaces (and can re-case) in place', () async {
     final repos = openTestRepositories();
     final controller = ShorthandMappingsController(repos.settings);

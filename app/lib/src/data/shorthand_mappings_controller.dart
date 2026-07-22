@@ -85,6 +85,25 @@ class ShorthandMappingsController extends ChangeNotifier {
         'duplicates an existing shorthand (case-insensitive)',
       );
     }
+    // Mirror the decode invariant (shorthand_mappings.dart): a mapping must
+    // expand to a non-empty, bounded list of figures. An empty expansion would
+    // make resolve() return `[]`, which the free-text entry path treats as a
+    // shorthand HIT that inserts nothing — so guard the in-app mutation path
+    // just as strictly as the persisted-payload decode path.
+    if (mapping.figures.isEmpty) {
+      throw ArgumentError.value(
+        mapping.figures,
+        'figures',
+        'must expand to at least one figure',
+      );
+    }
+    if (mapping.figures.length > maxShorthandTargetFigures) {
+      throw ArgumentError.value(
+        mapping.figures,
+        'figures',
+        'must expand to at most $maxShorthandTargetFigures figures',
+      );
+    }
     // Persist the trimmed token while keeping the user's original casing.
     final normalized = ShorthandMapping(token: token, figures: mapping.figures);
     final next = _mappings.toList();
