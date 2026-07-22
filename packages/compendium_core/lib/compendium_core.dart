@@ -92,5 +92,6 @@ export 'src/taxonomy/param_types.dart';
 export 'src/taxonomy/taxonomy.dart';
 export 'src/util/colour_name_seed.dart';
 export 'src/util/inline_emphasis.dart';
+export 'src/util/text_sanitizer.dart';
 export 'src/util/uuid.dart';
 export 'src/validation/validation.dart';

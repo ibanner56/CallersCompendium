@@ -5,6 +5,7 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import '../util/text_sanitizer.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
 import 'import_error.dart';
@@ -103,7 +104,7 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       );
     }
 
-    final title = document.querySelector('h1.dance-show-title')?.text.trim();
+    final title = _extractTitle(document);
     final hasTable =
         document.querySelector('table.contra-table-nonfluid') != null;
     if ((title == null || title.isEmpty) && !hasTable) {
@@ -164,7 +165,7 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       );
     }
 
-    final title = document.querySelector('h1.dance-show-title')?.text.trim();
+    final title = _extractTitle(document);
     final table = document.querySelector('table.contra-table-nonfluid');
     if ((title == null || title.isEmpty) && table == null) {
       throw parseError(
@@ -321,7 +322,10 @@ class ContraDbHtmlAdapter implements SourceAdapter {
 
   Formation _parseFormation(dom.Document document, List<ImportIssue> issues) {
     final raw = document.querySelector('p.dance-show-formation')?.text.trim();
-    final detailText = _stripLeadingLabel(raw, 'formation');
+    final stripped = _stripLeadingLabel(raw, 'formation');
+    final detailText = stripped == null
+        ? null
+        : sanitizeImportedText(stripped).trim();
     if (detailText == null || detailText.isEmpty) {
       return const Formation(FormationShape.dupleImproper);
     }
@@ -390,12 +394,26 @@ class ContraDbHtmlAdapter implements SourceAdapter {
     final element = document.querySelector('p.dance-show-choreographer');
     if (element == null) return null;
     final link = element.querySelector('a')?.text.trim();
-    if (link != null && link.isNotEmpty) return link;
+    if (link != null && link.isNotEmpty) {
+      return sanitizeImportedText(link).trim();
+    }
     final stripped = _stripLeadingLabel(element.text.trim(), 'by');
-    return (stripped == null || stripped.isEmpty) ? null : stripped;
+    if (stripped == null || stripped.isEmpty) return null;
+    final clean = sanitizeImportedText(stripped).trim();
+    return clean.isEmpty ? null : clean;
   }
 
   // --- Helpers ---------------------------------------------------------------
+
+  /// Extracts and sanitizes the `h1.dance-show-title` text. Sanitizing here (at
+  /// ingress) strips control/bidi/format spoofing characters before the title
+  /// is stored or used to derive the dance's external id (issue #444). Returns
+  /// null when the title element is absent.
+  static String? _extractTitle(dom.Document document) {
+    final raw = document.querySelector('h1.dance-show-title')?.text.trim();
+    if (raw == null) return null;
+    return sanitizeImportedText(raw).trim();
+  }
 
   /// Removes a leading `label:` (or `label`) prefix, case-insensitively, from
   /// [text]. Returns `null` when [text] is null/blank.
