@@ -76,20 +76,39 @@ class VenueFingerprintIndex {
   }
 
   final Map<String, String> _idByFingerprint = {};
+  final Map<String, String> _fingerprintById = {};
   final Set<String> _ambiguousFingerprints = {};
 
   /// Records [venue] under [venueId]. A weakly-described venue (null
-  /// fingerprint) is ignored — it can never be a dedupe target. If a second,
-  /// *distinct* id is seen for a fingerprint, that fingerprint becomes ambiguous
-  /// and stops matching. Re-adding the same id for a fingerprint is a no-op.
+  /// fingerprint) is never a match target. If a second, *distinct* id is seen
+  /// for a fingerprint, that fingerprint becomes ambiguous and permanently stops
+  /// matching.
+  ///
+  /// Re-adding the same id with an *unchanged* fingerprint is a no-op. Re-adding
+  /// it with a *changed* fingerprint (the importer's "last-seen wins" collapse of
+  /// a repeated original venue id) retires the stale fingerprint first — so a
+  /// later venue matching the old content can never be repointed at this
+  /// now-changed record. A poisoned (ambiguous) fingerprint is left poisoned: two
+  /// distinct ids already collided on it, so it stays a fresh-mint (never
+  /// un-poisoned), consistent with the never-false-merge stance.
   void add(String venueId, Venue venue) {
     final fingerprint = venueFingerprint(venue);
+
+    final priorFingerprint = _fingerprintById[venueId];
+    if (priorFingerprint != null && priorFingerprint != fingerprint) {
+      if (_idByFingerprint[priorFingerprint] == venueId) {
+        _idByFingerprint.remove(priorFingerprint);
+      }
+      _fingerprintById.remove(venueId);
+    }
+
     if (fingerprint == null) return;
     if (_ambiguousFingerprints.contains(fingerprint)) return;
 
     final existing = _idByFingerprint[fingerprint];
     if (existing == null) {
       _idByFingerprint[fingerprint] = venueId;
+      _fingerprintById[venueId] = fingerprint;
     } else if (existing != venueId) {
       _idByFingerprint.remove(fingerprint);
       _ambiguousFingerprints.add(fingerprint);

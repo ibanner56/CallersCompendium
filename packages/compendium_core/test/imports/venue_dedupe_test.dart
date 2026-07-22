@@ -139,10 +139,43 @@ void main() {
       expect(index.matchFor(v('incoming', city: 'Greenfield')), 'same');
     });
 
+    test('re-adding the same id with changed fields retires the stale key', () {
+      // "Last-seen wins": the importer collapses a repeated original venue id to
+      // one minted row carrying the last-seen content, re-adding that id under a
+      // new fingerprint. The prior (stale) fingerprint must be retired so a later
+      // venue matching the OLD content is never repointed at the changed record.
+      final index = VenueFingerprintIndex();
+      index.add('same', v('same', city: 'Greenfield'));
+      index.add('same', v('same', city: 'Amherst'));
+      // Stale fingerprint no longer matches anything...
+      expect(index.matchFor(v('incoming', city: 'Greenfield')), isNull);
+      // ...and the current fingerprint matches the (single) id.
+      expect(index.matchFor(v('incoming', city: 'Amherst')), 'same');
+    });
+
+    test('a distinct venue is not repointed via a retired stale key', () {
+      // The concrete cross-import hazard: id X is seen twice with divergent
+      // content (Greenfield then Amherst); a later DISTINCT venue that matches
+      // the retired Greenfield content must fresh-mint, not dedupe to X.
+      final index = VenueFingerprintIndex();
+      index.add('x', v('x', city: 'Greenfield'));
+      index.add('x', v('x', city: 'Amherst'));
+      expect(index.matchFor(v('distinct', city: 'Greenfield')), isNull);
+    });
+
     test('ignores a weak-key venue on add', () {
       final index = VenueFingerprintIndex();
       index.add('weak', Venue(id: 'weak', name: 'Town Hall'));
       expect(index.matchFor(Venue(id: 'incoming', name: 'Town Hall')), isNull);
+    });
+
+    test('a strong→weak re-add retires the stale key (no stale match)', () {
+      // If the last-seen content of a collapsed id drops below the strong-key
+      // threshold, its earlier strong fingerprint must not linger as a target.
+      final index = VenueFingerprintIndex();
+      index.add('same', v('same', city: 'Greenfield'));
+      index.add('same', Venue(id: 'same', name: 'Grange'));
+      expect(index.matchFor(v('incoming', city: 'Greenfield')), isNull);
     });
   });
 }
