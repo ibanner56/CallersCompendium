@@ -34,17 +34,6 @@ const Set<String> hardcodedUiStringAllowlist = <String>{
   // Defaults-section entry point ('Figure shorthands' tile) IS localized.
   'src/screens/shorthand_mapping_editor_screen.dart',
   'src/screens/shorthand_mappings_screen.dart',
-  // Settings general (data-management) section: Library/Performance/
-  // Calling-history/Accessibility toggles, Deleted-items, Import, and the full
-  // Backup/Restore flow. Deferred to L6: the main-merge folded in the
-  // backup-encryption feature (#461: _EncryptExportDialog / _PassphrasePromptDialog
-  // / _RestoreBackupDialog + passphrase strength meter) and venue-records toggles,
-  // growing this file to ~78 keys — localizing it in L5 would push the PR past the
-  // user's hard ~160 ceiling (~238), so it belongs with L6's feature surface.
-  // NOTE for L6: the Backup/Restore snackbars carry the CWE-209 catch-and-log
-  // requirement (clean localized message + debugPrint the raw error) — do not
-  // interpolate caught exceptions into UI text.
-  'src/screens/settings/general_section.dart',
   'src/screens/recently_deleted_screen.dart',
   'src/screens/reparse_custom_figures_screen.dart',
   'src/screens/theme_editor_screen.dart',
@@ -54,14 +43,8 @@ const Set<String> hardcodedUiStringAllowlist = <String>{
   'src/update/update_banner.dart',
   'src/widgets/collection_picker.dart',
   'src/widgets/command_palette.dart',
-  // Feature surfaces merged from main (venue management + crash diagnostics)
-  // AFTER the L5 partition was fixed — deferred to L6 with the other
-  // feature-specific screens. NOTE for L6: diagnostics_section's export/clear
-  // snackbars and crash_fallback carry the CWE-209 catch-and-log requirement
-  // (clean localized message + debugPrint the raw error) — do not interpolate
-  // caught exceptions into UI text.
-  'src/diagnostics/crash_fallback.dart',
-  'src/screens/settings/diagnostics_section.dart',
+  // Venue management feature surfaces merged from main AFTER the L5 partition
+  // was fixed — deferred to L6 with the other feature-specific screens.
   'src/screens/venue_editor_sheet.dart',
   'src/screens/venue_manager_screen.dart',
   'src/widgets/venue_picker.dart',

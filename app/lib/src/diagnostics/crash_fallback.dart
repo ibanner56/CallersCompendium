@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// The friendly, recoverable widget shown in place of a subtree that failed to
 /// build, replacing Flutter's raw red error box (issue #458).
 ///
@@ -41,6 +43,9 @@ class _CrashFallbackState extends State<CrashFallback> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n =
+        Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+        lookupAppLocalizations(const Locale('en'));
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Material(
@@ -60,29 +65,34 @@ class _CrashFallbackState extends State<CrashFallback> {
                     color: Color(0xFF6B4F3A),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Something went wrong here',
+                  Text(
+                    l10n.crashFallbackTitle,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF3A2E22),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'This part of the app hit an unexpected error and recovered. '
-                    'The details were saved to a local diagnostics log '
-                    '(Settings ▸ Diagnostics) that never leaves your device.',
+                  Text(
+                    l10n.crashFallbackBody,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Color(0xFF5A4A3A)),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF5A4A3A),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   TextButton.icon(
                     key: const ValueKey('crash-fallback-copy'),
                     onPressed: _copied ? null : _copy,
                     icon: Icon(_copied ? Icons.check : Icons.copy_outlined),
-                    label: Text(_copied ? 'Copied' : 'Copy details'),
+                    label: Text(
+                      _copied
+                          ? l10n.crashFallbackCopied
+                          : l10n.crashFallbackCopyDetails,
+                    ),
                   ),
                 ],
               ),
