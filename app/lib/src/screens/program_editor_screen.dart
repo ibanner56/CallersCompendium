@@ -35,6 +35,12 @@ import '../widgets/program_status_chip.dart';
 /// shows an inline persistent picker pane; narrow opens the picker in a modal
 /// bottom sheet.
 ///
+/// Language-neutral sentinel stored in [_ProgramEditorScreenState._loadError]
+/// when the requested program no longer exists. Kept locale-independent (rather
+/// than a resolved string) so the message re-localizes if the app language is
+/// switched live while this retained editor is off-screen.
+enum _ProgramLoadError { missing }
+
 /// [programId] null ⇒ create a new program; otherwise edit that program.
 class ProgramEditorScreen extends StatefulWidget {
   const ProgramEditorScreen({
@@ -150,7 +156,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           if (!mounted) return;
           setState(() {
             _data = data;
-            _loadError = AppLocalizations.of(context).programsNoLongerExists;
+            _loadError = _ProgramLoadError.missing;
             _loaded = true;
           });
           return;
@@ -746,8 +752,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            _loadError is String
-                ? _loadError! as String
+            _loadError == _ProgramLoadError.missing
+                ? l10n.programsNoLongerExists
                 : l10n.programsLoadError,
             textAlign: TextAlign.center,
           ),
@@ -795,8 +801,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            _loadError is String
-                ? _loadError! as String
+            _loadError == _ProgramLoadError.missing
+                ? l10n.programsNoLongerExists
                 : l10n.programsLoadError,
             textAlign: TextAlign.center,
           ),

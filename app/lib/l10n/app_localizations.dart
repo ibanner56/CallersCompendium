@@ -2073,7 +2073,7 @@ abstract class AppLocalizations {
   /// Screen-reader label for a compact-matrix move header, stating how many of the program's dances use the move.
   ///
   /// In en, this message translates to:
-  /// **'Move: {label}, used in {count} of {total, plural, =1{1 dance} other{{total} dances}}'**
+  /// **'Move: {label}, used in {count} of {total} dances'**
   String programsMatrixMoveUsedInSemantic(String label, int count, int total);
 
   /// Compact count shown next to a move in the compact matrix (uses / total dances).

@@ -1315,13 +1315,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String programsMatrixMoveUsedInSemantic(String label, int count, int total) {
-    String _temp0 = intl.Intl.pluralLogic(
-      total,
-      locale: localeName,
-      other: '$total dances',
-      one: '1 dance',
-    );
-    return 'Move: $label, used in $count of $_temp0';
+    return 'Move: $label, used in $count of $total dances';
   }
 
   @override

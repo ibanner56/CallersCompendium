@@ -49,6 +49,18 @@ void main() {
       'Programming matrix: 2 dances by 1 moves',
     );
 
+    // Unpluralised matrix "used in" label: stays "dances" even at total == 1
+    // (byte-identical to the pre-l10n code — regression guard against the
+    // earlier ICU plural that rendered "1 of 1 dance").
+    expect(
+      l10n.programsMatrixMoveUsedInSemantic('partner swing', 1, 1),
+      'Move: partner swing, used in 1 of 1 dances',
+    );
+    expect(
+      l10n.programsMatrixMoveUsedInSemantic('balance', 2, 4),
+      'Move: balance, used in 2 of 4 dances',
+    );
+
     // Compound perform timing line: optional planned / over / paused clauses
     // fold in via ICU select, with a nested plural on the planned minutes.
     expect(

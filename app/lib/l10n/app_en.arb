@@ -1714,7 +1714,7 @@
       "half": { "type": "String", "example": "first" }
     }
   },
-  "programsMatrixMoveUsedInSemantic": "Move: {label}, used in {count} of {total, plural, =1{1 dance} other{{total} dances}}",
+  "programsMatrixMoveUsedInSemantic": "Move: {label}, used in {count} of {total} dances",
   "@programsMatrixMoveUsedInSemantic": {
     "description": "Screen-reader label for a compact-matrix move header, stating how many of the program's dances use the move.",
     "placeholders": {
