@@ -83,11 +83,9 @@ void main() {
         }
         // The scrub always trims and collapses whitespace, so the result never
         // has surrounding whitespace regardless of input.
-        expect(
-          scrubbed.trim(),
-          scrubbed,
-          reason: _repro(raw, i, 'scrub', 'result was not trimmed'),
-        );
+        if (scrubbed.trim() != scrubbed) {
+          fail(_repro(raw, i, 'scrub', 'result was not trimmed'));
+        }
       }
     });
   });
@@ -115,29 +113,15 @@ void _checkSingle(
   // scrubs with the same pure [scrubFigureText], so this equivalence is exact.
   final emptyAfterScrub = scrubFigureText(raw).isEmpty;
   if (emptyAfterScrub) {
-    expect(
-      result,
-      isNull,
-      reason: _repro(
-        raw,
-        iteration,
-        label,
-        'expected null (empty after scrub)',
-      ),
-    );
+    if (result != null) {
+      fail(_repro(raw, iteration, label, 'expected null (empty after scrub)'));
+    }
     return;
   }
-  expect(
-    result,
-    isNotNull,
-    reason: _repro(
-      raw,
-      iteration,
-      label,
-      'expected a figure (non-empty scrub)',
-    ),
-  );
-  _assertWellFormed(result!, raw, iteration, label);
+  if (result == null) {
+    fail(_repro(raw, iteration, label, 'expected a figure (non-empty scrub)'));
+  }
+  _assertWellFormed(result, raw, iteration, label);
 }
 
 /// Runs [parseFigureLines] on [raw] and asserts it never throws and that every
@@ -163,25 +147,19 @@ void _checkMulti(
 /// returns.
 void _assertWellFormed(Figure f, String raw, int iteration, String label) {
   // Beats are always non-negative (negative source beats are normalised to 0).
-  expect(
-    f.beats,
-    greaterThanOrEqualTo(0),
-    reason: _repro(raw, iteration, label, 'negative beats leaked through'),
-  );
+  if (f.beats < 0) {
+    fail(_repro(raw, iteration, label, 'negative beats leaked through'));
+  }
 
   if (f.isCustom) {
     // A custom fallback always carries the (non-empty) scrubbed text verbatim.
     final text = f.params['text'];
-    expect(
-      text,
-      isA<String>(),
-      reason: _repro(raw, iteration, label, 'custom figure missing text'),
-    );
-    expect(
-      (text as String).isNotEmpty,
-      isTrue,
-      reason: _repro(raw, iteration, label, 'custom text was empty'),
-    );
+    if (text is! String) {
+      fail(_repro(raw, iteration, label, 'custom figure missing text'));
+    }
+    if (text.isEmpty) {
+      fail(_repro(raw, iteration, label, 'custom text was empty'));
+    }
   } else {
     // A STRUCTURED figure is only ever returned when it validates with no
     // error-severity issue (the parser falls back to custom otherwise), so this
@@ -190,16 +168,16 @@ void _assertWellFormed(Figure f, String raw, int iteration, String label) {
         .validateFigure(f)
         .where((issue) => issue.severity == ValidationSeverity.error)
         .toList();
-    expect(
-      errors,
-      isEmpty,
-      reason: _repro(
-        raw,
-        iteration,
-        label,
-        'structured figure "${f.move}" failed validation: $errors',
-      ),
-    );
+    if (errors.isNotEmpty) {
+      fail(
+        _repro(
+          raw,
+          iteration,
+          label,
+          'structured figure "${f.move}" failed validation: $errors',
+        ),
+      );
+    }
   }
 }
 
