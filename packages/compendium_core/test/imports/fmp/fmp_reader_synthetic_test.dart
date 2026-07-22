@@ -147,5 +147,27 @@ void main() {
       // Sanity: the production defaults never reject a legitimate tiny file.
       expect(() => readFmp12(twoTableFixture()), returnsNormally);
     });
+
+    test('the record cap is a cumulative budget across tables', () {
+      // 3 records total (Dance 2 + Set 1). Exactly at the cap parses; one below
+      // fails closed while the *second* table is still being traversed (the
+      // budget passed into each table's value pass is what remains after the
+      // earlier tables), proving the cap is enforced during reconstruction
+      // rather than after every table has been fully decoded.
+      expect(
+        () => readFmp12(
+          twoTableFixture(),
+          limits: const FmpReadLimits(maxRecords: 3),
+        ),
+        returnsNormally,
+      );
+      expect(
+        () => readFmp12(
+          twoTableFixture(),
+          limits: const FmpReadLimits(maxRecords: 2),
+        ),
+        throwsA(isA<FmpResourceLimitException>()),
+      );
+    });
   });
 }

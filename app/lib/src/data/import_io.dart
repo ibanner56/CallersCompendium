@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -14,9 +15,13 @@ import '../search/collection_query.dart' show ByPhraseSelections;
 /// Security Misconfiguration — uncontrolled resource consumption): the native
 /// open-file dialog hands us an arbitrary file (often originally sourced from a
 /// "safer" community site, but still not to be trusted). We refuse anything
-/// larger than this *before* reading it into memory (via [XFile.length]), so a
-/// hostile or accidental multi-gigabyte file can't exhaust memory. 25 MiB is
-/// deliberately **aligned with the archive intake cap**
+/// larger than this by reading the file as a **bounded stream** and failing
+/// closed the instant more than this many bytes have been consumed (see
+/// [readCappedBytes]), so a hostile or accidental multi-gigabyte file can't
+/// exhaust memory. We deliberately do **not** trust a separate [XFile.length]
+/// probe: a file can grow or be swapped between the probe and the read (a
+/// TOCTOU window), so the cap is enforced *during* consumption, not before it.
+/// 25 MiB is deliberately **aligned with the archive intake cap**
 /// (`kMaxIncomingArchiveBytes`) and sits far above any real Compendium share
 /// bundle or Caller's Companion `.USR` (the real ~20 MB CC sample fits with
 /// margin) while bounding the blast radius. The `.USR` path adds *structural*
@@ -25,12 +30,14 @@ import '../search/collection_query.dart' show ByPhraseSelections;
 const int kMaxImportFileBytes = 25 * 1024 * 1024;
 
 /// Raised when a picked import file exceeds [kMaxImportFileBytes], so the
-/// oversized case is rejected *without* reading the whole file into memory. The
+/// oversized case is rejected *without* buffering the whole file into memory
+/// (the bounded read abandons the stream as soon as the cap is crossed). The
 /// [message] is safe to show directly to the user (it never echoes the path).
 class ImportFileTooLargeException implements Exception {
   const ImportFileTooLargeException(this.length);
 
-  /// The rejected file's length in bytes (for diagnostics/tests; never shown).
+  /// The number of bytes consumed before the cap tripped (always greater than
+  /// the cap; kept for diagnostics/tests — never shown to the user).
   final int length;
 
   /// User-facing text, matching the archive intake path's wording.
@@ -40,31 +47,58 @@ class ImportFileTooLargeException implements Exception {
   String toString() => message;
 }
 
-/// Reads [file]'s text, but only after confirming its length is within
-/// [maxBytes]; throws [ImportFileTooLargeException] otherwise. Enforcing the cap
-/// with [XFile.length] *before* [XFile.readAsString] means an oversized file is
-/// never fully read into memory. Split out from [pickImportFile] so the cap is
-/// unit-testable without the native picker (tests inject an [XFile] and a small
-/// [maxBytes], mirroring `ArchiveIntakeService`).
+/// Reads [stream] fully into memory, but **fails closed** the instant more than
+/// [maxBytes] bytes have been consumed — throwing [ImportFileTooLargeException]
+/// and abandoning the stream *without* buffering the remainder. Enforcing the
+/// cap during consumption (rather than trusting a prior [XFile.length]) closes
+/// the TOCTOU window: a file that grows or is swapped after it was picked still
+/// can't push peak allocation past ~[maxBytes], because we stop reading the
+/// moment the bound is crossed. A file of exactly [maxBytes] is accepted (the
+/// boundary is inclusive), mirroring the archive intake cap.
+///
+/// Stream-typed (rather than [XFile]-typed) so the fail-closed behaviour is
+/// unit-testable against a synthetic multi-chunk stream that keeps producing
+/// data, with no real file or picker plugin.
+Future<Uint8List> readCappedBytes(
+  Stream<List<int>> stream, {
+  int maxBytes = kMaxImportFileBytes,
+}) async {
+  final builder = BytesBuilder(copy: false);
+  await for (final chunk in stream) {
+    builder.add(chunk);
+    if (builder.length > maxBytes) {
+      // `await for` cancels the subscription when we throw, so we never read
+      // (or buffer) the rest of the file — allocation stays bounded even if the
+      // underlying file keeps growing.
+      throw ImportFileTooLargeException(builder.length);
+    }
+  }
+  return builder.takeBytes();
+}
+
+/// Reads [file]'s raw bytes, failing closed via [readCappedBytes] if the file
+/// exceeds [maxBytes]. Consumes [XFile.openRead] so the cap is enforced *while*
+/// reading — an oversized (or mid-read growing) file is never fully buffered,
+/// unlike a `length()`-then-`readAsBytes()` check, which trusts a stale length
+/// and still allocates the whole file. Split out from [pickImportUsrFile] so
+/// the cap is unit-testable without the native picker (tests inject an [XFile]
+/// + a small [maxBytes], mirroring `ArchiveIntakeService`).
+Future<Uint8List> readImportBytesCapped(
+  XFile file, {
+  int maxBytes = kMaxImportFileBytes,
+}) => readCappedBytes(file.openRead(), maxBytes: maxBytes);
+
+/// Reads [file]'s text, failing closed via [readImportBytesCapped] if the file
+/// exceeds [maxBytes] *before* it is decoded to a string. The byte cap is
+/// enforced while streaming (never trusting a prior length probe); only once
+/// the whole content is confirmed within the cap is it UTF-8 decoded. The text
+/// counterpart to [readImportBytesCapped] (used by the share-bundle path).
 Future<String> readImportTextCapped(
   XFile file, {
   int maxBytes = kMaxImportFileBytes,
 }) async {
-  final length = await file.length();
-  if (length > maxBytes) throw ImportFileTooLargeException(length);
-  return file.readAsString();
-}
-
-/// Reads [file]'s raw bytes, but only after confirming its length is within
-/// [maxBytes]; throws [ImportFileTooLargeException] otherwise. The binary
-/// counterpart to [readImportTextCapped] (used by the `.USR` byte path).
-Future<Uint8List> readImportBytesCapped(
-  XFile file, {
-  int maxBytes = kMaxImportFileBytes,
-}) async {
-  final length = await file.length();
-  if (length > maxBytes) throw ImportFileTooLargeException(length);
-  return file.readAsBytes();
+  final bytes = await readImportBytesCapped(file, maxBytes: maxBytes);
+  return utf8.decode(bytes);
 }
 
 /// Prompts the user to choose a source file for an import and returns its

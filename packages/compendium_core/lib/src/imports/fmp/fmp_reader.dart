@@ -218,16 +218,11 @@ class _FmpReader {
 
   FmpDatabase read() {
     _readHeader();
+    // [_readSectors] fails closed *while it builds the chain* — it throws before
+    // allocating the sector past [FmpReadLimits.maxSectors], so a crafted huge
+    // sector count can't force unbounded preprocessing/allocation even for a
+    // direct core caller that isn't behind the app's raw byte cap.
     _readSectors();
-
-    // Fail closed on an over-large sector chain before doing any per-table
-    // traversal work (defense in depth; the app also caps raw file bytes).
-    if (_blocks.length > _limits.maxSectors) {
-      throw FmpResourceLimitException(
-        'The file has too many sectors to import safely '
-        '(${_blocks.length} > ${_limits.maxSectors}).',
-      );
-    }
 
     final tables = <FmpTable>[];
     final tableNames = _listTables(); // index -> name
@@ -242,14 +237,16 @@ class _FmpReader {
     var totalRecords = 0;
     for (final entry in tableNames.entries) {
       final columns = _listColumns(entry.key);
-      final records = _readValues(entry.key, columns);
+      // Pass the *remaining* record budget so [_readValues] fails closed the
+      // moment a newly discovered row would exceed the cap — before it decodes
+      // and allocates the rest of the table's rows (not after the whole table
+      // has been reconstructed).
+      final records = _readValues(
+        entry.key,
+        columns,
+        _limits.maxRecords - totalRecords,
+      );
       totalRecords += records.length;
-      if (totalRecords > _limits.maxRecords) {
-        throw FmpResourceLimitException(
-          'The file has too many records to import safely '
-          '(> ${_limits.maxRecords}).',
-        );
-      }
       tables.add(FmpTable(entry.key, entry.value, columns, records));
     }
     tables.sort((a, b) => a.index.compareTo(b.index));
@@ -317,6 +314,15 @@ class _FmpReader {
           'at sector $index; reading the ${blocks.length} available.',
         );
         break;
+      }
+      // Fail closed *before* decoding/allocating the sector past the limit, so
+      // a claimed count larger than [maxSectors] can't force unbounded
+      // preprocessing (OWASP A04/A05 — uncontrolled resource consumption).
+      if (blocks.length >= _limits.maxSectors) {
+        throw FmpResourceLimitException(
+          'The file has too many sectors to import safely '
+          '($numBlocks claimed > ${_limits.maxSectors}).',
+        );
       }
       blocks.add(_blockAt(offset));
     }
@@ -674,7 +680,11 @@ class _FmpReader {
     return columns;
   }
 
-  List<FmpRecord> _readValues(int tableIndex, List<FmpColumn> columns) {
+  List<FmpRecord> _readValues(
+    int tableIndex,
+    List<FmpColumn> columns,
+    int maxRecords,
+  ) {
     final target = tableIndex + 128;
     final numColumns = columns.fold<int>(
       0,
@@ -696,7 +706,24 @@ class _FmpReader {
     var lastColumn = 0;
 
     void store(int row, int column, String value) {
-      rowValues.putIfAbsent(row, () => <int, String>{})[column] = value;
+      final existing = rowValues[row];
+      if (existing != null) {
+        existing[column] = value;
+        return;
+      }
+      // A newly discovered row. Fail closed *before* allocating it when it
+      // would push this read past the remaining record budget, so a table with
+      // millions of rows is rejected as it is traversed rather than after every
+      // row has been decoded and allocated (OWASP A04/A05 — bound per-record
+      // work during consumption). [rowValues.length] is exactly the number of
+      // records this table will yield, so this is the record count.
+      if (rowValues.length >= maxRecords) {
+        throw FmpResourceLimitException(
+          'The file has too many records to import safely '
+          '(> ${_limits.maxRecords}).',
+        );
+      }
+      rowValues[row] = <int, String>{column: value};
     }
 
     void flushLong() {
