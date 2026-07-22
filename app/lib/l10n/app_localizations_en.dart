@@ -2142,6 +2142,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importReviewComplete => 'Import complete';
 
   @override
+  String sharedImportSoftCapWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'This import contains $count items — more than expected for a normal share.',
+      one:
+          'This import contains 1 item — more than expected for a normal share.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String sharedImportComplete(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Imported $count items.',
+      one: 'Imported 1 item.',
+      zero: 'Import complete.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String sharedImportProgramsOnly(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'This share contains $count programs and no dances.',
+      one: 'This share contains 1 program and no dances.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String importReviewSummaryCreated(int count) {
     return 'Created: $count';
   }

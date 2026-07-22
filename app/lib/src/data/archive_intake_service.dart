@@ -27,57 +27,76 @@ class OversizedArchiveException implements Exception {
   String toString() => 'OversizedArchiveException($length)';
 }
 
-/// Whether an intake attempt imported a bundle or rejected it.
-enum ArchiveIntakeStatus { imported, rejected }
+/// Whether an intake attempt produced a validated bundle or rejected it.
+enum ArchiveIntakeStatus { validated, rejected }
 
 /// The outcome of an [ArchiveIntakeService] attempt. Intake **never throws** to
 /// the caller: every failure — missing/unreadable file, oversized input,
-/// non-text bytes, non-archive JSON, an unsupported (newer) schema, or a commit
-/// error — resolves to a [rejected] result carrying a short, non-leaking,
-/// user-facing [message]. Success carries the [programId] to auto-open (or
-/// `null` when the bundle held only dances) and any non-fatal [issues].
-class ArchiveIntakeResult {
-  const ArchiveIntakeResult._(
+/// non-text bytes, non-archive JSON, an unsupported (newer) schema, or an empty
+/// bundle — resolves to a [rejected] result carrying a short, non-leaking,
+/// user-facing [message].
+///
+/// A [validated] result carries the decoded [archive], the raw [json] the
+/// review screen re-plans from, and the pre-computed [entityCount]
+/// ([compendiumArchiveEntityCount]) used to decide the soft-cap warning. It
+/// **does not** write anything: the commit is deferred to the review/consent
+/// screen so nothing lands in the collection until the user confirms
+/// (issue #432).
+class ArchiveIntakeValidation {
+  const ArchiveIntakeValidation._(
     this.status, {
-    this.programId,
+    this.json,
+    this.archive,
+    this.entityCount = 0,
     this.message,
-    this.issues = const [],
   });
 
-  factory ArchiveIntakeResult.imported({
-    String? programId,
-    List<ImportIssue> issues = const [],
-  }) => ArchiveIntakeResult._(
-    ArchiveIntakeStatus.imported,
-    programId: programId,
-    issues: issues,
+  factory ArchiveIntakeValidation.validated({
+    required String json,
+    required CompendiumArchive archive,
+    required int entityCount,
+  }) => ArchiveIntakeValidation._(
+    ArchiveIntakeStatus.validated,
+    json: json,
+    archive: archive,
+    entityCount: entityCount,
   );
 
-  factory ArchiveIntakeResult.rejected(String message) =>
-      ArchiveIntakeResult._(ArchiveIntakeStatus.rejected, message: message);
+  factory ArchiveIntakeValidation.rejected(String message) =>
+      ArchiveIntakeValidation._(ArchiveIntakeStatus.rejected, message: message);
 
   final ArchiveIntakeStatus status;
 
-  /// The imported program to auto-open, or `null` (bundle had no program).
-  final String? programId;
+  /// The raw, validated archive JSON. The review screen re-plans the dance side
+  /// from this via the same `GenericJsonAdapter` path every import uses.
+  final String? json;
+
+  /// The decoded, validated archive. Committed (dances + programs + venues) by
+  /// the review screen through [CompendiumArchiveImporter] **after** consent.
+  final CompendiumArchive? archive;
+
+  /// Total entities the bundle would write (dances + choreographers + programs
+  /// + venues), computed pre-render from the validated decode — never trusted
+  /// from a self-reported field in the untrusted bundle.
+  final int entityCount;
 
   /// User-facing rejection reason. Deliberately generic — it never echoes
   /// parser internals, paths, or stack traces (no information leak).
   final String? message;
 
-  /// Non-fatal issues raised while importing (e.g. an unresolved dance
-  /// reference degraded to a note). Empty on rejection.
-  final List<ImportIssue> issues;
-
-  bool get isImported => status == ArchiveIntakeStatus.imported;
+  bool get isValidated => status == ArchiveIntakeStatus.validated;
   bool get isRejected => status == ArchiveIntakeStatus.rejected;
 }
 
 /// Receives a shared [CompendiumArchive] file (from AirDrop / OS "Open with"),
-/// **validates it as untrusted input**, and imports it — the program **and** its
-/// dances — through the existing shared commit path
-/// ([CompendiumArchiveImporter], which drives the core [ImportPipeline]). It
-/// then reports the imported program so the UI can auto-open it.
+/// and **validates it as untrusted input** — without writing anything.
+///
+/// This is the ingest gate for the share target (issue #298 receive side): the
+/// bundle is decoded and every safety check runs Dart-side **before** any UI is
+/// shown and **before** any write. A validated result is then handed to the
+/// existing import review/consent screen, which is the only thing that commits —
+/// so a shared/AirDropped bundle can never silently write into the trusted
+/// collection without the user confirming first (issue #432).
 ///
 /// Validation (OWASP — the file is untrusted):
 /// - **Size cap** enforced before the file is read into memory.
@@ -86,58 +105,54 @@ class ArchiveIntakeResult {
 ///   isn't a Compendium archive is rejected.
 /// - The archive's schema version must not be **newer** than this build
 ///   understands (refuse forward, gracefully — don't guess).
-/// - Nothing is executed or trusted beyond the declared schema; import is
-///   verbatim and identity-first (dedupe, never duplicate) via the importer.
-/// - **Parse-never-throws:** all of the above resolve to a [ArchiveIntakeResult]
-///   — the caller never sees an exception or a partial write.
+/// - An empty bundle (no dances and no programs) is rejected.
+/// - **Parse-never-throws:** all of the above resolve to an
+///   [ArchiveIntakeValidation] — the caller never sees an exception.
 class ArchiveIntakeService {
   ArchiveIntakeService({
-    required this.repositories,
     ArchiveByteReader? readBytes,
     this.maxBytes = kMaxIncomingArchiveBytes,
-    DateTime Function()? now,
-    this.newId,
-    this.newSlotId,
-  }) : _injectedReader = readBytes,
-       _now = now ?? (() => DateTime.now().toUtc());
+  }) : _injectedReader = readBytes;
 
-  final CompendiumRepositories repositories;
   final ArchiveByteReader? _injectedReader;
   final int maxBytes;
-  final DateTime Function() _now;
-  final String Function()? newId;
-  final String Function()? newSlotId;
 
-  /// Reads the file at [path], then imports it. Any read failure is rejected
+  /// Reads the file at [path], then validates it. Any read failure is rejected
   /// gracefully; an oversized file is rejected without being read into memory.
-  Future<ArchiveIntakeResult> importFromPath(String path) async {
+  Future<ArchiveIntakeValidation> validateFromPath(String path) async {
     final Uint8List bytes;
     try {
       bytes = await (_injectedReader ?? _readFileWithCap)(path);
     } on OversizedArchiveException {
-      return ArchiveIntakeResult.rejected('That file is too large to import.');
+      return ArchiveIntakeValidation.rejected(
+        'That file is too large to import.',
+      );
     } catch (_) {
-      return ArchiveIntakeResult.rejected("Couldn't read the shared file.");
+      return ArchiveIntakeValidation.rejected("Couldn't read the shared file.");
     }
-    return importBytes(bytes);
+    return validateBytes(bytes);
   }
 
-  /// Validates and imports raw archive [bytes]. Exposed for the intake wiring
-  /// and for tests (which inject bytes directly, avoiding disk and channels).
-  Future<ArchiveIntakeResult> importBytes(Uint8List bytes) async {
+  /// Validates raw archive [bytes] and, on success, returns the decoded archive,
+  /// the raw JSON, and the entity count — **without writing anything**. Exposed
+  /// for the intake wiring and for tests (which inject bytes directly, avoiding
+  /// disk and channels).
+  Future<ArchiveIntakeValidation> validateBytes(Uint8List bytes) async {
     // Defense in depth: re-check the cap even when bytes are supplied directly.
     if (bytes.length > maxBytes) {
-      return ArchiveIntakeResult.rejected('That file is too large to import.');
+      return ArchiveIntakeValidation.rejected(
+        'That file is too large to import.',
+      );
     }
     if (bytes.isEmpty) {
-      return ArchiveIntakeResult.rejected('That file is empty.');
+      return ArchiveIntakeValidation.rejected('That file is empty.');
     }
 
     final String json;
     try {
       json = utf8.decode(bytes);
     } catch (_) {
-      return ArchiveIntakeResult.rejected(
+      return ArchiveIntakeValidation.rejected(
         "That file isn't a Caller's Compendium share file.",
       );
     }
@@ -148,7 +163,7 @@ class ArchiveIntakeService {
     } catch (_) {
       // decodeArchive is contract-bound not to throw for recoverable problems,
       // but stay defensive — never let anything escape intake.
-      return ArchiveIntakeResult.rejected(
+      return ArchiveIntakeValidation.rejected(
         "That file isn't a Caller's Compendium share file.",
       );
     }
@@ -157,49 +172,30 @@ class ArchiveIntakeService {
       (e) => e.entityType == 'archive' && e.kind == ArchiveErrorKind.read,
     );
     if (rootUnreadable) {
-      return ArchiveIntakeResult.rejected(
+      return ArchiveIntakeValidation.rejected(
         "That file isn't a Caller's Compendium share file.",
       );
     }
 
     final archive = read.archive;
     if (archive.schemaVersion > archiveSchemaVersion) {
-      return ArchiveIntakeResult.rejected(
+      return ArchiveIntakeValidation.rejected(
         'That file was made by a newer version of the app. Please update to '
         'import it.',
       );
     }
 
     if (archive.dances.isEmpty && archive.programs.isEmpty) {
-      return ArchiveIntakeResult.rejected(
+      return ArchiveIntakeValidation.rejected(
         "That file didn't contain any dances or programs.",
       );
     }
 
-    try {
-      final pipeline = ImportPipeline(
-        repositories.dances,
-        repositories.choreographers,
-      );
-      final importer = CompendiumArchiveImporter(
-        pipeline,
-        repositories.programs,
-        repositories.venues,
-      );
-      final result = await importer.import(
-        json,
-        archive,
-        now: _now(),
-        newId: newId,
-        newSlotId: newSlotId,
-      );
-      return ArchiveIntakeResult.imported(
-        programId: result.primaryProgramId,
-        issues: result.programIssues,
-      );
-    } catch (_) {
-      return ArchiveIntakeResult.rejected("Couldn't import the shared file.");
-    }
+    return ArchiveIntakeValidation.validated(
+      json: json,
+      archive: archive,
+      entityCount: compendiumArchiveEntityCount(archive),
+    );
   }
 
   Future<Uint8List> _readFileWithCap(String path) async {
