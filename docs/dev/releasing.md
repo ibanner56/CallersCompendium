@@ -392,9 +392,10 @@ provision — or later re-provision — the key:
    (repo/organization **Settings → Secrets and variables → Actions**). Paste the
    full PEM (`-----BEGIN PRIVATE KEY----- … -----END PRIVATE KEY-----`).
 
-3. **Pin the public key**: replace the empty `kUpdateManifestPublicKey` in
-   `app/lib/src/update/update_config.dart` with the base64 from step 1, and
-   **ship an app release** carrying it. Only clients built with the pinned key
+3. **Pin the public key**: set `kUpdateManifestPublicKey` in
+   `app/lib/src/update/update_config.dart` to the base64 from step 1 (replacing
+   any previously pinned value), and **ship an app release** carrying it. Only
+   clients built with the pinned key
    can verify — so the pinned key must reach users **before** the first signed
    manifest is the only one they can use.
 
