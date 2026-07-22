@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
+import 'perform_a11y_prefs.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
 import 'settings_screen.dart' show kAutoSizePerformKey;
@@ -43,6 +44,9 @@ class PerformDanceScreen extends StatefulWidget {
 
 class _PerformDanceScreenState extends State<PerformDanceScreen>
     with WidgetsBindingObserver, PerformWakelockMixin {
+  /// Manual large-print text scale, applied when auto-size is off. Persisted
+  /// across sessions (issue #449) and restored on entry so a caller's chosen
+  /// size survives app relaunch instead of resetting to the default.
   double _textScale = kPerformDefaultScale;
 
   /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the
@@ -50,7 +54,14 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// via the auto-fit toggle and the A-/A+ controls without writing back to the
   /// global setting.
   bool _autoSize = true;
-  bool _autoSizeLoaded = false;
+
+  /// Guards the one-shot settings load in [didChangeDependencies] (auto-size
+  /// plus the persisted Perform a11y prefs) so it runs exactly once.
+  bool _prefsLoaded = false;
+
+  /// Persisted Perform a11y prefs store (issue #449), created once the
+  /// [RepositoriesScope] is available in [didChangeDependencies].
+  PerformA11yPrefsStore? _a11yPrefs;
 
   /// Set once the user changes auto-size in-view (toggle or A-/A+). Guards the
   /// async settings load from overwriting an in-session choice if the read
@@ -58,21 +69,29 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// opens).
   bool _autoSizeUserSet = false;
 
-  /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5). In
-  /// view only; persistence to Settings is a documented later follow-up.
+  /// Per-pref equivalents of [_autoSizeUserSet]: once the caller changes a pref
+  /// in-view, the async restore must not clobber that fresh choice.
+  bool _textScaleUserSet = false;
+  bool _stageModeUserSet = false;
+  bool _canonicalUserSet = false;
+
+  /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5).
+  /// Persisted across sessions (issue #449) and restored on entry.
   bool _stageMode = true;
 
   /// When `true` figures render canonical role/move tokens; otherwise the
   /// user's active dialect. The toggle is hidden when the active dialect is
-  /// already canonical (toggling would be a no-op).
+  /// already canonical (toggling would be a no-op). Persisted across sessions
+  /// (issue #449) and restored on entry.
   bool _canonicalView = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_autoSizeLoaded) return;
-    _autoSizeLoaded = true;
-    RepositoriesScope.of(context).settings
+    if (_prefsLoaded) return;
+    _prefsLoaded = true;
+    final settings = RepositoriesScope.of(context).settings;
+    settings
         .get(kAutoSizePerformKey)
         .then((v) {
           // Don't clobber an in-view choice the user made before the read resolved.
@@ -83,26 +102,58 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         .catchError((_) {
           // Read failure: keep the on-by-default value; nothing to restore.
         });
+    _a11yPrefs = PerformA11yPrefsStore(settings);
+    _a11yPrefs!
+        .load()
+        .then((prefs) {
+          if (!mounted) return;
+          // Apply each restored pref unless the caller already changed it
+          // in-view before the async read resolved.
+          setState(() {
+            if (!_textScaleUserSet) _textScale = prefs.textScale;
+            if (!_stageModeUserSet) _stageMode = prefs.stageMode;
+            if (!_canonicalUserSet) _canonicalView = prefs.canonicalView;
+          });
+        })
+        .catchError((_) {
+          // Read/parse failure: keep defaults; nothing to restore.
+        });
+  }
+
+  void _persistTextScale() {
+    _a11yPrefs?.saveTextScale(_textScale).catchError((_) {});
+  }
+
+  void _persistStageMode() {
+    _a11yPrefs?.saveStageMode(_stageMode).catchError((_) {});
+  }
+
+  void _persistCanonicalView() {
+    _a11yPrefs?.saveCanonicalView(_canonicalView).catchError((_) {});
   }
 
   void _decreaseTextSize() {
     setState(() {
       // Using A-/A+ hands control back to the manual size (ROADMAP G.1).
       _autoSizeUserSet = true;
+      _textScaleUserSet = true;
       _autoSize = false;
       _textScale = (_textScale - kPerformScaleStep).clamp(
         kPerformMinScale,
         double.infinity,
       );
     });
+    _persistTextScale();
   }
 
   void _increaseTextSize() {
     setState(() {
       _autoSizeUserSet = true;
+      _textScaleUserSet = true;
       _autoSize = false;
       _textScale += kPerformScaleStep;
     });
+    _persistTextScale();
   }
 
   Future<void> _openMetronomeSheet() {
@@ -177,8 +228,13 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                 if (!isCanonicalDialect)
                   PerformDialectToggle(
                     canonical: _canonicalView,
-                    onChanged: (value) =>
-                        setState(() => _canonicalView = value),
+                    onChanged: (value) {
+                      setState(() {
+                        _canonicalUserSet = true;
+                        _canonicalView = value;
+                      });
+                      _persistCanonicalView();
+                    },
                   ),
               ],
               overflowActions: [
@@ -217,13 +273,24 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                     icon: Icons.groups,
                     label: l10n.performShowCanonicalTerms,
                     toggledOn: _canonicalView,
-                    onSelected: () =>
-                        setState(() => _canonicalView = !_canonicalView),
+                    onSelected: () {
+                      setState(() {
+                        _canonicalUserSet = true;
+                        _canonicalView = !_canonicalView;
+                      });
+                      _persistCanonicalView();
+                    },
                   ),
               ],
               trailingPrimary: PerformStageToggle(
                 stageOn: _stageMode,
-                onChanged: (value) => setState(() => _stageMode = value),
+                onChanged: (value) {
+                  setState(() {
+                    _stageModeUserSet = true;
+                    _stageMode = value;
+                  });
+                  _persistStageMode();
+                },
               ),
             ),
           ),
