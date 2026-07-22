@@ -302,7 +302,9 @@ nothing to store or commit. The unified Apple bundle id is
 **Linux.** Alongside the AppImage + `tar.gz` baseline and Flathub, we also list
 **Snap** (`snapcraft`), which is the **Flutter-documented** Linux release path.
 All three are free, and Linux has no OS-trust-warning model to satisfy. (Flutter:
-*Build and release a Linux app*.)
+*Build and release a Linux app*.) The post-beta evaluation of which native Linux
+channel to actually pursue — **Flathub-first**, with Snap/PPA secondary — is
+recorded in [ADR-003](003-linux-native-distribution-channel.md).
 
 Independent of OS-trust signing, a **free integrity layer applies to ALL
 platforms**, even where signing is absent: a per-release **`SHA256SUMS`**,

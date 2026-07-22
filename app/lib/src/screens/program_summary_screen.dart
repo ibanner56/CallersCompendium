@@ -147,6 +147,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   bool _loading = true;
   Object? _error;
 
+  /// In-memory Perform resume state (issue #434) — same pattern as
+  /// [ProgramEditorScreen]. Perform is pushed on top of this summary, so this
+  /// survives that navigation: the Perform view hands back its live position +
+  /// clock on exit and the next launch threads it back in, so re-entry resumes
+  /// rather than resetting to slot 1 with a fresh clock.
+  PerformResumeState? _performResume;
+
   /// Shared renderer for the large-print Perform view (mirrors
   /// [ProgramEditorScreen]'s `_performRenderer`).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
@@ -290,6 +297,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           program: program,
           data: data,
           renderer: _performRenderer,
+          // Resume where the caller left off (issue #434).
+          initialGroup: _performResume?.groupIndex ?? 0,
+          initialElapsedSeconds: _performResume?.elapsedSeconds ?? 0,
+          initialSlotStartSeconds: _performResume?.slotStartSeconds ?? 0,
+          initialPaused: _performResume?.paused ?? false,
+          onExit: (state) => _performResume = state,
           // This is the real in-event path: the program is saved, so in-event
           // adjustments (`docs/design/ux.md` §5) persist immediately via the
           // repository (bumping `updatedAt`, and possibly the slot count) and

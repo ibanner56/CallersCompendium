@@ -455,27 +455,27 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         PopupMenuItem<void>(
           key: const ValueKey('overflow-share-dance'),
           onTap: () => _shareDance(exportText(), detail.dance.title),
-          child: const ListTile(
-            leading: Icon(Icons.mail_outline),
-            title: Text('Share dance (text)'),
+          child: ListTile(
+            leading: const Icon(Icons.mail_outline),
+            title: Text(l10n.exportShareDanceText),
             contentPadding: EdgeInsets.zero,
           ),
         ),
         PopupMenuItem<void>(
           key: const ValueKey('overflow-copy-dance'),
           onTap: () => _copyDance(exportText()),
-          child: const ListTile(
-            leading: Icon(Icons.copy_outlined),
-            title: Text('Copy dance'),
+          child: ListTile(
+            leading: const Icon(Icons.copy_outlined),
+            title: Text(l10n.exportCopyDance),
             contentPadding: EdgeInsets.zero,
           ),
         ),
         PopupMenuItem<void>(
           key: const ValueKey('overflow-export-pdf'),
           onTap: () => _exportDancePdf(dialect, detail),
-          child: const ListTile(
-            leading: Icon(Icons.picture_as_pdf_outlined),
-            title: Text('Export / print PDF'),
+          child: ListTile(
+            leading: const Icon(Icons.picture_as_pdf_outlined),
+            title: Text(l10n.exportPrintPdf),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -510,25 +510,26 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   // uses, so only the thin share / clipboard / print wiring lives here.
   Future<void> _shareDance(String text, String subject) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     try {
       await SharePlus.instance.share(ShareParams(text: text, subject: subject));
     } on Exception catch (_) {
       messenger.showSnackBar(
-        const SnackBar(content: Text("Couldn't share this dance")),
+        SnackBar(content: Text(l10n.exportShareDanceError)),
       );
     }
   }
 
   Future<void> _copyDance(String text) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     await Clipboard.setData(ClipboardData(text: text));
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Dance copied to clipboard.')),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
   }
 
   Future<void> _exportDancePdf(Dialect dialect, DanceDetailData detail) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     try {
       await Printing.layoutPdf(
         name: sanitizeExportName(detail.dance.title, fallback: 'dance'),
@@ -543,9 +544,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ),
       );
     } on Exception catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Couldn't export this dance")),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceError)));
     }
   }
 

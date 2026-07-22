@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/dialect_library_controller.dart';
+import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
@@ -74,20 +76,27 @@ Future<void> _pumpProgram(
   int initialGroup = 0,
   Dialect? activeDialect,
   bool autoSize = false,
+  Size surfaceSize = const Size(1400, 2400),
+  DialectLibraryController? dialectLibrary,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1400, 2400));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
   final repos = openTestRepositories();
   await repos.settings.set(kAutoSizePerformKey, autoSize);
+  Widget withLibrary(Widget child) => dialectLibrary == null
+      ? child
+      : DialectLibraryScope(controller: dialectLibrary, child: child);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: withLibrary(
+          ActiveDialectScope(notifier: notifier, child: child!),
+        ),
       ),
       home: PerformProgramScreen(
         program: program,
@@ -157,46 +166,176 @@ void main() {
     expect(find.text('First Dance'), findsOneWidget);
   });
 
-  testWidgets('AppBar action row fits a narrow phone width without overflowing', (
-    tester,
-  ) async {
-    // Regression: on a ~402pt-wide phone (e.g. iPhone) the trailing AppBar
-    // action row overflowed by ~17px whenever the dialect toggle was visible,
-    // because PerformDialectToggle rendered a wide "Canonical" label + Switch
-    // instead of an icon button like its sibling toggles. See perform_card.dart.
-    await tester.binding.setSurfaceSize(const Size(402, 844));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+  group('AppBar responsive overflow (issue #433)', () {
+    // The full Perform toolbar is ~10 controls; on phones narrower than ~430px
+    // it used to RenderFlex-overflow, clipping the stage-mode toggle. Secondary
+    // actions now collapse into a "More actions" overflow while the stage toggle
+    // (and the per-gig dialect quick-switch) stay inline. These tests mount the
+    // FULL action set — DialectLibraryScope so the quick-switch renders, a group
+    // with alternates so alt-swap shows, and a non-canonical dialect so the
+    // canonical toggle shows — so the no-overflow assertions are meaningful.
 
-    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
-    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
-    addTearDown(notifier.dispose);
-    final repos = openTestRepositories();
-    await repos.settings.set(kAutoSizePerformKey, false);
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: testLocalizationsDelegates,
-        supportedLocales: testSupportedLocales,
-        builder: (context, child) => RepositoriesScope(
-          repositories: repos,
-          child: ActiveDialectScope(notifier: notifier, child: child!),
-        ),
-        home: PerformProgramScreen(
-          program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
-          data: data,
-          renderer: _renderer,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+    Future<DialectLibraryController> loadedLibrary() async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final controller = DialectLibraryController(repos.settings);
+      await controller.load();
+      addTearDown(controller.dispose);
+      return controller;
+    }
 
-    // A non-canonical active dialect keeps the toggle visible — the control
-    // that made the row overflow — so this exercises the widest common case.
-    expect(
-      find.byKey(const ValueKey('perform-dialect-toggle')),
-      findsOneWidget,
-    );
-    // No RenderFlex overflow (or any other exception) during layout.
-    expect(tester.takeException(), isNull);
+    Future<void> pumpFullSet(WidgetTester tester, Size size) async {
+      final data = await _dataWith([
+        _dance(id: 'd1', title: 'Primary Dance'),
+        _dance(id: 'd2', title: 'Alternate Dance'),
+      ]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        // Primary + alt collapse into one navigable group, so `hasAlternates`
+        // is true and the swap control is part of the action set.
+        program: _program([
+          // s1 (the current slot) carries a non-null planned length so the
+          // timing readout renders its LONGER "planned N min" form — the widest
+          // content the FittedBox scale-down is there to protect at 360–430px.
+          // Without it the readout is short and the scale-down path (and thus
+          // this regression guard) would never be exercised (issue #433).
+          _slot(id: 's1', position: 0, danceId: 'd1', plannedMinutes: 45),
+          _slot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+        ]),
+        surfaceSize: size,
+        dialectLibrary: await loadedLibrary(),
+      );
+    }
+
+    const inlineSecondaryKeys = [
+      'perform-adjust',
+      'perform-jump',
+      'perform-metronome',
+      'perform-alt-swap',
+      'decrease-text-size',
+      'increase-text-size',
+      'perform-autosize-toggle',
+      'perform-dialect-toggle',
+    ];
+    const overflowItemKeys = [
+      'perform-adjust-menu',
+      'perform-jump-menu',
+      'perform-metronome-menu',
+      'perform-alt-swap-menu',
+      'decrease-text-size-menu',
+      'increase-text-size-menu',
+      'perform-autosize-toggle-menu',
+      'perform-dialect-toggle-menu',
+    ];
+
+    for (final width in const [360.0, 430.0]) {
+      testWidgets(
+        'collapses secondary actions with no overflow at ${width.toInt()}px',
+        (tester) async {
+          await pumpFullSet(tester, Size(width, 900));
+
+          // No RenderFlex overflow (or any other exception) during layout.
+          expect(tester.takeException(), isNull);
+
+          // The current slot renders the longer "planned N min" readout that the
+          // FittedBox scale-down protects; assert it's actually present so this
+          // setup can't silently regress to the short readout and let a future
+          // overflow slip through unnoticed.
+          expect(find.byKey(const ValueKey('perform-planned')), findsOneWidget);
+
+          // Primary actions stay inline and reachable.
+          expect(
+            find.byKey(const ValueKey('perform-stage-toggle')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('dialect-quick-switch')),
+            findsOneWidget,
+          );
+          // The overflow control is present...
+          expect(
+            find.byKey(const ValueKey('perform-overflow-menu')),
+            findsOneWidget,
+          );
+          // ...and secondary actions are NOT inline (they moved to overflow).
+          for (final key in inlineSecondaryKeys) {
+            expect(
+              find.byKey(ValueKey(key)),
+              findsNothing,
+              reason: '$key should be collapsed into the overflow menu',
+            );
+          }
+
+          // Opening the overflow menu makes every secondary action reachable.
+          await tester.tap(find.byKey(const ValueKey('perform-overflow-menu')));
+          await tester.pumpAndSettle();
+          for (final key in overflowItemKeys) {
+            expect(
+              find.byKey(ValueKey(key)),
+              findsOneWidget,
+              reason: '$key should be reachable via the overflow menu',
+            );
+          }
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+
+    testWidgets('a secondary action in the overflow menu stays functional', (
+      tester,
+    ) async {
+      await pumpFullSet(tester, const Size(360, 900));
+
+      await tester.tap(find.byKey(const ValueKey('perform-overflow-menu')));
+      await tester.pumpAndSettle();
+      // "Jump to slot" opens the jump sheet just as the inline button did.
+      await tester.tap(find.byKey(const ValueKey('perform-jump-menu')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('perform-jump-list')), findsOneWidget);
+    });
+
+    testWidgets('stage-mode toggle stays inline and works on a narrow phone', (
+      tester,
+    ) async {
+      await pumpFullSet(tester, const Size(360, 900));
+
+      // Stage mode defaults on (high-contrast scheme).
+      expect(
+        Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+        AppColorSchemes.highContrast,
+      );
+      // The inline toggle (not the overflow menu) flips it — no menu needed.
+      await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
+      await tester.pumpAndSettle();
+      expect(
+        Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+        isNot(AppColorSchemes.highContrast),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('shows the full action set inline on a wide tablet', (
+      tester,
+    ) async {
+      await pumpFullSet(tester, const Size(1024, 1366));
+
+      expect(tester.takeException(), isNull);
+      // No overflow control on wide layouts.
+      expect(find.byKey(const ValueKey('perform-overflow-menu')), findsNothing);
+      // Every action renders inline.
+      expect(
+        find.byKey(const ValueKey('dialect-quick-switch')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('perform-stage-toggle')),
+        findsOneWidget,
+      );
+      for (final key in inlineSecondaryKeys) {
+        expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
+      }
+    });
   });
 
   testWidgets('keyboard arrows navigate between groups', (tester) async {
@@ -363,12 +502,213 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
 
+    // Exit is guarded (#434): the close control asks to confirm first.
     await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
     await tester.pumpAndSettle();
 
     expect(find.byType(PerformProgramScreen), findsNothing);
     expect(find.byType(ProgramEditorScreen), findsOneWidget);
   });
+
+  testWidgets('a stray single tap on the exit control does not leave Perform', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
+    await repos.programs.create(
+      _program([
+        _slot(id: 's1', position: 0, danceId: 'd1'),
+        _slot(id: 's2', position: 1, danceId: 'd2'),
+      ]),
+    );
+    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(notifier.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
+        home: const ProgramEditorScreen(programId: 'p1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+    // A single tap surfaces the confirmation instead of dropping out.
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+    // Choosing "Keep performing" dismisses the guard and stays in Perform.
+    await tester.tap(find.byKey(const ValueKey('perform-exit-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsNothing);
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+  });
+
+  testWidgets('re-entry resumes at the last slot with the clock preserved', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
+    await repos.dances.create(_dance(id: 'd3', title: 'Third Dance'));
+    await repos.programs.create(
+      _program([
+        _slot(id: 's1', position: 0, danceId: 'd1'),
+        _slot(id: 's2', position: 1, danceId: 'd2'),
+        _slot(id: 's3', position: 2, danceId: 'd3'),
+      ]),
+    );
+    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(notifier.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
+        home: const ProgramEditorScreen(programId: 'p1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+    // Advance to slot 2 and let the program clock run.
+    await tester.tap(find.byKey(const ValueKey('perform-next')));
+    await tester.pump();
+    expect(_textOf(tester, 'perform-position'), 'Slot 2 of 3');
+    await tester.pump(const Duration(seconds: 7));
+    final clockBefore = _seconds(_textOf(tester, 'perform-clock'));
+    expect(clockBefore, greaterThanOrEqualTo(7));
+
+    // Guarded exit back to the editor.
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsNothing);
+
+    // Re-enter: back at slot 2 with the clock preserved, not reset to slot 1.
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+    expect(_textOf(tester, 'perform-position'), 'Slot 2 of 3');
+    expect(
+      _seconds(_textOf(tester, 'perform-clock')),
+      greaterThanOrEqualTo(clockBefore),
+    );
+  });
+
+  testWidgets(
+    're-entry preserves the per-slot timer and a paused (frozen) session',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
+      await repos.programs.create(
+        _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+          _slot(id: 's2', position: 1, danceId: 'd2'),
+        ]),
+      );
+      final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(notifier.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
+          home: const ProgramEditorScreen(programId: 'p1'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      // Move to slot 2 so the resumed group is not the default slot 1, accrue
+      // per-slot time, then pause so the whole session is frozen on exit.
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      expect(_textOf(tester, 'perform-position'), 'Slot 2 of 2');
+      await tester.pump(const Duration(seconds: 6));
+      await tester.tap(find.byKey(const ValueKey('perform-timer-pause')));
+      await tester.pump();
+
+      final slotBefore = _textOf(tester, 'perform-slot-elapsed');
+      final clockBefore = _textOf(tester, 'perform-clock');
+      expect(_seconds(slotBefore), greaterThanOrEqualTo(6));
+      // Paused reflected in the toggle state before we leave.
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('perform-timer-pause')),
+            )
+            .isSelected,
+        isTrue,
+      );
+
+      // Guarded exit and re-entry.
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+      // The per-slot timer resumes where it was (slotStartSeconds preserved),
+      // not reset to 0:00, and the session is still paused.
+      expect(_textOf(tester, 'perform-position'), 'Slot 2 of 2');
+      expect(_textOf(tester, 'perform-slot-elapsed'), slotBefore);
+      expect(_textOf(tester, 'perform-clock'), clockBefore);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('perform-timer-pause')),
+            )
+            .isSelected,
+        isTrue,
+      );
+
+      // Still frozen after re-entry: advancing time changes nothing.
+      await tester.pump(const Duration(seconds: 5));
+      expect(_textOf(tester, 'perform-slot-elapsed'), slotBefore);
+      expect(_textOf(tester, 'perform-clock'), clockBefore);
+    },
+  );
 
   testWidgets('the perform-program affordance is hidden for an empty program', (
     tester,

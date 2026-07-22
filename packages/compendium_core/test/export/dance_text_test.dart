@@ -151,6 +151,36 @@ void main() {
       expect(text, contains('balance & petronella (8 beats)'));
     });
 
+    test('flags a parser-assumed subject as non-authoritative (#460)', () {
+      // A defaulted subject exports with the "(assumed)" marker; a stated one
+      // does not, so the text export never asserts fabricated choreography.
+      final assumed = render(
+        dance(
+          figures: [
+            Figure(
+              move: 'allemande',
+              params: {'who': 'neighbors', 'hand': 'left', 'beats': 8},
+              assumedSubject: true,
+            ),
+          ],
+        ),
+      );
+      expect(assumed, contains('neighbor (assumed) allemande left'));
+
+      final stated = render(
+        dance(
+          figures: [
+            Figure(
+              move: 'allemande',
+              params: {'who': 'neighbors', 'hand': 'left', 'beats': 8},
+            ),
+          ],
+        ),
+      );
+      expect(stated, isNot(contains('(assumed)')));
+      expect(stated, contains('neighbor allemande left'));
+    });
+
     test('marks a progression figure and renders per-figure notes', () {
       final text = render(
         dance(

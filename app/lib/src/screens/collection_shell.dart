@@ -6,6 +6,7 @@ import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
+import '../data/online_search_labels.dart';
 import '../data/repositories_scope.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
@@ -183,6 +184,7 @@ class _CollectionShellState extends State<CollectionShell> {
   /// selection.
   Future<void> _onSelectOnlineDance(OnlineSearchResultRow result) async {
     final repos = RepositoriesScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final seq = ++_onlineSeq;
     setState(() {
       _selectedDanceId = null;
@@ -209,8 +211,7 @@ class _CollectionShellState extends State<CollectionShell> {
     } catch (_) {
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
-        _onlinePreviewError =
-            "Couldn't load that dance from ${result.source.label}.";
+        _onlinePreviewError = l10n.onlineLoadError(result.source.label);
         _onlinePreviewLoading = false;
       });
     }
@@ -230,6 +231,7 @@ class _CollectionShellState extends State<CollectionShell> {
     _importing = true;
     final messenger = _detailMessengerKey.currentState;
     final repos = RepositoriesScope.of(context);
+    final l10n = AppLocalizations.of(context);
     try {
       final result = await _serviceFor(
         preview.result.source,
@@ -254,7 +256,7 @@ class _CollectionShellState extends State<CollectionShell> {
       messenger?.showSnackBar(
         SnackBar(
           key: const ValueKey('online-import-snackbar'),
-          content: Text(onlineImportMessage(result)),
+          content: Text(onlineImportMessage(l10n, result)),
         ),
       );
     } on UrlFetchException catch (error) {
@@ -262,9 +264,7 @@ class _CollectionShellState extends State<CollectionShell> {
       messenger?.showSnackBar(SnackBar(content: Text(error.message)));
     } catch (_) {
       if (!mounted) return;
-      messenger?.showSnackBar(
-        const SnackBar(content: Text("Couldn't import that dance.")),
-      );
+      messenger?.showSnackBar(SnackBar(content: Text(l10n.onlineImportError)));
     } finally {
       _importing = false;
     }

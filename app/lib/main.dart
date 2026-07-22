@@ -37,6 +37,8 @@ import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/venue_entity_mode_scope.dart';
 import 'src/data/window_service.dart';
+import 'src/diagnostics/crash_log_store.dart';
+import 'src/diagnostics/crash_reporter.dart';
 import 'src/licenses.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/contradb_program_import_screen.dart';
@@ -54,30 +56,44 @@ import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // Register the bundled font license texts (OFL) so Flutter's showLicensePage
-  // — reachable from Settings ▸ About ▸ View licenses — includes them.
-  registerBundledFontLicenses();
-  // [AppData] is opened once here and handed to [CompendiumApp] (which owns
-  // disposal) so we never open the database twice. The database itself opens
-  // lazily on first use: the desktop window restore (which reads the persisted
-  // frame) and the startup sweep both run inside [CompendiumApp]'s bootstrap
-  // future, so a database that won't open (corrupt/locked) surfaces on the
-  // AppBootstrap error/retry screen instead of throwing out of `main` before
-  // `runApp` — which would leave a blank window with no way to recover.
-  final appData = AppData(openAppDatabase());
-  final windowService = WindowService(appData.repositories.settings);
-  runApp(
-    CompendiumApp(
-      appData: appData,
-      windowService: windowService,
-      migrationPreflight: () => runMigrationPreflightForApp(
-        runningSchemaVersion: kCompendiumSchemaVersion,
+  // Install the local, offline crash log and global error-capture stack (issue
+  // #458) as the very first thing, so an error during startup itself is still
+  // recorded. [CrashLogStore] resolves its directory lazily on first write, so
+  // constructing the reporter before the binding is initialized is safe, and it
+  // gives the zone's error handler (below) something to forward to.
+  final crashReporter = CrashReporter(store: CrashLogStore.appSupport());
+  // Wrap the whole app in a guarded zone so uncaught *async* errors are
+  // captured too (sync framework/engine errors go through the handlers
+  // installed by [installGlobalErrorHandlers]).
+  runGuarded(() {
+    WidgetsFlutterBinding.ensureInitialized();
+    installGlobalErrorHandlers(crashReporter);
+    // Register the bundled font license texts (OFL) so Flutter's
+    // showLicensePage — reachable from Settings ▸ About ▸ View licenses —
+    // includes them.
+    registerBundledFontLicenses();
+    // [AppData] is opened once here and handed to [CompendiumApp] (which owns
+    // disposal) so we never open the database twice. The database itself opens
+    // lazily on first use: the desktop window restore (which reads the persisted
+    // frame) and the startup sweep both run inside [CompendiumApp]'s bootstrap
+    // future, so a database that won't open (corrupt/locked) surfaces on the
+    // AppBootstrap error/retry screen instead of throwing out of `main` before
+    // `runApp` — which would leave a blank window with no way to recover.
+    final appData = AppData(openAppDatabase());
+    final windowService = WindowService(appData.repositories.settings);
+    runApp(
+      CompendiumApp(
+        appData: appData,
+        windowService: windowService,
+        crashReporter: crashReporter,
+        migrationPreflight: () => runMigrationPreflightForApp(
+          runningSchemaVersion: kCompendiumSchemaVersion,
+        ),
+        seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
+        incomingFileChannel: IncomingFileChannel(),
       ),
-      seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
-      incomingFileChannel: IncomingFileChannel(),
-    ),
-  );
+    );
+  }, crashReporter);
 }
 
 /// Root widget. The on-device database is opened once (in [main]) and injected;
@@ -106,10 +122,12 @@ class CompendiumApp extends StatefulWidget {
     required this.windowService,
     this.migrationPreflight,
     this.integrityCheck,
+    this.crashReporter,
     this.seedInitialCollection,
     this.incomingFileChannel,
     this.incomingFileReader,
     this.incomingUrlFetcher,
+    this.nowOverride,
   });
 
   /// The already-opened database + repositories facade. Injected from [main]
@@ -133,6 +151,13 @@ class CompendiumApp extends StatefulWidget {
   /// corruption warning. Defaults to [CompendiumDatabase.quickCheck]; injected
   /// in tests to exercise the warning path.
   final Future<bool> Function()? integrityCheck;
+
+  /// Local, offline crash-log sink for global error capture (issue #458). The
+  /// startup integrity probe routes a *thrown* failure here so a real
+  /// underlying fault is capturable in the field. Injected from [main]; left
+  /// `null` in tests that don't exercise it (the routing is then a no-op),
+  /// mirroring [integrityCheck].
+  final CrashLogSink? crashReporter;
 
   /// One-time first-run collection seed, run during bootstrap right after the
   /// schema migration so the app never opens to a completely empty collection
@@ -163,6 +188,14 @@ class CompendiumApp extends StatefulWidget {
   /// without real network in widget tests. Defaults to `null` in production,
   /// where the screen uses its own network-backed `fetchImportUrl`.
   final UrlFetcher? incomingUrlFetcher;
+
+  /// Test-only override for the wall clock used by the startup soft-delete
+  /// sweep (see [_bootstrap]). Defaults to `null`, i.e. `DateTime.now()` in
+  /// production; widget tests inject a fixed instant so the retention-window
+  /// purge assertions don't depend on real wall-clock timing (issue #459
+  /// de-flake). It only affects the sweep's `now`; it does not touch the
+  /// single-snapshot purge design in [DanceRepository.purgeDeleted].
+  final DateTime Function()? nowOverride;
 
   @override
   State<CompendiumApp> createState() => _CompendiumAppState();
@@ -229,6 +262,12 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// only shown once per successful bootstrap.
   bool _dataIntegrityOk = true;
   bool _corruptionBannerShown = false;
+
+  /// `true` when the once-per-launch integrity probe *threw* (as opposed to
+  /// returning `false`). Kept distinct so the advisory banner can tell the user
+  /// the check couldn't complete rather than reporting a definitive failure
+  /// (issue #458). Reset on each bootstrap run.
+  bool _integrityProbeThrew = false;
 
   /// Routes shared-file imports (issue #298) to a screen and surfaces
   /// snackbars: a global navigator + messenger so the incoming-file handler can
@@ -418,9 +457,25 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // deliberately distinct from a DB-open failure during the window restore
     // above, which stays fatal and routes to the error/retry screen.)
     try {
+      _integrityProbeThrew = false;
       _dataIntegrityOk = await _runIntegrityCheck();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      // The probe *threw* — an I/O error, a locked DB, a corruption-adjacent
+      // fault — which is distinct from a probe that merely *returned* false.
+      // This catch previously swallowed the error with zero diagnostic (issue
+      // #458, main.dart callout): log it (mirroring the first-run-seed path
+      // above) and route it into the local crash-log sink so a real underlying
+      // fault is capturable in the field rather than silently collapsing into
+      // the generic advisory banner. The `_integrityProbeThrew` flag preserves
+      // the "threw" vs "returned false" distinction for that banner.
       _dataIntegrityOk = false;
+      _integrityProbeThrew = true;
+      debugPrint('Integrity probe threw: $error\n$stackTrace');
+      widget.crashReporter?.record(
+        error,
+        stackTrace,
+        source: 'integrity-probe',
+      );
     }
     // Resolve the configured soft-delete retention window (ROADMAP G.4),
     // defaulting to 30 days when unset. A `null` window means "never
@@ -433,7 +488,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       // cutoff. Both honor the retention promise shown in their Recently-Deleted
       // screens ("Auto-deleted in N days"); previously only dances were purged,
       // so soft-deleted programs accumulated forever (Stage 1.2).
-      final now = DateTime.now().toUtc();
+      final now = (widget.nowOverride ?? () => DateTime.now().toUtc())();
       await _appData.repositories.dances.purgeDeleted(
         now: now,
         retention: retention,
@@ -641,9 +696,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
         final messenger = ScaffoldMessenger.of(context);
         messenger.showMaterialBanner(
           MaterialBanner(
-            content: const Text(
-              'A database integrity check failed. Your local data may be '
-              'corrupt — consider restoring from a backup.',
+            content: Text(
+              _integrityProbeThrew
+                  ? 'A database integrity check failed to complete, so your '
+                        'data could not be verified this launch. If problems '
+                        'persist, consider restoring from a backup. Technical '
+                        'details were saved to Settings ▸ Diagnostics.'
+                  : 'A database integrity check failed. Your local data may be '
+                        'corrupt — consider restoring from a backup.',
             ),
             leading: const Icon(Icons.warning_amber_outlined),
             actions: [

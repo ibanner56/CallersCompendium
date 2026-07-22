@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 /// A minimal, but real-shaped, ContraDB program page: two linked dances with a
 /// note between them.
@@ -55,6 +56,8 @@ Future<void> _pump(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) {
         final scoped = revision == null
             ? child!
@@ -193,30 +196,72 @@ void main() {
     },
   );
 
-  testWidgets('a fetch failure surfaces an error and keeps Import disabled', (
-    tester,
-  ) async {
-    final repos = openTestRepositories();
-    await _pump(
-      tester,
-      repos,
-      programFetcher: (_) async => throw Exception('offline'),
-      contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
-    );
+  testWidgets(
+    'an unexpected fetch failure shows a generic message and never leaks the '
+    'raw exception (CWE-209)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        // A non-UrlFetchException error: its text must NOT reach the UI.
+        programFetcher: (_) async =>
+            throw Exception('offline: /Users/secret/db'),
+        contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
+      );
 
-    await tester.enterText(
-      find.byKey(const ValueKey('contradb-program-url')),
-      '33',
-    );
-    await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        '33',
+      );
+      await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+      await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const ValueKey('contradb-program-fetch-error')),
-      findsOneWidget,
-    );
-    expect(await repos.programs.listAll(), isEmpty);
-  });
+      expect(
+        find.byKey(const ValueKey('contradb-program-fetch-error')),
+        findsOneWidget,
+      );
+      // The clean, generic message is shown…
+      expect(find.text('Couldn\'t fetch that program.'), findsOneWidget);
+      // …and none of the raw caught-exception text leaks into the UI.
+      expect(find.textContaining('offline'), findsNothing);
+      expect(find.textContaining('/Users/secret'), findsNothing);
+      expect(await repos.programs.listAll(), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'a fetch failure surfaces the curated UrlFetchException message',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        // UrlFetchException messages are curated + safe-to-show, so they are
+        // preserved verbatim (as plain text) below the generic first line.
+        programFetcher: (_) async => throw const UrlFetchException(
+          'Imports must use a secure https:// URL.',
+        ),
+        contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('contradb-program-url')),
+        '33',
+      );
+      await tester.tap(find.byKey(const ValueKey('contradb-program-fetch')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Couldn\'t fetch that program.\n'
+          'Imports must use a secure https:// URL.',
+        ),
+        findsOneWidget,
+      );
+      expect(await repos.programs.listAll(), isEmpty);
+    },
+  );
 
   testWidgets('searches by name and imports the picked program', (
     tester,
@@ -582,6 +627,8 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           builder: (context, child) =>
               RepositoriesScope(repositories: repos, child: child!),
           home: ContraDbProgramImportScreen(

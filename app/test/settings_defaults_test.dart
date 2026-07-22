@@ -535,6 +535,42 @@ void main() {
     expect(find.byKey(const ValueKey('figure-2-summary')), findsNothing);
   });
 
+  testWidgets(
+    'duplicating a template figure preserves the assumed-subject marker (#460)',
+    (tester) async {
+      final repos = openTestRepositories();
+      // Seed a template whose single figure carries the non-authoritative
+      // assumed-subject marker (as an import would produce).
+      await repos.settings.set(
+        kDefaultDanceFiguresTemplateKey,
+        encodeFigures([
+          Figure(
+            move: 'allemande',
+            params: const {'who': 'neighbors', 'hand': 'left', 'beats': 8},
+            assumedSubject: true,
+          ),
+        ]),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-0-duplicate')));
+      await tester.pumpAndSettle();
+
+      final stored = danceFiguresTemplateFromStored(
+        await repos.settings.get(kDefaultDanceFiguresTemplateKey),
+      );
+      // The clone is inserted after the source and the persisted template keeps
+      // the marker on BOTH figures (the #460 regression dropped it on the copy).
+      expect(stored, hasLength(2));
+      expect(stored.every((f) => f.move == 'allemande'), isTrue);
+      expect(stored.every((f) => f.assumedSubject), isTrue);
+    },
+  );
+
   group('Move defaults (DD.3)', () {
     testWidgets('editor renders with an add affordance', (tester) async {
       final repos = openTestRepositories();

@@ -202,4 +202,50 @@ void main() {
     controller.markSaved();
     expect(controller.dirty, isFalse);
   });
+
+  test('duplicateFigure preserves the assumed-subject marker on the copy '
+      '(#460)', () async {
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    final controller = DanceEditorController(
+      repositories: repos,
+      danceId: 'd1',
+      dialect: Dialect.larksRobins,
+    );
+    addTearDown(controller.dispose);
+
+    // An imported figure whose subject the parser DEFAULTED carries the
+    // non-authoritative provenance marker.
+    final assumed = Figure(
+      move: 'allemande',
+      params: const {'who': 'neighbors', 'hand': 'left', 'beats': 8},
+      assumedSubject: true,
+    );
+    await controller.load(
+      dance: Dance(
+        id: 'd1',
+        title: 'My Dance',
+        figures: [assumed],
+        createdAt: now,
+        updatedAt: now,
+      ),
+      fieldDefs: const [],
+    );
+    expect(controller.figureDrafts, hasLength(1));
+    expect(controller.figureDrafts.single.assumedSubject, isTrue);
+
+    controller.duplicateFigure(controller.figureDrafts.single);
+
+    // The clone lands right after the source; BOTH keep the marker (the #460
+    // regression dropped it on the copy), and the copy has a distinct id.
+    expect(controller.figureDrafts, hasLength(2));
+    expect(controller.figureDrafts[0].assumedSubject, isTrue);
+    expect(controller.figureDrafts[1].assumedSubject, isTrue);
+    expect(controller.figureDrafts[1].id, isNot(controller.figureDrafts[0].id));
+
+    // And it survives assembly back into the immutable dance.
+    final dance = controller.buildDance();
+    expect(dance.figures, hasLength(2));
+    expect(dance.figures.every((f) => f.assumedSubject), isTrue);
+  });
 }

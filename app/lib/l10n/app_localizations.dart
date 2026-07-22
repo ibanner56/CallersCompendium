@@ -2172,6 +2172,30 @@ abstract class AppLocalizations {
   /// **'Exit performance view'**
   String get performExitTooltip;
 
+  /// Title of the confirmation dialog shown before leaving the Perform view, so a stray tap or system back does not drop the caller out mid-program.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Perform?'**
+  String get performExitTitle;
+
+  /// Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.'**
+  String get performExitBody;
+
+  /// Button that dismisses the exit-confirmation dialog and stays in the Perform view.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep performing'**
+  String get performExitCancel;
+
+  /// Button that confirms leaving the Perform view from the exit-confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get performExitConfirm;
+
   /// Label for the tap-tempo metronome, used both as the toolbar tooltip and the metronome sheet heading.
   ///
   /// In en, this message translates to:
@@ -2473,6 +2497,18 @@ abstract class AppLocalizations {
   /// **'Show canonical terms'**
   String get performShowCanonicalTerms;
 
+  /// Tooltip/accessible name for the perform-mode AppBar overflow menu button that reveals the secondary actions collapsed on narrow screens (issue #433).
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get performMoreActions;
+
+  /// Label for the perform-mode auto-size toggle when it appears as an item inside the AppBar overflow menu on narrow screens (issue #433).
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-size text to screen'**
+  String get performAutoSizeMenuLabel;
+
   /// Tooltip for the perform-mode auto-size toggle when auto-size is currently on.
   ///
   /// In en, this message translates to:
@@ -2528,6 +2564,774 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose a program from the list, or create a new one.'**
   String get programsSelectBody;
+
+  /// Generic label for an Edit action button.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get commonEdit;
+
+  /// Generic label for a Change action button (e.g. change a chosen value).
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get commonChange;
+
+  /// Generic button to retry an action after an error (distinct from commonRetry 'Retry').
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get commonTryAgain;
+
+  /// Tooltip on the share/print (export) popup-menu button for a dance or program.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportTooltip;
+
+  /// Export-menu item: share the dance as a plain-text card via the OS share sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Share dance (text)'**
+  String get exportShareDanceText;
+
+  /// Export-menu item: copy the dance's plain-text card to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy dance'**
+  String get exportCopyDance;
+
+  /// Export-menu item: hand a generated PDF to the OS print/save dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Export / print PDF'**
+  String get exportPrintPdf;
+
+  /// Snackbar confirming the dance text was copied to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance copied to clipboard.'**
+  String get exportDanceCopied;
+
+  /// Snackbar shown when sharing a dance fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this dance'**
+  String get exportShareDanceError;
+
+  /// Snackbar shown when exporting/printing a dance PDF fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t export this dance'**
+  String get exportDanceError;
+
+  /// Program export-menu item: share the set list as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Share set list (text)'**
+  String get exportShareSetListText;
+
+  /// Program export-menu item: share a bundle file containing the program and its dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Share (program + dances)'**
+  String get exportShareProgramBundle;
+
+  /// Program export-menu item: copy the set list text to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy set list'**
+  String get exportCopySetList;
+
+  /// Snackbar confirming the set list text was copied to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Set list copied to clipboard.'**
+  String get exportSetListCopied;
+
+  /// Snackbar shown when sharing a set list fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this set list'**
+  String get exportShareSetListError;
+
+  /// Snackbar shown when sharing a program bundle fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this program'**
+  String get exportShareProgramError;
+
+  /// Snackbar shown when exporting/printing a set list PDF fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t export this set list'**
+  String get exportSetListError;
+
+  /// Tooltip on the button that exports/prints the program matrix as a PDF.
+  ///
+  /// In en, this message translates to:
+  /// **'Export or print matrix as PDF'**
+  String get exportMatrixPdfTooltip;
+
+  /// Fallback filename for the generated program-matrix PDF when the program has no title.
+  ///
+  /// In en, this message translates to:
+  /// **'Programming matrix'**
+  String get exportMatrixPdfFilename;
+
+  /// Title of the switch that turns online dance search on/off in the collection screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Online search'**
+  String get onlineSearchToggleTitle;
+
+  /// Subtitle explaining what the online-search switch does.
+  ///
+  /// In en, this message translates to:
+  /// **'Search online and import dances directly (requires internet). Local filters do not apply.'**
+  String get onlineSearchToggleSubtitle;
+
+  /// Label for the search field when online search is active.
+  ///
+  /// In en, this message translates to:
+  /// **'Search {source}'**
+  String onlineSearchFieldLabel(String source);
+
+  /// Hint text for the online search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search online dances by title…'**
+  String get onlineSearchFieldHint;
+
+  /// Count of online search results shown above the results list.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 online result} other{{count} online results}}'**
+  String onlineResultCount(int count);
+
+  /// Empty-query hint for online sources that support by-phrase figure criteria.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a title or add by-phrase figures to search {source}.'**
+  String onlineSearchHintByPhrase(String source);
+
+  /// Empty-query hint for online sources that only support title search.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a title to search {source}.'**
+  String onlineSearchHintTitle(String source);
+
+  /// Shown when an online search returns no matching dances.
+  ///
+  /// In en, this message translates to:
+  /// **'No dances on {source} match your search.'**
+  String onlineNoResults(String source);
+
+  /// Snackbar/inline error shown when loading a dance preview from an online source fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load that dance from {source}.'**
+  String onlineLoadError(String source);
+
+  /// Snackbar shown when directly importing an online dance fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import that dance.'**
+  String get onlineImportError;
+
+  /// Snackbar confirming an online dance was imported. The title is an untrusted external value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported \"{title}\".'**
+  String onlineImportCreated(String title);
+
+  /// Snackbar shown when the online dance being imported was already in the collection. The title is an untrusted external value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" is already in your collection.'**
+  String onlineImportAlreadyInCollection(String title);
+
+  /// Attribution line under an online result row sourced from The Caller's Box.
+  ///
+  /// In en, this message translates to:
+  /// **'From The Caller\'s Box (online)'**
+  String get onlineAttributionCallersBox;
+
+  /// Attribution line under an online result row sourced from ContraDB.
+  ///
+  /// In en, this message translates to:
+  /// **'From ContraDB (online)'**
+  String get onlineAttributionContraDb;
+
+  /// Tooltip/title for the import-dances action and the import review screen app bar.
+  ///
+  /// In en, this message translates to:
+  /// **'Import dances'**
+  String get importDances;
+
+  /// Generic label for the button that commits an import.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get importAction;
+
+  /// Tooltip on the import-program popup-menu button in the programs list.
+  ///
+  /// In en, this message translates to:
+  /// **'Import program'**
+  String get importProgramTooltip;
+
+  /// Import-program menu item: import a program from a pasted title list.
+  ///
+  /// In en, this message translates to:
+  /// **'From title list'**
+  String get importFromTitleList;
+
+  /// Import-program menu item: import a program from ContraDB.
+  ///
+  /// In en, this message translates to:
+  /// **'From ContraDB'**
+  String get importFromContraDb;
+
+  /// Label for the program-title text field in the import screens.
+  ///
+  /// In en, this message translates to:
+  /// **'Program title'**
+  String get importProgramTitleLabel;
+
+  /// Snackbar shown when writing an imported program to the collection fails. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the imported program.'**
+  String get importProgramCreateError;
+
+  /// Snackbar summarising a committed program import. The title is an untrusted external value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported \"{title}\" — {slots, plural, =1{1 slot} other{{slots} slots}} ({linked} linked, {notes, plural, =1{1 note} other{{notes} notes}}).'**
+  String importProgramCommitted(String title, int slots, int linked, int notes);
+
+  /// App bar title of the ContraDB program import screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from ContraDB'**
+  String get importContraDbTitle;
+
+  /// Segmented-button label: enter a ContraDB program by pasting its URL.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste URL'**
+  String get importContraDbPasteUrl;
+
+  /// Segmented-button label: find a ContraDB program by searching its name.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name'**
+  String get importContraDbSearchByName;
+
+  /// Label for the ContraDB program URL text field.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB program URL'**
+  String get importContraDbUrlLabel;
+
+  /// Hint for the ContraDB program URL text field.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. https://contradb.com/programs/33'**
+  String get importContraDbUrlHint;
+
+  /// Label on the fetch button while a ContraDB program is being fetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetching…'**
+  String get importContraDbFetching;
+
+  /// Label on the button that fetches a ContraDB program by URL.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch program'**
+  String get importContraDbFetch;
+
+  /// Label for the ContraDB program search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search ContraDB programs'**
+  String get importContraDbSearchLabel;
+
+  /// Hint for the ContraDB program search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Type part of a program name'**
+  String get importContraDbSearchHint;
+
+  /// Error shown when the ContraDB program index fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the ContraDB program list.'**
+  String get importContraDbListError;
+
+  /// Prompt shown in the ContraDB search results area before the user has typed a query.
+  ///
+  /// In en, this message translates to:
+  /// **'Type part of a program name to search ContraDB.'**
+  String get importContraDbSearchPrompt;
+
+  /// Shown when a ContraDB program name search returns no matches.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching programs.'**
+  String get importContraDbNoMatches;
+
+  /// Error shown when fetching a ContraDB program fails. {error} is ONLY ever a curated, safe-to-show UrlFetchException.message (e.g. a scheme/redirect/size guard message); unexpected raw exceptions are logged and shown via importContraDbFetchGenericError instead, so no internals leak (CWE-209). Rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t fetch that program.\n{error}'**
+  String importContraDbFetchError(String error);
+
+  /// Error shown when fetching a ContraDB program fails with an unexpected (non-curated) exception. The raw exception is logged (debugPrint), never shown, to avoid leaking internals (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t fetch that program.'**
+  String get importContraDbFetchGenericError;
+
+  /// Prompt shown in the preview area before a ContraDB program has been fetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a ContraDB program URL above and tap \"Fetch program\".'**
+  String get importContraDbPastePrompt;
+
+  /// Shown when a fetched ContraDB program page contains no dances or notes.
+  ///
+  /// In en, this message translates to:
+  /// **'No dances or notes found on that program page.'**
+  String get importContraDbEmptyProgram;
+
+  /// Snackbar shown when resolving a ContraDB program's activities before commit fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import the ContraDB program.'**
+  String get importContraDbResolveError;
+
+  /// Summary of a fetched ContraDB program's activities shown above the preview list.
+  ///
+  /// In en, this message translates to:
+  /// **'{activities, plural, =1{1 activity} other{{activities} activities}} ({dances, plural, =1{1 dance} other{{dances} dances}}, {notes, plural, =1{1 note} other{{notes} notes}})'**
+  String importContraDbActivityCount(int activities, int dances, int notes);
+
+  /// Fallback title for a ContraDB activity that is a dance with no title.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB dance'**
+  String get importContraDbDanceFallback;
+
+  /// Shown in the event-date row when no event date has been set.
+  ///
+  /// In en, this message translates to:
+  /// **'No date set'**
+  String get importEventDateNone;
+
+  /// Label for the event-date input row.
+  ///
+  /// In en, this message translates to:
+  /// **'Event date'**
+  String get importEventDateLabel;
+
+  /// Button to set the event date when none is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Set date'**
+  String get importEventDateSet;
+
+  /// Tooltip on the button that clears the chosen event date.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear event date'**
+  String get importEventDateClear;
+
+  /// Hint shown when the event date was auto-detected from the program title.
+  ///
+  /// In en, this message translates to:
+  /// **'Date detected from title — check it before importing.'**
+  String get importEventDateDetected;
+
+  /// App bar title of the plaintext (title list) program import screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from title list'**
+  String get importTitleListTitle;
+
+  /// Error shown when the local collection fails to load in the title-list import screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load your collection.'**
+  String get importCollectionLoadError;
+
+  /// Label for the multi-line field where the user pastes dance titles.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance titles (one per line)'**
+  String get importTitleListDancesLabel;
+
+  /// Hint for the multi-line dance-titles field.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste one dance title per line.\nUnrecognised lines are kept as notes.'**
+  String get importTitleListDancesHint;
+
+  /// Prompt shown before any dance titles have been pasted.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a list of dance titles above to preview the program.'**
+  String get importTitleListEmptyHint;
+
+  /// Label on the resolve-online button while an online search is in flight.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching…'**
+  String get importResolving;
+
+  /// Button that searches online sources for the unmatched title-list lines.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve unmatched online'**
+  String get importResolveOnline;
+
+  /// Per-line status: this title was resolved and imported from The Caller's Box.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported from Caller\'s Box'**
+  String get importPlaintextImportedOnline;
+
+  /// Per-line status: this title was linked to an existing local dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked to dance'**
+  String get importPlaintextLinked;
+
+  /// Per-line status: this title had multiple possible matches, so it was kept as a note.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple matches — added as note'**
+  String get importPlaintextAmbiguous;
+
+  /// Per-line status: this title matched nothing, so it was kept as a note.
+  ///
+  /// In en, this message translates to:
+  /// **'No match — added as note'**
+  String get importPlaintextUnmatched;
+
+  /// Snackbar shown when resolving unmatched title-list lines online fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search The Caller\'s Box.'**
+  String get importPlaintextSearchError;
+
+  /// Count of slots in the title-list import preview.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 slot} other{{count} slots}}'**
+  String importPlaintextSlotCount(int count);
+
+  /// Snackbar shown after online resolution when no confident matches were found.
+  ///
+  /// In en, this message translates to:
+  /// **'No confident Caller\'s Box matches found — {remaining, plural, =1{{remaining} title kept as a note} other{{remaining} titles kept as notes}}.'**
+  String importPlaintextResolvedNone(int remaining);
+
+  /// Snackbar shown after online resolution when some titles were linked, optionally noting how many remain unmatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked {linked, plural, =1{{linked} title} other{{linked} titles}} from The Caller\'s Box{remaining, plural, =0{.} =1{; {remaining} still a note.} other{; {remaining} still notes.}}'**
+  String importPlaintextResolvedLinked(int linked, int remaining);
+
+  /// Tooltip on the close button of the embedded import review screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Close import'**
+  String get importReviewClose;
+
+  /// Label above the import-source dropdown when more than one source is available.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get importReviewSourceLabel;
+
+  /// Heading for a binary (byte) import source such as a Caller's Companion file.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from {source}.'**
+  String importReviewFromSource(String source);
+
+  /// Heading for a text/URL import source.
+  ///
+  /// In en, this message translates to:
+  /// **'Import dances from {source}.'**
+  String importReviewDancesFromSource(String source);
+
+  /// Explanatory text for the Caller's Companion .USR file import.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.'**
+  String get importReviewUsrSubtitle;
+
+  /// Button to pick a Caller's Companion .USR file.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose .USR file…'**
+  String get importReviewChooseUsr;
+
+  /// Confirmation that a binary import file was picked, showing its size.
+  ///
+  /// In en, this message translates to:
+  /// **'File ready ({bytes} bytes).'**
+  String importReviewFileReady(int bytes);
+
+  /// Explanatory text for a text/URL import source.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a file, paste its contents, or fetch it from a URL. Nothing is added to your collection until you review and confirm.'**
+  String get importReviewGenericSubtitle;
+
+  /// Button to pick a text import file.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose file…'**
+  String get importReviewChooseFile;
+
+  /// Label for the URL field when the source builds URLs from a dance id.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance URL or id'**
+  String get importReviewUrlLabel;
+
+  /// Label for the URL field for a generic URL import source.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from URL'**
+  String get importReviewUrlLabelGeneric;
+
+  /// Hint for the URL field showing a full URL or a bare id are both accepted.
+  ///
+  /// In en, this message translates to:
+  /// **'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1  · or · 1'**
+  String get importReviewUrlHint;
+
+  /// Hint for the generic URL import field.
+  ///
+  /// In en, this message translates to:
+  /// **'https://…'**
+  String get importReviewUrlHintGeneric;
+
+  /// Button that fetches the import payload from the entered URL.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch'**
+  String get importReviewFetch;
+
+  /// Label for the multi-line field where import JSON can be pasted directly.
+  ///
+  /// In en, this message translates to:
+  /// **'Or paste JSON'**
+  String get importReviewPasteJson;
+
+  /// Button that plans the import and moves to the review step.
+  ///
+  /// In en, this message translates to:
+  /// **'Review import'**
+  String get importReviewReviewButton;
+
+  /// Count summary above the commit button showing how many records will be imported.
+  ///
+  /// In en, this message translates to:
+  /// **'{importable} of {total} will be imported'**
+  String importReviewWillImport(int importable, int total);
+
+  /// Title shown when the import payload could not be parsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read the import'**
+  String get importReviewCouldNotRead;
+
+  /// Title shown when the import payload parsed but contained no dances.
+  ///
+  /// In en, this message translates to:
+  /// **'No dances found'**
+  String get importReviewNoDancesTitle;
+
+  /// Body text shown when the import payload contained no dances.
+  ///
+  /// In en, this message translates to:
+  /// **'The file did not contain any dances to import.'**
+  String get importReviewNoDancesBody;
+
+  /// Button to return to the input step and try a different import file.
+  ///
+  /// In en, this message translates to:
+  /// **'Try another file'**
+  String get importReviewTryAnother;
+
+  /// Per-row status shown after a single record has been committed via Edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported'**
+  String get importReviewImported;
+
+  /// Quality chip showing how many of a dance's figures parsed as structured.
+  ///
+  /// In en, this message translates to:
+  /// **'{structured}/{total} structured'**
+  String importReviewStructured(int structured, int total);
+
+  /// Quality chip label when a dance's figures are fully custom (unstructured).
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get importReviewCustom;
+
+  /// Per-record option: import this record as a brand-new dance.
+  ///
+  /// In en, this message translates to:
+  /// **'New dance'**
+  String get importReviewOptionNewDance;
+
+  /// Per-record option: skip this record (do not import it).
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get importReviewOptionSkip;
+
+  /// Per-record option: re-import onto an existing local dance. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-import onto \"{title}\"'**
+  String importReviewOptionReimport(String title);
+
+  /// Per-record option: import this record as a new dance even though a match exists.
+  ///
+  /// In en, this message translates to:
+  /// **'Import as a new (duplicate) dance'**
+  String get importReviewOptionDuplicate;
+
+  /// Prompt above the options for a record that ambiguously matches existing dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Possible match — choose how to import:'**
+  String get importReviewPossibleMatch;
+
+  /// Per-record option: link to a candidate existing dance with a match percentage. The title is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Link to \"{title}\" ({percent}% match)'**
+  String importReviewOptionLink(String title, int percent);
+
+  /// Pre-commit warning stating how many existing local dances a commit will overwrite.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 existing dance will be overwritten} other{{count} existing dances will be overwritten}}'**
+  String importReviewOverwriteWarning(int count);
+
+  /// Screen-reader label that prefixes the overwrite-warning message with 'Warning:'.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: {message}'**
+  String importReviewWarningPrefix(String message);
+
+  /// Title of the dialog shown after an import commit finishes.
+  ///
+  /// In en, this message translates to:
+  /// **'Import complete'**
+  String get importReviewComplete;
+
+  /// Import result summary line: number of dances created.
+  ///
+  /// In en, this message translates to:
+  /// **'Created: {count}'**
+  String importReviewSummaryCreated(int count);
+
+  /// Import result summary line: number of dances re-imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-imported: {count}'**
+  String importReviewSummaryReimported(int count);
+
+  /// Import result summary line: number of dances linked.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked: {count}'**
+  String importReviewSummaryLinked(int count);
+
+  /// Import result summary line: number of dances duplicated.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicated: {count}'**
+  String importReviewSummaryDuplicated(int count);
+
+  /// Import result summary line: number of records skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped: {count}'**
+  String importReviewSummarySkipped(int count);
+
+  /// Import result summary line: number of programs imported (Caller's Companion only).
+  ///
+  /// In en, this message translates to:
+  /// **'Programs: {count}'**
+  String importReviewSummaryPrograms(int count);
+
+  /// Import result detail: how many imported programs updated an existing one.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} updated (re-imported)'**
+  String importReviewProgramsUpdated(int count);
+
+  /// Import result heading listing program-level notes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} program note(s):} other{{count} program note(s):}}'**
+  String importReviewProgramNotes(int count);
+
+  /// Import result heading listing records that failed to import.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} record(s) failed to import:} other{{count} record(s) failed to import:}}'**
+  String importReviewRecordsFailed(int count);
+
+  /// Heading above the list of records that could not be parsed from the import batch.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} record(s) couldn\'t be read (the rest can still be imported):} other{{count} record(s) couldn\'t be read (the rest can still be imported):}}'**
+  String importReviewBatchErrors(int count);
+
+  /// Fallback name for an imported program with no title.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled program'**
+  String get importReviewUntitledProgram;
+
+  /// Undo button label when the import created both dances and programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo (removes the imported dances and programs)'**
+  String get importReviewUndoWithPrograms;
+
+  /// Snackbar confirming the import was undone.
+  ///
+  /// In en, this message translates to:
+  /// **'Import undone.'**
+  String get importReviewUndone;
+
+  /// Snackbar shown when committing a single record so it can be edited fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import that dance to edit.'**
+  String get importReviewEditError;
+
+  /// Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t complete the import.'**
+  String get importReviewImportError;
 }
 
 class _AppLocalizationsDelegate

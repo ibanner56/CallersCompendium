@@ -9,6 +9,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
 
+import 'support/l10n_harness.dart';
+import 'support/test_repositories.dart';
+
 final _now = DateTime.utc(2026, 1, 1);
 
 Program _program({
@@ -63,6 +66,8 @@ Dance? _danceFor(String id) => _dances[id];
 Future<void> _pumpMenu(WidgetTester tester, Program program) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         appBar: AppBar(
           actions: [ProgramExportMenu(program: program, titleFor: _titles)],
@@ -178,6 +183,8 @@ void main() {
     testWidgets('surfaces a SnackBar when sharing throws', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -208,6 +215,8 @@ void main() {
       ShareParams? captured;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -237,6 +246,8 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -276,6 +287,8 @@ void main() {
         // With danceFor: the bundle action appears.
         await tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
             home: Scaffold(
               appBar: AppBar(
                 actions: [
@@ -305,6 +318,8 @@ void main() {
         ShareParams? captured;
         await tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
             home: Scaffold(
               appBar: AppBar(
                 actions: [
@@ -362,6 +377,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -419,6 +436,54 @@ void main() {
         titleFor: _titles,
       );
       expect(bytes, isNotEmpty);
+    });
+
+    testWidgets('exports a program whose dance was purged, without corruption '
+        '(#459 export coverage)', (tester) async {
+      // End-to-end regression for the purge → export path (#429/#459): a
+      // dance-only slot's dance is soft-deleted and then hard-purged by the
+      // retention sweep, which tombstones the slot with the dance title. The
+      // affected program must still render to PDF — the dance itself is gone,
+      // so the exporter's title lookup misses it, yet the tombstone caption
+      // carries the slot.
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      await repos.dances.create(
+        Dance(
+          id: 'gone',
+          title: 'Purged Reel',
+          authorIds: const [],
+          figures: const [],
+          sourceCitations: const [],
+          customFields: const [],
+          createdAt: _now,
+          updatedAt: _now,
+          deletedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await repos.programs.create(
+        _program(
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'gone'),
+            ProgramSlot(id: 's2', position: 1, text: 'Waltz break'),
+          ],
+        ),
+      );
+
+      await repos.dances.purgeDeleted(now: DateTime.utc(2026, 4, 1));
+
+      final purged = await repos.programs.getById('p1');
+      expect(purged, isNotNull);
+      // The tombstone survived and the dance is truly gone.
+      expect(purged!.slots.first.danceId, isNull);
+      expect(purged.slots.first.text, 'Purged Reel');
+
+      // A real exporter's title lookup now misses the purged dance.
+      final bytes = await buildProgramPdf(purged, titleFor: (_) => null);
+
+      expect(bytes, isNotEmpty);
+      // A valid PDF begins with the "%PDF" magic header.
+      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
     });
   });
 }

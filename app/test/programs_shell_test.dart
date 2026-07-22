@@ -42,6 +42,19 @@ Dance _dance({required String id, required String title, DanceLevel? level}) =>
       updatedAt: _now,
     );
 
+/// Reads a keyed Perform [Text] (e.g. the clock or position label), which live
+/// inside an [ExcludeSemantics] wrapper but are still in the widget tree.
+String _perfText(WidgetTester tester, String key) =>
+    tester.widget<Text>(find.byKey(ValueKey(key))).data!;
+
+/// Parses a `MM:SS` / `H:MM:SS` clock readout into whole seconds.
+int _perfSeconds(String display) {
+  final parts = display.split(':').map(int.parse).toList();
+  return parts.length == 3
+      ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+      : parts[0] * 60 + parts[1];
+}
+
 Future<void> _pumpWide(
   WidgetTester tester,
   CompendiumRepositories repos,
@@ -374,6 +387,63 @@ void main() {
       // The current saved program is handed to the Perform view.
       expect(find.byType(PerformProgramScreen), findsOneWidget);
       expect(find.text('Chase the Squirrel'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'the summary Perform launcher resumes position + clock on re-entry (#434)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+
+      // Launch Perform from the summary pane's own launcher.
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+      // Advance to slot 2 and let the clock run.
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      expect(_perfText(tester, 'perform-position'), 'Slot 2 of 2');
+      await tester.pump(const Duration(seconds: 8));
+      final clockBefore = _perfSeconds(_perfText(tester, 'perform-clock'));
+      expect(clockBefore, greaterThanOrEqualTo(8));
+
+      // Guarded exit back to the summary.
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      // Re-launch from the summary: the independently owned in-memory snapshot
+      // resumes at slot 2 with the clock preserved, not reset to slot 1.
+      await tester.tap(find.byKey(const ValueKey('summary-perform')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+      expect(_perfText(tester, 'perform-position'), 'Slot 2 of 2');
+      expect(
+        _perfSeconds(_perfText(tester, 'perform-clock')),
+        greaterThanOrEqualTo(clockBefore),
+      );
     },
   );
 

@@ -866,15 +866,10 @@ class DanceEditorController extends ChangeNotifier {
   void duplicateFigure(FigureDraft draft) {
     final index = figureDrafts.indexOf(draft);
     if (index != -1) {
-      // Clone with a fresh id (stable-identity contract) but copied
-      // move/params/note/progression, inserted right after source.
-      final clone = FigureDraft(
-        move: draft.move,
-        params: Map<String, Object?>.of(draft.params),
-        note: draft.note,
-        progression: draft.progression,
-        schemaVersion: draft.schemaVersion,
-      );
+      // Clone with a fresh id (stable-identity contract) but every other field
+      // copied — including the assumed-subject provenance marker (#460) — via
+      // the centralized [FigureDraft.clone], inserted right after the source.
+      final clone = draft.clone();
       figureDrafts.insert(index + 1, clone);
       recomputeWarnings();
     }

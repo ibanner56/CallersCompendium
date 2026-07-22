@@ -7,6 +7,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:compendium_app/src/export/dance_pdf.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 
+import 'support/l10n_harness.dart';
+
 final _now = DateTime.utc(2026, 1, 1);
 
 /// A [FigureRenderer] spy that counts calls to [render] vs [renderSummary] while
@@ -67,6 +69,8 @@ Future<void> _pumpMenu(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         appBar: AppBar(
           actions: [
@@ -225,6 +229,8 @@ void main() {
     testWidgets('surfaces a SnackBar when sharing throws', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -258,6 +264,8 @@ void main() {
       ShareParams? captured;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -290,6 +298,8 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -323,6 +333,8 @@ void main() {
       String? capturedName;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -359,6 +371,8 @@ void main() {
       String? capturedName;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -479,6 +493,41 @@ void main() {
       final nonActiveLen = await pdfLen(DanceStatus.deprecated);
 
       expect(nonActiveLen, greaterThan(activeLen));
+    });
+
+    // The PDF text is glyph-encoded + stream-compressed, so it can't be grep'd
+    // for "(assumed)". Mirroring the Status-line strategy: hold every input
+    // constant except the figure's assumedSubject flag. The assumed PDF embeds
+    // the extra "(assumed)" marker text, so it must be strictly larger — proof
+    // the marker reaches the PDF surface (#460). A robustness check too: an
+    // untrusted assumed figure must never crash the export.
+    testWidgets('a parser-assumed subject enlarges the PDF export (#460)', (
+      tester,
+    ) async {
+      Future<int> pdfLen({required bool assumed}) async {
+        final bytes = await buildDancePdf(
+          _dance(
+            figures: [
+              Figure(
+                move: 'allemande',
+                params: const {'who': 'neighbors', 'hand': 'left', 'beats': 8},
+                assumedSubject: assumed,
+              ),
+            ],
+          ),
+          dialect: Dialect.canonical,
+          authorNames: const [],
+          formationLabel: 'Duple improper',
+          statusLabel: 'Active',
+        );
+        expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+        return bytes.length;
+      }
+
+      final statedLen = await pdfLen(assumed: false);
+      final assumedLen = await pdfLen(assumed: true);
+
+      expect(assumedLen, greaterThan(statedLen));
     });
   });
 }

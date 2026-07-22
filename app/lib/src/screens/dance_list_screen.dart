@@ -16,6 +16,7 @@ import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
+import '../data/online_search_labels.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -639,6 +640,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Future<void> _pushOnlinePreview(OnlineSearchResultRow result) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final l10n = AppLocalizations.of(context);
     final sourceLabel = _onlineSource.label;
     // A blocking loader while the tapped dance's JSON is fetched + parsed.
     showDialog<void>(
@@ -660,7 +662,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     } catch (_) {
       if (mounted) navigator.pop();
       messenger.showSnackBar(
-        SnackBar(content: Text("Couldn't load that dance from $sourceLabel.")),
+        SnackBar(content: Text(l10n.onlineLoadError(sourceLabel))),
       );
       return;
     }
@@ -693,7 +695,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     messenger.showSnackBar(
       SnackBar(
         key: const ValueKey('online-import-snackbar'),
-        content: Text(onlineImportMessage(imported)),
+        content: Text(onlineImportMessage(l10n, imported)),
       ),
     );
   }
@@ -707,6 +709,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     _importing = true;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final l10n = AppLocalizations.of(context);
     try {
       final result = await _online.import(_repos, preview.plan);
       if (!mounted) return;
@@ -722,7 +725,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         messenger.showSnackBar(
           SnackBar(
             key: const ValueKey('online-import-snackbar'),
-            content: Text(onlineImportMessage(result)),
+            content: Text(onlineImportMessage(l10n, result)),
           ),
         );
       }
@@ -731,9 +734,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       messenger.showSnackBar(SnackBar(content: Text(error.message)));
     } catch (_) {
       if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Couldn't import that dance.")),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.onlineImportError)));
     } finally {
       _importing = false;
     }
@@ -1019,7 +1020,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           if (widget.onImport != null)
             IconButton(
               key: const ValueKey('import-dances'),
-              tooltip: 'Import dances',
+              tooltip: l10n.importDances,
               icon: const Icon(Icons.download_outlined),
               onPressed: widget.onImport,
             ),
@@ -1243,10 +1244,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               labelText: _onlineEnabled
-                  ? 'Search ${_onlineSource.label}'
+                  ? l10n.onlineSearchFieldLabel(_onlineSource.label)
                   : l10n.collectionSearchFieldLabel,
               hintText: _onlineEnabled
-                  ? 'Search online dances by title…'
+                  ? l10n.onlineSearchFieldHint
                   : l10n.collectionSearchFieldHint,
               prefixIcon: Icon(
                 _onlineEnabled ? Icons.cloud_outlined : Icons.search,
@@ -1449,11 +1450,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
           key: const ValueKey('online-search-enable'),
           contentPadding: EdgeInsets.zero,
           secondary: const Icon(Icons.cloud_outlined),
-          title: const Text('Online search'),
-          subtitle: const Text(
-            'Search online and import dances directly (requires internet). '
-            'Local filters do not apply.',
-          ),
+          title: Text(l10n.onlineSearchToggleTitle),
+          subtitle: Text(l10n.onlineSearchToggleSubtitle),
           value: _onlineEnabled,
           onChanged: _onOnlineToggled,
         ),
@@ -1513,7 +1511,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final int count = online ? _onlineResults.length : _results.length;
     final bool busy = online ? _onlineSearching : _searching;
     final String label = online
-        ? '$count online ${count == 1 ? 'result' : 'results'}'
+        ? l10n.onlineResultCount(count)
         : l10n.collectionDanceCount(count);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -1549,6 +1547,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// clear inline error on fetch failure, an empty-query hint, a "no matches"
   /// message, or the [OnlineResultTile] rows.
   Widget _buildOnlineResultsSliver() {
+    final l10n = AppLocalizations.of(context);
     if (_onlineError != null) {
       return SliverToBoxAdapter(
         child: Padding(
@@ -1573,9 +1572,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
     if (_ftsController.text.trim().isEmpty && _effectivePhrases() == null) {
       final hint = _onlineSource.supportsByPhrase
-          ? 'Type a title or add by-phrase figures to search '
-                '${_onlineSource.label}.'
-          : 'Type a title to search ${_onlineSource.label}.';
+          ? l10n.onlineSearchHintByPhrase(_onlineSource.label)
+          : l10n.onlineSearchHintTitle(_onlineSource.label);
       return SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -1595,7 +1593,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Center(
             child: Text(
-              'No dances on ${_onlineSource.label} match your search.',
+              l10n.onlineNoResults(_onlineSource.label),
               key: const ValueKey('online-no-results'),
               textAlign: TextAlign.center,
             ),

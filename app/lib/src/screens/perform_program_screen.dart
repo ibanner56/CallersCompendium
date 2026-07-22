@@ -33,6 +33,52 @@ import 'settings_screen.dart' show kAutoSizePerformKey;
 /// In-view text size ([PerformSizeControls]) and the canonical ⇄ dialect toggle
 /// ([PerformDialectToggle]) are shared across all slots so the caller sets them
 /// once. This view is read-only: no destructive actions are reachable.
+///
+/// Exit is guarded (issue #434): a single stray tap on the close control (or a
+/// system back) can no longer drop the caller out mid-set — it asks for a
+/// deliberate confirmation first. The live position + running clock are handed
+/// back through [onExit] on every teardown so the launching screen can resume
+/// Perform exactly where the caller left off.
+
+/// Snapshot of a Perform session's resumable state (issue #434). Purely a UI
+/// concern (never persisted to the domain model, per ADR-001): the launching
+/// screen holds the latest snapshot in memory so a re-entry restores the
+/// caller's place and clock instead of resetting to slot 1 with a fresh timer.
+@immutable
+class PerformResumeState {
+  const PerformResumeState({
+    required this.groupIndex,
+    required this.elapsedSeconds,
+    required this.slotStartSeconds,
+    required this.paused,
+  });
+
+  /// Navigable group index that was on screen.
+  final int groupIndex;
+
+  /// Program-clock seconds elapsed when the view was left.
+  final int elapsedSeconds;
+
+  /// Program-clock second at which the current group was entered; the per-slot
+  /// elapsed resumes as `elapsedSeconds - slotStartSeconds`.
+  final int slotStartSeconds;
+
+  /// Whether the timers were paused when the view was left.
+  final bool paused;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PerformResumeState &&
+      other.groupIndex == groupIndex &&
+      other.elapsedSeconds == elapsedSeconds &&
+      other.slotStartSeconds == slotStartSeconds &&
+      other.paused == paused;
+
+  @override
+  int get hashCode =>
+      Object.hash(groupIndex, elapsedSeconds, slotStartSeconds, paused);
+}
+
 class PerformProgramScreen extends StatefulWidget {
   const PerformProgramScreen({
     super.key,
@@ -40,6 +86,10 @@ class PerformProgramScreen extends StatefulWidget {
     required this.data,
     required this.renderer,
     this.initialGroup = 0,
+    this.initialElapsedSeconds = 0,
+    this.initialSlotStartSeconds = 0,
+    this.initialPaused = false,
+    this.onExit,
     this.onProgramChanged,
   });
 
@@ -49,6 +99,24 @@ class PerformProgramScreen extends StatefulWidget {
 
   /// Group index to open at (defaults to the first group).
   final int initialGroup;
+
+  /// Seconds already on the program clock when this view opens. Lets a re-entry
+  /// resume the running clock (issue #434) rather than resetting to zero.
+  final int initialElapsedSeconds;
+
+  /// Program-clock second at which the [initialGroup] slot was entered; seeds
+  /// the per-slot elapsed on a resume so it continues rather than restarting.
+  final int initialSlotStartSeconds;
+
+  /// Whether the timers open paused (preserved across a re-entry).
+  final bool initialPaused;
+
+  /// Called as the view is torn down — via the guarded close control, a system
+  /// back, or any other pop — with the live position + clock (issue #434). The
+  /// launching screen stores this so re-entering Perform resumes where the
+  /// caller left off. Fires from [State.dispose] so *every* exit path is
+  /// covered, not just the confirmed close button.
+  final void Function(PerformResumeState state)? onExit;
 
   /// Persists an in-event adjustment (`docs/design/ux.md` §5). Called with the
   /// new [Program] — a fresh `updatedAt` — after every reorder / insert / note /
@@ -116,12 +184,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// [_buildTimingLine]) — not the whole card/figures, which would otherwise
   /// re-run `deriveSections`/`renderSummary` for every figure each second.
   Timer? _timer;
-  final ValueNotifier<int> _elapsed = ValueNotifier<int>(0);
+  late final ValueNotifier<int> _elapsed = ValueNotifier<int>(
+    widget.initialElapsedSeconds,
+  );
 
   /// Value of [_elapsed] when the current group was entered; the per-slot
   /// elapsed is the difference. Reset to "now" on every navigation.
-  int _slotStartSeconds = 0;
-  bool _paused = false;
+  late int _slotStartSeconds = widget.initialSlotStartSeconds;
+  late bool _paused = widget.initialPaused;
 
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5). In
   /// view only; persistence to Settings is a documented later follow-up.
@@ -147,6 +217,18 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   @override
   void dispose() {
+    // Hand the live position + clock back so the launching screen can resume
+    // Perform where the caller left off (issue #434). Done here — before the
+    // notifier is torn down — so it fires for every exit path (guarded close
+    // control, system back, or the route being popped some other way).
+    widget.onExit?.call(
+      PerformResumeState(
+        groupIndex: _groupIndex,
+        elapsedSeconds: _elapsed.value,
+        slotStartSeconds: _slotStartSeconds,
+        paused: _paused,
+      ),
+    );
     _timer?.cancel();
     _elapsed.dispose();
     _focusNode.dispose();
@@ -175,6 +257,58 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   void _resetSlotTimer() => _slotStartSeconds = _elapsed.value;
 
   void _togglePause() => setState(() => _paused = !_paused);
+
+  /// Guards leaving Perform (issue #434). A single stray tap on the close
+  /// control — or a system back / predictive-back gesture — must not drop the
+  /// caller out mid-set, so we require a deliberate confirmation first. The
+  /// dialog is fully accessible: keyed, labelled Cancel/Exit buttons with the
+  /// confirm autofocused so keyboard users can Enter to confirm. Position and
+  /// clock are preserved regardless (via [dispose] → [PerformProgramScreen.onExit]),
+  /// so confirming resumes on re-entry rather than losing the place.
+  Future<void> _confirmAndExit() async {
+    final l10n = AppLocalizations.of(context);
+    final navigator = Navigator.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('perform-exit-dialog'),
+        title: Text(l10n.performExitTitle),
+        content: Text(l10n.performExitBody),
+        actions: [
+          TextButton(
+            key: const ValueKey('perform-exit-cancel'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.performExitCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('perform-exit-confirm'),
+            autofocus: true,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.performExitConfirm),
+          ),
+        ],
+      ),
+    );
+    // A direct pop (not `maybePop`) so it bypasses the PopScope in [_guardExit]
+    // rather than re-triggering the confirmation.
+    if (confirmed == true) navigator.pop();
+  }
+
+  /// Wraps a Perform scaffold so an implicit pop (system back / predictive-back
+  /// gesture) is intercepted and routed through the same [_confirmAndExit]
+  /// confirmation as the close control (issue #434). Applied to *both* the
+  /// populated and empty-state builds so a single tap / back never drops the
+  /// caller out — the guard's contract holds regardless of slot count.
+  Widget _guardExit({required Widget child}) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _confirmAndExit();
+      },
+      child: child,
+    );
+  }
 
   int _slotElapsedFrom(int elapsed) => elapsed - _slotStartSeconds;
 
@@ -447,6 +581,19 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _buildContent(
+        context,
+        // Collapse the AppBar's secondary actions into an overflow menu on
+        // narrow widths (issue #433). LayoutBuilder reflects the actual
+        // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
+        // in widget tests).
+        wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
     final activeDialect = ActiveDialectScope.of(context);
     final isCanonicalDialect = activeDialect == Dialect.canonical;
@@ -456,20 +603,23 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
     if (_groups.isEmpty) {
       // Defensive: the entry point hides the affordance for an empty program,
-      // so this should not normally be reached.
+      // so this should not normally be reached. The exit is still guarded so a
+      // directly constructed empty screen honors the same contract (#434).
       return PerformStageTheme(
         enabled: _stageMode,
-        child: Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              key: const ValueKey('perform-program-exit'),
-              tooltip: l10n.performExitTooltip,
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(context).pop(),
+        child: _guardExit(
+          child: Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                key: const ValueKey('perform-program-exit'),
+                tooltip: l10n.performExitTooltip,
+                icon: const Icon(Icons.close),
+                onPressed: _confirmAndExit,
+              ),
+              title: Text(widget.program.title),
             ),
-            title: Text(widget.program.title),
+            body: Center(child: Text(l10n.performNoSlots)),
           ),
-          body: Center(child: Text(l10n.performNoSlots)),
         ),
       );
     }
@@ -487,162 +637,231 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       title: _slotLabel(l10n, slot),
       child: PerformStageTheme(
         enabled: _stageMode,
-        child: Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              key: const ValueKey('perform-program-exit'),
-              tooltip: l10n.performExitTooltip,
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(context).pop(),
+        child: _guardExit(
+          child: Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                key: const ValueKey('perform-program-exit'),
+                tooltip: l10n.performExitTooltip,
+                icon: const Icon(Icons.close),
+                onPressed: _confirmAndExit,
+              ),
+              title: Text(widget.program.title),
+              // Responsive AppBar actions (issue #433): the full set shows
+              // inline on tablets/large windows; on narrow phones the secondary
+              // controls collapse into a "More actions" overflow so the toolbar
+              // can't RenderFlex-overflow at 360–430px. The stage-mode toggle
+              // (and the per-gig dialect quick-switch) stay inline.
+              actions: buildPerformAppBarActions(
+                wide: wide,
+                leadingPrimary: const DialectQuickSwitch(),
+                secondaryInline: [
+                  IconButton(
+                    key: const ValueKey('perform-adjust'),
+                    tooltip: l10n.performAdjustProgram,
+                    icon: const Icon(Icons.tune),
+                    onPressed: _openAdjustSheet,
+                  ),
+                  IconButton(
+                    key: const ValueKey('perform-jump'),
+                    tooltip: l10n.performJumpToSlot,
+                    icon: const Icon(Icons.list),
+                    onPressed: _openJumpSheet,
+                  ),
+                  IconButton(
+                    key: const ValueKey('perform-metronome'),
+                    tooltip: l10n.performTapTempo,
+                    icon: const Icon(Icons.av_timer),
+                    onPressed: _openMetronomeSheet,
+                  ),
+                  if (hasAlternates)
+                    IconButton(
+                      key: const ValueKey('perform-alt-swap'),
+                      tooltip: l10n.performShowAlternate,
+                      icon: const Icon(Icons.swap_horiz),
+                      onPressed: _swapAlternate,
+                    ),
+                  PerformSizeControls(
+                    canDecrease: canDecrease,
+                    onDecrease: _decreaseTextSize,
+                    onIncrease: _increaseTextSize,
+                  ),
+                  PerformAutoSizeToggle(
+                    autoSizeOn: _autoSize,
+                    onChanged: (value) => setState(() {
+                      _autoSizeUserSet = true;
+                      _autoSize = value;
+                    }),
+                  ),
+                  if (!isCanonicalDialect)
+                    PerformDialectToggle(
+                      canonical: _canonicalView,
+                      onChanged: (value) =>
+                          setState(() => _canonicalView = value),
+                    ),
+                ],
+                overflowActions: [
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-adjust-menu'),
+                    icon: Icons.tune,
+                    label: l10n.performAdjustProgram,
+                    onSelected: _openAdjustSheet,
+                  ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-jump-menu'),
+                    icon: Icons.list,
+                    label: l10n.performJumpToSlot,
+                    onSelected: _openJumpSheet,
+                  ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-metronome-menu'),
+                    icon: Icons.av_timer,
+                    label: l10n.performTapTempo,
+                    onSelected: _openMetronomeSheet,
+                  ),
+                  if (hasAlternates)
+                    PerformMenuAction(
+                      menuKey: const ValueKey('perform-alt-swap-menu'),
+                      icon: Icons.swap_horiz,
+                      label: l10n.performShowAlternate,
+                      onSelected: _swapAlternate,
+                    ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('decrease-text-size-menu'),
+                    icon: Icons.text_decrease,
+                    label: l10n.performDecreaseTextSize,
+                    onSelected: _decreaseTextSize,
+                    enabled: canDecrease,
+                  ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('increase-text-size-menu'),
+                    icon: Icons.text_increase,
+                    label: l10n.performIncreaseTextSize,
+                    onSelected: _increaseTextSize,
+                  ),
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-autosize-toggle-menu'),
+                    icon: Icons.fit_screen,
+                    label: l10n.performAutoSizeMenuLabel,
+                    toggledOn: _autoSize,
+                    onSelected: () => setState(() {
+                      _autoSizeUserSet = true;
+                      _autoSize = !_autoSize;
+                    }),
+                  ),
+                  if (!isCanonicalDialect)
+                    PerformMenuAction(
+                      menuKey: const ValueKey('perform-dialect-toggle-menu'),
+                      icon: Icons.groups,
+                      label: l10n.performShowCanonicalTerms,
+                      toggledOn: _canonicalView,
+                      onSelected: () =>
+                          setState(() => _canonicalView = !_canonicalView),
+                    ),
+                ],
+                trailingPrimary: PerformStageToggle(
+                  stageOn: _stageMode,
+                  onChanged: (value) => setState(() => _stageMode = value),
+                ),
+              ),
             ),
-            title: Text(widget.program.title),
-            actions: [
-              const DialectQuickSwitch(),
-              IconButton(
-                key: const ValueKey('perform-adjust'),
-                tooltip: l10n.performAdjustProgram,
-                icon: const Icon(Icons.tune),
-                onPressed: _openAdjustSheet,
-              ),
-              IconButton(
-                key: const ValueKey('perform-jump'),
-                tooltip: l10n.performJumpToSlot,
-                icon: const Icon(Icons.list),
-                onPressed: _openJumpSheet,
-              ),
-              IconButton(
-                key: const ValueKey('perform-metronome'),
-                tooltip: l10n.performTapTempo,
-                icon: const Icon(Icons.av_timer),
-                onPressed: _openMetronomeSheet,
-              ),
-              if (hasAlternates)
-                IconButton(
-                  key: const ValueKey('perform-alt-swap'),
-                  tooltip: l10n.performShowAlternate,
-                  icon: const Icon(Icons.swap_horiz),
-                  onPressed: _swapAlternate,
-                ),
-              PerformSizeControls(
-                canDecrease: canDecrease,
-                onDecrease: _decreaseTextSize,
-                onIncrease: _increaseTextSize,
-              ),
-              PerformAutoSizeToggle(
-                autoSizeOn: _autoSize,
-                onChanged: (value) => setState(() {
-                  _autoSizeUserSet = true;
-                  _autoSize = value;
-                }),
-              ),
-              if (!isCanonicalDialect)
-                PerformDialectToggle(
-                  canonical: _canonicalView,
-                  onChanged: (value) => setState(() => _canonicalView = value),
-                ),
-              PerformStageToggle(
-                stageOn: _stageMode,
-                onChanged: (value) => setState(() => _stageMode = value),
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
-          body: CallbackShortcuts(
-            bindings: <ShortcutActivator, VoidCallback>{
-              const SingleActivator(LogicalKeyboardKey.arrowRight): _goNext,
-              const SingleActivator(LogicalKeyboardKey.arrowDown): _goNext,
-              const SingleActivator(LogicalKeyboardKey.pageDown): _goNext,
-              const SingleActivator(LogicalKeyboardKey.arrowLeft): _goPrev,
-              const SingleActivator(LogicalKeyboardKey.arrowUp): _goPrev,
-              const SingleActivator(LogicalKeyboardKey.pageUp): _goPrev,
-            },
-            child: Focus(
-              focusNode: _focusNode,
-              autofocus: true,
-              child: SafeArea(
-                child: Stack(
-                  children: [
-                    Positioned.fill(child: _buildCard(slot, dialect)),
-                    // Giant edge hit zones (>=44pt) for touch/mouse. Accessibility
-                    // and keyboard use go through the prev/next buttons, so these
-                    // are excluded from semantics to avoid double-announcing.
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 56,
-                      child: ExcludeSemantics(
-                        child: GestureDetector(
-                          key: const ValueKey('perform-edge-prev'),
-                          behavior: HitTestBehavior.translucent,
-                          onTap: _hasPrev ? _goPrev : null,
+            body: CallbackShortcuts(
+              bindings: <ShortcutActivator, VoidCallback>{
+                const SingleActivator(LogicalKeyboardKey.arrowRight): _goNext,
+                const SingleActivator(LogicalKeyboardKey.arrowDown): _goNext,
+                const SingleActivator(LogicalKeyboardKey.pageDown): _goNext,
+                const SingleActivator(LogicalKeyboardKey.arrowLeft): _goPrev,
+                const SingleActivator(LogicalKeyboardKey.arrowUp): _goPrev,
+                const SingleActivator(LogicalKeyboardKey.pageUp): _goPrev,
+              },
+              child: Focus(
+                focusNode: _focusNode,
+                autofocus: true,
+                child: SafeArea(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(child: _buildCard(slot, dialect)),
+                      // Giant edge hit zones (>=44pt) for touch/mouse. Accessibility
+                      // and keyboard use go through the prev/next buttons, so these
+                      // are excluded from semantics to avoid double-announcing.
+                      Positioned(
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 56,
+                        child: ExcludeSemantics(
+                          child: GestureDetector(
+                            key: const ValueKey('perform-edge-prev'),
+                            behavior: HitTestBehavior.translucent,
+                            onTap: _hasPrev ? _goPrev : null,
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: 56,
-                      child: ExcludeSemantics(
-                        child: GestureDetector(
-                          key: const ValueKey('perform-edge-next'),
-                          behavior: HitTestBehavior.translucent,
-                          onTap: _hasNext ? _goNext : null,
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 56,
+                        child: ExcludeSemantics(
+                          child: GestureDetector(
+                            key: const ValueKey('perform-edge-next'),
+                            behavior: HitTestBehavior.translucent,
+                            onTap: _hasNext ? _goNext : null,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          bottomNavigationBar: BottomAppBar(
-            child: Row(
-              children: [
-                _buildPauseButton(),
-                IconButton(
-                  key: const ValueKey('perform-prev'),
-                  tooltip: l10n.performPreviousSlot,
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: _hasPrev ? _goPrev : null,
-                ),
-                Expanded(
-                  child: Center(
-                    child: Builder(
-                      // Resolve the text style from a context *below*
-                      // [PerformStageTheme] so the labels pick up the stage
-                      // theme's on-surface color (readable on the dark
-                      // BottomAppBar) when stage mode is on, rather than the
-                      // outer ambient theme.
-                      builder: (context) {
-                        final textTheme = Theme.of(context).textTheme;
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              l10n.performSlotPosition(
-                                _groupIndex + 1,
-                                _groups.length,
-                              ),
-                              key: const ValueKey('perform-position'),
-                              style: textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: 2),
-                            _buildTimingLine(slot, textTheme),
-                          ],
-                        );
-                      },
-                    ),
+                    ],
                   ),
                 ),
-                IconButton(
-                  key: const ValueKey('perform-next'),
-                  tooltip: l10n.performNextSlot,
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: _hasNext ? _goNext : null,
-                ),
-              ],
+              ),
+            ),
+            bottomNavigationBar: BottomAppBar(
+              child: Row(
+                children: [
+                  _buildPauseButton(),
+                  IconButton(
+                    key: const ValueKey('perform-prev'),
+                    tooltip: l10n.performPreviousSlot,
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: _hasPrev ? _goPrev : null,
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Builder(
+                        // Resolve the text style from a context *below*
+                        // [PerformStageTheme] so the labels pick up the stage
+                        // theme's on-surface color (readable on the dark
+                        // BottomAppBar) when stage mode is on, rather than the
+                        // outer ambient theme.
+                        builder: (context) {
+                          final textTheme = Theme.of(context).textTheme;
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                l10n.performSlotPosition(
+                                  _groupIndex + 1,
+                                  _groups.length,
+                                ),
+                                key: const ValueKey('perform-position'),
+                                style: textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 2),
+                              _buildTimingLine(slot, textTheme),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const ValueKey('perform-next'),
+                    tooltip: l10n.performNextSlot,
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: _hasNext ? _goNext : null,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -708,40 +927,47 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         return Semantics(
           label: label,
           child: ExcludeSemantics(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.timer_outlined, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  _formatDuration(elapsed),
-                  key: const ValueKey('perform-clock'),
-                  style: style,
-                ),
-                Text('  ·  ', style: style),
-                Text(
-                  _formatDuration(slotElapsed),
-                  key: const ValueKey('perform-slot-elapsed'),
-                  style: style,
-                ),
-                if (planned != null) ...[
-                  Text('  ·  ', style: style),
+            // On very narrow phones (~360px) the readout is a few pixels wider
+            // than its slot in the bottom bar; scale it down to fit rather than
+            // RenderFlex-overflow (issue #433). It renders at natural size on
+            // anything wider.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.timer_outlined, size: 16),
+                  const SizedBox(width: 4),
                   Text(
-                    l10n.performPlannedMin(planned),
-                    key: const ValueKey('perform-planned'),
+                    _formatDuration(elapsed),
+                    key: const ValueKey('perform-clock'),
                     style: style,
                   ),
-                  if (isOver) ...[
-                    const SizedBox(width: 4),
-                    const Icon(Icons.timelapse, size: 16),
+                  Text('  ·  ', style: style),
+                  Text(
+                    _formatDuration(slotElapsed),
+                    key: const ValueKey('perform-slot-elapsed'),
+                    style: style,
+                  ),
+                  if (planned != null) ...[
+                    Text('  ·  ', style: style),
                     Text(
-                      l10n.performOverSuffix,
-                      key: const ValueKey('perform-over'),
+                      l10n.performPlannedMin(planned),
+                      key: const ValueKey('perform-planned'),
                       style: style,
                     ),
+                    if (isOver) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.timelapse, size: 16),
+                      Text(
+                        l10n.performOverSuffix,
+                        key: const ValueKey('perform-over'),
+                        style: style,
+                      ),
+                    ],
                   ],
                 ],
-              ],
+              ),
             ),
           ),
         );

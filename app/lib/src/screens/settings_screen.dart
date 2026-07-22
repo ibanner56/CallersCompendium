@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/backup_io.dart';
 import '../data/import_io.dart';
+import '../diagnostics/crash_log_io.dart';
+import '../diagnostics/crash_log_store.dart';
 import '../theme/app_spacing.dart';
 import 'settings/about_section.dart';
 import 'settings/appearance_section.dart';
 import 'settings/defaults_section.dart';
+import 'settings/diagnostics_section.dart';
 import 'settings/dialect_section.dart';
 import 'settings/general_section.dart';
 import 'settings/regional_section.dart';
@@ -31,6 +34,9 @@ class SettingsScreen extends StatefulWidget {
     this.importPicker,
     this.urlFetcher,
     this.onOpenGuide,
+    this.crashLogStore,
+    this.diagnosticsLogSaver,
+    this.sensitiveTermsProvider,
   });
 
   /// Test seam for delivering an exported backup file; defaults to
@@ -54,6 +60,18 @@ class SettingsScreen extends StatefulWidget {
   /// (e.g. Settings shown standalone in a test) the About tile falls back to
   /// pushing the guide.
   final VoidCallback? onOpenGuide;
+
+  /// Test seam for the Diagnostics section's crash-log store; defaults to the
+  /// app-support store (issue #458).
+  final CrashLogStore? crashLogStore;
+
+  /// Test seam for delivering an exported diagnostics log; defaults to
+  /// [saveDiagnosticsLog].
+  final LogSaver? diagnosticsLogSaver;
+
+  /// Test seam for the Diagnostics scrubbed-export redaction terms; defaults to
+  /// gathering them from the ambient repositories.
+  final SensitiveTermsProvider? sensitiveTermsProvider;
 
   /// Viewport width (logical px) at/above which the sidebar and content sit
   /// side by side instead of the sidebar pushing a detail page.
@@ -81,6 +99,7 @@ enum _SettingsSection {
   regional('Language & region', Icons.translate_outlined, Icons.translate),
   defaults('Defaults', Icons.settings_suggest_outlined, Icons.settings_suggest),
   updates('Updates', Icons.system_update_alt_outlined, Icons.system_update_alt),
+  diagnostics('Diagnostics', Icons.bug_report_outlined, Icons.bug_report),
   about('About', Icons.info_outline, Icons.info);
 
   const _SettingsSection(this.label, this.icon, this.selectedIcon);
@@ -126,6 +145,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return const DefaultsSection();
       case _SettingsSection.updates:
         return const UpdatesSection();
+      case _SettingsSection.diagnostics:
+        return DiagnosticsSection(
+          store: widget.crashLogStore,
+          logSaver: widget.diagnosticsLogSaver,
+          sensitiveTermsProvider: widget.sensitiveTermsProvider,
+        );
       case _SettingsSection.about:
         return AboutSection(onOpenGuide: widget.onOpenGuide);
     }

@@ -228,9 +228,15 @@ class FigureRenderer {
     if (!forCanonical) {
       final displayBase = _displayBaseRenderers[def.id];
       if (displayBase != null) {
-        return _collapseSpaces(
+        final line = _collapseSpaces(
           displayBase(this, def, params, dialect, verbose, decimals),
         );
+        // Base lines tag the subject's exact end with [_subjectMarkSentinel]
+        // (via [_subjectWho]); splice the marker there when the subject was
+        // assumed, otherwise drop the sentinel so the output is unchanged.
+        return figure.assumedSubject
+            ? _spliceAssumedSubjectMarker(line)
+            : _stripSubjectMark(line);
       }
     }
     // Aliases render under their own name (a "see saw" is not shown as
@@ -258,7 +264,7 @@ class FigureRenderer {
       if (!forCanonical && _isDisplaySilenced(def, name, params[name])) {
         return '';
       }
-      return _renderValue(
+      final value = _renderValue(
         name,
         params[name],
         def.params[name],
@@ -267,9 +273,80 @@ class FigureRenderer {
         decimals,
         forCanonical,
       );
+      // DISPLAY-ONLY: tag the exact end of the primary subject token as it is
+      // emitted, so an assumed marker can be spliced at the subject's true
+      // position rather than by searching the finished line (which misfires
+      // when a move name or dialect substitution repeats the subject word).
+      // The sentinel is stripped again below unless the subject was defaulted.
+      if (!forCanonical && name == 'who' && value.isNotEmpty) {
+        return '${value.replaceAll(_subjectMarkSentinel, '')}'
+            '$_subjectMarkSentinel';
+      }
+      return value;
     });
-    return _collapseSpaces(rendered);
+    final line = _collapseSpaces(rendered);
+    // DISPLAY-ONLY: flag a subject the import parser DEFAULTED (the source
+    // omitted it) with a non-authoritative "(assumed)" marker, so fabricated
+    // choreography never reads as source-stated fact (#460). The marker is
+    // spliced at the sentinel emitted next to the subject above; the search/
+    // dedupe (canonical) render never emits the sentinel and stays byte-stable.
+    return (!forCanonical && figure.assumedSubject)
+        ? _spliceAssumedSubjectMarker(line)
+        : _stripSubjectMark(line);
   }
+
+  /// The non-authoritative marker spliced after an ASSUMED subject in the
+  /// display render (#460). Fixed structural vocabulary (like "balance &"),
+  /// dialect-independent, and never emitted by [renderCanonical].
+  static const String _assumedSubjectMarker = '(assumed)';
+
+  /// Render-internal sentinel emitted immediately after the PRIMARY subject
+  /// token (see the `who` branch of [_render] and [_subjectWho]) so the assumed
+  /// marker can be spliced at the subject's exact position instead of by
+  /// searching the finished line. String search is unreliable: a move name or
+  /// a custom dialect substitution can repeat the subject word (e.g.
+  /// `moves: {'box_circulate': 'partner circulate'}` renders the move name
+  /// before the subject), which would land the marker on the wrong span. U+FDD0
+  /// is a permanent Unicode *noncharacter* — guaranteed never to be valid text —
+  /// so it cannot collide with real rendered content and is always safe to
+  /// strip. It is emitted only on display renders and always removed before
+  /// [_render] returns, so it never leaks into output or the canonical text.
+  static const String _subjectMarkSentinel = '\uFDD0';
+
+  /// DISPLAY-ONLY subject render for [_displayBaseRenderers] base lines: renders
+  /// the primary subject (`who`) via [_displaySubject] and tags its exact end
+  /// with [_subjectMarkSentinel] so [_render] can splice the assumed marker
+  /// precisely. Any sentinel already present in the subject (only reachable via
+  /// malformed input) is stripped first; an empty subject emits no sentinel.
+  /// Base renderers run only on display renders, so tagging here is always safe;
+  /// [_render] drops the sentinel when the subject is not assumed, leaving
+  /// non-assumed output byte-for-byte unchanged.
+  String _subjectWho(Map<String, Object?> params, Dialect dialect) {
+    final subject = _displaySubject(
+      params['who'],
+      dialect,
+    ).replaceAll(_subjectMarkSentinel, '');
+    return subject.isEmpty ? subject : '$subject$_subjectMarkSentinel';
+  }
+
+  /// Splices [_assumedSubjectMarker] at the sentinel marking the subject's true
+  /// end, then removes any residual sentinels. When no sentinel is present (the
+  /// subject rendered empty or was omitted) the line is returned with sentinels
+  /// stripped and NO marker — never a dangling marker. Never used by the
+  /// canonical render, so search/dedupe text stays byte-stable.
+  String _spliceAssumedSubjectMarker(String line) {
+    final idx = line.indexOf(_subjectMarkSentinel);
+    if (idx < 0) return _stripSubjectMark(line);
+    final head = line.substring(0, idx);
+    final tail = line.substring(idx + _subjectMarkSentinel.length);
+    return _stripSubjectMark('$head $_assumedSubjectMarker$tail');
+  }
+
+  /// Removes every [_subjectMarkSentinel] from [line] (fast no-op path when
+  /// none is present) so display output never leaks the internal sentinel.
+  String _stripSubjectMark(String line) => line.contains(_subjectMarkSentinel)
+      ? line.replaceAll(_subjectMarkSentinel, '')
+      : line;
 
   /// Whether the template token [name] of [def] is omitted in the DISPLAY path
   /// because [value] equals a silenced default. Two ContraDB-parity rules:
@@ -644,7 +721,7 @@ class FigureRenderer {
     // unaffected (it keeps expanding the template — no reorder, no facing).
     'rotation_gate': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final swho = r._displaySubject(params['who'], dialect);
+      final swho = r._subjectWho(params, dialect);
       final directionRaw = params['direction'];
       final direction = directionRaw is String ? directionRaw : '';
       final turnRaw = params['turn'];
@@ -759,7 +836,7 @@ class FigureRenderer {
     // (ContraDB's own empty-subject fallback).
     'box_circulate': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final swho = r._displaySubject(params['who'], dialect);
+      final swho = r._subjectWho(params, dialect);
       final other = r._invertPair(params['who'], dialect);
       final hand = _displayScalar(params['hand']);
       return '$move - $swho cross while $other loop $hand';

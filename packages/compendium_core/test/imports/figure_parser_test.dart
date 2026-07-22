@@ -308,6 +308,148 @@ void main() {
     });
   });
 
+  // Issue #460 — the subject the recognizers DEFAULT (source omitted it) must be
+  // flagged assumed, while a STATED subject must not be, at every one of the
+  // nine `who2 ?? default` recognizer sites. `assumedSubject` is provenance, not
+  // choreography: the defaulted move is still structured and still carries the
+  // default `who`; it is merely marked non-authoritative so it never renders as
+  // source-stated fact.
+  group('parseFigureLine — assumed vs stated subject (#460)', () {
+    // A STATED subject → assumedSubject is false (byte-stable, no marker).
+    // One line per recognizer site; the site is named for traceability.
+    final stated = <String, ({String site, String move, String who})>{
+      'Partner swing': (site: 'swing', move: 'swing', who: 'partners'),
+      'Neighbor balance': (site: 'balance', move: 'balance', who: 'neighbors'),
+      'Neighbor gypsy': (
+        site: 'shoulder_round',
+        move: 'shoulder_round',
+        who: 'neighbors',
+      ),
+      'Neighbor allemande left': (
+        site: 'allemande',
+        move: 'allemande',
+        who: 'neighbors',
+      ),
+      'Do si do neighbor once': (
+        site: 'do_si_do/see_saw',
+        move: 'do_si_do',
+        who: 'neighbors',
+      ),
+      'See saw neighbor': (
+        site: 'do_si_do/see_saw',
+        move: 'see_saw',
+        who: 'neighbors',
+      ),
+      'Partner box the gnat': (
+        site: 'box_the_gnat/swat_the_flea',
+        move: 'box_the_gnat',
+        who: 'partners',
+      ),
+      'Neighbor swat the flea': (
+        site: 'box_the_gnat/swat_the_flea',
+        move: 'swat_the_flea',
+        who: 'neighbors',
+      ),
+      'Neighbors box circulate': (
+        site: 'box_circulate',
+        move: 'box_circulate',
+        who: 'neighbors',
+      ),
+      'Partner gate counterclockwise 3/4': (
+        site: 'rotation_gate',
+        move: 'rotation_gate',
+        who: 'partners',
+      ),
+      'Neighbors star through': (
+        site: 'star_through',
+        move: 'star_through',
+        who: 'neighbors',
+      ),
+    };
+
+    stated.forEach((line, e) {
+      test('[${e.site}] "$line" states its subject → not assumed', () {
+        final f = parseFigureLine(line);
+        expect(f, isNotNull, reason: line);
+        expect(f!.isCustom, isFalse, reason: line);
+        expect(f.move, e.move, reason: line);
+        expect(f.params['who'], e.who, reason: '$line who');
+        expect(f.assumedSubject, isFalse, reason: '$line assumedSubject');
+      });
+    });
+
+    // An OMITTED subject → the recognizer defaults `who` AND flags it assumed.
+    // The defaulted value still matches the recognizer's `?? default`.
+    final defaulted = <String, ({String site, String move, String who})>{
+      // Issue examples first.
+      'Balance and swing': (site: 'swing', move: 'swing', who: 'partners'),
+      'Allemande left 1 1/2': (
+        site: 'allemande',
+        move: 'allemande',
+        who: 'neighbors',
+      ),
+      'Swing': (site: 'swing', move: 'swing', who: 'partners'),
+      'Balance': (site: 'balance', move: 'balance', who: 'neighbors'),
+      'Gypsy': (
+        site: 'shoulder_round',
+        move: 'shoulder_round',
+        who: 'neighbors',
+      ),
+      'Do si do': (
+        site: 'do_si_do/see_saw',
+        move: 'do_si_do',
+        who: 'neighbors',
+      ),
+      'See saw': (site: 'do_si_do/see_saw', move: 'see_saw', who: 'neighbors'),
+      'Box the gnat': (
+        site: 'box_the_gnat/swat_the_flea',
+        move: 'box_the_gnat',
+        who: 'partners',
+      ),
+      'Swat the flea': (
+        site: 'box_the_gnat/swat_the_flea',
+        move: 'swat_the_flea',
+        who: 'partners',
+      ),
+      'Box circulate': (
+        site: 'box_circulate',
+        move: 'box_circulate',
+        who: 'partners',
+      ),
+      'Gate counterclockwise 3/4': (
+        site: 'rotation_gate',
+        move: 'rotation_gate',
+        who: 'neighbors',
+      ),
+      'Star through': (
+        site: 'star_through',
+        move: 'star_through',
+        who: 'partners',
+      ),
+    };
+
+    defaulted.forEach((line, e) {
+      test('[${e.site}] "$line" omits its subject → assumed default', () {
+        final f = parseFigureLine(line);
+        expect(f, isNotNull, reason: line);
+        expect(f!.isCustom, isFalse, reason: line);
+        expect(f.move, e.move, reason: line);
+        // The structured move is still emitted with the default subject...
+        expect(f.params['who'], e.who, reason: '$line who');
+        // ...but flagged assumed so it never renders as source-stated fact.
+        expect(f.assumedSubject, isTrue, reason: '$line assumedSubject');
+      });
+    });
+
+    test('a defaulted subject survives copyWith (reparse-note flow) (#460)', () {
+      // reparse_custom_figures re-parses then copyWith(note:) — the provenance
+      // flag must ride along, never silently laundered off.
+      final f = parseFigureLine('Allemande left 1 1/2')!;
+      expect(f.assumedSubject, isTrue);
+      expect(f.copyWith(note: 'gently').assumedSubject, isTrue);
+    });
+  });
+
   group('parseFigureLine — conservative fallback (must stay custom)', () {
     // A wrong structured match misrepresents choreography, so anything the
     // parser cannot fully account for degrades to an honest custom figure.
