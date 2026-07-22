@@ -10,7 +10,9 @@ import 'package:share_plus/share_plus.dart';
 import '../../l10n/app_localizations.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
+import '../export/share_sanitization.dart';
 import '../utils/safe_name.dart';
+import 'venue_contact_share_dialog.dart';
 
 /// Actions offered by the [ProgramExportMenu].
 enum _ExportAction { shareText, shareBundle, copyText, pdf }
@@ -158,14 +160,36 @@ class ProgramExportMenu extends StatelessWidget {
   /// import the program itself. This send-side action ships first, so a
   /// recipient on a build without the receive side gets the dances now and the
   /// program once PR 2 lands.
-  Future<void> _shareBundle(Rect? origin) async {
+  Future<void> _shareBundle(BuildContext context, Rect? origin) async {
     final resolveDance = danceFor;
     if (resolveDance == null) return;
+
+    // Gather the linked venue's contact-PII consent before building the bundle.
+    // Contact fields are omit-by-default; the venue is resolved from the same
+    // `venuesById` the display/PDF paths use. Only when the linked venue exists
+    // AND has at least one populated contact field do we prompt — the user's
+    // affirmative selections become the include set. A cancelled/dismissed
+    // dialog aborts the share entirely (nothing leaves the device).
+    final venueId = program.venueId;
+    final linkedVenue = venueId == null ? null : venuesById[venueId];
+    var includeVenueContact = const <VenueContactField>{};
+    if (linkedVenue != null &&
+        populatedVenueContactFields(linkedVenue).isNotEmpty) {
+      final selected = await VenueContactShareDialog.show(
+        context,
+        venue: linkedVenue,
+      );
+      // null => cancelled or dismissed => abort the share.
+      if (selected == null) return;
+      includeVenueContact = selected;
+    }
 
     final json = buildProgramShareBundle(
       program,
       danceFor: resolveDance,
       choreographerFor: choreographerFor ?? (_) => null,
+      venueFor: (id) => venuesById[id],
+      includeVenueContact: includeVenueContact,
     );
     final fileName = programShareBundleFileName(program.title);
 
@@ -227,7 +251,7 @@ class ProgramExportMenu extends StatelessWidget {
         await _guard(
           messenger,
           l10n.exportShareProgramError,
-          () => _shareBundle(origin),
+          () => _shareBundle(context, origin),
         );
       case _ExportAction.copyText:
         await _copyText(context);

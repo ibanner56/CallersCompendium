@@ -3847,6 +3847,60 @@ abstract class AppLocalizations {
   /// **'Programming matrix'**
   String get exportMatrixPdfFilename;
 
+  /// Title of the pre-share consent dialog that asks whether to include a venue's personal contact fields in a shared program bundle.
+  ///
+  /// In en, this message translates to:
+  /// **'Include venue contact details?'**
+  String get shareVenueContactTitle;
+
+  /// Body text of the venue contact-sharing consent dialog, explaining that contact fields are omitted by default.
+  ///
+  /// In en, this message translates to:
+  /// **'These are personal contact details for the venue. They\'re left out of what you share unless you choose to include them.'**
+  String get shareVenueContactBody;
+
+  /// Confirm button on the venue contact-sharing consent dialog; proceeds with the share, including only the checked contact fields.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get shareVenueContactIncludeAction;
+
+  /// Checkbox label for the primary venue contact's name in the share consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 1 name'**
+  String get shareVenueContact1Name;
+
+  /// Checkbox label for the primary venue contact's phone number in the share consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 1 phone'**
+  String get shareVenueContact1Phone;
+
+  /// Checkbox label for the primary venue contact's email in the share consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 1 email'**
+  String get shareVenueContact1Email;
+
+  /// Checkbox label for the secondary venue contact's name in the share consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 2 name'**
+  String get shareVenueContact2Name;
+
+  /// Checkbox label for the secondary venue contact's phone number in the share consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 2 phone'**
+  String get shareVenueContact2Phone;
+
+  /// Checkbox label for the secondary venue contact's email in the share consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 2 email'**
+  String get shareVenueContact2Email;
+
   /// Title of the switch that turns online dance search on/off in the collection screen.
   ///
   /// In en, this message translates to:

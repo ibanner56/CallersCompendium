@@ -1,4 +1,5 @@
 import 'package:compendium_app/src/export/program_share_bundle.dart';
+import 'package:compendium_app/src/export/share_sanitization.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -43,12 +44,29 @@ ProgramSlot _slot(
 Program _program({
   required List<ProgramSlot> slots,
   String title = 'Friday Contra',
+  String? venueId,
 }) => Program(
   id: 'p1',
   title: title,
   slots: slots,
+  venueId: venueId,
   createdAt: _now,
   updatedAt: _now,
+);
+
+Venue _venue(String id, {bool withContacts = false}) => Venue(
+  id: id,
+  name: 'Town Hall',
+  address1: '10 Main St',
+  city: 'Montpelier',
+  stateProv: 'VT',
+  country: 'USA',
+  contact1Name: withContacts ? 'Alex Caller' : null,
+  contact1Phone: withContacts ? '555-0100' : null,
+  contact1Email: withContacts ? 'alex@example.com' : null,
+  contact2Name: withContacts ? 'Bo Booker' : null,
+  contact2Phone: withContacts ? '555-0200' : null,
+  contact2Email: withContacts ? 'bo@example.com' : null,
 );
 
 /// Runs every dance in [json] through the full adapter path so we assert on the
@@ -89,6 +107,7 @@ void main() {
         program,
         danceFor: danceFor,
         choreographerFor: choreographerFor,
+        venueFor: (_) => null,
         now: _now,
       );
       final archive = decodeArchive(json).archive;
@@ -123,6 +142,7 @@ void main() {
           program,
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          venueFor: (_) => null,
         ),
       ).archive;
 
@@ -142,6 +162,7 @@ void main() {
           program,
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          venueFor: (_) => null,
         ),
       ).archive;
 
@@ -165,6 +186,7 @@ void main() {
           program,
           danceFor: danceFor,
           choreographerFor: choreographerFor,
+          venueFor: (_) => null,
           now: _now,
         );
         final imported = await _importedDances(json);
@@ -212,6 +234,7 @@ void main() {
             program,
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            venueFor: (_) => null,
             now: _now,
           ),
         ).archive;
@@ -234,6 +257,7 @@ void main() {
             program,
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            venueFor: (_) => null,
             now: _now,
           ),
         ).archive;
@@ -254,6 +278,7 @@ void main() {
             program,
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            venueFor: (_) => null,
             now: _now,
           ),
         ).archive;
@@ -276,6 +301,7 @@ void main() {
             program,
             danceFor: authoredDanceFor,
             choreographerFor: choreographerCatalogFor,
+            venueFor: (_) => null,
             now: _now,
           ),
         ).archive;
@@ -295,6 +321,7 @@ void main() {
           program,
           danceFor: authoredDanceFor,
           choreographerFor: choreographerCatalogFor,
+          venueFor: (_) => null,
           now: _now,
         );
         final shared = decodeArchive(json).archive.choreographers.single;
@@ -310,6 +337,138 @@ void main() {
         // Defense in depth: the raw JSON must not carry the private fields.
         expect(json.contains('cary@example.com'), isFalse);
         expect(json.contains('Lexington, KY'), isFalse);
+      });
+    });
+
+    group('venues (gathering + redaction, #515)', () {
+      test('gathers the referenced venue, contacts cleared by default', () {
+        final program = _program(
+          slots: [_slot(0, danceId: 'd1')],
+          venueId: 'v1',
+        );
+
+        final json = buildProgramShareBundle(
+          program,
+          danceFor: danceFor,
+          choreographerFor: choreographerFor,
+          venueFor: (id) =>
+              id == 'v1' ? _venue('v1', withContacts: true) : null,
+          now: _now,
+        );
+        final venue = decodeArchive(json).archive.venues.single;
+
+        expect(venue.id, 'v1');
+        expect(venue.name, 'Town Hall');
+        expect(venue.city, 'Montpelier');
+        expect(venue.stateProv, 'VT');
+        // All six contact fields are redacted by default (omit-by-default).
+        expect(venue.contact1Name, isNull);
+        expect(venue.contact1Phone, isNull);
+        expect(venue.contact1Email, isNull);
+        expect(venue.contact2Name, isNull);
+        expect(venue.contact2Phone, isNull);
+        expect(venue.contact2Email, isNull);
+        // Defense in depth: no contact PII in the raw payload.
+        expect(json.contains('Alex Caller'), isFalse);
+        expect(json.contains('alex@example.com'), isFalse);
+        expect(json.contains('555-0100'), isFalse);
+      });
+
+      test('honors includeVenueContact for opted-in fields only', () {
+        final program = _program(
+          slots: [_slot(0, danceId: 'd1')],
+          venueId: 'v1',
+        );
+
+        final json = buildProgramShareBundle(
+          program,
+          danceFor: danceFor,
+          choreographerFor: choreographerFor,
+          venueFor: (_) => _venue('v1', withContacts: true),
+          includeVenueContact: {VenueContactField.contact1Email},
+          now: _now,
+        );
+        final venue = decodeArchive(json).archive.venues.single;
+
+        expect(venue.contact1Email, 'alex@example.com');
+        // Everything not opted in is still cleared.
+        expect(venue.contact1Name, isNull);
+        expect(venue.contact1Phone, isNull);
+        expect(venue.contact2Name, isNull);
+        expect(venue.contact2Phone, isNull);
+        expect(venue.contact2Email, isNull);
+        // Only the opted-in value appears in the raw payload.
+        expect(json.contains('alex@example.com'), isTrue);
+        expect(json.contains('bo@example.com'), isFalse);
+        expect(json.contains('555-0100'), isFalse);
+      });
+
+      test('omits an unresolvable venueId, never fatal', () {
+        final program = _program(
+          slots: [_slot(0, danceId: 'd1')],
+          venueId: 'missing',
+        );
+
+        final archive = decodeArchive(
+          buildProgramShareBundle(
+            program,
+            danceFor: danceFor,
+            choreographerFor: choreographerFor,
+            venueFor: (_) => null,
+            now: _now,
+          ),
+        ).archive;
+
+        expect(archive.venues, isEmpty);
+        // The program still carries its (now dangling) venueId for the receiver.
+        expect(archive.programs.single.venueId, 'missing');
+      });
+
+      test('embeds no venue and skips the resolver without a venueId', () {
+        final program = _program(slots: [_slot(0, danceId: 'd1')]);
+
+        var called = false;
+        final archive = decodeArchive(
+          buildProgramShareBundle(
+            program,
+            danceFor: danceFor,
+            choreographerFor: choreographerFor,
+            venueFor: (_) {
+              called = true;
+              return null;
+            },
+            now: _now,
+          ),
+        ).archive;
+
+        expect(archive.venues, isEmpty);
+        expect(
+          called,
+          isFalse,
+          reason: 'the resolver is not consulted when venueId is null',
+        );
+      });
+
+      test('the embedded sanitized venue survives a codec round-trip', () {
+        final program = _program(
+          slots: [_slot(0, danceId: 'd1')],
+          venueId: 'v1',
+        );
+
+        final json = buildProgramShareBundle(
+          program,
+          danceFor: danceFor,
+          choreographerFor: choreographerFor,
+          venueFor: (_) => _venue('v1', withContacts: true),
+          now: _now,
+        );
+        final decoded = decodeArchive(json).archive;
+
+        // Canonical round-trip identity holds for the sanitized venue.
+        expect(encodeArchive(decoded), json);
+        final venue = decoded.venues.single;
+        expect(venue.name, 'Town Hall');
+        expect(populatedVenueContactFields(venue), isEmpty);
       });
     });
   });
@@ -404,6 +563,7 @@ void main() {
                 location: 'Lexington, KY',
               )
             : null,
+        venueFor: (_) => null,
         now: _now,
       );
 
@@ -451,6 +611,7 @@ void main() {
             : null,
         choreographerFor: (id) =>
             id == 'sender-cary' ? _choreographer(id, 'Cary Ravitz') : null,
+        venueFor: (_) => null,
         now: _now,
       );
 
@@ -477,6 +638,7 @@ void main() {
           program,
           danceFor: (id) => id == 'd1' ? _dance('d1', 'Anonymous Reel') : null,
           choreographerFor: (_) => null,
+          venueFor: (_) => null,
           now: _now,
         );
 
@@ -486,6 +648,80 @@ void main() {
         final imported = await danceByTitle(repos, 'Anonymous Reel');
         expect(imported.authorIds, isEmpty);
         expect(await repos.choreographers.listAll(), isEmpty);
+      },
+    );
+
+    test('a shared program keeps its venue link, contacts redacted', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+
+      final program = _program(
+        slots: [_slot(0, danceId: 'd1')],
+        venueId: 'v1',
+      );
+      final json = buildProgramShareBundle(
+        program,
+        danceFor: (id) => id == 'd1' ? _dance('d1', 'Rory O\'More') : null,
+        choreographerFor: (_) => null,
+        venueFor: (id) => id == 'v1' ? _venue('v1', withContacts: true) : null,
+        now: _now,
+      );
+
+      final result = await receive(repos, json);
+      expect(result.primaryProgramId, isNotNull);
+
+      final importedProgram = (await repos.programs.listAll()).single;
+      expect(
+        importedProgram.venueId,
+        isNotNull,
+        reason: 'the venue link survives the round-trip',
+      );
+
+      final venue = await repos.venues.getById(importedProgram.venueId!);
+      expect(venue, isNotNull);
+      expect(venue!.name, 'Town Hall');
+      expect(venue.city, 'Montpelier');
+      // Contact PII was redacted on the send side and never reaches the receiver.
+      expect(venue.contact1Name, isNull);
+      expect(venue.contact1Email, isNull);
+      expect(venue.contact2Phone, isNull);
+
+      expect(
+        result.programIssues.where(
+          (i) => i.code == 'archive_program_unresolved_venue',
+        ),
+        isEmpty,
+      );
+    });
+
+    test(
+      'a shared program with a dangling venueId imports venue-less',
+      () async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        final program = _program(
+          slots: [_slot(0, danceId: 'd1')],
+          venueId: 'missing',
+        );
+        final json = buildProgramShareBundle(
+          program,
+          danceFor: (id) => id == 'd1' ? _dance('d1', 'Rory O\'More') : null,
+          choreographerFor: (_) => null,
+          venueFor: (_) => null,
+          now: _now,
+        );
+
+        final result = await receive(repos, json);
+        expect(result.primaryProgramId, isNotNull);
+
+        final importedProgram = (await repos.programs.listAll()).single;
+        expect(
+          importedProgram.venueId,
+          isNull,
+          reason: 'the dangling venue link is nulled (tolerance unchanged)',
+        );
+        expect(await repos.venues.listAll(), isEmpty);
       },
     );
   });

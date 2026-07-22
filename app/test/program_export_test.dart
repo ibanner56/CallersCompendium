@@ -111,6 +111,37 @@ Future<void> _pumpMenu(
   await tester.pumpAndSettle();
 }
 
+/// Builds a bundle-capable [ProgramExportMenu] wired with test seams: the bundle
+/// is written to [dir] and the share call is captured via [onShare] instead of
+/// hitting the OS share sheet.
+Widget _shareBundleMenu(
+  Program program,
+  Map<String, Venue> venuesById,
+  Directory dir,
+  void Function(ShareParams) onShare,
+) => MaterialApp(
+  localizationsDelegates: testLocalizationsDelegates,
+  supportedLocales: testSupportedLocales,
+  home: Scaffold(
+    appBar: AppBar(
+      actions: [
+        ProgramExportMenu(
+          program: program,
+          titleFor: _titles,
+          venuesById: venuesById,
+          danceFor: _danceFor,
+          bundleFileWriter: (json, fileName) async {
+            final file = File('${dir.path}/$fileName');
+            file.writeAsStringSync(json);
+            return XFile(file.path, mimeType: 'application/json');
+          },
+          shareInvoker: (params) async => onShare(params),
+        ),
+      ],
+    ),
+  ),
+);
+
 void main() {
   group('ProgramExportMenu', () {
     testWidgets('is present and labeled in an app bar', (tester) async {
@@ -509,6 +540,248 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text("Couldn't share this program"), findsOneWidget);
+    });
+
+    testWidgets(
+      'venue with contacts: consent dialog defaults off; contacts omitted',
+      (tester) async {
+        final dir = Directory.systemTemp.createTempSync('share_bundle_test');
+        addTearDown(() => dir.deleteSync(recursive: true));
+
+        ShareParams? captured;
+        await tester.pumpWidget(
+          _shareBundleMenu(
+            _program(
+              venueId: 'v1',
+              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+            ),
+            {'v1': _venue},
+            dir,
+            (p) => captured = p,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share (program + dances)'));
+        await tester.pumpAndSettle();
+
+        // The dialog offers only the populated contact fields (contact 1),
+        // and nothing is shared while it is open.
+        expect(
+          find.byKey(const ValueKey('venue-contact-share-dialog')),
+          findsOneWidget,
+        );
+        expect(find.text('Contact 1 name'), findsOneWidget);
+        expect(find.text('Contact 1 phone'), findsOneWidget);
+        expect(find.text('Contact 1 email'), findsOneWidget);
+        expect(find.text('Contact 2 name'), findsNothing);
+        expect(captured, isNull);
+
+        // Confirm without checking anything -> all contacts cleared.
+        await tester.tap(
+          find.byKey(const ValueKey('venue-contact-share-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(captured, isNotNull);
+        final archive = decodeArchive(
+          File(captured!.files!.single.path).readAsStringSync(),
+        ).archive;
+        final venue = archive.venues.single;
+        expect(venue.name, 'Grange Hall');
+        expect(venue.contact1Name, isNull);
+        expect(venue.contact1Phone, isNull);
+        expect(venue.contact1Email, isNull);
+      },
+    );
+
+    testWidgets('venue with contacts: only checked fields are included', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('share_bundle_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      ShareParams? captured;
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(
+            venueId: 'v1',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          {'v1': _venue},
+          dir,
+          (p) => captured = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share (program + dances)'));
+      await tester.pumpAndSettle();
+
+      // Opt only the email in.
+      await tester.tap(
+        find.byKey(const ValueKey('venue-contact-contact1Email')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('venue-contact-share-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      final venue = decodeArchive(
+        File(captured!.files!.single.path).readAsStringSync(),
+      ).archive.venues.single;
+      expect(venue.contact1Email, 'pat@example.com');
+      expect(venue.contact1Name, isNull);
+      expect(venue.contact1Phone, isNull);
+    });
+
+    testWidgets('venue with contacts: Cancel aborts the share', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('share_bundle_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      ShareParams? captured;
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(
+            venueId: 'v1',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          {'v1': _venue},
+          dir,
+          (p) => captured = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share (program + dances)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('venue-contact-share-dialog')),
+        findsNothing,
+      );
+      expect(captured, isNull, reason: 'Cancel aborts the share');
+    });
+
+    testWidgets('venue with contacts: dismissing aborts the share', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('share_bundle_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      ShareParams? captured;
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(
+            venueId: 'v1',
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          {'v1': _venue},
+          dir,
+          (p) => captured = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share (program + dances)'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('venue-contact-share-dialog')),
+        findsOneWidget,
+      );
+
+      // Tap the barrier (outside the dialog) to dismiss it.
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('venue-contact-share-dialog')),
+        findsNothing,
+      );
+      expect(captured, isNull, reason: 'dismiss aborts like Cancel');
+    });
+
+    testWidgets(
+      'venue without contacts: no dialog, venue embedded and shared',
+      (tester) async {
+        final dir = Directory.systemTemp.createTempSync('share_bundle_test');
+        addTearDown(() => dir.deleteSync(recursive: true));
+
+        ShareParams? captured;
+        await tester.pumpWidget(
+          _shareBundleMenu(
+            _program(
+              venueId: 'v2',
+              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+            ),
+            {'v2': Venue(id: 'v2', name: 'Bare Hall', city: 'Montpelier')},
+            dir,
+            (p) => captured = p,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share (program + dances)'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('venue-contact-share-dialog')),
+          findsNothing,
+        );
+        expect(captured, isNotNull);
+        final venue = decodeArchive(
+          File(captured!.files!.single.path).readAsStringSync(),
+        ).archive.venues.single;
+        expect(venue.name, 'Bare Hall');
+        expect(venue.city, 'Montpelier');
+      },
+    );
+
+    testWidgets('no venueId: no dialog and no venue embedded', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('share_bundle_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      ShareParams? captured;
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          const {},
+          dir,
+          (p) => captured = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share (program + dances)'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('venue-contact-share-dialog')),
+        findsNothing,
+      );
+      expect(captured, isNotNull);
+      final archive = decodeArchive(
+        File(captured!.files!.single.path).readAsStringSync(),
+      ).archive;
+      expect(archive.venues, isEmpty);
     });
   });
 
