@@ -100,25 +100,31 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       final appData = _openAppData();
-      final now = DateTime.now().toUtc();
-      // Soft-deleted 31 days ago: past the default 30-day retention → purged.
+      // A FIXED sweep instant (injected via nowOverride) so this
+      // retention-window assertion is fully deterministic and never depends on
+      // real wall-clock timing (issue #459 de-flake). All timestamps below are
+      // absolute and expressed relative to this same instant.
+      final fixedNow = DateTime.utc(2026, 6, 1);
+      // Soft-deleted 31 days before the sweep instant: past the default 30-day
+      // retention → purged.
       await appData.repositories.programs.create(
         Program(
           id: 'old',
           title: 'Ancient Program',
-          createdAt: now.subtract(const Duration(days: 60)),
-          updatedAt: now.subtract(const Duration(days: 31)),
-          deletedAt: now.subtract(const Duration(days: 31)),
+          createdAt: fixedNow.subtract(const Duration(days: 60)),
+          updatedAt: fixedNow.subtract(const Duration(days: 31)),
+          deletedAt: fixedNow.subtract(const Duration(days: 31)),
         ),
       );
-      // Soft-deleted yesterday: still inside the window → kept.
+      // Soft-deleted the day before the sweep instant: still inside the window
+      // → kept.
       await appData.repositories.programs.create(
         Program(
           id: 'recent',
           title: 'Recent Program',
-          createdAt: now.subtract(const Duration(days: 2)),
-          updatedAt: now.subtract(const Duration(days: 1)),
-          deletedAt: now.subtract(const Duration(days: 1)),
+          createdAt: fixedNow.subtract(const Duration(days: 2)),
+          updatedAt: fixedNow.subtract(const Duration(days: 1)),
+          deletedAt: fixedNow.subtract(const Duration(days: 1)),
         ),
       );
 
@@ -126,6 +132,7 @@ void main() {
         CompendiumApp(
           appData: appData,
           windowService: _NoopWindowService(appData.repositories.settings),
+          nowOverride: () => fixedNow,
         ),
       );
       await tester.pumpAndSettle();
