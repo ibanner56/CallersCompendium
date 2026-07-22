@@ -50,6 +50,17 @@ by opening a PR adding a `Proposed` ADR.
 - The figure taxonomy is versioned data — changes to it follow the process in
   [docs/design/figure-taxonomy.md](docs/design/figure-taxonomy.md).
 
+### Localization (i18n)
+User-visible strings are internationalized with `flutter_localizations` +
+`gen-l10n`, with **English as the source locale**. Add or change strings in
+`app/lib/l10n/app_en.arb` (not inline in widgets), then use them via
+`AppLocalizations.of(context)`. Translating the app needs **no handwritten
+Dart**: copy `app_en.arb` to `app_<locale>.arb` and translate the values, then
+regenerate the committed localizations (a one-line `gen-l10n` step) and, for
+iOS, add the locale to the Runner's `Info.plist`. See
+[docs/dev/localization.md](docs/dev/localization.md) for the key-naming
+convention, how to add a string, and the full translation steps.
+
 ## Getting started
 
 The app is a Flutter [pub workspace](pubspec.yaml): the `app/` Flutter app plus a

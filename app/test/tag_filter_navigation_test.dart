@@ -18,6 +18,7 @@ import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
 import 'package:compendium_app/src/update/update_service.dart';
 
+import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
 
 Dance _dance({
@@ -66,6 +67,8 @@ Future<void> _pumpShell(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: UpdateScope(

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 /// An import-gap custom figure carrying [text] as its stored scrubbed source.
 Figure _importGap(String text) =>
@@ -163,7 +164,11 @@ void main() {
             controller: customThemes,
             child: ActiveDialectScope(
               notifier: dialect,
-              child: const MaterialApp(home: SettingsScreen()),
+              child: const MaterialApp(
+                localizationsDelegates: testLocalizationsDelegates,
+                supportedLocales: testSupportedLocales,
+                home: SettingsScreen(),
+              ),
             ),
           ),
         ),

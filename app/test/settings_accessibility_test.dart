@@ -14,6 +14,7 @@ import 'package:compendium_app/src/data/verbose_figure_rendering_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 /// Pumps the [SettingsScreen] with the accessibility scopes wired (seeded from
 /// the persisted keys) and opens the General section.
@@ -50,6 +51,8 @@ Future<void> _pumpGeneral(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(

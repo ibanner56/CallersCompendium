@@ -18,6 +18,7 @@ import 'package:compendium_app/src/update/update_service.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 Future<void> _pump(
   WidgetTester tester,
@@ -47,6 +48,8 @@ Future<void> _pump(
   addTearDown(updateController.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: UpdateScope(

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import 'l10n/app_localizations.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
@@ -16,10 +17,12 @@ import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
+import 'src/data/first_day_of_week_scope.dart';
 import 'src/data/formation_colors_controller.dart';
 import 'src/data/formation_colors_scope.dart';
 import 'src/data/import_io.dart';
 import 'src/data/incoming_file_channel.dart';
+import 'src/data/locale_scope.dart';
 import 'src/data/migration_guard.dart';
 import 'src/data/colour_dance_theme_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
@@ -187,6 +190,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<DateFormatPref> _dateFormatNotifier = ValueNotifier(
     DateFormatPref.system,
   );
+  final ValueNotifier<FirstDayOfWeekPref> _firstDayOfWeekNotifier =
+      ValueNotifier(FirstDayOfWeekPref.system);
+
+  /// The user's chosen app-interface locale; `null` follows the system locale.
+  /// Drives `MaterialApp.locale` directly, so it is included in the
+  /// [Listenable.merge] below and the app re-renders in the selected language
+  /// live when it changes. Loaded (and validated against
+  /// [AppLocalizations.supportedLocales]) in [_loadPreferences].
+  final ValueNotifier<Locale?> _localeNotifier = ValueNotifier(null);
 
   /// App-level "the collection changed, reload it" signal (ROADMAP 6.3).
   /// Bumped by the import review flow (reached from Settings) so the live
@@ -521,6 +533,28 @@ class _CompendiumAppState extends State<CompendiumApp> {
         .get(kDateFormatKey)
         .catchError((_) => null);
     _dateFormatNotifier.value = dateFormatPrefFromStored(dateFormat);
+    // Load the first-day-of-week preference (ROADMAP G.8), defaulting to System
+    // when unset. Defensive: a read failure or garbage token resolves to the
+    // safe System default via the resolver.
+    final firstDayOfWeek = await _appData.repositories.settings
+        .get(kFirstDayOfWeekKey)
+        .catchError((_) => null);
+    _firstDayOfWeekNotifier.value = firstDayOfWeekPrefFromStored(
+      firstDayOfWeek,
+    );
+    // Load the app-language preference (ROADMAP G.8). SECURITY (OWASP): the
+    // stored tag is untrusted — [localeFromStored] only ever resolves it to a
+    // locale that is actually in [AppLocalizations.supportedLocales], and a
+    // missing/garbage value falls back to the system locale (`null`) without
+    // throwing, so a corrupted setting can never crash startup or select an
+    // unsupported locale.
+    final locale = await _appData.repositories.settings
+        .get(kLocaleKey)
+        .catchError((_) => null);
+    _localeNotifier.value = localeFromStored(
+      locale,
+      AppLocalizations.supportedLocales,
+    );
     // Load any locally-saved custom themes and the active one (if set).
     await _customThemes.load();
     // Load the user's per-formation label colour overrides (issue #367).
@@ -555,6 +589,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
     _dateFormatNotifier.dispose();
+    _firstDayOfWeekNotifier.dispose();
+    _localeNotifier.dispose();
     _collectionRefreshNotifier.dispose();
     _collectionFilterController.dispose();
     _customThemes.dispose();
@@ -633,9 +669,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
   Widget build(BuildContext context) {
     // The theme depends on two sources — the built-in selection and the active
     // custom theme — and both are MaterialApp properties, so the MaterialApp
-    // must rebuild when either changes.
+    // must rebuild when either changes. The locale is likewise a MaterialApp
+    // property (drives `locale:`), so it joins the merge too.
     return ListenableBuilder(
-      listenable: Listenable.merge([_themeNotifier, _customThemes]),
+      listenable: Listenable.merge([
+        _themeNotifier,
+        _customThemes,
+        _localeNotifier,
+      ]),
       builder: (context, _) {
         final selection = _themeNotifier.value;
         final activeCustom = _customThemes.active;
@@ -670,7 +711,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
         }
 
         return MaterialApp(
-          title: "Caller's Compendium",
+          onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+          locale: _localeNotifier.value,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           navigatorKey: _navigatorKey,
           scaffoldMessengerKey: _messengerKey,
           theme: lightTheme,
@@ -710,15 +754,21 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                         notifier: _setListColorCodingNotifier,
                                         child: DateFormatScope(
                                           notifier: _dateFormatNotifier,
-                                          child: BackupControllerScope(
-                                            onRestored: reloadFromSettings,
-                                            child: CollectionRefreshScope(
-                                              revision:
-                                                  _collectionRefreshNotifier,
-                                              child: CollectionFilterScope(
-                                                controller:
-                                                    _collectionFilterController,
-                                                child: child!,
+                                          child: FirstDayOfWeekScope(
+                                            notifier: _firstDayOfWeekNotifier,
+                                            child: LocaleScope(
+                                              notifier: _localeNotifier,
+                                              child: BackupControllerScope(
+                                                onRestored: reloadFromSettings,
+                                                child: CollectionRefreshScope(
+                                                  revision:
+                                                      _collectionRefreshNotifier,
+                                                  child: CollectionFilterScope(
+                                                    controller:
+                                                        _collectionFilterController,
+                                                    child: child!,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),

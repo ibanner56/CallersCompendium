@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/soft_delete_retention.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 /// Pumps the [SettingsScreen] on a wide (side-by-side) surface with the scopes
 /// it depends on, backed by [repos], and opens the General section.
@@ -31,6 +32,8 @@ Future<void> _pumpGeneral(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(
