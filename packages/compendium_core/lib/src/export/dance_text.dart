@@ -21,9 +21,9 @@ import '../taxonomy/contra_taxonomy.dart';
 /// for calling notes). Using [FigureRenderer.renderSummary] (not the terse
 /// [FigureRenderer.render]) is what keeps the export at parity with the screen:
 /// it surfaces the ContraDB secondary modifiers the terse form omits — balance
-/// prefixes, down/up-the-hall and zig-zag enders, hey length, and long-lines
-/// direction — so role/move terms *and* modifiers match the on-screen output
-/// for the chosen [dialect].
+/// prefixes, down/up-the-hall and zig-zag enders, and long-lines direction — so
+/// role/move terms *and* modifiers match the on-screen output for the chosen
+/// [dialect].
 ///
 /// The caller resolves and passes in the display strings that the app owns:
 /// - [authorNames] are the already-resolved choreographer *names* (privacy

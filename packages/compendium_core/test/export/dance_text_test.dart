@@ -123,9 +123,9 @@ void main() {
 
     // Regression (#457): the export must render figures with the summary form,
     // not the terse [FigureRenderer.render], so on-screen modifiers (enders,
-    // balance prefixes, hey length, long-lines direction) survive to the
-    // printed/shared card. A bare down-the-hall carries a default turn-couple
-    // ender that the terse form drops but the summary surfaces.
+    // balance prefixes, long-lines direction) survive to the printed/shared
+    // card. A bare down-the-hall carries a default turn-couple ender that the
+    // terse form drops but the summary surfaces.
     test('surfaces figure modifiers via renderSummary (down-the-hall ender)', () {
       final text = render(
         dance(
