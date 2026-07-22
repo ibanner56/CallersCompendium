@@ -41,10 +41,28 @@ String replaceUnsafeNameChars(String value) =>
 /// 4. falls back to [fallback] when no alphanumeric content remains (empty,
 ///    all-whitespace, or all-illegal input).
 ///
+/// The [fallback] is **not** trusted either: it is run through the identical
+/// sanitization, so a caller-supplied default that carries unsafe characters
+/// (e.g. `'Programming matrix'`, which contains a space) can never leak them
+/// into the returned name. If the sanitized fallback is itself empty of
+/// alphanumeric content, the stable `'export'` default is used, so this
+/// function's promise — the result is always within `[A-Za-z0-9._-]` and never
+/// `.`/`..`/a dotfile — holds unconditionally.
+///
 /// This is the sanitizer every user-facing export/print name should flow
 /// through, so imported/shared titles are handled uniformly (issue #468).
 String sanitizeExportName(String raw, {String fallback = 'export'}) {
-  final replaced = replaceUnsafeNameChars(raw.trim());
-  final stripped = replaced.replaceAll(_leadingTrailingSeparators, '');
-  return stripped.contains(_hasAlphanumeric) ? stripped : fallback;
+  final sanitized = _stripToSafeName(raw);
+  if (sanitized.contains(_hasAlphanumeric)) return sanitized;
+  final sanitizedFallback = _stripToSafeName(fallback);
+  return sanitizedFallback.contains(_hasAlphanumeric)
+      ? sanitizedFallback
+      : 'export';
 }
+
+/// Trims [value], replaces every unsafe character with `_`, and strips
+/// leading/trailing dots/underscores. Shared by [sanitizeExportName] for both
+/// the raw title and the fallback so neither can bypass the safe-set guarantee.
+String _stripToSafeName(String value) => replaceUnsafeNameChars(
+  value.trim(),
+).replaceAll(_leadingTrailingSeparators, '');

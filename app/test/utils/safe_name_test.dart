@@ -62,5 +62,28 @@ void main() {
       expect(sanitizeExportName('', fallback: 'dance'), 'dance');
       expect(sanitizeExportName('///', fallback: 'program'), 'program');
     });
+
+    test('sanitizes an unsafe fallback rather than returning it raw', () {
+      // Regression (#468 review): a caller-supplied fallback must not bypass
+      // the sanitizer. 'Programming matrix' carries a space — it must be
+      // reduced to the safe set, never leaked into the print-job name.
+      expect(
+        sanitizeExportName('', fallback: 'Programming matrix'),
+        'Programming_matrix',
+      );
+      expect(sanitizeExportName('   ', fallback: 'my/report'), 'my_report');
+      final matrix = sanitizeExportName('///', fallback: 'Programming matrix');
+      expect(matrix.contains(' '), isFalse);
+      expect(matrix.contains('/'), isFalse);
+    });
+
+    test(
+      'falls back to the stable "export" when the fallback is also unsafe',
+      () {
+        expect(sanitizeExportName('', fallback: '///'), 'export');
+        expect(sanitizeExportName('///', fallback: '   '), 'export');
+        expect(sanitizeExportName('', fallback: '..'), 'export');
+      },
+    );
   });
 }
