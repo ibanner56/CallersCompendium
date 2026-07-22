@@ -60,6 +60,7 @@ class PerformCard extends StatelessWidget {
     required this.textScale,
     this.autoSize = false,
     this.authorNames = const [],
+    this.fitScaleCache,
   });
 
   final Dance dance;
@@ -74,6 +75,11 @@ class PerformCard extends StatelessWidget {
 
   /// Resolved author display names, rendered under the title when non-empty.
   final List<String> authorNames;
+
+  /// Parent-owned auto-fit scale cache (see [PerformFitScaleCache]). Passed by a
+  /// view that navigates between slots of different card types so the fit does
+  /// not flash on revisit; null for one-off uses.
+  final PerformFitScaleCache? fitScaleCache;
 
   /// The padded card content at [scale], composed on top of the system text
   /// scaling. Produced without its own scroll view so [_FitToHeight] can
@@ -120,6 +126,7 @@ class PerformCard extends StatelessWidget {
         maxScale: kPerformMaxAutoScale,
         resetToken: Object.hash(dance.id, dialect),
         builder: _body,
+        scaleCache: fitScaleCache,
       );
     }
     return SingleChildScrollView(child: _body(context, textScale));
@@ -135,6 +142,7 @@ class PerformTextCard extends StatelessWidget {
     required this.text,
     required this.textScale,
     this.autoSize = false,
+    this.fitScaleCache,
   });
 
   final String text;
@@ -142,6 +150,9 @@ class PerformTextCard extends StatelessWidget {
 
   /// See [PerformCard.autoSize].
   final bool autoSize;
+
+  /// See [PerformCard.fitScaleCache].
+  final PerformFitScaleCache? fitScaleCache;
 
   Widget _body(BuildContext context, double scale) {
     final theme = Theme.of(context);
@@ -174,9 +185,64 @@ class PerformTextCard extends StatelessWidget {
         maxScale: kPerformMaxAutoScale,
         resetToken: text,
         builder: _body,
+        scaleCache: fitScaleCache,
       );
     }
     return SingleChildScrollView(child: _body(context, textScale));
+  }
+}
+
+/// A small, viewport-aware cache of converged auto-fit scales, keyed by a
+/// slot's `resetToken`. Used by [_FitToHeight].
+///
+/// This is owned by the *parent* that drives slot navigation (e.g. the program
+/// Perform screen) and threaded down through [PerformCard] / [PerformTextCard]
+/// into [_FitToHeight]. Keeping it *above* the dance-vs-free-text card-type
+/// switch is essential: navigating dance → free-text → dance replaces that
+/// differently typed subtree and disposes the [_FitToHeight] state, so a cache
+/// living inside that state would be lost and the fit would restart at
+/// `minScale` (the "grow-in" flash) on the return visit. A parent-owned cache
+/// survives the switch, so revisiting a slot reuses its remembered scale.
+///
+/// A converged scale depends on the available height, which in turn depends on
+/// both the viewport size *and* the system/accessibility text scale (the
+/// in-view fit is composed on top of `MediaQuery.textScaler` via
+/// [_effectiveScaler]). The cache is therefore only valid for one
+/// (viewport, systemTextScale) context: every entry is dropped when either the
+/// viewport size (orientation / window resize) or the OS text size changes, so
+/// a stale converged scale can never survive an enlargement and overflow.
+class PerformFitScaleCache {
+  final Map<Object?, double> _scales = <Object?, double>{};
+  Size? _viewport;
+  double? _systemTextScale;
+
+  void _syncContext(Size viewport, double systemTextScale) {
+    if (_viewport != viewport || _systemTextScale != systemTextScale) {
+      _scales.clear();
+      _viewport = viewport;
+      _systemTextScale = systemTextScale;
+    }
+  }
+
+  /// The remembered scale for [token] in the given
+  /// ([viewport], [systemTextScale]) context, or null if none is cached. A
+  /// context that differs from the cached one first clears the cache (a stale
+  /// fit no longer holds), then returns null.
+  double? scaleFor(Object? token, Size viewport, double systemTextScale) {
+    _syncContext(viewport, systemTextScale);
+    return _scales[token];
+  }
+
+  /// Records the converged [scale] for [token] in the given
+  /// ([viewport], [systemTextScale]) context.
+  void remember(
+    Object? token,
+    Size viewport,
+    double systemTextScale,
+    double scale,
+  ) {
+    _syncContext(viewport, systemTextScale);
+    _scales[token] = scale;
   }
 }
 
@@ -191,21 +257,34 @@ class PerformTextCard extends StatelessWidget {
 /// smallest scale still overflows (a very long dance on a tiny screen) the text
 /// is scrollable rather than clipped — content is never hidden.
 ///
-/// The search resets when the viewport size changes (orientation / window
-/// resize) or when [resetToken] changes (dance/slot or dialect change), so the
-/// fit recomputes on exactly the events the roadmap calls for.
+/// The first fit for a given [resetToken] must measure across a few frames, so
+/// it grows in from [minScale]. To avoid that visible "grow-in" flash *every*
+/// time the caller pages back to a slot they have already seen, the converged
+/// scale is cached per [resetToken] (for the current viewport and system text
+/// scale) in a [PerformFitScaleCache]. Revisiting a token starts at its
+/// remembered scale and skips the search. The cache is invalidated when the
+/// viewport size or the OS/accessibility text scale changes, so an enlargement
+/// re-measures rather than reusing a now-too-large scale. Pass [scaleCache] from
+/// a parent that outlives the dance-vs-free-text card-type switch so the cache
+/// survives it; when omitted an internal cache is used (fine for callers that
+/// never swap card types, such as the single-dance view).
 class _FitToHeight extends StatefulWidget {
   const _FitToHeight({
     required this.minScale,
     required this.maxScale,
     required this.resetToken,
     required this.builder,
+    this.scaleCache,
   });
 
   final double minScale;
   final double maxScale;
   final Object? resetToken;
   final Widget Function(BuildContext context, double scale) builder;
+
+  /// Parent-owned cache of converged scales that survives the dance-vs-free-text
+  /// card-type switch. When null, an internal per-state cache is used instead.
+  final PerformFitScaleCache? scaleCache;
 
   @override
   State<_FitToHeight> createState() => _FitToHeightState();
@@ -217,13 +296,37 @@ class _FitToHeightState extends State<_FitToHeight> {
 
   final GlobalKey _contentKey = GlobalKey();
 
+  /// Fallback cache used only when no parent-owned [_FitToHeight.scaleCache] is
+  /// supplied. It is disposed with this state — so it cannot survive a card-type
+  /// switch (exactly why the program view passes a parent-owned cache instead).
+  final PerformFitScaleCache _ownCache = PerformFitScaleCache();
+
+  PerformFitScaleCache get _cache => widget.scaleCache ?? _ownCache;
+
   late double _lo = widget.minScale;
   late double _hi = widget.maxScale;
   late double _scale = widget.minScale;
 
   Size? _lastViewport;
+  double? _lastSystemTextScale;
   Object? _lastToken;
   bool _converged = false;
+
+  /// Prepares the search for [token] in the ([viewport], [systemTextScale])
+  /// context: if a converged scale for it is cached (same context), reuse it
+  /// directly and skip the search — no flash — else restart the binary search
+  /// from [minScale].
+  void _beginToken(Object? token, Size viewport, double systemTextScale) {
+    final cached = _cache.scaleFor(token, viewport, systemTextScale);
+    if (cached != null) {
+      _lo = cached;
+      _hi = widget.maxScale;
+      _scale = cached;
+      _converged = true;
+    } else {
+      _resetSearch();
+    }
+  }
 
   void _resetSearch() {
     _lo = widget.minScale;
@@ -232,13 +335,13 @@ class _FitToHeightState extends State<_FitToHeight> {
     _converged = false;
   }
 
-  void _measureAndStep(double viewportHeight) {
+  void _measureAndStep(Size viewport, double systemTextScale) {
     if (!mounted || _converged) return;
     final box = _contentKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
     final contentHeight = box.size.height;
 
-    final fits = contentHeight <= viewportHeight + _heightEpsilon;
+    final fits = contentHeight <= viewport.height + _heightEpsilon;
     if (fits) {
       _lo = _scale;
     } else {
@@ -246,9 +349,11 @@ class _FitToHeightState extends State<_FitToHeight> {
     }
 
     if (_hi - _lo <= _scaleEpsilon) {
-      // Settle on the largest scale known to fit.
+      // Settle on the largest scale known to fit, and remember it so a return
+      // visit to this slot skips the search.
       final settled = _lo.clamp(widget.minScale, widget.maxScale);
       _converged = true;
+      _cache.remember(widget.resetToken, viewport, systemTextScale, settled);
       if ((settled - _scale).abs() > _scaleEpsilon / 2) {
         setState(() => _scale = settled);
       }
@@ -261,18 +366,28 @@ class _FitToHeightState extends State<_FitToHeight> {
 
   @override
   Widget build(BuildContext context) {
+    // Reading the system text scale here registers this element as a
+    // MediaQuery dependent, so an OS/accessibility text-size change rebuilds
+    // us. Because the in-view fit is composed on top of this scale, a change
+    // must invalidate the cached converged scale and re-measure — otherwise an
+    // enlargement would keep a stale (too-large) scale and overflow.
+    final systemTextScale = MediaQuery.textScalerOf(context).scale(1);
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
-        if (_lastViewport != viewport || _lastToken != widget.resetToken) {
+        if (_lastViewport != viewport ||
+            _lastSystemTextScale != systemTextScale) {
           _lastViewport = viewport;
+          _lastSystemTextScale = systemTextScale;
           _lastToken = widget.resetToken;
-          _resetSearch();
+          _beginToken(widget.resetToken, viewport, systemTextScale);
+        } else if (_lastToken != widget.resetToken) {
+          _lastToken = widget.resetToken;
+          _beginToken(widget.resetToken, viewport, systemTextScale);
         }
-        final viewportHeight = constraints.maxHeight;
-        if (viewportHeight.isFinite) {
+        if (viewport.height.isFinite) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _measureAndStep(viewportHeight);
+            _measureAndStep(viewport, systemTextScale);
           });
         }
         return SingleChildScrollView(
