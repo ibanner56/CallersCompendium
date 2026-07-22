@@ -58,11 +58,12 @@ feature overview and install notes follow.
   verifies a cryptographically **signed update manifest** (Ed25519, with the public key
   pinned in the app), only accepts artifacts from an **allowlist of GitHub-owned
   hosts**, and gates launch on that verification.
-- **Localization groundwork.** Every user-facing string across the app — Collection,
-  dance editor, Programs, Perform, import, search, share, export, settings, and the
-  shared chrome — has been externalized, and a **language selector** plus locale-aware
-  regional formatting have landed. This lays the foundation for community translations;
-  the interface ships in English for beta.4.
+- **Localization groundwork.** Work is underway to move the app's user-facing text
+  into a translation framework (Flutter's `gen-l10n`), so the interface can be
+  translated down the road. This release is foundational plumbing: **beta.4 is
+  English-only** — English is the source language and **no translations ship yet** —
+  and the text you see is unchanged. String extraction is substantially complete, with
+  the remaining screens following in later updates.
 
 ### Changed
 

@@ -655,12 +655,12 @@ taxonomy are unchanged.
   beta.4**. The *structured* analogue already shipped as DD.3 (per-move figure-entry
   defaults).
 - **UI localization / multi-language** — the i18n **framework has landed** (see
-  G.8): `flutter_localizations` + `gen-l10n`, an app-language selector, and
-  **English as the source locale**. The **full sweep of UI strings across every
-  screen** (Collection, dance editor, Programs, Perform, import/search/share/export,
-  settings, and the shared chrome) has now been extracted into `app_en.arb`. What
-  remains is welcoming **community-contributed** `app_<locale>.arb` translations,
-  which require no code
+  G.8): `flutter_localizations` + `gen-l10n`, app-language-selector scaffolding, and
+  **English as the source locale**. UI-string extraction into `app_en.arb` is
+  **substantially complete and continuing in phased PRs** (the final batch is in
+  flight); the app remains **English-only** for now, with no translations shipped. What
+  remains is finishing extraction and then welcoming **community-contributed**
+  `app_<locale>.arb` translations, which require no code
   change to appear. See [docs/dev/localization.md](dev/localization.md).
 
 ### Plugin system (user-installable extensions)
