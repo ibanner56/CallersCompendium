@@ -200,4 +200,145 @@ void main() {
       expect(dances.map((d) => d.id), ['live']);
     },
   );
+
+  test('restore aborts and preserves live data when the core archive has a '
+      'decode error', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('live', 'Live Dance'));
+
+    // A well-formed envelope, but a core dance is missing its required
+    // `title` — a per-entity decode ERROR (not a forward-compat warning). A
+    // replace restore must refuse rather than wipe live data to apply an
+    // archive that did not fully decode (issue #430).
+    const json =
+        '{"backupVersion":1,"createdAt":"2026-07-15T00:00:00.000Z",'
+        '"core":{"dances":[{"id":"d1"}]},"app":{}}';
+
+    final outcome = await BackupService(repos).restoreFromJson(json);
+
+    expect(outcome.applied, isFalse);
+    expect(outcome.hasErrors, isTrue);
+    // Live content is untouched — a partially-decodable backup never wipes it.
+    final dances = await repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['live']);
+  });
+
+  test('REPLACE refuses a forward-compat-incomplete core and preserves live '
+      'data (does not wipe or partially apply) (#430)', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('stale', 'Stale Dance'));
+
+    // Two core dances: one valid, one carrying an unknown `status` written by a
+    // hypothetical newer app version. The unknown-enum dance is DROPPED at
+    // decode, so the archive is incomplete. A destructive replace must refuse
+    // rather than wipe the live collection to apply a lossy copy (#430).
+    const json =
+        '{"backupVersion":1,"createdAt":"2026-07-15T00:00:00.000Z",'
+        '"core":{"dances":['
+        '{"id":"good","title":"Good","createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"},'
+        '{"id":"newer","title":"Newer","status":"from_the_future",'
+        '"createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"}'
+        ']},"app":{}}';
+
+    final outcome = await BackupService(repos).restoreFromJson(json);
+
+    expect(outcome.applied, isFalse);
+    expect(outcome.incompleteCore, isTrue);
+    // Live data is untouched — the stale dance survives, the archive's `good`
+    // dance never landed.
+    final dances = await repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['stale']);
+  });
+
+  test('REPLACE refuses even when EVERY entity is dropped (would decode to an '
+      'empty archive) and leaves live data intact (#430)', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('keep-me', 'Keep Me'));
+
+    // Every dance carries a future enum value, so decoding yields ZERO dances.
+    // Without the incomplete-core guard this would sail through the
+    // coreHasErrors check and replace would clear the live collection and
+    // commit an empty archive — the exact silent wipe #430 must prevent.
+    const json =
+        '{"backupVersion":1,"createdAt":"2026-07-15T00:00:00.000Z",'
+        '"core":{"dances":['
+        '{"id":"a","title":"A","status":"from_the_future",'
+        '"createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"},'
+        '{"id":"b","title":"B","status":"from_the_future",'
+        '"createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"}'
+        ']},"app":{}}';
+
+    final outcome = await BackupService(repos).restoreFromJson(json);
+
+    expect(outcome.applied, isFalse);
+    expect(outcome.incompleteCore, isTrue);
+    final dances = await repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['keep-me']);
+  });
+
+  test('MERGE stays tolerant of a forward-compat drop: keeps survivors and '
+      'existing data (drops only the unreadable entity)', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('stale', 'Stale Dance'));
+
+    const json =
+        '{"backupVersion":1,"createdAt":"2026-07-15T00:00:00.000Z",'
+        '"core":{"dances":['
+        '{"id":"good","title":"Good","createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"},'
+        '{"id":"newer","title":"Newer","status":"from_the_future",'
+        '"createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"}'
+        ']},"app":{}}';
+
+    final outcome = await BackupService(
+      repos,
+    ).restoreFromJson(json, mode: RestoreMode.merge);
+
+    // Merge is additive and tolerant: it applies, keeping the existing `stale`
+    // dance and adding the readable `good` one, dropping only `newer`.
+    expect(outcome.applied, isTrue);
+    expect(outcome.warnings, isNotEmpty);
+    final dances = await repos.dances.listAll();
+    expect(dances.map((d) => d.id).toSet(), {'stale', 'good'});
+  });
+
+  test('REPLACE that fails to write rolls back AND does not mutate app '
+      'settings or report success (#430, comment 2)', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('live', 'Live Dance'));
+    // A backup-eligible preference the restore must NOT touch if the core
+    // restore rolls back.
+    await repos.settings.set(kSortIgnoreArticlesKey, false);
+
+    // Core decodes cleanly (no decode error, no dropped enum) so it passes the
+    // pre-flight guard and the restore is attempted — but the dance's duplicate
+    // authorIds violate the dance_authors primary key, so the write fails and
+    // the all-or-nothing replace rolls the whole transaction back. The backup
+    // also carries a DIFFERENT value for the preference; because the core
+    // restore rolled back, app settings must be left untouched and the outcome
+    // must report applied:false.
+    const json =
+        '{"backupVersion":1,"createdAt":"2026-07-15T00:00:00.000Z",'
+        '"core":{"choreographers":[{"id":"c1","name":"Alice"}],'
+        '"dances":[{"id":"d1","title":"Dupe","authorIds":["c1","c1"],'
+        '"createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"}]},'
+        '"app":{"settings":{"$kSortIgnoreArticlesKey":true}}}';
+
+    final outcome = await BackupService(repos).restoreFromJson(json);
+
+    expect(outcome.applied, isFalse);
+    expect(outcome.hasErrors, isTrue);
+    // Core rolled back: the live dance is intact and the archive's dance never
+    // landed.
+    final dances = await repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['live']);
+    // App settings were NOT mutated — the preference keeps its live value.
+    expect(await repos.settings.get(kSortIgnoreArticlesKey), false);
+  });
 }

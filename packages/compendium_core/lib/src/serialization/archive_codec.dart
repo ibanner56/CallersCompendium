@@ -284,6 +284,10 @@ ArchiveReadResult decodeArchive(String json) {
 ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
   final errors = <ArchiveError>[];
   final warnings = <String>[];
+  // Entities skipped because of an unknown enum value (forward-compat). Tracked
+  // separately from warnings so the "archive is incomplete" signal survives to
+  // the replace gate and can't be lost among benign notes (issue #430).
+  final dropped = <String>[];
 
   var schemaVersion = archiveSchemaVersion;
   final rawVersion = root['schemaVersion'];
@@ -320,31 +324,60 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     'choreographer',
     _choreographerFromJson,
     errors,
+    warnings,
+    dropped,
   );
   final publishedSources = _decodeList(
     root['publishedSources'],
     'publishedSource',
     _publishedSourceFromJson,
     errors,
+    warnings,
+    dropped,
   );
-  final tags = _decodeList(root['tags'], 'tag', _tagFromJson, errors);
+  final tags = _decodeList(
+    root['tags'],
+    'tag',
+    _tagFromJson,
+    errors,
+    warnings,
+    dropped,
+  );
   final customFields = _decodeList(
     root['customFields'],
     'customField',
     _customFieldDefFromJson,
     errors,
+    warnings,
+    dropped,
   );
-  final dances = _decodeList(root['dances'], 'dance', _danceFromJson, errors);
+  final dances = _decodeList(
+    root['dances'],
+    'dance',
+    _danceFromJson,
+    errors,
+    warnings,
+    dropped,
+  );
   final programs = _decodeList(
     root['programs'],
     'program',
     _programFromJson,
     errors,
+    warnings,
+    dropped,
   );
   // Tolerate a missing/absent `venues` array (older bundles predate the venue
   // entity): `_decodeList` returns an empty list for a null field and records
   // a structured error for a present-but-malformed one, never throwing.
-  final venues = _decodeList(root['venues'], 'venue', _venueFromJson, errors);
+  final venues = _decodeList(
+    root['venues'],
+    'venue',
+    _venueFromJson,
+    errors,
+    warnings,
+    dropped,
+  );
 
   return ArchiveReadResult(
     archive: CompendiumArchive(
@@ -360,6 +393,7 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     ),
     errors: errors,
     warnings: warnings,
+    droppedEntities: dropped,
   );
 }
 
@@ -368,11 +402,21 @@ final DateTime _epoch = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 /// Decodes a JSON list field into models, skipping (and recording) any entry
 /// that is not an object or fails to decode. A missing/non-list field yields an
 /// empty list.
+///
+/// Two skip kinds, deliberately distinguished:
+/// - an entry with an **unknown enum value** (a field written by a newer app
+///   version) is skipped and recorded in both [warnings] (human-readable) and
+///   [droppedEntities] (the structural "archive is incomplete" signal the
+///   replace gate consumes) — it is forward-compat, not corruption, so it must
+///   never escalate to an error, but it must also never be silently lost;
+/// - any other decode failure is recorded in [errors].
 List<T> _decodeList<T>(
   Object? raw,
   String entityType,
   T Function(Map<String, Object?>) decode,
   List<ArchiveError> errors,
+  List<String> warnings,
+  List<String> droppedEntities,
 ) {
   if (raw == null) return const [];
   if (raw is! List) {
@@ -400,6 +444,18 @@ List<T> _decodeList<T>(
     final map = entry.cast<String, Object?>();
     try {
       result.add(decode(map));
+    } on _UnknownEnumValueException catch (e) {
+      // Forward-compatible skip: a newer app version wrote an enum value this
+      // build doesn't recognize. Drop just this entity rather than recording an
+      // error — a replace restore treats decode errors as fatal (to protect
+      // live data), and a merely newer file must not trip that. The rest of the
+      // archive still loads. Record it in BOTH warnings (for display) and
+      // droppedEntities (so the replace gate knows the archive is incomplete
+      // and refuses to wipe live data for a lossy restore).
+      final id = map['id'] is String ? map['id'] as String : null;
+      final ref = '$entityType${id == null ? '' : ' ($id)'}';
+      droppedEntities.add(ref);
+      warnings.add('$ref skipped: $e');
     } on Exception catch (e) {
       // Catch only Exceptions (the decode helpers throw FormatException for
       // malformed input): Dart Errors signal genuine bugs and should surface
@@ -747,11 +803,30 @@ PartialDate? _partialDateOrNull(Map<String, Object?> m, String key) {
   return PartialDate.parse(v);
 }
 
+/// Thrown by [_enumByName] when a serialized enum value isn't one this build
+/// knows. Kept distinct from [FormatException] so the decoder can treat an
+/// unrecognized enum as a *forward-compatible skip-with-warning* (drop just the
+/// offending entity and record a warning) rather than a data-corruption error.
+///
+/// This matters for a replace restore: a genuine decode *error* aborts the
+/// restore to protect the user's live collection, but a value written by a
+/// newer app version must not — it should degrade to dropping one entity while
+/// the rest of the archive still restores.
+class _UnknownEnumValueException implements Exception {
+  const _UnknownEnumValueException(this.field, this.name);
+
+  final String field;
+  final String name;
+
+  @override
+  String toString() => 'unknown $field: "$name"';
+}
+
 T _enumByName<T extends Enum>(List<T> values, String name, String field) {
   for (final v in values) {
     if (v.name == name) return v;
   }
-  throw FormatException('unknown $field: "$name"');
+  throw _UnknownEnumValueException(field, name);
 }
 
 T _enumByNameOr<T extends Enum>(
