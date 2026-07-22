@@ -143,6 +143,62 @@ void main() {
     });
 
     test(
+      'sanitizes control/bidi chars in title, choreographer, formation (#444)',
+      () async {
+        final draft = await _importOne(
+          _page(
+            '<h1 class="dance-show-title">Petro\u202Enella\u0007</h1>'
+            '<p class="dance-show-choreographer">by: '
+            '<strong><a href="/choreographers/9">Dan\u200B Pearl</a></strong></p>'
+            '<p class="dance-show-formation">formation: impro\u202Eper</p>',
+          ),
+          uri: 'https://contradb.com/dances/1',
+        );
+        // Stored title/author/formation are stripped of the spoofing characters.
+        expect(draft.dance.title, 'Petronella');
+        expect(draft.authorNames, ['Dan Pearl']);
+        expect(draft.dance.formation.detail, 'improper');
+        expect(containsDisallowedText(draft.dance.title), isFalse);
+      },
+    );
+
+    test('discover label is sanitized (#444)', () async {
+      final adapter = ContraDbHtmlAdapter();
+      final records = await adapter.discover(
+        ImportRequest(
+          payload: _page('<h1 class="dance-show-title">Ti\u202Etle\u0000</h1>'),
+        ),
+      );
+      expect(records.single.label, 'Title');
+      // The derived external id is built from the already-clean title.
+      expect(records.single.externalId, 'name:title');
+    });
+
+    test(
+      'title with an embedded newline is single-line → stable externalId (#444)',
+      () async {
+        final adapter = ContraDbHtmlAdapter();
+        // <h1> spanning two source lines yields an embedded newline in the
+        // extracted text; a single-line title must strip it so the derived
+        // `name:<title>` external id is stable (not `name:foo\nbar`).
+        final records = await adapter.discover(
+          ImportRequest(
+            payload: _page('<h1 class="dance-show-title">Foo\nBar</h1>'),
+          ),
+        );
+        expect(records.single.label, 'FooBar');
+        expect(records.single.externalId, 'name:foobar');
+        expect(records.single.externalId, isNot(contains('\n')));
+
+        final draft = await _importOne(
+          _page('<h1 class="dance-show-title">Foo\nBar</h1>'),
+        );
+        expect(draft.dance.title, 'FooBar');
+        expect(draft.dance.title, isNot(contains('\n')));
+      },
+    );
+
+    test(
       'choreographer → authorNames; empty authorIds; no info issue',
       () async {
         final draft = await _importOne(_page(_rendezvousBody));

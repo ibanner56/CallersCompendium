@@ -5,6 +5,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/partial_date.dart';
+import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
@@ -186,8 +187,10 @@ CcDanceMapping mapCallersCompanionDance(
   final now = timestamp ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
   final scrubFn = scrub ?? scrubFigureText;
 
-  // Title — placeholder + warning when absent (never throw).
-  final rawName = record.name?.trim() ?? '';
+  // Title — placeholder + warning when absent (never throw). Sanitized
+  // single-line so control/bidi/format spoofing chars never reach storage
+  // (issue #444).
+  final rawName = _sanitizeLine(record.name) ?? '';
   final String title;
   if (rawName.isEmpty) {
     title = ccUntitledDanceTitle;
@@ -208,8 +211,7 @@ CcDanceMapping mapCallersCompanionDance(
   // Choreographer associations (match-or-create) at commit. This mapping never
   // fabricates ids; blank names are dropped.
   final authorNames = [
-    for (final author in record.authors)
-      if (author.trim().isNotEmpty) author.trim(),
+    for (final author in record.authors) ?_sanitizeLine(author),
   ];
 
   // Level → DanceLevel (+ mixedLevel), best-effort.
@@ -335,7 +337,7 @@ CcDanceMapping mapCallersCompanionDance(
 }
 
 Formation _mapFormation(String? raw, List<ImportIssue> issues) {
-  final trimmed = raw?.trim() ?? '';
+  final trimmed = _sanitizeLine(raw) ?? '';
   if (trimmed.isEmpty) return const Formation(FormationShape.dupleImproper);
   final value = trimmed.toLowerCase();
   // Order matters: check the more specific tokens first.
@@ -433,7 +435,20 @@ PartialDate? _mapDate(String? raw, String which, List<ImportIssue> issues) {
 }
 
 String _joinNotes(List<String> parts) =>
-    parts.where((p) => p.isNotEmpty).join('\n');
+    // Multi-line sanitize (issue #444): strip control/bidi/format spoofing
+    // characters from the assembled notes while preserving legitimate newlines.
+    sanitizeImportedText(parts.where((p) => p.isNotEmpty).join('\n')).trim();
+
+/// Sanitizes a single-line imported string (title, author, formation detail),
+/// stripping control, bidi-override and invisible/format characters plus any
+/// embedded tab/newline/CR (issue #444). Returns null for null/blank/all-
+/// stripped input.
+String? _sanitizeLine(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  final clean = sanitizeImportedText(trimmed, allowLineBreaks: false).trim();
+  return clean.isEmpty ? null : clean;
+}
 
 /// Maps CC `Rating` onto the model's closed `1..5` star scale, best-effort.
 ///
