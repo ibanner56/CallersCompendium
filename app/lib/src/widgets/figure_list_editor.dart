@@ -50,6 +50,7 @@ class FigureListEditor extends StatefulWidget {
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
+    this.shorthandMappings,
   });
 
   final List<FigureDraft> drafts;
@@ -100,6 +101,13 @@ class FigureListEditor extends StatefulWidget {
   /// list. Only used when [freeTextEntry] is true. A single typed line may yield
   /// more than one figure when it is a `;`-compound.
   final void Function(List<Figure> figures)? onAddFreeText;
+
+  /// User-defined shorthand → figure(s) mappings (issue #420) consulted FIRST
+  /// during free-text entry: a typed line matching a shorthand token (whole
+  /// line, case-insensitive) expands to the mapped figures instead of being
+  /// parsed. `null` (the default) disables shorthand expansion, preserving the
+  /// pure #419 parse behavior. Only relevant when [freeTextEntry] is enabled.
+  final ShorthandMappings? shorthandMappings;
 
   @override
   State<FigureListEditor> createState() => _FigureListEditorState();
@@ -333,6 +341,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     final figures = parseFreeTextFigureEntry(
       _freeTextController.text,
       taxonomy: widget.taxonomy,
+      shorthands: widget.shorthandMappings,
     );
     if (figures.isEmpty) {
       // Nothing to insert (blank, or scrubbed to empty) — close the composer.

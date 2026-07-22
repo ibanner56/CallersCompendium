@@ -7,6 +7,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
+import '../data/shorthand_mappings_scope.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/choreographer_details_dialog.dart';
@@ -577,6 +578,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       taxonomy: _taxonomy,
       moveParamDefaults: _moveParamDefaults,
       freeTextEntry: _freeTextEntry,
+      shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,
       dialect: dialect,
       isNew: widget.isNew,
       authorOptions: [

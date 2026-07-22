@@ -32,6 +32,8 @@ import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
 import 'src/data/seed_service.dart';
 import 'src/data/set_list_color_coding_scope.dart';
+import 'src/data/shorthand_mappings_controller.dart';
+import 'src/data/shorthand_mappings_scope.dart';
 import 'src/data/single_instance_guard.dart';
 import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
@@ -291,6 +293,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
   late final FormationColorsController _formationColors;
   late final DialectLibraryController _dialectLibrary;
 
+  /// Owns the user's shorthand → figure(s) mappings (issue #420), consulted by
+  /// the free-text entry path. Loaded during bootstrap; exposed via
+  /// [ShorthandMappingsScope].
+  late final ShorthandMappingsController _shorthandMappings;
+
   /// Owns the update-check preferences and latest check result (ADR-002 §4/§5).
   /// Loaded during bootstrap; the auto-check (opt-in, default off) is kicked off
   /// once per launch after preferences load.
@@ -341,6 +348,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // consumer) via [_syncActiveDialect], so the rest of the app is unchanged.
     _dialectLibrary = DialectLibraryController(_appData.repositories.settings);
     _dialectLibrary.addListener(_syncActiveDialect);
+    _shorthandMappings = ShorthandMappingsController(
+      _appData.repositories.settings,
+    );
     _updateController = UpdateController(_appData.repositories.settings);
     // Listen for files opened while the app is running (AirDrop / "Open with"
     // on an already-launched app). The cold-start file is pulled once the ready
@@ -726,6 +736,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     await _customThemes.load();
     // Load the user's per-formation label colour overrides (issue #367).
     await _formationColors.load();
+    // Load the user's shorthand → figure(s) mappings (issue #420). Decoded
+    // defensively; a corrupt payload degrades to "no mappings".
+    await _shorthandMappings.load();
     // Load the update-check preferences (beta opt-in, auto-check opt-in, and
     // the dismissed banner version), all defaulting to the safe off/none state.
     await _updateController.load();
@@ -766,6 +779,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _formationColors.dispose();
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
+    _shorthandMappings.dispose();
     _updateController.dispose();
     widget.windowService.dispose();
     // dispose() can't be async; explicitly mark the close as fire-and-forget
@@ -908,42 +922,46 @@ class _CompendiumAppState extends State<CompendiumApp> {
                     controller: _formationColors,
                     child: DialectLibraryScope(
                       controller: _dialectLibrary,
-                      child: ActiveDialectScope(
-                        notifier: _dialectNotifier,
-                        child: RequirePerformedForHistoryScope(
-                          notifier: _requirePerformedForHistoryNotifier,
-                          child: SortIgnoreArticlesScope(
-                            notifier: _sortIgnoreArticlesNotifier,
-                            child: ReduceMotionScope(
-                              notifier: _reduceMotionNotifier,
-                              child: VerboseFigureRenderingScope(
-                                notifier: _verboseFigureRenderingNotifier,
-                                child: DecimalTurnsScope(
-                                  notifier: _decimalTurnsNotifier,
-                                  child: ConfirmBeforeDeleteScope(
-                                    notifier: _confirmBeforeDeleteNotifier,
-                                    child: ColourDanceThemeScope(
-                                      notifier: _colourDanceThemeNotifier,
-                                      child: SetListColorCodingScope(
-                                        notifier: _setListColorCodingNotifier,
-                                        child: DateFormatScope(
-                                          notifier: _dateFormatNotifier,
-                                          child: FirstDayOfWeekScope(
-                                            notifier: _firstDayOfWeekNotifier,
-                                            child: LocaleScope(
-                                              notifier: _localeNotifier,
-                                              child: BackupControllerScope(
-                                                onRestored: reloadFromSettings,
-                                                child: CollectionRefreshScope(
-                                                  revision:
-                                                      _collectionRefreshNotifier,
-                                                  child: CollectionFilterScope(
-                                                    controller:
-                                                        _collectionFilterController,
-                                                    child: VenueEntityModeScope(
-                                                      notifier:
-                                                          _venueEntityModeNotifier,
-                                                      child: child!,
+                      child: ShorthandMappingsScope(
+                        controller: _shorthandMappings,
+                        child: ActiveDialectScope(
+                          notifier: _dialectNotifier,
+                          child: RequirePerformedForHistoryScope(
+                            notifier: _requirePerformedForHistoryNotifier,
+                            child: SortIgnoreArticlesScope(
+                              notifier: _sortIgnoreArticlesNotifier,
+                              child: ReduceMotionScope(
+                                notifier: _reduceMotionNotifier,
+                                child: VerboseFigureRenderingScope(
+                                  notifier: _verboseFigureRenderingNotifier,
+                                  child: DecimalTurnsScope(
+                                    notifier: _decimalTurnsNotifier,
+                                    child: ConfirmBeforeDeleteScope(
+                                      notifier: _confirmBeforeDeleteNotifier,
+                                      child: ColourDanceThemeScope(
+                                        notifier: _colourDanceThemeNotifier,
+                                        child: SetListColorCodingScope(
+                                          notifier: _setListColorCodingNotifier,
+                                          child: DateFormatScope(
+                                            notifier: _dateFormatNotifier,
+                                            child: FirstDayOfWeekScope(
+                                              notifier: _firstDayOfWeekNotifier,
+                                              child: LocaleScope(
+                                                notifier: _localeNotifier,
+                                                child: BackupControllerScope(
+                                                  onRestored:
+                                                      reloadFromSettings,
+                                                  child: CollectionRefreshScope(
+                                                    revision:
+                                                        _collectionRefreshNotifier,
+                                                    child: CollectionFilterScope(
+                                                      controller:
+                                                          _collectionFilterController,
+                                                      child: VenueEntityModeScope(
+                                                        notifier:
+                                                            _venueEntityModeNotifier,
+                                                        child: child!,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),

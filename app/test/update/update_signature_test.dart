@@ -64,18 +64,15 @@ void main() {
       expect(ok, isFalse);
     });
 
-    test(
-      'fails closed on an empty pinned key (the shipped placeholder)',
-      () async {
-        final f = await _sign('x');
-        final ok = await verifyManifestSignatureWith(
-          f.message,
-          f.signatureBase64,
-          publicKeyBase64: '',
-        );
-        expect(ok, isFalse);
-      },
-    );
+    test('fails closed on an empty pinned key', () async {
+      final f = await _sign('x');
+      final ok = await verifyManifestSignatureWith(
+        f.message,
+        f.signatureBase64,
+        publicKeyBase64: '',
+      );
+      expect(ok, isFalse);
+    });
 
     test('fails closed on a null signature', () async {
       final f = await _sign('x');
@@ -173,15 +170,13 @@ void main() {
   });
 
   group('verifyManifestSignature (production wiring)', () {
-    test(
-      'fails closed because the shipped pinned key is a placeholder',
-      () async {
-        // Ships empty, so the default verifier can never accept anything until
-        // the maintainer provisions the real key.
-        final f = await _sign('anything');
-        final ok = await verifyManifestSignature(f.message, f.signatureBase64);
-        expect(ok, isFalse);
-      },
-    );
+    test('fails closed on a signature not made by the pinned key', () async {
+      // The production verifier rejects any signature not produced by the
+      // pinned key's matching private key; this fixture signs with a random
+      // in-test keypair, so it must not verify.
+      final f = await _sign('anything');
+      final ok = await verifyManifestSignature(f.message, f.signatureBase64);
+      expect(ok, isFalse);
+    });
   });
 }

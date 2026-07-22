@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
+import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
@@ -15,6 +16,7 @@ import '../../widgets/figure_list_editor.dart';
 import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/section_header.dart';
+import '../shorthand_mappings_screen.dart';
 import 'settings_keys.dart';
 
 /// The Defaults settings section: owns all Display/Program/Dance-authoring
@@ -669,6 +671,32 @@ class _DefaultsView extends StatelessWidget {
           title: Text(l10n.settingsDefaultsFreeTextEntryTitle),
           subtitle: Text(l10n.settingsDefaultsFreeTextEntrySubtitle),
         ),
+        Builder(
+          builder: (context) {
+            final controller = ShorthandMappingsScope.maybeOf(context);
+            if (controller == null) return const SizedBox.shrink();
+            final count = controller.mappings.length;
+            return ListTile(
+              key: const ValueKey('defaults-figure-shorthands'),
+              enabled: freeTextEntry,
+              title: const Text('Figure shorthands'),
+              subtitle: Text(
+                count == 0
+                    ? 'Map short tokens to one or more figures you can insert '
+                          'during free-text entry.'
+                    : '$count shorthand${count == 1 ? '' : 's'} defined.',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: freeTextEntry
+                  ? () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ShorthandMappingsScreen(),
+                      ),
+                    )
+                  : null,
+            );
+          },
+        ),
         ListTile(
           title: Text(l10n.settingsDefaultsFormTitle),
           subtitle: Text(l10n.settingsDefaultsFormSubtitle),
@@ -771,6 +799,7 @@ class _DefaultsView extends StatelessWidget {
             phraseStructure: PhraseStructure.standard,
             dialect: ActiveDialectScope.of(context),
             freeTextEntry: freeTextEntry,
+            shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,
             onChanged: onDanceFigureTemplateChanged,
             onAdd: onDanceFigureTemplateAdd,
             onAddFreeText: onDanceFigureTemplateAddFreeText,
