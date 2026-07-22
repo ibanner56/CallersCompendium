@@ -126,3 +126,63 @@ class FtsDeleteByDanceCounter extends QueryInterceptor {
 /// letting a test observe how many (matching) statements a repository issues.
 CompendiumDatabase openCountingTestDatabase(QueryInterceptor counter) =>
     CompendiumDatabase(NativeDatabase.memory().interceptWith(counter));
+
+/// Captures the bound arguments of a repository's post-fetch **sort aggregate**
+/// SELECT so a test can assert the aggregate is scoped to the result-set ids
+/// (chunked `dance_id IN (…)`) rather than scanning the whole collection (#465).
+///
+/// [matches] selects which SELECT to watch; every bound argument of a matching
+/// statement is appended to [boundArgs] (across id-chunks) and each matching
+/// statement bumps [selectCount]. For both the author and last-called sort
+/// aggregates the only bound placeholders are the `dance_id` ids, so
+/// `boundArgs` is exactly the set of ids the aggregate touched.
+abstract class SortAggregateArgCapture extends QueryInterceptor {
+  final List<Object?> boundArgs = [];
+  int selectCount = 0;
+
+  /// Override to select the sort aggregate SELECT of interest.
+  bool matches(String statement);
+
+  /// Clears captured args/count so a test can ignore statements issued during
+  /// setup and observe only the query under test.
+  void reset() {
+    boundArgs.clear();
+    selectCount = 0;
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (matches(statement)) {
+      selectCount++;
+      boundArgs.addAll(args);
+    }
+    return super.runSelect(executor, statement, args);
+  }
+}
+
+/// Watches the author sort aggregate (`dance_authors … WHERE position = 0`).
+class AuthorSortArgCapture extends SortAggregateArgCapture {
+  @override
+  bool matches(String statement) {
+    final s = statement.toLowerCase();
+    return s.startsWith('select') &&
+        s.contains('dance_authors') &&
+        s.contains('position = 0');
+  }
+}
+
+/// Watches the last-called sort aggregate
+/// (`program_slots … GROUP BY program_slots.dance_id`).
+class LastCalledSortArgCapture extends SortAggregateArgCapture {
+  @override
+  bool matches(String statement) {
+    final s = statement.toLowerCase();
+    return s.startsWith('select') &&
+        s.contains('program_slots') &&
+        s.contains('group by program_slots.dance_id');
+  }
+}

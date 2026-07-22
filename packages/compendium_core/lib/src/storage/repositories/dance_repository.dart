@@ -1094,20 +1094,31 @@ class DanceRepository {
     if (ids.isEmpty) return ids;
     // First author (position 0) name per dance; dances with no author have an
     // empty key, so they sort first ascending / last descending, matching
-    // Phase 3.1's Collection author sort.
-    final rows = await _db
-        .customSelect(
-          'SELECT dance_authors.dance_id AS dance_id, '
-          'choreographers.name AS name FROM dance_authors '
-          'JOIN choreographers '
-          'ON choreographers.id = dance_authors.choreographer_id '
-          'WHERE dance_authors.position = 0',
-        )
-        .get();
-    final names = {
-      for (final r in rows)
-        r.read<String>('dance_id'): r.read<String>('name').toLowerCase(),
-    };
+    // Phase 3.1's Collection author sort. The aggregate is restricted to the
+    // incoming result `ids` (chunked `dance_id IN (…)`, like [listAll]) so a
+    // narrowed result set does not scan the whole collection. Each dance_id is
+    // unique and lands in one chunk, and `position = 0` yields at most one row
+    // per dance, so merging the chunk rows equals a single restricted query.
+    final names = <String, String>{};
+    for (final chunk in _chunkIds(ids)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      final rows = await _db
+          .customSelect(
+            'SELECT dance_authors.dance_id AS dance_id, '
+            'choreographers.name AS name FROM dance_authors '
+            'JOIN choreographers '
+            'ON choreographers.id = dance_authors.choreographer_id '
+            'WHERE dance_authors.position = 0 '
+            'AND dance_authors.dance_id IN ($placeholders)',
+            variables: [for (final id in chunk) Variable(id)],
+          )
+          .get();
+      for (final r in rows) {
+        names[r.read<String>('dance_id')] = r
+            .read<String>('name')
+            .toLowerCase();
+      }
+    }
     // `ids` arrives in title (base) order; keep it as a stable tiebreak since
     // Dart's List.sort is not guaranteed stable.
     final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
@@ -1127,23 +1138,35 @@ class DanceRepository {
     if (ids.isEmpty) return ids;
     // Mirrors ProgramRepository.lastCalledByDance(): most-recent performed_at
     // per dance across non-deleted programs. Never-called dances sort last
-    // regardless of direction.
-    final rows = await _db
-        .customSelect(
-          'SELECT program_slots.dance_id AS dance_id, '
-          'MAX(program_slots.performed_at) AS last_called '
-          'FROM program_slots '
-          'JOIN programs ON programs.id = program_slots.program_id '
-          'WHERE program_slots.dance_id IS NOT NULL '
-          'AND program_slots.performed_at IS NOT NULL '
-          'AND programs.deleted_at IS NULL '
-          'GROUP BY program_slots.dance_id',
-        )
-        .get();
-    final lastCalled = {
-      for (final r in rows)
-        r.read<String>('dance_id'): r.read<DateTime>('last_called'),
-    };
+    // regardless of direction. The aggregate is restricted to the incoming
+    // result `ids` (chunked `dance_id IN (…)`, like [listAll]) so a narrowed
+    // result set does not scan every performed slot in the library. Each
+    // dance_id is unique and lands in one chunk, and `GROUP BY dance_id`
+    // computes each dance's MAX fully within its chunk, so merging the chunk
+    // rows equals a single restricted query.
+    final lastCalled = <String, DateTime>{};
+    for (final chunk in _chunkIds(ids)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      final rows = await _db
+          .customSelect(
+            'SELECT program_slots.dance_id AS dance_id, '
+            'MAX(program_slots.performed_at) AS last_called '
+            'FROM program_slots '
+            'JOIN programs ON programs.id = program_slots.program_id '
+            'WHERE program_slots.dance_id IS NOT NULL '
+            'AND program_slots.performed_at IS NOT NULL '
+            'AND programs.deleted_at IS NULL '
+            'AND program_slots.dance_id IN ($placeholders) '
+            'GROUP BY program_slots.dance_id',
+            variables: [for (final id in chunk) Variable(id)],
+          )
+          .get();
+      for (final r in rows) {
+        lastCalled[r.read<String>('dance_id')] = r.read<DateTime>(
+          'last_called',
+        );
+      }
+    }
     // `ids` arrives in title (base) order; keep it as a stable tiebreak.
     final baseOrder = {for (var i = 0; i < ids.length; i++) ids[i]: i};
     final sorted = [...ids]
