@@ -2133,17 +2133,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String importReviewProgramNotes(int count) {
-    return '$count program note(s):';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count program note(s):',
+      one: '$count program note(s):',
+    );
+    return '$_temp0';
   }
 
   @override
   String importReviewRecordsFailed(int count) {
-    return '$count record(s) failed to import:';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count record(s) failed to import:',
+      one: '$count record(s) failed to import:',
+    );
+    return '$_temp0';
   }
 
   @override
   String importReviewBatchErrors(int count) {
-    return '$count record(s) couldn\'t be read (the rest can still be imported):';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count record(s) couldn\'t be read (the rest can still be imported):',
+      one:
+          '$count record(s) couldn\'t be read (the rest can still be imported):',
+    );
+    return '$_temp0';
   }
 
   @override

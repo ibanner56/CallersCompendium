@@ -7,33 +7,18 @@ import 'import_io.dart' show CallersBoxPhraseQuery;
 ///
 /// Both online sources (The Caller's Box and ContraDB) are exposed through the
 /// same source-neutral seam ([OnlineSearchService]); this enum is the single
-/// place that carries their per-source differences — the selector [label], the
-/// result-row [attribution], and the [supportsByPhrase] capability that gates
-/// the by-phrase panel (ContraDB search is title-only).
+/// place that carries their per-source differences — the selector [label] and
+/// the [supportsByPhrase] capability that gates the by-phrase panel (ContraDB
+/// search is title-only). The user-facing per-source attribution line is
+/// localized separately by `onlineSourceAttribution` in `online_search_labels`.
 enum OnlineSource {
-  callersBox(
-    label: "Caller's Box",
-    attribution: "From The Caller's Box (online)",
-    supportsByPhrase: true,
-  ),
-  contraDb(
-    label: 'ContraDB',
-    attribution: 'From ContraDB (online)',
-    supportsByPhrase: false,
-  );
+  callersBox(label: "Caller's Box", supportsByPhrase: true),
+  contraDb(label: 'ContraDB', supportsByPhrase: false);
 
-  const OnlineSource({
-    required this.label,
-    required this.attribution,
-    required this.supportsByPhrase,
-  });
+  const OnlineSource({required this.label, required this.supportsByPhrase});
 
   /// Short name for the source selector (e.g. the SegmentedButton segment).
   final String label;
-
-  /// Attribution line shown under an online result row (e.g. in
-  /// `OnlineResultTile`).
-  final String attribution;
 
   /// Whether this source accepts by-phrase figure criteria. The Caller's Box
   /// maps by-phrase onto its own "search by phrase" fields; ContraDB's public

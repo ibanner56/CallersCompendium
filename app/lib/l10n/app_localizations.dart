@@ -3234,19 +3234,19 @@ abstract class AppLocalizations {
   /// Import result heading listing program-level notes.
   ///
   /// In en, this message translates to:
-  /// **'{count} program note(s):'**
+  /// **'{count, plural, =1{{count} program note(s):} other{{count} program note(s):}}'**
   String importReviewProgramNotes(int count);
 
   /// Import result heading listing records that failed to import.
   ///
   /// In en, this message translates to:
-  /// **'{count} record(s) failed to import:'**
+  /// **'{count, plural, =1{{count} record(s) failed to import:} other{{count} record(s) failed to import:}}'**
   String importReviewRecordsFailed(int count);
 
   /// Heading above the list of records that could not be parsed from the import batch.
   ///
   /// In en, this message translates to:
-  /// **'{count} record(s) couldn\'t be read (the rest can still be imported):'**
+  /// **'{count, plural, =1{{count} record(s) couldn\'t be read (the rest can still be imported):} other{{count} record(s) couldn\'t be read (the rest can still be imported):}}'**
   String importReviewBatchErrors(int count);
 
   /// Fallback name for an imported program with no title.

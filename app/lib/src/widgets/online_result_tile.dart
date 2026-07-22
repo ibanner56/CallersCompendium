@@ -9,8 +9,9 @@ import '../theme/app_spacing.dart';
 /// a subtle per-source "From … (online)" attribution.
 ///
 /// Source-agnostic: it renders any [OnlineSearchResultRow] (Caller's Box or
-/// ContraDB) and takes its attribution line from [OnlineSource.attribution], so
-/// a new source needs no tile change.
+/// ContraDB) and takes its attribution line from the localized
+/// `onlineSourceAttribution` helper (keyed on [OnlineSource]), so a new source
+/// needs no tile change.
 ///
 /// Deliberately simpler than the collection `DanceListTile`: an online result is
 /// not yet in the collection, so it has no delete / duplicate / add-to-program
