@@ -401,4 +401,250 @@ void main() {
       expect(result.archive.dances, hasLength(2));
     });
   });
+
+  group('venue serialization', () {
+    // A program that references an embedded venue, plus a standalone venue.
+    CompendiumArchive archiveWithVenues() {
+      final linked = Venue(
+        id: 'v1',
+        name: 'Guiding Star Grange',
+        address1: '401 Chapman St',
+        city: 'Greenfield',
+        stateProv: 'MA',
+        country: 'USA',
+        postalCode: '01301',
+        plus4: '1234',
+        website: 'https://example.com',
+        sponsor: 'Greenfield Dance',
+        eventName: 'Second Saturday Contra',
+        time: '8pm',
+        genericSchedule: '2nd Saturdays',
+        price: '\$10',
+        notes: 'wooden floor',
+        contact1Name: 'Pat',
+        contact1Phone: '555-0001',
+        contact1Email: 'pat@example.com',
+        contact2Name: 'Sam',
+        contact2Phone: '555-0002',
+        contact2Email: 'sam@example.com',
+      );
+      final other = Venue(id: 'v2', name: 'Town Hall');
+      final program = Program(
+        id: 'p1',
+        title: 'Spring Fling',
+        venueId: 'v1',
+        slots: const [],
+        createdAt: DateTime.utc(2026, 4, 1),
+        updatedAt: DateTime.utc(2026, 4, 20),
+      );
+      return CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [program],
+        venues: [linked, other],
+      );
+    }
+
+    test('round-trips an embedded venue and a program.venueId', () {
+      final archive = archiveWithVenues();
+      final json = encodeArchive(archive);
+      final result = decodeArchive(json);
+
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      expect(result.warnings, isEmpty);
+      // Design property: re-encoding reproduces the exact bytes.
+      expect(encodeArchive(result.archive), json);
+
+      final v1 = result.archive.venues.firstWhere((v) => v.id == 'v1');
+      expect(v1, equals(archiveWithVenues().venues.first));
+      expect(v1.contact2Email, 'sam@example.com');
+      expect(v1.plus4, '1234');
+      expect(v1.genericSchedule, '2nd Saturdays');
+
+      final program = result.archive.programs.single;
+      expect(program.venueId, 'v1');
+    });
+
+    test('stamps a venue-bearing archive at the venue schema version', () {
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
+      expect(map['schemaVersion'], archiveSchemaVersionVenues);
+    });
+
+    test('a program.venueId alone (no venues array) still raises the stamp', () {
+      // A dangling venueId with an omitted venues array must still advertise v2
+      // so an older reader warns instead of silently dropping the link.
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Linked',
+            venueId: 'v-missing',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        ],
+      );
+      final map = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      expect(map.containsKey('venues'), isFalse);
+      expect(map['schemaVersion'], archiveSchemaVersionVenues);
+    });
+
+    test('keeps a venue-less archive at the base version (back-compat)', () {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      expect(map['schemaVersion'], archiveSchemaVersionBase);
+    });
+
+    test('honors an explicitly higher requested schema version', () {
+      final archive = CompendiumArchive(
+        schemaVersion: archiveSchemaVersion + 5,
+        exportedAt: DateTime.utc(2026),
+      );
+      final map = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      expect(map['schemaVersion'], archiveSchemaVersion + 5);
+    });
+
+    test('omits the venues array entirely when there are no venues', () {
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'No venue',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        ],
+      );
+      final map = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      expect(map.containsKey('venues'), isFalse);
+      // A program without a venue omits the venueId key too.
+      final program = (map['programs'] as List)
+          .cast<Map<String, Object?>>()
+          .single;
+      expect(program.containsKey('venueId'), isFalse);
+    });
+
+    test('a legacy bundle with no venues array imports cleanly', () {
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
+      // Simulate a bundle produced before the venue entity existed.
+      map.remove('venues');
+
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      expect(result.archive.venues, isEmpty);
+      // The program still decodes; its venueId (a soft reference) is preserved
+      // here — resolving/clearing a now-dangling reference is the restorer's job.
+      expect(result.archive.programs.single.venueId, 'v1');
+    });
+
+    test('a non-array venues field is reported and skipped', () {
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
+      map['venues'] = {'not': 'an array'};
+
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isTrue);
+      expect(result.errors.single.entityType, 'venue');
+      expect(result.archive.venues, isEmpty);
+      // Other collections are unaffected.
+      expect(result.archive.programs, hasLength(1));
+    });
+
+    test('a venues entry that is not an object is skipped', () {
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
+      (map['venues'] as List).add('i am not an object');
+
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isTrue);
+      expect(result.errors.single.entityType, 'venue');
+      // The two well-formed venues survived.
+      expect(result.archive.venues.map((v) => v.id), containsAll(['v1', 'v2']));
+    });
+
+    test(
+      'a venue with a blank name is skipped without aborting the import',
+      () {
+        final map =
+            jsonDecode(encodeArchive(archiveWithVenues()))
+                as Map<String, Object?>;
+        final venues = (map['venues'] as List).cast<Map<String, Object?>>();
+        venues.firstWhere((v) => v['id'] == 'v2')['name'] = '   ';
+
+        final result = decodeArchive(jsonEncode(map));
+        expect(result.hasErrors, isTrue);
+        expect(result.errors.single.entityType, 'venue');
+        expect(result.errors.single.entityId, 'v2');
+        // The valid venue and the program still load.
+        expect(result.archive.venues.map((v) => v.id), ['v1']);
+        expect(result.archive.programs, hasLength(1));
+      },
+    );
+
+    test('a venue field of the wrong type is rejected per-entity', () {
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
+      final venues = (map['venues'] as List).cast<Map<String, Object?>>();
+      // city must be a string; an attacker-supplied number is rejected.
+      venues.firstWhere((v) => v['id'] == 'v1')['city'] = 42;
+
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isTrue);
+      expect(result.errors.single.entityType, 'venue');
+      expect(result.errors.single.entityId, 'v1');
+      // The other venue is unaffected.
+      expect(result.archive.venues.map((v) => v.id), ['v2']);
+    });
+
+    test('a missing required venue id is rejected per-entity', () {
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
+      final venues = (map['venues'] as List).cast<Map<String, Object?>>();
+      venues.firstWhere((v) => v['id'] == 'v1').remove('id');
+
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isTrue);
+      expect(result.errors.single.entityType, 'venue');
+      expect(result.archive.venues.map((v) => v.id), ['v2']);
+    });
+
+    test('unknown/extra venue keys are ignored', () {
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
+      final venues = (map['venues'] as List).cast<Map<String, Object?>>();
+      venues.first['futureField'] = {'anything': true};
+
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isFalse);
+      // Known fields still reconstruct the original venue.
+      expect(
+        result.archive.venues.firstWhere((v) => v.id == 'v1'),
+        equals(archiveWithVenues().venues.first),
+      );
+    });
+
+    test('a non-string program.venueId is rejected per-entity', () {
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
+      final programs = (map['programs'] as List).cast<Map<String, Object?>>();
+      programs.single['venueId'] = 7;
+
+      final result = decodeArchive(jsonEncode(map));
+      expect(result.hasErrors, isTrue);
+      expect(result.errors.single.entityType, 'program');
+      // Venues are still fully loaded.
+      expect(result.archive.venues, hasLength(2));
+    });
+  });
 }

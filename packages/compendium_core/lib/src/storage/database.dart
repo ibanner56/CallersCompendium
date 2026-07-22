@@ -37,6 +37,20 @@ const List<String> searchIndexSql = [
       'ON dance_figures(move, section)',
 ];
 
+/// The v14 lookup index over `programs.venue_id`.
+///
+/// `VenueRepository.delete`'s guard counts the programs still referencing a
+/// venue (`SELECT COUNT(id) FROM programs WHERE venue_id = ?`). Because a
+/// venue is explicitly reusable across many programs, without this index that
+/// COUNT would full-scan the whole `programs` table on every guarded delete
+/// (O(total programs)); the index lets SQLite restrict the scan to just the
+/// matching references. Declared raw (like [searchIndexSql]) rather than as a
+/// drift-managed index, and applied in both `onCreate` and the `from < 14`
+/// upgrade step so fresh and migrated databases get it identically.
+const List<String> venueLookupIndexSql = [
+  'CREATE INDEX IF NOT EXISTS programs_venue_id ON programs(venue_id)',
+];
+
 /// Lookup index for `dance_id` on `dance_links` (schema v13).
 ///
 /// Unlike the other dance-child tables — `dance_figures {danceId, idx}`,
@@ -69,7 +83,7 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 13;
+const int kCompendiumSchemaVersion = 14;
 
 /// The Caller's Compendium local database.
 ///
@@ -172,6 +186,20 @@ const int kCompendiumSchemaVersion = 13;
 ///   `dance_id IN (…)` chunk. Pure DDL: no columns/tables added, no data
 ///   rewritten, and the derived `dance_fts`/`dance_figures` indexes are
 ///   untouched, so no derived rebuild is required.
+/// - v14 (2026-07-22): first-class venue entity. Adds one brand-new table,
+///   `venues` (a reusable venue — id/name plus 20 nullable address/contact/
+///   schedule columns, faithful to CC's `Venue` table), and a single nullable
+///   `programs.venue_id` soft reference to it. Purely additive: `createTable` +
+///   `addColumn`, no data back-fill (fresh table starts empty; existing
+///   programs get `venue_id` NULL and keep their free-text `venue` label). The
+///   free-text `programs.venue` label and the `venue_id` entity link coexist
+///   non-destructively. `venue_id` is a deliberately un-constrained soft
+///   reference (no FK) — referential integrity is enforced at the app layer by
+///   `VenueRepository.delete`'s guard — so this migration adds NO FK and no
+///   rebuild marker. It DOES add one plain lookup index, `programs_venue_id`
+///   (see [venueLookupIndexSql]), so that guard's reference-count query stays
+///   cheap instead of full-scanning `programs`. Venues do NOT feed the derived
+///   `dance_fts`/`dance_figures` indexes, so NO derived rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -202,6 +230,7 @@ const int kCompendiumSchemaVersion = 13;
     Settings,
     Snapshots,
     ProgramProvenance,
+    Venues,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -219,6 +248,9 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await customStatement(sql);
       }
       await customStatement(danceLinksDanceIdIndexSql);
+      for (final sql in venueLookupIndexSql) {
+        await customStatement(sql);
+      }
     },
     onUpgrade: (m, from, to) async {
       // Belt-and-suspenders downgrade guard. drift is forward-only and has no
@@ -381,6 +413,23 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // `DanceRepository.listAll` full-scanned the table (O(N²) as links grow
         // with the collection). Pure DDL — no data touched, no derived rebuild.
         await customStatement(danceLinksDanceIdIndexSql);
+      }
+      if (from < 14) {
+        // First-class venue entity. One brand-new table (`venues`) plus a
+        // single nullable soft-reference column `programs.venue_id`. Purely
+        // additive: existing programs get `venue_id` NULL and keep their
+        // free-text `venue` label (the two coexist non-destructively). `venues`
+        // does NOT feed the derived `dance_fts`/`dance_figures` indexes, and no
+        // data is back-filled, so — unlike the v9 step — NO derived rebuild is
+        // required and no rebuild marker is written. The `programs_venue_id`
+        // lookup index backs `VenueRepository.delete`'s reference-count guard
+        // (see [venueLookupIndexSql]); it is created here for upgraders and in
+        // `onCreate` for fresh databases.
+        await m.createTable(venues);
+        await m.addColumn(programs, programs.venueId);
+        for (final sql in venueLookupIndexSql) {
+          await customStatement(sql);
+        }
       }
     },
     beforeOpen: (details) async {

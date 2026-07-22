@@ -5,13 +5,23 @@
 //
 //     dart run test/storage/fixtures/generate_v12_fixture.dart
 //
-// Strategy (mirrors `generate_v11_fixture.dart`): seed a fresh database at the
-// *current* schema through the repositories (so the choreographer/dance/link
-// rows are realistic), then raw-SQL strip the one structural difference the
-// v12 -> v13 migration introduces — the `dance_links_dance_id` index — and reset
-// `user_version` to 12. v13 adds no columns/tables and rewrites no data (it only
-// creates that index), so dropping the index and rewinding `user_version` yields
-// a structurally-faithful v12 database.
+// Strategy (mirrors `generate_v13_fixture.dart`): the current code is already at
+// schema v14, so opening a fresh `CompendiumDatabase` creates the v14 shape (with
+// the `venues` table, the `programs.venue_id` column, and both the
+// `programs_venue_id` and `dance_links_dance_id` indexes). Seeding at v14 and only
+// rewinding `user_version` would leave those v13/v14 additions behind, so we seed
+// realistic data at the current schema and then *strip back to the v12 shape* with
+// raw SQL before stamping `user_version = 12`:
+//   * DROP TABLE venues            — remove the v14-only table;
+//   * DROP INDEX programs_venue_id — remove the v14-only lookup index, which must
+//     go before the DROP COLUMN below (SQLite refuses to drop a column an index
+//     still references);
+//   * ALTER TABLE programs DROP COLUMN venue_id  — remove the v14-only column
+//     (SQLite >= 3.35; the bundled sqlite3 is 3.53+);
+//   * DROP INDEX dance_links_dance_id — remove the v13-only index (#455);
+//   * PRAGMA user_version = 12.
+// The result is a faithful v12 database: NO `venues` table, NO `programs.venue_id`,
+// and neither the `programs_venue_id` nor the `dance_links_dance_id` index.
 //
 // The seeded dance carries a video `DanceLink`, so the fixture exercises the
 // exact access path the new index accelerates: a `dance_links` row whose
@@ -80,9 +90,14 @@ Future<void> main() async {
 
   await db.close();
 
-  // Strip the v13 index and rewind user_version so the fixture is a faithful
-  // v12 database (structurally identical to v12: v13's only change is the index).
+  // Strip the v13 + v14 additions and stamp the file back to v12 so the fixture
+  // is a faithful v12 database (none of the later structural changes present).
   final raw = sqlite3.sqlite3.open(fixturePath);
+  raw.execute('DROP TABLE IF EXISTS venues');
+  // Drop the v14-only lookup index first: SQLite refuses to DROP COLUMN while an
+  // index still references it.
+  raw.execute('DROP INDEX IF EXISTS programs_venue_id');
+  raw.execute('ALTER TABLE programs DROP COLUMN venue_id');
   raw.execute('DROP INDEX IF EXISTS dance_links_dance_id');
   raw.execute('PRAGMA user_version = 12');
   raw.close();
