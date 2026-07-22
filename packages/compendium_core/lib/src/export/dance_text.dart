@@ -17,9 +17,13 @@ import '../taxonomy/contra_taxonomy.dart';
 /// Unlike a program set list, a dance card *is* dance-card territory, so the
 /// figure table is rendered in full and **dialect-aware** using the same core
 /// APIs the detail and Perform screens use ([deriveSections] +
-/// [FigureRenderer.render] for figures, [FigureRenderer.renderFreeText] for
-/// calling notes). Role/move terms therefore match the on-screen output for the
-/// chosen [dialect].
+/// [FigureRenderer.renderSummary] for figures, [FigureRenderer.renderFreeText]
+/// for calling notes). Using [FigureRenderer.renderSummary] (not the terse
+/// [FigureRenderer.render]) is what keeps the export at parity with the screen:
+/// it surfaces the ContraDB secondary modifiers the terse form omits — balance
+/// prefixes, down/up-the-hall and zig-zag enders, hey length, and long-lines
+/// direction — so role/move terms *and* modifiers match the on-screen output
+/// for the chosen [dialect].
 ///
 /// The caller resolves and passes in the display strings that the app owns:
 /// - [authorNames] are the already-resolved choreographer *names* (privacy
@@ -85,7 +89,7 @@ String danceToPlainText(
     lines.add('Figures:');
     final sectioned = deriveSections(dance.figures, dance.phraseStructure);
     for (final sf in sectioned) {
-      final text = fig.render(sf.figure, dialect);
+      final text = fig.renderSummary(sf.figure, dialect);
       final beats = sf.figure.beats;
       final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
       final marker = sf.figure.progression ? ' ¶' : '';

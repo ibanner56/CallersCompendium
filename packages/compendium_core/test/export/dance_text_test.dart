@@ -121,6 +121,36 @@ void main() {
       expect(text, contains('A2  partner do si do once (8 beats)'));
     });
 
+    // Regression (#457): the export must render figures with the summary form,
+    // not the terse [FigureRenderer.render], so on-screen modifiers (enders,
+    // balance prefixes, hey length, long-lines direction) survive to the
+    // printed/shared card. A bare down-the-hall carries a default turn-couple
+    // ender that the terse form drops but the summary surfaces.
+    test('surfaces figure modifiers via renderSummary (down-the-hall ender)', () {
+      final text = render(
+        dance(
+          figures: [
+            Figure(move: 'down_the_hall', params: {'beats': 8}),
+          ],
+        ),
+      );
+      expect(text, contains('down the hall and turn as a couple (8 beats)'));
+      // Guard against a regression back to the terse render(), which would emit
+      // only "down the hall" with no ender clause.
+      expect(text, isNot(contains('down the hall (8 beats)')));
+    });
+
+    test('surfaces a balance prefix via renderSummary', () {
+      final text = render(
+        dance(
+          figures: [
+            Figure(move: 'petronella', params: {'balance': true, 'beats': 8}),
+          ],
+        ),
+      );
+      expect(text, contains('balance & petronella (8 beats)'));
+    });
+
     test('marks a progression figure and renders per-figure notes', () {
       final text = render(
         dance(
