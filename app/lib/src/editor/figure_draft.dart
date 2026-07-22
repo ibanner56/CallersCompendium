@@ -16,6 +16,7 @@ class FigureDraft {
     this.progression = false,
     this.schemaVersion = figureSchemaVersion,
     this.beatsTouched = false,
+    this.assumedSubject = false,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
 
@@ -26,6 +27,11 @@ class FigureDraft {
   /// over (see [beatsTouched]). A figure with no `beats` (older/partial data)
   /// stays untouched so it can still adopt the taxonomy default on the next
   /// resync rather than remaining stuck at 0.
+  ///
+  /// [assumedSubject] is preserved so an imported figure whose subject the
+  /// parser DEFAULTED (#460) keeps its non-authoritative marker across an
+  /// open/save round-trip; it is cleared the moment the user explicitly picks a
+  /// move or edits the subject, which makes the subject a stated choice.
   factory FigureDraft.fromFigure(Figure figure) => FigureDraft(
     move: figure.move,
     params: Map<String, Object?>.of(figure.params),
@@ -33,6 +39,7 @@ class FigureDraft {
     progression: figure.progression,
     schemaVersion: figure.schemaVersion,
     beatsTouched: figure.params.containsKey('beats'),
+    assumedSubject: figure.assumedSubject,
   );
 
   /// Stable identity for widget keys across reorders/rebuilds.
@@ -55,7 +62,31 @@ class FigureDraft {
   /// never silently overwritten.
   bool beatsTouched;
 
+  /// Whether this figure's subject was ASSUMED by the import parser (the source
+  /// omitted it) rather than stated (#460). Carried through the editor so an
+  /// open/save round-trip preserves the provenance marker; the editor clears it
+  /// as soon as the user picks a move or edits the `who` param, since either is
+  /// an explicit, authoritative choice of subject.
+  bool assumedSubject;
+
   int get beats => (params['beats'] as int?) ?? 0;
+
+  /// Returns an independent copy with a FRESH [id] (the stable-identity
+  /// contract: a duplicate is a distinct row) and every other field copied
+  /// verbatim — the `params` map is deep-copied, and provenance/ownership flags
+  /// ([assumedSubject], [beatsTouched]) are carried over so a duplicate behaves
+  /// exactly like its source. Centralizing cloning here keeps the duplicate
+  /// paths (dance editor and settings template) from silently dropping
+  /// newly-added fields — the bug that lost [assumedSubject] on duplicate (#460).
+  FigureDraft clone() => FigureDraft(
+    move: move,
+    params: Map<String, Object?>.of(params),
+    note: note,
+    progression: progression,
+    schemaVersion: schemaVersion,
+    beatsTouched: beatsTouched,
+    assumedSubject: assumedSubject,
+  );
 
   /// Builds the immutable figure, or `null` when no move is chosen yet.
   Figure? toFigure() {
@@ -68,6 +99,7 @@ class FigureDraft {
       params: Map<String, Object?>.of(params),
       note: trimmedNote.isEmpty ? null : trimmedNote,
       progression: progression,
+      assumedSubject: assumedSubject,
     );
   }
 }

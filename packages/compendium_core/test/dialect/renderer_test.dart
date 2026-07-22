@@ -1911,4 +1911,174 @@ void main() {
       );
     });
   });
+
+  // Issue #460 — a parser-assumed subject renders a non-authoritative
+  // "(assumed)" marker in every DISPLAY path, while the canonical (search/
+  // dedupe) render and every explicit-subject figure stay byte-for-byte stable.
+  group('assumed-subject marker (#460)', () {
+    // Template path (allemande) + base-renderer path (rotation_gate).
+    Figure allemande({required bool assumed}) => Figure(
+      move: 'allemande',
+      params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
+      assumedSubject: assumed,
+    );
+    Figure gate({required bool assumed}) => Figure(
+      move: 'rotation_gate',
+      params: {
+        'who': 'partners',
+        'direction': 'counterclockwise',
+        'turn': 0.75,
+      },
+      assumedSubject: assumed,
+    );
+
+    test('template move: marker follows the subject in every display path', () {
+      final f = allemande(assumed: true);
+      expect(
+        renderer.render(f, Dialect.canonical),
+        'neighbor (assumed) allemande left 1½',
+      );
+      expect(
+        renderer.renderSummary(f, Dialect.canonical),
+        'neighbor (assumed) allemande left 1½',
+      );
+      expect(
+        renderer.renderVerbose(f, Dialect.canonical),
+        'neighbor (assumed) allemande left one and a half times',
+      );
+    });
+
+    test('base-renderer move (rotation_gate): marker follows the subject', () {
+      final f = gate(assumed: true);
+      expect(
+        renderer.render(f, Dialect.canonical),
+        'partner (assumed) gate counterclockwise ¾',
+      );
+      expect(
+        renderer.renderSummary(f, Dialect.canonical),
+        'partner (assumed) gate counterclockwise ¾',
+      );
+    });
+
+    test('the marker is dialect-aware — it trails the substituted subject', () {
+      // role subject → dialect role term, marker still immediately after it.
+      final f = Figure(
+        move: 'swing',
+        params: {'who': 'role1s'},
+        assumedSubject: true,
+      );
+      expect(renderer.render(f, larks), 'larks (assumed) swing');
+      // dancer substitution likewise.
+      final dialect = larks.copyWith(dancers: {'neighbors': 'the others'});
+      final n = Figure(
+        move: 'swing',
+        params: {'who': 'neighbors'},
+        assumedSubject: true,
+      );
+      expect(renderer.render(n, dialect), 'the others (assumed) swing');
+    });
+
+    test('canonical render NEVER carries the marker (byte-stable index)', () {
+      // The dedupe/FTS text must stay identical whether or not the subject was
+      // assumed, so an assumed import never forks the search index.
+      expect(
+        renderer.renderCanonical(allemande(assumed: true)),
+        renderer.renderCanonical(allemande(assumed: false)),
+      );
+      expect(
+        renderer.renderCanonical(allemande(assumed: true)),
+        'neighbors allemande left 1½',
+      );
+      expect(
+        renderer.renderCanonical(gate(assumed: true)),
+        renderer.renderCanonical(gate(assumed: false)),
+      );
+    });
+
+    test('explicit subject is byte-identical to a marker-free render', () {
+      // assumedSubject:false must produce EXACTLY today's output in every path
+      // (no regression) — the marker is strictly additive to the assumed case.
+      for (final dialect in [Dialect.canonical, larks]) {
+        expect(
+          renderer.render(allemande(assumed: false), dialect),
+          renderer.render(
+            Figure(
+              move: 'allemande',
+              params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
+            ),
+            dialect,
+          ),
+        );
+        expect(
+          renderer.renderVerbose(gate(assumed: false), dialect),
+          renderer.renderVerbose(
+            Figure(
+              move: 'rotation_gate',
+              params: {
+                'who': 'partners',
+                'direction': 'counterclockwise',
+                'turn': 0.75,
+              },
+            ),
+            dialect,
+          ),
+        );
+        expect(
+          renderer.render(allemande(assumed: false), dialect),
+          isNot(contains('(assumed)')),
+        );
+      }
+    });
+
+    test('renderSummary balance splice keeps the marker (box_the_gnat)', () {
+      // box_the_gnat places its balance prefix afterWho; the summary splice must
+      // not drop the marker the base render already inserted.
+      final f = Figure(
+        move: 'box_the_gnat',
+        params: {'who': 'partners', 'balance': true},
+        assumedSubject: true,
+      );
+      final summary = renderer.renderSummary(f, Dialect.canonical);
+      expect(summary, contains('(assumed)'));
+      expect(summary, contains('balance'));
+    });
+
+    test('marker splices at the true subject even when a custom dialect repeats '
+        'the subject word in the move name (indexOf regression #460)', () {
+      // A custom move substitution that opens with the subject word would fool
+      // a naive line-search into marking the MOVE NAME and leaving the real
+      // subject authoritative. box_circulate renders its move name BEFORE the
+      // subject, so it is the canonical trap: `moves: {box_circulate:
+      // 'partner circulate'}` yields "partner circulate - partner cross …",
+      // where a `line.indexOf('partner')` finds the move-name "partner" first.
+      final dialect = Dialect(
+        name: 'Trap',
+        moves: const {'box_circulate': 'partner circulate'},
+      );
+      final assumed = Figure(
+        move: 'box_circulate',
+        params: {'who': 'partners', 'hand': 'right'},
+        assumedSubject: true,
+      );
+      final out = renderer.render(assumed, dialect);
+      // The move name is intact — the marker did NOT land inside it …
+      expect(out, contains('partner circulate -'));
+      expect(out, isNot(startsWith('partner (assumed) circulate')));
+      // … and the marker trails the ACTUAL subject token instead.
+      expect(out, contains('partner (assumed) cross'));
+      // Exactly one marker (no residue, no double-marking).
+      expect('(assumed)'.allMatches(out).length, 1);
+
+      // The explicit-subject counterpart is unchanged and marker-free.
+      final statedOut = renderer.render(
+        Figure(
+          move: 'box_circulate',
+          params: {'who': 'partners', 'hand': 'right'},
+        ),
+        dialect,
+      );
+      expect(statedOut, isNot(contains('(assumed)')));
+      expect(statedOut, startsWith('partner circulate -'));
+    });
+  });
 }

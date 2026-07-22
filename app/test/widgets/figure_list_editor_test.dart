@@ -271,6 +271,67 @@ void main() {
     expect(beatsFor('balance'), 4);
   });
 
+  group('assumed-subject clearing (#460)', () {
+    testWidgets('picking a move clears an inherited assumed-subject flag', (
+      tester,
+    ) async {
+      // A row seeded with an assumed subject that then has a move explicitly
+      // chosen becomes user-authored — the marker must not linger.
+      final drafts = <FigureDraft>[FigureDraft()..assumedSubject = true];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'sw', 'swing');
+      expect(drafts.single.move, 'swing');
+      expect(drafts.single.assumedSubject, isFalse);
+    });
+
+    testWidgets('editing the who param clears the assumed-subject flag', (
+      tester,
+    ) async {
+      // Loading an imported figure keeps the marker; explicitly changing the
+      // subject makes it a stated choice, so the marker is dropped.
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'swing',
+            params: const {'who': 'partners', 'beats': 8},
+            assumedSubject: true,
+          ),
+        ),
+      ];
+      expect(drafts.single.assumedSubject, isTrue);
+
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await _selectDropdownOption(tester, 'figure-0-who', 'neighbors');
+
+      expect(drafts.single.params['who'], 'neighbors');
+      expect(drafts.single.assumedSubject, isFalse);
+    });
+
+    testWidgets('a non-subject edit leaves the assumed-subject flag intact', (
+      tester,
+    ) async {
+      // Editing an unrelated param must not launder the provenance marker —
+      // only an explicit subject/move choice clears it.
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'swing',
+            params: const {'who': 'partners', 'beats': 8},
+            assumedSubject: true,
+          ),
+        ),
+      ];
+
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await _selectDropdownOption(tester, 'figure-0-prefix', 'meltdown');
+
+      expect(drafts.single.params['prefix'], 'meltdown');
+      expect(drafts.single.assumedSubject, isTrue);
+    });
+  });
+
   group('per-move insert defaults (DD.3)', () {
     testWidgets('overlay overrides the taxonomy default on select', (
       tester,

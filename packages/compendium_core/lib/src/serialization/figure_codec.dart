@@ -12,11 +12,13 @@ import '../model/figure.dart';
 /// ```
 /// `note` and `progression` are omitted when absent/false; `params` is
 /// omitted when empty. `customOrigin` is written only when it is not the
-/// default `userEntered` (i.e. `"importGap"` for parser-gap customs), so
-/// existing data and ordinary customs stay byte-for-byte compatible. Decoding
-/// is tolerant: unknown keys are ignored (so files written by newer app
-/// versions still load), a missing `schemaVersion` is treated as version 1,
-/// and a missing/unknown `customOrigin` decodes as `userEntered`.
+/// default `userEntered` (i.e. `"importGap"` for parser-gap customs), and
+/// `assumedSubject` is written only when `true` (a parser-defaulted subject),
+/// so existing data and ordinary figures stay byte-for-byte compatible.
+/// Decoding is tolerant: unknown keys are ignored (so files written by newer
+/// app versions still load), a missing `schemaVersion` is treated as version 1,
+/// a missing/unknown `customOrigin` decodes as `userEntered`, and a
+/// missing/non-bool `assumedSubject` decodes as `false`.
 
 Map<String, Object?> figureToJson(Figure figure) => {
   'schemaVersion': figure.schemaVersion,
@@ -26,6 +28,7 @@ Map<String, Object?> figureToJson(Figure figure) => {
   if (figure.progression) 'progression': true,
   if (figure.customOrigin != CustomOrigin.userEntered)
     'customOrigin': figure.customOrigin.name,
+  if (figure.assumedSubject) 'assumedSubject': true,
 };
 
 Figure figureFromJson(Map<String, Object?> json) {
@@ -57,6 +60,9 @@ Figure figureFromJson(Map<String, Object?> json) {
     (o) => o.name == originName,
     orElse: () => CustomOrigin.userEntered,
   );
+  // Tolerant: a missing key (existing stored data) or any non-bool value
+  // decodes as false, so a subject is never spuriously flagged as assumed.
+  final assumedSubject = json['assumedSubject'] == true;
   return Figure(
     schemaVersion: schemaVersion,
     move: move,
@@ -64,6 +70,7 @@ Figure figureFromJson(Map<String, Object?> json) {
     note: note as String?,
     progression: progression,
     customOrigin: customOrigin,
+    assumedSubject: assumedSubject,
   );
 }
 
