@@ -2060,11 +2060,13 @@ class _FailingOnceRepositories extends CompendiumRepositories {
   int rebuildAttempts = 0;
 
   @override
-  Future<void> runDerivedRebuild() async {
+  Future<void> runDerivedRebuild({
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
     rebuildAttempts++;
     if (rebuildAttempts == 1) {
       throw StateError('injected rebuild failure');
     }
-    await super.runDerivedRebuild();
+    await super.runDerivedRebuild(onProgress: onProgress);
   }
 }
