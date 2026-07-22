@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// A modal dialog for editing a [Choreographer]'s shared contact details.
 ///
 /// This edits the **shared** author record: the same [Choreographer] row is
@@ -98,8 +100,9 @@ class _ChoreographerDetailsDialogState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Choreographer details'),
+      title: Text(l10n.danceEditorChoreographerDetailsTitle),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -108,9 +111,7 @@ class _ChoreographerDetailsDialogState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'These details are shared across every dance credited to this '
-                'author. Email and location are private — stored only on this '
-                'device and never shared or exported.',
+                l10n.danceEditorChoreographerDetailsIntro,
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(height: 16),
@@ -119,12 +120,12 @@ class _ChoreographerDetailsDialogState
                 controller: _nameController,
                 autofocus: true,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Name *',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorNameRequiredLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Name is required'
+                    ? l10n.danceEditorNameRequired
                     : null,
               ),
               const SizedBox(height: 12),
@@ -132,9 +133,9 @@ class _ChoreographerDetailsDialogState
                 key: const ValueKey('choreographer-website-field'),
                 controller: _websiteController,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Website',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorWebsiteLabel,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -143,9 +144,9 @@ class _ChoreographerDetailsDialogState
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Email (private)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorEmailPrivateLabel,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -153,9 +154,9 @@ class _ChoreographerDetailsDialogState
                 key: const ValueKey('choreographer-location-field'),
                 controller: _locationController,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Location (private)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorLocationPrivateLabel,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -164,9 +165,9 @@ class _ChoreographerDetailsDialogState
                 controller: _notesController,
                 minLines: 2,
                 maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorNotesLabel,
+                  border: const OutlineInputBorder(),
                   alignLabelWithHint: true,
                 ),
               ),
@@ -174,7 +175,7 @@ class _ChoreographerDetailsDialogState
               SwitchListTile(
                 key: const ValueKey('choreographer-deceased-toggle'),
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Deceased'),
+                title: Text(l10n.danceEditorDeceasedLabel),
                 value: _deceased,
                 onChanged: (value) => setState(() => _deceased = value),
               ),
@@ -186,12 +187,12 @@ class _ChoreographerDetailsDialogState
         TextButton(
           key: const ValueKey('choreographer-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('choreographer-save'),
           onPressed: _save,
-          child: const Text('Save'),
+          child: Text(l10n.commonSave),
         ),
       ],
     );

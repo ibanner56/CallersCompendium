@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
@@ -141,6 +142,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       widget.freeTextEntry && widget.onAddFreeText != null;
 
   Dialect get _dialect => widget.dialect ?? Dialect.larksRobins;
+  AppLocalizations get _l10n => AppLocalizations.of(context);
 
   FocusNode _rowFocusNode(String id) => _rowFocusNodes.putIfAbsent(
     id,
@@ -159,7 +161,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         final newId = widget.drafts.last.id;
         _openDraftId = newId;
         _ensureVisibleSoon(newId);
-        _announce('Added figure ${widget.drafts.length}. Choose a move.');
+        _announce(_l10n.danceEditorAddedFigureChooseMove(widget.drafts.length));
       }
     }
 
@@ -239,7 +241,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     // beforeIndex is after the cut item.
     final finalPos = beforeIndex > cutIndex ? beforeIndex - 1 : beforeIndex;
     widget.onReorder(cutIndex, finalPos);
-    _announce('Figure pasted at position ${finalPos + 1}.');
+    _announce(_l10n.danceEditorFigurePastedAnnouncement(finalPos + 1));
   }
 
   // --- Reorder --------------------------------------------------------------
@@ -250,7 +252,12 @@ class _FigureListEditorState extends State<FigureListEditor> {
     if (oldIndex < 0 || oldIndex >= widget.drafts.length) return;
     final movedId = widget.drafts[oldIndex].id;
     widget.onReorder(oldIndex, newIndex);
-    _announce('Moved to position ${newIndex + 1} of ${widget.drafts.length}.');
+    _announce(
+      _l10n.danceEditorFigureMovedAnnouncement(
+        newIndex + 1,
+        widget.drafts.length,
+      ),
+    );
     if (refocus) {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _rowFocusNode(movedId).requestFocus(),
@@ -270,8 +277,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
     // its freshly-appended figure into view via _ensureVisibleSoon.)
     final i = widget.drafts.indexWhere((d) => d.id == id);
     if (i != -1) {
-      final name = _figureDisplayName(widget.drafts[i], widget.taxonomy);
-      _announce('Editing figure ${i + 1}, $name.');
+      final name = _figureDisplayName(widget.drafts[i], widget.taxonomy, _l10n);
+      _announce(_l10n.danceEditorEditingFigureAnnouncement(i + 1, name));
     }
   }
 
@@ -281,7 +288,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _rowFocusNode(id).requestFocus(),
     );
-    if (i != -1) _announce('Collapsed figure ${i + 1}.');
+    if (i != -1) {
+      _announce(_l10n.danceEditorCollapsedFigureAnnouncement(i + 1));
+    }
   }
 
   void _toggleDraft(String id) =>
@@ -308,7 +317,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _freeTextFocusNode.requestFocus();
       });
-      _announce('Type a figure and press Enter to add it.');
+      _announce(_l10n.danceEditorTypeFigureAnnouncement);
       return;
     }
     _openLastAfterAdd = true;
@@ -333,11 +342,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     onAddFreeText(figures);
     _freeTextController.clear();
     final n = figures.length;
-    _announce(
-      n == 1
-          ? 'Added 1 figure. Type another, or press Escape to finish.'
-          : 'Added $n figures. Type another, or press Escape to finish.',
-    );
+    _announce(_l10n.danceEditorFreeTextFiguresAddedAnnouncement(n));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _freeTextFocusNode.requestFocus();
     });
@@ -366,7 +371,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     }
     if (_openDraftId == deleted.id) _openDraftId = null;
     widget.onDelete(deleted);
-    _announce('Deleted figure ${index + 1}. Undo available.');
+    _announce(_l10n.danceEditorDeletedFigureAnnouncement(index + 1));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (focusTargetId != null) {
         _rowFocusNode(focusTargetId).requestFocus();
@@ -381,12 +386,13 @@ class _FigureListEditorState extends State<FigureListEditor> {
     if (onDuplicate == null) return;
     if (index < 0 || index >= widget.drafts.length) return;
     onDuplicate(widget.drafts[index]);
-    _announce('Duplicated figure ${index + 1}.');
+    _announce(_l10n.danceEditorDuplicatedFigureAnnouncement(index + 1));
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final drafts = widget.drafts;
     final dialect = _dialect;
 
@@ -404,7 +410,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text('No figures yet.', style: theme.textTheme.bodyMedium),
+            child: Text(
+              l10n.danceFiguresEmpty,
+              style: theme.textTheme.bodyMedium,
+            ),
           ),
           const SizedBox(height: 4),
           if (_freeTextComposing)
@@ -417,7 +426,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 focusNode: _addButtonFocusNode,
                 onPressed: _addFigure,
                 icon: const Icon(Icons.add),
-                label: const Text('Add first figure'),
+                label: Text(l10n.danceEditorAddFirstFigure),
               ),
             ),
         ],
@@ -458,6 +467,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
               orElse: () => FigureDraft(),
             ),
             widget.taxonomy,
+            l10n,
           );
 
     _FigureDraftCard buildCard(int i, {required bool draggable}) {
@@ -508,7 +518,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    '"${cutName ?? '—'}" is cut — tap Paste to place it.',
+                    l10n.danceEditorCutBanner(cutName ?? '—'),
                     key: const ValueKey('cut-banner'),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.primary,
@@ -518,7 +528,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 TextButton(
                   key: const ValueKey('cut-cancel'),
                   onPressed: _cancelCut,
-                  child: const Text('Cancel'),
+                  child: Text(l10n.commonCancel),
                 ),
               ],
             ),
@@ -554,7 +564,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
               if (drafts.isNotEmpty)
                 _PasteButton(
                   key: const ValueKey('paste-top'),
-                  semanticsLabel: 'Paste before first figure',
+                  semanticsLabel: l10n.danceEditorPasteBeforeFirstFigure,
                   onPaste: () => _paste(0),
                 ),
               for (var i = 0; i < drafts.length; i++) ...[
@@ -564,9 +574,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 if (drafts[i].id != _cutDraftId)
                   _PasteButton(
                     key: ValueKey('paste-after-${drafts[i].id}'),
-                    semanticsLabel:
-                        'Paste after '
-                        '${_figureDisplayName(drafts[i], widget.taxonomy)}',
+                    semanticsLabel: l10n.danceEditorPasteAfterFigure(
+                      _figureDisplayName(drafts[i], widget.taxonomy, l10n),
+                    ),
                     onPaste: () => _paste(i + 1),
                   ),
               ],
@@ -583,14 +593,14 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 focusNode: _addButtonFocusNode,
                 onPressed: _addFigure,
                 icon: const Icon(Icons.add),
-                label: const Text('Add figure'),
+                label: Text(l10n.danceEditorAddFigure),
               ),
               if (_cutDraftId != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
                   child: _PasteButton(
                     key: const ValueKey('paste-end'),
-                    semanticsLabel: 'Paste at end of figure list',
+                    semanticsLabel: l10n.danceEditorPasteAtEndOfFigureList,
                     onPaste: () => _paste(drafts.length),
                   ),
                 ),
@@ -612,6 +622,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// simple: one line at a time, matching the ruling (no multi-line paste).
   Widget _buildFreeTextComposer(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Focus(
@@ -648,14 +659,11 @@ class _FigureListEditorState extends State<FigureListEditor> {
                       required bool isFocused,
                       int? maxLength,
                     }) => null,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   isDense: true,
-                  border: OutlineInputBorder(),
-                  labelText: 'Type a figure',
-                  helperText:
-                      'e.g. "neighbor balance & swing" or "16 circle left 3/4". '
-                      'Enter adds it; unrecognized text is kept as a custom '
-                      'figure.',
+                  border: const OutlineInputBorder(),
+                  labelText: l10n.danceEditorTypeFigureLabel,
+                  helperText: l10n.danceEditorTypeFigureHelper,
                   helperMaxLines: 3,
                 ),
               ),
@@ -666,7 +674,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
               child: FilledButton(
                 key: const ValueKey('figure-free-text-submit'),
                 onPressed: _submitFreeText,
-                child: const Text('Add'),
+                child: Text(l10n.commonAdd),
               ),
             ),
             const SizedBox(width: 4),
@@ -676,7 +684,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 key: const ValueKey('figure-free-text-done'),
                 onPressed: _dismissFreeText,
                 child: Text(
-                  'Done',
+                  l10n.commonDone,
                   style: TextStyle(color: theme.colorScheme.primary),
                 ),
               ),
@@ -690,12 +698,18 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
 /// Short display name for a draft (for accessibility labels and cut banner).
 /// Returns raw text — callers are responsible for any quoting they need.
-String _figureDisplayName(FigureDraft draft, Taxonomy taxonomy) {
+String _figureDisplayName(
+  FigureDraft draft,
+  Taxonomy taxonomy,
+  AppLocalizations l10n,
+) {
   final move = draft.move;
-  if (move == null) return 'Empty figure';
+  if (move == null) return l10n.danceEditorEmptyFigureName;
   if (move == customMove) {
     final text = draft.params['text'] as String?;
-    return text != null && text.isNotEmpty ? text : 'Custom figure';
+    return text != null && text.isNotEmpty
+        ? text
+        : l10n.danceEditorCustomFigureName;
   }
   final alias = taxonomy.aliases[move];
   final def = taxonomy.resolve(move);
@@ -725,7 +739,7 @@ class _PasteButton extends StatelessWidget {
         style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         onPressed: onPaste,
         icon: const Icon(Icons.content_paste, size: 16),
-        label: const Text('Paste here'),
+        label: Text(AppLocalizations.of(context).danceEditorPasteHere),
       ),
     );
   }
@@ -1042,6 +1056,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   // --- Collapsed summary row ------------------------------------------------
   Widget _buildSummary(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
     final figure = draft.toFigure();
     final hasMove = figure != null;
@@ -1052,15 +1067,15 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             widget.dialect,
             decimals: DecimalTurnsScope.of(context),
           )
-        : '(empty — choose a move)';
+        : l10n.danceEditorEmptyFigureSummary;
     final spoken = hasMove
         ? renderer.renderSummary(figure, widget.dialect, verbose: true)
-        : 'empty figure, choose a move';
+        : l10n.danceEditorEmptyFigureSemantic;
     final note = draft.note.trim();
     final hasNote = note.isNotEmpty;
     final noteDiscouraged =
         hasNote && canonicalize(note, widget.dialect).discouraged.isNotEmpty;
-    final beatsLabel = '${draft.beats} ${draft.beats == 1 ? 'beat' : 'beats'}';
+    final beatsLabel = l10n.danceFigureBeats(draft.beats);
     // Parser-gap custom (#398/#419): a *custom* figure the parser could not
     // map, whether from import or a locally-typed free-text line. Guarded on
     // the custom move (like figure_table.dart / perform_card.dart) so a
@@ -1076,16 +1091,19 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
     // Screen-reader composite: "A1, neighbors balance and swing, progression,
     // 16 beats, note: smooth swing. Figure 3 of 12."
-    final parts = <String>[
-      if (labelText.isNotEmpty) labelText,
-      spoken,
-      if (isImportGap) importGapMessage,
-      if (draft.progression) 'progression',
-      if (hasMove) beatsLabel,
-      if (hasNote) 'note: $note',
-    ];
-    final composite =
-        '${parts.join(', ')}. Figure ${widget.index + 1} of ${widget.totalCount}.';
+    final main = labelText.isEmpty ? spoken : '$labelText, $spoken';
+    final composite = l10n.danceEditorFigureSummarySemantic(
+      main,
+      isImportGap ? 'yes' : 'no',
+      l10n.importGapMessage,
+      draft.progression ? 'yes' : 'no',
+      hasMove ? 'yes' : 'no',
+      draft.beats,
+      hasNote ? 'yes' : 'no',
+      note,
+      widget.index + 1,
+      widget.totalCount,
+    );
 
     final summaryContent = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1094,7 +1112,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
           child: Semantics(
             button: true,
             label: composite,
-            hint: 'Activate to edit',
+            hint: l10n.danceEditorActivateToEditHint,
             excludeSemantics: true,
             child: InkWell(
               key: ValueKey('figure-${widget.index}-summary'),
@@ -1126,7 +1144,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       width: 16,
                       child: draft.progression
                           ? Tooltip(
-                              message: 'Progression',
+                              message: l10n.commonProgression,
                               child: Icon(
                                 progressionIcon,
                                 size: MediaQuery.textScalerOf(context)
@@ -1245,16 +1263,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 
   Widget _buildDragHandle(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (!widget.draggable) {
       // Keep the horizontal footprint stable so rows don't jump between
       // reorderable and cut/paste modes.
       return const Icon(Icons.drag_handle, size: 20, color: Colors.transparent);
     }
-    final figureName = _figureDisplayName(widget.draft, widget.taxonomy);
+    final figureName = _figureDisplayName(widget.draft, widget.taxonomy, l10n);
     return ReorderableDragStartListener(
       index: widget.index,
       child: Semantics(
-        label: 'Drag to reorder $figureName',
+        label: l10n.danceEditorDragToReorderFigure(figureName),
         child: const Icon(Icons.drag_handle, size: 20),
       ),
     );
@@ -1262,13 +1281,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
   Widget _buildMenu(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    final figureName = _figureDisplayName(draft, widget.taxonomy);
+    final figureName = _figureDisplayName(draft, widget.taxonomy, l10n);
     return MenuAnchor(
       builder: (context, controller, child) => IconButton(
         key: ValueKey('figure-${widget.index}-menu'),
         icon: const Icon(Icons.more_vert),
-        tooltip: 'Actions for $figureName',
+        tooltip: l10n.danceEditorFigureActionsTooltip(figureName),
         onPressed: () =>
             controller.isOpen ? controller.close() : controller.open(),
       ),
@@ -1277,26 +1297,26 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
           key: ValueKey('figure-${widget.index}-move-up'),
           onPressed: widget.onMoveUp,
           leadingIcon: const Icon(Icons.arrow_upward, size: 18),
-          child: const Text('Move up'),
+          child: Text(l10n.danceEditorMoveUp),
         ),
         MenuItemButton(
           key: ValueKey('figure-${widget.index}-move-down'),
           onPressed: widget.onMoveDown,
           leadingIcon: const Icon(Icons.arrow_downward, size: 18),
-          child: const Text('Move down'),
+          child: Text(l10n.danceEditorMoveDown),
         ),
         MenuItemButton(
           key: ValueKey('figure-${widget.index}-cut'),
           onPressed: widget.onCut,
           leadingIcon: const Icon(Icons.content_cut, size: 18),
-          child: const Text('Cut'),
+          child: Text(l10n.danceEditorCut),
         ),
         if (widget.onDuplicate != null)
           MenuItemButton(
             key: ValueKey('figure-${widget.index}-duplicate'),
             onPressed: widget.onDuplicate,
             leadingIcon: const Icon(Icons.copy, size: 18),
-            child: const Text('Duplicate'),
+            child: Text(l10n.commonDuplicate),
           ),
         MenuItemButton(
           key: ValueKey('figure-${widget.index}-toggle-progression'),
@@ -1306,7 +1326,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             size: 18,
           ),
           child: Text(
-            draft.progression ? 'Clear progression' : 'Mark progression',
+            draft.progression
+                ? l10n.danceEditorClearProgression
+                : l10n.danceEditorMarkProgression,
           ),
         ),
         MenuItemButton(
@@ -1320,7 +1342,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
           style: MenuItemButton.styleFrom(
             foregroundColor: theme.colorScheme.error,
           ),
-          child: const Text('Delete'),
+          child: Text(l10n.commonDelete),
         ),
       ],
     );
@@ -1432,6 +1454,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// editing them can't corrupt the unknown schema).
   Widget _buildUnknownMoveEditor(BuildContext context, String move) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final figure = widget.draft.toFigure();
     final bestEffortText = figure == null
         ? move
@@ -1469,10 +1492,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                         Text(bestEffortText, style: theme.textTheme.bodyLarge),
                         const SizedBox(height: 4),
                         Text(
-                          'Unrecognized move "$move" — not in this version\'s '
-                          'taxonomy. Shown read-only so its data is preserved; '
-                          'it will edit normally again if the move becomes '
-                          'known. You can still reorder or delete it.',
+                          l10n.danceEditorUnrecognizedMoveReadOnly(move),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -1494,6 +1514,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 
   Widget _buildParams(BuildContext context, MoveDef def) {
+    final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
     final entries = def.params.entries.toList();
     // Progressive disclosure: >3 params → first 3 inline, rest behind a
@@ -1553,8 +1574,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             ),
             label: Text(
               _showMoreOptions
-                  ? 'Fewer options'
-                  : 'More options (${extra.length})',
+                  ? l10n.danceEditorFewerOptions
+                  : l10n.danceEditorMoreOptions(extra.length),
             ),
             style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
           ),
@@ -1570,12 +1591,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
   Widget _buildProgressionToggle(BuildContext context, MoveDef? def) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Semantics(
-          label: 'Progression',
+          label: l10n.commonProgression,
           child: Switch(
             key: ValueKey('figure-${widget.index}-progression'),
             value: draft.progression,
@@ -1587,12 +1609,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
           ),
         ),
         const SizedBox(width: 8),
-        Text('Progression', style: theme.textTheme.bodyMedium),
+        Text(l10n.commonProgression, style: theme.textTheme.bodyMedium),
         if (def != null && def.progressionCapable && !draft.progression)
           Padding(
             padding: const EdgeInsets.only(left: 4),
             child: Tooltip(
-              message: 'This move can carry the progression.',
+              message: l10n.danceEditorMoveCanCarryProgression,
               child: Icon(
                 Icons.info_outline,
                 size: 14,
@@ -1605,6 +1627,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 
   Widget _buildNote(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
     final showField = _showNote || draft.note.trim().isNotEmpty;
     if (!showField) {
@@ -1617,7 +1640,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             _justRevealedNote = true;
           }),
           icon: const Icon(Icons.note_add_outlined, size: 18),
-          label: const Text('Add note'),
+          label: Text(l10n.danceEditorAddNote),
           style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
         ),
       );
@@ -1702,6 +1725,7 @@ class _EmphasisToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1709,7 +1733,7 @@ class _EmphasisToolbar extends StatelessWidget {
           key: ValueKey('$fieldKey-bold'),
           onPressed: () => _apply('*'),
           icon: const Icon(Icons.format_bold, size: 18),
-          tooltip: 'Bold (*text*)',
+          tooltip: l10n.danceEditorBoldTooltip,
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           padding: EdgeInsets.zero,
@@ -1718,7 +1742,7 @@ class _EmphasisToolbar extends StatelessWidget {
           key: ValueKey('$fieldKey-underline'),
           onPressed: () => _apply('_'),
           icon: const Icon(Icons.format_underlined, size: 18),
-          tooltip: 'Underline (_text_)',
+          tooltip: l10n.danceEditorUnderlineTooltip,
           visualDensity: VisualDensity.compact,
           constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           padding: EdgeInsets.zero,
@@ -1791,6 +1815,7 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final discouraged = canonicalize(
       _controller.text,
       widget.dialect,
@@ -1812,12 +1837,11 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
           key: ValueKey(widget.fieldKey),
           controller: _controller,
           decoration: InputDecoration(
-            labelText: 'Custom figure text',
+            labelText: l10n.danceEditorCustomFigureTextLabel,
             isDense: true,
             border: const OutlineInputBorder(),
             helperText: hint == null
-                ? 'Move names dotted·underline, role terms underlined, '
-                      'discouraged terms struck through'
+                ? l10n.danceEditorLingoStylingHelper
                 : null,
           ),
           onChanged: widget.onChanged,
@@ -1837,9 +1861,9 @@ class _LingoCustomTextFieldState extends State<_LingoCustomTextField> {
                 const SizedBox(width: 4),
                 Flexible(
                   child: Semantics(
-                    label: 'Discouraged term: $hint',
+                    label: l10n.danceEditorDiscouragedTermSemantic(hint),
                     child: Text(
-                      'Discouraged: $hint',
+                      l10n.danceEditorDiscouragedTermText(hint),
                       key: ValueKey('${widget.fieldKey}-lingo-hint'),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.error,
@@ -1918,6 +1942,7 @@ class _NoteFieldState extends State<_NoteField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -1931,10 +1956,10 @@ class _NoteFieldState extends State<_NoteField> {
           key: ValueKey(widget.fieldKey),
           controller: _controller,
           autofocus: widget.autofocus,
-          decoration: const InputDecoration(
-            labelText: 'Note (optional)',
+          decoration: InputDecoration(
+            labelText: l10n.danceEditorNoteOptionalLabel,
             isDense: true,
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
           ),
           onChanged: widget.onChanged,
         ),
@@ -1952,6 +1977,7 @@ class _BeatSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final mismatch = totalBeats != expectedBeats;
     return Padding(
       padding: const EdgeInsets.only(top: 12),
@@ -1959,7 +1985,7 @@ class _BeatSummary extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Total: $totalBeats / $expectedBeats beats',
+            l10n.danceEditorBeatTotal(totalBeats, expectedBeats),
             key: const ValueKey('figure-beats-total'),
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
@@ -1979,8 +2005,12 @@ class _BeatSummary extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     totalBeats > expectedBeats
-                        ? 'Over by ${totalBeats - expectedBeats} beats'
-                        : 'Under by ${expectedBeats - totalBeats} beats',
+                        ? l10n.danceEditorOverByBeats(
+                            totalBeats - expectedBeats,
+                          )
+                        : l10n.danceEditorUnderByBeats(
+                            expectedBeats - totalBeats,
+                          ),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.tertiary,
                     ),

@@ -617,7 +617,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                             ? null
                             : () => widget.onImport!(),
                         icon: const Icon(Icons.library_add_outlined),
-                        label: const Text('Import'),
+                        label: Text(l10n.importAction),
                       );
                     }
                     return FloatingActionButton.extended(

@@ -1564,6 +1564,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
             controller: controller,

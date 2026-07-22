@@ -24,15 +24,6 @@ library;
 /// Files the guard skips. Paths are POSIX, relative to `app/lib/`.
 const Set<String> hardcodedUiStringAllowlist = <String>{
   // ---- L6-deferred UI (feature-specific editor & secondary surfaces) ----
-  // Dance editor (whole directory) + its entry screen.
-  'src/screens/dance_editor/dance_editor_form.dart',
-  'src/screens/dance_editor/editor_fields.dart',
-  'src/screens/dance_editor/lingo_discouraged_hint.dart',
-  'src/screens/dance_editor/links_editor.dart',
-  'src/screens/dance_editor/name_picker.dart',
-  'src/screens/dance_editor/source_citations_editor.dart',
-  'src/screens/dance_editor_screen.dart',
-  'src/screens/dance_detail_screen.dart',
   // Secondary / feature screens.
   'src/screens/contradb_program_import_screen.dart',
   'src/screens/custom_fields_screen.dart',
@@ -57,11 +48,6 @@ const Set<String> hardcodedUiStringAllowlist = <String>{
   'src/update/update_banner.dart',
   'src/widgets/collection_picker.dart',
   'src/widgets/command_palette.dart',
-  // Editor dialogs & figure editors.
-  'src/widgets/choreographer_details_dialog.dart',
-  'src/widgets/published_source_details_dialog.dart',
-  'src/widgets/figure_list_editor.dart',
-  'src/widgets/figure_param_editors.dart',
   // Feature surfaces merged from main (venue management + crash diagnostics)
   // AFTER the L5 partition was fixed — deferred to L6 with the other
   // feature-specific screens. NOTE for L6: diagnostics_section's export/clear

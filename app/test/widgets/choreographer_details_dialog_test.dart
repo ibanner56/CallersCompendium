@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/widgets/choreographer_details_dialog.dart';
 
+import '../support/l10n_harness.dart';
+
 /// Pumps a button that opens [ChoreographerDetailsDialog] for [choreographer]
 /// and returns a reader that settles and yields the dialog's result.
 Future<Future<Choreographer?> Function()> _pumpDialog(
@@ -16,6 +18,8 @@ Future<Future<Choreographer?> Function()> _pumpDialog(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: Builder(
           builder: (context) => TextButton(

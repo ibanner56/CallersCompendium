@@ -3312,4 +3312,823 @@
   "@importReviewEditError": {"description": "Snackbar shown when committing a single record so it can be edited fails."},
   "importReviewImportError": "Couldn't complete the import.",
   "@importReviewImportError": {"description": "Snackbar shown when an import commit (or commit-for-edit) throws. The raw exception is logged (debugPrint), never shown, so storage internals/paths can't leak to the UI (CWE-209)."}
+,
+  "danceEditorDetailsSection": "Details",
+  "@danceEditorDetailsSection":   {
+    "description": "Section heading for the primary dance metadata fields in the dance editor."
+  },
+  "danceEditorTitleRequiredLabel": "Title *",
+  "@danceEditorTitleRequiredLabel":   {
+    "description": "Required dance/source title field label; the asterisk marks the field as required."
+  },
+  "danceEditorTitleRequired": "Title is required",
+  "@danceEditorTitleRequired":   {
+    "description": "Validation error shown when a required title field is blank."
+  },
+  "danceEditorAuthorsLabel": "Authors",
+  "@danceEditorAuthorsLabel":   {
+    "description": "Field label for the dance author/choreographer picker."
+  },
+  "danceEditorFormationLabel": "Formation",
+  "@danceEditorFormationLabel":   {
+    "description": "Field label for the dance formation picker."
+  },
+  "danceEditorFormationDetailLabel": "Formation detail (optional)",
+  "@danceEditorFormationDetailLabel":   {
+    "description": "Text field label for optional formation details."
+  },
+  "danceEditorPhraseStructureLabel": "Phrase structure",
+  "@danceEditorPhraseStructureLabel":   {
+    "description": "Text field label for entering the dance phrase structure."
+  },
+  "danceEditorPhraseStructureHint": "Blank = standard A1 A2 B1 B2; else e.g. 6*8*2",
+  "@danceEditorPhraseStructureHint":   {
+    "description": "Hint explaining the dance phrase-structure field syntax."
+  },
+  "danceEditorFiguresSection": "Figures",
+  "@danceEditorFiguresSection":   {
+    "description": "Section heading for the editable figure list in the dance editor."
+  },
+  "danceEditorFiguresHelp": "Type a move (e.g. \"sw\" → swing) and press Enter to add it with default params; unmatched text becomes a custom figure.",
+  "@danceEditorFiguresHelp":   {
+    "description": "Helper text above the figure list explaining type-ahead figure entry."
+  },
+  "danceEditorNotesSection": "Notes",
+  "@danceEditorNotesSection":   {
+    "description": "Section heading for the dance notes fields."
+  },
+  "danceEditorCallingNotesLabel": "Calling notes",
+  "@danceEditorCallingNotesLabel":   {
+    "description": "Text field label for caller notes."
+  },
+  "danceEditorHookLabel": "Hook",
+  "@danceEditorHookLabel":   {
+    "description": "Text field label for the short hook/why-call-this note."
+  },
+  "danceEditorHookHint": "One-line \"why call this\"",
+  "@danceEditorHookHint":   {
+    "description": "Hint text for the hook field."
+  },
+  "danceEditorMoreDetailsTitle": "More details",
+  "@danceEditorMoreDetailsTitle":   {
+    "description": "Expansion tile title for less frequently used dance metadata fields."
+  },
+  "danceEditorStatusLabel": "Status",
+  "@danceEditorStatusLabel":   {
+    "description": "Dropdown label for the dance status field."
+  },
+  "danceEditorMixedLevelSubtitle": "Spans the difficulty scale",
+  "@danceEditorMixedLevelSubtitle":   {
+    "description": "Subtitle explaining the mixed-level checkbox in the dance editor."
+  },
+  "danceEditorComposedLabel": "Composed",
+  "@danceEditorComposedLabel":   {
+    "description": "Label for the partial date when the dance was composed."
+  },
+  "danceEditorComposedHelper": "When the dance was composed (year, or add month/day)",
+  "@danceEditorComposedHelper":   {
+    "description": "Helper text for the composed-date field."
+  },
+  "danceEditorRevisedLabel": "Revised",
+  "@danceEditorRevisedLabel":   {
+    "description": "Label for the partial date when the dance was last revised."
+  },
+  "danceEditorRevisedHelper": "When the dance was last revised by its author",
+  "@danceEditorRevisedHelper":   {
+    "description": "Helper text for the revised-date field."
+  },
+  "danceEditorTagsLabel": "Tags",
+  "@danceEditorTagsLabel":   {
+    "description": "Field label for the dance tag picker."
+  },
+  "danceEditorTunesLabel": "Tunes",
+  "@danceEditorTunesLabel":   {
+    "description": "Field label for suggested tunes."
+  },
+  "danceEditorLinksLabel": "Links",
+  "@danceEditorLinksLabel":   {
+    "description": "Field label for URL links attached to a dance."
+  },
+  "danceEditorPublishedSourcesLabel": "Published sources",
+  "@danceEditorPublishedSourcesLabel":   {
+    "description": "Field label for published sources cited by a dance."
+  },
+  "danceEditorRelatedDancesLabel": "Related dances",
+  "@danceEditorRelatedDancesLabel":   {
+    "description": "Field label for related dance cross-references."
+  },
+  "danceEditorCustomFieldsLabel": "Custom fields",
+  "@danceEditorCustomFieldsLabel":   {
+    "description": "Field label for custom metadata fields in the dance editor."
+  },
+  "danceEditorRatingLabel": "Rating",
+  "@danceEditorRatingLabel":   {
+    "description": "Label and semantics label for the dance rating control."
+  },
+  "danceEditorRatingUnrated": "unrated",
+  "@danceEditorRatingUnrated":   {
+    "description": "Semantics value announced when a dance has no rating."
+  },
+  "danceEditorRatingValue": "{rating} of {max} stars",
+  "@danceEditorRatingValue":   {
+    "description": "Semantics value for a set dance rating.",
+    "placeholders": {
+      "rating": {
+        "type": "int",
+        "example": "3"
+      },
+      "max": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "danceEditorSetRatingTooltip": "Set rating to {rating} of {max} stars",
+  "@danceEditorSetRatingTooltip":   {
+    "description": "Tooltip and icon semantics label for setting a star rating.",
+    "placeholders": {
+      "rating": {
+        "type": "int",
+        "example": "3"
+      },
+      "max": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "danceEditorClearRating": "Clear rating",
+  "@danceEditorClearRating":   {
+    "description": "Tooltip and icon semantics label for clearing a star rating."
+  },
+  "danceEditorLevelLabel": "Level",
+  "@danceEditorLevelLabel":   {
+    "description": "Dropdown label for dance difficulty level."
+  },
+  "danceEditorLevelUnspecified": "Unspecified",
+  "@danceEditorLevelUnspecified":   {
+    "description": "Dropdown option meaning no dance level is set."
+  },
+  "danceEditorYearLabel": "Year",
+  "@danceEditorYearLabel":   {
+    "description": "Partial-date field label for the year component."
+  },
+  "danceEditorYearHint": "e.g. 1989",
+  "@danceEditorYearHint":   {
+    "description": "Hint text showing an example year."
+  },
+  "danceEditorYearRangeError": "1–9999",
+  "@danceEditorYearRangeError":   {
+    "description": "Validation error for a partial-date year outside the supported range."
+  },
+  "danceEditorMonthLabel": "Month",
+  "@danceEditorMonthLabel":   {
+    "description": "Partial-date dropdown label for the month component."
+  },
+  "danceEditorDayLabel": "Day",
+  "@danceEditorDayLabel":   {
+    "description": "Partial-date dropdown label for the day component."
+  },
+  "danceEditorMonthJan": "Jan",
+  "@danceEditorMonthJan":   {
+    "description": "Abbreviated month label \"Jan\" in the partial-date picker."
+  },
+  "danceEditorMonthFeb": "Feb",
+  "@danceEditorMonthFeb":   {
+    "description": "Abbreviated month label \"Feb\" in the partial-date picker."
+  },
+  "danceEditorMonthMar": "Mar",
+  "@danceEditorMonthMar":   {
+    "description": "Abbreviated month label \"Mar\" in the partial-date picker."
+  },
+  "danceEditorMonthApr": "Apr",
+  "@danceEditorMonthApr":   {
+    "description": "Abbreviated month label \"Apr\" in the partial-date picker."
+  },
+  "danceEditorMonthMay": "May",
+  "@danceEditorMonthMay":   {
+    "description": "Abbreviated month label \"May\" in the partial-date picker."
+  },
+  "danceEditorMonthJun": "Jun",
+  "@danceEditorMonthJun":   {
+    "description": "Abbreviated month label \"Jun\" in the partial-date picker."
+  },
+  "danceEditorMonthJul": "Jul",
+  "@danceEditorMonthJul":   {
+    "description": "Abbreviated month label \"Jul\" in the partial-date picker."
+  },
+  "danceEditorMonthAug": "Aug",
+  "@danceEditorMonthAug":   {
+    "description": "Abbreviated month label \"Aug\" in the partial-date picker."
+  },
+  "danceEditorMonthSep": "Sep",
+  "@danceEditorMonthSep":   {
+    "description": "Abbreviated month label \"Sep\" in the partial-date picker."
+  },
+  "danceEditorMonthOct": "Oct",
+  "@danceEditorMonthOct":   {
+    "description": "Abbreviated month label \"Oct\" in the partial-date picker."
+  },
+  "danceEditorMonthNov": "Nov",
+  "@danceEditorMonthNov":   {
+    "description": "Abbreviated month label \"Nov\" in the partial-date picker."
+  },
+  "danceEditorMonthDec": "Dec",
+  "@danceEditorMonthDec":   {
+    "description": "Abbreviated month label \"Dec\" in the partial-date picker."
+  },
+  "danceEditorAddTuneHint": "Add a suggested tune…",
+  "@danceEditorAddTuneHint":   {
+    "description": "Hint text for adding a suggested tune to a dance."
+  },
+  "danceEditorAddTuneTooltip": "Add tune",
+  "@danceEditorAddTuneTooltip":   {
+    "description": "Tooltip for the button that adds the typed tune."
+  },
+  "danceEditorWarningsTitle": "Warnings",
+  "@danceEditorWarningsTitle":   {
+    "description": "Heading for non-blocking validation warnings in the dance editor."
+  },
+  "danceEditorDiscouragedTermSemantic": "Discouraged term: {term}",
+  "@danceEditorDiscouragedTermSemantic":   {
+    "description": "Semantics label announcing discouraged lingo terms in a prose field.",
+    "placeholders": {
+      "term": {
+        "type": "String",
+        "example": "gents"
+      }
+    }
+  },
+  "danceEditorDiscouragedTermText": "Discouraged: {term}",
+  "@danceEditorDiscouragedTermText":   {
+    "description": "Visible warning text listing discouraged lingo terms in a prose field.",
+    "placeholders": {
+      "term": {
+        "type": "String",
+        "example": "gents"
+      }
+    }
+  },
+  "danceEditorLinkKindSource": "Source",
+  "@danceEditorLinkKindSource":   {
+    "description": "Link-kind dropdown option for a source link."
+  },
+  "danceEditorLinkKindVideo": "Video",
+  "@danceEditorLinkKindVideo":   {
+    "description": "Link-kind dropdown option for a video link."
+  },
+  "danceEditorLinkKindOther": "Other",
+  "@danceEditorLinkKindOther":   {
+    "description": "Link-kind dropdown option for another kind of URL link."
+  },
+  "danceEditorUrlLabel": "URL",
+  "@danceEditorUrlLabel":   {
+    "description": "Text field label for a URL."
+  },
+  "danceEditorLabelOptional": "Label (optional)",
+  "@danceEditorLabelOptional":   {
+    "description": "Text field label for an optional link label."
+  },
+  "danceEditorRemoveLinkTooltip": "Remove link",
+  "@danceEditorRemoveLinkTooltip":   {
+    "description": "Tooltip for removing a URL link row."
+  },
+  "danceEditorAddLink": "Add link",
+  "@danceEditorAddLink":   {
+    "description": "Button label for adding a URL link row."
+  },
+  "danceEditorMissingDance": "(missing dance)",
+  "@danceEditorMissingDance":   {
+    "description": "Fallback text when a related dance reference points to a missing dance."
+  },
+  "danceEditorNoteOptionalLabel": "Note (optional)",
+  "@danceEditorNoteOptionalLabel":   {
+    "description": "Text field label for an optional note."
+  },
+  "danceEditorRemoveRelatedDanceTooltip": "Remove related dance",
+  "@danceEditorRemoveRelatedDanceTooltip":   {
+    "description": "Tooltip for removing a related-dance link row."
+  },
+  "danceEditorAddRelatedDance": "Add related dance",
+  "@danceEditorAddRelatedDance":   {
+    "description": "Button label for adding a related-dance link row."
+  },
+  "danceEditorRelatedDanceLabel": "Related dance",
+  "@danceEditorRelatedDanceLabel":   {
+    "description": "Type-ahead field label for choosing a related dance."
+  },
+  "danceEditorTypeToSearchHint": "Type to search…",
+  "@danceEditorTypeToSearchHint":   {
+    "description": "Hint text for a type-ahead search field."
+  },
+  "danceEditorEditItemTooltip": "Edit {item}",
+  "@danceEditorEditItemTooltip":   {
+    "description": "Tooltip for editing an existing shared item from a chip.",
+    "placeholders": {
+      "item": {
+        "type": "String",
+        "example": "Pat Shaw"
+      }
+    }
+  },
+  "danceEditorTypeToAddOrCreateHint": "Type to add or create…",
+  "@danceEditorTypeToAddOrCreateHint":   {
+    "description": "Hint text for a type-ahead field that can add an existing item or create a new one."
+  },
+  "danceEditorCreateQuotedName": "Create \"{name}\"",
+  "@danceEditorCreateQuotedName":   {
+    "description": "Type-ahead option label for creating a new item with the typed name/title.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "New author"
+      }
+    }
+  },
+  "danceEditorUnknownSource": "(unknown source)",
+  "@danceEditorUnknownSource":   {
+    "description": "Fallback text when a source citation points to a missing source."
+  },
+  "danceEditorPageOptionalLabel": "Page (optional)",
+  "@danceEditorPageOptionalLabel":   {
+    "description": "Text field label for an optional cited page."
+  },
+  "danceEditorNumberOptionalLabel": "Number (optional)",
+  "@danceEditorNumberOptionalLabel":   {
+    "description": "Text field label for an optional source number."
+  },
+  "danceEditorCiteSourceHint": "Cite a source: type to add or create…",
+  "@danceEditorCiteSourceHint":   {
+    "description": "Hint text for attaching or creating a published source citation."
+  },
+  "danceEditorSaveError": "Couldn't save the dance.",
+  "@danceEditorSaveError":   {
+    "description": "Clean snackbar shown when saving a dance fails; the raw exception is logged instead of shown (CWE-209)."
+  },
+  "danceEditorFallbackDanceTitle": "Dance",
+  "@danceEditorFallbackDanceTitle":   {
+    "description": "Fallback dance title used when deleting a dance whose original title is unavailable."
+  },
+  "danceEditorUnsavedDraftTitle": "Unsaved draft",
+  "@danceEditorUnsavedDraftTitle":   {
+    "description": "Dialog title for a pending autosave draft."
+  },
+  "danceEditorUnsavedDraftMessage": "You have an unsaved draft for this dance. Would you like to restore it?",
+  "@danceEditorUnsavedDraftMessage":   {
+    "description": "Dialog body asking whether to restore a pending autosave draft."
+  },
+  "danceEditorDiscard": "Discard",
+  "@danceEditorDiscard":   {
+    "description": "Button label for discarding a draft or unsaved changes."
+  },
+  "danceEditorRestore": "Restore",
+  "@danceEditorRestore":   {
+    "description": "Button label for restoring an autosave draft."
+  },
+  "danceEditorDiscardChangesTitle": "Discard changes?",
+  "@danceEditorDiscardChangesTitle":   {
+    "description": "Dialog title asking whether to leave the dirty dance editor."
+  },
+  "danceEditorDiscardChangesMessage": "You have unsaved changes to this dance.",
+  "@danceEditorDiscardChangesMessage":   {
+    "description": "Dialog body warning that leaving the editor will discard unsaved dance changes."
+  },
+  "danceEditorKeepEditing": "Keep editing",
+  "@danceEditorKeepEditing":   {
+    "description": "Button label that dismisses the discard-changes dialog and stays in the editor."
+  },
+  "danceEditorNewDanceTitle": "New dance",
+  "@danceEditorNewDanceTitle":   {
+    "description": "App-bar title for creating a new dance."
+  },
+  "danceEditorEditDanceTitle": "Edit dance",
+  "@danceEditorEditDanceTitle":   {
+    "description": "App-bar title for editing an existing dance."
+  },
+  "danceEditorRedoLabel": "Redo",
+  "@danceEditorRedoLabel":   {
+    "description": "Semantics label for the redo action."
+  },
+  "danceEditorUndoShortcutTooltip": "Undo (Ctrl+Z)",
+  "@danceEditorUndoShortcutTooltip":   {
+    "description": "Tooltip for the undo app-bar action including its keyboard shortcut."
+  },
+  "danceEditorRedoShortcutTooltip": "Redo (Ctrl+Shift+Z)",
+  "@danceEditorRedoShortcutTooltip":   {
+    "description": "Tooltip for the redo app-bar action including its keyboard shortcut."
+  },
+  "danceEditorDeleteDanceTooltip": "Delete dance",
+  "@danceEditorDeleteDanceTooltip":   {
+    "description": "Tooltip for the app-bar action that deletes the current dance."
+  },
+  "danceEditorLoadError": "Could not load the dance.",
+  "@danceEditorLoadError":   {
+    "description": "Message shown when the dance editor fails to load a dance."
+  },
+  "danceEditorChoreographerDetailsTitle": "Choreographer details",
+  "@danceEditorChoreographerDetailsTitle":   {
+    "description": "Dialog title for editing shared choreographer/contact details."
+  },
+  "danceEditorChoreographerDetailsIntro": "These details are shared across every dance credited to this author. Email and location are private — stored only on this device and never shared or exported.",
+  "@danceEditorChoreographerDetailsIntro":   {
+    "description": "Introductory copy explaining shared and private choreographer details."
+  },
+  "danceEditorNameRequiredLabel": "Name *",
+  "@danceEditorNameRequiredLabel":   {
+    "description": "Required name field label; the asterisk marks the field as required."
+  },
+  "danceEditorNameRequired": "Name is required",
+  "@danceEditorNameRequired":   {
+    "description": "Validation error shown when a required name field is blank."
+  },
+  "danceEditorWebsiteLabel": "Website",
+  "@danceEditorWebsiteLabel":   {
+    "description": "Text field label for a website."
+  },
+  "danceEditorEmailPrivateLabel": "Email (private)",
+  "@danceEditorEmailPrivateLabel":   {
+    "description": "Text field label for a private email address."
+  },
+  "danceEditorLocationPrivateLabel": "Location (private)",
+  "@danceEditorLocationPrivateLabel":   {
+    "description": "Text field label for a private location."
+  },
+  "danceEditorNotesLabel": "Notes",
+  "@danceEditorNotesLabel":   {
+    "description": "Text field label for notes."
+  },
+  "danceEditorDeceasedLabel": "Deceased",
+  "@danceEditorDeceasedLabel":   {
+    "description": "Switch label marking a choreographer as deceased."
+  },
+  "danceEditorSourceDetailsTitle": "Source details",
+  "@danceEditorSourceDetailsTitle":   {
+    "description": "Dialog title for editing a shared published source."
+  },
+  "danceEditorSourceDetailsIntro": "These details are shared across every dance that cites this source. Editing them here updates the source everywhere it is referenced.",
+  "@danceEditorSourceDetailsIntro":   {
+    "description": "Introductory copy explaining shared published-source details."
+  },
+  "danceEditorSourceAuthorEditorLabel": "Author / editor",
+  "@danceEditorSourceAuthorEditorLabel":   {
+    "description": "Text field label for a source author or editor."
+  },
+  "danceEditorEnterWholeNumber": "Enter a whole number",
+  "@danceEditorEnterWholeNumber":   {
+    "description": "Validation error shown when a numeric source year is not an integer."
+  },
+  "danceEditorEnterPositiveYear": "Enter a positive year",
+  "@danceEditorEnterPositiveYear":   {
+    "description": "Validation error shown when a source year is zero or negative."
+  },
+  "danceEditorAddedFigureChooseMove": "Added figure {count}. Choose a move.",
+  "@danceEditorAddedFigureChooseMove":   {
+    "description": "Screen-reader announcement after adding a structured figure row.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "danceEditorFigurePastedAnnouncement": "Figure pasted at position {position}.",
+  "@danceEditorFigurePastedAnnouncement":   {
+    "description": "Screen-reader announcement after pasting a cut figure.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorFigureMovedAnnouncement": "Moved to position {position} of {total}.",
+  "@danceEditorFigureMovedAnnouncement":   {
+    "description": "Screen-reader announcement after moving a figure row.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "2"
+      },
+      "total": {
+        "type": "int",
+        "example": "8"
+      }
+    }
+  },
+  "danceEditorEditingFigureAnnouncement": "Editing figure {position}, {name}.",
+  "@danceEditorEditingFigureAnnouncement":   {
+    "description": "Screen-reader announcement when a figure editor is opened.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "2"
+      },
+      "name": {
+        "type": "String",
+        "example": "neighbors balance and swing"
+      }
+    }
+  },
+  "danceEditorCollapsedFigureAnnouncement": "Collapsed figure {position}.",
+  "@danceEditorCollapsedFigureAnnouncement":   {
+    "description": "Screen-reader announcement when a figure editor is collapsed.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorTypeFigureAnnouncement": "Type a figure and press Enter to add it.",
+  "@danceEditorTypeFigureAnnouncement":   {
+    "description": "Screen-reader announcement when free-text figure entry opens."
+  },
+  "danceEditorFreeTextFiguresAddedAnnouncement": "{count, plural, =1{Added 1 figure. Type another, or press Escape to finish.} other{Added {count} figures. Type another, or press Escape to finish.}}",
+  "@danceEditorFreeTextFiguresAddedAnnouncement":   {
+    "description": "Screen-reader announcement after adding figure(s) from free-text entry.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorDeletedFigureAnnouncement": "Deleted figure {position}. Undo available.",
+  "@danceEditorDeletedFigureAnnouncement":   {
+    "description": "Screen-reader announcement after deleting a figure row.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorDuplicatedFigureAnnouncement": "Duplicated figure {position}.",
+  "@danceEditorDuplicatedFigureAnnouncement":   {
+    "description": "Screen-reader announcement after duplicating a figure row.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorAddFirstFigure": "Add first figure",
+  "@danceEditorAddFirstFigure":   {
+    "description": "Button label for adding the first figure to an empty dance."
+  },
+  "danceEditorCutBanner": "\"{figure}\" is cut — tap Paste to place it.",
+  "@danceEditorCutBanner":   {
+    "description": "Banner text shown while a figure row is cut and awaiting a paste destination.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "swing"
+      }
+    }
+  },
+  "danceEditorPasteBeforeFirstFigure": "Paste before first figure",
+  "@danceEditorPasteBeforeFirstFigure":   {
+    "description": "Semantics label for pasting a cut figure at the top of the list."
+  },
+  "danceEditorPasteAfterFigure": "Paste after {figure}",
+  "@danceEditorPasteAfterFigure":   {
+    "description": "Semantics label for pasting a cut figure after another figure.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "swing"
+      }
+    }
+  },
+  "danceEditorAddFigure": "Add figure",
+  "@danceEditorAddFigure":   {
+    "description": "Button label for adding another figure row."
+  },
+  "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
+  "@danceEditorPasteAtEndOfFigureList":   {
+    "description": "Semantics label for pasting a cut figure at the end of the list."
+  },
+  "danceEditorTypeFigureLabel": "Type a figure",
+  "@danceEditorTypeFigureLabel":   {
+    "description": "Text field label for free-text figure entry."
+  },
+  "danceEditorTypeFigureHelper": "e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as a custom figure.",
+  "@danceEditorTypeFigureHelper":   {
+    "description": "Helper text for free-text figure entry."
+  },
+  "danceEditorPasteHere": "Paste here",
+  "@danceEditorPasteHere":   {
+    "description": "Button label for a paste destination in the figure list."
+  },
+  "danceEditorEmptyFigureName": "Empty figure",
+  "@danceEditorEmptyFigureName":   {
+    "description": "Fallback display name for a figure row with no move selected."
+  },
+  "danceEditorCustomFigureName": "Custom figure",
+  "@danceEditorCustomFigureName":   {
+    "description": "Fallback display name for a custom figure with no text."
+  },
+  "danceEditorEmptyFigureSummary": "(empty — choose a move)",
+  "@danceEditorEmptyFigureSummary":   {
+    "description": "Collapsed-row text for an empty figure draft."
+  },
+  "danceEditorEmptyFigureSemantic": "empty figure, choose a move",
+  "@danceEditorEmptyFigureSemantic":   {
+    "description": "Screen-reader phrase for an empty figure draft."
+  },
+  "danceEditorFigureSummarySemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.",
+  "@danceEditorFigureSummarySemantic":   {
+    "description": "Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.",
+    "placeholders": {
+      "main": {
+        "type": "String",
+        "example": "neighbors balance and swing"
+      },
+      "importGap": {
+        "type": "String",
+        "example": "no"
+      },
+      "importGapText": {
+        "type": "String",
+        "example": "Couldn't parse this call — kept verbatim as a custom figure."
+      },
+      "progression": {
+        "type": "String",
+        "example": "yes"
+      },
+      "hasMove": {
+        "type": "String",
+        "example": "yes"
+      },
+      "beats": {
+        "type": "int",
+        "example": "16"
+      },
+      "hasNote": {
+        "type": "String",
+        "example": "no"
+      },
+      "note": {
+        "type": "String",
+        "example": "smooth swing"
+      },
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
+      "total": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "danceEditorActivateToEditHint": "Activate to edit",
+  "@danceEditorActivateToEditHint":   {
+    "description": "Semantics hint for opening a figure row editor."
+  },
+  "danceEditorDragToReorderFigure": "Drag to reorder {figure}",
+  "@danceEditorDragToReorderFigure":   {
+    "description": "Semantics label for the drag handle on a figure row.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "swing"
+      }
+    }
+  },
+  "danceEditorFigureActionsTooltip": "Actions for {figure}",
+  "@danceEditorFigureActionsTooltip":   {
+    "description": "Tooltip for the overflow menu on a figure row.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "swing"
+      }
+    }
+  },
+  "danceEditorMoveUp": "Move up",
+  "@danceEditorMoveUp":   {
+    "description": "Menu item label for moving a figure row upward."
+  },
+  "danceEditorMoveDown": "Move down",
+  "@danceEditorMoveDown":   {
+    "description": "Menu item label for moving a figure row downward."
+  },
+  "danceEditorCut": "Cut",
+  "@danceEditorCut":   {
+    "description": "Menu item label for cutting a figure row before pasting it elsewhere."
+  },
+  "danceEditorClearProgression": "Clear progression",
+  "@danceEditorClearProgression":   {
+    "description": "Menu item label for clearing a figure progression marker."
+  },
+  "danceEditorMarkProgression": "Mark progression",
+  "@danceEditorMarkProgression":   {
+    "description": "Menu item label for marking a figure as carrying the progression."
+  },
+  "danceEditorUnrecognizedMoveReadOnly": "Unrecognized move \"{move}\" — not in this version's taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.",
+  "@danceEditorUnrecognizedMoveReadOnly":   {
+    "description": "Read-only explanation for a figure whose move id is not in the active taxonomy.",
+    "placeholders": {
+      "move": {
+        "type": "String",
+        "example": "unknown_move"
+      }
+    }
+  },
+  "danceEditorFewerOptions": "Fewer options",
+  "@danceEditorFewerOptions":   {
+    "description": "Button label that collapses additional figure parameter editors."
+  },
+  "danceEditorMoreOptions": "More options ({count})",
+  "@danceEditorMoreOptions":   {
+    "description": "Button label that expands additional figure parameter editors, showing the number hidden.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorMoveCanCarryProgression": "This move can carry the progression.",
+  "@danceEditorMoveCanCarryProgression":   {
+    "description": "Tooltip explaining that a move can carry the dance progression."
+  },
+  "danceEditorAddNote": "Add note",
+  "@danceEditorAddNote":   {
+    "description": "Button label for revealing a figure note field."
+  },
+  "danceEditorBoldTooltip": "Bold (*text*)",
+  "@danceEditorBoldTooltip":   {
+    "description": "Tooltip for applying bold markup to selected note/custom text."
+  },
+  "danceEditorUnderlineTooltip": "Underline (_text_)",
+  "@danceEditorUnderlineTooltip":   {
+    "description": "Tooltip for applying underline markup to selected note/custom text."
+  },
+  "danceEditorCustomFigureTextLabel": "Custom figure text",
+  "@danceEditorCustomFigureTextLabel":   {
+    "description": "Text field label for editing a custom figure description."
+  },
+  "danceEditorLingoStylingHelper": "Move names dotted·underline, role terms underlined, discouraged terms struck through",
+  "@danceEditorLingoStylingHelper":   {
+    "description": "Helper text explaining lingo-aware styling in a custom figure text field."
+  },
+  "danceEditorBeatTotal": "Total: {total} / {expected} beats",
+  "@danceEditorBeatTotal":   {
+    "description": "Summary of total figure beats versus the phrase-structure expectation.",
+    "placeholders": {
+      "total": {
+        "type": "int",
+        "example": "32"
+      },
+      "expected": {
+        "type": "int",
+        "example": "32"
+      }
+    }
+  },
+  "danceEditorOverByBeats": "Over by {beats} beats",
+  "@danceEditorOverByBeats":   {
+    "description": "Warning text when total figure beats exceed the expected phrase length.",
+    "placeholders": {
+      "beats": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "danceEditorUnderByBeats": "Under by {beats} beats",
+  "@danceEditorUnderByBeats":   {
+    "description": "Warning text when total figure beats are below the expected phrase length.",
+    "placeholders": {
+      "beats": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "danceEditorLessTooltip": "Less",
+  "@danceEditorLessTooltip":   {
+    "description": "Tooltip for decrementing a numeric figure parameter."
+  },
+  "danceEditorMoreTooltip": "More",
+  "@danceEditorMoreTooltip":   {
+    "description": "Tooltip for incrementing a numeric figure parameter."
+  },
+  "danceEditorTurnCount": "{count, plural, =1{{formatted} turn} other{{formatted} turns}}",
+  "@danceEditorTurnCount":   {
+    "description": "Rotation amount shown in the figure parameter editor.",
+    "placeholders": {
+      "count": {
+        "type": "num",
+        "example": "1.5"
+      },
+      "formatted": {
+        "type": "String",
+        "example": "1.5"
+      }
+    }
+  }
 }

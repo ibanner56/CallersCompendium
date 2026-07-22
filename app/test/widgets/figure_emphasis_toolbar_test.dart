@@ -4,6 +4,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/l10n_harness.dart';
+
 class _Host extends StatefulWidget {
   const _Host({required this.drafts});
   final List<FigureDraft> drafts;
@@ -15,6 +17,8 @@ class _HostState extends State<_Host> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: SingleChildScrollView(
           child: FigureListEditor(

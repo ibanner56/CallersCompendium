@@ -2969,4 +2969,568 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importReviewImportError => 'Couldn\'t complete the import.';
+
+  @override
+  String get danceEditorDetailsSection => 'Details';
+
+  @override
+  String get danceEditorTitleRequiredLabel => 'Title *';
+
+  @override
+  String get danceEditorTitleRequired => 'Title is required';
+
+  @override
+  String get danceEditorAuthorsLabel => 'Authors';
+
+  @override
+  String get danceEditorFormationLabel => 'Formation';
+
+  @override
+  String get danceEditorFormationDetailLabel => 'Formation detail (optional)';
+
+  @override
+  String get danceEditorPhraseStructureLabel => 'Phrase structure';
+
+  @override
+  String get danceEditorPhraseStructureHint =>
+      'Blank = standard A1 A2 B1 B2; else e.g. 6*8*2';
+
+  @override
+  String get danceEditorFiguresSection => 'Figures';
+
+  @override
+  String get danceEditorFiguresHelp =>
+      'Type a move (e.g. \"sw\" → swing) and press Enter to add it with default params; unmatched text becomes a custom figure.';
+
+  @override
+  String get danceEditorNotesSection => 'Notes';
+
+  @override
+  String get danceEditorCallingNotesLabel => 'Calling notes';
+
+  @override
+  String get danceEditorHookLabel => 'Hook';
+
+  @override
+  String get danceEditorHookHint => 'One-line \"why call this\"';
+
+  @override
+  String get danceEditorMoreDetailsTitle => 'More details';
+
+  @override
+  String get danceEditorStatusLabel => 'Status';
+
+  @override
+  String get danceEditorMixedLevelSubtitle => 'Spans the difficulty scale';
+
+  @override
+  String get danceEditorComposedLabel => 'Composed';
+
+  @override
+  String get danceEditorComposedHelper =>
+      'When the dance was composed (year, or add month/day)';
+
+  @override
+  String get danceEditorRevisedLabel => 'Revised';
+
+  @override
+  String get danceEditorRevisedHelper =>
+      'When the dance was last revised by its author';
+
+  @override
+  String get danceEditorTagsLabel => 'Tags';
+
+  @override
+  String get danceEditorTunesLabel => 'Tunes';
+
+  @override
+  String get danceEditorLinksLabel => 'Links';
+
+  @override
+  String get danceEditorPublishedSourcesLabel => 'Published sources';
+
+  @override
+  String get danceEditorRelatedDancesLabel => 'Related dances';
+
+  @override
+  String get danceEditorCustomFieldsLabel => 'Custom fields';
+
+  @override
+  String get danceEditorRatingLabel => 'Rating';
+
+  @override
+  String get danceEditorRatingUnrated => 'unrated';
+
+  @override
+  String danceEditorRatingValue(int rating, int max) {
+    return '$rating of $max stars';
+  }
+
+  @override
+  String danceEditorSetRatingTooltip(int rating, int max) {
+    return 'Set rating to $rating of $max stars';
+  }
+
+  @override
+  String get danceEditorClearRating => 'Clear rating';
+
+  @override
+  String get danceEditorLevelLabel => 'Level';
+
+  @override
+  String get danceEditorLevelUnspecified => 'Unspecified';
+
+  @override
+  String get danceEditorYearLabel => 'Year';
+
+  @override
+  String get danceEditorYearHint => 'e.g. 1989';
+
+  @override
+  String get danceEditorYearRangeError => '1–9999';
+
+  @override
+  String get danceEditorMonthLabel => 'Month';
+
+  @override
+  String get danceEditorDayLabel => 'Day';
+
+  @override
+  String get danceEditorMonthJan => 'Jan';
+
+  @override
+  String get danceEditorMonthFeb => 'Feb';
+
+  @override
+  String get danceEditorMonthMar => 'Mar';
+
+  @override
+  String get danceEditorMonthApr => 'Apr';
+
+  @override
+  String get danceEditorMonthMay => 'May';
+
+  @override
+  String get danceEditorMonthJun => 'Jun';
+
+  @override
+  String get danceEditorMonthJul => 'Jul';
+
+  @override
+  String get danceEditorMonthAug => 'Aug';
+
+  @override
+  String get danceEditorMonthSep => 'Sep';
+
+  @override
+  String get danceEditorMonthOct => 'Oct';
+
+  @override
+  String get danceEditorMonthNov => 'Nov';
+
+  @override
+  String get danceEditorMonthDec => 'Dec';
+
+  @override
+  String get danceEditorAddTuneHint => 'Add a suggested tune…';
+
+  @override
+  String get danceEditorAddTuneTooltip => 'Add tune';
+
+  @override
+  String get danceEditorWarningsTitle => 'Warnings';
+
+  @override
+  String danceEditorDiscouragedTermSemantic(String term) {
+    return 'Discouraged term: $term';
+  }
+
+  @override
+  String danceEditorDiscouragedTermText(String term) {
+    return 'Discouraged: $term';
+  }
+
+  @override
+  String get danceEditorLinkKindSource => 'Source';
+
+  @override
+  String get danceEditorLinkKindVideo => 'Video';
+
+  @override
+  String get danceEditorLinkKindOther => 'Other';
+
+  @override
+  String get danceEditorUrlLabel => 'URL';
+
+  @override
+  String get danceEditorLabelOptional => 'Label (optional)';
+
+  @override
+  String get danceEditorRemoveLinkTooltip => 'Remove link';
+
+  @override
+  String get danceEditorAddLink => 'Add link';
+
+  @override
+  String get danceEditorMissingDance => '(missing dance)';
+
+  @override
+  String get danceEditorNoteOptionalLabel => 'Note (optional)';
+
+  @override
+  String get danceEditorRemoveRelatedDanceTooltip => 'Remove related dance';
+
+  @override
+  String get danceEditorAddRelatedDance => 'Add related dance';
+
+  @override
+  String get danceEditorRelatedDanceLabel => 'Related dance';
+
+  @override
+  String get danceEditorTypeToSearchHint => 'Type to search…';
+
+  @override
+  String danceEditorEditItemTooltip(String item) {
+    return 'Edit $item';
+  }
+
+  @override
+  String get danceEditorTypeToAddOrCreateHint => 'Type to add or create…';
+
+  @override
+  String danceEditorCreateQuotedName(String name) {
+    return 'Create \"$name\"';
+  }
+
+  @override
+  String get danceEditorUnknownSource => '(unknown source)';
+
+  @override
+  String get danceEditorPageOptionalLabel => 'Page (optional)';
+
+  @override
+  String get danceEditorNumberOptionalLabel => 'Number (optional)';
+
+  @override
+  String get danceEditorCiteSourceHint =>
+      'Cite a source: type to add or create…';
+
+  @override
+  String get danceEditorSaveError => 'Couldn\'t save the dance.';
+
+  @override
+  String get danceEditorFallbackDanceTitle => 'Dance';
+
+  @override
+  String get danceEditorUnsavedDraftTitle => 'Unsaved draft';
+
+  @override
+  String get danceEditorUnsavedDraftMessage =>
+      'You have an unsaved draft for this dance. Would you like to restore it?';
+
+  @override
+  String get danceEditorDiscard => 'Discard';
+
+  @override
+  String get danceEditorRestore => 'Restore';
+
+  @override
+  String get danceEditorDiscardChangesTitle => 'Discard changes?';
+
+  @override
+  String get danceEditorDiscardChangesMessage =>
+      'You have unsaved changes to this dance.';
+
+  @override
+  String get danceEditorKeepEditing => 'Keep editing';
+
+  @override
+  String get danceEditorNewDanceTitle => 'New dance';
+
+  @override
+  String get danceEditorEditDanceTitle => 'Edit dance';
+
+  @override
+  String get danceEditorRedoLabel => 'Redo';
+
+  @override
+  String get danceEditorUndoShortcutTooltip => 'Undo (Ctrl+Z)';
+
+  @override
+  String get danceEditorRedoShortcutTooltip => 'Redo (Ctrl+Shift+Z)';
+
+  @override
+  String get danceEditorDeleteDanceTooltip => 'Delete dance';
+
+  @override
+  String get danceEditorLoadError => 'Could not load the dance.';
+
+  @override
+  String get danceEditorChoreographerDetailsTitle => 'Choreographer details';
+
+  @override
+  String get danceEditorChoreographerDetailsIntro =>
+      'These details are shared across every dance credited to this author. Email and location are private — stored only on this device and never shared or exported.';
+
+  @override
+  String get danceEditorNameRequiredLabel => 'Name *';
+
+  @override
+  String get danceEditorNameRequired => 'Name is required';
+
+  @override
+  String get danceEditorWebsiteLabel => 'Website';
+
+  @override
+  String get danceEditorEmailPrivateLabel => 'Email (private)';
+
+  @override
+  String get danceEditorLocationPrivateLabel => 'Location (private)';
+
+  @override
+  String get danceEditorNotesLabel => 'Notes';
+
+  @override
+  String get danceEditorDeceasedLabel => 'Deceased';
+
+  @override
+  String get danceEditorSourceDetailsTitle => 'Source details';
+
+  @override
+  String get danceEditorSourceDetailsIntro =>
+      'These details are shared across every dance that cites this source. Editing them here updates the source everywhere it is referenced.';
+
+  @override
+  String get danceEditorSourceAuthorEditorLabel => 'Author / editor';
+
+  @override
+  String get danceEditorEnterWholeNumber => 'Enter a whole number';
+
+  @override
+  String get danceEditorEnterPositiveYear => 'Enter a positive year';
+
+  @override
+  String danceEditorAddedFigureChooseMove(int count) {
+    return 'Added figure $count. Choose a move.';
+  }
+
+  @override
+  String danceEditorFigurePastedAnnouncement(int position) {
+    return 'Figure pasted at position $position.';
+  }
+
+  @override
+  String danceEditorFigureMovedAnnouncement(int position, int total) {
+    return 'Moved to position $position of $total.';
+  }
+
+  @override
+  String danceEditorEditingFigureAnnouncement(int position, String name) {
+    return 'Editing figure $position, $name.';
+  }
+
+  @override
+  String danceEditorCollapsedFigureAnnouncement(int position) {
+    return 'Collapsed figure $position.';
+  }
+
+  @override
+  String get danceEditorTypeFigureAnnouncement =>
+      'Type a figure and press Enter to add it.';
+
+  @override
+  String danceEditorFreeTextFiguresAddedAnnouncement(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added $count figures. Type another, or press Escape to finish.',
+      one: 'Added 1 figure. Type another, or press Escape to finish.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorDeletedFigureAnnouncement(int position) {
+    return 'Deleted figure $position. Undo available.';
+  }
+
+  @override
+  String danceEditorDuplicatedFigureAnnouncement(int position) {
+    return 'Duplicated figure $position.';
+  }
+
+  @override
+  String get danceEditorAddFirstFigure => 'Add first figure';
+
+  @override
+  String danceEditorCutBanner(String figure) {
+    return '\"$figure\" is cut — tap Paste to place it.';
+  }
+
+  @override
+  String get danceEditorPasteBeforeFirstFigure => 'Paste before first figure';
+
+  @override
+  String danceEditorPasteAfterFigure(String figure) {
+    return 'Paste after $figure';
+  }
+
+  @override
+  String get danceEditorAddFigure => 'Add figure';
+
+  @override
+  String get danceEditorPasteAtEndOfFigureList => 'Paste at end of figure list';
+
+  @override
+  String get danceEditorTypeFigureLabel => 'Type a figure';
+
+  @override
+  String get danceEditorTypeFigureHelper =>
+      'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as a custom figure.';
+
+  @override
+  String get danceEditorPasteHere => 'Paste here';
+
+  @override
+  String get danceEditorEmptyFigureName => 'Empty figure';
+
+  @override
+  String get danceEditorCustomFigureName => 'Custom figure';
+
+  @override
+  String get danceEditorEmptyFigureSummary => '(empty — choose a move)';
+
+  @override
+  String get danceEditorEmptyFigureSemantic => 'empty figure, choose a move';
+
+  @override
+  String danceEditorFigureSummarySemantic(
+    String main,
+    String importGap,
+    String importGapText,
+    String progression,
+    String hasMove,
+    int beats,
+    String hasNote,
+    String note,
+    int position,
+    int total,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(importGap, {
+      'yes': ', $importGapText',
+      'other': '',
+    });
+    String _temp1 = intl.Intl.selectLogic(progression, {
+      'yes': ', progression',
+      'other': '',
+    });
+    String _temp2 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    String _temp3 = intl.Intl.selectLogic(hasMove, {
+      'yes': ', $_temp2',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(hasNote, {
+      'yes': ', note: $note',
+      'other': '',
+    });
+    return '$main$_temp0$_temp1$_temp3$_temp4. Figure $position of $total.';
+  }
+
+  @override
+  String get danceEditorActivateToEditHint => 'Activate to edit';
+
+  @override
+  String danceEditorDragToReorderFigure(String figure) {
+    return 'Drag to reorder $figure';
+  }
+
+  @override
+  String danceEditorFigureActionsTooltip(String figure) {
+    return 'Actions for $figure';
+  }
+
+  @override
+  String get danceEditorMoveUp => 'Move up';
+
+  @override
+  String get danceEditorMoveDown => 'Move down';
+
+  @override
+  String get danceEditorCut => 'Cut';
+
+  @override
+  String get danceEditorClearProgression => 'Clear progression';
+
+  @override
+  String get danceEditorMarkProgression => 'Mark progression';
+
+  @override
+  String danceEditorUnrecognizedMoveReadOnly(String move) {
+    return 'Unrecognized move \"$move\" — not in this version\'s taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.';
+  }
+
+  @override
+  String get danceEditorFewerOptions => 'Fewer options';
+
+  @override
+  String danceEditorMoreOptions(int count) {
+    return 'More options ($count)';
+  }
+
+  @override
+  String get danceEditorMoveCanCarryProgression =>
+      'This move can carry the progression.';
+
+  @override
+  String get danceEditorAddNote => 'Add note';
+
+  @override
+  String get danceEditorBoldTooltip => 'Bold (*text*)';
+
+  @override
+  String get danceEditorUnderlineTooltip => 'Underline (_text_)';
+
+  @override
+  String get danceEditorCustomFigureTextLabel => 'Custom figure text';
+
+  @override
+  String get danceEditorLingoStylingHelper =>
+      'Move names dotted·underline, role terms underlined, discouraged terms struck through';
+
+  @override
+  String danceEditorBeatTotal(int total, int expected) {
+    return 'Total: $total / $expected beats';
+  }
+
+  @override
+  String danceEditorOverByBeats(int beats) {
+    return 'Over by $beats beats';
+  }
+
+  @override
+  String danceEditorUnderByBeats(int beats) {
+    return 'Under by $beats beats';
+  }
+
+  @override
+  String get danceEditorLessTooltip => 'Less';
+
+  @override
+  String get danceEditorMoreTooltip => 'More';
+
+  @override
+  String danceEditorTurnCount(num count, String formatted) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$formatted turns',
+      one: '$formatted turn',
+    );
+    return '$_temp0';
+  }
 }

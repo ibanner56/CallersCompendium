@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import 'link_draft.dart';
 import 'name_picker.dart';
@@ -22,6 +23,7 @@ class LinksEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     // Related dances have their own dedicated subsection; the generic links
     // list handles only URL-bearing kinds (source/video/other).
     final urlLinks = [
@@ -44,18 +46,18 @@ class LinksEditor extends StatelessWidget {
                     initialValue: draft.kind,
                     isDense: true,
                     isExpanded: true,
-                    items: const [
+                    items: [
                       DropdownMenuItem(
                         value: LinkKind.source,
-                        child: Text('Source'),
+                        child: Text(l10n.danceEditorLinkKindSource),
                       ),
                       DropdownMenuItem(
                         value: LinkKind.video,
-                        child: Text('Video'),
+                        child: Text(l10n.danceEditorLinkKindVideo),
                       ),
                       DropdownMenuItem(
                         value: LinkKind.other,
-                        child: Text('Other'),
+                        child: Text(l10n.danceEditorLinkKindOther),
                       ),
                     ],
                     onChanged: (value) {
@@ -73,8 +75,8 @@ class LinksEditor extends StatelessWidget {
                       TextField(
                         key: ValueKey('link-url-${draft.id}'),
                         controller: draft.urlController,
-                        decoration: const InputDecoration(
-                          labelText: 'URL',
+                        decoration: InputDecoration(
+                          labelText: l10n.danceEditorUrlLabel,
                           isDense: true,
                         ),
                         onChanged: (_) => onChanged(),
@@ -83,8 +85,8 @@ class LinksEditor extends StatelessWidget {
                       TextField(
                         key: ValueKey('link-label-${draft.id}'),
                         controller: draft.labelController,
-                        decoration: const InputDecoration(
-                          labelText: 'Label (optional)',
+                        decoration: InputDecoration(
+                          labelText: l10n.danceEditorLabelOptional,
                           isDense: true,
                         ),
                         onChanged: (_) => onChanged(),
@@ -94,7 +96,7 @@ class LinksEditor extends StatelessWidget {
                 ),
                 IconButton(
                   key: ValueKey('link-remove-${draft.id}'),
-                  tooltip: 'Remove link',
+                  tooltip: l10n.danceEditorRemoveLinkTooltip,
                   icon: const Icon(Icons.close),
                   onPressed: () => onRemove(draft),
                 ),
@@ -107,7 +109,7 @@ class LinksEditor extends StatelessWidget {
             key: const ValueKey('link-add'),
             onPressed: onAdd,
             icon: const Icon(Icons.add),
-            label: const Text('Add link'),
+            label: Text(l10n.danceEditorAddLink),
           ),
         ),
       ],
@@ -148,6 +150,7 @@ class RelatedDancesEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final relatedDrafts = [
       for (final draft in links)
         if (draft.kind == LinkKind.relatedDance) draft,
@@ -172,7 +175,7 @@ class RelatedDancesEditor extends StatelessWidget {
                         initialTitle: draft.targetDanceId == null
                             ? ''
                             : (danceNamesById[draft.targetDanceId!] ??
-                                  '(missing dance)'),
+                                  l10n.danceEditorMissingDance),
                         danceOptions: danceOptions,
                         onSelected: (id) {
                           draft.targetDanceId = id;
@@ -183,8 +186,8 @@ class RelatedDancesEditor extends StatelessWidget {
                       TextField(
                         key: ValueKey('related-dance-note-${draft.id}'),
                         controller: draft.labelController,
-                        decoration: const InputDecoration(
-                          labelText: 'Note (optional)',
+                        decoration: InputDecoration(
+                          labelText: l10n.danceEditorNoteOptionalLabel,
                           isDense: true,
                         ),
                         onChanged: (_) => onChanged(),
@@ -194,7 +197,7 @@ class RelatedDancesEditor extends StatelessWidget {
                 ),
                 IconButton(
                   key: ValueKey('related-dance-remove-${draft.id}'),
-                  tooltip: 'Remove related dance',
+                  tooltip: l10n.danceEditorRemoveRelatedDanceTooltip,
                   icon: const Icon(Icons.close),
                   onPressed: () => onRemove(draft),
                 ),
@@ -207,7 +210,7 @@ class RelatedDancesEditor extends StatelessWidget {
             key: const ValueKey('related-dance-add'),
             onPressed: onAdd,
             icon: const Icon(Icons.add),
-            label: const Text('Add related dance'),
+            label: Text(l10n.danceEditorAddRelatedDance),
           ),
         ),
       ],
@@ -233,6 +236,7 @@ class _RelatedDancePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Autocomplete<NameOption>(
       initialValue: TextEditingValue(text: initialTitle),
       displayStringForOption: (opt) => opt.name,
@@ -246,9 +250,9 @@ class _RelatedDancePicker extends StatelessWidget {
         return TextField(
           controller: controller,
           focusNode: focusNode,
-          decoration: const InputDecoration(
-            labelText: 'Related dance',
-            hintText: 'Type to search…',
+          decoration: InputDecoration(
+            labelText: l10n.danceEditorRelatedDanceLabel,
+            hintText: l10n.danceEditorTypeToSearchHint,
             isDense: true,
           ),
         );
