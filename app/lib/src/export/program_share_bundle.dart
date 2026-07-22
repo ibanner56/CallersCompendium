@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../utils/safe_name.dart';
 import 'share_sanitization.dart';
 
 /// Builds a self-contained "share this program + its dances" bundle (ROADMAP
@@ -118,7 +119,7 @@ const String programShareBundleExtension = 'ccshare';
 /// A filesystem-safe file name for a program share bundle. See the library-level
 /// notes above for the extension rationale.
 String programShareBundleFileName(String title) {
-  final sanitized = title.trim().replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  final sanitized = replaceUnsafeNameChars(title.trim());
   // Fall back when the title has no alphanumeric content (empty, all
   // whitespace, or only illegal/punctuation characters) so the file always has
   // a meaningful, path-safe name.

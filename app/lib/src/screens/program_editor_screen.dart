@@ -15,6 +15,7 @@ import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/safe_name.dart';
 import '../widgets/collection_picker.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
@@ -897,7 +898,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final title = _titleController.text.trim();
     final venue = _venueController.text.trim();
     await Printing.layoutPdf(
-      name: title.isEmpty ? l10n.exportMatrixPdfFilename : title,
+      name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
       onLayout: (format) => buildProgramMatrixPdf(
         matrix,
         taxonomy: taxonomy,

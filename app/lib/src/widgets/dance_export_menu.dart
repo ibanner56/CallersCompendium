@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../export/dance_pdf.dart';
+import '../utils/safe_name.dart';
 
 /// Actions offered by the [DanceExportMenu].
 enum _ExportAction { shareText, copyText, pdf }
@@ -96,7 +97,7 @@ class DanceExportMenu extends StatelessWidget {
   Future<void> _exportPdf() async {
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     await layoutPdf(
-      name: dance.title,
+      name: sanitizeExportName(dance.title, fallback: 'dance'),
       onLayout: (format) => buildDancePdf(
         dance,
         dialect: dialect,

@@ -19,6 +19,7 @@ import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
+import '../utils/safe_name.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/dance_export_menu.dart';
 import '../widgets/dialect_quick_switch.dart';
@@ -531,7 +532,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final l10n = AppLocalizations.of(context);
     try {
       await Printing.layoutPdf(
-        name: detail.dance.title,
+        name: sanitizeExportName(detail.dance.title, fallback: 'dance'),
         onLayout: (format) => buildDancePdf(
           detail.dance,
           dialect: dialect,

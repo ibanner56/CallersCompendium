@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../l10n/app_localizations.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
+import '../utils/safe_name.dart';
 
 /// Actions offered by the [ProgramExportMenu].
 enum _ExportAction { shareText, shareBundle, copyText, pdf }
@@ -182,7 +183,7 @@ class ProgramExportMenu extends StatelessWidget {
     final localizations = MaterialLocalizations.of(context);
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     await layoutPdf(
-      name: program.title,
+      name: sanitizeExportName(program.title, fallback: 'program'),
       onLayout: (format) => buildProgramPdf(
         program,
         titleFor: titleFor,
