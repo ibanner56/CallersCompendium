@@ -8,6 +8,65 @@ import 'package:http/http.dart' as http;
 
 import '../search/collection_query.dart' show ByPhraseSelections;
 
+/// Hard cap on the size of a **local file** chosen for import, in bytes.
+///
+/// A picked file is **untrusted input** (OWASP A04 Insecure Design / A05
+/// Security Misconfiguration — uncontrolled resource consumption): the native
+/// open-file dialog hands us an arbitrary file (often originally sourced from a
+/// "safer" community site, but still not to be trusted). We refuse anything
+/// larger than this *before* reading it into memory (via [XFile.length]), so a
+/// hostile or accidental multi-gigabyte file can't exhaust memory. 25 MiB is
+/// deliberately **aligned with the archive intake cap**
+/// (`kMaxIncomingArchiveBytes`) and sits far above any real Compendium share
+/// bundle or Caller's Companion `.USR` (the real ~20 MB CC sample fits with
+/// margin) while bounding the blast radius. The `.USR` path adds *structural*
+/// bounds on top of this (see `FmpReadLimits`) because the FileMaker reader's
+/// per-table traversal makes a small-but-pathological file quadratic in work.
+const int kMaxImportFileBytes = 25 * 1024 * 1024;
+
+/// Raised when a picked import file exceeds [kMaxImportFileBytes], so the
+/// oversized case is rejected *without* reading the whole file into memory. The
+/// [message] is safe to show directly to the user (it never echoes the path).
+class ImportFileTooLargeException implements Exception {
+  const ImportFileTooLargeException(this.length);
+
+  /// The rejected file's length in bytes (for diagnostics/tests; never shown).
+  final int length;
+
+  /// User-facing text, matching the archive intake path's wording.
+  String get message => 'That file is too large to import.';
+
+  @override
+  String toString() => message;
+}
+
+/// Reads [file]'s text, but only after confirming its length is within
+/// [maxBytes]; throws [ImportFileTooLargeException] otherwise. Enforcing the cap
+/// with [XFile.length] *before* [XFile.readAsString] means an oversized file is
+/// never fully read into memory. Split out from [pickImportFile] so the cap is
+/// unit-testable without the native picker (tests inject an [XFile] and a small
+/// [maxBytes], mirroring `ArchiveIntakeService`).
+Future<String> readImportTextCapped(
+  XFile file, {
+  int maxBytes = kMaxImportFileBytes,
+}) async {
+  final length = await file.length();
+  if (length > maxBytes) throw ImportFileTooLargeException(length);
+  return file.readAsString();
+}
+
+/// Reads [file]'s raw bytes, but only after confirming its length is within
+/// [maxBytes]; throws [ImportFileTooLargeException] otherwise. The binary
+/// counterpart to [readImportTextCapped] (used by the `.USR` byte path).
+Future<Uint8List> readImportBytesCapped(
+  XFile file, {
+  int maxBytes = kMaxImportFileBytes,
+}) async {
+  final length = await file.length();
+  if (length > maxBytes) throw ImportFileTooLargeException(length);
+  return file.readAsBytes();
+}
+
 /// Prompts the user to choose a source file for an import and returns its
 /// contents, or `null` if they cancelled. See [pickImportFile] for the default
 /// implementation; widget tests override this seam to return canned text so no
@@ -40,7 +99,7 @@ Future<String?> pickImportFile() async {
   );
   final file = await openFile(acceptedTypeGroups: const [jsonGroup]);
   if (file == null) return null;
-  return file.readAsString();
+  return readImportTextCapped(file);
 }
 
 /// Prompts the user to choose a **binary** source file for an import and returns
@@ -70,7 +129,7 @@ Future<Uint8List?> pickImportUsrFile() async {
   );
   final file = await openFile(acceptedTypeGroups: const [usrGroup]);
   if (file == null) return null;
-  return file.readAsBytes();
+  return readImportBytesCapped(file);
 }
 
 /// Fetches the text body of an import source over HTTP and returns it, or

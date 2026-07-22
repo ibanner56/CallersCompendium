@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:compendium_core/src/imports/fmp/fmp_reader.dart';
 import 'package:test/test.dart';
 
@@ -67,5 +69,83 @@ void main() {
       db.tableNamed('Set')!.records.single.valuesByColumnIndex[1],
       'Friday Contra',
     );
+  });
+
+  group('structural resource limits (fail-closed DoS guard)', () {
+    // Two tables, one with two rows and two body sectors — enough to trip each
+    // bound when its limit is set to 1.
+    Uint8List twoTableFixture() => buildFmp12Fixture([
+      FmpFixtureTable(
+        index: 1,
+        name: 'Dance',
+        columnNames: ['Name'],
+        rows: [
+          MapEntry(1, {1: 'Simplicity Swing'}),
+          MapEntry(2, {1: 'Petronella'}),
+        ],
+      ),
+      FmpFixtureTable(
+        index: 2,
+        name: 'Set',
+        columnNames: ['Title'],
+        rows: [
+          MapEntry(1, {1: 'Friday Contra'}),
+        ],
+      ),
+    ]);
+
+    test('rejects a file with too many tables', () {
+      expect(
+        () => readFmp12(
+          twoTableFixture(),
+          limits: const FmpReadLimits(maxTables: 1),
+        ),
+        throwsA(
+          isA<FmpResourceLimitException>().having(
+            (e) => e.message,
+            'message',
+            contains('too many tables'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects a file with too many records', () {
+      expect(
+        () => readFmp12(
+          twoTableFixture(),
+          limits: const FmpReadLimits(maxRecords: 1),
+        ),
+        throwsA(isA<FmpResourceLimitException>()),
+      );
+    });
+
+    test('rejects a file with too many sectors', () {
+      expect(
+        () => readFmp12(
+          twoTableFixture(),
+          limits: const FmpReadLimits(maxSectors: 1),
+        ),
+        throwsA(isA<FmpResourceLimitException>()),
+      );
+    });
+
+    test('parses normally under generous (default-shaped) limits', () {
+      final db = readFmp12(
+        twoTableFixture(),
+        limits: const FmpReadLimits(
+          maxTables: 100,
+          maxSectors: 100,
+          maxRecords: 100,
+        ),
+      );
+      expect(db.tables.map((t) => t.name), containsAll(['Dance', 'Set']));
+      expect(db.tableNamed('Dance')!.records, hasLength(2));
+    });
+
+    test('the default limits admit a normal small file', () {
+      // Sanity: the production defaults never reject a legitimate tiny file.
+      expect(() => readFmp12(twoTableFixture()), returnsNormally);
+    });
   });
 }

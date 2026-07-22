@@ -48,7 +48,12 @@ import 'structured_draft.dart';
 /// notes). Authors stay unresolved (names → notes + info issue), matching the
 /// other adapters and the queued author-resolution PR.
 class CallersCompanionUsrAdapter implements SourceAdapter {
-  CallersCompanionUsrAdapter();
+  CallersCompanionUsrAdapter({this.limits = const FmpReadLimits()});
+
+  /// Structural bounds handed to [readCcUsrArchive]; exceeding one fails closed
+  /// with a friendly "too large" [ImportError] (see [discover]). Defaults to the
+  /// production ceilings; tests inject tiny values to exercise the guard.
+  final FmpReadLimits limits;
 
   /// Version tag stamped onto each [RawRecord.sourceVersion].
   static const String sourceVersion = ccUsrSourceVersion;
@@ -61,7 +66,16 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
     final bytes = _bytesOf(request);
     final CcUsrArchive archive;
     try {
-      archive = readCcUsrArchive(bytes);
+      archive = readCcUsrArchive(bytes, limits: limits);
+    } on FmpResourceLimitException {
+      // Untrusted input that is too large / over-structured: fail closed with a
+      // friendly message aligned with the archive intake path. The internal
+      // detail is never surfaced (no information leak).
+      throw ImportError(
+        stage: ImportStage.discover,
+        source: source,
+        message: 'That file is too large to import.',
+      );
     } on FmpFormatException catch (e) {
       throw ImportError(
         stage: ImportStage.discover,

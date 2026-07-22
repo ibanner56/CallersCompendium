@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:compendium_app/src/data/import_io.dart';
+import 'package:file_selector/file_selector.dart' show XFile;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -425,5 +428,74 @@ void main() {
       expect(detect('not a url'), isNull);
       expect(detect('ftp://contradb.com/dances/1'), isNull);
     });
+  });
+
+  group('import file size cap', () {
+    // A picked file is untrusted input (OWASP A04/A05 — uncontrolled resource
+    // consumption). The cap must be checked via XFile.length() BEFORE the whole
+    // file is read into memory. Tests inject an in-memory XFile + a small
+    // maxBytes (mirroring ArchiveIntakeService's injectable maxBytes) so no real
+    // picker plugin runs and no giant allocation is needed.
+    XFile fileOf(List<int> bytes) =>
+        XFile.fromData(Uint8List.fromList(bytes), name: 'import.bin');
+
+    test('the friendly message never leaks the length', () {
+      const e = ImportFileTooLargeException(999999999);
+      expect(e.message, 'That file is too large to import.');
+      expect(e.toString(), 'That file is too large to import.');
+    });
+
+    test(
+      'readImportBytesCapped returns bytes for a file within the cap',
+      () async {
+        final bytes = List<int>.generate(16, (i) => i);
+        expect(await readImportBytesCapped(fileOf(bytes), maxBytes: 32), bytes);
+      },
+    );
+
+    test(
+      'readImportBytesCapped rejects a file over the cap before reading',
+      () async {
+        await expectLater(
+          readImportBytesCapped(
+            fileOf(List<int>.filled(20, 0x41)),
+            maxBytes: 8,
+          ),
+          throwsA(isA<ImportFileTooLargeException>()),
+        );
+      },
+    );
+
+    test(
+      'readImportTextCapped returns text for a file within the cap',
+      () async {
+        expect(
+          await readImportTextCapped(fileOf('hello'.codeUnits), maxBytes: 32),
+          'hello',
+        );
+      },
+    );
+
+    test(
+      'readImportTextCapped rejects a file over the cap before reading',
+      () async {
+        await expectLater(
+          readImportTextCapped(fileOf(List<int>.filled(20, 0x41)), maxBytes: 8),
+          throwsA(isA<ImportFileTooLargeException>()),
+        );
+      },
+    );
+
+    test('the default cap is aligned with the 25 MiB archive intake cap', () {
+      expect(kMaxImportFileBytes, 25 * 1024 * 1024);
+    });
+
+    test(
+      'a file exactly at the cap is accepted (boundary is inclusive)',
+      () async {
+        final bytes = List<int>.filled(8, 0x42);
+        expect(await readImportBytesCapped(fileOf(bytes), maxBytes: 8), bytes);
+      },
+    );
   });
 }
