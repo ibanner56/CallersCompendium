@@ -18,14 +18,20 @@ import UniformTypeIdentifiers
 /// touches the import pipeline. Keeping the native surface dumb keeps the trust
 /// boundary in one place (Dart).
 final class ShareViewController: UIViewController {
-  /// App Group shared with the host app; shared URLs are handed over through
-  /// its `UserDefaults` suite.
+  /// App Group shared with the host app; shared URLs are handed over through the
+  /// `SharedImportQueue` directory in its container.
   private static let appGroupId = "group.org.callerscompendium.compendiumApp"
 
-  /// Key under which raw shared URL strings are appended as a FIFO queue, so
-  /// multiple shares while the host is suspended/closed all survive until the
-  /// host drains them (issue #428).
-  private static let sharedQueueKey = "SharedImportQueue"
+  /// Directory inside the App Group container holding the shared-URL queue. Each
+  /// payload is its own uniquely-named `.ccurl` file written via an atomic
+  /// rename, so the host draining the queue only ever sees fully-written files
+  /// and a payload appended mid-drain is never partially read or silently lost
+  /// (issue #428, PR #484 review). Must match `IncomingFilesPlugin`'s queue.
+  private static let queueDirectoryName = "SharedImportQueue"
+
+  /// File extension marking a queued payload; anything else in the directory
+  /// (e.g. a transient atomic-write temp file) is ignored by the drain.
+  private static let payloadExtension = "ccurl"
 
   /// Custom URL scheme used only to wake the host app (NOT a universal link —
   /// see issue #343). Confirmed against `Runner/Info.plist` `CFBundleURLSchemes`.
@@ -87,24 +93,77 @@ final class ShareViewController: UIViewController {
     }
   }
 
-  /// Appends the raw shared string to the App Group FIFO queue. The host treats
-  /// every entry as untrusted input and OWASP-validates it before import.
+  /// Writes the raw shared string to the App Group queue as its own uniquely
+  /// named file, published atomically so the host — a separate process draining
+  /// concurrently — only ever observes a fully-written payload (issue #428, PR
+  /// #484 review). The host treats every entry as untrusted input and
+  /// OWASP-validates it before import.
   private func enqueueSharedURL(_ url: String) {
-    guard let defaults = UserDefaults(suiteName: Self.appGroupId) else { return }
-    var queue = defaults.stringArray(forKey: Self.sharedQueueKey) ?? []
-    queue.append(url)
-    if queue.count > Self.maxQueuedURLs {
-      queue = Array(queue.suffix(Self.maxQueuedURLs))
+    guard let data = url.data(using: .utf8),
+      let directory = Self.queueDirectory()
+    else { return }
+    let fileManager = FileManager.default
+    do {
+      try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+      let destination = directory.appendingPathComponent(
+        "\(UUID().uuidString).\(Self.payloadExtension)")
+      // `.atomic` writes to a temp file then renames into place; the rename is
+      // atomic within the directory, so the host never reads a half-written file.
+      try data.write(to: destination, options: .atomic)
+      pruneQueue(in: directory)
+    } catch {
+      // Best-effort: if the container is briefly unavailable we skip this payload
+      // rather than crash the share sheet. Delivery of prior payloads is
+      // unaffected — the host drains whatever is present on its next foreground.
     }
-    defaults.set(queue, forKey: Self.sharedQueueKey)
   }
 
-  /// Best-effort wake of the host via the PUBLIC extension API (issue #428),
-  /// then finish the request. An extension must NOT reach `UIApplication` or the
-  /// private `openURL:` selector (a no-op on scene-based iOS); `open` is the
-  /// supported hand-off. Success or failure is non-fatal — the payload is
-  /// already durable in the App Group and the host drains it on activation — so
-  /// the request completes either way.
+  /// Bounds the queue so repeatedly sharing into a suspended app can't grow the
+  /// container unbounded. Oldest payloads beyond the cap are dropped; the host
+  /// clears the rest on its next activation.
+  private func pruneQueue(in directory: URL) {
+    let fileManager = FileManager.default
+    guard
+      let files = try? fileManager.contentsOfDirectory(
+        at: directory,
+        includingPropertiesForKeys: [.creationDateKey],
+        options: [.skipsHiddenFiles])
+    else { return }
+    let payloads =
+      files
+      .filter { $0.pathExtension == Self.payloadExtension }
+      .sorted { Self.creationDate(of: $0) < Self.creationDate(of: $1) }
+    guard payloads.count > Self.maxQueuedURLs else { return }
+    for file in payloads.prefix(payloads.count - Self.maxQueuedURLs) {
+      try? fileManager.removeItem(at: file)
+    }
+  }
+
+  /// URL of the App Group queue directory, or `nil` if the container is
+  /// unavailable.
+  private static func queueDirectory() -> URL? {
+    FileManager.default
+      .containerURL(forSecurityApplicationGroupIdentifier: appGroupId)?
+      .appendingPathComponent(queueDirectoryName, isDirectory: true)
+  }
+
+  private static func creationDate(of url: URL) -> Date {
+    (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate)
+      ?? .distantPast
+  }
+
+  /// Opportunistically wakes the host, then finishes the request. Delivery is
+  /// NOT dependent on this: the payload is already durably queued in the App
+  /// Group and the host drains it on its next foreground (issue #428).
+  ///
+  /// `NSExtensionContext.open` is documented for Today/iMessage extensions and
+  /// is unsupported by the Share extension point — it typically reports failure
+  /// without foregrounding the host (PR #484 review). We therefore treat it as a
+  /// best-effort nudge only: the result flag is ignored and the extension always
+  /// completes SUCCESSFULLY, because the durable queue + host foreground-drain is
+  /// the authoritative, guaranteed delivery path. We must never reach
+  /// `UIApplication` or the private `openURL:` selector (a no-op on scene-based
+  /// iOS).
   private func wakeHostAndComplete() {
     guard let context = extensionContext,
       let url = URL(string: "\(Self.hostScheme)://import")
@@ -112,6 +171,8 @@ final class ShareViewController: UIViewController {
       complete()
       return
     }
+    // Ignore the result: open() may report failure on the Share extension point;
+    // that is expected and non-fatal since the payload is already enqueued.
     context.open(url) { [weak self] _ in
       self?.complete()
     }

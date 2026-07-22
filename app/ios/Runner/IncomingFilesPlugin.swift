@@ -30,12 +30,8 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
   private var channel: FlutterMethodChannel?
 
   /// App Group shared with the Share Extension; shared URLs are handed over
-  /// through its `UserDefaults` suite.
+  /// through the `SharedImportQueue` directory in its container.
   private static let appGroupId = "group.org.callerscompendium.compendiumApp"
-
-  /// Key under which the Share Extension appends raw shared URL strings as a
-  /// FIFO queue (issue #428).
-  private static let sharedQueueKey = "SharedImportQueue"
 
   /// Legacy single-value slot written by pre-#428 Share Extension builds. Still
   /// drained so a payload orphaned by an old (broken-wake) build is recovered on
@@ -169,42 +165,32 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     return first
   }
 
-  /// Atomically takes every pending shared URL from the App Group (new FIFO
-  /// queue + legacy single key) and clears the container, so each payload is
+  /// Takes every pending shared URL and clears the container, so each payload is
   /// delivered exactly once even if both the wake and the foreground drain fire.
-  /// Malformed (non-string / blank) entries are dropped — fail closed, never
-  /// crash — because the App Group is written by a separate process and must be
-  /// treated as untrusted before it reaches Dart's validation gate.
+  ///
+  /// The primary queue is a directory of per-payload files (`SharedImportQueue`):
+  /// draining enumerates a snapshot and deletes each file as it's read, so a
+  /// payload the extension appends mid-drain — its own atomically-renamed file —
+  /// is either already visible (and taken now) or not yet visible (and taken on
+  /// the next foreground). It can never be partially read or silently deleted
+  /// (PR #484 review). Malformed / blank entries are dropped — fail closed, never
+  /// crash — because a separate process writes them and they must be treated as
+  /// untrusted before reaching Dart's validation gate.
   private func takePendingSharedURLs() -> [String] {
-    guard let defaults = UserDefaults(suiteName: Self.appGroupId) else { return [] }
-    let rawQueue = defaults.array(forKey: Self.sharedQueueKey)
-    let rawLegacy = defaults.object(forKey: Self.legacySharedUrlKey)
-    // Take-and-clear first: a concurrent wake + foreground drain can then never
-    // observe the same payload twice.
-    defaults.removeObject(forKey: Self.sharedQueueKey)
-    defaults.removeObject(forKey: Self.legacySharedUrlKey)
-
     var urls: [String] = []
-    if let rawQueue {
-      for entry in rawQueue {
-        if let normalized = Self.normalizedURLString(entry) {
-          urls.append(normalized)
-        }
+    if let directory = SharedImportQueue.directory(forAppGroup: Self.appGroupId) {
+      urls.append(contentsOf: SharedImportQueue.drain(from: directory))
+    }
+    // Legacy single-value slot written by pre-#428 builds: take-and-clear it too
+    // so an old orphaned payload is recovered on the next launch.
+    if let defaults = UserDefaults(suiteName: Self.appGroupId) {
+      let rawLegacy = defaults.object(forKey: Self.legacySharedUrlKey)
+      defaults.removeObject(forKey: Self.legacySharedUrlKey)
+      if let normalized = SharedImportQueue.normalizedURLString(rawLegacy as? String) {
+        urls.append(normalized)
       }
     }
-    if let normalized = Self.normalizedURLString(rawLegacy) {
-      urls.append(normalized)
-    }
     return urls
-  }
-
-  /// Coerces an App Group entry to a trimmed, non-empty string, or `nil` to drop
-  /// it. The authoritative trust boundary stays in Dart; this only ensures we
-  /// never enqueue junk (a non-string, or blank) that could crash the channel.
-  private static func normalizedURLString(_ value: Any?) -> String? {
-    guard let string = value as? String else { return nil }
-    let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
-    return trimmed.isEmpty ? nil : trimmed
   }
 
   // MARK: - File helpers (issue #298)
@@ -243,5 +229,96 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     } catch {
       return nil
     }
+  }
+}
+
+/// Cross-process-safe queue of shared-URL payloads backed by a directory in the
+/// App Group container (issue #428, PR #484 review). Each payload is its own
+/// uniquely-named `.ccurl` file. The Share Extension publishes a file with an
+/// atomic write (temp + rename), so the host — a separate process draining
+/// concurrently — only ever sees a fully-written file under its final name.
+/// Draining enumerates the directory and deletes each file as it reads it, so a
+/// payload appended after enumeration is simply picked up by the next drain:
+/// nothing is ever partially read or lost, and take-and-delete keeps it
+/// idempotent when a wake and a foreground drain race for the same payload.
+///
+/// `internal` (not `private`) so the `RunnerTests` target can exercise the
+/// concurrent-append-during-drain behaviour via `@testable import Runner`.
+enum SharedImportQueue {
+  /// Directory name inside the App Group container. Must match the Share
+  /// Extension's `queueDirectoryName`.
+  static let directoryName = "SharedImportQueue"
+
+  /// Extension marking a complete payload file; other entries (e.g. a transient
+  /// atomic-write temp file) are ignored.
+  static let payloadExtension = "ccurl"
+
+  /// Queue directory inside the given App Group container, or `nil` when the
+  /// container is unavailable.
+  static func directory(forAppGroup appGroupId: String) -> URL? {
+    FileManager.default
+      .containerURL(forSecurityApplicationGroupIdentifier: appGroupId)?
+      .appendingPathComponent(directoryName, isDirectory: true)
+  }
+
+  /// Publishes one payload as its own uniquely-named file, made visible via an
+  /// atomic rename. Mirrors the Share Extension's writer (the two targets don't
+  /// share a module, so the extension keeps its own copy). Returns `false` on
+  /// I/O failure. Primarily used by tests here.
+  @discardableResult
+  static func enqueue(_ payload: String, into directory: URL) -> Bool {
+    guard let data = payload.data(using: .utf8) else { return false }
+    let fileManager = FileManager.default
+    do {
+      try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+      let destination = directory.appendingPathComponent(
+        "\(UUID().uuidString).\(payloadExtension)")
+      try data.write(to: destination, options: .atomic)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /// Takes and deletes every complete payload currently visible, oldest first.
+  /// A file that appears after enumeration is left for the next drain. Malformed
+  /// / blank payloads are dropped (fail closed).
+  static func drain(from directory: URL) -> [String] {
+    let fileManager = FileManager.default
+    guard
+      let entries = try? fileManager.contentsOfDirectory(
+        at: directory,
+        includingPropertiesForKeys: [.creationDateKey],
+        options: [.skipsHiddenFiles])
+    else { return [] }
+    let payloads =
+      entries
+      .filter { $0.pathExtension == payloadExtension }
+      .sorted { creationDate(of: $0) < creationDate(of: $1) }
+    var urls: [String] = []
+    for file in payloads {
+      let contents = try? String(contentsOf: file, encoding: .utf8)
+      // Delete before yielding so a re-entrant drain (wake + foreground) can't
+      // take the same file twice; whichever drain removed it owns delivery.
+      try? fileManager.removeItem(at: file)
+      if let normalized = normalizedURLString(contents) {
+        urls.append(normalized)
+      }
+    }
+    return urls
+  }
+
+  /// Coerces a payload to a trimmed, non-empty string, or `nil` to drop it. The
+  /// authoritative trust boundary stays in Dart; this only stops junk (nil or
+  /// blank) from reaching the channel.
+  static func normalizedURLString(_ value: String?) -> String? {
+    guard let value else { return nil }
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmed.isEmpty ? nil : trimmed
+  }
+
+  private static func creationDate(of url: URL) -> Date {
+    (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate)
+      ?? .distantPast
   }
 }
