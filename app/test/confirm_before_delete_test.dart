@@ -15,6 +15,7 @@ import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -63,6 +64,8 @@ Future<void> _pumpDanceList(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(
@@ -99,6 +102,8 @@ Future<void> _pumpProgramsList(
   addTearDown(confirm.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: ConfirmBeforeDeleteScope(notifier: confirm, child: child!),
@@ -126,6 +131,8 @@ Future<void> _pumpProgramsShell(
   addTearDown(confirm.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: ActiveDialectScope(

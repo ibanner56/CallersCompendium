@@ -10,6 +10,7 @@ import 'package:compendium_app/src/theme/set_list_accents.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -45,7 +46,13 @@ Future<void> _pump(
       child: tile,
     );
   }
-  await tester.pumpWidget(MaterialApp(home: Scaffold(body: tile)));
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: Scaffold(body: tile),
+    ),
+  );
 }
 
 void main() {
@@ -180,6 +187,8 @@ void main() {
         addTearDown(notifier.dispose);
         await tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
             home: Scaffold(
               body: RequirePerformedForHistoryScope(
                 notifier: notifier,
@@ -232,6 +241,8 @@ void main() {
       await controller.load();
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             body: FormationColorsScope(
               controller: controller,
@@ -260,6 +271,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             body: FormationColorsScope(
               controller: controller,

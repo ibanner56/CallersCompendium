@@ -15,6 +15,7 @@ import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 Dance _dance({
   required String id,
@@ -73,6 +74,8 @@ Future<void> _pumpScreen(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => wrap(child!),
       home: const DanceListScreen(),
     ),

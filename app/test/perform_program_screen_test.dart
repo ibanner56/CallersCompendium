@@ -16,6 +16,7 @@ import 'package:compendium_app/src/theme/color_schemes.dart';
 
 import 'support/test_repositories.dart';
 import 'support/fake_wakelock.dart';
+import 'support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 final _renderer = FigureRenderer(contraTaxonomy);
@@ -82,6 +83,8 @@ Future<void> _pumpProgram(
   await repos.settings.set(kAutoSizePerformKey, autoSize);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: ActiveDialectScope(notifier: notifier, child: child!),
@@ -171,6 +174,8 @@ void main() {
     await repos.settings.set(kAutoSizePerformKey, false);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         builder: (context, child) => RepositoriesScope(
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
@@ -312,6 +317,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         builder: (context, child) => RepositoriesScope(
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
@@ -341,6 +348,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         builder: (context, child) => RepositoriesScope(
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
@@ -373,6 +382,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         builder: (context, child) => RepositoriesScope(
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),

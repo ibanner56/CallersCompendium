@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/verbose_figure_rendering_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../search/facet_labels.dart';
@@ -30,10 +31,11 @@ class FigureTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     if (figures.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Text('No figures yet.', style: theme.textTheme.bodyMedium),
+        child: Text(l10n.danceFiguresEmpty, style: theme.textTheme.bodyMedium),
       );
     }
 
@@ -135,13 +137,15 @@ class _FigureRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
+    final l10n = AppLocalizations.of(context);
+    final beatsLabel = l10n.danceFigureBeats(beats);
     final semanticsLabel = [
       verboseText,
       if (isImportGap) importGapMessage,
-      if (progression) 'progression',
+      if (progression) l10n.danceFigureProgressionSemantic,
       beatsLabel,
-      if (note != null && note!.trim().isNotEmpty) 'note: ${note!.trim()}',
+      if (note != null && note!.trim().isNotEmpty)
+        l10n.danceFigureNote(note!.trim()),
     ].join(', ');
     return Semantics(
       label: semanticsLabel,
@@ -158,7 +162,7 @@ class _FigureRow extends StatelessWidget {
               width: 24,
               child: progression
                   ? Tooltip(
-                      message: 'Progression',
+                      message: l10n.commonProgression,
                       child: Icon(
                         progressionIcon,
                         size: MediaQuery.textScalerOf(context)

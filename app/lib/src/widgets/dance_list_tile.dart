@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -83,6 +84,7 @@ class DanceListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final dance = entry.dance;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     // Mirror the dance-detail calling history: when "Require mark-performed"
     // is on the count reflects performed-only occurrences, otherwise every
@@ -112,7 +114,7 @@ class DanceListTile extends StatelessWidget {
               // Toggled by tapping the row (ListTile.onTap); the checkbox
               // mirrors that so pointer taps on the box itself also work.
               onChanged: onTap == null ? null : (_) => onTap!(),
-              semanticLabel: 'Select ${dance.title}',
+              semanticLabel: l10n.collectionSelectDanceLabel(dance.title),
             )
           : Tooltip(
               message: danceFormLabel(dance.form),
@@ -141,10 +143,10 @@ class DanceListTile extends StatelessWidget {
                 key: ValueKey('called-count-${dance.id}'),
                 avatar: const Icon(Icons.campaign_outlined, size: 16),
                 label: Text(
-                  'called ×$calledCount',
-                  semanticsLabel: calledCount == 1
-                      ? 'called 1 time'
-                      : 'called $calledCount times',
+                  l10n.collectionCalledBadge(calledCount),
+                  semanticsLabel: l10n.collectionCalledBadgeSemantic(
+                    calledCount,
+                  ),
                 ),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -176,7 +178,7 @@ class DanceListTile extends StatelessWidget {
             if (dance.mixedLevel)
               Chip(
                 avatar: const Icon(Icons.swap_vert_outlined, size: 16),
-                label: const Text('Mixed level'),
+                label: Text(l10n.commonMixedLevel),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -186,7 +188,7 @@ class DanceListTile extends StatelessWidget {
                 avatar: const Icon(Icons.star_outline, size: 16),
                 label: Text(
                   '${dance.rating}',
-                  semanticsLabel: 'Rating: ${dance.rating} of 5 stars',
+                  semanticsLabel: l10n.collectionRatingSemantic(dance.rating!),
                 ),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -197,7 +199,7 @@ class DanceListTile extends StatelessWidget {
                   key: ValueKey('tag-filter-chip-${tag.id}'),
                   avatar: const Icon(Icons.label_outline, size: 16),
                   label: Text(tag.name),
-                  tooltip: 'Show dances tagged “${tag.name}”',
+                  tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   onPressed: () => onTagTap!(tag.id),
@@ -219,7 +221,7 @@ class DanceListTile extends StatelessWidget {
         ),
       ),
       isThreeLine: false,
-      trailing: selectionMode ? null : _buildTrailing(),
+      trailing: selectionMode ? null : _buildTrailing(l10n),
       onTap:
           onTap ??
           () => Navigator.of(context).push(
@@ -234,13 +236,13 @@ class DanceListTile extends StatelessWidget {
   /// Trailing content for a normal (non-selection) row: the row action overflow
   /// (⋮) menu when any action callback is wired, followed by the drill-in
   /// chevron. Falls back to the chevron alone when no actions are provided.
-  Widget _buildTrailing() {
+  Widget _buildTrailing(AppLocalizations l10n) {
     final hasActions =
         onDelete != null || onDuplicate != null || onAddToProgram != null;
     if (!hasActions) return const Icon(Icons.chevron_right);
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [_actionsMenu(), const Icon(Icons.chevron_right)],
+      children: [_actionsMenu(l10n), const Icon(Icons.chevron_right)],
     );
   }
 
@@ -248,11 +250,11 @@ class DanceListTile extends StatelessWidget {
   /// without a swipe. Each item is a first-class [PopupMenuItem] with an
   /// icon+text [ListTile] so its label is announced by assistive tech; the
   /// button itself is labelled by its [PopupMenuButton.tooltip].
-  Widget _actionsMenu() {
+  Widget _actionsMenu(AppLocalizations l10n) {
     final dance = entry.dance;
     return PopupMenuButton<_DanceRowAction>(
       key: ValueKey('dance-actions-${dance.id}'),
-      tooltip: 'Actions for ${dance.title}',
+      tooltip: l10n.collectionRowActionsSemantic(dance.title),
       icon: const Icon(Icons.more_vert),
       onSelected: (action) {
         switch (action) {
@@ -266,12 +268,12 @@ class DanceListTile extends StatelessWidget {
       },
       itemBuilder: (context) => [
         if (onDuplicate != null)
-          const PopupMenuItem<_DanceRowAction>(
-            key: ValueKey('dance-action-duplicate'),
+          PopupMenuItem<_DanceRowAction>(
+            key: const ValueKey('dance-action-duplicate'),
             value: _DanceRowAction.duplicate,
             child: ListTile(
-              leading: Icon(Icons.copy_all_outlined),
-              title: Text('Duplicate'),
+              leading: const Icon(Icons.copy_all_outlined),
+              title: Text(l10n.commonDuplicate),
               contentPadding: EdgeInsets.zero,
             ),
           ),
@@ -288,12 +290,12 @@ class DanceListTile extends StatelessWidget {
         if (onDelete != null) ...[
           if (onDuplicate != null || onAddToProgram != null)
             const PopupMenuDivider(),
-          const PopupMenuItem<_DanceRowAction>(
-            key: ValueKey('dance-action-delete'),
+          PopupMenuItem<_DanceRowAction>(
+            key: const ValueKey('dance-action-delete'),
             value: _DanceRowAction.delete,
             child: ListTile(
-              leading: Icon(Icons.delete_outline),
-              title: Text('Delete'),
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l10n.commonDelete),
               contentPadding: EdgeInsets.zero,
             ),
           ),

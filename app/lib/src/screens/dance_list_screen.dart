@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_filter_scope.dart';
@@ -835,11 +836,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
     }
 
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final count = priorTags.length;
     final message = count == 0
-        ? 'No changes'
-        : '${mode == BatchTagMode.add ? 'Tagged' : 'Removed tags from'} '
-              '$count ${count == 1 ? 'dance' : 'dances'}';
+        ? l10n.collectionBatchNoChanges
+        : mode == BatchTagMode.add
+        ? l10n.collectionBatchTagged(count)
+        : l10n.collectionBatchUntagged(count);
     SemanticsService.sendAnnouncement(
       View.of(context),
       message,
@@ -866,7 +869,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         key: const ValueKey('batch-tag-snackbar'),
         content: Text(message),
         action: SnackBarAction(
-          label: 'Undo',
+          label: l10n.commonUndo,
           onPressed: () => _undoBatchTag(priorTags),
         ),
       ),
@@ -921,10 +924,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
     priorLevels.removeWhere((_, prior) => prior == target);
 
     if (!mounted) return;
-    final label = choice.clear ? 'Cleared level on' : 'Set level on';
+    final l10n = AppLocalizations.of(context);
     final message = count == 0
-        ? 'No changes'
-        : '$label $count ${count == 1 ? 'dance' : 'dances'}';
+        ? l10n.collectionBatchNoChanges
+        : choice.clear
+        ? l10n.collectionBatchLevelCleared(count)
+        : l10n.collectionBatchLevelSet(count);
     SemanticsService.sendAnnouncement(
       View.of(context),
       message,
@@ -951,7 +956,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         key: const ValueKey('batch-level-snackbar'),
         content: Text(message),
         action: SnackBarAction(
-          label: 'Undo',
+          label: l10n.commonUndo,
           onPressed: () => _undoBatchLevel(priorLevels),
         ),
       ),
@@ -977,6 +982,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: _selectionMode ? _buildSelectionAppBar() : _buildDefaultAppBar(),
       body: _buildBody(),
@@ -987,15 +993,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
               heroTag: 'new-dance',
               onPressed: _openNewDance,
               icon: const Icon(Icons.add),
-              label: const Text('New dance'),
+              label: Text(l10n.collectionNewDance),
             ),
     );
   }
 
   PreferredSizeWidget _buildDefaultAppBar() {
+    final l10n = AppLocalizations.of(context);
     final openSearch = AppShellSearchScope.of(context)?.openSearch;
     return AppBar(
-      title: const Text('Collection'),
+      title: Text(l10n.collectionScreenTitle),
       actions: [
         // Phone-only: search lives in the app bar (the bottom-right FAB slot is
         // reserved for the "New dance" FAB). On wide layouts the nav rail owns
@@ -1003,7 +1010,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         if (openSearch != null)
           IconButton(
             key: const ValueKey('collection-search'),
-            tooltip: 'Search (Ctrl/Cmd-K)',
+            tooltip: l10n.collectionSearchTooltip,
             icon: const Icon(Icons.search),
             onPressed: openSearch,
           ),
@@ -1017,24 +1024,24 @@ class _DanceListScreenState extends State<DanceListScreen> {
             ),
           IconButton(
             key: const ValueKey('batch-select'),
-            tooltip: 'Select dances',
+            tooltip: l10n.collectionSelectDancesTooltip,
             icon: const Icon(Icons.checklist),
             onPressed: _results.isEmpty ? null : () => _enterSelectionMode(),
           ),
           IconButton(
             key: const ValueKey('manage-custom-fields'),
-            tooltip: 'Manage custom fields',
+            tooltip: l10n.collectionManageCustomFieldsTooltip,
             icon: const Icon(Icons.list_alt_outlined),
             onPressed: _openCustomFields,
           ),
           IconButton(
             key: const ValueKey('recently-deleted'),
-            tooltip: 'Recently deleted',
+            tooltip: l10n.collectionRecentlyDeletedTooltip,
             icon: const Icon(Icons.restore_from_trash_outlined),
             onPressed: _openRecentlyDeleted,
           ),
           PopupMenuButton<CollectionSort>(
-            tooltip: 'Sort by (${_sort.label})',
+            tooltip: l10n.collectionSortByTooltip(_sort.label),
             initialValue: _sort,
             icon: const Icon(Icons.sort),
             onSelected: (value) {
@@ -1053,8 +1060,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
           IconButton(
             key: const ValueKey('collection-sort-direction'),
             tooltip: _sortDir == SortDirection.ascending
-                ? 'Ascending (tap for descending)'
-                : 'Descending (tap for ascending)',
+                ? l10n.collectionSortAscendingTooltip
+                : l10n.collectionSortDescendingTooltip,
             icon: Icon(
               _sortDir == SortDirection.ascending
                   ? Icons.arrow_upward
@@ -1076,32 +1083,36 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   PreferredSizeWidget _buildSelectionAppBar() {
+    final l10n = AppLocalizations.of(context);
     final count = _selectedIds.length;
     final hasSelection = count > 0;
     return AppBar(
       leading: IconButton(
         key: const ValueKey('batch-exit'),
-        tooltip: 'Exit selection',
+        tooltip: l10n.collectionExitSelectionTooltip,
         icon: const Icon(Icons.close),
         onPressed: _exitSelectionMode,
       ),
-      title: Semantics(liveRegion: true, child: Text('$count selected')),
+      title: Semantics(
+        liveRegion: true,
+        child: Text(l10n.collectionSelectedCount(count)),
+      ),
       actions: [
         IconButton(
           key: const ValueKey('batch-add-tags'),
-          tooltip: 'Add tags',
+          tooltip: l10n.collectionAddTags,
           icon: const Icon(Icons.new_label_outlined),
           onPressed: hasSelection ? () => _batchTag(BatchTagMode.add) : null,
         ),
         IconButton(
           key: const ValueKey('batch-remove-tags'),
-          tooltip: 'Remove tags',
+          tooltip: l10n.collectionRemoveTags,
           icon: const Icon(Icons.label_off_outlined),
           onPressed: hasSelection ? () => _batchTag(BatchTagMode.remove) : null,
         ),
         IconButton(
           key: const ValueKey('batch-set-level'),
-          tooltip: 'Set level',
+          tooltip: l10n.collectionSetLevel,
           icon: const Icon(Icons.signal_cellular_alt),
           onPressed: hasSelection ? _batchSetLevel : null,
         ),
@@ -1140,13 +1151,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
     // Remove from local results immediately so the list updates without a full
     // reload (the full _boot() is expensive). On undo, trigger a full reload.
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     setState(() => _results.removeWhere((e) => e.dance.id == danceId));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         key: const ValueKey('list-deleted-snackbar'),
-        content: Text('"$title" deleted.'),
+        content: Text(l10n.commonDeletedSnack(title)),
         action: SnackBarAction(
-          label: 'Undo',
+          label: l10n.commonUndo,
           onPressed: () async {
             await _repos.dances.restore(danceId, at: DateTime.now().toUtc());
             if (mounted) await _boot();
@@ -1171,15 +1183,17 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (!mounted) return;
     await _boot();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         key: const ValueKey('list-duplicated-snackbar'),
-        content: Text('Duplicated as "$newTitle".'),
+        content: Text(l10n.collectionDuplicatedSnack(newTitle)),
       ),
     );
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
       return Center(
         child: Column(
@@ -1187,9 +1201,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
           children: [
             const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: AppSpacing.xs),
-            const Text('Could not load the collection.'),
+            Text(l10n.collectionLoadError),
             const SizedBox(height: AppSpacing.xs),
-            FilledButton(onPressed: _retryLoad, child: const Text('Retry')),
+            FilledButton(onPressed: _retryLoad, child: Text(l10n.commonRetry)),
           ],
         ),
       );
@@ -1224,16 +1238,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
             decoration: InputDecoration(
               labelText: _onlineEnabled
                   ? 'Search ${_onlineSource.label}'
-                  : 'Search dances',
+                  : l10n.collectionSearchFieldLabel,
               hintText: _onlineEnabled
                   ? 'Search online dances by title…'
-                  : 'Search titles, authors, figures, notes…',
+                  : l10n.collectionSearchFieldHint,
               prefixIcon: Icon(
                 _onlineEnabled ? Icons.cloud_outlined : Icons.search,
               ),
               suffixIcon: _hasActiveQuery
                   ? IconButton(
-                      tooltip: 'Clear search and filters',
+                      tooltip: l10n.collectionClearSearchTooltip,
                       icon: const Icon(Icons.clear),
                       onPressed: _clearAll,
                     )
@@ -1280,6 +1294,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Widget _buildEmptyCollectionSliver() {
+    final l10n = AppLocalizations.of(context);
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -1292,11 +1307,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               const SizedBox(height: AppSpacing.md),
-              const Text(
-                'Your collection is empty. Add or import a dance to get started — '
-                'or turn on Online search above to import from an online source.',
-                textAlign: TextAlign.center,
-              ),
+              Text(l10n.collectionEmpty, textAlign: TextAlign.center),
             ],
           ),
         ),
@@ -1331,6 +1342,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Widget _buildFiltersPanel(CollectionData data) {
+    final l10n = AppLocalizations.of(context);
     final activeCount = _activeFacetCount();
     return ExpansionTile(
       key: const ValueKey('filters-panel'),
@@ -1338,7 +1350,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       collapsedShape: const Border(),
       leading: const Icon(Icons.filter_alt_outlined),
       title: Text(
-        activeCount == 0 ? 'Filters' : 'Filters ($activeCount active)',
+        activeCount == 0
+            ? l10n.collectionFiltersTitle
+            : l10n.collectionFiltersActive(activeCount),
       ),
       childrenPadding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -1370,6 +1384,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Widget _buildByPhrasePanel(CollectionData data) {
+    final l10n = AppLocalizations.of(context);
     final activeCount = _byPhraseActiveCount();
     return ExpansionTile(
       key: const ValueKey('by-phrase-panel'),
@@ -1377,7 +1392,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       collapsedShape: const Border(),
       leading: const Icon(Icons.grid_view_outlined),
       title: Text(
-        activeCount == 0 ? 'By phrase' : 'By phrase ($activeCount active)',
+        activeCount == 0
+            ? l10n.collectionByPhraseTitle
+            : l10n.collectionByPhraseActive(activeCount),
       ),
       childrenPadding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -1408,12 +1425,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Widget _buildAdvancedPanel(CollectionData data) {
+    final l10n = AppLocalizations.of(context);
     return ExpansionTile(
       key: const ValueKey('advanced-panel'),
       shape: const Border(),
       collapsedShape: const Border(),
       leading: const Icon(Icons.account_tree_outlined),
-      title: const Text('Advanced'),
+      title: Text(l10n.collectionAdvancedTitle),
       childrenPadding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
         0,
@@ -1460,10 +1478,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
         SwitchListTile(
           key: const ValueKey('advanced-enable'),
           contentPadding: EdgeInsets.zero,
-          title: const Text('Use advanced query'),
-          subtitle: const Text(
-            'Combine figures and sequences with all / any / none groups.',
-          ),
+          title: Text(l10n.collectionUseAdvancedQuery),
+          subtitle: Text(l10n.collectionUseAdvancedQuerySubtitle),
           value: _advancedEnabled,
           // Disabled while online search is active — the advanced query is a
           // local-only facet that can't apply to Caller's Box results.
@@ -1486,12 +1502,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Widget _buildResultCount() {
+    final l10n = AppLocalizations.of(context);
     final bool online = _onlineEnabled;
     final int count = online ? _onlineResults.length : _results.length;
     final bool busy = online ? _onlineSearching : _searching;
     final String label = online
         ? '$count online ${count == 1 ? 'result' : 'results'}'
-        : '$count ${count == 1 ? 'dance' : 'dances'}';
+        : l10n.collectionDanceCount(count);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -1597,21 +1614,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Widget _buildResultsSliver() {
+    final l10n = AppLocalizations.of(context);
     if (_searchError != null) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.lg),
-          child: Center(
-            child: Text('Something went wrong running the search.'),
-          ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Center(child: Text(l10n.collectionSearchError)),
         ),
       );
     }
     if (_results.isEmpty) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.lg),
-          child: Center(child: Text('No dances match your search.')),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Center(child: Text(l10n.collectionNoResults)),
         ),
       );
     }
@@ -1706,7 +1722,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 backgroundColor: Theme.of(context).colorScheme.errorContainer,
                 foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
                 icon: Icons.delete_outline,
-                label: 'Delete',
+                label: l10n.commonDelete,
               ),
             ],
           ),

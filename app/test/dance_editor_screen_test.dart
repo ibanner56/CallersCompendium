@@ -19,6 +19,7 @@ import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -63,6 +64,8 @@ Future<void> _pumpEditor(
   addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       theme: theme,
       builder: (context, child) {
         final scoped = collectionRefresh == null
@@ -701,6 +704,8 @@ void main() {
       var addCount = 0;
 
       Widget harness(bool showPicker) => MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: Scaffold(
           body: showPicker
               ? NamePicker(
@@ -923,6 +928,8 @@ void main() {
     addTearDown(notifier.dispose);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         builder: (context, child) => RepositoriesScope(
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),

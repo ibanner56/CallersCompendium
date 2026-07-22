@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
 
@@ -56,6 +57,7 @@ class _GroupView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       color: theme.colorScheme.surfaceContainerHighest.withValues(
@@ -69,7 +71,7 @@ class _GroupView extends StatelessWidget {
             Row(
               children: [
                 Semantics(
-                  label: 'Match',
+                  label: l10n.collectionQueryMatchLabel,
                   child: DropdownButton<GroupKind>(
                     key: ValueKey('group-kind-${group.id}'),
                     value: group.kind,
@@ -86,12 +88,15 @@ class _GroupView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text('these conditions', style: theme.textTheme.bodySmall),
+                Text(
+                  l10n.collectionQueryTheseConditions,
+                  style: theme.textTheme.bodySmall,
+                ),
                 const Spacer(),
                 if (onRemove != null)
                   IconButton(
                     key: ValueKey('remove-${group.id}'),
-                    tooltip: 'Remove group',
+                    tooltip: l10n.collectionQueryRemoveGroup,
                     icon: const Icon(Icons.close),
                     onPressed: () {
                       onRemove!();
@@ -104,7 +109,7 @@ class _GroupView extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                 child: Text(
-                  'No conditions yet — add one below.',
+                  l10n.collectionQueryEmptyGroup,
                   style: theme.textTheme.bodySmall,
                 ),
               ),
@@ -171,27 +176,37 @@ class _AddMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopupMenuButton<String>(
       key: ValueKey('add-menu-$id'),
-      tooltip: 'Add a condition',
+      tooltip: l10n.collectionQueryAddCondition,
       onSelected: (value) => onAdd(switch (value) {
         'figure' => BuilderFigure(),
         'then' => BuilderThen(),
         _ => BuilderGroup(),
       }),
-      itemBuilder: (context) => const [
-        PopupMenuItem(value: 'figure', child: Text('Has figure')),
-        PopupMenuItem(value: 'then', child: Text('Sequence (then)')),
-        PopupMenuItem(value: 'group', child: Text('Condition group')),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'figure',
+          child: Text(l10n.collectionQueryHasFigure),
+        ),
+        PopupMenuItem(
+          value: 'then',
+          child: Text(l10n.collectionQuerySequenceThen),
+        ),
+        PopupMenuItem(
+          value: 'group',
+          child: Text(l10n.collectionQueryConditionGroup),
+        ),
       ],
-      child: const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add, size: 18),
-            SizedBox(width: 4),
-            Text('Add'),
+            const Icon(Icons.add, size: 18),
+            const SizedBox(width: 4),
+            Text(l10n.collectionQueryAddButton),
           ],
         ),
       ),
@@ -216,14 +231,15 @@ class _FigureRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 12, right: 8),
-            child: Text('Has figure'),
+          Padding(
+            padding: const EdgeInsets.only(top: 12, right: 8),
+            child: Text(l10n.collectionQueryHasFigure),
           ),
           Expanded(
             child: _FigureEditor(
@@ -235,7 +251,7 @@ class _FigureRow extends StatelessWidget {
           ),
           IconButton(
             key: ValueKey('remove-${figure.id}'),
-            tooltip: 'Remove figure',
+            tooltip: l10n.collectionQueryRemoveFigure,
             icon: const Icon(Icons.close),
             onPressed: onRemove,
           ),
@@ -263,6 +279,7 @@ class _ThenRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -272,7 +289,10 @@ class _ThenRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('First', style: theme.textTheme.labelSmall),
+                Text(
+                  l10n.collectionQueryThenFirst,
+                  style: theme.textTheme.labelSmall,
+                ),
                 _FigureOperandEditor(
                   node: node.before,
                   onReplace: (r) {
@@ -285,9 +305,15 @@ class _ThenRow extends StatelessWidget {
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Text('then', style: theme.textTheme.labelMedium),
+                  child: Text(
+                    l10n.collectionQueryThenConnector,
+                    style: theme.textTheme.labelMedium,
+                  ),
                 ),
-                Text('Later', style: theme.textTheme.labelSmall),
+                Text(
+                  l10n.collectionQueryThenLater,
+                  style: theme.textTheme.labelSmall,
+                ),
                 _FigureOperandEditor(
                   node: node.after,
                   onReplace: (r) {
@@ -303,7 +329,7 @@ class _ThenRow extends StatelessWidget {
           ),
           IconButton(
             key: ValueKey('remove-${node.id}'),
-            tooltip: 'Remove sequence',
+            tooltip: l10n.collectionQueryRemoveSequence,
             icon: const Icon(Icons.close),
             onPressed: onRemove,
           ),
@@ -348,6 +374,7 @@ class _FigureOperandEditor extends StatelessWidget {
   };
 
   Widget _buildLeaf(BuildContext context, BuilderFigure figure) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -361,7 +388,7 @@ class _FigureOperandEditor extends StatelessWidget {
           key: ValueKey('group-${figure.id}'),
           onPressed: () => onReplace(BuilderFigureGroup(children: [figure])),
           icon: const Icon(Icons.account_tree_outlined, size: 16),
-          label: const Text('Group figures'),
+          label: Text(l10n.collectionQueryGroupFigures),
         ),
       ],
     );
@@ -409,13 +436,14 @@ class _FigureGroupEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Semantics(
-              label: 'Figure group match',
+              label: l10n.collectionQueryFigureGroupMatch,
               child: DropdownButton<GroupKind>(
                 key: ValueKey('fig-group-kind-${group.id}'),
                 value: group.kind,
@@ -432,17 +460,20 @@ class _FigureGroupEditor extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text('of these figures', style: theme.textTheme.bodySmall),
+            Text(
+              l10n.collectionQueryOfTheseFigures,
+              style: theme.textTheme.bodySmall,
+            ),
             const Spacer(),
             if (onFlatten != null)
               TextButton(
                 key: ValueKey('flatten-${group.id}'),
                 onPressed: onFlatten,
-                child: const Text('Single figure'),
+                child: Text(l10n.collectionQuerySingleFigure),
               ),
           ],
         ),
-        for (final child in group.children) _buildChildRow(child),
+        for (final child in group.children) _buildChildRow(l10n, child),
         TextButton.icon(
           key: ValueKey('add-fig-${group.id}'),
           onPressed: () {
@@ -450,13 +481,13 @@ class _FigureGroupEditor extends StatelessWidget {
             onChanged();
           },
           icon: const Icon(Icons.add, size: 16),
-          label: const Text('Add figure'),
+          label: Text(l10n.collectionQueryAddFigure),
         ),
       ],
     );
   }
 
-  Widget _buildChildRow(BuilderFigureNode child) {
+  Widget _buildChildRow(AppLocalizations l10n, BuilderFigureNode child) {
     switch (child) {
       case BuilderFigure():
         return Padding(
@@ -474,7 +505,7 @@ class _FigureGroupEditor extends StatelessWidget {
               ),
               IconButton(
                 key: ValueKey('remove-fig-${child.id}'),
-                tooltip: 'Remove figure',
+                tooltip: l10n.collectionQueryRemoveFigure,
                 icon: const Icon(Icons.close),
                 onPressed: () {
                   group.children.remove(child);
@@ -502,7 +533,7 @@ class _FigureGroupEditor extends StatelessWidget {
               ),
               IconButton(
                 key: ValueKey('remove-fig-group-${child.id}'),
-                tooltip: 'Remove figure group',
+                tooltip: l10n.collectionQueryRemoveFigureGroup,
                 icon: const Icon(Icons.close),
                 onPressed: () {
                   group.children.remove(child);
@@ -638,19 +669,20 @@ class MoveTypeAheadField extends StatelessWidget {
     required this.onSelected,
     this.initialText = '',
     this.onCleared,
-    this.labelText = 'Move',
-    this.hintText = 'e.g. swing',
+    this.labelText,
+    this.hintText,
   });
 
   final Taxonomy taxonomy;
   final ValueChanged<MoveDef> onSelected;
   final String initialText;
   final VoidCallback? onCleared;
-  final String labelText;
-  final String hintText;
+  final String? labelText;
+  final String? hintText;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Autocomplete<MoveDef>(
       initialValue: TextEditingValue(text: initialText),
       displayStringForOption: (m) => m.displayName,
@@ -673,8 +705,8 @@ class MoveTypeAheadField extends StatelessWidget {
           controller: controller,
           focusNode: focusNode,
           decoration: InputDecoration(
-            labelText: labelText,
-            hintText: hintText,
+            labelText: labelText ?? l10n.collectionQueryMoveLabel,
+            hintText: hintText ?? l10n.collectionQueryMoveHint,
             isDense: true,
             border: const OutlineInputBorder(),
           ),
@@ -702,18 +734,22 @@ class _SectionDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Semantics(
-      label: 'Section',
+      label: l10n.collectionQuerySectionLabel,
       child: DropdownButton<String?>(
         key: ValueKey('section-${figure.id}'),
         value: figure.section,
-        hint: const Text('Any section'),
+        hint: Text(l10n.collectionQueryAnySection),
         onChanged: (value) {
           figure.section = value;
           onChanged();
         },
         items: [
-          const DropdownMenuItem(value: null, child: Text('Any section')),
+          DropdownMenuItem(
+            value: null,
+            child: Text(l10n.collectionQueryAnySection),
+          ),
           for (final label in sectionLabels)
             DropdownMenuItem(value: label, child: Text(label)),
         ],
@@ -737,13 +773,14 @@ class _ParamDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final value = figure.params[paramKey] as String?;
     return Semantics(
       label: paramKey,
       child: DropdownButton<String?>(
         key: ValueKey('param-${figure.id}-$paramKey'),
         value: value,
-        hint: Text('Any $paramKey'),
+        hint: Text(l10n.collectionQueryAnyParam(paramKey)),
         onChanged: (v) {
           v == null
               ? figure.params.remove(paramKey)
@@ -751,7 +788,10 @@ class _ParamDropdown extends StatelessWidget {
           onChanged();
         },
         items: [
-          DropdownMenuItem(value: null, child: Text('Any $paramKey')),
+          DropdownMenuItem(
+            value: null,
+            child: Text(l10n.collectionQueryAnyParam(paramKey)),
+          ),
           for (final choice in choices)
             DropdownMenuItem(value: choice, child: Text(choice)),
         ],

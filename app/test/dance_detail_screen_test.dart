@@ -15,6 +15,7 @@ import 'package:compendium_app/src/screens/program_editor_screen.dart';
 
 import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -66,6 +67,8 @@ Future<ValueNotifier<bool>> _pumpDetail(
       : DialectLibraryScope(controller: dialectLibrary, child: child);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: withLibrary(
@@ -588,6 +591,8 @@ void main() {
     addTearDown(notifier.dispose);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         builder: (context, child) => RepositoriesScope(
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
@@ -642,6 +647,8 @@ void main() {
     addTearDown(notifier.dispose);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         builder: (context, child) => RepositoriesScope(
           repositories: repos,
           child: ActiveDialectScope(notifier: notifier, child: child!),
