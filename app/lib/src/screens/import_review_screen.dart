@@ -71,7 +71,8 @@ enum _Phase { input, planning, review, committing }
 enum _ActionKind { create, reimport, link, duplicate, skip }
 
 /// One record's mutable review choice. Defaults are set from the verdict:
-/// new → create, reimport → reimport, ambiguous → skip (never a silent create).
+/// new → create, reimport → skip (keep-local; never a silent overwrite),
+/// ambiguous → skip (never a silent create). See [_defaultChoice].
 class _RowChoice {
   _RowChoice(this.kind, [this.linkTargetId]);
 
@@ -268,7 +269,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       case DedupeKind.isNew:
         return _RowChoice(_ActionKind.create);
       case DedupeKind.reimport:
-        return _RowChoice(_ActionKind.reimport, plan.verdict.targetDanceId);
+        // Default to keep-local (skip) so a re-import never silently overwrites
+        // local edits (issue #446). The target id is retained so the user can
+        // deliberately choose "Re-import onto …" to overwrite.
+        return _RowChoice(_ActionKind.skip, plan.verdict.targetDanceId);
       case DedupeKind.ambiguous:
         return _RowChoice(_ActionKind.skip);
     }
@@ -892,6 +896,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       for (var i = 0; i < _choices.length; i++)
         if (!_committed.contains(i) && _choices[i].kind != _ActionKind.skip) i,
     ].length;
+    // How many existing local dances a commit would overwrite (issue #446):
+    // rows the user has (re)set to "Re-import onto …", excluding rows already
+    // committed on their own via Edit. Surfaced as a warning before commit so an
+    // overwrite is always a deliberate choice, never silent.
+    final overwriteCount = [
+      for (var i = 0; i < _choices.length; i++)
+        if (!_committed.contains(i) && _choices[i].kind == _ActionKind.reimport)
+          i,
+    ].length;
     return Column(
       children: [
         Expanded(
@@ -908,25 +921,76 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: Text(
-                    '$importable of ${batch.records.length} will be imported',
-                    key: const ValueKey('import-count-label'),
-                  ),
-                ),
-                FilledButton.icon(
-                  key: const ValueKey('import-commit-button'),
-                  onPressed: importable == 0 ? null : _commit,
-                  icon: const Icon(Icons.download_done),
-                  label: const Text('Import'),
+                if (overwriteCount > 0) ...[
+                  _buildOverwriteWarning(context, overwriteCount),
+                  const SizedBox(height: 8),
+                ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '$importable of ${batch.records.length} will be imported',
+                        key: const ValueKey('import-count-label'),
+                      ),
+                    ),
+                    FilledButton.icon(
+                      key: const ValueKey('import-commit-button'),
+                      onPressed: importable == 0 ? null : _commit,
+                      icon: const Icon(Icons.download_done),
+                      label: const Text('Import'),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  /// An accessible pre-commit warning banner stating how many existing local
+  /// dances a commit will overwrite (issue #446). Meaning is carried by an icon
+  /// and text (not color alone), and a merged [Semantics] `label` announces the
+  /// count to screen readers as a warning.
+  Widget _buildOverwriteWarning(BuildContext context, int count) {
+    final scheme = Theme.of(context).colorScheme;
+    final message = count == 1
+        ? '1 existing dance will be overwritten'
+        : '$count existing dances will be overwritten';
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: 'Warning: $message',
+      child: Container(
+        key: const ValueKey('import-overwrite-warning'),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ExcludeSemantics(
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: scheme.onErrorContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
