@@ -212,4 +212,36 @@ void main() {
     final saved = await repos.programs.getById('p2');
     expect(saved!.venueId, venues.single.id);
   });
+
+  testWidgets(
+    'inline-create is suppressed on an exact display-name match, not just name',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p3', title: 'Night'));
+      // displayName = "Grange Hall, Nelson, NH" — richer than the bare name,
+      // and what the picker search matches against.
+      await repos.venues.upsert(
+        Venue(id: 'v1', name: 'Grange Hall', city: 'Nelson', stateProv: 'NH'),
+      );
+
+      await _pumpEditor(tester, repos, enriched: true, programId: 'p3');
+
+      await tester.enterText(
+        find.byKey(const ValueKey('venue-picker-input')),
+        'Grange Hall, Nelson, NH',
+      );
+      await tester.pumpAndSettle();
+
+      // The existing venue is offered...
+      expect(find.byKey(const ValueKey('venue-option-v1')), findsOneWidget);
+      // ...and "Add new venue…" is NOT, so typing a venue's full display name
+      // can't slip past the suppression and create a duplicate.
+      expect(
+        find.byKey(
+          const ValueKey('venue-option-create:Grange Hall, Nelson, NH'),
+        ),
+        findsNothing,
+      );
+    },
+  );
 }

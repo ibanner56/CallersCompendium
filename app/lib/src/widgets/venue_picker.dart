@@ -224,8 +224,17 @@ class _VenueAutocompleteState extends State<_VenueAutocomplete> {
             )
             .map((v) => _VenueChoice.existing(v))
             .toList();
-        // Offer inline-create unless the typed text exactly matches a venue.
-        final exact = widget.venues.any((v) => v.name.toLowerCase() == lower);
+        // Offer inline-create unless the typed text exactly matches an
+        // existing venue. Check BOTH name and displayName (and honor
+        // excludeId like the filter above) so typing a venue's full display
+        // name — which the search matches on — can't slip past and create a
+        // duplicate.
+        final exact = widget.venues.any(
+          (v) =>
+              v.id != widget.excludeId &&
+              (v.name.toLowerCase() == lower ||
+                  v.displayName.toLowerCase() == lower),
+        );
         if (!exact) matches.add(_VenueChoice.create(q));
         return matches;
       },
