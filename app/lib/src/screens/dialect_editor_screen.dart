@@ -470,7 +470,8 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
                       child: TextField(
                         key: ValueKey('dialect-move-$id'),
                         controller: controllers[id],
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
+                          labelText: _moveLabel(id),
                           hintText: 'substitution (use %S for handedness)',
                         ),
                         onChanged: (_) => onEdited(),
@@ -599,7 +600,8 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
                       child: TextField(
                         key: ValueKey('dialect-dancer-$token'),
                         controller: controllers[token],
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
+                          labelText: _dancerLabel(token),
                           hintText: 'substitution',
                         ),
                         onChanged: (_) => onEdited(),
