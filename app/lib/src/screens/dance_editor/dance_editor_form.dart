@@ -29,6 +29,7 @@ class DanceEditorForm extends StatelessWidget {
     required this.taxonomy,
     required this.moveParamDefaults,
     this.freeTextEntry = false,
+    this.shorthandMappings,
     required this.dialect,
     required this.isNew,
     required this.authorOptions,
@@ -59,6 +60,12 @@ class DanceEditorForm extends StatelessWidget {
   /// instead of a blank structured draft. Editing existing figures is
   /// unaffected. Defaults to `false` (structured Add).
   final bool freeTextEntry;
+
+  /// User-defined shorthand → figure(s) mappings (#420) forwarded to the figure
+  /// list editor so a free-text line matching a shorthand expands to the mapped
+  /// figures. `null` disables shorthand expansion. Only relevant when
+  /// [freeTextEntry] is on.
+  final ShorthandMappings? shorthandMappings;
   final Dialect dialect;
   final bool isNew;
 
@@ -233,6 +240,7 @@ class DanceEditorForm extends StatelessWidget {
                   onChanged: controller.onFiguresChanged,
                   onAdd: controller.addFigure,
                   freeTextEntry: freeTextEntry,
+                  shorthandMappings: shorthandMappings,
                   onAddFreeText: controller.insertFreeTextFigures,
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,
