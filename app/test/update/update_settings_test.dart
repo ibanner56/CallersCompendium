@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/screens/settings/updates_section.dart';
@@ -206,7 +207,7 @@ void main() {
       return UpdateController(
         repos.settings,
         service: UpdateService(
-          fetcher: (channel, {http.Client? client}) async => body,
+          fetcher: (channel, {http.Client? client}) async => utf8.encode(body),
           signatureFetcher: (channel, {http.Client? client}) async => "sig",
           signatureVerifier: (bytes, sig) async => true,
         ),

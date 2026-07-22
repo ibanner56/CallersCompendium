@@ -32,9 +32,12 @@ String _manifest({String channel = 'stable', String version = '0.2.0'}) =>
 }
 ''';
 
-/// A fetcher seam that returns a canned body (or null) regardless of channel.
+/// A fetcher seam that returns a canned body as raw UTF-8 bytes (or null)
+/// regardless of channel — mirroring the production fetcher, which now returns
+/// the exact wire bytes so the signature is verified over them.
 UpdateManifestFetcher _fixedFetcher(String? body) =>
-    (channel, {http.Client? client}) async => body;
+    (channel, {http.Client? client}) async =>
+        body == null ? null : utf8.encode(body);
 
 /// A signature fetcher that always returns a canned detached signature.
 UpdateManifestSignatureFetcher _fixedSignatureFetcher(String? sig) =>
@@ -233,6 +236,44 @@ void main() {
       const body = 'not json';
       final result = await checkWith(body, await signBase64(body));
       expect(result, isNull);
+    });
+
+    test('verifies over the exact wire bytes for a non-ASCII manifest '
+        '(regression: no latin1 re-encode)', () async {
+      // A legitimate manifest whose bytes contain a UTF-8 multibyte sequence
+      // (é = 0xC3 0xA9, in the release-notes fragment). CI signs the exact
+      // file bytes; the client must verify over those same bytes.
+      final body = _manifest().replaceFirst(
+        '/releases/tag/v0.2.0',
+        '/releases/tag/v0.2.0#caf\u00e9',
+      );
+      expect(body.contains('caf\u00e9'), isTrue);
+
+      final signed = utf8.encode(body);
+      final sig = base64.encode(
+        (await algorithm.sign(signed, keyPair: keyPair)).bytes,
+      );
+
+      // End-to-end through the service (fetcher returns the exact bytes):
+      // a correct signature over a newer manifest yields the update.
+      final result = await checkWith(body, sig);
+      expect(result, isNotNull);
+      expect(result!.version.toString(), '0.2.0');
+
+      // Prove the OLD bug would have broken this: package:http may decode the
+      // body as latin1 when no charset is sent; re-encoding that String as
+      // UTF-8 yields DIFFERENT bytes that no longer verify. This is exactly
+      // the failure the raw-bytes fetcher avoids.
+      final reencoded = utf8.encode(latin1.decode(signed));
+      expect(reencoded, isNot(equals(signed)));
+      expect(
+        await verifyManifestSignatureWith(
+          reencoded,
+          sig,
+          publicKeyBase64: pinnedKeyBase64,
+        ),
+        isFalse,
+      );
     });
   });
 

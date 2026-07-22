@@ -17,11 +17,19 @@ import 'package:http/http.dart' as http;
 import 'update_config.dart';
 import 'update_manifest.dart';
 
-/// Fetches the raw manifest text for [channel], or `null` on any failure.
-/// Test seam: widget/unit tests pass a fake/`MockClient` to return canned text
+/// Fetches the **raw wire bytes** of the manifest for [channel], or `null` on
+/// any failure. Returning bytes (not a decoded `String`) is deliberate and
+/// security-critical (issue #431): the signature must be verified over the
+/// *exact* bytes the server sent. `package:http`'s `response.body` decodes
+/// `bodyBytes` using the `Content-Type` charset and **defaults to latin1** when
+/// the server sends no `charset`, so re-encoding that String as UTF-8 could
+/// differ from the signed bytes for any non-ASCII content. The caller verifies
+/// over these bytes and only then UTF-8-decodes for parsing.
+///
+/// Test seam: widget/unit tests pass a fake/`MockClient` to return canned bytes
 /// (or fail) without a real network call.
 typedef UpdateManifestFetcher =
-    Future<String?> Function(UpdateChannel channel, {http.Client? client});
+    Future<List<int>?> Function(UpdateChannel channel, {http.Client? client});
 
 /// Fetches the raw detached-signature text for [channel]'s manifest, or `null`
 /// on any failure. Same injectable-seam pattern as [UpdateManifestFetcher] so
@@ -35,10 +43,12 @@ typedef UpdateManifestSignatureFetcher =
 /// custom `User-Agent`, no app version, no OS/arch) — nothing beyond the bare
 /// request is sent, and platform/arch selection happens client-side later.
 ///
-/// Returns the response body on a 2xx with a non-empty body, or `null` for a
-/// timeout, an unreachable host (offline), a non-2xx status (e.g. 404 before
-/// A11c publishes the page), or an empty body. Never throws.
-Future<String?> fetchUpdateManifest(
+/// Returns the response's **raw bytes** on a 2xx with a non-empty body, or
+/// `null` for a timeout, an unreachable host (offline), a non-2xx status (e.g.
+/// 404 before A11c publishes the page), or an empty body. Never throws. The
+/// bytes are returned undecoded so the caller can verify the signature over the
+/// exact wire bytes before trusting or decoding them.
+Future<List<int>?> fetchUpdateManifest(
   UpdateChannel channel, {
   http.Client? client,
 }) async {
@@ -51,9 +61,14 @@ Future<String?> fetchUpdateManifest(
         .get(uri)
         .timeout(kUpdateCheckTimeout);
     if (response.statusCode < 200 || response.statusCode >= 300) return null;
-    final body = response.body;
-    if (body.trim().isEmpty) return null;
-    return body;
+    // Verify/parse operate on the exact wire bytes; never re-encode a decoded
+    // String (which package:http may have decoded as latin1). An empty or
+    // blank (ASCII-whitespace-only) body is a silent no-op like an unreachable
+    // manifest. The whitespace check scans bytes directly — any non-whitespace
+    // byte (including any non-ASCII byte) makes it a real body we keep verbatim.
+    final bytes = response.bodyBytes;
+    if (_isBlank(bytes)) return null;
+    return bytes;
   } on TimeoutException {
     return null;
   } on Object {
@@ -64,6 +79,26 @@ Future<String?> fetchUpdateManifest(
   } finally {
     if (ownClient) effectiveClient.close();
   }
+}
+
+/// Whether [bytes] is empty or contains only ASCII whitespace (space, tab, CR,
+/// LF, form-feed, vertical-tab). Used to treat an empty/blank manifest response
+/// as a silent no-op without decoding the body (which would risk a latin1
+/// misread). Any non-whitespace byte — including any non-ASCII byte — makes the
+/// body "real" and it is kept verbatim for signature verification.
+bool _isBlank(List<int> bytes) {
+  for (final b in bytes) {
+    // 0x20 space, 0x09 tab, 0x0A LF, 0x0D CR, 0x0C FF, 0x0B VT.
+    if (b != 0x20 &&
+        b != 0x09 &&
+        b != 0x0A &&
+        b != 0x0D &&
+        b != 0x0C &&
+        b != 0x0B) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /// Default [UpdateManifestSignatureFetcher]: a **plain HTTPS `GET`** of the

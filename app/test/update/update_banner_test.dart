@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/update/artifact_downloader.dart';
@@ -41,7 +42,8 @@ UpdateController _controller(
   return UpdateController(
     repos.settings,
     service: UpdateService(
-      fetcher: (channel, {http.Client? client}) async => bodyRef.value,
+      fetcher: (channel, {http.Client? client}) async =>
+          bodyRef.value == null ? null : utf8.encode(bodyRef.value!),
       signatureFetcher: (channel, {http.Client? client}) async => "sig",
       signatureVerifier: (bytes, sig) async => true,
     ),
@@ -228,7 +230,7 @@ void main() {
       return UpdateController(
         repos.settings,
         service: UpdateService(
-          fetcher: (channel, {http.Client? client}) async => body,
+          fetcher: (channel, {http.Client? client}) async => utf8.encode(body),
           signatureFetcher: (channel, {http.Client? client}) async => "sig",
           signatureVerifier: (bytes, sig) async => true,
         ),

@@ -74,22 +74,27 @@ class UpdateService {
     required UpdateArch arch,
     http.Client? client,
   }) async {
-    final body = await _fetcher(channel, client: client);
-    if (body == null) return null; // offline / 404 / timeout / empty
+    final manifestBytes = await _fetcher(channel, client: client);
+    if (manifestBytes == null) return null; // offline / 404 / timeout / empty
 
     // Authenticate BEFORE trusting the body: fetch the detached signature and
-    // verify it over the exact manifest bytes against the pinned key. Any
-    // failure (absent/invalid/malformed signature, unset pinned key) is a
-    // fail-closed silent no-op.
+    // verify it over the EXACT wire bytes against the pinned key. Any failure
+    // (absent/invalid/malformed signature, unset pinned key) is a fail-closed
+    // silent no-op. Verifying over the raw bytes — never a re-encoded decoded
+    // String — is what makes this match the bytes CI actually signed.
     final signature = await _signatureFetcher(channel, client: client);
-    final List<int> manifestBytes;
+    final authentic = await _signatureVerifier(manifestBytes, signature);
+    if (!authentic) return null;
+
+    // Only after the bytes are proven authentic do we decode them for parsing.
+    // A body that is not valid UTF-8 (impossible for a manifest we signed) is a
+    // fail-closed no-op rather than an exception.
+    final String body;
     try {
-      manifestBytes = utf8.encode(body);
+      body = utf8.decode(manifestBytes);
     } on Object {
       return null;
     }
-    final authentic = await _signatureVerifier(manifestBytes, signature);
-    if (!authentic) return null;
 
     final UpdateManifest manifest;
     try {
