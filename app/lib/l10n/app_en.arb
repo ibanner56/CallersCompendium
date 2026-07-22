@@ -26,6 +26,47 @@
   "@navGuideTooltip": {
     "description": "Tooltip for the wide-layout navigation-rail Help button that opens the in-app user guide."
   },
+  "navSearch": "Search",
+  "@navSearch": {
+    "description": "Label under the wide-layout navigation-rail global-search button."
+  },
+  "navSearchTooltip": "Search ({hint})",
+  "@navSearchTooltip": {
+    "description": "Tooltip for the navigation-rail global-search button; {hint} is the platform keyboard shortcut (e.g. the Command-K glyph on Apple platforms or 'Ctrl K' elsewhere), rendered as plain tooltip text.",
+    "placeholders": {
+      "hint": {
+        "type": "String",
+        "example": "Ctrl K"
+      }
+    }
+  },
+
+  "appBootstrapPreparing": "Preparing your collection",
+  "@appBootstrapPreparing": {
+    "description": "Accessibility label on the startup loading spinner shown while the collection database is being prepared."
+  },
+  "appBootstrapError": "Could not prepare the collection.",
+  "@appBootstrapError": {
+    "description": "Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button."
+  },
+  "confirmDeleteTitle": "Delete?",
+  "@confirmDeleteTitle": {
+    "description": "Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on)."
+  },
+  "confirmDeleteBody": "\u201C{itemLabel}\u201D will be deleted. You can undo this.",
+  "@confirmDeleteBody": {
+    "description": "Body of the confirm-before-delete dialog. {itemLabel} is the untrusted user-entered name of the item being deleted (a dance or program title), rendered as plain text between typographic quotes.",
+    "placeholders": {
+      "itemLabel": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "colorEditHexLabel": "Hex",
+  "@colorEditHexLabel": {
+    "description": "Field label for the hexadecimal colour input in the shared colour-picker dialog."
+  },
 
   "settingsTitle": "Settings",
   "@settingsTitle": {
@@ -912,6 +953,14 @@
   "commonOk": "OK",
   "@commonOk": {
     "description": "Generic acknowledgement button that dismisses an informational dialog."
+  },
+  "commonApply": "Apply",
+  "@commonApply": {
+    "description": "Confirm button in the shared colour-picker dialog that applies the chosen colour."
+  },
+  "commonCouldntOpenLink": "Couldn't open link",
+  "@commonCouldntOpenLink": {
+    "description": "Snackbar shown when an external http/https link cannot be opened in the browser."
   },
   "commonProgression": "Progression",
   "@commonProgression": {

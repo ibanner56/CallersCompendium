@@ -16,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
 import '../support/fake_url_launcher.dart';
+import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
 String _manifest(String version) =>
@@ -52,6 +53,8 @@ UpdateController _controller(
 Future<void> _pump(WidgetTester tester, UpdateController controller) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: UpdateScope(controller: controller, child: const UpdateBanner()),
       ),

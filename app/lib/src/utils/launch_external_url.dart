@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Parses [url] into a launchable `Uri`, returning `null` unless it is a
 /// non-empty, well-formed **http/https** URL. Guards the UI so we never render
 /// a launchable control (or attempt a launch) for a missing, malformed, or
@@ -27,11 +29,12 @@ Uri? tryParseHttpUrl(String? url) {
 /// [tryParseHttpUrl] returns non-null, but this re-checks defensively.
 Future<void> launchExternalUrl(BuildContext context, String url) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
+  final l10n = AppLocalizations.of(context);
   final uri = tryParseHttpUrl(url);
 
   void reportFailure() {
     messenger?.showSnackBar(
-      const SnackBar(content: Text("Couldn't open link")),
+      SnackBar(content: Text(l10n.commonCouldntOpenLink)),
     );
   }
 

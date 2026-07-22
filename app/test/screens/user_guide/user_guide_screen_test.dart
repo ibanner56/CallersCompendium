@@ -7,12 +7,17 @@ import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_doc_view.dart';
 
 import '../../support/fake_url_launcher.dart';
+import '../../support/l10n_harness.dart';
 
 Future<void> _pumpGuide(WidgetTester tester) async {
   // The guide is embeddable now (no self-Scaffold), so host it in a Scaffold —
   // the ScaffoldMessenger target for its "coming soon" SnackBars.
   await tester.pumpWidget(
-    const MaterialApp(home: Scaffold(body: UserGuideScreen())),
+    MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: const Scaffold(body: UserGuideScreen()),
+    ),
   );
   await tester.pumpAndSettle();
 }
@@ -77,11 +82,15 @@ void main() {
     // inset rather than sliding under it, and its body stays clear of the home
     // indicator on hosts without a bottom nav bar.
     await tester.pumpWidget(
-      const MediaQuery(
-        data: MediaQueryData(
+      MediaQuery(
+        data: const MediaQueryData(
           padding: EdgeInsets.only(top: topInset, bottom: bottomInset),
         ),
-        child: MaterialApp(home: Scaffold(body: UserGuideScreen())),
+        child: MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: const Scaffold(body: UserGuideScreen()),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -143,6 +152,8 @@ void main() {
       // rewind its in-panel stack in that case.
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             body: Column(
               children: [
@@ -233,6 +244,8 @@ void main() {
     // caption is built regardless of where it falls in a scrolled guide.
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: Scaffold(
           body: UserGuideDocView(
             docId: 'getting-started.md',

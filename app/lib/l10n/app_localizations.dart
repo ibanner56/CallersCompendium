@@ -130,6 +130,48 @@ abstract class AppLocalizations {
   /// **'User guide'**
   String get navGuideTooltip;
 
+  /// Label under the wide-layout navigation-rail global-search button.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get navSearch;
+
+  /// Tooltip for the navigation-rail global-search button; {hint} is the platform keyboard shortcut (e.g. the Command-K glyph on Apple platforms or 'Ctrl K' elsewhere), rendered as plain tooltip text.
+  ///
+  /// In en, this message translates to:
+  /// **'Search ({hint})'**
+  String navSearchTooltip(String hint);
+
+  /// Accessibility label on the startup loading spinner shown while the collection database is being prepared.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your collection'**
+  String get appBootstrapPreparing;
+
+  /// Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not prepare the collection.'**
+  String get appBootstrapError;
+
+  /// Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete?'**
+  String get confirmDeleteTitle;
+
+  /// Body of the confirm-before-delete dialog. {itemLabel} is the untrusted user-entered name of the item being deleted (a dance or program title), rendered as plain text between typographic quotes.
+  ///
+  /// In en, this message translates to:
+  /// **'“{itemLabel}” will be deleted. You can undo this.'**
+  String confirmDeleteBody(String itemLabel);
+
+  /// Field label for the hexadecimal colour input in the shared colour-picker dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Hex'**
+  String get colorEditHexLabel;
+
   /// Title of the Settings screen (sidebar header on wide layouts, app bar on narrow).
   ///
   /// In en, this message translates to:
@@ -1285,6 +1327,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OK'**
   String get commonOk;
+
+  /// Confirm button in the shared colour-picker dialog that applies the chosen colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get commonApply;
+
+  /// Snackbar shown when an external http/https link cannot be opened in the browser.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open link'**
+  String get commonCouldntOpenLink;
 
   /// Label for the progression concept: used as a filter section heading and the figure-row progression-marker tooltip.
   ///

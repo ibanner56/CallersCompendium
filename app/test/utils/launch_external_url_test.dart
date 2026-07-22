@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import '../support/fake_url_launcher.dart';
+import '../support/l10n_harness.dart';
 
 void main() {
   group('tryParseHttpUrl', () {
@@ -48,6 +49,8 @@ void main() {
       late BuildContext ctx;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             body: Builder(
               builder: (context) {

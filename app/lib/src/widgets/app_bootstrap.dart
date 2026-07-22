@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/migration_guard.dart' show DatabaseDowngradeError;
 
 /// Gates the app on a startup [future] — the schema migration / derived-index
@@ -28,11 +29,12 @@ class AppBootstrap extends StatelessWidget {
     return FutureBuilder<void>(
       future: future,
       builder: (context, snapshot) {
+        final l10n = AppLocalizations.of(context);
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
+          return Scaffold(
             body: Center(
               child: CircularProgressIndicator(
-                semanticsLabel: 'Preparing your collection',
+                semanticsLabel: l10n.appBootstrapPreparing,
               ),
             ),
           );
@@ -63,9 +65,12 @@ class AppBootstrap extends StatelessWidget {
                 children: [
                   const Icon(Icons.error_outline, size: 48),
                   const SizedBox(height: 8),
-                  const Text('Could not prepare the collection.'),
+                  Text(l10n.appBootstrapError),
                   const SizedBox(height: 8),
-                  FilledButton(onPressed: onRetry, child: const Text('Retry')),
+                  FilledButton(
+                    onPressed: onRetry,
+                    child: Text(l10n.commonRetry),
+                  ),
                 ],
               ),
             ),

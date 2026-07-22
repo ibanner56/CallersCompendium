@@ -27,6 +27,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navGuideTooltip => 'User guide';
 
   @override
+  String get navSearch => 'Search';
+
+  @override
+  String navSearchTooltip(String hint) {
+    return 'Search ($hint)';
+  }
+
+  @override
+  String get appBootstrapPreparing => 'Preparing your collection';
+
+  @override
+  String get appBootstrapError => 'Could not prepare the collection.';
+
+  @override
+  String get confirmDeleteTitle => 'Delete?';
+
+  @override
+  String confirmDeleteBody(String itemLabel) {
+    return '“$itemLabel” will be deleted. You can undo this.';
+  }
+
+  @override
+  String get colorEditHexLabel => 'Hex';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override
@@ -694,6 +719,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonOk => 'OK';
+
+  @override
+  String get commonApply => 'Apply';
+
+  @override
+  String get commonCouldntOpenLink => 'Couldn\'t open link';
 
   @override
   String get commonProgression => 'Progression';

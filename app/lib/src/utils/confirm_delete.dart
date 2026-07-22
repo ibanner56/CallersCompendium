@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/confirm_before_delete_scope.dart';
 
 /// Shared gate for destructive delete actions (ROADMAP G.7 "Confirm before
@@ -21,22 +22,23 @@ Future<bool> confirmDeleteIfEnabled(
 }) async {
   if (!ConfirmBeforeDeleteScope.of(context)) return true;
 
+  final l10n = AppLocalizations.of(context);
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       key: const ValueKey('confirm-delete-dialog'),
-      title: const Text('Delete?'),
-      content: Text('“$itemLabel” will be deleted. You can undo this.'),
+      title: Text(l10n.confirmDeleteTitle),
+      content: Text(l10n.confirmDeleteBody(itemLabel)),
       actions: [
         TextButton(
           key: const ValueKey('confirm-delete-cancel'),
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('confirm-delete-confirm'),
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Delete'),
+          child: Text(l10n.commonDelete),
         ),
       ],
     ),
