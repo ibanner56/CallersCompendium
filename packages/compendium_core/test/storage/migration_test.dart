@@ -1773,11 +1773,28 @@ void main() {
         final repos = CompendiumRepositories(db, contraTaxonomy);
         addTearDown(db.close);
 
-        // A healthy dance + a program whose slot references it.
+        // A healthy dance + a program whose slot references it, plus a VALID
+        // owner->target relatedDance link (both dances present) that the
+        // destructive repair sweep must PRESERVE.
+        await repos.dances.create(
+          Dance(
+            id: 'd-target',
+            title: 'Target Dance',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
         await repos.dances.create(
           Dance(
             id: 'd-ok',
             title: 'Good Dance',
+            links: [
+              DanceLink(
+                id: 'l-good',
+                kind: LinkKind.relatedDance,
+                targetDanceId: 'd-target',
+              ),
+            ],
             createdAt: DateTime.utc(2026),
             updatedAt: DateTime.utc(2026),
           ),
@@ -1809,18 +1826,25 @@ void main() {
 
         await repos.ensureMigrated();
 
-        // The corrupt rows are gone; the healthy rows survive untouched.
+        // The corrupt rows are gone; the healthy rows — including the VALID
+        // relatedDance link — survive untouched (the sweep is not over-eager).
         final slots = await db
             .customSelect('SELECT id FROM program_slots ORDER BY id')
             .get();
         expect(slots.map((r) => r.read<String>('id')), ['s-ok']);
-        final links = await db.customSelect('SELECT id FROM dance_links').get();
-        expect(links, isEmpty);
+        final links = await db
+            .customSelect('SELECT id FROM dance_links ORDER BY id')
+            .get();
+        expect(links.map((r) => r.read<String>('id')), ['l-good']);
 
-        // Loads succeed after the repair.
+        // Loads succeed after the repair, and the valid link still hydrates.
         final programs = await repos.programs.listAll();
         expect(programs.single.slots.single.danceId, 'd-ok');
-        expect(await repos.dances.listAll(), hasLength(1));
+        final loadedDances = await repos.dances.listAll();
+        expect(loadedDances, hasLength(2));
+        final owner = loadedDances.firstWhere((d) => d.id == 'd-ok');
+        expect(owner.links.single.id, 'l-good');
+        expect(owner.links.single.targetDanceId, 'd-target');
 
         // The database is referentially clean and its FTS index is complete.
         final fkViolations = await db
