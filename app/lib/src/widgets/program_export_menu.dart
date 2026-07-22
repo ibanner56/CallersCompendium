@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
 import '../utils/safe_name.dart';
@@ -173,10 +174,9 @@ class ProgramExportMenu extends StatelessWidget {
 
   Future<void> _copyText(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     await Clipboard.setData(ClipboardData(text: _plainText(context)));
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Set list copied to clipboard.')),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(l10n.exportSetListCopied)));
   }
 
   Future<void> _exportPdf(BuildContext context) async {
@@ -194,6 +194,7 @@ class ProgramExportMenu extends StatelessWidget {
 
   Future<void> _onSelected(BuildContext context, _ExportAction action) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     // Capture the button's screen position before any await: on desktop
     // `share_plus` needs a `sharePositionOrigin` to anchor the native share
     // popover, and the render tree may have moved on by the time the async
@@ -207,13 +208,13 @@ class ProgramExportMenu extends StatelessWidget {
       case _ExportAction.shareText:
         await _guard(
           messenger,
-          "Couldn't share this set list",
+          l10n.exportShareSetListError,
           () => _shareText(context, origin),
         );
       case _ExportAction.shareBundle:
         await _guard(
           messenger,
-          "Couldn't share this program",
+          l10n.exportShareProgramError,
           () => _shareBundle(origin),
         );
       case _ExportAction.copyText:
@@ -221,7 +222,7 @@ class ProgramExportMenu extends StatelessWidget {
       case _ExportAction.pdf:
         await _guard(
           messenger,
-          "Couldn't export this set list",
+          l10n.exportSetListError,
           () => _exportPdf(context),
         );
     }
@@ -246,42 +247,43 @@ class ProgramExportMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopupMenuButton<_ExportAction>(
       key: const ValueKey('program-export-menu'),
-      tooltip: 'Export',
+      tooltip: l10n.exportTooltip,
       icon: const Icon(Icons.ios_share),
       onSelected: (action) => _onSelected(context, action),
       itemBuilder: (context) => [
-        const PopupMenuItem<_ExportAction>(
+        PopupMenuItem<_ExportAction>(
           value: _ExportAction.shareText,
           child: ListTile(
-            leading: Icon(Icons.mail_outline),
-            title: Text('Share set list (text)'),
+            leading: const Icon(Icons.mail_outline),
+            title: Text(l10n.exportShareSetListText),
             contentPadding: EdgeInsets.zero,
           ),
         ),
         if (danceFor != null)
-          const PopupMenuItem<_ExportAction>(
+          PopupMenuItem<_ExportAction>(
             value: _ExportAction.shareBundle,
             child: ListTile(
-              leading: Icon(Icons.share_outlined),
-              title: Text('Share (program + dances)'),
+              leading: const Icon(Icons.share_outlined),
+              title: Text(l10n.exportShareProgramBundle),
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        const PopupMenuItem<_ExportAction>(
+        PopupMenuItem<_ExportAction>(
           value: _ExportAction.copyText,
           child: ListTile(
-            leading: Icon(Icons.copy_outlined),
-            title: Text('Copy set list'),
+            leading: const Icon(Icons.copy_outlined),
+            title: Text(l10n.exportCopySetList),
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        const PopupMenuItem<_ExportAction>(
+        PopupMenuItem<_ExportAction>(
           value: _ExportAction.pdf,
           child: ListTile(
-            leading: Icon(Icons.picture_as_pdf_outlined),
-            title: Text('Export / print PDF'),
+            leading: const Icon(Icons.picture_as_pdf_outlined),
+            title: Text(l10n.exportPrintPdf),
             contentPadding: EdgeInsets.zero,
           ),
         ),

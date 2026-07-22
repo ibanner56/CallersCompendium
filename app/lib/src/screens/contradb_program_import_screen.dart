@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
@@ -116,7 +117,15 @@ class _ContraDbProgramImportScreenState
 
   bool _fetching = false;
   bool _committing = false;
-  Object? _fetchError;
+
+  /// Whether the most recent fetch attempt failed (drives the error UI).
+  bool _fetchFailed = false;
+
+  /// A safe-to-show detail for a fetch failure. Only ever a curated
+  /// [UrlFetchException.message] (scheme/redirect/size guards, etc.); it is
+  /// null when the failure was an unexpected exception, whose raw text is
+  /// logged but never shown so no internals leak to the UI (CWE-209).
+  String? _fetchErrorDetail;
 
   @override
   void didChangeDependencies() {
@@ -164,7 +173,8 @@ class _ContraDbProgramImportScreenState
     if (!_canFetch) return;
     setState(() {
       _fetching = true;
-      _fetchError = null;
+      _fetchFailed = false;
+      _fetchErrorDetail = null;
     });
     try {
       final url = buildContraDbProgramUrl(_urlController.text);
@@ -195,17 +205,24 @@ class _ContraDbProgramImportScreenState
       });
       if (program.activities.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            key: ValueKey('contradb-program-empty-snackbar'),
-            content: Text('No dances or notes found on that program page.'),
+          SnackBar(
+            key: const ValueKey('contradb-program-empty-snackbar'),
+            content: Text(
+              AppLocalizations.of(context).importContraDbEmptyProgram,
+            ),
           ),
         );
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      // Log the raw error for debugging/support, but only surface a curated,
+      // safe-to-show UrlFetchException.message to the UI — never an arbitrary
+      // caught exception, which could leak internals (CWE-209).
+      debugPrint('ContraDB program fetch failed: $error\n$stackTrace');
       setState(() {
         _fetching = false;
-        _fetchError = error;
+        _fetchFailed = true;
+        _fetchErrorDetail = error is UrlFetchException ? error.message : null;
       });
     }
   }
@@ -218,7 +235,8 @@ class _ContraDbProgramImportScreenState
       _mode = mode;
       if (mode == _ImportMode.search) {
         _program = null;
-        _fetchError = null;
+        _fetchFailed = false;
+        _fetchErrorDetail = null;
       }
     });
     if (mode == _ImportMode.search &&
@@ -256,7 +274,8 @@ class _ContraDbProgramImportScreenState
       // Editing the query returns to the results list even after a program was
       // picked + previewed, so the user can refine and choose a different one.
       _program = null;
-      _fetchError = null;
+      _fetchFailed = false;
+      _fetchErrorDetail = null;
       _searchResults = filterProgramIndex(_allEntries, query);
     });
   }
@@ -283,13 +302,16 @@ class _ContraDbProgramImportScreenState
         repos: _repos,
         now: now,
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      debugPrint('ContraDB program resolve failed: $error\n$stackTrace');
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('contradb-program-resolve-error-snackbar'),
-          content: Text('Could not import the ContraDB program: $error'),
+          content: Text(
+            AppLocalizations.of(context).importContraDbResolveError,
+          ),
         ),
       );
       return;
@@ -310,19 +332,21 @@ class _ContraDbProgramImportScreenState
 
     try {
       await _repos.programs.create(program);
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
+      debugPrint('ContraDB program import write failed: $error\n$stackTrace');
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('contradb-program-error-snackbar'),
-          content: Text('Could not import program: $error'),
+          content: Text(AppLocalizations.of(context).importProgramCreateError),
         ),
       );
       return;
     }
 
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final linked = resolved.where((a) => a.isLinked).length;
@@ -334,12 +358,15 @@ class _ContraDbProgramImportScreenState
       SnackBar(
         key: const ValueKey('contradb-program-committed-snackbar'),
         content: Text(
-          'Imported "${program.title}" — ${slots.length} '
-          '${slots.length == 1 ? 'slot' : 'slots'} '
-          '($linked linked, $notes ${notes == 1 ? 'note' : 'notes'}).',
+          l10n.importProgramCommitted(
+            program.title,
+            slots.length,
+            linked,
+            notes,
+          ),
         ),
         action: SnackBarAction(
-          label: 'Undo',
+          label: l10n.commonUndo,
           onPressed: () => _repos.programs.hardDelete([id]),
         ),
       ),
@@ -408,9 +435,10 @@ class _ContraDbProgramImportScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Import from ContraDB'),
+        title: Text(l10n.importContraDbTitle),
         actions: [
           TextButton(
             key: const ValueKey('contradb-program-commit'),
@@ -421,7 +449,7 @@ class _ContraDbProgramImportScreenState
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Import'),
+                : Text(l10n.importAction),
           ),
         ],
       ),
@@ -433,16 +461,16 @@ class _ContraDbProgramImportScreenState
             children: [
               SegmentedButton<_ImportMode>(
                 key: const ValueKey('contradb-program-mode'),
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: _ImportMode.url,
-                    icon: Icon(Icons.link),
-                    label: Text('Paste URL'),
+                    icon: const Icon(Icons.link),
+                    label: Text(l10n.importContraDbPasteUrl),
                   ),
                   ButtonSegment(
                     value: _ImportMode.search,
-                    icon: Icon(Icons.search),
-                    label: Text('Search by name'),
+                    icon: const Icon(Icons.search),
+                    label: Text(l10n.importContraDbSearchByName),
                   ),
                 ],
                 selected: {_mode},
@@ -459,9 +487,9 @@ class _ContraDbProgramImportScreenState
               TextField(
                 key: const ValueKey('contradb-program-title'),
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Program title',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.importProgramTitleLabel,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
@@ -473,47 +501,55 @@ class _ContraDbProgramImportScreenState
     );
   }
 
-  List<Widget> _urlEntry() => [
-    TextField(
-      key: const ValueKey('contradb-program-url'),
-      controller: _urlController,
-      textInputAction: TextInputAction.go,
-      onSubmitted: (_) => _fetchProgram(),
-      decoration: const InputDecoration(
-        labelText: 'ContraDB program URL',
-        hintText: 'e.g. https://contradb.com/programs/33',
-        border: OutlineInputBorder(),
+  List<Widget> _urlEntry() {
+    final l10n = AppLocalizations.of(context);
+    return [
+      TextField(
+        key: const ValueKey('contradb-program-url'),
+        controller: _urlController,
+        textInputAction: TextInputAction.go,
+        onSubmitted: (_) => _fetchProgram(),
+        decoration: InputDecoration(
+          labelText: l10n.importContraDbUrlLabel,
+          hintText: l10n.importContraDbUrlHint,
+          border: const OutlineInputBorder(),
+        ),
       ),
-    ),
-    const SizedBox(height: 12),
-    FilledButton.icon(
-      key: const ValueKey('contradb-program-fetch'),
-      onPressed: _canFetch ? _fetchProgram : null,
-      icon: _fetching
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.download_outlined),
-      label: Text(_fetching ? 'Fetching…' : 'Fetch program'),
-    ),
-  ];
+      const SizedBox(height: 12),
+      FilledButton.icon(
+        key: const ValueKey('contradb-program-fetch'),
+        onPressed: _canFetch ? _fetchProgram : null,
+        icon: _fetching
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.download_outlined),
+        label: Text(
+          _fetching ? l10n.importContraDbFetching : l10n.importContraDbFetch,
+        ),
+      ),
+    ];
+  }
 
-  List<Widget> _searchEntry() => [
-    TextField(
-      key: const ValueKey('contradb-program-search-field'),
-      controller: _searchController,
-      textInputAction: TextInputAction.search,
-      onChanged: _onSearchChanged,
-      decoration: const InputDecoration(
-        labelText: 'Search ContraDB programs',
-        hintText: 'Type part of a program name',
-        prefixIcon: Icon(Icons.search),
-        border: OutlineInputBorder(),
+  List<Widget> _searchEntry() {
+    final l10n = AppLocalizations.of(context);
+    return [
+      TextField(
+        key: const ValueKey('contradb-program-search-field'),
+        controller: _searchController,
+        textInputAction: TextInputAction.search,
+        onChanged: _onSearchChanged,
+        decoration: InputDecoration(
+          labelText: l10n.importContraDbSearchLabel,
+          hintText: l10n.importContraDbSearchHint,
+          prefixIcon: const Icon(Icons.search),
+          border: const OutlineInputBorder(),
+        ),
       ),
-    ),
-  ];
+    ];
+  }
 
   /// Below the entry fields: the search results (search mode, before a program
   /// is fetched) or the fetched-program preview.
@@ -525,6 +561,7 @@ class _ContraDbProgramImportScreenState
   }
 
   Widget _buildSearchResults() {
+    final l10n = AppLocalizations.of(context);
     if (_indexLoading) {
       return const Center(
         key: ValueKey('contradb-program-search-loading'),
@@ -539,15 +576,12 @@ class _ContraDbProgramImportScreenState
           children: [
             const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 8),
-            const Text(
-              'Could not load the ContraDB program list.',
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.importContraDbListError, textAlign: TextAlign.center),
             const SizedBox(height: 8),
             FilledButton(
               key: const ValueKey('contradb-program-search-retry'),
               onPressed: _loadIndex,
-              child: const Text('Try again'),
+              child: Text(l10n.commonTryAgain),
             ),
           ],
         ),
@@ -557,7 +591,7 @@ class _ContraDbProgramImportScreenState
       return Center(
         key: const ValueKey('contradb-program-search-prompt'),
         child: Text(
-          'Type part of a program name to search ContraDB.',
+          l10n.importContraDbSearchPrompt,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.outline,
@@ -566,9 +600,9 @@ class _ContraDbProgramImportScreenState
       );
     }
     if (_searchResults.isEmpty) {
-      return const Center(
-        key: ValueKey('contradb-program-search-empty'),
-        child: Text('No matching programs.'),
+      return Center(
+        key: const ValueKey('contradb-program-search-empty'),
+        child: Text(l10n.importContraDbNoMatches),
       );
     }
     return ListView.separated(
@@ -589,7 +623,9 @@ class _ContraDbProgramImportScreenState
   }
 
   Widget _buildPreview() {
-    if (_fetchError != null) {
+    final l10n = AppLocalizations.of(context);
+    if (_fetchFailed) {
+      final detail = _fetchErrorDetail;
       return Center(
         key: const ValueKey('contradb-program-fetch-error'),
         child: Column(
@@ -598,7 +634,9 @@ class _ContraDbProgramImportScreenState
             const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 8),
             Text(
-              'Could not fetch that program.\n$_fetchError',
+              detail != null
+                  ? l10n.importContraDbFetchError(detail)
+                  : l10n.importContraDbFetchGenericError,
               textAlign: TextAlign.center,
             ),
           ],
@@ -611,7 +649,7 @@ class _ContraDbProgramImportScreenState
       return Center(
         key: const ValueKey('contradb-program-empty-preview'),
         child: Text(
-          'Paste a ContraDB program URL above and tap "Fetch program".',
+          l10n.importContraDbPastePrompt,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.outline,
@@ -622,9 +660,7 @@ class _ContraDbProgramImportScreenState
 
     final activities = program.activities;
     if (activities.isEmpty) {
-      return const Center(
-        child: Text('No dances or notes found on that program page.'),
-      );
+      return Center(child: Text(l10n.importContraDbEmptyProgram));
     }
     final danceCount = activities.where((a) => a.isDance).length;
     final noteCount = activities.length - danceCount;
@@ -636,9 +672,11 @@ class _ContraDbProgramImportScreenState
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            '${activities.length} ${activities.length == 1 ? 'activity' : 'activities'} '
-            '($danceCount ${danceCount == 1 ? 'dance' : 'dances'}, '
-            '$noteCount ${noteCount == 1 ? 'note' : 'notes'})',
+            l10n.importContraDbActivityCount(
+              activities.length,
+              danceCount,
+              noteCount,
+            ),
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),
@@ -660,9 +698,10 @@ class _ContraDbProgramImportScreenState
   /// transparent "detected from title" hint when the value came from #351's
   /// auto-detection so a wrong guess is obvious and cheap to correct.
   Widget _buildEventDateRow() {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final dateLabel = _eventDate == null
-        ? 'No date set'
+        ? l10n.importEventDateNone
         : formatEventDate(
             _eventDate!,
             DateFormatScope.of(context),
@@ -672,9 +711,9 @@ class _ContraDbProgramImportScreenState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         InputDecorator(
-          decoration: const InputDecoration(
-            labelText: 'Event date',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.importEventDateLabel,
+            border: const OutlineInputBorder(),
             isDense: true,
           ),
           child: Row(
@@ -689,12 +728,16 @@ class _ContraDbProgramImportScreenState
                 key: const ValueKey('contradb-program-pick-date'),
                 onPressed: _pickEventDate,
                 icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                label: Text(_eventDate == null ? 'Set date' : 'Change'),
+                label: Text(
+                  _eventDate == null
+                      ? l10n.importEventDateSet
+                      : l10n.commonChange,
+                ),
               ),
               if (_eventDate != null)
                 IconButton(
                   key: const ValueKey('contradb-program-clear-date'),
-                  tooltip: 'Clear event date',
+                  tooltip: l10n.importEventDateClear,
                   icon: const Icon(Icons.clear),
                   onPressed: () => setState(() {
                     _eventDate = null;
@@ -714,7 +757,7 @@ class _ContraDbProgramImportScreenState
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    'Date detected from title — check it before importing.',
+                    l10n.importEventDateDetected,
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: scheme.outline),
@@ -728,6 +771,7 @@ class _ContraDbProgramImportScreenState
   }
 
   Widget _previewTile(ContraDbProgramActivity activity, int index) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final (
       IconData icon,
@@ -738,7 +782,7 @@ class _ContraDbProgramImportScreenState
         ? (
             Icons.link,
             scheme.primary,
-            activity.title ?? 'ContraDB dance',
+            activity.title ?? l10n.importContraDbDanceFallback,
             activity.text,
           )
         : (

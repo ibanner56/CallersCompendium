@@ -7,6 +7,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:compendium_app/src/export/dance_pdf.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 
+import 'support/l10n_harness.dart';
+
 final _now = DateTime.utc(2026, 1, 1);
 
 /// A [FigureRenderer] spy that counts calls to [render] vs [renderSummary] while
@@ -67,6 +69,8 @@ Future<void> _pumpMenu(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         appBar: AppBar(
           actions: [
@@ -225,6 +229,8 @@ void main() {
     testWidgets('surfaces a SnackBar when sharing throws', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -258,6 +264,8 @@ void main() {
       ShareParams? captured;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -290,6 +298,8 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -323,6 +333,8 @@ void main() {
       String? capturedName;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -359,6 +371,8 @@ void main() {
       String? capturedName;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [

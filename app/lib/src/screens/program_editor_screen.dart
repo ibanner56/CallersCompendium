@@ -878,7 +878,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               IconButton(
                 key: const ValueKey('program-matrix-export-pdf'),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
-                tooltip: 'Export or print matrix as PDF',
+                tooltip: l10n.exportMatrixPdfTooltip,
                 onPressed: matrix.isEmpty
                     ? null
                     : () => _exportMatrixPdf(
@@ -910,10 +910,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     int omittedFreeTextCount,
   ) async {
     final localizations = MaterialLocalizations.of(context);
+    final l10n = AppLocalizations.of(context);
     final title = _titleController.text.trim();
     final venue = _venueController.text.trim();
     await Printing.layoutPdf(
-      name: sanitizeExportName(title, fallback: 'Programming matrix'),
+      name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
       onLayout: (format) => buildProgramMatrixPdf(
         matrix,
         taxonomy: taxonomy,

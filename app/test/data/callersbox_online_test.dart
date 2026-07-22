@@ -1,11 +1,14 @@
 import 'dart:convert';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/online_search.dart';
+import 'package:compendium_app/src/data/online_search_labels.dart';
 import 'package:compendium_app/src/search/collection_query.dart'
     show ByPhraseSelections;
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -391,9 +394,11 @@ void main() {
   });
 
   group('onlineImportMessage', () {
-    test('created vs already-in-collection wording', () {
+    test('created vs already-in-collection wording', () async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       expect(
         onlineImportMessage(
+          l10n,
           const OnlineImportResult(
             kind: OnlineImportKind.created,
             title: 'Money Musk',
@@ -403,6 +408,7 @@ void main() {
       );
       expect(
         onlineImportMessage(
+          l10n,
           const OnlineImportResult(
             kind: OnlineImportKind.alreadyInCollection,
             title: 'Money Musk',

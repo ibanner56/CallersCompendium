@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
@@ -399,9 +400,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (danceId == null) {
         setState(() => _phase = _Phase.review);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            key: ValueKey('import-edit-error'),
-            content: Text("Couldn't import that dance to edit."),
+          SnackBar(
+            key: const ValueKey('import-edit-error'),
+            content: Text(AppLocalizations.of(context).importReviewEditError),
           ),
         );
         return;
@@ -420,13 +421,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (!mounted) return;
       // Edits made in the editor also need to surface in the live Collection.
       CollectionRefreshScope.bump(context);
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+      debugPrint('Import commit-for-edit failed: $e\n$stackTrace');
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('import-edit-error'),
-          content: Text("Couldn't import: $e"),
+          content: Text(AppLocalizations.of(context).importReviewImportError),
         ),
       );
     }
@@ -481,13 +483,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           onUndo: () => pipeline.undo(session),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
+      debugPrint('Import commit failed: $e\n$stackTrace');
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('import-commit-error'),
-          content: Text("Couldn't import: $e"),
+          content: Text(AppLocalizations.of(context).importReviewImportError),
         ),
       );
     }
@@ -499,6 +502,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     required Future<void> Function() onUndo,
     CcUsrImportResult? ccResult,
   }) async {
+    final l10n = AppLocalizations.of(context);
     var created = 0, reimported = 0, linked = 0, duplicated = 0;
     final errors = <ImportError>[];
     for (final r in session.records) {
@@ -524,7 +528,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final programs = ccResult?.programs ?? const [];
     final programNames = [
       for (final p in programs)
-        (p.title.trim().isEmpty ? 'Untitled program' : p.title.trim()),
+        (p.title.trim().isEmpty
+            ? l10n.importReviewUntitledProgram
+            : p.title.trim()),
     ];
     final programIssues = ccResult?.programIssues ?? const [];
     var undone = false;
@@ -532,25 +538,36 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         key: const ValueKey('import-result-dialog'),
-        title: const Text('Import complete'),
+        title: Text(l10n.importReviewComplete),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _summaryLine('Created', created),
-              _summaryLine('Re-imported', reimported),
-              _summaryLine('Linked', linked),
-              _summaryLine('Duplicated', duplicated),
-              _summaryLine('Skipped', skipped),
+              _summaryLine('Created', l10n.importReviewSummaryCreated(created)),
+              _summaryLine(
+                'Re-imported',
+                l10n.importReviewSummaryReimported(reimported),
+              ),
+              _summaryLine('Linked', l10n.importReviewSummaryLinked(linked)),
+              _summaryLine(
+                'Duplicated',
+                l10n.importReviewSummaryDuplicated(duplicated),
+              ),
+              _summaryLine('Skipped', l10n.importReviewSummarySkipped(skipped)),
               if (ccResult != null) ...[
                 const SizedBox(height: 8),
-                _summaryLine('Programs', programs.length),
+                _summaryLine(
+                  'Programs',
+                  l10n.importReviewSummaryPrograms(programs.length),
+                ),
                 if (ccResult.updatedProgramCount > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      '${ccResult.updatedProgramCount} updated (re-imported)',
+                      l10n.importReviewProgramsUpdated(
+                        ccResult.updatedProgramCount,
+                      ),
                       key: const ValueKey('import-programs-updated'),
                     ),
                   ),
@@ -568,7 +585,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 if (programIssues.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    '${programIssues.length} program note(s):',
+                    l10n.importReviewProgramNotes(programIssues.length),
                     key: const ValueKey('import-program-notes'),
                     style: Theme.of(dialogContext).textTheme.labelLarge,
                   ),
@@ -582,7 +599,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               if (errors.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
-                  '${errors.length} record(s) failed to import:',
+                  l10n.importReviewRecordsFailed(errors.length),
                   style: Theme.of(dialogContext).textTheme.labelLarge,
                 ),
                 for (final e in errors)
@@ -604,14 +621,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             },
             child: Text(
               ccResult != null
-                  ? 'Undo (removes the imported dances and programs)'
-                  : 'Undo',
+                  ? l10n.importReviewUndoWithPrograms
+                  : l10n.commonUndo,
             ),
           ),
           FilledButton(
             key: const ValueKey('import-done-button'),
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Done'),
+            child: Text(l10n.commonDone),
           ),
         ],
       ),
@@ -622,9 +639,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       CollectionRefreshScope.bump(context);
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          key: ValueKey('import-undone-snackbar'),
-          content: Text('Import undone.'),
+        SnackBar(
+          key: const ValueKey('import-undone-snackbar'),
+          content: Text(l10n.importReviewUndone),
         ),
       );
     } else {
@@ -639,20 +656,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
-  Widget _summaryLine(String label, int count) =>
-      Text('$label: $count', key: ValueKey('import-summary-$label'));
+  Widget _summaryLine(String keyLabel, String text) =>
+      Text(text, key: ValueKey('import-summary-$keyLabel'));
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Import dances'),
+        title: Text(l10n.importDances),
         key: const ValueKey('import-review-appbar'),
         leading: widget.onClose == null
             ? null
             : IconButton(
                 key: const ValueKey('import-close'),
-                tooltip: 'Close import',
+                tooltip: l10n.importReviewClose,
                 icon: const Icon(Icons.close),
                 onPressed: widget.onClose,
               ),
@@ -673,6 +691,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Widget _buildInput(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hasContent = _isByteSource
         ? _payloadBytes != null
         : _pasteController.text.trim().isNotEmpty;
@@ -685,7 +704,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         if (widget.sources.length > 1) ...[
-          Text('Source', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            l10n.importReviewSourceLabel,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 4),
           DropdownButton<ImportSource>(
             key: const ValueKey('import-source-select'),
@@ -726,21 +748,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ],
         if (_isByteSource) ...[
           Text(
-            'Import from ${_selected.label}.',
+            l10n.importReviewFromSource(_selected.label),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Choose the Caller\'s Companion .USR file to migrate its dances and '
-            'program history. Nothing is added to your collection until you '
-            'review and confirm.',
-          ),
+          Text(l10n.importReviewUsrSubtitle),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             key: const ValueKey('import-choose-usr-file'),
             onPressed: busy ? null : _chooseUsrFile,
             icon: const Icon(Icons.folder_open_outlined),
-            label: const Text('Choose .USR file…'),
+            label: Text(l10n.importReviewChooseUsr),
           ),
           if (_payloadBytes != null)
             Padding(
@@ -754,26 +772,23 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 6),
-                  Text('File ready (${_payloadBytes!.length} bytes).'),
+                  Text(l10n.importReviewFileReady(_payloadBytes!.length)),
                 ],
               ),
             ),
         ] else ...[
           Text(
-            'Import dances from ${_selected.label}.',
+            l10n.importReviewDancesFromSource(_selected.label),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Choose a file, paste its contents, or fetch it from a URL. Nothing '
-            'is added to your collection until you review and confirm.',
-          ),
+          Text(l10n.importReviewGenericSubtitle),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             key: const ValueKey('import-choose-file'),
             onPressed: busy ? null : _chooseFile,
             icon: const Icon(Icons.folder_open_outlined),
-            label: const Text('Choose file…'),
+            label: Text(l10n.importReviewChooseFile),
           ),
           const SizedBox(height: 12),
           Row(
@@ -807,11 +822,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: isUrlSource
-                        ? 'Dance URL or id'
-                        : 'Import from URL',
+                        ? l10n.importReviewUrlLabel
+                        : l10n.importReviewUrlLabelGeneric,
                     hintText: isUrlSource
-                        ? 'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1  · or · 1'
-                        : 'https://…',
+                        ? l10n.importReviewUrlHint
+                        : l10n.importReviewUrlHintGeneric,
                   ),
                 ),
               ),
@@ -826,7 +841,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.download_outlined),
-                label: const Text('Fetch'),
+                label: Text(l10n.importReviewFetch),
               ),
             ],
           ),
@@ -867,9 +882,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               _sourceUri = null;
               setState(() {});
             },
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Or paste JSON',
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: l10n.importReviewPasteJson,
             ),
           ),
         ],
@@ -878,19 +893,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           key: const ValueKey('import-continue'),
           onPressed: (hasContent && !busy) ? _plan : null,
           icon: const Icon(Icons.playlist_add_check),
-          label: const Text('Review import'),
+          label: Text(l10n.importReviewReviewButton),
         ),
       ],
     );
   }
 
   Widget _buildReview(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final batch = _batch;
     if (_planError != null) {
       return _buildMessage(
         context,
         icon: Icons.error_outline,
-        title: "Couldn't read the import",
+        title: l10n.importReviewCouldNotRead,
         detail: '$_planError',
       );
     }
@@ -902,10 +918,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         context,
         icon: unreadable.isEmpty ? Icons.inbox_outlined : Icons.error_outline,
         title: unreadable.isEmpty
-            ? 'No dances found'
-            : "Couldn't read the import",
+            ? l10n.importReviewNoDancesTitle
+            : l10n.importReviewCouldNotRead,
         detail: unreadable.isEmpty
-            ? 'The file did not contain any dances to import.'
+            ? l10n.importReviewNoDancesBody
             : unreadable.map((e) => e.message).join('\n'),
       );
     }
@@ -958,7 +974,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        '$importable of ${batch.records.length} will be imported',
+                        l10n.importReviewWillImport(
+                          importable,
+                          batch.records.length,
+                        ),
                         key: const ValueKey('import-count-label'),
                       ),
                     ),
@@ -966,7 +985,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                       key: const ValueKey('import-commit-button'),
                       onPressed: importable == 0 ? null : _commit,
                       icon: const Icon(Icons.download_done),
-                      label: const Text('Import'),
+                      label: Text(l10n.importAction),
                     ),
                   ],
                 ),
@@ -983,14 +1002,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// and text (not color alone), and a merged [Semantics] `label` announces the
   /// count to screen readers as a warning.
   Widget _buildOverwriteWarning(BuildContext context, int count) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final message = count == 1
-        ? '1 existing dance will be overwritten'
-        : '$count existing dances will be overwritten';
+    final message = l10n.importReviewOverwriteWarning(count);
     return Semantics(
       container: true,
       liveRegion: true,
-      label: 'Warning: $message',
+      label: l10n.importReviewWarningPrefix(message),
       child: Container(
         key: const ValueKey('import-overwrite-warning'),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1020,6 +1038,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Widget _buildBatchErrors(BuildContext context, List<ImportError> errors) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       key: const ValueKey('import-batch-errors'),
       color: Theme.of(context).colorScheme.errorContainer,
@@ -1029,8 +1048,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "${errors.length} record(s) couldn't be read (the rest can still "
-              'be imported):',
+              l10n.importReviewBatchErrors(errors.length),
               style: Theme.of(context).textTheme.labelLarge,
             ),
             for (final e in errors)
@@ -1045,6 +1063,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Widget _buildRow(BuildContext context, int i, ImportRecordPlan plan) {
+    final l10n = AppLocalizations.of(context);
     final draft = plan.draft;
     final quality = draft.quality;
     return Card(
@@ -1093,7 +1112,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 6),
-                  const Expanded(child: Text('Imported')),
+                  Expanded(child: Text(l10n.importReviewImported)),
                 ],
               )
             else ...[
@@ -1107,7 +1126,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                       ? null
                       : () => _editRow(i),
                   icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('Edit'),
+                  label: Text(l10n.commonEdit),
                 ),
               ),
             ],
@@ -1118,9 +1137,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Widget _qualityChip(BuildContext context, ParseQuality quality) {
+    final l10n = AppLocalizations.of(context);
     final label = quality.isFullyCustom
-        ? 'Custom'
-        : '${quality.structuredFigures}/${quality.totalFigures} structured';
+        ? l10n.importReviewCustom
+        : l10n.importReviewStructured(
+            quality.structuredFigures,
+            quality.totalFigures,
+          );
     return Chip(
       key: const ValueKey('import-quality-chip'),
       label: Text(label),
@@ -1129,29 +1152,26 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Widget _buildActions(BuildContext context, int i, DedupeVerdict verdict) {
+    final l10n = AppLocalizations.of(context);
     final choice = _choices[i];
     switch (verdict.kind) {
       case DedupeKind.isNew:
         return _radioGroup(i, choice, [
-          _option(i, 'New dance', _ActionKind.create),
-          _option(i, 'Skip', _ActionKind.skip),
+          _option(i, l10n.importReviewOptionNewDance, _ActionKind.create),
+          _option(i, l10n.importReviewOptionSkip, _ActionKind.skip),
         ]);
       case DedupeKind.reimport:
         final title =
-            _titlesById[verdict.targetDanceId] ?? verdict.targetDanceId;
+            '${_titlesById[verdict.targetDanceId] ?? verdict.targetDanceId}';
         return _radioGroup(i, choice, [
           _option(
             i,
-            'Re-import onto "$title"',
+            l10n.importReviewOptionReimport(title),
             _ActionKind.reimport,
             targetId: verdict.targetDanceId,
           ),
-          _option(
-            i,
-            'Import as a new (duplicate) dance',
-            _ActionKind.duplicate,
-          ),
-          _option(i, 'Skip', _ActionKind.skip),
+          _option(i, l10n.importReviewOptionDuplicate, _ActionKind.duplicate),
+          _option(i, l10n.importReviewOptionSkip, _ActionKind.skip),
         ]);
       case DedupeKind.ambiguous:
         return Column(
@@ -1160,7 +1180,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
-                'Possible match — choose how to import:',
+                l10n.importReviewPossibleMatch,
                 style: Theme.of(context).textTheme.labelMedium,
               ),
             ),
@@ -1168,17 +1188,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               for (final c in verdict.candidates)
                 _option(
                   i,
-                  'Link to "${_titlesById[c.danceId] ?? c.danceId}" '
-                  '(${(c.score * 100).round()}% match)',
+                  l10n.importReviewOptionLink(
+                    _titlesById[c.danceId] ?? c.danceId,
+                    (c.score * 100).round(),
+                  ),
                   _ActionKind.link,
                   targetId: c.danceId,
                 ),
               _option(
                 i,
-                'Import as a new (duplicate) dance',
+                l10n.importReviewOptionDuplicate,
                 _ActionKind.duplicate,
               ),
-              _option(i, 'Skip', _ActionKind.skip),
+              _option(i, l10n.importReviewOptionSkip, _ActionKind.skip),
             ]),
           ],
         );
@@ -1236,6 +1258,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     required String title,
     required String detail,
   }) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       key: const ValueKey('import-message'),
       child: Padding(
@@ -1256,7 +1279,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 _batch = null;
                 _planError = null;
               }),
-              child: const Text('Try another file'),
+              child: Text(l10n.importReviewTryAnother),
             ),
           ],
         ),

@@ -1623,4 +1623,562 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get programsSelectBody =>
       'Choose a program from the list, or create a new one.';
+
+  @override
+  String get commonEdit => 'Edit';
+
+  @override
+  String get commonChange => 'Change';
+
+  @override
+  String get commonTryAgain => 'Try again';
+
+  @override
+  String get exportTooltip => 'Export';
+
+  @override
+  String get exportShareDanceText => 'Share dance (text)';
+
+  @override
+  String get exportCopyDance => 'Copy dance';
+
+  @override
+  String get exportPrintPdf => 'Export / print PDF';
+
+  @override
+  String get exportDanceCopied => 'Dance copied to clipboard.';
+
+  @override
+  String get exportShareDanceError => 'Couldn\'t share this dance';
+
+  @override
+  String get exportDanceError => 'Couldn\'t export this dance';
+
+  @override
+  String get exportShareSetListText => 'Share set list (text)';
+
+  @override
+  String get exportShareProgramBundle => 'Share (program + dances)';
+
+  @override
+  String get exportCopySetList => 'Copy set list';
+
+  @override
+  String get exportSetListCopied => 'Set list copied to clipboard.';
+
+  @override
+  String get exportShareSetListError => 'Couldn\'t share this set list';
+
+  @override
+  String get exportShareProgramError => 'Couldn\'t share this program';
+
+  @override
+  String get exportSetListError => 'Couldn\'t export this set list';
+
+  @override
+  String get exportMatrixPdfTooltip => 'Export or print matrix as PDF';
+
+  @override
+  String get exportMatrixPdfFilename => 'Programming matrix';
+
+  @override
+  String get onlineSearchToggleTitle => 'Online search';
+
+  @override
+  String get onlineSearchToggleSubtitle =>
+      'Search online and import dances directly (requires internet). Local filters do not apply.';
+
+  @override
+  String onlineSearchFieldLabel(String source) {
+    return 'Search $source';
+  }
+
+  @override
+  String get onlineSearchFieldHint => 'Search online dances by title…';
+
+  @override
+  String onlineResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count online results',
+      one: '1 online result',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String onlineSearchHintByPhrase(String source) {
+    return 'Type a title or add by-phrase figures to search $source.';
+  }
+
+  @override
+  String onlineSearchHintTitle(String source) {
+    return 'Type a title to search $source.';
+  }
+
+  @override
+  String onlineNoResults(String source) {
+    return 'No dances on $source match your search.';
+  }
+
+  @override
+  String onlineLoadError(String source) {
+    return 'Couldn\'t load that dance from $source.';
+  }
+
+  @override
+  String get onlineImportError => 'Couldn\'t import that dance.';
+
+  @override
+  String onlineImportCreated(String title) {
+    return 'Imported \"$title\".';
+  }
+
+  @override
+  String onlineImportAlreadyInCollection(String title) {
+    return '\"$title\" is already in your collection.';
+  }
+
+  @override
+  String get onlineAttributionCallersBox => 'From The Caller\'s Box (online)';
+
+  @override
+  String get onlineAttributionContraDb => 'From ContraDB (online)';
+
+  @override
+  String get importDances => 'Import dances';
+
+  @override
+  String get importAction => 'Import';
+
+  @override
+  String get importProgramTooltip => 'Import program';
+
+  @override
+  String get importFromTitleList => 'From title list';
+
+  @override
+  String get importFromContraDb => 'From ContraDB';
+
+  @override
+  String get importProgramTitleLabel => 'Program title';
+
+  @override
+  String get importProgramCreateError => 'Couldn\'t save the imported program.';
+
+  @override
+  String importProgramCommitted(
+    String title,
+    int slots,
+    int linked,
+    int notes,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      slots,
+      locale: localeName,
+      other: '$slots slots',
+      one: '1 slot',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      notes,
+      locale: localeName,
+      other: '$notes notes',
+      one: '1 note',
+    );
+    return 'Imported \"$title\" — $_temp0 ($linked linked, $_temp1).';
+  }
+
+  @override
+  String get importContraDbTitle => 'Import from ContraDB';
+
+  @override
+  String get importContraDbPasteUrl => 'Paste URL';
+
+  @override
+  String get importContraDbSearchByName => 'Search by name';
+
+  @override
+  String get importContraDbUrlLabel => 'ContraDB program URL';
+
+  @override
+  String get importContraDbUrlHint => 'e.g. https://contradb.com/programs/33';
+
+  @override
+  String get importContraDbFetching => 'Fetching…';
+
+  @override
+  String get importContraDbFetch => 'Fetch program';
+
+  @override
+  String get importContraDbSearchLabel => 'Search ContraDB programs';
+
+  @override
+  String get importContraDbSearchHint => 'Type part of a program name';
+
+  @override
+  String get importContraDbListError =>
+      'Could not load the ContraDB program list.';
+
+  @override
+  String get importContraDbSearchPrompt =>
+      'Type part of a program name to search ContraDB.';
+
+  @override
+  String get importContraDbNoMatches => 'No matching programs.';
+
+  @override
+  String importContraDbFetchError(String error) {
+    return 'Couldn\'t fetch that program.\n$error';
+  }
+
+  @override
+  String get importContraDbFetchGenericError => 'Couldn\'t fetch that program.';
+
+  @override
+  String get importContraDbPastePrompt =>
+      'Paste a ContraDB program URL above and tap \"Fetch program\".';
+
+  @override
+  String get importContraDbEmptyProgram =>
+      'No dances or notes found on that program page.';
+
+  @override
+  String get importContraDbResolveError =>
+      'Couldn\'t import the ContraDB program.';
+
+  @override
+  String importContraDbActivityCount(int activities, int dances, int notes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      activities,
+      locale: localeName,
+      other: '$activities activities',
+      one: '1 activity',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      dances,
+      locale: localeName,
+      other: '$dances dances',
+      one: '1 dance',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      notes,
+      locale: localeName,
+      other: '$notes notes',
+      one: '1 note',
+    );
+    return '$_temp0 ($_temp1, $_temp2)';
+  }
+
+  @override
+  String get importContraDbDanceFallback => 'ContraDB dance';
+
+  @override
+  String get importEventDateNone => 'No date set';
+
+  @override
+  String get importEventDateLabel => 'Event date';
+
+  @override
+  String get importEventDateSet => 'Set date';
+
+  @override
+  String get importEventDateClear => 'Clear event date';
+
+  @override
+  String get importEventDateDetected =>
+      'Date detected from title — check it before importing.';
+
+  @override
+  String get importTitleListTitle => 'Import from title list';
+
+  @override
+  String get importCollectionLoadError => 'Could not load your collection.';
+
+  @override
+  String get importTitleListDancesLabel => 'Dance titles (one per line)';
+
+  @override
+  String get importTitleListDancesHint =>
+      'Paste one dance title per line.\nUnrecognised lines are kept as notes.';
+
+  @override
+  String get importTitleListEmptyHint =>
+      'Paste a list of dance titles above to preview the program.';
+
+  @override
+  String get importResolving => 'Searching…';
+
+  @override
+  String get importResolveOnline => 'Resolve unmatched online';
+
+  @override
+  String get importPlaintextImportedOnline => 'Imported from Caller\'s Box';
+
+  @override
+  String get importPlaintextLinked => 'Linked to dance';
+
+  @override
+  String get importPlaintextAmbiguous => 'Multiple matches — added as note';
+
+  @override
+  String get importPlaintextUnmatched => 'No match — added as note';
+
+  @override
+  String get importPlaintextSearchError =>
+      'Couldn\'t search The Caller\'s Box.';
+
+  @override
+  String importPlaintextSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count slots',
+      one: '1 slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importPlaintextResolvedNone(int remaining) {
+    String _temp0 = intl.Intl.pluralLogic(
+      remaining,
+      locale: localeName,
+      other: '$remaining titles kept as notes',
+      one: '$remaining title kept as a note',
+    );
+    return 'No confident Caller\'s Box matches found — $_temp0.';
+  }
+
+  @override
+  String importPlaintextResolvedLinked(int linked, int remaining) {
+    String _temp0 = intl.Intl.pluralLogic(
+      linked,
+      locale: localeName,
+      other: '$linked titles',
+      one: '$linked title',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      remaining,
+      locale: localeName,
+      other: '; $remaining still notes.',
+      one: '; $remaining still a note.',
+      zero: '.',
+    );
+    return 'Linked $_temp0 from The Caller\'s Box$_temp1';
+  }
+
+  @override
+  String get importReviewClose => 'Close import';
+
+  @override
+  String get importReviewSourceLabel => 'Source';
+
+  @override
+  String importReviewFromSource(String source) {
+    return 'Import from $source.';
+  }
+
+  @override
+  String importReviewDancesFromSource(String source) {
+    return 'Import dances from $source.';
+  }
+
+  @override
+  String get importReviewUsrSubtitle =>
+      'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.';
+
+  @override
+  String get importReviewChooseUsr => 'Choose .USR file…';
+
+  @override
+  String importReviewFileReady(int bytes) {
+    return 'File ready ($bytes bytes).';
+  }
+
+  @override
+  String get importReviewGenericSubtitle =>
+      'Choose a file, paste its contents, or fetch it from a URL. Nothing is added to your collection until you review and confirm.';
+
+  @override
+  String get importReviewChooseFile => 'Choose file…';
+
+  @override
+  String get importReviewUrlLabel => 'Dance URL or id';
+
+  @override
+  String get importReviewUrlLabelGeneric => 'Import from URL';
+
+  @override
+  String get importReviewUrlHint =>
+      'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1  · or · 1';
+
+  @override
+  String get importReviewUrlHintGeneric => 'https://…';
+
+  @override
+  String get importReviewFetch => 'Fetch';
+
+  @override
+  String get importReviewPasteJson => 'Or paste JSON';
+
+  @override
+  String get importReviewReviewButton => 'Review import';
+
+  @override
+  String importReviewWillImport(int importable, int total) {
+    return '$importable of $total will be imported';
+  }
+
+  @override
+  String get importReviewCouldNotRead => 'Couldn\'t read the import';
+
+  @override
+  String get importReviewNoDancesTitle => 'No dances found';
+
+  @override
+  String get importReviewNoDancesBody =>
+      'The file did not contain any dances to import.';
+
+  @override
+  String get importReviewTryAnother => 'Try another file';
+
+  @override
+  String get importReviewImported => 'Imported';
+
+  @override
+  String importReviewStructured(int structured, int total) {
+    return '$structured/$total structured';
+  }
+
+  @override
+  String get importReviewCustom => 'Custom';
+
+  @override
+  String get importReviewOptionNewDance => 'New dance';
+
+  @override
+  String get importReviewOptionSkip => 'Skip';
+
+  @override
+  String importReviewOptionReimport(String title) {
+    return 'Re-import onto \"$title\"';
+  }
+
+  @override
+  String get importReviewOptionDuplicate => 'Import as a new (duplicate) dance';
+
+  @override
+  String get importReviewPossibleMatch =>
+      'Possible match — choose how to import:';
+
+  @override
+  String importReviewOptionLink(String title, int percent) {
+    return 'Link to \"$title\" ($percent% match)';
+  }
+
+  @override
+  String importReviewOverwriteWarning(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count existing dances will be overwritten',
+      one: '1 existing dance will be overwritten',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewWarningPrefix(String message) {
+    return 'Warning: $message';
+  }
+
+  @override
+  String get importReviewComplete => 'Import complete';
+
+  @override
+  String importReviewSummaryCreated(int count) {
+    return 'Created: $count';
+  }
+
+  @override
+  String importReviewSummaryReimported(int count) {
+    return 'Re-imported: $count';
+  }
+
+  @override
+  String importReviewSummaryLinked(int count) {
+    return 'Linked: $count';
+  }
+
+  @override
+  String importReviewSummaryDuplicated(int count) {
+    return 'Duplicated: $count';
+  }
+
+  @override
+  String importReviewSummarySkipped(int count) {
+    return 'Skipped: $count';
+  }
+
+  @override
+  String importReviewSummaryPrograms(int count) {
+    return 'Programs: $count';
+  }
+
+  @override
+  String importReviewProgramsUpdated(int count) {
+    return '$count updated (re-imported)';
+  }
+
+  @override
+  String importReviewProgramNotes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count program note(s):',
+      one: '$count program note(s):',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewRecordsFailed(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count record(s) failed to import:',
+      one: '$count record(s) failed to import:',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewBatchErrors(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count record(s) couldn\'t be read (the rest can still be imported):',
+      one:
+          '$count record(s) couldn\'t be read (the rest can still be imported):',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get importReviewUntitledProgram => 'Untitled program';
+
+  @override
+  String get importReviewUndoWithPrograms =>
+      'Undo (removes the imported dances and programs)';
+
+  @override
+  String get importReviewUndone => 'Import undone.';
+
+  @override
+  String get importReviewEditError => 'Couldn\'t import that dance to edit.';
+
+  @override
+  String get importReviewImportError => 'Couldn\'t complete the import.';
 }

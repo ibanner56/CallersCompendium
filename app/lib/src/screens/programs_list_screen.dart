@@ -286,28 +286,28 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           if (_programs != null) ...[
             PopupMenuButton<_ProgramImportSource>(
               key: const ValueKey('programs-import'),
-              tooltip: 'Import program',
+              tooltip: l10n.importProgramTooltip,
               icon: const Icon(Icons.file_download_outlined),
               onSelected: (source) => switch (source) {
                 _ProgramImportSource.plaintext => _openPlaintextImport(),
                 _ProgramImportSource.contraDb => _openContraDbImport(),
               },
-              itemBuilder: (context) => const [
+              itemBuilder: (context) => [
                 PopupMenuItem(
-                  key: ValueKey('programs-import-plaintext'),
+                  key: const ValueKey('programs-import-plaintext'),
                   value: _ProgramImportSource.plaintext,
                   child: ListTile(
-                    leading: Icon(Icons.playlist_add),
-                    title: Text('From title list'),
+                    leading: const Icon(Icons.playlist_add),
+                    title: Text(l10n.importFromTitleList),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
                 PopupMenuItem(
-                  key: ValueKey('programs-import-contradb'),
+                  key: const ValueKey('programs-import-contradb'),
                   value: _ProgramImportSource.contraDb,
                   child: ListTile(
-                    leading: Icon(Icons.cloud_download_outlined),
-                    title: Text('From ContraDB'),
+                    leading: const Icon(Icons.cloud_download_outlined),
+                    title: Text(l10n.importFromContraDb),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
