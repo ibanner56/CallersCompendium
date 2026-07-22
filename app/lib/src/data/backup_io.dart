@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -30,6 +31,43 @@ const _jsonTypeGroup = XTypeGroup(
   uniformTypeIdentifiers: ['public.json'],
   mimeTypes: ['application/json'],
 );
+
+/// Maximum size, in bytes, of a backup file the restore path will read into
+/// memory (~50 MiB).
+///
+/// Backups are JSON text and even a very large collection serializes to a few
+/// megabytes, so this is generous headroom for legitimate files while refusing
+/// one large enough to exhaust memory. The restore reads the whole file into a
+/// `String`, so an unbounded read of an untrusted/corrupt file is an
+/// uncontrolled resource-consumption risk (OWASP A04/A05); this ceiling caps it.
+const int kMaxBackupFileBytes = 50 * 1024 * 1024;
+
+/// Thrown by [pickBackupFile] when the chosen file exceeds
+/// [kMaxBackupFileBytes]. Carries a friendly, user-facing [message] so the UI
+/// can explain the refusal without surfacing internals or a stack trace.
+class BackupFileTooLargeException implements Exception {
+  const BackupFileTooLargeException({
+    required this.sizeBytes,
+    required this.maxBytes,
+  });
+
+  /// The rejected file's size in bytes.
+  final int sizeBytes;
+
+  /// The enforced ceiling ([kMaxBackupFileBytes]) in bytes.
+  final int maxBytes;
+
+  /// User-facing explanation (no stack traces / internals).
+  String get message =>
+      'That file is too large to be a Caller\u2019s Compendium backup '
+      '(${_mib(sizeBytes)} MB; limit ${_mib(maxBytes)} MB). '
+      'Your data is unchanged.';
+
+  @override
+  String toString() => 'BackupFileTooLargeException: $message';
+
+  static String _mib(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(1);
+}
 
 /// Default [BackupSaver].
 ///
@@ -73,10 +111,31 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
 }
 
 /// Default [BackupPicker]: opens the native open-file dialog (via
-/// `file_selector`), restricted to `.json`, and reads the chosen file's text.
-/// Returns `null` when the user cancels.
+/// `file_selector`), restricted to `.json`, and reads the chosen file's text
+/// (subject to the [kMaxBackupFileBytes] size cap). Returns `null` when the
+/// user cancels.
 Future<String?> pickBackupFile() async {
   final file = await openFile(acceptedTypeGroups: const [_jsonTypeGroup]);
   if (file == null) return null;
+  return readBackupFile(file);
+}
+
+/// Reads [file]'s text for restore, refusing a file larger than [maxBytes]
+/// ([kMaxBackupFileBytes] by default) with a [BackupFileTooLargeException].
+///
+/// The size is checked via `XFile.length()` — which stats the file rather than
+/// loading it — *before* the whole file is read into a `String`, so an oversized
+/// corrupt or hostile file can never be slurped into memory (OWASP A04/A05:
+/// uncontrolled resource consumption). Exposed for testing; production code
+/// reaches it through [pickBackupFile].
+@visibleForTesting
+Future<String> readBackupFile(
+  XFile file, {
+  int maxBytes = kMaxBackupFileBytes,
+}) async {
+  final size = await file.length();
+  if (size > maxBytes) {
+    throw BackupFileTooLargeException(sizeBytes: size, maxBytes: maxBytes);
+  }
   return file.readAsString();
 }

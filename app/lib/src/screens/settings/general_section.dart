@@ -719,11 +719,17 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
   }
 
   Future<void> _chooseFile() async {
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _picking = true);
     try {
       final json = await widget.picker();
       if (!mounted || json == null) return;
       _controller.text = json;
+    } on BackupFileTooLargeException catch (e) {
+      // Surface the size-cap refusal as a friendly message instead of letting
+      // it crash the picker: the file was never read, so live data is safe.
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _picking = false);
     }

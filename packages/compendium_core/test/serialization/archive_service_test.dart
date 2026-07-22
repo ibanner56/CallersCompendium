@@ -259,5 +259,131 @@ void main() {
       final tagIds = (await repos.tags.listAll()).map((t) => t.id).toSet();
       expect(tagIds, containsAll(<String>['keep', 't1']));
     });
+
+    test(
+      'replace aborts and preserves live data when an entity fails to write',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        // Live data that must survive a failed replace restore.
+        await repos.tags.upsert(Tag(id: 'live-tag', name: 'Live'));
+        await repos.dances.create(
+          Dance(
+            id: 'live-dance',
+            title: 'Live Dance',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+
+        // An archive whose dance cannot be written: duplicate authorIds
+        // violate the dance_authors primary key (danceId, choreographerId) on
+        // the second row — an immediate failure the per-entity guard catches.
+        final badArchive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          choreographers: [Choreographer(id: 'c1', name: 'Alice')],
+          tags: [Tag(id: 'archive-tag', name: 'FromArchive')],
+          dances: [
+            Dance(
+              id: 'archive-dance',
+              title: 'Archive Dance',
+              authorIds: const ['c1', 'c1'],
+              createdAt: DateTime.utc(2026, 1, 2),
+              updatedAt: DateTime.utc(2026, 1, 2),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(repos).restore(badArchive);
+        expect(result.hasErrors, isTrue);
+
+        // The whole replace rolled back — the clear was undone — so live data
+        // is intact and none of the archive's rows leaked in.
+        final tags = (await repos.tags.listAll()).map((t) => t.id).toSet();
+        expect(tags, contains('live-tag'));
+        expect(tags, isNot(contains('archive-tag')));
+        final dances = (await repos.dances.listAll()).map((d) => d.id).toSet();
+        expect(dances, contains('live-dance'));
+        expect(dances, isNot(contains('archive-dance')));
+      },
+    );
+
+    test('replace aborts and preserves live data when a slot references a '
+        'missing dance (commit-time FK failure)', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+
+      await repos.dances.create(
+        Dance(
+          id: 'live-dance',
+          title: 'Live Dance',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+
+      // A program slot points at a dance that is in neither the archive nor
+      // the (about-to-be-cleared) database: the deferred FK fails at commit.
+      final badArchive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Orphaned',
+            slots: [ProgramSlot(id: 'sl1', position: 0, danceId: 'ghost')],
+            createdAt: DateTime.utc(2026, 4, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        ],
+      );
+
+      final result = await ArchiveRestorer(repos).restore(badArchive);
+      expect(result.hasErrors, isTrue);
+
+      final dances = (await repos.dances.listAll()).map((d) => d.id).toSet();
+      expect(dances, contains('live-dance'));
+      final programs = await repos.programs.listAll();
+      expect(programs, isEmpty);
+    });
+
+    test(
+      'merge stays partial-failure tolerant (records, does not abort)',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        await repos.tags.upsert(Tag(id: 'keep', name: 'keep-me'));
+
+        // A dance with duplicate authorIds fails to write, but a good tag in the
+        // same archive must still land — merge does not abort on per-entity
+        // failure the way replace does.
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          choreographers: [Choreographer(id: 'c1', name: 'Alice')],
+          tags: [Tag(id: 't1', name: 'chestnut')],
+          dances: [
+            Dance(
+              id: 'bad',
+              title: 'Bad',
+              authorIds: const ['c1', 'c1'],
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isTrue);
+
+        final tagIds = (await repos.tags.listAll()).map((t) => t.id).toSet();
+        expect(tagIds, containsAll(<String>['keep', 't1']));
+      },
+    );
   });
 }

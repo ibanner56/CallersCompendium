@@ -131,16 +131,27 @@ class BackupService {
   /// into the `settings` table. Tolerant throughout: decode/restore problems are
   /// collected into the returned [BackupRestoreOutcome] rather than thrown.
   ///
-  /// A **fatal** decode (invalid JSON, non-object root, or a missing/invalid
-  /// `core` section) aborts before touching live data, so a corrupt or wrong
-  /// file can never wipe the user's content. Such a restore returns
-  /// [BackupRestoreOutcome.applied] `false`.
+  /// A restore is refused before touching live data when the backup cannot be
+  /// applied in full:
+  /// - a **fatal** envelope (invalid JSON, non-object root, or a
+  ///   missing/invalid `core` section), or
+  /// - a **core** archive that did not fully decode ([BackupReadResult.coreHasErrors]).
+  ///
+  /// Because a replace restore wipes the live collection before loading the
+  /// archive, applying a partially-decoded core would swap the user's data for
+  /// an incomplete copy — exactly the loss this guard prevents (issue #430).
+  /// Such a restore returns [BackupRestoreOutcome.applied] `false` with the live
+  /// app untouched. Forward-compatible skips (an unknown enum written by a newer
+  /// app version) are surfaced as warnings rather than errors, so a merely newer
+  /// backup still restores, dropping only the affected entities. Recoverable
+  /// app-local problems (a single corrupt dialect/theme) remain non-fatal and do
+  /// not block the restore.
   Future<BackupRestoreOutcome> restoreFromJson(String json) async {
     final read = decodeBackup(json);
     final errors = <ArchiveError>[...read.errors];
     final warnings = <String>[...read.warnings];
 
-    if (read.fatal) {
+    if (read.fatal || read.coreHasErrors) {
       // Nothing safe to restore — leave live data untouched.
       return BackupRestoreOutcome(
         errors: errors,

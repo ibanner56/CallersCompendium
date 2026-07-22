@@ -200,4 +200,55 @@ void main() {
       expect(dances.map((d) => d.id), ['live']);
     },
   );
+
+  test('restore aborts and preserves live data when the core archive has a '
+      'decode error', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('live', 'Live Dance'));
+
+    // A well-formed envelope, but a core dance is missing its required
+    // `title` — a per-entity decode ERROR (not a forward-compat warning). A
+    // replace restore must refuse rather than wipe live data to apply an
+    // archive that did not fully decode (issue #430).
+    const json =
+        '{"backupVersion":1,"createdAt":"2026-07-15T00:00:00.000Z",'
+        '"core":{"dances":[{"id":"d1"}]},"app":{}}';
+
+    final outcome = await BackupService(repos).restoreFromJson(json);
+
+    expect(outcome.applied, isFalse);
+    expect(outcome.hasErrors, isTrue);
+    // Live content is untouched — a partially-decodable backup never wipes it.
+    final dances = await repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['live']);
+  });
+
+  test('restore still applies when the core has only a forward-compat enum '
+      'warning (unknown enum is skipped, not wiped)', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('stale', 'Stale Dance'));
+
+    // Two core dances: one valid, one with an unknown `status` written by a
+    // hypothetical newer app version. The unknown enum is a WARNING, so the
+    // restore proceeds (dropping only that dance) rather than aborting.
+    const json =
+        '{"backupVersion":1,"createdAt":"2026-07-15T00:00:00.000Z",'
+        '"core":{"dances":['
+        '{"id":"good","title":"Good","createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"},'
+        '{"id":"newer","title":"Newer","status":"from_the_future",'
+        '"createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"}'
+        ']},"app":{}}';
+
+    final outcome = await BackupService(repos).restoreFromJson(json);
+
+    expect(outcome.applied, isTrue);
+    expect(outcome.hasErrors, isFalse);
+    expect(outcome.warnings, isNotEmpty);
+    // Replace cleared the stale dance; the valid archive dance landed and the
+    // unknown-enum one was skipped.
+    final dances = await repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['good']);
+  });
 }

@@ -44,9 +44,18 @@ class ArchiveExporter {
 /// resolution (link/duplicate/skip via `src/imports/dedupe.dart`) for
 /// user-to-user sharing is layered on at ROADMAP G.5.
 ///
-/// Restore is transactional and partial-failure tolerant: a single entity that
-/// fails to write is recorded in [ArchiveRestoreResult.errors] and the rest
-/// still load — never a stack-trace UX.
+/// Safety contract differs by mode:
+/// - [RestoreMode.replace] is **all-or-nothing**. The clear and the reload run
+///   in one transaction, and if *any* entity fails to write, the whole
+///   transaction is rolled back — including the clear — so the user's existing
+///   collection is left intact rather than wiped-then-partially-restored. A
+///   replace is the operation users reach for when already in trouble, so a bad
+///   archive must never be able to destroy live data (issue #430). Callers are
+///   expected to fully decode/validate the archive first and refuse to invoke a
+///   replace on an archive that did not decode cleanly.
+/// - [RestoreMode.merge] is partial-failure tolerant: a single entity that
+///   fails to write is recorded in [ArchiveRestoreResult.errors] and the rest
+///   still load — never a stack-trace UX.
 class ArchiveRestorer {
   ArchiveRestorer(this._repos);
 
@@ -57,6 +66,10 @@ class ArchiveRestorer {
     RestoreMode mode = RestoreMode.replace,
   }) async {
     final errors = <ArchiveError>[];
+    // Distinguishes an intentional abort-to-rollback (replace mode saw a write
+    // error) from an unexpected transaction failure, without depending on how
+    // the database layer re-surfaces the thrown sentinel.
+    var abortedForRollback = false;
     try {
       await _repos.db.transaction(() async {
         // Dances can reference each other (relatedDance links), so intra-batch
@@ -66,23 +79,37 @@ class ArchiveRestorer {
         // consistent.
         await _repos.db.customStatement('PRAGMA defer_foreign_keys = ON');
         if (mode == RestoreMode.replace) {
+          // Validate-by-attempt, then commit-or-rollback: clear and reload in
+          // the same transaction, but if the reload recorded any per-entity
+          // failure, abort so the clear is rolled back too. This guarantees a
+          // replace never leaves the user with wiped data and a half-applied
+          // archive — either the whole archive writes, or live data is intact.
           await _clearAll();
+          await _load(archive, errors);
+          if (errors.isNotEmpty) {
+            abortedForRollback = true;
+            throw const _RestoreAborted();
+          }
+        } else {
+          await _load(archive, errors);
         }
-        await _load(archive, errors);
       });
     } on Exception catch (e) {
-      // Deferred foreign-key checks and other integrity constraints only fire at
-      // commit time, outside the per-entity `_guard`. Convert any such failure
-      // into an archive-level structured error so callers always get a result
-      // rather than a stack trace.
-      errors.add(
-        ArchiveError(
-          kind: ArchiveErrorKind.restore,
-          entityType: 'archive',
-          message: 'archive could not be restored',
-          cause: e,
-        ),
-      );
+      if (!abortedForRollback) {
+        // Deferred foreign-key checks and other integrity constraints only fire
+        // at commit time, outside the per-entity `_guard`. Convert any such
+        // failure into an archive-level structured error so callers always get
+        // a result rather than a stack trace. The transaction has rolled back,
+        // so (in replace mode) live data is preserved.
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.restore,
+            entityType: 'archive',
+            message: 'archive could not be restored',
+            cause: e,
+          ),
+        );
+      }
     }
     return ArchiveRestoreResult(errors: errors);
   }
@@ -173,4 +200,12 @@ class ArchiveRestorer {
       );
     }
   }
+}
+
+/// Internal signal used to roll back a [RestoreMode.replace] transaction when
+/// the reload recorded a per-entity failure. It carries no data — the failures
+/// are already collected in the caller's `errors` list — and only exists to
+/// abort the transaction so the preceding `_clearAll()` is undone.
+class _RestoreAborted implements Exception {
+  const _RestoreAborted();
 }

@@ -183,6 +183,33 @@ void main() {
     expect(dances.map((d) => d.id), ['stale']);
   });
 
+  testWidgets('choosing an oversized backup file surfaces a friendly error', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('stale', 'Old Dance'));
+
+    await _pumpGeneral(
+      tester,
+      repos,
+      picker: () async => throw const BackupFileTooLargeException(
+        sizeBytes: 60 * 1024 * 1024,
+        maxBytes: 50 * 1024 * 1024,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
+    await tester.pumpAndSettle();
+
+    // The size-cap refusal is shown as a friendly message, not a crash, and
+    // live data is untouched (the file was never read).
+    expect(find.textContaining('too large'), findsOneWidget);
+    final dances = await repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['stale']);
+  });
+
   testWidgets('changing the reminder cadence persists it', (tester) async {
     final repos = openTestRepositories();
     await _pumpGeneral(tester, repos, onRestored: () async {});

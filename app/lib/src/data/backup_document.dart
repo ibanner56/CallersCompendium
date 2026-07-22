@@ -72,6 +72,7 @@ class BackupReadResult {
     this.errors = const [],
     this.warnings = const [],
     this.fatal = false,
+    this.coreHasErrors = false,
   });
 
   final BackupDocument document;
@@ -84,6 +85,18 @@ class BackupReadResult {
   /// replace mode would wipe live data. Per-entity problems (a single corrupt
   /// dialect/theme/dance) are recorded in [errors] but are NOT fatal.
   final bool fatal;
+
+  /// Whether the **core** archive (the user's collection) had per-entity decode
+  /// errors — a dance/program/etc. that could not be read. The envelope is
+  /// structurally fine, but the core content did not fully decode.
+  ///
+  /// A replace restore wipes the live collection before loading the archive, so
+  /// applying a core archive that is missing entities would silently lose data.
+  /// [BackupService.restoreFromJson] therefore treats this like [fatal] and
+  /// refuses to touch live data. Forward-compatible skips (an unknown enum from
+  /// a newer app version) are surfaced as [warnings], not errors, so a merely
+  /// newer backup still restores — dropping only the affected entities.
+  final bool coreHasErrors;
 
   bool get hasErrors => errors.isNotEmpty;
 }
@@ -194,11 +207,13 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
   // an empty archive would wipe live content. We record the problem and mark
   // the result fatal so the service refuses to touch live data.
   var coreFatal = false;
+  var coreHasErrors = false;
   CompendiumArchive core = CompendiumArchive(exportedAt: _epoch);
   final rawCore = root['core'];
   if (rawCore is Map) {
     final coreResult = archiveFromJson(rawCore.cast<String, Object?>());
     core = coreResult.archive;
+    coreHasErrors = coreResult.hasErrors;
     errors.addAll(coreResult.errors);
     warnings.addAll(coreResult.warnings);
   } else if (rawCore != null) {
@@ -308,5 +323,6 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
     errors: errors,
     warnings: warnings,
     fatal: coreFatal,
+    coreHasErrors: coreHasErrors,
   );
 }
