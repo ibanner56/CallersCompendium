@@ -83,24 +83,28 @@ android {
 }
 
 // Fail loudly when a release artifact is actually being assembled without a
-// release signing config. We attach a `doFirst` guard to the release
-// packaging/assemble/bundle tasks (via the lazy `configureEach`) rather than
-// using `gradle.taskGraph.whenReady`, because throwing from `whenReady` is not a
-// reliable way to fail a build on modern Gradle. This means:
-//   * the guard fires only when a matching *Release packaging task actually
-//     executes, so debug builds (`flutter run`, `flutter build apk --debug`)
-//     and `flutter test` (pure Dart, never runs Gradle) are unaffected;
-//   * it is never even registered when a keystore is present, so CI — which
-//     reconstructs key.properties from secrets — is not impacted;
-//   * nothing is thrown at configuration time.
-// Only a release build WITHOUT a keystore trips the exception, and it aborts
-// before the artifact is packaged/signed.
+// release signing config. We attach a `doFirst` guard to this (`:app`) project's
+// aggregate release build tasks via the lazy `configureEach`, rather than using
+// `gradle.taskGraph.whenReady` — throwing from `whenReady` is not a reliable way
+// to fail a build on modern Gradle. Matching is intentionally tight:
+//   * `tasks` is the :app TaskContainer, so plugin subprojects are never touched;
+//   * the name must *end with* the release variant, so we only hit the release
+//     artifact tasks (`assembleRelease`, `bundleRelease`, `packageRelease`) and
+//     NOT same-prefix non-artifact tasks such as `assembleReleaseUnitTest`,
+//     `assembleReleaseAndroidTest`, or `bundleReleaseLocalLintAar`.
+// The guard fires only when such a task actually executes, so debug builds
+// (`flutter run`, `--debug`) and `flutter test` (pure Dart, never runs Gradle)
+// are unaffected, and it is never registered at all when a keystore is present
+// (so CI, which reconstructs key.properties from secrets, is not impacted).
+// Only a release build WITHOUT a keystore trips the exception; combined with the
+// unset (null) release signingConfig above, a debug-signed "release" can never
+// be produced.
 if (!hasKeystore) {
     tasks.configureEach {
-        val isReleaseArtifactTask = name.contains("Release") &&
-            (name.startsWith("package") ||
-                name.startsWith("assemble") ||
-                name.startsWith("bundle"))
+        val isReleaseArtifactTask = name.endsWith("Release") &&
+            (name.startsWith("assemble") ||
+                name.startsWith("bundle") ||
+                name.startsWith("package"))
         if (isReleaseArtifactTask) {
             doFirst {
                 throw GradleException(
