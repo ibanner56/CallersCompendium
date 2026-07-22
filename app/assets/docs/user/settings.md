@@ -32,7 +32,7 @@ The **General** section gathers everyday behavior into small groups.
 ### Venues
 
 - **Use reusable venue records** (off by default) — turns a program's [venue](./glossary.md#venue) into a reusable record with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program's venue is a simple free-text field. Switching is **lossless and reversible**: your typed venue text and any linked record are both kept, so flipping the toggle never discards either.
-- **Manage venues** — browse, edit, and delete your saved venue records.
+- **Manage venues** — browse, edit, and delete your saved venue records. You can also add a venue on the fly while editing a program (when reusable venue records are on). Deleting a venue is permanent — unlike a deleted dance, it isn't held for later restore. To keep you from stranding a program, a venue can't be deleted while any program is still linked to it; change or remove the venue on those programs first, then delete it.
 
 Whether the toggle is on or off, a program that's linked to a saved venue always shows and exports that venue's full details (the linked record wins over free text). See [Programs](./programs.md) for how the venue field behaves in each mode.
 
