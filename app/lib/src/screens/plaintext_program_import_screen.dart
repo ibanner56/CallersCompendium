@@ -7,6 +7,7 @@ import '../data/collection_refresh_scope.dart';
 import '../data/plaintext_program_import.dart';
 import '../data/program_import_online_resolver.dart';
 import '../data/repositories_scope.dart';
+import '../utils/undo_snack_bar.dart';
 
 /// Builds a [Program] from a pasted, newline-separated list of dance titles
 /// (epic #291, sub-issue #312).
@@ -250,22 +251,18 @@ class _PlaintextProgramImportScreenState
         .where((l) => l.resolution == PlaintextLineResolution.matched)
         .length;
     final notes = lines.length - matched;
-    messenger.showSnackBar(
-      SnackBar(
-        key: const ValueKey('plaintext-import-committed-snackbar'),
-        content: Text(
-          l10n.importProgramCommitted(
-            program.title,
-            lines.length,
-            matched,
-            notes,
-          ),
-        ),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () => _repos.programs.hardDelete([id]),
-        ),
+    showUndoSnackBar(
+      messenger,
+      key: const ValueKey('plaintext-import-committed-snackbar'),
+      message: l10n.importProgramCommitted(
+        program.title,
+        lines.length,
+        matched,
+        notes,
       ),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () => _repos.programs.hardDelete([id]),
     );
     navigator.pop(id);
   }

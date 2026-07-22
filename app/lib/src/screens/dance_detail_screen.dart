@@ -19,6 +19,7 @@ import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
+import '../utils/undo_snack_bar.dart';
 import '../utils/safe_name.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/dance_export_menu.dart';
@@ -299,24 +300,23 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // Capture ScaffoldMessengerState before any navigation/callback so we
     // don't read a deactivating context after the widget is removed.
     final messenger = ScaffoldMessenger.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
     // Show the snackbar first so the Scaffold is still in the tree when the
     // messenger enqueues it — then notify the parent (which may unmount this
     // widget) or pop the route.
-    messenger.showSnackBar(
-      SnackBar(
-        key: const ValueKey('deleted-snackbar'),
-        content: Text(l10n.commonDeletedSnack(title)),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () async {
-            await _repos.dances.restore(
-              widget.danceId!,
-              at: DateTime.now().toUtc(),
-            );
-            widget.onRestored?.call();
-          },
-        ),
-      ),
+    showUndoSnackBar(
+      messenger,
+      key: const ValueKey('deleted-snackbar'),
+      message: l10n.commonDeletedSnack(title),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () async {
+        await _repos.dances.restore(
+          widget.danceId!,
+          at: DateTime.now().toUtc(),
+        );
+        widget.onRestored?.call();
+      },
     );
     if (widget.onDeleted != null) {
       // Embedded (split-pane) mode: notify the parent; no route to pop.

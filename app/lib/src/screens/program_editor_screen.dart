@@ -16,6 +16,7 @@ import '../search/collection_data.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/collection_picker.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
@@ -623,15 +624,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(l10n.programsDeletedSnack(title)),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () =>
-              _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
-        ),
-      ),
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    showUndoSnackBar(
+      messenger,
+      message: l10n.programsDeletedSnack(title),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () =>
+          _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
     );
     if (widget.isEmbedded) {
       widget.onDeleted?.call();

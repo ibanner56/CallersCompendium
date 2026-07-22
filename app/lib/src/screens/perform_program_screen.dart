@@ -10,6 +10,7 @@ import '../data/dialect_library_scope.dart';
 import '../data/repositories_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
@@ -525,18 +526,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     _applyProgram(updated, announce: announce);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          action: SnackBarAction(
-            label: l10n.commonUndo,
-            onPressed: () =>
-                _applyProgram(previous, announce: l10n.performAdjustmentUndone),
-          ),
-        ),
-      );
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      message: message,
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () =>
+          _applyProgram(previous, announce: l10n.performAdjustmentUndone),
+    );
   }
 
   /// Opens the non-destructive "adjust" sheet (`docs/design/ux.md` §5) over the
