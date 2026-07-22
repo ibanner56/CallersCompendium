@@ -41,30 +41,36 @@ import 'share_sanitization.dart';
 /// therefore sanitized here — `email`/`location` are cleared — before it is
 /// embedded, so sharing carries only public attribution (name/website/notes).
 ///
+/// [venueFor] resolves the program's `venueId` (schema v14) to its full
+/// [Venue], so a shared program keeps its venue link (mirrors [danceFor]/
+/// [choreographerFor]). The referenced venue is gathered into
+/// `CompendiumArchive.venues` best-effort: a `null` `venueId`, or an id that
+/// resolves to no venue, is simply omitted (never fatal — the receiver's
+/// importer nulls a dangling `venueId`). The gathered venue is deduped by id.
+///
+/// Privacy (issue #515): a venue's six contact-person PII fields
+/// (`contact1Name/Phone/Email`, `contact2Name/Phone/Email`) are personal
+/// details that are OMIT-BY-DEFAULT. Every gathered venue is routed through
+/// [sanitizeVenueForShare]; only the [VenueContactField]s in
+/// [includeVenueContact] survive. This set is empty by default (full
+/// redaction) and is populated **only** from an explicit, opt-in pre-share
+/// consent dialog in the UI layer — there is no path that embeds an
+/// unsanitized venue. All venue-descriptive fields (name/address/schedule/…)
+/// are kept, matching the choreographer precedent.
+///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
-///
-/// Venue gathering is deliberately **not** done here yet: a program's
-/// `venueId` (schema v14) rides along inside the embedded [program], but the
-/// referenced [Venue] record is not gathered into `CompendiumArchive.venues`.
-/// The core receive path handles this safely — `CompendiumArchiveImporter`
-/// nulls a `venueId` that resolves to no bundled venue — so a shared program
-/// simply arrives without its venue link for now. Populating `venueId` in the
-/// editor UI (PR B) and gathering the referenced venue here (mirroring the
-/// dance/choreographer gathering above, minding the same privacy sanitization
-/// for venue contact fields) is deferred to the display/export PR (C).
-// TODO(PR C, issue #456): gather the program's referenced Venue into
-// CompendiumArchive.venues so a shared program carries its venue record, once
-// venueId is UI-populated (PR B) and a venue resolver is wired here.
 // TODO(follow-up, issue #456): venues have no provenance/dedupe key, so
 // re-importing the same bundle duplicates venue records (see
-// CompendiumArchiveImporter.commit). Accepted for PR A (additive-import model);
+// CompendiumArchiveImporter.commit). Accepted for the additive-import model;
 // add a dedupe/provenance primitive in a later PR so shared/re-imported
 // bundles match existing venues instead of inserting duplicates.
 String buildProgramShareBundle(
   Program program, {
   required Dance? Function(String danceId) danceFor,
   required Choreographer? Function(String id) choreographerFor,
+  required Venue? Function(String venueId) venueFor,
+  Set<VenueContactField> includeVenueContact = const {},
   DateTime? now,
 }) {
   final dances = <Dance>[];
@@ -88,12 +94,26 @@ String buildProgramShareBundle(
     }
   }
 
+  // Gather the program's referenced venue (best-effort, deduped by id). A null
+  // or unresolvable venueId is simply omitted. Contact PII is redacted here —
+  // omit-by-default unless the caller explicitly opted fields into
+  // includeVenueContact — so no unsanitized venue is ever embedded.
+  final venues = <Venue>[];
+  final venueId = program.venueId;
+  if (venueId != null) {
+    final venue = venueFor(venueId);
+    if (venue != null) {
+      venues.add(sanitizeVenueForShare(venue, include: includeVenueContact));
+    }
+  }
+
   return encodeArchive(
     CompendiumArchive(
       exportedAt: (now ?? DateTime.now()).toUtc(),
       programs: [program],
       dances: dances,
       choreographers: choreographers,
+      venues: venues,
     ),
   );
 }

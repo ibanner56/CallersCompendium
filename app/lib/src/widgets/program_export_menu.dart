@@ -10,7 +10,9 @@ import 'package:share_plus/share_plus.dart';
 import '../../l10n/app_localizations.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
+import '../export/share_sanitization.dart';
 import '../utils/safe_name.dart';
+import 'venue_contact_share_dialog.dart';
 
 /// Actions offered by the [ProgramExportMenu].
 enum _ExportAction { shareText, shareBundle, copyText, pdf }
@@ -146,6 +148,27 @@ class ProgramExportMenu extends StatelessWidget {
     );
   }
 
+  /// Resolves the linked venue's contact-PII consent before an export flow.
+  ///
+  /// Returns the empty set (**proceed, no prompt**) when the program links no
+  /// venue, or the venue has no populated contact fields — there is no contact
+  /// PII to leak. Otherwise it shows the shared [VenueContactShareDialog] (rows
+  /// unchecked by default) and returns the user's affirmative selection. A
+  /// `null` result means the user cancelled/dismissed and the caller MUST
+  /// **abort** the export (nothing shared or written). Shared by the
+  /// share-bundle and PDF-export paths so both gate PII identically.
+  Future<Set<VenueContactField>?> _venueContactConsent(
+    BuildContext context,
+  ) async {
+    final venueId = program.venueId;
+    final linkedVenue = venueId == null ? null : venuesById[venueId];
+    if (linkedVenue == null ||
+        populatedVenueContactFields(linkedVenue).isEmpty) {
+      return const <VenueContactField>{};
+    }
+    return VenueContactShareDialog.show(context, venue: linkedVenue);
+  }
+
   /// Writes a self-contained program-plus-referenced-dances bundle (the
   /// canonical [CompendiumArchive] JSON — see [buildProgramShareBundle]) to a
   /// temp file and hands it to the OS share sheet as a JSON [XFile].
@@ -158,14 +181,23 @@ class ProgramExportMenu extends StatelessWidget {
   /// import the program itself. This send-side action ships first, so a
   /// recipient on a build without the receive side gets the dances now and the
   /// program once PR 2 lands.
-  Future<void> _shareBundle(Rect? origin) async {
+  Future<void> _shareBundle(BuildContext context, Rect? origin) async {
     final resolveDance = danceFor;
     if (resolveDance == null) return;
+
+    // Gather the linked venue's contact-PII consent before building the bundle.
+    // Contact fields are omit-by-default; a cancelled/dismissed dialog aborts
+    // the share entirely (nothing leaves the device).
+    final includeVenueContact = await _venueContactConsent(context);
+    if (includeVenueContact == null) return;
+    if (!context.mounted) return;
 
     final json = buildProgramShareBundle(
       program,
       danceFor: resolveDance,
       choreographerFor: choreographerFor ?? (_) => null,
+      venueFor: (id) => venuesById[id],
+      includeVenueContact: includeVenueContact,
     );
     final fileName = programShareBundleFileName(program.title);
 
@@ -192,13 +224,30 @@ class ProgramExportMenu extends StatelessWidget {
 
   Future<void> _exportPdf(BuildContext context) async {
     final localizations = MaterialLocalizations.of(context);
+
+    // Gate the venue's contact PII behind the same consent dialog the share
+    // path uses. Contact fields are omit-by-default; a cancelled/dismissed
+    // dialog aborts the export (no PDF is generated).
+    final includeVenueContact = await _venueContactConsent(context);
+    if (includeVenueContact == null) return;
+    if (!context.mounted) return;
+
+    // Feed the PDF builder a venue already run through the single
+    // `sanitizeVenueForShare` primitive, so un-consented contact fields are
+    // physically absent — the renderer never needs its own redaction.
+    final venuesForPdf = venuesWithSanitizedContact(
+      venuesById,
+      program.venueId,
+      include: includeVenueContact,
+    );
+
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     await layoutPdf(
       name: sanitizeExportName(program.title, fallback: 'program'),
       onLayout: (format) => buildProgramPdf(
         program,
         titleFor: titleFor,
-        venuesById: venuesById,
+        venuesById: venuesForPdf,
         formatDate: localizations.formatMediumDate,
       ),
     );
@@ -227,7 +276,7 @@ class ProgramExportMenu extends StatelessWidget {
         await _guard(
           messenger,
           l10n.exportShareProgramError,
-          () => _shareBundle(origin),
+          () => _shareBundle(context, origin),
         );
       case _ExportAction.copyText:
         await _copyText(context);
