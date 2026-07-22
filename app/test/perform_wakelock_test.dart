@@ -132,6 +132,9 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
     await tester.pumpAndSettle();
+    // Exit is guarded (#434): confirm to actually leave.
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+    await tester.pumpAndSettle();
 
     expect(find.byType(PerformProgramScreen), findsNothing);
     expect(wakelock.isEnabled, isFalse);
