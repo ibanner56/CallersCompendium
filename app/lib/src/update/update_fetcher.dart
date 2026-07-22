@@ -45,9 +45,12 @@ typedef UpdateManifestSignatureFetcher =
 ///
 /// Returns the response's **raw bytes** on a 2xx with a non-empty body, or
 /// `null` for a timeout, an unreachable host (offline), a non-2xx status (e.g.
-/// 404 before A11c publishes the page), or an empty body. Never throws. The
-/// bytes are returned undecoded so the caller can verify the signature over the
-/// exact wire bytes before trusting or decoding them.
+/// 404 before A11c publishes the page), an empty body, or a body exceeding
+/// [kMaxManifestBytes]. Never throws. The body is **streamed** and the read
+/// aborts as soon as the running total exceeds the cap, so an oversized
+/// (misbehaving/compromised) response can never be fully buffered into memory
+/// (OWASP A08). The bytes are returned undecoded so the caller can verify the
+/// signature over the exact wire bytes before trusting or decoding them.
 Future<List<int>?> fetchUpdateManifest(
   UpdateChannel channel, {
   http.Client? client,
@@ -57,17 +60,17 @@ Future<List<int>?> fetchUpdateManifest(
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   try {
-    final response = await effectiveClient
-        .get(uri)
-        .timeout(kUpdateCheckTimeout);
-    if (response.statusCode < 200 || response.statusCode >= 300) return null;
+    final bytes = await _readBoundedBody(
+      effectiveClient,
+      uri,
+      kMaxManifestBytes,
+    ).timeout(kUpdateCheckTimeout);
     // Verify/parse operate on the exact wire bytes; never re-encode a decoded
     // String (which package:http may have decoded as latin1). An empty or
     // blank (ASCII-whitespace-only) body is a silent no-op like an unreachable
     // manifest. The whitespace check scans bytes directly — any non-whitespace
     // byte (including any non-ASCII byte) makes it a real body we keep verbatim.
-    final bytes = response.bodyBytes;
-    if (_isBlank(bytes)) return null;
+    if (bytes == null || _isBlank(bytes)) return null;
     return bytes;
   } on TimeoutException {
     return null;
@@ -79,6 +82,39 @@ Future<List<int>?> fetchUpdateManifest(
   } finally {
     if (ownClient) effectiveClient.close();
   }
+}
+
+/// Streams a **plain `GET`** of [uri] and accumulates the response body, but
+/// **aborts as soon as the running total exceeds [maxBytes]** — returning
+/// `null` without buffering the rest — so an oversized body cannot force a
+/// large allocation (OWASP A08 / resource exhaustion). Returns the collected
+/// bytes on a 2xx within the cap, or `null` for a non-2xx status or an
+/// over-cap body. Redirects are followed by the client as usual; the privacy
+/// contract (no query params, no identifying headers) is preserved because the
+/// request carries only the bare method + URL. Propagates transport errors to
+/// the caller's `catch` (which turns them into a silent `null`).
+Future<List<int>?> _readBoundedBody(
+  http.Client client,
+  Uri uri,
+  int maxBytes,
+) async {
+  final request = http.Request('GET', uri)..followRedirects = true;
+  final response = await client.send(request);
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    // Drain (and thereby cancel) the body so the connection is freed; ignore
+    // any error draining a failed response.
+    unawaited(response.stream.drain<void>().catchError((Object _) {}));
+    return null;
+  }
+  final bytes = <int>[];
+  await for (final chunk in response.stream) {
+    // Enforce the cap BEFORE appending: as soon as the cumulative size would
+    // exceed maxBytes, abort. Returning here cancels the stream subscription,
+    // so the remainder of an oversized body is never pulled or buffered.
+    if (bytes.length + chunk.length > maxBytes) return null;
+    bytes.addAll(chunk);
+  }
+  return bytes;
 }
 
 /// Whether [bytes] is empty or contains only ASCII whitespace (space, tab, CR,
@@ -106,12 +142,15 @@ bool _isBlank(List<int> bytes) {
 /// [kUpdateCheckTimeout] and privacy contract as [fetchUpdateManifest] (no query
 /// params, no identifying headers).
 ///
-/// Returns the response body on a 2xx with a non-empty, within-bounds body, or
+/// Returns the signature body on a 2xx with a non-empty, within-bounds body, or
 /// `null` for a timeout, an unreachable host, a non-2xx status (e.g. a 404
 /// before the signature is published, or when signing is not yet enabled), an
-/// empty body, or a body exceeding [kMaxSignatureBytes]. Never throws — a
-/// missing signature is a silent no-op the caller turns into "no update"
-/// (fail-closed) rather than an error dialog.
+/// empty body, or a body exceeding [kMaxSignatureBytes]. The body is
+/// **streamed** and the read aborts as soon as the running total exceeds the
+/// cap, so an oversized body is never fully buffered (OWASP A08). Never throws —
+/// a missing signature is a silent no-op the caller turns into "no update"
+/// (fail-closed) rather than an error dialog. The signature is base64 (ASCII),
+/// so the bounded bytes are decoded 1:1 to text.
 Future<String?> fetchUpdateManifestSignature(
   UpdateChannel channel, {
   http.Client? client,
@@ -121,14 +160,16 @@ Future<String?> fetchUpdateManifestSignature(
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   try {
-    final response = await effectiveClient
-        .get(uri)
-        .timeout(kUpdateCheckTimeout);
-    if (response.statusCode < 200 || response.statusCode >= 300) return null;
-    // Bound the signature body before trusting it: a detached Ed25519 signature
-    // is tiny (~88 base64 chars), so a larger body is malformed/hostile input.
-    if (response.bodyBytes.length > kMaxSignatureBytes) return null;
-    final body = response.body;
+    final bytes = await _readBoundedBody(
+      effectiveClient,
+      uri,
+      kMaxSignatureBytes,
+    ).timeout(kUpdateCheckTimeout);
+    if (bytes == null || bytes.isEmpty) return null;
+    // A detached Ed25519 signature is base64 (ASCII), so each byte maps 1:1 to
+    // a code unit. The verifier base64-decodes + length-checks it and rejects
+    // anything malformed, so we only need the text here.
+    final body = String.fromCharCodes(bytes);
     if (body.trim().isEmpty) return null;
     return body;
   } on TimeoutException {

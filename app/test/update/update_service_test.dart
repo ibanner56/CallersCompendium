@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:compendium_app/src/update/semver.dart';
 import 'package:compendium_app/src/update/update_config.dart';
@@ -351,6 +352,126 @@ void main() {
         await fetchUpdateManifest(UpdateChannel.stable, client: client),
         isNull,
       );
+    });
+  });
+
+  group('fetchUpdateManifest — bounded streamed read (OWASP A08)', () {
+    test('returns the body via a streamed 200 response', () async {
+      final manifestBytes = utf8.encode(_manifest());
+      final client = MockClient.streaming((request, bodyStream) async {
+        return http.StreamedResponse(
+          Stream<List<int>>.value(manifestBytes),
+          200,
+        );
+      });
+      final body = await fetchUpdateManifest(
+        UpdateChannel.stable,
+        client: client,
+      );
+      expect(body, manifestBytes);
+    });
+
+    test('aborts early without buffering an over-cap body', () async {
+      const chunk = 64 * 1024; // 64 KiB per chunk; cap is 256 KiB.
+      var produced = 0;
+      // A stream that would yield far more than the cap if fully read. The
+      // fetcher must stop pulling once the running total exceeds the cap, so
+      // only a handful of chunks are ever produced.
+      Stream<List<int>> huge() async* {
+        for (var i = 0; i < 1000; i++) {
+          produced += chunk;
+          yield Uint8List(chunk);
+        }
+      }
+
+      final client = MockClient.streaming((request, bodyStream) async {
+        return http.StreamedResponse(huge(), 200);
+      });
+      final body = await fetchUpdateManifest(
+        UpdateChannel.stable,
+        client: client,
+      );
+      expect(body, isNull);
+      // Early abort: far fewer bytes were produced than the full 64 MiB body
+      // (a few chunks past the 256 KiB cap, not the whole stream).
+      expect(produced, lessThan(1024 * 1024));
+      expect(produced, lessThan(1000 * chunk));
+    });
+
+    test(
+      'accepts a body exactly at the cap and rejects one byte over',
+      () async {
+        final atCap = Uint8List(kMaxManifestBytes)..fillRange(0, 1, 0x7b);
+        final atCapClient = MockClient.streaming((request, bodyStream) async {
+          return http.StreamedResponse(Stream<List<int>>.value(atCap), 200);
+        });
+        expect(
+          await fetchUpdateManifest(UpdateChannel.stable, client: atCapClient),
+          hasLength(kMaxManifestBytes),
+        );
+
+        final overCap = Uint8List(kMaxManifestBytes + 1)..fillRange(0, 1, 0x7b);
+        final overClient = MockClient.streaming((request, bodyStream) async {
+          return http.StreamedResponse(Stream<List<int>>.value(overCap), 200);
+        });
+        expect(
+          await fetchUpdateManifest(UpdateChannel.stable, client: overClient),
+          isNull,
+        );
+      },
+    );
+  });
+
+  group('fetchUpdateManifestSignature — bounded streamed read', () {
+    test('returns the trimmed signature text via a streamed 200', () async {
+      final client = MockClient.streaming((request, bodyStream) async {
+        return http.StreamedResponse(
+          Stream<List<int>>.value(utf8.encode('c2lnbmF0dXJl\n')),
+          200,
+        );
+      });
+      final sig = await fetchUpdateManifestSignature(
+        UpdateChannel.stable,
+        client: client,
+      );
+      expect(sig, 'c2lnbmF0dXJl\n');
+    });
+
+    test('returns null for an over-cap signature body', () async {
+      final overCap = Uint8List(kMaxSignatureBytes + 1)..fillRange(0, 1, 0x41);
+      final client = MockClient.streaming((request, bodyStream) async {
+        return http.StreamedResponse(Stream<List<int>>.value(overCap), 200);
+      });
+      expect(
+        await fetchUpdateManifestSignature(
+          UpdateChannel.stable,
+          client: client,
+        ),
+        isNull,
+      );
+    });
+
+    test('aborts early without buffering an over-cap signature', () async {
+      const chunk = 2 * 1024; // 2 KiB per chunk; cap is 4 KiB.
+      var produced = 0;
+      Stream<List<int>> huge() async* {
+        for (var i = 0; i < 1000; i++) {
+          produced += chunk;
+          yield Uint8List(chunk);
+        }
+      }
+
+      final client = MockClient.streaming((request, bodyStream) async {
+        return http.StreamedResponse(huge(), 200);
+      });
+      expect(
+        await fetchUpdateManifestSignature(
+          UpdateChannel.stable,
+          client: client,
+        ),
+        isNull,
+      );
+      expect(produced, lessThan(1000 * chunk));
     });
   });
 }

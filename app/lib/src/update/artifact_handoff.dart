@@ -55,21 +55,35 @@ class ProcessRunner {
   const ProcessRunner();
 
   /// Runs [executable] with [arguments] to completion; returns `true` on a
-  /// zero exit code. Any [ProcessException]/error is reported as `false`.
+  /// zero exit code. Any [ProcessException]/error (e.g. a missing executable)
+  /// is caught and reported as `false` so callers get the documented
+  /// fail-closed contract even outside a surrounding try/catch.
   Future<bool> runToCompletion(
     String executable,
     List<String> arguments,
   ) async {
-    final result = await Process.run(executable, arguments);
-    return result.exitCode == 0;
+    try {
+      final result = await Process.run(executable, arguments);
+      return result.exitCode == 0;
+    } on Object {
+      return false;
+    }
   }
 
   /// Starts [executable] with [arguments] detached (fire-and-forget); returns
-  /// `true` once the process is started. Any [ProcessException]/error is
-  /// reported as `false`.
+  /// `true` only once the process has actually started. Any
+  /// [ProcessException]/error is caught and reported as `false`.
   Future<bool> startDetached(String executable, List<String> arguments) async {
-    await Process.start(executable, arguments, mode: ProcessStartMode.detached);
-    return true;
+    try {
+      await Process.start(
+        executable,
+        arguments,
+        mode: ProcessStartMode.detached,
+      );
+      return true;
+    } on Object {
+      return false;
+    }
   }
 }
 

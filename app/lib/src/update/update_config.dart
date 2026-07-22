@@ -37,6 +37,15 @@ const String kUpdateManifestPublicKey = '';
 /// signature over the **exact** bytes of `<channel>.json` (issue #431).
 const String kUpdateSignatureFileSuffix = '.sig';
 
+/// A hard upper bound on the manifest body the client will read (issue #431).
+/// A channel manifest is small JSON (a handful of artifacts); 256 KiB is far
+/// above any realistic manifest yet small enough that a misbehaving or
+/// compromised — even allowlisted — host cannot force a large allocation. The
+/// fetcher streams the body and aborts as soon as the running total exceeds
+/// this cap, so the bound is enforced **before** the bytes are buffered (OWASP
+/// A08 / resource exhaustion), never merely checked after the fact.
+const int kMaxManifestBytes = 256 * 1024;
+
 /// A hard upper bound on the manifest signature body the client will read. A
 /// base64-encoded 64-byte Ed25519 signature is ~88 bytes; this cap (with slack
 /// for whitespace) ensures a misbehaving host cannot stream an unbounded body

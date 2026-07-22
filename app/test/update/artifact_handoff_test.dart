@@ -30,6 +30,23 @@ class _RecordingRunner extends ProcessRunner {
   }
 }
 
+/// A [ProcessRunner] whose launch methods throw, simulating a caller that
+/// invokes the runner outside the handoff's own try/catch. Proves the handoff
+/// stays fail-closed (→ [HandoffResult.failed]) even if a runner throws.
+class _ThrowingRunner extends ProcessRunner {
+  const _ThrowingRunner();
+
+  @override
+  Future<bool> runToCompletion(String executable, List<String> arguments) {
+    throw const ProcessException('boom', []);
+  }
+
+  @override
+  Future<bool> startDetached(String executable, List<String> arguments) {
+    throw const ProcessException('boom', []);
+  }
+}
+
 void main() {
   late Directory tempDir;
   late File installer;
@@ -140,5 +157,48 @@ void main() {
     );
     expect(runner.runCalls, isEmpty);
     expect(runner.startCalls, isEmpty);
+  });
+
+  group('ProcessRunner fail-closed contract', () {
+    // A path that cannot be an executable, so Process.run/Process.start throws
+    // a ProcessException. The base ProcessRunner must catch it and return false
+    // (not let it escape) so the documented contract holds outside a caller's
+    // own try/catch.
+    final bogusExecutable =
+        '${Directory.systemTemp.path}/definitely-not-an-executable-431';
+
+    test('runToCompletion returns false when the executable throws', () async {
+      const runner = ProcessRunner();
+      expect(await runner.runToCompletion(bogusExecutable, const []), isFalse);
+    });
+
+    test('startDetached returns false when the executable throws', () async {
+      const runner = ProcessRunner();
+      expect(await runner.startDetached(bogusExecutable, const []), isFalse);
+    });
+
+    test('handoff reports failed when the runner throws (macOS)', () async {
+      const runner = _ThrowingRunner();
+      expect(
+        await handoffArtifactToOs(
+          installer,
+          UpdatePlatform.macos,
+          runner: runner,
+        ),
+        HandoffResult.failed,
+      );
+    });
+
+    test('handoff reports failed when the runner throws (Linux)', () async {
+      const runner = _ThrowingRunner();
+      expect(
+        await handoffArtifactToOs(
+          installer,
+          UpdatePlatform.linux,
+          runner: runner,
+        ),
+        HandoffResult.failed,
+      );
+    });
   });
 }
