@@ -18,18 +18,10 @@ const String kUpdateManifestBaseUrl =
 /// a manifest whose signature does not verify against this key — or that has no
 /// signature at all — is refused as a silent no-op, never installed.
 ///
-/// **PLACEHOLDER — replace before enabling signed updates in production.** It
-/// ships empty on purpose: an empty pinned key makes verification **fail
-/// closed** (see `verifyManifestSignature`), so the client never offers an
-/// update until the maintainer provisions the real key. To turn signed updates
-/// on, the maintainer must (see docs/dev/releasing.md):
-///   1. generate an Ed25519 keypair,
-///   2. add the private key as the `UPDATE_SIGNING_KEY` CI secret, and
-///   3. replace this constant with the base64 of the 32-byte public key and
-///      ship an app release.
 /// Rotating the key requires publishing the new public key in an app update
 /// **before** switching the signing key, because older clients pin the old key.
-const String kUpdateManifestPublicKey = '';
+const String kUpdateManifestPublicKey =
+    '/39VzhfG58PnR5RlMzDB5ertil945PWRgA+usAj4qvw=';
 
 /// The filename suffix of a channel manifest's detached signature, served next
 /// to `<channel>.json` on gh-pages (e.g. `stable.json` → `stable.json.sig`).

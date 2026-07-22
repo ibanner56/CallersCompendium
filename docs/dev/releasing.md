@@ -347,9 +347,8 @@ install). This is a fail-closed security gate (ADR-002 §6, OWASP A08).
   **64-byte** Ed25519 signature (a trailing newline is tolerated).
 - **Pinned key:** `kUpdateManifestPublicKey` in
   `app/lib/src/update/update_config.dart` — the standard base64 of the **32-byte**
-  Ed25519 public key. It ships as an **empty-string placeholder**, which makes
-  verification fail closed so the client never offers an update until the real
-  key is pinned.
+  Ed25519 public key (**now provisioned**). If it is empty or no key is pinned,
+  verification fails closed so the client never offers an update.
 
 Client verification lives in `app/lib/src/update/update_signature.dart` and is
 fully unit-tested with in-test keypairs.
@@ -376,8 +375,9 @@ the manifest (via `publish_pages_manifest.sh --signature …`).
 
 ### Maintainer ops: enabling signed updates
 
-Signed updates are **off until a maintainer provisions the key** (the shipped
-placeholder makes the client fail closed). To turn them on:
+The signing key is **now provisioned**, so signed updates are enabled (an empty
+pinned key would make the client fail closed). The steps a maintainer follows to
+provision — or later re-provision — the key:
 
 1. **Generate an Ed25519 keypair** (private key stays secret; never commit it):
 
@@ -392,9 +392,10 @@ placeholder makes the client fail closed). To turn them on:
    (repo/organization **Settings → Secrets and variables → Actions**). Paste the
    full PEM (`-----BEGIN PRIVATE KEY----- … -----END PRIVATE KEY-----`).
 
-3. **Pin the public key**: replace the empty `kUpdateManifestPublicKey` in
-   `app/lib/src/update/update_config.dart` with the base64 from step 1, and
-   **ship an app release** carrying it. Only clients built with the pinned key
+3. **Pin the public key**: set `kUpdateManifestPublicKey` in
+   `app/lib/src/update/update_config.dart` to the base64 from step 1 (replacing
+   any previously pinned value), and **ship an app release** carrying it. Only
+   clients built with the pinned key
    can verify — so the pinned key must reach users **before** the first signed
    manifest is the only one they can use.
 
