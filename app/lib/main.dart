@@ -212,7 +212,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     false,
   );
   final ValueNotifier<bool> _sortIgnoreArticlesNotifier = ValueNotifier(true);
-  final ValueNotifier<bool> _reduceMotionNotifier = ValueNotifier(false);
+  // Tri-state (issue #447): null = unset → follow the OS-level Reduce Motion
+  // preference (MediaQuery.disableAnimations); true/false = explicit in-app
+  // override. Resolved to an effective bool by ReduceMotionScope.of.
+  final ValueNotifier<bool?> _reduceMotionNotifier = ValueNotifier<bool?>(null);
   final ValueNotifier<bool> _verboseFigureRenderingNotifier = ValueNotifier(
     false,
   );
@@ -533,9 +536,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (sortIgnoreArticles is bool) {
       _sortIgnoreArticlesNotifier.value = sortIgnoreArticles;
     }
-    // Load the three accessibility toggles (ROADMAP G.7), each defaulting to
-    // off (false) when unset. Defensive: a read failure falls back to false so
-    // startup never blocks on a settings hiccup.
+    // Load the accessibility toggles (ROADMAP G.7). Reduce-motion is tri-state
+    // (issue #447, WCAG 2.3.3): a stored `bool` is an explicit in-app override,
+    // while an absent key leaves the notifier `null` so the scope follows the
+    // OS-level Reduce Motion preference. Only coerce a genuine `bool` into an
+    // override so a missing key (or a read failure, coerced to `null` below)
+    // keeps "follow OS". The remaining toggles default to off (false) when
+    // unset; a read failure falls back so startup never blocks on a settings
+    // hiccup.
     final reduceMotion = await _appData.repositories.settings
         .get(kReduceMotionKey)
         .catchError((_) => null);
