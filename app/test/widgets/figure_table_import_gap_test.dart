@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/import_gap_badge.dart';
 import '../support/l10n_harness.dart';
@@ -59,6 +60,7 @@ void main() {
   });
 
   testWidgets('tapping the badge opens the explanation dialog', (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     await _pump(tester, [
       customFigure('kept verbatim', beats: 8, origin: CustomOrigin.importGap),
     ]);
@@ -66,7 +68,7 @@ void main() {
     await tester.tap(find.byType(ImportGapBadge));
     await tester.pumpAndSettle();
 
-    expect(find.text('Custom figure from import'), findsOneWidget);
-    expect(find.text(importGapMessage), findsWidgets);
+    expect(find.text(l10n.importGapDialogTitle), findsOneWidget);
+    expect(find.text(l10n.importGapMessage), findsWidgets);
   });
 }

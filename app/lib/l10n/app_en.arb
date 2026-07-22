@@ -128,6 +128,10 @@
   "@commonNo": {
     "description": "Negative choice for a yes/no filter chip."
   },
+  "commonOk": "OK",
+  "@commonOk": {
+    "description": "Generic acknowledgement button that dismisses an informational dialog."
+  },
   "commonProgression": "Progression",
   "@commonProgression": {
     "description": "Label for the progression concept: used as a filter section heading and the figure-row progression-marker tooltip."
@@ -287,6 +291,19 @@
         "example": "Chorus Jig"
       }
     }
+  },
+
+  "importGapMessage": "Couldn't parse this call — kept verbatim as a custom figure.",
+  "@importGapMessage": {
+    "description": "Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label."
+  },
+  "importGapDialogTitle": "Custom figure from import",
+  "@importGapDialogTitle": {
+    "description": "Title of the dialog explaining an import-gap custom figure (shown when the badge is tapped)."
+  },
+  "importGapSemanticLabel": "Unparsed import. Couldn't parse this call — kept verbatim as a custom figure.",
+  "@importGapSemanticLabel": {
+    "description": "Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments."
   },
 
   "collectionScreenTitle": "Collection",

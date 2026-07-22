@@ -97,6 +97,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonNo => 'No';
 
   @override
+  String get commonOk => 'OK';
+
+  @override
   String get commonProgression => 'Progression';
 
   @override
@@ -206,6 +209,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String commonDeletedSnack(String title) {
     return '\"$title\" deleted.';
   }
+
+  @override
+  String get importGapMessage =>
+      'Couldn\'t parse this call — kept verbatim as a custom figure.';
+
+  @override
+  String get importGapDialogTitle => 'Custom figure from import';
+
+  @override
+  String get importGapSemanticLabel =>
+      'Unparsed import. Couldn\'t parse this call — kept verbatim as a custom figure.';
 
   @override
   String get collectionScreenTitle => 'Collection';

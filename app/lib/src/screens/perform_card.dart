@@ -860,12 +860,12 @@ class _FigureRow extends StatelessWidget {
         ? mainSpans!.map((s) => s.text).join()
         : stripInlineEmphasis(verboseText);
     // Modelled as ONE ICU message (never fragment concatenation) so translators
-    // control ordering. The import-gap message text stays hardcoded (owned by a
-    // later layer) by flowing through a placeholder rather than living in the ARB.
+    // control ordering. The localized import-gap explanation flows through a
+    // placeholder so the whole semantics phrase stays a single ICU message.
     final semanticsLabel = l10n.performFigureSemantic(
       mainSemantics,
       isImportGap ? 'yes' : 'no',
-      isImportGap ? importGapMessage : '',
+      isImportGap ? l10n.importGapMessage : '',
       progression ? 'yes' : 'no',
       beats,
       noteText.isNotEmpty ? 'yes' : 'no',

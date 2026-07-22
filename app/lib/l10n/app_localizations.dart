@@ -262,6 +262,12 @@ abstract class AppLocalizations {
   /// **'No'**
   String get commonNo;
 
+  /// Generic acknowledgement button that dismisses an informational dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get commonOk;
+
   /// Label for the progression concept: used as a filter section heading and the figure-row progression-marker tooltip.
   ///
   /// In en, this message translates to:
@@ -471,6 +477,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{title}\" deleted.'**
   String commonDeletedSnack(String title);
+
+  /// Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t parse this call — kept verbatim as a custom figure.'**
+  String get importGapMessage;
+
+  /// Title of the dialog explaining an import-gap custom figure (shown when the badge is tapped).
+  ///
+  /// In en, this message translates to:
+  /// **'Custom figure from import'**
+  String get importGapDialogTitle;
+
+  /// Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments.
+  ///
+  /// In en, this message translates to:
+  /// **'Unparsed import. Couldn\'t parse this call — kept verbatim as a custom figure.'**
+  String get importGapSemanticLabel;
 
   /// App-bar title of the Collection screen (phone layout).
   ///
