@@ -71,18 +71,68 @@ class BackupFileTooLargeException implements Exception {
   static String _mib(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(1);
 }
 
+/// Atomically writes [contents] to [path].
+///
+/// Backup writes must never corrupt the previous good backup: overwriting a
+/// file in place means an interrupted write (crash, abrupt termination, a
+/// disk-full error) can leave the target half-written, destroying the prior
+/// good copy while the new one is incomplete — potentially losing both
+/// (issue #438).
+///
+/// Instead we write to a sibling temp file `<path>.tmp`, flush it to disk
+/// (`flush: true` performs an `fsync`, so the bytes are durable before we
+/// touch the target), then atomically `rename` it over [path]. `dart:io`'s
+/// [File.rename] is an atomic same-volume replace on every target platform
+/// (`rename(2)` on POSIX; `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING` on
+/// Windows), and keeping the temp beside the target guarantees they share a
+/// volume. So the target is only ever swapped for a fully-written file — a
+/// failed write leaves the old backup untouched.
+///
+/// On any failure the temp file is removed on a best-effort basis (so a failed
+/// write leaves no `.tmp` litter) and the error is rethrown. The pre-existing
+/// file at [path] is never modified unless the rename succeeds.
+///
+/// [debugSimulateFailure], if supplied, is awaited *after* the temp file has
+/// been written but *before* the rename — a test-only seam to prove an
+/// interrupted write can't harm the previous good backup. Production callers
+/// never pass it.
+@visibleForTesting
+Future<void> writeStringAtomically(
+  String path,
+  String contents, {
+  Future<void> Function()? debugSimulateFailure,
+}) async {
+  final target = File(path);
+  final tmp = File('$path.tmp');
+  try {
+    await tmp.writeAsString(contents, flush: true);
+    if (debugSimulateFailure != null) await debugSimulateFailure();
+    await tmp.rename(target.path);
+  } catch (_) {
+    // Best-effort cleanup: never leave a `.tmp` behind, and never touch the
+    // previous good backup at `path` (only a successful rename replaces it).
+    try {
+      if (await tmp.exists()) await tmp.delete();
+    } catch (_) {
+      // Swallow cleanup errors; the original failure below is what matters.
+    }
+    rethrow;
+  }
+}
+
 /// Default [BackupSaver].
 ///
 /// On desktop (macOS/Windows/Linux) a backup is a "save a file" action: this
 /// shows a native Save As dialog (via `file_selector`'s [getSaveLocation]) and
-/// writes [json] straight to the chosen path. Returns `false` without writing
-/// anything if the user cancels the dialog.
+/// writes [json] to the chosen path via [writeStringAtomically], so an
+/// interrupted write can never corrupt a backup the user is overwriting.
+/// Returns `false` without writing anything if the user cancels the dialog.
 ///
 /// On mobile (iOS/Android) a backup is a "share to another app" action: this
-/// writes [json] to a temp file (via `path_provider`) and hands it to the OS
-/// share sheet (via `share_plus`), returning `true` once the sheet has been
-/// invoked (share-sheet completion isn't reliably observable on those
-/// platforms).
+/// writes [json] to a temp file (via `path_provider`, also atomically) and
+/// hands it to the OS share sheet (via `share_plus`), returning `true` once the
+/// sheet has been invoked (share-sheet completion isn't reliably observable on
+/// those platforms).
 Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   if (isDesktopPlatform()) {
     final location = await getSaveLocation(
@@ -90,7 +140,7 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
       acceptedTypeGroups: const [_jsonTypeGroup],
     );
     if (location == null) return false;
-    await File(location.path).writeAsString(json);
+    await writeStringAtomically(location.path, json);
     return true;
   }
 
@@ -101,7 +151,7 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   // throws `PathNotFoundException`. Defensive I/O for the share-staging path.
   await dir.create(recursive: true);
   final file = File('${dir.path}/$suggestedFileName');
-  await file.writeAsString(json);
+  await writeStringAtomically(file.path, json);
   await SharePlus.instance.share(
     ShareParams(
       files: [XFile(file.path, mimeType: 'application/json')],
