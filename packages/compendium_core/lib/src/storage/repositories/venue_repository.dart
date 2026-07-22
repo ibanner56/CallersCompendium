@@ -79,13 +79,20 @@ class VenueRepository {
   /// join to the `programs.venue_id` column), tightened to be transactional
   /// because `venueId` is an app-layer-enforced soft reference, not a DB FK.
   Future<void> delete(String id) => _db.transaction(() async {
-    final stillUsed = await (_db.select(
-      _db.programs,
-    )..where((t) => t.venueId.equals(id))).get();
-    if (stillUsed.isNotEmpty) {
+    // A venue is explicitly reusable across many programs, so read only a
+    // scalar `COUNT(id)` for the guard rather than materializing every
+    // referencing `ProgramRow` (all columns) just to count it — the cost stays
+    // flat regardless of how large a popular venue's referencing history grows.
+    final referencingCount = _db.programs.id.count();
+    final count =
+        await (_db.selectOnly(_db.programs)
+              ..addColumns([referencingCount])
+              ..where(_db.programs.venueId.equals(id)))
+            .map((row) => row.read(referencingCount) ?? 0)
+            .getSingle();
+    if (count > 0) {
       throw StateError(
-        'cannot delete venue "$id": still referenced by '
-        '${stillUsed.length} program(s)',
+        'cannot delete venue "$id": still referenced by $count program(s)',
       );
     }
     await (_db.delete(_db.venues)..where((t) => t.id.equals(id))).go();
