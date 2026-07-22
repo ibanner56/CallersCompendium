@@ -101,7 +101,7 @@ class DanceEditorForm extends StatelessWidget {
         // they label. A trailing gap keeps the last section off the bottom edge.
         padding: const EdgeInsets.only(bottom: AppSpacing.xl),
         children: [
-          const SectionHeader(title: 'Details'),
+          SectionHeader(title: l10n.danceEditorDetailsSection),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Column(
@@ -112,10 +112,12 @@ class DanceEditorForm extends StatelessWidget {
                   controller: controller.titleController,
                   autofocus: isNew,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Title *'),
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorTitleRequiredLabel,
+                  ),
                   onChanged: (_) => controller.onTextEdited(),
                   validator: (value) => (value == null || value.trim().isEmpty)
-                      ? 'Title is required'
+                      ? l10n.danceEditorTitleRequired
                       : null,
                 ),
                 LingoDiscouragedHint(
@@ -124,7 +126,7 @@ class DanceEditorForm extends StatelessWidget {
                   fieldKey: 'title',
                 ),
                 const SizedBox(height: AppSpacing.md),
-                const FieldLabel('Authors'),
+                FieldLabel(l10n.danceEditorAuthorsLabel),
                 NamePicker(
                   fieldKey: 'author',
                   selectedIds: controller.authorIds,
@@ -136,7 +138,7 @@ class DanceEditorForm extends StatelessWidget {
                   onEdit: onEditChoreographer,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                const FieldLabel('Formation'),
+                FieldLabel(l10n.danceEditorFormationLabel),
                 // Key includes the value so an undo/redo that changes
                 // formationShape forces the DropdownButtonFormField to rebuild
                 // with the new state.
@@ -160,8 +162,8 @@ class DanceEditorForm extends StatelessWidget {
                 TextFormField(
                   key: const ValueKey('formation-detail-field'),
                   controller: controller.formationDetailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Formation detail (optional)',
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorFormationDetailLabel,
                   ),
                   onChanged: (_) => controller.onTextEdited(),
                 ),
@@ -178,7 +180,7 @@ class DanceEditorForm extends StatelessWidget {
                     Expanded(
                       child: EnumDropdown<Progression>(
                         fieldKey: 'progression',
-                        label: 'Progression',
+                        label: l10n.commonProgression,
                         value: controller.progression,
                         values: Progression.values,
                         labelOf: (value) => progressionLabel(l10n, value),
@@ -198,9 +200,9 @@ class DanceEditorForm extends StatelessWidget {
                 TextFormField(
                   key: const ValueKey('phrase-field'),
                   controller: controller.phraseController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phrase structure',
-                    hintText: 'Blank = standard A1 A2 B1 B2; else e.g. 6*8*2',
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorPhraseStructureLabel,
+                    hintText: l10n.danceEditorPhraseStructureHint,
                   ),
                   onChanged: (_) => controller.onPhraseChanged(),
                   validator: (value) {
@@ -220,15 +222,14 @@ class DanceEditorForm extends StatelessWidget {
               ],
             ),
           ),
-          const SectionHeader(title: 'Figures'),
+          SectionHeader(title: l10n.danceEditorFiguresSection),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Type a move (e.g. "sw" → swing) and press Enter to add it with '
-                  'default params; unmatched text becomes a custom figure.',
+                  l10n.danceEditorFiguresHelp,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -254,7 +255,7 @@ class DanceEditorForm extends StatelessWidget {
               ],
             ),
           ),
-          const SectionHeader(title: 'Notes'),
+          SectionHeader(title: l10n.danceEditorNotesSection),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Column(
@@ -265,8 +266,8 @@ class DanceEditorForm extends StatelessWidget {
                   controller: controller.notesController,
                   minLines: 2,
                   maxLines: 6,
-                  decoration: const InputDecoration(
-                    labelText: 'Calling notes',
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorCallingNotesLabel,
                     alignLabelWithHint: true,
                   ),
                   onChanged: (_) => controller.onTextEdited(),
@@ -280,9 +281,9 @@ class DanceEditorForm extends StatelessWidget {
                 TextFormField(
                   key: const ValueKey('hook-field'),
                   controller: controller.hookController,
-                  decoration: const InputDecoration(
-                    labelText: 'Hook',
-                    hintText: 'One-line "why call this"',
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorHookLabel,
+                    hintText: l10n.danceEditorHookHint,
                   ),
                   onChanged: (_) => controller.onTextEdited(),
                 ),
@@ -323,7 +324,7 @@ class DanceEditorForm extends StatelessWidget {
       key: const ValueKey('more-details-tile'),
       leading: Icon(Icons.tune, color: colorScheme.primary),
       title: Text(
-        'More details',
+        l10n.danceEditorMoreDetailsTitle,
         style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
       initiallyExpanded: false,
@@ -342,7 +343,7 @@ class DanceEditorForm extends StatelessWidget {
       children: [
         EnumDropdown<DanceStatus>(
           fieldKey: 'status',
-          label: 'Status',
+          label: l10n.danceEditorStatusLabel,
           value: controller.status,
           values: DanceStatus.values,
           labelOf: (value) => danceStatusLabel(l10n, value),
@@ -355,8 +356,8 @@ class DanceEditorForm extends StatelessWidget {
           key: const ValueKey('mixed-level-field'),
           value: controller.mixedLevel,
           onChanged: (v) => controller.setMixedLevel(v ?? false),
-          title: const Text('Mixed level'),
-          subtitle: const Text('Spans the difficulty scale'),
+          title: Text(l10n.commonMixedLevel),
+          subtitle: Text(l10n.danceEditorMixedLevelSubtitle),
           secondary: const Icon(Icons.swap_vert),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
@@ -364,21 +365,21 @@ class DanceEditorForm extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
         PartialDateField(
           fieldKey: 'composed-on',
-          label: 'Composed',
-          helperText: 'When the dance was composed (year, or add month/day)',
+          label: l10n.danceEditorComposedLabel,
+          helperText: l10n.danceEditorComposedHelper,
           value: controller.composedOn,
           onChanged: controller.setComposedOn,
         ),
         const SizedBox(height: AppSpacing.md),
         PartialDateField(
           fieldKey: 'revised-on',
-          label: 'Revised',
-          helperText: 'When the dance was last revised by its author',
+          label: l10n.danceEditorRevisedLabel,
+          helperText: l10n.danceEditorRevisedHelper,
           value: controller.revisedOn,
           onChanged: controller.setRevisedOn,
         ),
         const SizedBox(height: AppSpacing.md),
-        const FieldLabel('Tags'),
+        FieldLabel(l10n.danceEditorTagsLabel),
         NamePicker(
           fieldKey: 'tag',
           selectedIds: controller.tagIds,
@@ -389,7 +390,7 @@ class DanceEditorForm extends StatelessWidget {
           onCreate: onCreateTag,
         ),
         const SizedBox(height: AppSpacing.md),
-        const FieldLabel('Tunes'),
+        FieldLabel(l10n.danceEditorTunesLabel),
         TuneEditor(
           tunes: controller.tunes,
           controller: controller.tuneController,
@@ -402,7 +403,7 @@ class DanceEditorForm extends StatelessWidget {
           fieldKey: 'tune',
         ),
         const SizedBox(height: AppSpacing.md),
-        const FieldLabel('Links'),
+        FieldLabel(l10n.danceEditorLinksLabel),
         LinksEditor(
           links: controller.links,
           onAdd: controller.addLink,
@@ -410,7 +411,7 @@ class DanceEditorForm extends StatelessWidget {
           onChanged: controller.onLinksChanged,
         ),
         const SizedBox(height: AppSpacing.md),
-        const FieldLabel('Published sources'),
+        FieldLabel(l10n.danceEditorPublishedSourcesLabel),
         SourceCitationsEditor(
           citations: controller.sourceCitations,
           sourcesById: sourcesById,
@@ -422,7 +423,7 @@ class DanceEditorForm extends StatelessWidget {
           onChanged: controller.onSourceCitationsChanged,
         ),
         const SizedBox(height: AppSpacing.md),
-        const FieldLabel('Related dances'),
+        FieldLabel(l10n.danceEditorRelatedDancesLabel),
         RelatedDancesEditor(
           links: controller.links,
           danceOptions: danceOptions,
@@ -433,7 +434,7 @@ class DanceEditorForm extends StatelessWidget {
         ),
         if (controller.fieldDefs.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
-          const FieldLabel('Custom fields'),
+          FieldLabel(l10n.danceEditorCustomFieldsLabel),
           for (final def in controller.fieldDefs)
             CustomFieldEditor(
               def: def,

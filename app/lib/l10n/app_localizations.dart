@@ -842,6 +842,24 @@ abstract class AppLocalizations {
   /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.'**
   String get settingsDefaultsFreeTextEntrySubtitle;
 
+  /// Title of the Defaults settings row that opens the figure-shorthand mappings editor (#420).
+  ///
+  /// In en, this message translates to:
+  /// **'Figure shorthands'**
+  String get settingsDefaultsFigureShorthandsTitle;
+
+  /// Subtitle for the figure-shorthands row when no shorthands are defined yet, explaining what the feature does.
+  ///
+  /// In en, this message translates to:
+  /// **'Map short tokens to one or more figures you can insert during free-text entry.'**
+  String get settingsDefaultsFigureShorthandsEmptySubtitle;
+
+  /// Subtitle for the figure-shorthands row showing how many shorthands the user has defined.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 shorthand defined.} other{{count} shorthands defined.}}'**
+  String settingsDefaultsFigureShorthandsCountSubtitle(int count);
+
   /// Title of the default dance-form picker.
   ///
   /// In en, this message translates to:
@@ -4518,6 +4536,929 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t complete the import.'**
   String get importReviewImportError;
+
+  /// Section heading for the primary dance metadata fields in the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get danceEditorDetailsSection;
+
+  /// Required dance/source title field label; the asterisk marks the field as required.
+  ///
+  /// In en, this message translates to:
+  /// **'Title *'**
+  String get danceEditorTitleRequiredLabel;
+
+  /// Validation error shown when a required title field is blank.
+  ///
+  /// In en, this message translates to:
+  /// **'Title is required'**
+  String get danceEditorTitleRequired;
+
+  /// Field label for the dance author/choreographer picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get danceEditorAuthorsLabel;
+
+  /// Field label for the dance formation picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get danceEditorFormationLabel;
+
+  /// Text field label for optional formation details.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation detail (optional)'**
+  String get danceEditorFormationDetailLabel;
+
+  /// Text field label for entering the dance phrase structure.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrase structure'**
+  String get danceEditorPhraseStructureLabel;
+
+  /// Hint explaining the dance phrase-structure field syntax.
+  ///
+  /// In en, this message translates to:
+  /// **'Blank = standard A1 A2 B1 B2; else e.g. 6*8*2'**
+  String get danceEditorPhraseStructureHint;
+
+  /// Section heading for the editable figure list in the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures'**
+  String get danceEditorFiguresSection;
+
+  /// Helper text above the figure list explaining type-ahead figure entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a move (e.g. \"sw\" → swing) and press Enter to add it with default params; unmatched text becomes a custom figure.'**
+  String get danceEditorFiguresHelp;
+
+  /// Section heading for the dance notes fields.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get danceEditorNotesSection;
+
+  /// Text field label for caller notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes'**
+  String get danceEditorCallingNotesLabel;
+
+  /// Text field label for the short hook/why-call-this note.
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get danceEditorHookLabel;
+
+  /// Hint text for the hook field.
+  ///
+  /// In en, this message translates to:
+  /// **'One-line \"why call this\"'**
+  String get danceEditorHookHint;
+
+  /// Expansion tile title for less frequently used dance metadata fields.
+  ///
+  /// In en, this message translates to:
+  /// **'More details'**
+  String get danceEditorMoreDetailsTitle;
+
+  /// Dropdown label for the dance status field.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get danceEditorStatusLabel;
+
+  /// Subtitle explaining the mixed-level checkbox in the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Spans the difficulty scale'**
+  String get danceEditorMixedLevelSubtitle;
+
+  /// Label for the partial date when the dance was composed.
+  ///
+  /// In en, this message translates to:
+  /// **'Composed'**
+  String get danceEditorComposedLabel;
+
+  /// Helper text for the composed-date field.
+  ///
+  /// In en, this message translates to:
+  /// **'When the dance was composed (year, or add month/day)'**
+  String get danceEditorComposedHelper;
+
+  /// Label for the partial date when the dance was last revised.
+  ///
+  /// In en, this message translates to:
+  /// **'Revised'**
+  String get danceEditorRevisedLabel;
+
+  /// Helper text for the revised-date field.
+  ///
+  /// In en, this message translates to:
+  /// **'When the dance was last revised by its author'**
+  String get danceEditorRevisedHelper;
+
+  /// Field label for the dance tag picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get danceEditorTagsLabel;
+
+  /// Field label for suggested tunes.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunes'**
+  String get danceEditorTunesLabel;
+
+  /// Field label for URL links attached to a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Links'**
+  String get danceEditorLinksLabel;
+
+  /// Field label for published sources cited by a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Published sources'**
+  String get danceEditorPublishedSourcesLabel;
+
+  /// Field label for related dance cross-references.
+  ///
+  /// In en, this message translates to:
+  /// **'Related dances'**
+  String get danceEditorRelatedDancesLabel;
+
+  /// Field label for custom metadata fields in the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom fields'**
+  String get danceEditorCustomFieldsLabel;
+
+  /// Label and semantics label for the dance rating control.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get danceEditorRatingLabel;
+
+  /// Semantics value announced when a dance has no rating.
+  ///
+  /// In en, this message translates to:
+  /// **'unrated'**
+  String get danceEditorRatingUnrated;
+
+  /// Semantics value for a set dance rating.
+  ///
+  /// In en, this message translates to:
+  /// **'{rating} of {max} stars'**
+  String danceEditorRatingValue(int rating, int max);
+
+  /// Tooltip and icon semantics label for setting a star rating.
+  ///
+  /// In en, this message translates to:
+  /// **'Set rating to {rating} of {max} stars'**
+  String danceEditorSetRatingTooltip(int rating, int max);
+
+  /// Tooltip and icon semantics label for clearing a star rating.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear rating'**
+  String get danceEditorClearRating;
+
+  /// Dropdown label for dance difficulty level.
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get danceEditorLevelLabel;
+
+  /// Dropdown option meaning no dance level is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Unspecified'**
+  String get danceEditorLevelUnspecified;
+
+  /// Partial-date field label for the year component.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get danceEditorYearLabel;
+
+  /// Hint text showing an example year.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 1989'**
+  String get danceEditorYearHint;
+
+  /// Validation error for a partial-date year outside the supported range.
+  ///
+  /// In en, this message translates to:
+  /// **'1–9999'**
+  String get danceEditorYearRangeError;
+
+  /// Partial-date dropdown label for the month component.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get danceEditorMonthLabel;
+
+  /// Partial-date dropdown label for the day component.
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get danceEditorDayLabel;
+
+  /// Abbreviated month label "Jan" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Jan'**
+  String get danceEditorMonthJan;
+
+  /// Abbreviated month label "Feb" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Feb'**
+  String get danceEditorMonthFeb;
+
+  /// Abbreviated month label "Mar" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Mar'**
+  String get danceEditorMonthMar;
+
+  /// Abbreviated month label "Apr" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Apr'**
+  String get danceEditorMonthApr;
+
+  /// Abbreviated month label "May" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'May'**
+  String get danceEditorMonthMay;
+
+  /// Abbreviated month label "Jun" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Jun'**
+  String get danceEditorMonthJun;
+
+  /// Abbreviated month label "Jul" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Jul'**
+  String get danceEditorMonthJul;
+
+  /// Abbreviated month label "Aug" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Aug'**
+  String get danceEditorMonthAug;
+
+  /// Abbreviated month label "Sep" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Sep'**
+  String get danceEditorMonthSep;
+
+  /// Abbreviated month label "Oct" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Oct'**
+  String get danceEditorMonthOct;
+
+  /// Abbreviated month label "Nov" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Nov'**
+  String get danceEditorMonthNov;
+
+  /// Abbreviated month label "Dec" in the partial-date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Dec'**
+  String get danceEditorMonthDec;
+
+  /// Hint text for adding a suggested tune to a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a suggested tune…'**
+  String get danceEditorAddTuneHint;
+
+  /// Tooltip for the button that adds the typed tune.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tune'**
+  String get danceEditorAddTuneTooltip;
+
+  /// Heading for non-blocking validation warnings in the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Warnings'**
+  String get danceEditorWarningsTitle;
+
+  /// Semantics label announcing discouraged lingo terms in a prose field.
+  ///
+  /// In en, this message translates to:
+  /// **'Discouraged term: {term}'**
+  String danceEditorDiscouragedTermSemantic(String term);
+
+  /// Visible warning text listing discouraged lingo terms in a prose field.
+  ///
+  /// In en, this message translates to:
+  /// **'Discouraged: {term}'**
+  String danceEditorDiscouragedTermText(String term);
+
+  /// Link-kind dropdown option for a source link.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get danceEditorLinkKindSource;
+
+  /// Link-kind dropdown option for a video link.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get danceEditorLinkKindVideo;
+
+  /// Link-kind dropdown option for another kind of URL link.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get danceEditorLinkKindOther;
+
+  /// Text field label for a URL.
+  ///
+  /// In en, this message translates to:
+  /// **'URL'**
+  String get danceEditorUrlLabel;
+
+  /// Text field label for an optional link label.
+  ///
+  /// In en, this message translates to:
+  /// **'Label (optional)'**
+  String get danceEditorLabelOptional;
+
+  /// Tooltip for removing a URL link row.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove link'**
+  String get danceEditorRemoveLinkTooltip;
+
+  /// Button label for adding a URL link row.
+  ///
+  /// In en, this message translates to:
+  /// **'Add link'**
+  String get danceEditorAddLink;
+
+  /// Fallback text when a related dance reference points to a missing dance.
+  ///
+  /// In en, this message translates to:
+  /// **'(missing dance)'**
+  String get danceEditorMissingDance;
+
+  /// Text field label for an optional note.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get danceEditorNoteOptionalLabel;
+
+  /// Tooltip for removing a related-dance link row.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove related dance'**
+  String get danceEditorRemoveRelatedDanceTooltip;
+
+  /// Button label for adding a related-dance link row.
+  ///
+  /// In en, this message translates to:
+  /// **'Add related dance'**
+  String get danceEditorAddRelatedDance;
+
+  /// Type-ahead field label for choosing a related dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Related dance'**
+  String get danceEditorRelatedDanceLabel;
+
+  /// Hint text for a type-ahead search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to search…'**
+  String get danceEditorTypeToSearchHint;
+
+  /// Tooltip for editing an existing shared item from a chip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {item}'**
+  String danceEditorEditItemTooltip(String item);
+
+  /// Hint text for a type-ahead field that can add an existing item or create a new one.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to add or create…'**
+  String get danceEditorTypeToAddOrCreateHint;
+
+  /// Type-ahead option label for creating a new item with the typed name/title.
+  ///
+  /// In en, this message translates to:
+  /// **'Create \"{name}\"'**
+  String danceEditorCreateQuotedName(String name);
+
+  /// Fallback text when a source citation points to a missing source.
+  ///
+  /// In en, this message translates to:
+  /// **'(unknown source)'**
+  String get danceEditorUnknownSource;
+
+  /// Text field label for an optional cited page.
+  ///
+  /// In en, this message translates to:
+  /// **'Page (optional)'**
+  String get danceEditorPageOptionalLabel;
+
+  /// Text field label for an optional source number.
+  ///
+  /// In en, this message translates to:
+  /// **'Number (optional)'**
+  String get danceEditorNumberOptionalLabel;
+
+  /// Hint text for attaching or creating a published source citation.
+  ///
+  /// In en, this message translates to:
+  /// **'Cite a source: type to add or create…'**
+  String get danceEditorCiteSourceHint;
+
+  /// Clean snackbar shown when saving a dance fails; the raw exception is logged instead of shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the dance.'**
+  String get danceEditorSaveError;
+
+  /// Fallback dance title used when deleting a dance whose original title is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance'**
+  String get danceEditorFallbackDanceTitle;
+
+  /// Dialog title for a pending autosave draft.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved draft'**
+  String get danceEditorUnsavedDraftTitle;
+
+  /// Dialog body asking whether to restore a pending autosave draft.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft for this dance. Would you like to restore it?'**
+  String get danceEditorUnsavedDraftMessage;
+
+  /// Button label for discarding a draft or unsaved changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get danceEditorDiscard;
+
+  /// Button label for restoring an autosave draft.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get danceEditorRestore;
+
+  /// Dialog title asking whether to leave the dirty dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get danceEditorDiscardChangesTitle;
+
+  /// Dialog body warning that leaving the editor will discard unsaved dance changes.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes to this dance.'**
+  String get danceEditorDiscardChangesMessage;
+
+  /// Button label that dismisses the discard-changes dialog and stays in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get danceEditorKeepEditing;
+
+  /// App-bar title for creating a new dance.
+  ///
+  /// In en, this message translates to:
+  /// **'New dance'**
+  String get danceEditorNewDanceTitle;
+
+  /// App-bar title for editing an existing dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit dance'**
+  String get danceEditorEditDanceTitle;
+
+  /// Semantics label for the redo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get danceEditorRedoLabel;
+
+  /// Tooltip for the undo app-bar action including its keyboard shortcut.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo (Ctrl+Z)'**
+  String get danceEditorUndoShortcutTooltip;
+
+  /// Tooltip for the redo app-bar action including its keyboard shortcut.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo (Ctrl+Shift+Z)'**
+  String get danceEditorRedoShortcutTooltip;
+
+  /// Tooltip for the app-bar action that deletes the current dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete dance'**
+  String get danceEditorDeleteDanceTooltip;
+
+  /// Message shown when the dance editor fails to load a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the dance.'**
+  String get danceEditorLoadError;
+
+  /// Dialog title for editing shared choreographer/contact details.
+  ///
+  /// In en, this message translates to:
+  /// **'Choreographer details'**
+  String get danceEditorChoreographerDetailsTitle;
+
+  /// Introductory copy explaining shared and private choreographer details.
+  ///
+  /// In en, this message translates to:
+  /// **'These details are shared across every dance credited to this author. Email and location are private — stored only on this device and never shared or exported.'**
+  String get danceEditorChoreographerDetailsIntro;
+
+  /// Required name field label; the asterisk marks the field as required.
+  ///
+  /// In en, this message translates to:
+  /// **'Name *'**
+  String get danceEditorNameRequiredLabel;
+
+  /// Validation error shown when a required name field is blank.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get danceEditorNameRequired;
+
+  /// Text field label for a website.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get danceEditorWebsiteLabel;
+
+  /// Text field label for a private email address.
+  ///
+  /// In en, this message translates to:
+  /// **'Email (private)'**
+  String get danceEditorEmailPrivateLabel;
+
+  /// Text field label for a private location.
+  ///
+  /// In en, this message translates to:
+  /// **'Location (private)'**
+  String get danceEditorLocationPrivateLabel;
+
+  /// Text field label for notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get danceEditorNotesLabel;
+
+  /// Switch label marking a choreographer as deceased.
+  ///
+  /// In en, this message translates to:
+  /// **'Deceased'**
+  String get danceEditorDeceasedLabel;
+
+  /// Dialog title for editing a shared published source.
+  ///
+  /// In en, this message translates to:
+  /// **'Source details'**
+  String get danceEditorSourceDetailsTitle;
+
+  /// Introductory copy explaining shared published-source details.
+  ///
+  /// In en, this message translates to:
+  /// **'These details are shared across every dance that cites this source. Editing them here updates the source everywhere it is referenced.'**
+  String get danceEditorSourceDetailsIntro;
+
+  /// Text field label for a source author or editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Author / editor'**
+  String get danceEditorSourceAuthorEditorLabel;
+
+  /// Validation error shown when a numeric source year is not an integer.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number'**
+  String get danceEditorEnterWholeNumber;
+
+  /// Validation error shown when a source year is zero or negative.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a positive year'**
+  String get danceEditorEnterPositiveYear;
+
+  /// Screen-reader announcement after adding a structured figure row.
+  ///
+  /// In en, this message translates to:
+  /// **'Added figure {count}. Choose a move.'**
+  String danceEditorAddedFigureChooseMove(int count);
+
+  /// Screen-reader announcement after pasting a cut figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure pasted at position {position}.'**
+  String danceEditorFigurePastedAnnouncement(int position);
+
+  /// Screen-reader announcement after moving a figure row.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to position {position} of {total}.'**
+  String danceEditorFigureMovedAnnouncement(int position, int total);
+
+  /// Screen-reader announcement when a figure editor is opened.
+  ///
+  /// In en, this message translates to:
+  /// **'Editing figure {position}, {name}.'**
+  String danceEditorEditingFigureAnnouncement(int position, String name);
+
+  /// Screen-reader announcement when a figure editor is collapsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapsed figure {position}.'**
+  String danceEditorCollapsedFigureAnnouncement(int position);
+
+  /// Screen-reader announcement when free-text figure entry opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a figure and press Enter to add it.'**
+  String get danceEditorTypeFigureAnnouncement;
+
+  /// Screen-reader announcement after adding figure(s) from free-text entry.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added 1 figure. Type another, or press Escape to finish.} other{Added {count} figures. Type another, or press Escape to finish.}}'**
+  String danceEditorFreeTextFiguresAddedAnnouncement(int count);
+
+  /// Screen-reader announcement after deleting a figure row.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted figure {position}. Undo available.'**
+  String danceEditorDeletedFigureAnnouncement(int position);
+
+  /// Screen-reader announcement after duplicating a figure row.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicated figure {position}.'**
+  String danceEditorDuplicatedFigureAnnouncement(int position);
+
+  /// Button label for adding the first figure to an empty dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Add first figure'**
+  String get danceEditorAddFirstFigure;
+
+  /// Banner text shown while a figure row is cut and awaiting a paste destination.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{figure}\" is cut — tap Paste to place it.'**
+  String danceEditorCutBanner(String figure);
+
+  /// Semantics label for pasting a cut figure at the top of the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste before first figure'**
+  String get danceEditorPasteBeforeFirstFigure;
+
+  /// Semantics label for pasting a cut figure after another figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste after {figure}'**
+  String danceEditorPasteAfterFigure(String figure);
+
+  /// Button label for adding another figure row.
+  ///
+  /// In en, this message translates to:
+  /// **'Add figure'**
+  String get danceEditorAddFigure;
+
+  /// Semantics label for pasting a cut figure at the end of the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste at end of figure list'**
+  String get danceEditorPasteAtEndOfFigureList;
+
+  /// Text field label for free-text figure entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a figure'**
+  String get danceEditorTypeFigureLabel;
+
+  /// Helper text for free-text figure entry.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. \"neighbor balance & swing\" or \"16 circle left 3/4\". Enter adds it; unrecognized text is kept as a custom figure.'**
+  String get danceEditorTypeFigureHelper;
+
+  /// Button label for a paste destination in the figure list.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste here'**
+  String get danceEditorPasteHere;
+
+  /// Fallback display name for a figure row with no move selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty figure'**
+  String get danceEditorEmptyFigureName;
+
+  /// Fallback display name for a custom figure with no text.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom figure'**
+  String get danceEditorCustomFigureName;
+
+  /// Collapsed-row text for an empty figure draft.
+  ///
+  /// In en, this message translates to:
+  /// **'(empty — choose a move)'**
+  String get danceEditorEmptyFigureSummary;
+
+  /// Screen-reader phrase for an empty figure draft.
+  ///
+  /// In en, this message translates to:
+  /// **'empty figure, choose a move'**
+  String get danceEditorEmptyFigureSemantic;
+
+  /// Composite screen-reader label for a figure row, including optional import-gap, progression, beats, and note details plus row position.
+  ///
+  /// In en, this message translates to:
+  /// **'{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}{hasMove, select, yes{, {beats, plural, =1{1 beat} other{{beats} beats}}} other{}}{hasNote, select, yes{, note: {note}} other{}}. Figure {position} of {total}.'**
+  String danceEditorFigureSummarySemantic(
+    String main,
+    String importGap,
+    String importGapText,
+    String progression,
+    String hasMove,
+    int beats,
+    String hasNote,
+    String note,
+    int position,
+    int total,
+  );
+
+  /// Semantics hint for opening a figure row editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate to edit'**
+  String get danceEditorActivateToEditHint;
+
+  /// Semantics label for the drag handle on a figure row.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder {figure}'**
+  String danceEditorDragToReorderFigure(String figure);
+
+  /// Tooltip for the overflow menu on a figure row.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions for {figure}'**
+  String danceEditorFigureActionsTooltip(String figure);
+
+  /// Menu item label for moving a figure row upward.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get danceEditorMoveUp;
+
+  /// Menu item label for moving a figure row downward.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get danceEditorMoveDown;
+
+  /// Menu item label for cutting a figure row before pasting it elsewhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut'**
+  String get danceEditorCut;
+
+  /// Menu item label for clearing a figure progression marker.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear progression'**
+  String get danceEditorClearProgression;
+
+  /// Menu item label for marking a figure as carrying the progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark progression'**
+  String get danceEditorMarkProgression;
+
+  /// Read-only explanation for a figure whose move id is not in the active taxonomy.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognized move \"{move}\" — not in this version\'s taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.'**
+  String danceEditorUnrecognizedMoveReadOnly(String move);
+
+  /// Button label that collapses additional figure parameter editors.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer options'**
+  String get danceEditorFewerOptions;
+
+  /// Button label that expands additional figure parameter editors, showing the number hidden.
+  ///
+  /// In en, this message translates to:
+  /// **'More options ({count})'**
+  String danceEditorMoreOptions(int count);
+
+  /// Tooltip explaining that a move can carry the dance progression.
+  ///
+  /// In en, this message translates to:
+  /// **'This move can carry the progression.'**
+  String get danceEditorMoveCanCarryProgression;
+
+  /// Button label for revealing a figure note field.
+  ///
+  /// In en, this message translates to:
+  /// **'Add note'**
+  String get danceEditorAddNote;
+
+  /// Tooltip for applying bold markup to selected note/custom text.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold (*text*)'**
+  String get danceEditorBoldTooltip;
+
+  /// Tooltip for applying underline markup to selected note/custom text.
+  ///
+  /// In en, this message translates to:
+  /// **'Underline (_text_)'**
+  String get danceEditorUnderlineTooltip;
+
+  /// Text field label for editing a custom figure description.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom figure text'**
+  String get danceEditorCustomFigureTextLabel;
+
+  /// Helper text explaining lingo-aware styling in a custom figure text field.
+  ///
+  /// In en, this message translates to:
+  /// **'Move names dotted·underline, role terms underlined, discouraged terms struck through'**
+  String get danceEditorLingoStylingHelper;
+
+  /// Summary of total figure beats versus the phrase-structure expectation.
+  ///
+  /// In en, this message translates to:
+  /// **'Total: {total} / {expected} beats'**
+  String danceEditorBeatTotal(int total, int expected);
+
+  /// Warning text when total figure beats exceed the expected phrase length.
+  ///
+  /// In en, this message translates to:
+  /// **'Over by {beats} beats'**
+  String danceEditorOverByBeats(int beats);
+
+  /// Warning text when total figure beats are below the expected phrase length.
+  ///
+  /// In en, this message translates to:
+  /// **'Under by {beats} beats'**
+  String danceEditorUnderByBeats(int beats);
+
+  /// Tooltip for decrementing a numeric figure parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'Less'**
+  String get danceEditorLessTooltip;
+
+  /// Tooltip for incrementing a numeric figure parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get danceEditorMoreTooltip;
+
+  /// Rotation amount shown in the figure parameter editor.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{formatted} turn} other{{formatted} turns}}'**
+  String danceEditorTurnCount(num count, String formatted);
 }
 
 class _AppLocalizationsDelegate

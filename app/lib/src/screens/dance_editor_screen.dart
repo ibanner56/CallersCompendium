@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/display_defaults.dart';
@@ -229,12 +230,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         CollectionRefreshScope.bump(context);
         Navigator.of(context).pop(dance.id);
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint('Could not save dance: $error\n$stackTrace');
       if (!mounted) return;
       setState(() => _saving = false);
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Could not save: $error')));
+      ).showSnackBar(SnackBar(content: Text(l10n.danceEditorSaveError)));
     }
   }
 
@@ -245,7 +248,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   Future<void> _delete() async {
     final id = widget.danceId;
     if (id == null) return;
-    final title = _controller.original?.title ?? 'Dance';
+    final l10n = AppLocalizations.of(context);
+    final title =
+        _controller.original?.title ?? l10n.danceEditorFallbackDanceTitle;
     // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
     if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
     if (!mounted) return;
@@ -262,8 +267,8 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     showUndoSnackBar(
       messenger,
       key: const ValueKey('deleted-snackbar'),
-      message: '"$title" deleted.',
-      undoLabel: 'Undo',
+      message: l10n.commonDeletedSnack(title),
+      undoLabel: l10n.commonUndo,
       accessibleNavigation: accessibleNavigation,
       onUndo: () => _repos.dances.restore(id, at: DateTime.now().toUtc()),
     );
@@ -285,21 +290,18 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Unsaved draft'),
-        content: const Text(
-          'You have an unsaved draft for this dance. '
-          'Would you like to restore it?',
-        ),
+        title: Text(AppLocalizations.of(ctx).danceEditorUnsavedDraftTitle),
+        content: Text(AppLocalizations.of(ctx).danceEditorUnsavedDraftMessage),
         actions: [
           TextButton(
             key: const ValueKey('draft-discard'),
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Discard'),
+            child: Text(AppLocalizations.of(ctx).danceEditorDiscard),
           ),
           FilledButton(
             key: const ValueKey('draft-restore'),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Restore'),
+            child: Text(AppLocalizations.of(ctx).danceEditorRestore),
           ),
         ],
       ),
@@ -323,18 +325,22 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     final discard = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Discard changes?'),
-        content: const Text('You have unsaved changes to this dance.'),
+        title: Text(
+          AppLocalizations.of(context).danceEditorDiscardChangesTitle,
+        ),
+        content: Text(
+          AppLocalizations.of(context).danceEditorDiscardChangesMessage,
+        ),
         actions: [
           TextButton(
             key: const ValueKey('discard-cancel'),
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep editing'),
+            child: Text(AppLocalizations.of(context).danceEditorKeepEditing),
           ),
           FilledButton(
             key: const ValueKey('discard-confirm'),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Discard'),
+            child: Text(AppLocalizations.of(context).danceEditorDiscard),
           ),
         ],
       ),
@@ -437,6 +443,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopScope(
       // canPop mirrors ProgramEditorScreen: when there are unsaved changes the
       // Back button / system gesture is intercepted so we can confirm before
@@ -485,14 +492,18 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             autofocus: true,
             child: Scaffold(
               appBar: AppBar(
-                title: Text(widget.isNew ? 'New dance' : 'Edit dance'),
+                title: Text(
+                  widget.isNew
+                      ? l10n.danceEditorNewDanceTitle
+                      : l10n.danceEditorEditDanceTitle,
+                ),
                 actions: [
                   if (_controller.loaded) ...[
                     Semantics(
-                      label: 'Undo',
+                      label: l10n.commonUndo,
                       child: IconButton(
                         key: const ValueKey('undo-button'),
-                        tooltip: 'Undo (Ctrl+Z)',
+                        tooltip: l10n.danceEditorUndoShortcutTooltip,
                         icon: const Icon(Icons.undo),
                         onPressed: _controller.canUndo
                             ? _controller.undo
@@ -500,10 +511,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                       ),
                     ),
                     Semantics(
-                      label: 'Redo',
+                      label: l10n.danceEditorRedoLabel,
                       child: IconButton(
                         key: const ValueKey('redo-button'),
-                        tooltip: 'Redo (Ctrl+Shift+Z)',
+                        tooltip: l10n.danceEditorRedoShortcutTooltip,
                         icon: const Icon(Icons.redo),
                         onPressed: _controller.canRedo
                             ? _controller.redo
@@ -513,7 +524,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                     if (!widget.isNew)
                       IconButton(
                         key: const ValueKey('delete-dance'),
-                        tooltip: 'Delete dance',
+                        tooltip: l10n.danceEditorDeleteDanceTooltip,
                         icon: const Icon(Icons.delete_outline),
                         onPressed: _delete,
                       ),
@@ -538,7 +549,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.save_outlined),
-                      label: const Text('Save'),
+                      label: Text(l10n.commonSave),
                     )
                   : null,
             ),
@@ -550,7 +561,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   Widget _buildBody() {
     if (_loadError != null) {
-      return const Center(child: Text('Could not load the dance.'));
+      return Center(
+        child: Text(AppLocalizations.of(context).danceEditorLoadError),
+      );
     }
     if (!_controller.loaded) {
       return const Center(child: CircularProgressIndicator());

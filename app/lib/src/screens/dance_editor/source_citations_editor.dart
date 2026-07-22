@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import 'source_citation_draft.dart';
 
@@ -70,8 +71,9 @@ class SourceCitationsEditor extends StatelessWidget {
   }
 
   Widget _buildRow(BuildContext context, SourceCitationDraft draft) {
+    final l10n = AppLocalizations.of(context);
     final source = sourcesById[draft.sourceId];
-    final title = source?.title ?? '(unknown source)';
+    final title = source?.title ?? l10n.danceEditorUnknownSource;
     final subtitle = source == null ? null : _sourceSubtitle(source);
     final chipLabel = subtitle == null ? title : '$title — $subtitle';
     return Column(
@@ -86,7 +88,7 @@ class SourceCitationsEditor extends StatelessWidget {
                   key: ValueKey('source-chip-${draft.sourceId}'),
                   avatar: const Icon(Icons.menu_book_outlined, size: 18),
                   label: Text(chipLabel, overflow: TextOverflow.ellipsis),
-                  tooltip: 'Edit $title',
+                  tooltip: l10n.danceEditorEditItemTooltip(title),
                   onPressed: () => onEditSource(draft.sourceId),
                   onDeleted: () => onRemove(draft),
                 ),
@@ -106,8 +108,8 @@ class SourceCitationsEditor extends StatelessWidget {
                 child: TextField(
                   key: ValueKey('source-page-${draft.sourceId}'),
                   controller: draft.pageController,
-                  decoration: const InputDecoration(
-                    labelText: 'Page (optional)',
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorPageOptionalLabel,
                     isDense: true,
                   ),
                   onChanged: (_) => onChanged(),
@@ -118,8 +120,8 @@ class SourceCitationsEditor extends StatelessWidget {
                 child: TextField(
                   key: ValueKey('source-number-${draft.sourceId}'),
                   controller: draft.numberController,
-                  decoration: const InputDecoration(
-                    labelText: 'Number (optional)',
+                  decoration: InputDecoration(
+                    labelText: l10n.danceEditorNumberOptionalLabel,
                     isDense: true,
                   ),
                   onChanged: (_) => onChanged(),
@@ -148,6 +150,7 @@ class _AddSourceAutocomplete extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Autocomplete<_SourceChoice>(
       key: const ValueKey('source-autocomplete'),
       displayStringForOption: (choice) => choice.label,
@@ -181,8 +184,8 @@ class _AddSourceAutocomplete extends StatelessWidget {
           key: const ValueKey('source-input'),
           controller: controller,
           focusNode: focusNode,
-          decoration: const InputDecoration(
-            hintText: 'Cite a source: type to add or create…',
+          decoration: InputDecoration(
+            hintText: l10n.danceEditorCiteSourceHint,
             isDense: true,
           ),
           onSubmitted: (_) => onSubmit(),
@@ -209,7 +212,7 @@ class _AddSourceAutocomplete extends StatelessWidget {
                       ),
                       title: Text(
                         choice.isCreate
-                            ? 'Create "${choice.title}"'
+                            ? l10n.danceEditorCreateQuotedName(choice.title)
                             : choice.title,
                       ),
                       subtitle: choice.author == null

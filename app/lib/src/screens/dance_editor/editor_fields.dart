@@ -85,12 +85,15 @@ class RatingField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final semanticValue = value == null ? 'unrated' : '$value of $_max stars';
+    final l10n = AppLocalizations.of(context);
+    final semanticValue = value == null
+        ? l10n.danceEditorRatingUnrated
+        : l10n.danceEditorRatingValue(value!, _max);
 
     return Semantics(
       key: const ValueKey('rating-field'),
       container: true,
-      label: 'Rating',
+      label: l10n.danceEditorRatingLabel,
       value: semanticValue,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +103,10 @@ class RatingField extends StatelessWidget {
               left: AppSpacing.xxs,
               bottom: AppSpacing.xxs,
             ),
-            child: Text('Rating', style: theme.textTheme.bodySmall),
+            child: Text(
+              l10n.danceEditorRatingLabel,
+              style: theme.textTheme.bodySmall,
+            ),
           ),
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
@@ -110,10 +116,10 @@ class RatingField extends StatelessWidget {
                   key: ValueKey('rating-star-$star'),
                   // Tapping the current top star unsets; otherwise sets to it.
                   onPressed: () => onChanged(value == star ? null : star),
-                  tooltip: 'Set rating to $star of $_max stars',
+                  tooltip: l10n.danceEditorSetRatingTooltip(star, _max),
                   icon: Icon(
                     (value ?? 0) >= star ? Icons.star : Icons.star_border,
-                    semanticLabel: 'Set rating to $star of $_max stars',
+                    semanticLabel: l10n.danceEditorSetRatingTooltip(star, _max),
                     color: (value ?? 0) >= star
                         ? theme.colorScheme.primary
                         : null,
@@ -123,8 +129,11 @@ class RatingField extends StatelessWidget {
                 IconButton(
                   key: const ValueKey('rating-clear'),
                   onPressed: () => onChanged(null),
-                  tooltip: 'Clear rating',
-                  icon: const Icon(Icons.clear, semanticLabel: 'Clear rating'),
+                  tooltip: l10n.danceEditorClearRating,
+                  icon: Icon(
+                    Icons.clear,
+                    semanticLabel: l10n.danceEditorClearRating,
+                  ),
                 ),
             ],
           ),
@@ -155,11 +164,11 @@ class LevelDropdown extends StatelessWidget {
       // externally (e.g. via undo/redo), matching [EnumDropdown].
       key: ValueKey('level-field-${value?.name ?? 'none'}'),
       initialValue: value,
-      decoration: const InputDecoration(labelText: 'Level'),
+      decoration: InputDecoration(labelText: l10n.danceEditorLevelLabel),
       items: [
-        const DropdownMenuItem<DanceLevel?>(
+        DropdownMenuItem<DanceLevel?>(
           value: null,
-          child: Text('Unspecified'),
+          child: Text(l10n.danceEditorLevelUnspecified),
         ),
         for (final v in DanceLevel.values)
           DropdownMenuItem<DanceLevel?>(
@@ -254,6 +263,7 @@ class _PartialDateFieldState extends State<PartialDateField> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final year = _year;
     final yearText = _yearController.text.trim();
     final showYearError = yearText.isNotEmpty && year == null;
@@ -276,10 +286,12 @@ class _PartialDateFieldState extends State<PartialDateField> {
                 keyboardType: TextInputType.number,
                 maxLength: 4,
                 decoration: InputDecoration(
-                  labelText: 'Year',
-                  hintText: 'e.g. 1989',
+                  labelText: l10n.danceEditorYearLabel,
+                  hintText: l10n.danceEditorYearHint,
                   counterText: '',
-                  errorText: showYearError ? '1–9999' : null,
+                  errorText: showYearError
+                      ? l10n.danceEditorYearRangeError
+                      : null,
                 ),
                 onChanged: (_) => setState(() {
                   // A year change can invalidate a chosen day (e.g. Feb 29 in a
@@ -302,13 +314,15 @@ class _PartialDateFieldState extends State<PartialDateField> {
               child: DropdownButtonFormField<int?>(
                 key: ValueKey('${widget.fieldKey}-month-${_month ?? 0}'),
                 initialValue: _month,
-                decoration: const InputDecoration(labelText: 'Month'),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorMonthLabel,
+                ),
                 items: [
                   const DropdownMenuItem<int?>(value: null, child: Text('—')),
                   for (var m = 1; m <= 12; m++)
                     DropdownMenuItem<int?>(
                       value: m,
-                      child: Text(_monthLabels[m - 1]),
+                      child: Text(_monthLabel(l10n, m)),
                     ),
                 ],
                 onChanged: year == null
@@ -331,7 +345,9 @@ class _PartialDateFieldState extends State<PartialDateField> {
               child: DropdownButtonFormField<int?>(
                 key: ValueKey('${widget.fieldKey}-day-${_day ?? 0}'),
                 initialValue: _day,
-                decoration: const InputDecoration(labelText: 'Day'),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorDayLabel,
+                ),
                 items: [
                   const DropdownMenuItem<int?>(value: null, child: Text('—')),
                   for (var d = 1; d <= maxDay; d++)
@@ -354,20 +370,21 @@ class _PartialDateFieldState extends State<PartialDateField> {
   }
 }
 
-const List<String> _monthLabels = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+String _monthLabel(AppLocalizations l10n, int month) => switch (month) {
+  1 => l10n.danceEditorMonthJan,
+  2 => l10n.danceEditorMonthFeb,
+  3 => l10n.danceEditorMonthMar,
+  4 => l10n.danceEditorMonthApr,
+  5 => l10n.danceEditorMonthMay,
+  6 => l10n.danceEditorMonthJun,
+  7 => l10n.danceEditorMonthJul,
+  8 => l10n.danceEditorMonthAug,
+  9 => l10n.danceEditorMonthSep,
+  10 => l10n.danceEditorMonthOct,
+  11 => l10n.danceEditorMonthNov,
+  12 => l10n.danceEditorMonthDec,
+  _ => '',
+};
 
 class TuneEditor extends StatelessWidget {
   const TuneEditor({
@@ -385,6 +402,7 @@ class TuneEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -406,8 +424,8 @@ class TuneEditor extends StatelessWidget {
               child: TextField(
                 key: const ValueKey('tune-field'),
                 controller: controller,
-                decoration: const InputDecoration(
-                  hintText: 'Add a suggested tune…',
+                decoration: InputDecoration(
+                  hintText: l10n.danceEditorAddTuneHint,
                   isDense: true,
                 ),
                 onSubmitted: (_) => onAdd(),
@@ -416,7 +434,7 @@ class TuneEditor extends StatelessWidget {
             const SizedBox(width: AppSpacing.xs),
             IconButton(
               key: const ValueKey('tune-add'),
-              tooltip: 'Add tune',
+              tooltip: l10n.danceEditorAddTuneTooltip,
               icon: const Icon(Icons.add),
               onPressed: onAdd,
             ),
@@ -435,6 +453,7 @@ class WarningsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Container(
       key: const ValueKey('warnings-card'),
       padding: const EdgeInsets.all(AppSpacing.sm),
@@ -453,7 +472,10 @@ class WarningsCard extends StatelessWidget {
                 color: theme.colorScheme.tertiary,
               ),
               const SizedBox(width: AppSpacing.xs),
-              Text('Warnings', style: theme.textTheme.titleSmall),
+              Text(
+                l10n.danceEditorWarningsTitle,
+                style: theme.textTheme.titleSmall,
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.xxs),

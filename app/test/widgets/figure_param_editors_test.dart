@@ -3,6 +3,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/l10n_harness.dart';
+
 /// Pumps a single [FigureParamEditor] and returns a getter for the last value
 /// reported through `onChanged`.
 Future<Object? Function()> _pumpEditor(
@@ -15,6 +17,8 @@ Future<Object? Function()> _pumpEditor(
   Object? captured;
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: Center(
           child: FigureParamEditor(
@@ -64,6 +68,8 @@ void main() {
   ) async {
     Object? captured;
     Widget host(String value) => MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: FigureParamEditor(
           keyPrefix: 'p',
@@ -99,6 +105,8 @@ void main() {
     tester,
   ) async {
     Widget host(int value) => MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: FigureParamEditor(
           keyPrefix: 'p',

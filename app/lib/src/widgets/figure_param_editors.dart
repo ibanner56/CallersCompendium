@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Concrete-value editors for a single figure parameter, driven by its
 /// [ParamSpec] kind (`docs/design/figure-taxonomy.md`; `docs/design/ux.md` §3).
 ///
@@ -169,6 +171,7 @@ class _RotationStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -179,7 +182,7 @@ class _RotationStepper extends StatelessWidget {
           children: [
             IconButton(
               key: ValueKey('$fieldKey-dec'),
-              tooltip: 'Less',
+              tooltip: l10n.danceEditorLessTooltip,
               icon: const Icon(Icons.remove),
               visualDensity: VisualDensity.compact,
               onPressed: value > _min
@@ -188,12 +191,12 @@ class _RotationStepper extends StatelessWidget {
                   : null,
             ),
             Text(
-              '${_format(value)} turn${value == 1 ? '' : 's'}',
+              l10n.danceEditorTurnCount(value, _format(value)),
               key: ValueKey('$fieldKey-value'),
             ),
             IconButton(
               key: ValueKey('$fieldKey-inc'),
-              tooltip: 'More',
+              tooltip: l10n.danceEditorMoreTooltip,
               icon: const Icon(Icons.add),
               visualDensity: VisualDensity.compact,
               onPressed: value < _max

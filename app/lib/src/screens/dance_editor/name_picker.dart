@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 typedef NameOption = ({String id, String name});
 
 /// Chips of selected entities plus a type-ahead that adds an existing entity
@@ -33,13 +35,14 @@ class NamePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (selectedIds.isNotEmpty)
           Wrap(
             spacing: 8,
-            children: [for (final id in selectedIds) _buildChip(id)],
+            children: [for (final id in selectedIds) _buildChip(id, l10n)],
           ),
         _AddAutocomplete(
           fieldKey: fieldKey,
@@ -52,7 +55,7 @@ class NamePicker extends StatelessWidget {
     );
   }
 
-  Widget _buildChip(String id) {
+  Widget _buildChip(String id, AppLocalizations l10n) {
     final label = namesById[id] ?? id;
     final key = ValueKey('$fieldKey-chip-$id');
     if (onEdit == null) {
@@ -64,7 +67,7 @@ class NamePicker extends StatelessWidget {
     return InputChip(
       key: key,
       label: Text(label),
-      tooltip: 'Edit $label',
+      tooltip: l10n.danceEditorEditItemTooltip(label),
       onPressed: () => onEdit!(id),
       onDeleted: () => onRemove(id),
     );
@@ -107,6 +110,7 @@ class _AddAutocompleteState extends State<_AddAutocomplete> {
   @override
   Widget build(BuildContext context) {
     final fieldKey = widget.fieldKey;
+    final l10n = AppLocalizations.of(context);
     return Autocomplete<_PickerChoice>(
       key: ValueKey('$fieldKey-autocomplete'),
       textEditingController: _controller,
@@ -151,8 +155,8 @@ class _AddAutocompleteState extends State<_AddAutocomplete> {
           key: ValueKey('$fieldKey-input'),
           controller: controller,
           focusNode: focusNode,
-          decoration: const InputDecoration(
-            hintText: 'Type to add or create…',
+          decoration: InputDecoration(
+            hintText: l10n.danceEditorTypeToAddOrCreateHint,
             isDense: true,
           ),
           onSubmitted: (_) => onSubmit(),
@@ -179,7 +183,7 @@ class _AddAutocompleteState extends State<_AddAutocomplete> {
                       ),
                       title: Text(
                         choice.isCreate
-                            ? 'Create "${choice.name}"'
+                            ? l10n.danceEditorCreateQuotedName(choice.name)
                             : choice.name,
                       ),
                       onTap: () => onSelected(choice),

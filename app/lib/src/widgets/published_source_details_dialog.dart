@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// A modal dialog for editing a [PublishedSource]'s shared bibliographic
 /// details.
 ///
@@ -95,8 +97,9 @@ class _PublishedSourceDetailsDialogState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Source details'),
+      title: Text(l10n.danceEditorSourceDetailsTitle),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -105,9 +108,7 @@ class _PublishedSourceDetailsDialogState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'These details are shared across every dance that cites this '
-                'source. Editing them here updates the source everywhere it '
-                'is referenced.',
+                l10n.danceEditorSourceDetailsIntro,
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(height: 16),
@@ -116,12 +117,12 @@ class _PublishedSourceDetailsDialogState
                 controller: _titleController,
                 autofocus: true,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Title *',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorTitleRequiredLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Title is required'
+                    ? l10n.danceEditorTitleRequired
                     : null,
               ),
               const SizedBox(height: 12),
@@ -129,9 +130,9 @@ class _PublishedSourceDetailsDialogState
                 key: const ValueKey('source-author-field'),
                 controller: _authorController,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Author / editor',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorSourceAuthorEditorLabel,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -140,16 +141,16 @@ class _PublishedSourceDetailsDialogState
                 controller: _yearController,
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'Year',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorYearLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) {
                   final text = value?.trim() ?? '';
                   if (text.isEmpty) return null;
                   final parsed = int.tryParse(text);
-                  if (parsed == null) return 'Enter a whole number';
-                  if (parsed <= 0) return 'Enter a positive year';
+                  if (parsed == null) return l10n.danceEditorEnterWholeNumber;
+                  if (parsed <= 0) return l10n.danceEditorEnterPositiveYear;
                   return null;
                 },
               ),
@@ -159,9 +160,9 @@ class _PublishedSourceDetailsDialogState
                 controller: _urlController,
                 keyboardType: TextInputType.url,
                 textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(
-                  labelText: 'URL',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorUrlLabel,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -170,9 +171,9 @@ class _PublishedSourceDetailsDialogState
                 controller: _notesController,
                 minLines: 2,
                 maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorNotesLabel,
+                  border: const OutlineInputBorder(),
                   alignLabelWithHint: true,
                 ),
               ),
@@ -184,12 +185,12 @@ class _PublishedSourceDetailsDialogState
         TextButton(
           key: const ValueKey('source-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('source-save'),
           onPressed: _save,
-          child: const Text('Save'),
+          child: Text(l10n.commonSave),
         ),
       ],
     );

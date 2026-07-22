@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/lingo_text_editing_controller.dart';
 
@@ -24,6 +25,7 @@ class LingoDiscouragedHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
@@ -40,9 +42,9 @@ class LingoDiscouragedHint extends StatelessWidget {
               const SizedBox(width: AppSpacing.xxs),
               Flexible(
                 child: Semantics(
-                  label: 'Discouraged term: $hint',
+                  label: l10n.danceEditorDiscouragedTermSemantic(hint),
                   child: Text(
-                    'Discouraged: $hint',
+                    l10n.danceEditorDiscouragedTermText(hint),
                     key: ValueKey('$fieldKey-lingo-hint'),
                     style: Theme.of(
                       context,
