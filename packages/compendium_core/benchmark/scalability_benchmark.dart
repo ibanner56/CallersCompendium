@@ -159,14 +159,23 @@ Future<void> main() async {
     seedWatch.stop();
     stdout.writeln('Seeded in ${seedWatch.elapsedMilliseconds} ms.\n');
 
-    // 1. Cold Collection load — hydrates every dance via listAll/_toModel.
+    // 1. Cold Collection load — mirrors CollectionData.load: the dance
+    // hydration (where the N+1 lived) plus the six flat/aggregate lookups the
+    // app issues on launch. Facet/map building is pure in-memory work (no
+    // queries), so these seven reads capture the full launch query cost.
     if (wants('load')) {
       results.add(
-        await _measure(dbPath, 'Cold Collection load (listAll)', (
+        await _measure(dbPath, 'Cold Collection load (CollectionData reads)', (
           repos,
           _,
         ) async {
           final dances = await repos.dances.listAll();
+          await repos.choreographers.listAll();
+          await repos.tags.listAll();
+          await repos.customFieldDefs.listAll();
+          await repos.publishedSources.listAll();
+          await repos.programs.lastCalledByDance();
+          await repos.programs.countByDance();
           return dances.length;
         }),
       );

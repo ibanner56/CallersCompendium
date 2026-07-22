@@ -49,6 +49,30 @@ class SlotSelectCounter extends QueryCounter {
   }
 }
 
+/// A [QueryCounter] that counts SELECTs against any of [DanceRepository]'s six
+/// child-relation tables — the per-dance fan-out that
+/// [DanceRepository.listAll] batches. A batched load issues a fixed number of
+/// these (one per table per id-chunk) no matter how many dances are loaded, so
+/// an N+1 regression (one set of child selects per dance) would make this count
+/// scale with the collection size.
+class DanceChildSelectCounter extends QueryCounter {
+  static const _childTables = [
+    'dance_authors',
+    'dance_tags',
+    'dance_links',
+    'dance_sources',
+    'custom_field_values',
+    'provenance',
+  ];
+
+  @override
+  bool matches(String statement) {
+    final s = statement.toLowerCase();
+    if (!s.startsWith('select')) return false;
+    return _childTables.any(s.contains);
+  }
+}
+
 /// An in-memory [CompendiumDatabase] whose executor is wrapped with [counter],
 /// letting a test observe how many (matching) statements a repository issues.
 CompendiumDatabase openCountingTestDatabase(QueryInterceptor counter) =>

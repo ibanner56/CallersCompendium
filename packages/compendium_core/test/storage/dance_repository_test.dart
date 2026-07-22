@@ -440,6 +440,51 @@ void main() {
       expect(all.every((d) => d.authorIds.length == 1), isTrue);
       expect(all.every((d) => d.tagIds.length == 1), isTrue);
     });
+
+    test(
+      'batches child hydration into a constant number of queries (no N+1)',
+      () async {
+        // The regression guard for the fix: parity tests alone would still pass
+        // against the old per-row _toModel, so assert the query SHAPE too. A
+        // single id-chunk (<= 500 dances) must issue exactly six child selects
+        // total — one per relation table — not six per dance (the old N+1 sent
+        // 6 * N).
+        final counter = DanceChildSelectCounter();
+        final countingDb = openCountingTestDatabase(counter);
+        addTearDown(countingDb.close);
+        final countingDances = DanceRepository(countingDb, contraTaxonomy);
+
+        for (var i = 0; i < 25; i++) {
+          await countingDances.create(
+            sampleDance(id: 'd$i', title: 'Dance $i'),
+          );
+        }
+        counter.reset();
+        final loaded = await countingDances.listAll();
+        expect(loaded, hasLength(25));
+        expect(counter.count, 6);
+      },
+    );
+
+    test('child-query count grows per id-chunk, not per dance', () async {
+      // 501 dances => two id-chunks (500 + 1). Each of the six child loaders
+      // runs once per chunk, so the total is 12 — O(chunks), still constant in
+      // the dance count within a chunk, never the 6 * 501 an N+1 would produce.
+      final counter = DanceChildSelectCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final countingDances = DanceRepository(countingDb, contraTaxonomy);
+
+      for (var i = 0; i < 501; i++) {
+        await countingDances.create(
+          sampleDance(id: 'd${i.toString().padLeft(4, '0')}', title: 'D $i'),
+        );
+      }
+      counter.reset();
+      final loaded = await countingDances.listAll();
+      expect(loaded, hasLength(501));
+      expect(counter.count, 12);
+    });
   });
 
   group('hasAny', () {
