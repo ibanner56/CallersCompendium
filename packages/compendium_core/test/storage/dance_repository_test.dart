@@ -1130,5 +1130,136 @@ void main() {
       expect(after, before);
       expect(await dances.searchText('dosido'), isEmpty); // sanity: no dupes
     });
+
+    Future<int> ftsRowCount(CompendiumDatabase database) async {
+      final rows = await database
+          .customSelect('SELECT COUNT(*) AS c FROM dance_fts')
+          .get();
+      return rows.single.read<int>('c');
+    }
+
+    test('reindexes every dance (incl. soft-deleted) and is idempotent', () async {
+      await dances.create(sampleDance(id: 'd1', title: 'Chase the Squirrel'));
+      await dances.create(sampleDance(id: 'd2', title: 'Rambling Montana'));
+      await dances.create(sampleDance(id: 'd3', title: 'Squirrel Stampede'));
+      // Soft-deleted dances stay in dance_fts (they are filtered at query time,
+      // #439), so the rebuild must still index them.
+      await dances.softDelete('d3', at: DateTime.utc(2026, 1, 2));
+
+      await dances.rebuildAllDerived();
+      expect(await ftsRowCount(db), 3);
+      // A second rebuild must not duplicate rows or leave stale ones behind —
+      // the bulk clear resets the whole index before re-inserting.
+      await dances.rebuildAllDerived();
+      expect(await ftsRowCount(db), 3);
+
+      // Live dances remain searchable; the soft-deleted 'Squirrel Stampede' is
+      // excluded by the query-time filter, not by being absent from the index.
+      expect(await dances.searchText('Squirrel'), ['d1']);
+    });
+
+    test('reports monotonic progress ending at (total, total)', () async {
+      for (var i = 0; i < 5; i++) {
+        await dances.create(sampleDance(id: 'd$i', title: 'Dance $i'));
+      }
+      final events = <DerivedRebuildProgress>[];
+      await dances.rebuildAllDerived(chunkSize: 2, onProgress: events.add);
+
+      // Initial (0,5) + chunks of 2,2,1 => three chunk events = four total.
+      expect(events.length, 4);
+      expect(
+        events.first,
+        const DerivedRebuildProgress(completed: 0, total: 5),
+      );
+      expect(events.last, const DerivedRebuildProgress(completed: 5, total: 5));
+      expect(events.last.fraction, 1.0);
+      for (var i = 1; i < events.length; i++) {
+        expect(
+          events[i].completed,
+          greaterThanOrEqualTo(events[i - 1].completed),
+        );
+        expect(events[i].total, 5);
+      }
+    });
+
+    test(
+      'multi-chunk rebuild produces the same derived rows as one pass',
+      () async {
+        await dances.create(
+          sampleDance(
+            id: 'd1',
+            figures: [Figure(move: 'do_si_do')],
+          ),
+        );
+        await dances.create(
+          sampleDance(
+            id: 'd2',
+            figures: [Figure(move: 'swing')],
+          ),
+        );
+        await dances.create(
+          sampleDance(
+            id: 'd3',
+            title: 'Shoulder Shake',
+            figures: [Figure(move: 'balance')],
+          ),
+        );
+        final events = <DerivedRebuildProgress>[];
+        await dances.rebuildAllDerived(chunkSize: 1, onProgress: events.add);
+
+        // One chunk per dance: initial event + three chunk events.
+        expect(events.length, 4);
+        expect(await dances.danceIdsWithFigure('do_si_do'), ['d1']);
+        expect(await dances.danceIdsWithFigure('swing'), ['d2']);
+        expect(await dances.danceIdsWithFigure('balance'), ['d3']);
+        expect(await dances.searchText('Shoulder'), ['d3']);
+      },
+    );
+
+    test('issues no per-dance FTS delete-by-scan (bulk clear only)', () async {
+      final counter = FtsDeleteByDanceCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final repo = DanceRepository(countingDb, contraTaxonomy);
+      for (var i = 0; i < 4; i++) {
+        await repo.create(sampleDance(id: 'd$i', title: 'Dance $i'));
+      }
+      // Each create() does one per-dance FTS delete; reset so we measure only
+      // the rebuild's writes.
+      counter.count = 0;
+      await repo.rebuildAllDerived(chunkSize: 2);
+      expect(
+        counter.count,
+        0,
+        reason:
+            'rebuild must clear dance_fts in one bulk DELETE, not per dance',
+      );
+    });
+
+    test('rejects a non-positive chunkSize before touching the index '
+        '(#440)', () async {
+      // A non-positive chunkSize would leave the chunk loop unable to advance
+      // and hang the rebuild, so it must fail fast with an ArgumentError even
+      // in release builds (where asserts are stripped) — and before the bulk
+      // clear runs, so an existing index is left intact.
+      await dances.create(sampleDance(id: 'd1', title: 'Existing'));
+      await dances.rebuildAllDerived();
+      expect(await dances.searchText('Existing'), ['d1']);
+
+      for (final bad in [0, -1, -250]) {
+        await expectLater(
+          () => dances.rebuildAllDerived(chunkSize: bad),
+          throwsA(
+            isA<ArgumentError>()
+                .having((e) => e.name, 'name', 'chunkSize')
+                .having((e) => e.invalidValue, 'invalidValue', bad),
+          ),
+        );
+      }
+
+      // The guard threw before clearing, so the previously built index is
+      // untouched.
+      expect(await dances.searchText('Existing'), ['d1']);
+    });
   });
 }

@@ -84,6 +84,44 @@ class DanceChildSelectCounter extends QueryCounter {
   }
 }
 
+/// Counts per-dance `DELETE FROM dance_fts WHERE dance_id = ?` statements — the
+/// FTS delete-by-scan that made [DanceRepository.rebuildAllDerived] O(N²)
+/// (`dance_fts.dance_id` is `UNINDEXED`, so each delete scans the whole index).
+///
+/// A full rebuild clears the index once (`DELETE FROM dance_fts`) and re-inserts
+/// every dance instead, so it must issue ZERO per-dance FTS deletes (#440); a
+/// regression that reintroduces them makes this count scale with the collection.
+/// Per-dance deletes reach the executor as custom statements ([runCustom]); the
+/// [runDelete] override is defensive in case drift routes them differently.
+class FtsDeleteByDanceCounter extends QueryInterceptor {
+  int count = 0;
+
+  bool _matches(String statement) => statement
+      .toLowerCase()
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .contains('delete from dance_fts where dance_id');
+
+  @override
+  Future<void> runCustom(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (_matches(statement)) count++;
+    return super.runCustom(executor, statement, args);
+  }
+
+  @override
+  Future<int> runDelete(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (_matches(statement)) count++;
+    return super.runDelete(executor, statement, args);
+  }
+}
+
 /// An in-memory [CompendiumDatabase] whose executor is wrapped with [counter],
 /// letting a test observe how many (matching) statements a repository issues.
 CompendiumDatabase openCountingTestDatabase(QueryInterceptor counter) =>

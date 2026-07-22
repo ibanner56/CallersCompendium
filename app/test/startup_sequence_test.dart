@@ -51,12 +51,14 @@ class _FailOnceMigrationRepositories extends CompendiumRepositories {
   int rebuildAttempts = 0;
 
   @override
-  Future<void> runDerivedRebuild() async {
+  Future<void> runDerivedRebuild({
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
     rebuildAttempts++;
     if (rebuildAttempts == 1) {
       throw StateError('injected migration failure');
     }
-    await super.runDerivedRebuild();
+    await super.runDerivedRebuild(onProgress: onProgress);
   }
 }
 

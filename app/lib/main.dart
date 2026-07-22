@@ -211,6 +211,15 @@ class CompendiumApp extends StatefulWidget {
 class _CompendiumAppState extends State<CompendiumApp> {
   late final AppData _appData;
   late Future<void> _bootstrap;
+
+  /// Determinate progress of the post-migration derived-index rebuild, surfaced
+  /// on the [AppBootstrap] loading screen so a large-collection rebuild shows a
+  /// progress bar instead of appearing hung (#440). `null` until (and unless) a
+  /// rebuild is actually owed; set from [_startupSequence] via the
+  /// `onDerivedRebuildProgress` callback that [CompendiumRepositories.ensureMigrated]
+  /// forwards to the repository.
+  final ValueNotifier<DerivedRebuildProgress?> _derivedRebuildProgress =
+      ValueNotifier<DerivedRebuildProgress?>(null);
   final ValueNotifier<Dialect> _dialectNotifier = ValueNotifier(
     Dialect.larksRobins,
   );
@@ -497,7 +506,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // on the error/retry screen instead of throwing out of `main` and leaving a
     // blank window with no way to recover (Stage 1.6).
     await widget.windowService.initialize();
-    await _appData.repositories.ensureMigrated();
+    // Reset progress at the start of each attempt (retry re-runs this) so a
+    // prior run's final value never lingers on the loading screen.
+    _derivedRebuildProgress.value = null;
+    await _appData.repositories.ensureMigrated(
+      onDerivedRebuildProgress: (progress) =>
+          _derivedRebuildProgress.value = progress,
+    );
     // First-run seed (issue: "first launch is never empty"): insert exactly one
     // seed dance on a fresh, empty install so the collection is never empty,
     // and never again thereafter (idempotent via a settings latch; safe to skip
@@ -732,6 +747,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _firstDayOfWeekNotifier.dispose();
     _localeNotifier.dispose();
     _collectionRefreshNotifier.dispose();
+    _derivedRebuildProgress.dispose();
     _collectionFilterController.dispose();
     _customThemes.dispose();
     _formationColors.dispose();
@@ -941,6 +957,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
             future: _bootstrap,
             onRetry: _retry,
             builder: _buildReadyApp,
+            rebuildProgress: _derivedRebuildProgress,
           ),
         );
       },
