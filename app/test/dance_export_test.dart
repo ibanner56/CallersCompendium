@@ -316,6 +316,75 @@ void main() {
 
       expect(find.text("Couldn't export this dance"), findsOneWidget);
     });
+
+    testWidgets('sanitizes the dance title in the PDF print-job name', (
+      tester,
+    ) async {
+      String? capturedName;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance(title: 'Rory/O\u0007More: 3\\9'),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  pdfLayouter: ({required name, required onLayout}) async =>
+                      capturedName = name,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      // Path separators and control characters never reach the print-job name.
+      expect(capturedName, 'Rory_O_More__3_9');
+      expect(capturedName, isNot(contains('/')));
+      expect(capturedName, isNot(contains('\\')));
+    });
+
+    testWidgets('falls back to "dance" when the title has no safe content', (
+      tester,
+    ) async {
+      String? capturedName;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance(title: '///'),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  pdfLayouter: ({required name, required onLayout}) async =>
+                      capturedName = name,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      expect(capturedName, 'dance');
+    });
   });
 
   group('buildDancePdf', () {
