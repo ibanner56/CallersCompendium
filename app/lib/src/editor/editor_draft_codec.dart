@@ -128,6 +128,10 @@ String encodeDraft(EditorSnapshot snapshot) {
           'progression': d.progression,
           'sv': d.schemaVersion,
           if (d.assumedSubject) 'assumedSubject': true,
+          // Persist only the non-default (importGap) origin so an ordinary
+          // authored figure's JSON is unchanged; decode is tolerant (#419).
+          if (d.customOrigin == CustomOrigin.importGap)
+            'customOrigin': 'importGap',
         },
     ],
   });
@@ -381,5 +385,10 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(Object? e) {
     schemaVersion: sv,
     // Additive/tolerant (#460): absent or non-bool → not assumed.
     assumedSubject: m['assumedSubject'] == true,
+    // Additive/tolerant (#419): only the string 'importGap' flags a parser-gap
+    // custom; any other/absent/garbage value decodes as the userEntered default.
+    customOrigin: m['customOrigin'] == 'importGap'
+        ? CustomOrigin.importGap
+        : CustomOrigin.userEntered,
   );
 }

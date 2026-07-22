@@ -8,6 +8,7 @@ import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
 import '../search/facet_labels.dart';
 import 'figure_param_editors.dart';
+import 'import_gap_badge.dart';
 import 'lingo_text_editing_controller.dart';
 import 'move_autocomplete.dart';
 
@@ -46,6 +47,8 @@ class FigureListEditor extends StatefulWidget {
     this.onDuplicate,
     this.dialect,
     this.moveParamDefaults,
+    this.freeTextEntry = false,
+    this.onAddFreeText,
   });
 
   final List<FigureDraft> drafts;
@@ -83,6 +86,20 @@ class FigureListEditor extends StatefulWidget {
   /// ```
   final void Function(int oldIndex, int newIndex) onReorder;
 
+  /// When true (issue #419, opt-in "Free-text entry"), the Add flow opens a
+  /// single free-text field instead of appending a blank structured draft: the
+  /// typed line is routed through the shared core parser
+  /// ([parseFreeTextFigureEntry]) and its result is inserted as editable row(s)
+  /// via [onAddFreeText]. Editing an EXISTING figure always uses the structured
+  /// editor regardless of this flag. Takes effect only when [onAddFreeText] is
+  /// also provided; otherwise the Add flow falls back to the structured [onAdd].
+  final bool freeTextEntry;
+
+  /// Inserts the figure(s) parsed from one free-text line at the end of the
+  /// list. Only used when [freeTextEntry] is true. A single typed line may yield
+  /// more than one figure when it is a `;`-compound.
+  final void Function(List<Figure> figures)? onAddFreeText;
+
   @override
   State<FigureListEditor> createState() => _FigureListEditorState();
 }
@@ -108,6 +125,20 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   /// Focus target of last resort after deleting the final figure.
   final FocusNode _addButtonFocusNode = FocusNode(debugLabel: 'figure-add');
+
+  /// Whether the opt-in free-text entry composer is currently open (issue
+  /// #419). Only ever set when [_freeTextEnabled]; the Add flow opens it and a
+  /// blank submit / Escape / Done closes it.
+  bool _freeTextComposing = false;
+  final TextEditingController _freeTextController = TextEditingController();
+  final FocusNode _freeTextFocusNode = FocusNode(
+    debugLabel: 'figure-free-text',
+  );
+
+  /// Free-text entry is active only when the caller opted in AND wired an
+  /// insertion callback; otherwise the Add flow keeps its structured behaviour.
+  bool get _freeTextEnabled =>
+      widget.freeTextEntry && widget.onAddFreeText != null;
 
   Dialect get _dialect => widget.dialect ?? Dialect.larksRobins;
 
@@ -142,6 +173,13 @@ class _FigureListEditorState extends State<FigureListEditor> {
     for (final k in stale) {
       _rowFocusNodes.remove(k)?.dispose();
     }
+
+    // Close the free-text composer if free-text entry was turned off (or its
+    // insertion callback removed) while it was open.
+    if (_freeTextComposing && !_freeTextEnabled) {
+      _freeTextComposing = false;
+      _freeTextController.clear();
+    }
   }
 
   @override
@@ -150,6 +188,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
       node.dispose();
     }
     _addButtonFocusNode.dispose();
+    _freeTextController.dispose();
+    _freeTextFocusNode.dispose();
     super.dispose();
   }
 
@@ -259,8 +299,53 @@ class _FigureListEditorState extends State<FigureListEditor> {
   }
 
   void _addFigure() {
+    if (_freeTextEnabled) {
+      // Free-text entry (opt-in): open a single free-text field instead of
+      // appending a blank structured draft. The typed line is parsed and
+      // inserted on submit (see [_submitFreeText]).
+      setState(() => _freeTextComposing = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _freeTextFocusNode.requestFocus();
+      });
+      _announce('Type a figure and press Enter to add it.');
+      return;
+    }
     _openLastAfterAdd = true;
     widget.onAdd();
+  }
+
+  /// Parses the free-text field's current line through the shared core parser
+  /// and inserts the resulting row(s). Keeps the composer open (cleared and
+  /// refocused) for rapid entry of the next figure; a blank submit closes it.
+  void _submitFreeText() {
+    final onAddFreeText = widget.onAddFreeText;
+    if (onAddFreeText == null) return;
+    final figures = parseFreeTextFigureEntry(_freeTextController.text);
+    if (figures.isEmpty) {
+      // Nothing to insert (blank, or scrubbed to empty) — close the composer.
+      _dismissFreeText();
+      return;
+    }
+    onAddFreeText(figures);
+    _freeTextController.clear();
+    final n = figures.length;
+    _announce(
+      n == 1
+          ? 'Added 1 figure. Type another, or press Escape to finish.'
+          : 'Added $n figures. Type another, or press Escape to finish.',
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _freeTextFocusNode.requestFocus();
+    });
+  }
+
+  /// Closes the free-text composer and returns focus to the Add button.
+  void _dismissFreeText() {
+    _freeTextController.clear();
+    setState(() => _freeTextComposing = false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _addButtonFocusNode.requestFocus();
+    });
   }
 
   void _deleteDraft(int index) {
@@ -308,7 +393,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
     if (drafts.isEmpty) {
       // Teaching empty state: placeholder text paired with a primary action
-      // that behaves exactly like Add (and keeps the `figure-add` key).
+      // that behaves exactly like Add (and keeps the `figure-add` key). In
+      // free-text mode the composer replaces the button once it is open.
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -317,16 +403,19 @@ class _FigureListEditorState extends State<FigureListEditor> {
             child: Text('No figures yet.', style: theme.textTheme.bodyMedium),
           ),
           const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              key: const ValueKey('figure-add'),
-              focusNode: _addButtonFocusNode,
-              onPressed: _addFigure,
-              icon: const Icon(Icons.add),
-              label: const Text('Add first figure'),
+          if (_freeTextComposing)
+            _buildFreeTextComposer(context)
+          else
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                key: const ValueKey('figure-add'),
+                focusNode: _addButtonFocusNode,
+                onPressed: _addFigure,
+                icon: const Icon(Icons.add),
+                label: const Text('Add first figure'),
+              ),
             ),
-          ),
         ],
       );
     }
@@ -480,32 +569,102 @@ class _FigureListEditorState extends State<FigureListEditor> {
             ],
           ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            TextButton.icon(
-              key: const ValueKey('figure-add'),
-              focusNode: _addButtonFocusNode,
-              onPressed: _addFigure,
-              icon: const Icon(Icons.add),
-              label: const Text('Add figure'),
-            ),
-            if (_cutDraftId != null)
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: _PasteButton(
-                  key: const ValueKey('paste-end'),
-                  semanticsLabel: 'Paste at end of figure list',
-                  onPaste: () => _paste(drafts.length),
-                ),
+        if (_freeTextComposing)
+          _buildFreeTextComposer(context)
+        else
+          Row(
+            children: [
+              TextButton.icon(
+                key: const ValueKey('figure-add'),
+                focusNode: _addButtonFocusNode,
+                onPressed: _addFigure,
+                icon: const Icon(Icons.add),
+                label: const Text('Add figure'),
               ),
-          ],
-        ),
+              if (_cutDraftId != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: _PasteButton(
+                    key: const ValueKey('paste-end'),
+                    semanticsLabel: 'Paste at end of figure list',
+                    onPaste: () => _paste(drafts.length),
+                  ),
+                ),
+            ],
+          ),
         if (placedCount > 0)
           _BeatSummary(
             totalBeats: totalBeats,
             expectedBeats: widget.phraseStructure.totalBeats,
           ),
       ],
+    );
+  }
+
+  // --- Free-text composer (issue #419) --------------------------------------
+  /// The single-line free-text entry field shown in place of the Add button
+  /// while composing. Enter submits (parse + insert), Escape cancels; a Done
+  /// button offers the same dismissal for pointer/AT users. Kept deliberately
+  /// simple: one line at a time, matching the ruling (no multi-line paste).
+  Widget _buildFreeTextComposer(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Focus(
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.escape) {
+            _dismissFreeText();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextField(
+                key: const ValueKey('figure-free-text-field'),
+                controller: _freeTextController,
+                focusNode: _freeTextFocusNode,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submitFreeText(),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  border: OutlineInputBorder(),
+                  labelText: 'Type a figure',
+                  helperText:
+                      'e.g. "neighbor balance & swing" or "16 circle left 3/4". '
+                      'Enter adds it; unrecognized text is kept as a custom '
+                      'figure.',
+                  helperMaxLines: 3,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: FilledButton(
+                key: const ValueKey('figure-free-text-submit'),
+                onPressed: _submitFreeText,
+                child: const Text('Add'),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: TextButton(
+                key: const ValueKey('figure-free-text-done'),
+                onPressed: _dismissFreeText,
+                child: Text(
+                  'Done',
+                  style: TextStyle(color: theme.colorScheme.primary),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -678,6 +837,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // Picking a move is an explicit authorship action: any inherited
     // parser-assumed-subject marker (#460) no longer applies.
     widget.draft.assumedSubject = false;
+    // …and the figure is now a stated, user-authored choice, so it is no longer
+    // a parser-gap custom (#419): drop any inherited importGap origin.
+    widget.draft.customOrigin = CustomOrigin.userEntered;
     // A fresh move brings a fresh canonical beat default; that default is
     // authoritative until the user overrides it again. A saved per-move beats
     // default (DD.3) is a user-configured value, so _applyMoveParamDefaults
@@ -700,6 +862,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.draft.beatsTouched = false;
     // A user-authored custom figure carries no assumed subject (#460).
     widget.draft.assumedSubject = false;
+    // Authoring a custom by hand is a stated choice, not a parser gap (#419).
+    widget.draft.customOrigin = CustomOrigin.userEntered;
     _applyMoveParamDefaults(customMove);
     widget.draft.params['text'] = trimmed;
     _showMoreOptions = false;
@@ -878,6 +1042,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final noteDiscouraged =
         hasNote && canonicalize(note, widget.dialect).discouraged.isNotEmpty;
     final beatsLabel = '${draft.beats} ${draft.beats == 1 ? 'beat' : 'beats'}';
+    // Parser-gap custom (#398/#419): a custom figure the parser could not map,
+    // whether from import or a locally-typed free-text line. Surfaces the same
+    // inline marker as the read-only figure table and stays reparse-eligible.
+    final isImportGap = draft.customOrigin == CustomOrigin.importGap;
     final labelText = (widget.showLabel && widget.label != null)
         ? widget.label!
         : '';
@@ -887,6 +1055,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final parts = <String>[
       if (labelText.isNotEmpty) labelText,
       spoken,
+      if (isImportGap) importGapMessage,
       if (draft.progression) 'progression',
       if (hasMove) beatsLabel,
       if (hasNote) 'note: $note',
@@ -994,6 +1163,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                         ],
                       ),
                     ),
+                    if (isImportGap) ...[
+                      const SizedBox(width: 8),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2),
+                        child: ImportGapBadge(),
+                      ),
+                    ],
                     if (hasMove) ...[
                       const SizedBox(width: 8),
                       Padding(

@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 const String importGapMessage =
     "Couldn't parse this call — kept verbatim as a custom figure.";
 
-/// Accessible affordance flagging a figure that an import parser could not map
-/// to a structured move and kept verbatim (a [CustomOrigin.importGap] custom).
+/// Accessible affordance flagging a figure the parser could not map to a
+/// structured move and kept verbatim (a [CustomOrigin.importGap] custom) —
+/// whether it arrived from an import or was typed locally in free-text entry
+/// mode (#398/#419).
 ///
 /// The signal is **not color-only**: it is a distinct glyph carrying a
 /// [Semantics] label, so it survives for screen-reader and high-contrast users
@@ -31,7 +33,7 @@ class ImportGapBadge extends StatelessWidget {
         ).scale(theme.textTheme.bodyLarge?.fontSize ?? 16).clamp(16.0, 24.0);
     return Semantics(
       button: true,
-      label: 'Unparsed import. $importGapMessage',
+      label: 'Unrecognized figure. $importGapMessage',
       child: Tooltip(
         message: importGapMessage,
         child: InkResponse(
@@ -54,7 +56,7 @@ class ImportGapBadge extends StatelessWidget {
         Icons.report_gmailerrorred,
         color: Theme.of(context).colorScheme.tertiary,
       ),
-      title: const Text('Custom figure from import'),
+      title: const Text('Unrecognized figure'),
       content: const Text(importGapMessage),
       actions: [
         TextButton(

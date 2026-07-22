@@ -248,4 +248,96 @@ void main() {
     expect(dance.figures, hasLength(2));
     expect(dance.figures.every((f) => f.assumedSubject), isTrue);
   });
+
+  group('insertFreeTextFigures (#419)', () {
+    /// A controller loaded from an EXISTING dance with no figures, so the
+    /// figure list starts genuinely empty (a NEW dance would seed the default
+    /// stand-still template).
+    Future<DanceEditorController> emptyExistingController(
+      CompendiumRepositories repos,
+    ) async {
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      await controller.load(
+        dance: Dance(
+          id: 'd1',
+          title: 'My Dance',
+          figures: const [],
+          createdAt: now,
+          updatedAt: now,
+        ),
+        fieldDefs: const [],
+      );
+      return controller;
+    }
+
+    test('a recognised line appends one structured figure', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = await emptyExistingController(repos);
+      addTearDown(controller.dispose);
+
+      controller.insertFreeTextFigures(
+        parseFreeTextFigureEntry('Neighbor swing'),
+      );
+
+      expect(controller.figureDrafts, hasLength(1));
+      final built = controller.buildDance().figures.single;
+      expect(built.move, 'swing');
+      expect(built.params['who'], 'neighbors');
+      expect(built.customOrigin, CustomOrigin.userEntered);
+      // An insert is undoable.
+      expect(controller.canUndo, isTrue);
+    });
+
+    test('a `;`-compound appends one row per clause', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = await emptyExistingController(repos);
+      addTearDown(controller.dispose);
+
+      controller.insertFreeTextFigures(
+        parseFreeTextFigureEntry('circle left 3/4; turn alone'),
+      );
+
+      expect(controller.figureDrafts, hasLength(2));
+      final figures = controller.buildDance().figures;
+      expect(figures[0].move, 'circle');
+      expect(figures[1].move, 'turn_alone');
+    });
+
+    test('an unparsed line appends an importGap custom that survives '
+        'assembly (reparse-eligible)', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = await emptyExistingController(repos);
+      addTearDown(controller.dispose);
+
+      controller.insertFreeTextFigures(
+        parseFreeTextFigureEntry('do a barrel roll into the sunset'),
+      );
+
+      expect(controller.figureDrafts, hasLength(1));
+      final built = controller.buildDance().figures.single;
+      expect(built.isCustom, isTrue);
+      // The parser-gap origin is NOT laundered off by the editor round-trip,
+      // so the saved custom keeps its #398 marker and stays reparse-eligible.
+      expect(built.customOrigin, CustomOrigin.importGap);
+    });
+
+    test('an empty result is a no-op', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = await emptyExistingController(repos);
+      addTearDown(controller.dispose);
+
+      controller.insertFreeTextFigures(const []);
+
+      expect(controller.figureDrafts, isEmpty);
+      expect(controller.canUndo, isFalse);
+    });
+  });
 }

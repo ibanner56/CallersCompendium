@@ -17,6 +17,7 @@ class FigureDraftSnapshot {
     required this.progression,
     required this.schemaVersion,
     this.assumedSubject = false,
+    this.customOrigin = CustomOrigin.userEntered,
   });
 
   factory FigureDraftSnapshot.fromDraft(FigureDraft draft) =>
@@ -28,6 +29,7 @@ class FigureDraftSnapshot {
         progression: draft.progression,
         schemaVersion: draft.schemaVersion,
         assumedSubject: draft.assumedSubject,
+        customOrigin: draft.customOrigin,
       );
 
   final String id;
@@ -42,6 +44,11 @@ class FigureDraftSnapshot {
   /// disappears while editing.
   final bool assumedSubject;
 
+  /// How the figure originated when it is a custom (see [CustomOrigin]);
+  /// preserved across undo/redo and autosave so a free-text/import parser-gap
+  /// custom keeps its [CustomOrigin.importGap] flag (#419/#417) while editing.
+  final CustomOrigin customOrigin;
+
   FigureDraft toDraft() => FigureDraft(
     id: id,
     move: move,
@@ -50,6 +57,7 @@ class FigureDraftSnapshot {
     progression: progression,
     schemaVersion: schemaVersion,
     assumedSubject: assumedSubject,
+    customOrigin: customOrigin,
   );
 }
 

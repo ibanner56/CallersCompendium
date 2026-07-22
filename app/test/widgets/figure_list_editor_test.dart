@@ -3,6 +3,7 @@ import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/figure_param_editors.dart';
+import 'package:compendium_app/src/widgets/import_gap_badge.dart';
 import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -17,12 +18,14 @@ class _Host extends StatefulWidget {
     this.phrase = PhraseStructure.standard,
     this.wireDuplicate = true,
     this.moveParamDefaults,
+    this.freeTextEntry = false,
   });
 
   final List<FigureDraft> drafts;
   final PhraseStructure phrase;
   final bool wireDuplicate;
   final Map<String, Map<String, Object?>>? moveParamDefaults;
+  final bool freeTextEntry;
 
   @override
   State<_Host> createState() => _HostState();
@@ -39,8 +42,16 @@ class _HostState extends State<_Host> {
             taxonomy: contraTaxonomy,
             phraseStructure: widget.phrase,
             moveParamDefaults: widget.moveParamDefaults,
+            freeTextEntry: widget.freeTextEntry,
             onChanged: () => setState(() {}),
             onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
+            onAddFreeText: widget.freeTextEntry
+                ? (figures) => setState(
+                    () => widget.drafts.addAll(
+                      figures.map(FigureDraft.fromFigure),
+                    ),
+                  )
+                : null,
             onDelete: (d) => setState(() => widget.drafts.remove(d)),
             onDuplicate: widget.wireDuplicate
                 ? (d) => setState(() {
@@ -75,6 +86,7 @@ Future<void> _pump(
   PhraseStructure phrase = PhraseStructure.standard,
   bool wireDuplicate = true,
   Map<String, Map<String, Object?>>? moveParamDefaults,
+  bool freeTextEntry = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -84,6 +96,7 @@ Future<void> _pump(
       phrase: phrase,
       wireDuplicate: wireDuplicate,
       moveParamDefaults: moveParamDefaults,
+      freeTextEntry: freeTextEntry,
     ),
   );
   await tester.pumpAndSettle();
@@ -2122,6 +2135,175 @@ void main() {
       expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
       expect(find.byKey(const ValueKey('figure-0-unknown-move')), findsNothing);
       expect(find.byType(FigureParamEditor), findsWidgets);
+    });
+  });
+
+  group('free-text entry (#419)', () {
+    const fieldKey = ValueKey('figure-free-text-field');
+    const submitKey = ValueKey('figure-free-text-submit');
+    const doneKey = ValueKey('figure-free-text-done');
+    const addKey = ValueKey('figure-add');
+
+    testWidgets('Add opens a free-text field instead of a blank draft when '
+        'enabled', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(move: 'swing', params: const {'beats': 8}),
+        ),
+      ];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      // The composer is not shown until Add is pressed.
+      expect(find.byKey(fieldKey), findsNothing);
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+
+      // A free-text field appeared and NO blank structured draft was appended.
+      expect(find.byKey(fieldKey), findsOneWidget);
+      expect(drafts, hasLength(1));
+    });
+
+    testWidgets('a recognised line inserts a structured figure', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'neighbors balance & swing');
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      expect(drafts, hasLength(1));
+      final figure = drafts.single.toFigure()!;
+      expect(figure.move, 'swing');
+      expect(figure.params['who'], 'neighbors');
+      expect(figure.params['prefix'], 'balance');
+      // No inline beats → no explicit beats key (taxonomy default derives).
+      expect(figure.params.containsKey('beats'), isFalse);
+      expect(drafts.single.customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('a `;`-compound line inserts multiple rows', (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(fieldKey),
+        'circle left 3/4; turn alone',
+      );
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      expect(drafts, hasLength(2));
+      expect(drafts[0].toFigure()!.move, 'circle');
+      expect(drafts[1].toFigure()!.move, 'turn_alone');
+    });
+
+    testWidgets('an unrecognised line inserts an importGap custom with the '
+        'inline badge', (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(fieldKey),
+        'do a barrel roll into the sunset',
+      );
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      expect(drafts, hasLength(1));
+      final figure = drafts.single.toFigure()!;
+      expect(figure.move, customMove);
+      expect(figure.customOrigin, CustomOrigin.importGap);
+      // The collapsed row surfaces the parser-gap marker badge.
+      expect(find.byType(ImportGapBadge), findsOneWidget);
+    });
+
+    testWidgets('trailing inline beats "… (N)" are captured', (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'neighbor swing (12)');
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      expect(drafts.single.toFigure()!.params['beats'], 12);
+    });
+
+    testWidgets('the composer stays open for rapid entry and Done closes it', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'neighbor swing');
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      // Still composing after a successful insert.
+      expect(find.byKey(fieldKey), findsOneWidget);
+      expect(drafts, hasLength(1));
+
+      await tester.tap(find.byKey(doneKey));
+      await tester.pumpAndSettle();
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(drafts, hasLength(1));
+    });
+
+    testWidgets('a blank submit closes the composer without inserting', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), '   ');
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(drafts, isEmpty);
+    });
+
+    testWidgets('editing an existing figure still uses the structured editor', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(move: 'swing', params: const {'beats': 8}),
+        ),
+      ];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      // Opening an existing row never shows the free-text field; it opens the
+      // structured move input.
+      await _openFigure(tester, 0);
+      expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
+      expect(find.byKey(fieldKey), findsNothing);
+    });
+
+    testWidgets('Add appends a blank structured draft when disabled', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(drafts, hasLength(1));
     });
   });
 }
