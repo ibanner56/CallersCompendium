@@ -876,7 +876,11 @@ class DanceRepository {
     // Reject an out-of-range rating before opening the transaction so the
     // thrown error is deterministic and the collection is never half-updated.
     if (!clearRating && rating != null && (rating < 1 || rating > 5)) {
-      throw ArgumentError.value(rating, 'rating', 'must be null or 1..5');
+      throw ArgumentError.value(
+        rating,
+        'rating',
+        'must be in the range 1..5 (to clear a rating pass clearRating: true)',
+      );
     }
     assertUtc(now, 'now');
     final target = clearRating ? null : rating;
