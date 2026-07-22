@@ -13,7 +13,11 @@ import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_dance_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kAutoSizePerformKey;
+    show
+        kAutoSizePerformKey,
+        kPerformCanonicalViewKey,
+        kPerformStageModeKey,
+        kPerformTextScaleKey;
 import 'package:compendium_app/src/theme/app_typography.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
 
@@ -741,6 +745,125 @@ void main() {
 
       expect(find.byKey(const ValueKey('tap-tempo-target')), findsOneWidget);
       expect(find.text('Tap to set tempo'), findsOneWidget);
+    });
+  });
+
+  group('a11y prefs persistence (issue #449)', () {
+    // Builds the Perform view against a caller-supplied repositories instance so
+    // a test can seed the settings store first (restore) or read it back after
+    // interacting (write-through). Mirrors [_pumpPerform] but shares one store.
+    Future<void> pumpWith(
+      WidgetTester tester,
+      CompendiumRepositories repos, {
+      required Dance dance,
+      Dialect? activeDialect,
+    }) async {
+      await tester.binding.setSurfaceSize(const Size(1400, 2400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final notifier = ValueNotifier<Dialect>(
+        activeDialect ?? Dialect.larksRobins,
+      );
+      addTearDown(notifier.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
+          home: PerformDanceScreen(dance: dance, renderer: _renderer),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('restores persisted stage mode and canonical view on entry', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kAutoSizePerformKey, false);
+      await repos.settings.set(kPerformStageModeKey, false);
+      await repos.settings.set(kPerformCanonicalViewKey, true);
+
+      await pumpWith(tester, repos, dance: _dance(figures: [_chain()]));
+
+      // Stage mode restored OFF -> the ambient (non-stage) theme applies.
+      expect(
+        Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+        isNot(AppColorSchemes.highContrast),
+      );
+      // Canonical view restored ON -> figures show canonical tokens.
+      expect(find.text('role2s chain'), findsOneWidget);
+      expect(find.text('robins chain'), findsNothing);
+    });
+
+    testWidgets('restores a persisted manual text scale on entry', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kAutoSizePerformKey, false);
+      await repos.settings.set(
+        kPerformTextScaleKey,
+        kPerformDefaultScale + 2 * kPerformScaleStep,
+      );
+
+      await pumpWith(
+        tester,
+        repos,
+        dance: _dance(title: 'Fizz', figures: [_chain()]),
+      );
+
+      // Manual mode with an empty store renders at exactly the default scale,
+      // so a restored larger scale must read above the default.
+      final restoredScale = MediaQuery.of(
+        tester.element(find.byKey(const ValueKey('perform-title'))),
+      ).textScaler.scale(1);
+      expect(restoredScale, greaterThan(kPerformDefaultScale));
+    });
+
+    testWidgets('applies defaults and does not crash when the store is empty', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+
+      await pumpWith(tester, repos, dance: _dance(figures: [_chain()]));
+
+      expect(tester.takeException(), isNull);
+      // Stage on by default.
+      expect(
+        Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+        AppColorSchemes.highContrast,
+      );
+      // Canonical off by default -> active-dialect tokens.
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('role2s chain'), findsNothing);
+    });
+
+    testWidgets('writes each pref through to the settings store on change', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kAutoSizePerformKey, false);
+
+      await pumpWith(tester, repos, dance: _dance(figures: [_chain()]));
+
+      await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kPerformStageModeKey), isFalse);
+
+      await tester.tap(find.byKey(const ValueKey('perform-dialect-toggle')));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kPerformCanonicalViewKey), isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('increase-text-size')));
+      await tester.pumpAndSettle();
+      final storedScale = await repos.settings.get(kPerformTextScaleKey);
+      expect(storedScale, isA<num>());
+      expect(
+        (storedScale as num).toDouble(),
+        greaterThan(kPerformDefaultScale),
+      );
     });
   });
 }
