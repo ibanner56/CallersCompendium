@@ -131,6 +131,32 @@ void main() {
     },
   );
 
+  test('program editor draft keys are excluded from backups', () async {
+    // The program editor's draft prefix (issue #436) is device-local and
+    // transient, same rationale as the dance editor's — it must never travel.
+    expect(isBackupEligibleSettingKey('program_editor_draft:new'), isFalse);
+    expect(isBackupEligibleSettingKey('program_editor_draft:abc123'), isFalse);
+
+    final source = openTestRepositories();
+    await _seed(source);
+    await source.settings.set('program_editor_draft:new', '{"title":"WIP"}');
+
+    final doc = await BackupService(source).buildDocument();
+    expect(doc.settings.containsKey('program_editor_draft:new'), isFalse);
+
+    final json = await BackupService(source).exportToJson();
+    final target = openTestRepositories();
+    await target.settings.set('program_editor_draft:p9', '{"title":"local"}');
+    await BackupService(target).restoreFromJson(json);
+
+    // The target's own draft survives; the source's draft never lands on it.
+    expect(
+      await target.settings.get('program_editor_draft:p9'),
+      '{"title":"local"}',
+    );
+    expect(await target.settings.get('program_editor_draft:new'), isNull);
+  });
+
   test(
     'restore removes stale non-denylisted settings absent from the backup',
     () async {

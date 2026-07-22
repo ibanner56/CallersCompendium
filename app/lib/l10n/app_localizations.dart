@@ -148,6 +148,18 @@ abstract class AppLocalizations {
   /// **'Preparing your collection'**
   String get appBootstrapPreparing;
 
+  /// Accessibility label on the startup progress indicator shown while the search index is being rebuilt after a migration.
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuilding search index'**
+  String get appBootstrapRebuildingIndex;
+
+  /// Startup label under the determinate progress indicator during the post-migration search-index rebuild. '{percent}' is the completion percentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuilding search index… {percent}%'**
+  String appBootstrapRebuildingIndexProgress(int percent);
+
   /// Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button.
   ///
   /// In en, this message translates to:
@@ -2316,6 +2328,30 @@ abstract class AppLocalizations {
   /// **'Discard'**
   String get programsDiscard;
 
+  /// Title of the dialog offering to restore an autosaved program draft from an interrupted prior session.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved draft'**
+  String get programsDraftTitle;
+
+  /// Body of the dialog offering to restore an autosaved program draft.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft for this program. Would you like to restore it?'**
+  String get programsDraftBody;
+
+  /// Button that restores the autosaved program draft into the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get programsDraftRestore;
+
+  /// Button that discards the autosaved program draft and starts from the saved program.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get programsDraftDiscard;
+
   /// App bar title of the program editor when editing an existing program.
   ///
   /// In en, this message translates to:
@@ -2471,6 +2507,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'e.g. Grange Hall'**
   String get programsVenueHint;
+
+  /// Shown in the program editor's simple (free-text) venue mode when the program is also linked to a saved venue; explains the link is preserved and how to view it.
+  ///
+  /// In en, this message translates to:
+  /// **'Also linked to saved venue: {venueName}. Turn on reusable venues in Settings to view or change it.'**
+  String programsVenueLinkedHint(String venueName);
+
+  /// Fallback name used in programsVenueLinkedHint when the linked venue's display name is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'a saved venue'**
+  String get programsVenueLinkedHintFallbackName;
+
+  /// Shown in the program editor's enriched (picker) venue mode when the program has legacy free-text but no linked venue yet; invites linking while assuring the typed text is preserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Previously entered venue: “{venueText}”. Link a saved venue below to use reusable details — your typed venue is kept.'**
+  String programsVenueLegacyTextHint(String venueText);
 
   /// Field label for the program's band in the editor.
   ///
@@ -3394,6 +3448,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show canonical terms'**
   String get performShowCanonicalTerms;
+
+  /// Tooltip/accessible name for the perform-mode AppBar overflow menu button that reveals the secondary actions collapsed on narrow screens (issue #433).
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get performMoreActions;
+
+  /// Label for the perform-mode auto-size toggle when it appears as an item inside the AppBar overflow menu on narrow screens (issue #433).
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-size text to screen'**
+  String get performAutoSizeMenuLabel;
 
   /// Tooltip for the perform-mode auto-size toggle when auto-size is currently on.
   ///

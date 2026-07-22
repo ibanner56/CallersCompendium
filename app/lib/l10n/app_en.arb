@@ -45,6 +45,20 @@
   "@appBootstrapPreparing": {
     "description": "Accessibility label on the startup loading spinner shown while the collection database is being prepared."
   },
+  "appBootstrapRebuildingIndex": "Rebuilding search index",
+  "@appBootstrapRebuildingIndex": {
+    "description": "Accessibility label on the startup progress indicator shown while the search index is being rebuilt after a migration."
+  },
+  "appBootstrapRebuildingIndexProgress": "Rebuilding search index… {percent}%",
+  "@appBootstrapRebuildingIndexProgress": {
+    "description": "Startup label under the determinate progress indicator during the post-migration search-index rebuild. '{percent}' is the completion percentage.",
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "example": "25"
+      }
+    }
+  },
   "appBootstrapError": "Could not prepare the collection.",
   "@appBootstrapError": {
     "description": "Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button."
@@ -1895,6 +1909,22 @@
   "@programsDiscard": {
     "description": "Button that confirms discarding unsaved program changes and leaves the editor."
   },
+  "programsDraftTitle": "Unsaved draft",
+  "@programsDraftTitle": {
+    "description": "Title of the dialog offering to restore an autosaved program draft from an interrupted prior session."
+  },
+  "programsDraftBody": "You have an unsaved draft for this program. Would you like to restore it?",
+  "@programsDraftBody": {
+    "description": "Body of the dialog offering to restore an autosaved program draft."
+  },
+  "programsDraftRestore": "Restore",
+  "@programsDraftRestore": {
+    "description": "Button that restores the autosaved program draft into the editor."
+  },
+  "programsDraftDiscard": "Discard",
+  "@programsDraftDiscard": {
+    "description": "Button that discards the autosaved program draft and starts from the saved program."
+  },
   "programsBuildProgram": "Build program",
   "@programsBuildProgram": {
     "description": "App bar title of the program editor when editing an existing program."
@@ -1998,6 +2028,28 @@
   "programsVenueHint": "e.g. Grange Hall",
   "@programsVenueHint": {
     "description": "Hint text for the program venue field."
+  },
+  "programsVenueLinkedHint": "Also linked to saved venue: {venueName}. Turn on reusable venues in Settings to view or change it.",
+  "@programsVenueLinkedHint": {
+    "description": "Shown in the program editor's simple (free-text) venue mode when the program is also linked to a saved venue; explains the link is preserved and how to view it.",
+    "placeholders": {
+      "venueName": {
+        "type": "String"
+      }
+    }
+  },
+  "programsVenueLinkedHintFallbackName": "a saved venue",
+  "@programsVenueLinkedHintFallbackName": {
+    "description": "Fallback name used in programsVenueLinkedHint when the linked venue's display name is unavailable."
+  },
+  "programsVenueLegacyTextHint": "Previously entered venue: “{venueText}”. Link a saved venue below to use reusable details — your typed venue is kept.",
+  "@programsVenueLegacyTextHint": {
+    "description": "Shown in the program editor's enriched (picker) venue mode when the program has legacy free-text but no linked venue yet; invites linking while assuring the typed text is preserved.",
+    "placeholders": {
+      "venueText": {
+        "type": "String"
+      }
+    }
   },
   "programsBandLabel": "Band",
   "@programsBandLabel": {
@@ -2744,6 +2796,14 @@
   "performShowCanonicalTerms": "Show canonical terms",
   "@performShowCanonicalTerms": {
     "description": "Accessible name/tooltip for the perform-mode toggle that shows canonical (non-dialect) figure terms."
+  },
+  "performMoreActions": "More actions",
+  "@performMoreActions": {
+    "description": "Tooltip/accessible name for the perform-mode AppBar overflow menu button that reveals the secondary actions collapsed on narrow screens (issue #433)."
+  },
+  "performAutoSizeMenuLabel": "Auto-size text to screen",
+  "@performAutoSizeMenuLabel": {
+    "description": "Label for the perform-mode auto-size toggle when it appears as an item inside the AppBar overflow menu on narrow screens (issue #433)."
   },
   "performAutoSizeOnTooltip": "Auto-size on — tap for manual text size",
   "@performAutoSizeOnTooltip": {

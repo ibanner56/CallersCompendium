@@ -6,6 +6,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
 import 'app_shell_search_scope.dart';
@@ -82,6 +83,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   bool _started = false;
 
   List<Program>? _programs;
+  Map<String, Venue> _venuesById = const {};
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
@@ -119,9 +121,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Future<void> _load() async {
     try {
       final programs = await _repos.programs.listAll();
+      // Only load the venue catalogue when a program actually links one;
+      // ProgramListTile falls back to Program.venue with an empty map.
+      final hasLinkedVenue = programs.any((p) => p.venueId != null);
+      final venuesById = hasLinkedVenue
+          ? {for (final v in await _repos.venues.listAll()) v.id: v}
+          : const <String, Venue>{};
       if (!mounted) return;
       setState(() {
         _programs = programs;
+        _venuesById = venuesById;
         _loadError = null;
       });
     } catch (error) {
@@ -225,21 +234,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     setState(() => _programs?.removeWhere((p) => p.id == program.id));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        key: const ValueKey('program-deleted-snackbar'),
-        content: Text(l10n.programsDeletedSnack(program.title)),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () async {
-            await _repos.programs.restore(
-              program.id,
-              at: DateTime.now().toUtc(),
-            );
-            if (mounted) await _load();
-          },
-        ),
-      ),
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      key: const ValueKey('program-deleted-snackbar'),
+      message: l10n.programsDeletedSnack(program.title),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () async {
+        await _repos.programs.restore(program.id, at: DateTime.now().toUtc());
+        if (mounted) await _load();
+      },
     );
   }
 
@@ -483,6 +487,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 ),
                 child: ProgramListTile(
                   program: program,
+                  venuesById: _venuesById,
                   selected:
                       widget.onSelectProgram != null &&
                       widget.selectedProgramId == program.id,

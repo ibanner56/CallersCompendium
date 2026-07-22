@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
+import '../data/venue_label.dart';
 import 'program_status_chip.dart';
 
 /// One Programs list row: title, event date, venue, slot count, and a status
@@ -13,6 +14,7 @@ class ProgramListTile extends StatelessWidget {
   const ProgramListTile({
     super.key,
     required this.program,
+    this.venuesById = const {},
     this.onTap,
     this.selected = false,
     this.onDelete,
@@ -20,6 +22,11 @@ class ProgramListTile extends StatelessWidget {
   });
 
   final Program program;
+
+  /// Saved venues keyed by id, used to resolve a linked `venueId` to its
+  /// display name. Defaults to empty (callers that don't supply it fall back to
+  /// the free-text [Program.venue], preserving back-compat).
+  final Map<String, Venue> venuesById;
   final VoidCallback? onTap;
   final bool selected;
 
@@ -44,7 +51,7 @@ class ProgramListTile extends StatelessWidget {
             MaterialLocalizations.of(context),
           );
 
-    final venue = program.venue?.trim();
+    final venue = resolveVenueLabel(program, venuesById);
     final subtitleParts = <String>[
       ?dateLabel,
       if (venue != null && venue.isNotEmpty) venue,

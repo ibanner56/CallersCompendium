@@ -801,6 +801,46 @@ void main() {
       expect(history.last.programId, 'p1');
     });
 
+    test(
+      'carries the program venueId (or null) for label resolution',
+      () async {
+        await makeDance('d1');
+        final venues = VenueRepository(db);
+        await venues.upsert(Venue(id: 'grange-hall', name: 'Grange Hall'));
+        // p-linked: linked to a saved venue by venueId.
+        await repo.create(
+          Program(
+            id: 'p-linked',
+            title: 'Autumn Ball',
+            eventDate: DateTime.utc(2026, 1, 10),
+            venueId: 'grange-hall',
+            slots: [ProgramSlot(id: 's-linked', position: 0, danceId: 'd1')],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        // p-freetext: only free-text venue, no link → venueId is null.
+        await repo.create(
+          Program(
+            id: 'p-freetext',
+            title: 'Spring Fling',
+            eventDate: DateTime.utc(2026, 3, 20),
+            venue: 'Town Hall',
+            slots: [ProgramSlot(id: 's-freetext', position: 0, danceId: 'd1')],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+
+        final history = await repo.callingHistoryForDance('d1');
+        final byId = {for (final r in history) r.programId: r};
+        expect(byId['p-linked']!.venueId, 'grange-hall');
+        expect(byId['p-linked']!.venue, isNull);
+        expect(byId['p-freetext']!.venueId, isNull);
+        expect(byId['p-freetext']!.venue, 'Town Hall');
+      },
+    );
+
     test('orders by effective date (eventDate / updatedAt) when performedAt is '
         'null', () async {
       await makeDance('d1');

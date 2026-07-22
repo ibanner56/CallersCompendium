@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
@@ -11,12 +13,17 @@ import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
+import '../data/venue_entity_mode_scope.dart';
+import '../data/venue_label.dart';
+import '../editor/program_editor_draft_codec.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/collection_picker.dart';
+import '../widgets/venue_picker.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
@@ -99,6 +106,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _saving = false;
   bool _dirty = false;
 
+  /// Debounced autosave timer for the in-progress draft (issue #436). Persists
+  /// the working set list to [SettingsRepository] so an OS background/kill
+  /// before an explicit Save no longer silently loses it.
+  Timer? _autosaveTimer;
+
+  /// `true` while [_applyRestoredDraft] repopulates state from a restored draft,
+  /// so [_scheduleAutosave] doesn't re-arm a write mid-restore.
+  bool _restoringDraft = false;
+
+  /// A decoded draft staged by [_load] awaiting a restore/discard prompt; shown
+  /// after the first frame by [_maybeShowRestoreDialog].
+  ProgramEditorDraft? _pendingDraft;
+
+  /// The program's linked venue id (enriched venue mode). Kept independently
+  /// from [_venueController] (free-text simple mode) so flipping the venue
+  /// entity mode is lossless — neither field clears the other.
+  String? _venueId;
+
+  /// The resolved [Venue] for [_venueId], loaded so the simple-mode read-only
+  /// fallback can show its name. `null` when no venue is linked.
+  Venue? _linkedVenue;
+
   /// In-memory Perform resume state (issue #434). Perform is pushed *on top* of
   /// this editor, so this field survives that navigation: on exit the Perform
   /// view hands back its live position + clock here, and the next launch threads
@@ -179,21 +208,34 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _callerController.text = program.caller ?? '';
         _levelController.text = program.dancerLevel ?? '';
         _notesController.text = program.notes;
+        // Resolve the linked venue (if any) up front so the simple-mode
+        // read-only fallback can show its name without an async gap.
+        if (program.venueId != null) {
+          _linkedVenue = await _repos.venues.getById(program.venueId!);
+        }
       } else if (widget.isNew) {
         // ROADMAP G.3: prefill a new program's caller/band from saved defaults.
         // Only seeds a still-blank field, never overrides; a settings read
         // failure falls back silently to a blank field.
         await _prefillNewProgramDefaults();
       }
+      // Guard again: the venue lookup / defaults prefill above are async, so the
+      // widget may have been disposed while they were in-flight.
+      if (!mounted) return;
       setState(() {
         _data = data;
         _existing = program;
         _eventDate = program?.eventDate;
+        _venueId = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
         _slots = program?.slots.toList() ?? const [];
         _loaded = true;
       });
+      // Detect an autosaved draft from an interrupted prior session and stage a
+      // restore/discard prompt (issue #436). Runs after the loaded-state
+      // setState so the editor is fully built before any dialog appears.
+      await _maybeStageDraft();
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -236,6 +278,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   @override
   void dispose() {
+    _autosaveTimer?.cancel();
     _tabController.dispose();
     _titleController.dispose();
     _venueController.dispose();
@@ -248,6 +291,182 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   void _markDirty() {
     if (!_dirty) setState(() => _dirty = true);
+    _scheduleAutosave();
+  }
+
+  // --- Autosave / draft persistence (issue #436) ----------------------------
+
+  /// Settings-table key for this editor's draft, keyed by program id (or `new`
+  /// for an unsaved program), mirroring the dance editor's `editor_draft:<id>`.
+  String get _draftKey =>
+      '$kProgramEditorDraftKeyPrefix${widget.programId ?? 'new'}';
+
+  /// Debounces autosave writes (500 ms after the last change), matching the
+  /// dance editor. No-op before the initial load completes or while restoring a
+  /// draft, so neither seeding defaults nor a restore triggers a spurious write.
+  void _scheduleAutosave() {
+    if (!_loaded || _restoringDraft) return;
+    _autosaveTimer?.cancel();
+    _autosaveTimer = Timer(const Duration(milliseconds: 500), _saveDraft);
+  }
+
+  /// Captures the current working state as an immutable draft snapshot. The
+  /// title is kept verbatim (may be empty for an in-progress build); slots are
+  /// renumbered so positions stay contiguous.
+  ProgramEditorDraft _captureDraft() {
+    String? nn(TextEditingController c) {
+      final v = c.text.trim();
+      return v.isEmpty ? null : v;
+    }
+
+    return ProgramEditorDraft(
+      title: _titleController.text,
+      eventDate: _eventDate,
+      venue: nn(_venueController),
+      venueId: _venueId,
+      band: nn(_bandController),
+      caller: nn(_callerController),
+      dancerLevel: nn(_levelController),
+      notes: _notesController.text,
+      status: _status,
+      hideAlternates: _hideAlternates,
+      slots: _renumber(_slots),
+    );
+  }
+
+  Future<void> _saveDraft() async {
+    if (!_loaded || !mounted || _restoringDraft) return;
+    try {
+      await _repos.settings.set(_draftKey, encodeProgramDraft(_captureDraft()));
+    } catch (_) {
+      // A draft write failure must never disrupt editing; the next edit retries.
+    }
+  }
+
+  /// Cancels the pending autosave and removes the draft from storage. Called on
+  /// every terminal path (explicit save, delete, confirmed discard) so a
+  /// committed or abandoned program never leaves a stale draft behind.
+  Future<void> _clearDraft() async {
+    _autosaveTimer?.cancel();
+    try {
+      await _repos.settings.remove(_draftKey);
+    } catch (_) {
+      // Best-effort cleanup; a failure here is non-fatal.
+    }
+  }
+
+  /// Reads any autosaved draft for this program, decodes it (silently
+  /// discarding a corrupt/unrecognised one), and stages a restore/discard
+  /// prompt after the first frame.
+  Future<void> _maybeStageDraft() async {
+    if (!mounted) return;
+    ProgramEditorDraft? draft;
+    try {
+      if (await _repos.settings.contains(_draftKey)) {
+        draft = decodeProgramDraft(await _repos.settings.get(_draftKey));
+      }
+    } catch (_) {
+      // Corrupt / unrecognised draft version — silently discard.
+      await _clearDraft();
+      draft = null;
+    }
+    if (draft == null || !mounted) return;
+    _pendingDraft = draft;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _maybeShowRestoreDialog(),
+    );
+  }
+
+  /// Shows the restore/discard dialog for a staged draft. Restoring applies the
+  /// draft and keeps it (it is still unsaved work); discarding removes it.
+  Future<void> _maybeShowRestoreDialog() async {
+    final draft = _pendingDraft;
+    if (draft == null || !mounted) return;
+    _pendingDraft = null;
+    final l10n = AppLocalizations.of(context);
+    final restore = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.programsDraftTitle),
+        content: Text(l10n.programsDraftBody),
+        actions: [
+          TextButton(
+            key: const ValueKey('program-draft-discard'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.programsDraftDiscard),
+          ),
+          FilledButton(
+            key: const ValueKey('program-draft-restore'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.programsDraftRestore),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (restore == true) {
+      _applyRestoredDraft(draft);
+    } else {
+      await _clearDraft();
+    }
+  }
+
+  /// Repopulates the editor's working state from a restored [draft] and marks it
+  /// dirty (restored content is unsaved work). The [_restoringDraft] guard stops
+  /// the repopulation from re-arming autosave; the on-disk draft is left intact.
+  void _applyRestoredDraft(ProgramEditorDraft draft) {
+    _restoringDraft = true;
+    try {
+      _titleController.text = draft.title;
+      _venueController.text = draft.venue ?? '';
+      _bandController.text = draft.band ?? '';
+      _callerController.text = draft.caller ?? '';
+      _levelController.text = draft.dancerLevel ?? '';
+      _notesController.text = draft.notes;
+      setState(() {
+        _eventDate = draft.eventDate;
+        _venueId = draft.venueId;
+        _linkedVenue = null;
+        _status = draft.status;
+        _hideAlternates = draft.hideAlternates;
+        _slots = _renumber(draft.slots);
+        _dirty = true;
+      });
+    } finally {
+      _restoringDraft = false;
+    }
+    // Resolve the linked venue's display name off the restore path. This only
+    // refreshes the read-only simple-mode fallback hint; it does not re-arm
+    // autosave, and the on-disk draft is left intact.
+    final restoredVenueId = draft.venueId;
+    if (restoredVenueId != null) _refreshLinkedVenue(restoredVenueId);
+  }
+
+  /// Handles a change from the enriched-mode [VenuePicker]: records the new
+  /// linked venue id (or `null` to unlink), marks the editor dirty, and
+  /// refreshes [_linkedVenue] so the simple-mode read-only fallback stays in
+  /// sync if the user flips the toggle back. Never touches [_venueController],
+  /// keeping the free-text value intact (lossless).
+  Future<void> _onVenueLinkChanged(String? id) async {
+    setState(() {
+      _venueId = id;
+      _dirty = true;
+      if (id == null) _linkedVenue = null;
+    });
+    _scheduleAutosave();
+    if (id == null) return;
+    await _refreshLinkedVenue(id);
+  }
+
+  /// Resolves [id] to its [Venue] and refreshes [_linkedVenue] so the
+  /// simple-mode read-only fallback can show the name. Guards against a stale
+  /// late result: if the selection changed again while this fetch was in
+  /// flight, `_venueId` no longer matches [id], so the result is dropped.
+  Future<void> _refreshLinkedVenue(String id) async {
+    final venue = await _repos.venues.getById(id);
+    if (!mounted || _venueId != id) return;
+    setState(() => _linkedVenue = venue);
   }
 
   /// Renumbers positions contiguously (0..n-1) in list order.
@@ -345,6 +564,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               _slots = slots;
               _dirty = true;
             });
+            _scheduleAutosave();
           },
         ),
       ),
@@ -361,6 +581,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ]);
       _dirty = true;
     });
+    _scheduleAutosave();
     final l10n = AppLocalizations.of(context);
     final title = _titleForDance(danceId) ?? l10n.programsUntitledDanceFallback;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -386,6 +607,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ]);
       _dirty = true;
     });
+    _scheduleAutosave();
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsAddedNoteAnnounce,
@@ -405,6 +627,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ]);
       _dirty = true;
     });
+    _scheduleAutosave();
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsAddedBreakAnnounce,
@@ -420,6 +643,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _slots = _renumber(list);
       _dirty = true;
     });
+    _scheduleAutosave();
   }
 
   void _updateSlot(int index, ProgramSlot updated) {
@@ -429,6 +653,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _slots = _renumber(list);
       _dirty = true;
     });
+    _scheduleAutosave();
   }
 
   void _removeSlot(int index) {
@@ -437,6 +662,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _slots = _renumber(list);
       _dirty = true;
     });
+    _scheduleAutosave();
   }
 
   Future<void> _markAllPerformed() async {
@@ -451,6 +677,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ];
       _dirty = true;
     });
+    _scheduleAutosave();
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsMarkedAllPerformed,
@@ -478,12 +705,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final base =
           _existing ??
           Program(id: 'draft', title: title, createdAt: now, updatedAt: now);
+      // Only the ACTIVE venue mode mutates its field; the inactive field rides
+      // through untouched so flipping the toggle is lossless (see _save).
+      final enriched = VenueEntityModeScope.of(context);
+      final venueText = nn(_venueController);
       return base.copyWith(
         title: title,
         eventDate: _eventDate,
         clearEventDate: _eventDate == null,
-        venue: nn(_venueController),
-        clearVenue: nn(_venueController) == null,
+        venue: enriched ? null : venueText,
+        clearVenue: enriched ? false : venueText == null,
+        venueId: enriched ? _venueId : null,
+        clearVenueId: enriched ? _venueId == null : false,
         band: nn(_bandController),
         clearBand: nn(_bandController) == null,
         caller: nn(_callerController),
@@ -512,6 +745,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final level = _levelController.text.trim();
     final notes = _notesController.text.trim();
     final slots = _renumber(_slots);
+    // The toggle is entry-mode only; both venue columns persist independently.
+    // CREATE writes both live values (each defaults to empty/null in the mode
+    // that isn't shown). UPDATE mutates ONLY the active mode's field so the
+    // inactive value survives a flip untouched (lossless guarantee).
+    final enriched = VenueEntityModeScope.of(context);
 
     try {
       final String id;
@@ -523,6 +761,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             title: title,
             eventDate: _eventDate,
             venue: venue.isEmpty ? null : venue,
+            venueId: _venueId,
             band: band.isEmpty ? null : band,
             caller: caller.isEmpty ? null : caller,
             dancerLevel: level.isEmpty ? null : level,
@@ -540,8 +779,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           title: title,
           eventDate: _eventDate,
           clearEventDate: _eventDate == null,
-          venue: venue.isEmpty ? null : venue,
-          clearVenue: venue.isEmpty,
+          venue: enriched ? null : (venue.isEmpty ? null : venue),
+          clearVenue: enriched ? false : venue.isEmpty,
+          venueId: enriched ? _venueId : null,
+          clearVenueId: enriched ? _venueId == null : false,
           band: band.isEmpty ? null : band,
           clearBand: band.isEmpty,
           caller: caller.isEmpty ? null : caller,
@@ -557,6 +798,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         await _repos.programs.update(updated);
         _existing = updated;
       }
+      // Work is committed — drop the autosave draft so it can't resurface.
+      await _clearDraft();
       if (!mounted) return;
       setState(() {
         _saving = false;
@@ -618,17 +861,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (!mounted) return;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
+    // Drop the autosave draft so it can't resurface for a deleted program.
+    await _clearDraft();
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(l10n.programsDeletedSnack(title)),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () =>
-              _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
-        ),
-      ),
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    showUndoSnackBar(
+      messenger,
+      message: l10n.programsDeletedSnack(title),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () =>
+          _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
     );
     if (widget.isEmbedded) {
       widget.onDeleted?.call();
@@ -673,7 +918,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (didPop) return;
         final ok = await _confirmDiscard();
         if (!context.mounted) return;
-        if (ok) Navigator.of(context).pop();
+        if (ok) {
+          // User confirmed the discard: drop the autosave draft so it can't
+          // resurface, then pop.
+          await _clearDraft();
+          if (!context.mounted) return;
+          Navigator.of(context).pop();
+        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -710,6 +961,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ProgramExportMenu(
                 program: _draftProgram!,
                 titleFor: _titleForDance,
+                venuesById: _exportVenuesById,
                 danceFor: (id) => _data?.dancesById[id],
                 choreographerFor: (id) => _data?.choreographersById[id],
               ),
@@ -909,7 +1161,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final localizations = MaterialLocalizations.of(context);
     final l10n = AppLocalizations.of(context);
     final title = _titleController.text.trim();
-    final venue = _venueController.text.trim();
+    // Prefer a linked venue's display label over the free-text field, matching
+    // the set-list export and on-screen resolution.
+    final venue = resolveVenueLabelParts(
+      _venueId,
+      _venueController.text,
+      _exportVenuesById,
+    );
     await Printing.layoutPdf(
       name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
       onLayout: (format) => buildProgramMatrixPdf(
@@ -918,12 +1176,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         dialect: _dialect,
         programTitle: title,
         eventDate: _eventDate,
-        venue: venue.isEmpty ? null : venue,
+        venue: venue,
         omittedFreeTextCount: omittedFreeTextCount,
         formatDate: localizations.formatMediumDate,
       ),
     );
   }
+
+  /// The loaded venue records needed to resolve this program's linked venue on
+  /// export. A program links at most one venue, so only [_linkedVenue] (kept in
+  /// sync with the current selection) need be threaded through — no full
+  /// `venues.listAll()` load is required.
+  Map<String, Venue> get _exportVenuesById => {
+    ?_linkedVenue?.id: ?_linkedVenue,
+  };
 
   Widget _buildEditorColumn({required bool twoPane}) {
     final l10n = AppLocalizations.of(context);
@@ -1047,6 +1313,93 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
+  /// Builds the venue editor for the active venue entity mode.
+  ///
+  /// SIMPLE (default): the free-text venue field, unchanged. If the program is
+  /// also linked to a saved venue (`venueId`), a read-only hint shows the
+  /// linked venue name so the link isn't silently hidden — the free text above
+  /// is what this mode edits and persists (the link rides through untouched).
+  ///
+  /// ENRICHED: a [VenuePicker] that selects/creates a saved venue. If the
+  /// program has legacy free-text but no link yet, that text is shown with an
+  /// invitation to link a venue below; the typed text is preserved.
+  Widget _buildVenueField(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final enriched = VenueEntityModeScope.of(context);
+    if (!enriched) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            key: const ValueKey('program-venue'),
+            controller: _venueController,
+            textInputAction: TextInputAction.next,
+            onChanged: (_) => _markDirty(),
+            decoration: InputDecoration(
+              labelText: l10n.programsVenueLabel,
+              hintText: l10n.programsVenueHint,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          if (_venueId != null)
+            Padding(
+              key: const ValueKey('program-venue-linked-hint'),
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.link, size: 16, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.programsVenueLinkedHint(
+                        _linkedVenue?.displayName ??
+                            l10n.programsVenueLinkedHintFallbackName,
+                      ),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
+    }
+    final legacyText = _venueController.text.trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (legacyText.isNotEmpty && _venueId == null)
+          Padding(
+            key: const ValueKey('program-venue-legacy-text'),
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.programsVenueLegacyTextHint(legacyText),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Text(l10n.programsVenueLabel, style: theme.textTheme.labelLarge),
+        const SizedBox(height: 4),
+        VenuePicker(
+          key: const ValueKey('program-venue-picker'),
+          selectedVenueId: _venueId,
+          onChanged: _onVenueLinkChanged,
+        ),
+      ],
+    );
+  }
+
   Widget _buildMetadataSection() {
     final l10n = AppLocalizations.of(context);
     final dateLabel = _eventDate == null
@@ -1099,26 +1452,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   key: const ValueKey('clear-event-date'),
                   tooltip: l10n.programsClearEventDate,
                   icon: const Icon(Icons.clear),
-                  onPressed: () => setState(() {
-                    _eventDate = null;
-                    _dirty = true;
-                  }),
+                  onPressed: () {
+                    setState(() {
+                      _eventDate = null;
+                      _dirty = true;
+                    });
+                    _scheduleAutosave();
+                  },
                 ),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        TextFormField(
-          key: const ValueKey('program-venue'),
-          controller: _venueController,
-          textInputAction: TextInputAction.next,
-          onChanged: (_) => _markDirty(),
-          decoration: InputDecoration(
-            labelText: l10n.programsVenueLabel,
-            hintText: l10n.programsVenueHint,
-            border: const OutlineInputBorder(),
-          ),
-        ),
+        _buildVenueField(l10n),
         const SizedBox(height: 16),
         TextFormField(
           key: const ValueKey('program-band'),
@@ -1199,6 +1545,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 _status = value;
                 _dirty = true;
               });
+              _scheduleAutosave();
             }
           },
         ),
@@ -1214,6 +1561,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               _hideAlternates = value;
               _dirty = true;
             });
+            _scheduleAutosave();
           },
         ),
       ],
@@ -1239,6 +1587,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _eventDate = DateTime.utc(picked.year, picked.month, picked.day);
         _dirty = true;
       });
+      _scheduleAutosave();
     }
   }
 }

@@ -32,7 +32,11 @@ A few good moments to export a backup:
 
 1. Open **Settings**, then choose **General**.
 2. Find the **Backup & restore** section.
-3. Choose **Export a backup**, then choose **Export**.
+3. Choose **Export a backup**. A short options dialog appears.
+4. Leave encryption **off** for a plain backup (the default), or turn on
+   **Encrypt this backup with a passphrase** to protect it (see
+   [Encrypt a backup](#encrypt-a-backup-optional) below).
+5. Choose **Export** (or **Encrypt & export** when encryption is on).
 
 The app creates a single dated file — something like
 `callers-compendium-backup-2026-07-15.json` — and hands it to your
@@ -40,6 +44,30 @@ device's normal share or save sheet. From there you decide where it
 goes: a cloud drive, your Files area, an email to yourself, or a folder
 of your choosing. When it's done, you'll see a **Backup exported.**
 confirmation.
+
+### Encrypt a backup (optional)
+
+By default a backup is plain, readable text, so anyone who opens the
+file can see its contents. If you'd rather protect it — for example
+before storing it on a shared drive or emailing it — you can encrypt the
+backup with a passphrase of your choosing.
+
+When you turn on **Encrypt this backup with a passphrase**, you'll enter
+the passphrase twice (to catch typos) and see a rough strength hint. The
+exported file is then scrambled so that **only someone with the exact
+passphrase can open it**. Encrypted backups are saved with a
+`.ccbackup` extension instead of `.json`, and you'll see an
+**Encrypted backup exported.** confirmation.
+
+> **There is no passphrase recovery.** The app never stores your
+> passphrase and **cannot recover it for you**. If you forget or lose
+> it, the encrypted backup can **never** be opened again — there is no
+> reset, no backdoor, and no support request that can unlock it. Choose
+> a passphrase you'll remember, and store it somewhere safe and separate
+> from the backup file itself.
+
+Encryption is entirely optional. Plain, unencrypted backups still work
+exactly as before and remain the default.
 
 ### What's inside a backup
 
@@ -71,9 +99,12 @@ setting up a new device or recovering after a problem.
 1. Open **Settings**, then choose **General**.
 2. Find the **Backup & restore** section.
 3. Choose **Restore from a backup**, then choose **Restore**.
-4. Either choose **Choose file…** (a picker that shows only `.json`
-   backup files) or paste the backup text directly.
+4. Either choose **Choose file…** (a picker that shows `.json` backups
+   and encrypted `.ccbackup` backups) or paste the backup text directly.
 5. Confirm with **Replace all data**.
+6. If the backup is encrypted, the app detects this and prompts you for
+   its passphrase before restoring. Enter the passphrase you chose when
+   exporting, then choose **Unlock & restore**.
 
 On success, you'll see a **Backup restored.** confirmation. If a few
 items in the file couldn't be read, the app still restores everything
@@ -81,6 +112,12 @@ else and tells you how many were skipped. And if the file turns out to
 be invalid or corrupt, the restore is safely stopped *before* any of
 your current data is touched — so you never lose what you already have
 by trying.
+
+> **A wrong passphrase never harms your data.** If you enter the wrong
+> passphrase for an encrypted backup (or the file has been tampered with
+> or corrupted), the app simply tells you it couldn't decrypt it and
+> stops. Nothing is imported and your current library is left exactly as
+> it was. Just try again with the correct passphrase.
 
 > **Restoring replaces everything.** A restore swaps out *all* of your
 > current dances, programs, settings, and customizations for the

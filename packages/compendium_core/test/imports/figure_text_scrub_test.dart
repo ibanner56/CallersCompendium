@@ -43,4 +43,20 @@ void main() {
       );
     });
   });
+
+  group('scrubFigureText strips control and bidi/format characters (#444)', () {
+    test('removes an RTL override and zero-width chars from figure text', () {
+      // A spoofed figure line: RTL override + zero-width space + a C0 control.
+      expect(
+        scrubFigureText('neighbors\u200B swing\u202E\u0007'),
+        'neighbors swing',
+      );
+    });
+
+    test('stops a zero-width char from defeating move normalisation', () {
+      // Sanitizing BEFORE the gypsy → shoulder-round rewrite means a smuggled
+      // zero-width space cannot hide the legacy term from the normaliser.
+      expect(scrubFigureText('gy\u200Bpsy'), 'shoulder round');
+    });
+  });
 }

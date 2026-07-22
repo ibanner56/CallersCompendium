@@ -5,6 +5,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
+import '../util/text_sanitizer.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
 import 'import_error.dart';
@@ -186,8 +187,8 @@ class CallersBoxAdapter implements SourceAdapter {
     }
     final dance = Map<String, Object?>.from(decoded);
 
-    final title = _asString(dance['Name'])?.trim();
-    final id = _asString(dance['ID'])?.trim();
+    final title = _sanitizeLine(_asString(dance['Name']));
+    final id = _sanitizeLine(_asString(dance['ID']));
     if ((title == null || title.isEmpty) && (id == null || id.isEmpty)) {
       throw parseError(
         source,
@@ -237,14 +238,14 @@ class CallersBoxAdapter implements SourceAdapter {
         phraseStructure: phraseStructure,
         figures: figures,
         callingNotes: _buildNotes(dance),
-        tunes: _asStringList(dance['Tunes']),
+        tunes: _sanitizeLineList(_asStringList(dance['Tunes'])),
         // The pipeline attaches provenance at commit, derived from `raw`.
         createdAt: _epoch,
         updatedAt: _epoch,
       ),
       raw: raw,
       issues: issues,
-      authorNames: _asStringList(dance['Authors']),
+      authorNames: _sanitizeLineList(_asStringList(dance['Authors'])),
     );
   }
 
@@ -609,8 +610,8 @@ class CallersBoxAdapter implements SourceAdapter {
     Map<String, Object?> dance,
     List<ImportIssue> issues,
   ) {
-    final base = _asString(dance['FormationBase'])?.trim() ?? '';
-    final extra = _asString(dance['FormationDetail'])?.trim() ?? '';
+    final base = _sanitizeLine(_asString(dance['FormationBase'])) ?? '';
+    final extra = _sanitizeLine(_asString(dance['FormationDetail'])) ?? '';
     final combined = [base, extra].where((s) => s.isNotEmpty).join(' — ');
     final detail = combined.isEmpty ? null : combined;
 
@@ -780,7 +781,10 @@ class CallersBoxAdapter implements SourceAdapter {
     }
 
     parts.add('Imported from The Caller\'s Box.');
-    return parts.join('\n\n');
+    // Multi-line sanitize: strips control/bidi/format spoofing characters from
+    // the assembled free-text notes while preserving the newline structure of
+    // the joined sections (issue #444).
+    return sanitizeImportedText(parts.join('\n\n')).trim();
   }
 
   String _formatAppearances(Object? raw) {
@@ -825,9 +829,9 @@ class CallersBoxAdapter implements SourceAdapter {
 
   static String? _externalIdOf(Object? element) {
     if (element is! Map) return null;
-    final id = _asString(element['ID'])?.trim();
+    final id = _sanitizeLine(_asString(element['ID']));
     if (id != null && id.isNotEmpty) return id;
-    final name = _asString(element['Name'])?.trim();
+    final name = _sanitizeLine(_asString(element['Name']));
     if (name != null && name.isNotEmpty) {
       return 'name:${name.toLowerCase()}';
     }
@@ -836,7 +840,7 @@ class CallersBoxAdapter implements SourceAdapter {
 
   static String? _nameOf(Object? element) {
     if (element is! Map) return null;
-    return _asString(element['Name'])?.trim();
+    return _sanitizeLine(_asString(element['Name']));
   }
 
   static String? _permissionOf(Object? element) {
@@ -867,6 +871,24 @@ class CallersBoxAdapter implements SourceAdapter {
     }
     return out;
   }
+
+  /// Sanitizes a single-line imported string (title, author, formation detail),
+  /// stripping control, bidi-override and invisible/format characters as well as
+  /// embedded tab/newline/CR (issue #444). The title also feeds external-id
+  /// derivation (`name:<lowercased title>`), so removing line breaks here keeps
+  /// those ids stable. Returns null for null/blank/all-stripped input.
+  static String? _sanitizeLine(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    final clean = sanitizeImportedText(trimmed, allowLineBreaks: false).trim();
+    return clean.isEmpty ? null : clean;
+  }
+
+  /// Applies [_sanitizeLine] to every entry, dropping any that sanitize to
+  /// empty (used for author/tune name lists).
+  static List<String> _sanitizeLineList(List<String> values) => [
+    for (final v in values) ?_sanitizeLine(v),
+  ];
 
   static final RegExp _beatsPrefix = RegExp(
     r'^\s*\((\d+)\)\s*(.*)$',

@@ -84,6 +84,7 @@ class ProgramExportMenu extends StatelessWidget {
     super.key,
     required this.program,
     required this.titleFor,
+    this.venuesById = const {},
     this.danceFor,
     this.choreographerFor,
     this.shareInvoker,
@@ -93,6 +94,13 @@ class ProgramExportMenu extends StatelessWidget {
 
   final Program program;
   final String? Function(String danceId) titleFor;
+
+  /// Loaded venue records keyed by id, so a program that links a reusable
+  /// [Venue] ([Program.venueId]) exports that venue's display label (and, in
+  /// the PDF, its richer detail block) instead of the free-text [Program.venue].
+  /// Only the linked venue need be present; defaults to empty, which preserves
+  /// the free-text-only export behavior.
+  final Map<String, Venue> venuesById;
 
   /// Resolves a slot's `danceId` to its full [Dance], so the "Share (program +
   /// dances)" action can embed every referenced dance in a self-contained
@@ -118,9 +126,12 @@ class ProgramExportMenu extends StatelessWidget {
   String _formatDate(BuildContext context, DateTime date) =>
       MaterialLocalizations.of(context).formatMediumDate(date);
 
+  String? _venueNameFor(String venueId) => venuesById[venueId]?.displayName;
+
   String _plainText(BuildContext context) => programToPlainText(
     program,
     titleFor: titleFor,
+    venueNameFor: _venueNameFor,
     formatDate: (d) => _formatDate(context, d),
   );
 
@@ -187,6 +198,7 @@ class ProgramExportMenu extends StatelessWidget {
       onLayout: (format) => buildProgramPdf(
         program,
         titleFor: titleFor,
+        venuesById: venuesById,
         formatDate: localizations.formatMediumDate,
       ),
     );

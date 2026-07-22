@@ -7,6 +7,8 @@ library;
 
 export 'src/analysis/half_calling_stats.dart';
 export 'src/analysis/program_matrix.dart';
+export 'src/diagnostics/crash_log_record.dart';
+export 'src/diagnostics/crash_redactor.dart';
 export 'src/dialect/canonicalize.dart';
 export 'src/dialect/dialect.dart';
 export 'src/dialect/renderer.dart';
@@ -90,5 +92,6 @@ export 'src/taxonomy/param_types.dart';
 export 'src/taxonomy/taxonomy.dart';
 export 'src/util/colour_name_seed.dart';
 export 'src/util/inline_emphasis.dart';
+export 'src/util/text_sanitizer.dart';
 export 'src/util/uuid.dart';
 export 'src/validation/validation.dart';

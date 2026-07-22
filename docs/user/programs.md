@@ -127,6 +127,14 @@ A program carries the details of its event:
 - **date**, **venue**, and **notes**; and
 - program-level **band**, **caller**, and dancer **level**.
 
+The **venue** can be a simple free-text label, or — when you turn on **Use
+reusable venue records** in **Settings → General → Venues** — a saved
+[venue](./glossary.md#venue) record you can reuse across programs, with its own
+address, contacts, and schedule that you edit in one place. A program linked to
+a saved venue shows and exports that record's details; otherwise the free-text
+label is used. The two coexist losslessly, so you can switch modes without
+losing what you typed. See [Settings](./settings.md#venues) for the toggle.
+
 If you often play the same role, set a default caller or band in **Settings →
 Defaults** and new programs will prefill them — see
 [Settings](./settings.md). You can always change these per program.

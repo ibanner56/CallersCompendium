@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -89,5 +90,74 @@ void main() {
     expect(find.text(error.message), findsOneWidget);
     expect(find.text('Retry'), findsNothing);
     expect(find.text('Collection ready'), findsNothing);
+  });
+
+  testWidgets('shows determinate rebuild progress when reported (#440)', (
+    tester,
+  ) async {
+    final completer = Completer<void>();
+    final progress = ValueNotifier<DerivedRebuildProgress?>(null);
+    addTearDown(progress.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: AppBootstrap(
+          future: completer.future,
+          onRetry: () {},
+          builder: (_) => const Text('Collection ready'),
+          rebuildProgress: progress,
+        ),
+      ),
+    );
+
+    // No progress yet: plain indeterminate spinner (value == null).
+    var indicator = tester.widget<CircularProgressIndicator>(
+      find.byType(CircularProgressIndicator),
+    );
+    expect(indicator.value, isNull);
+
+    // Rebuild reports 1 of 4 dances done.
+    progress.value = const DerivedRebuildProgress(completed: 1, total: 4);
+    await tester.pump();
+
+    indicator = tester.widget<CircularProgressIndicator>(
+      find.byType(CircularProgressIndicator),
+    );
+    expect(indicator.value, closeTo(0.25, 1e-9));
+    expect(find.text('Rebuilding search index… 25%'), findsOneWidget);
+
+    // Completing the future reveals the app.
+    completer.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Collection ready'), findsOneWidget);
+  });
+
+  testWidgets('an empty-collection rebuild keeps the indeterminate spinner', (
+    tester,
+  ) async {
+    final completer = Completer<void>();
+    final progress = ValueNotifier<DerivedRebuildProgress?>(
+      const DerivedRebuildProgress(completed: 0, total: 0),
+    );
+    addTearDown(progress.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: AppBootstrap(
+          future: completer.future,
+          onRetry: () {},
+          builder: (_) => const Text('Collection ready'),
+          rebuildProgress: progress,
+        ),
+      ),
+    );
+
+    final indicator = tester.widget<CircularProgressIndicator>(
+      find.byType(CircularProgressIndicator),
+    );
+    expect(indicator.value, isNull);
+    expect(find.textContaining('Rebuilding search index'), findsNothing);
   });
 }

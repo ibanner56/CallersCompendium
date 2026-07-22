@@ -6,12 +6,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/dialect_library_controller.dart';
+import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_dance_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kAutoSizePerformKey;
+    show
+        kAutoSizePerformKey,
+        kPerformCanonicalViewKey,
+        kPerformStageModeKey,
+        kPerformTextScaleKey;
 import 'package:compendium_app/src/theme/app_typography.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
 
@@ -68,6 +74,7 @@ Future<void> _pumpPerform(
   Dialect? activeDialect,
   bool autoSize = false,
   Size surfaceSize = const Size(1400, 2400),
+  DialectLibraryController? dialectLibrary,
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -75,13 +82,18 @@ Future<void> _pumpPerform(
   addTearDown(notifier.dispose);
   final repos = openTestRepositories();
   await repos.settings.set(kAutoSizePerformKey, autoSize);
+  Widget withLibrary(Widget child) => dialectLibrary == null
+      ? child
+      : DialectLibraryScope(controller: dialectLibrary, child: child);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: withLibrary(
+          ActiveDialectScope(notifier: notifier, child: child!),
+        ),
       ),
       home: PerformDanceScreen(
         dance: dance,
@@ -121,6 +133,109 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(installFakeWakelock);
+
+  group('AppBar responsive overflow (issue #433)', () {
+    // The single-dance Perform toolbar shares the responsive overflow with the
+    // program view: on narrow phones secondary actions collapse into a "More
+    // actions" overflow while the stage-mode toggle and dialect quick-switch
+    // stay inline; the full set shows inline on wide layouts. Mount
+    // DialectLibraryScope so the quick-switch renders and keep a non-canonical
+    // dialect so the canonical toggle is part of the set.
+
+    Future<DialectLibraryController> loadedLibrary() async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final controller = DialectLibraryController(repos.settings);
+      await controller.load();
+      addTearDown(controller.dispose);
+      return controller;
+    }
+
+    Future<void> pumpFullSet(WidgetTester tester, Size size) async {
+      await _pumpPerform(
+        tester,
+        dance: _dance(figures: [_chain()]),
+        surfaceSize: size,
+        dialectLibrary: await loadedLibrary(),
+      );
+    }
+
+    const inlineSecondaryKeys = [
+      'perform-metronome',
+      'decrease-text-size',
+      'increase-text-size',
+      'perform-autosize-toggle',
+      'perform-dialect-toggle',
+    ];
+    const overflowItemKeys = [
+      'perform-metronome-menu',
+      'decrease-text-size-menu',
+      'increase-text-size-menu',
+      'perform-autosize-toggle-menu',
+      'perform-dialect-toggle-menu',
+    ];
+
+    for (final width in const [360.0, 430.0]) {
+      testWidgets(
+        'collapses secondary actions with no overflow at ${width.toInt()}px',
+        (tester) async {
+          await pumpFullSet(tester, Size(width, 900));
+
+          expect(tester.takeException(), isNull);
+          expect(
+            find.byKey(const ValueKey('perform-stage-toggle')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('dialect-quick-switch')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('perform-overflow-menu')),
+            findsOneWidget,
+          );
+          for (final key in inlineSecondaryKeys) {
+            expect(
+              find.byKey(ValueKey(key)),
+              findsNothing,
+              reason: '$key should be collapsed into the overflow menu',
+            );
+          }
+
+          await tester.tap(find.byKey(const ValueKey('perform-overflow-menu')));
+          await tester.pumpAndSettle();
+          for (final key in overflowItemKeys) {
+            expect(
+              find.byKey(ValueKey(key)),
+              findsOneWidget,
+              reason: '$key should be reachable via the overflow menu',
+            );
+          }
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+
+    testWidgets('shows the full action set inline on a wide tablet', (
+      tester,
+    ) async {
+      await pumpFullSet(tester, const Size(1024, 1366));
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('perform-overflow-menu')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('dialect-quick-switch')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('perform-stage-toggle')),
+        findsOneWidget,
+      );
+      for (final key in inlineSecondaryKeys) {
+        expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
+      }
+    });
+  });
 
   testWidgets('renders title, author, and a figure with the active dialect', (
     tester,
@@ -630,6 +745,125 @@ void main() {
 
       expect(find.byKey(const ValueKey('tap-tempo-target')), findsOneWidget);
       expect(find.text('Tap to set tempo'), findsOneWidget);
+    });
+  });
+
+  group('a11y prefs persistence (issue #449)', () {
+    // Builds the Perform view against a caller-supplied repositories instance so
+    // a test can seed the settings store first (restore) or read it back after
+    // interacting (write-through). Mirrors [_pumpPerform] but shares one store.
+    Future<void> pumpWith(
+      WidgetTester tester,
+      CompendiumRepositories repos, {
+      required Dance dance,
+      Dialect? activeDialect,
+    }) async {
+      await tester.binding.setSurfaceSize(const Size(1400, 2400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final notifier = ValueNotifier<Dialect>(
+        activeDialect ?? Dialect.larksRobins,
+      );
+      addTearDown(notifier.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
+          home: PerformDanceScreen(dance: dance, renderer: _renderer),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('restores persisted stage mode and canonical view on entry', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kAutoSizePerformKey, false);
+      await repos.settings.set(kPerformStageModeKey, false);
+      await repos.settings.set(kPerformCanonicalViewKey, true);
+
+      await pumpWith(tester, repos, dance: _dance(figures: [_chain()]));
+
+      // Stage mode restored OFF -> the ambient (non-stage) theme applies.
+      expect(
+        Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+        isNot(AppColorSchemes.highContrast),
+      );
+      // Canonical view restored ON -> figures show canonical tokens.
+      expect(find.text('role2s chain'), findsOneWidget);
+      expect(find.text('robins chain'), findsNothing);
+    });
+
+    testWidgets('restores a persisted manual text scale on entry', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kAutoSizePerformKey, false);
+      await repos.settings.set(
+        kPerformTextScaleKey,
+        kPerformDefaultScale + 2 * kPerformScaleStep,
+      );
+
+      await pumpWith(
+        tester,
+        repos,
+        dance: _dance(title: 'Fizz', figures: [_chain()]),
+      );
+
+      // Manual mode with an empty store renders at exactly the default scale,
+      // so a restored larger scale must read above the default.
+      final restoredScale = MediaQuery.of(
+        tester.element(find.byKey(const ValueKey('perform-title'))),
+      ).textScaler.scale(1);
+      expect(restoredScale, greaterThan(kPerformDefaultScale));
+    });
+
+    testWidgets('applies defaults and does not crash when the store is empty', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+
+      await pumpWith(tester, repos, dance: _dance(figures: [_chain()]));
+
+      expect(tester.takeException(), isNull);
+      // Stage on by default.
+      expect(
+        Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+        AppColorSchemes.highContrast,
+      );
+      // Canonical off by default -> active-dialect tokens.
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('role2s chain'), findsNothing);
+    });
+
+    testWidgets('writes each pref through to the settings store on change', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kAutoSizePerformKey, false);
+
+      await pumpWith(tester, repos, dance: _dance(figures: [_chain()]));
+
+      await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kPerformStageModeKey), isFalse);
+
+      await tester.tap(find.byKey(const ValueKey('perform-dialect-toggle')));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kPerformCanonicalViewKey), isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('increase-text-size')));
+      await tester.pumpAndSettle();
+      final storedScale = await repos.settings.get(kPerformTextScaleKey);
+      expect(storedScale, isA<num>());
+      expect(
+        (storedScale as num).toDouble(),
+        greaterThan(kPerformDefaultScale),
+      );
     });
   });
 }

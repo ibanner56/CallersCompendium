@@ -26,6 +26,7 @@ import '../search/collection_query_labels.dart';
 import '../theme/app_spacing.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
 import '../widgets/batch_level_dialog.dart';
@@ -866,15 +867,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
       );
       return;
     }
-    messenger.showSnackBar(
-      SnackBar(
-        key: const ValueKey('batch-tag-snackbar'),
-        content: Text(message),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () => _undoBatchTag(priorTags),
-        ),
-      ),
+    showUndoSnackBar(
+      messenger,
+      key: const ValueKey('batch-tag-snackbar'),
+      message: message,
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () => _undoBatchTag(priorTags),
     );
   }
 
@@ -953,15 +952,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
       );
       return;
     }
-    messenger.showSnackBar(
-      SnackBar(
-        key: const ValueKey('batch-level-snackbar'),
-        content: Text(message),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () => _undoBatchLevel(priorLevels),
-        ),
-      ),
+    showUndoSnackBar(
+      messenger,
+      key: const ValueKey('batch-level-snackbar'),
+      message: message,
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () => _undoBatchLevel(priorLevels),
     );
   }
 
@@ -1160,18 +1157,16 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     setState(() => _results.removeWhere((e) => e.dance.id == danceId));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        key: const ValueKey('list-deleted-snackbar'),
-        content: Text(l10n.commonDeletedSnack(title)),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () async {
-            await _repos.dances.restore(danceId, at: DateTime.now().toUtc());
-            if (mounted) await _boot();
-          },
-        ),
-      ),
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      key: const ValueKey('list-deleted-snackbar'),
+      message: l10n.commonDeletedSnack(title),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () async {
+        await _repos.dances.restore(danceId, at: DateTime.now().toUtc());
+        if (mounted) await _boot();
+      },
     );
   }
 

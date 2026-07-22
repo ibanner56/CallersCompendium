@@ -13,6 +13,7 @@ import '../data/import_io.dart';
 import '../data/program_title_date.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
+import '../utils/undo_snack_bar.dart';
 
 /// How the user is choosing which ContraDB program to import.
 enum _ImportMode {
@@ -354,22 +355,18 @@ class _ContraDbProgramImportScreenState
     // Any linked activity imported its ContraDB dance (and author) into the
     // collection, so tell the live Collection view to reload (issue #340).
     if (linked > 0) CollectionRefreshScope.bump(context);
-    messenger.showSnackBar(
-      SnackBar(
-        key: const ValueKey('contradb-program-committed-snackbar'),
-        content: Text(
-          l10n.importProgramCommitted(
-            program.title,
-            slots.length,
-            linked,
-            notes,
-          ),
-        ),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () => _repos.programs.hardDelete([id]),
-        ),
+    showUndoSnackBar(
+      messenger,
+      key: const ValueKey('contradb-program-committed-snackbar'),
+      message: l10n.importProgramCommitted(
+        program.title,
+        slots.length,
+        linked,
+        notes,
       ),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () => _repos.programs.hardDelete([id]),
     );
     navigator.pop(id);
   }

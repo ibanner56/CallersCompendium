@@ -419,16 +419,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         setState(() {
           final index = _defaultDanceFigureDrafts.indexOf(draft);
           if (index == -1) return;
-          _defaultDanceFigureDrafts.insert(
-            index + 1,
-            FigureDraft(
-              move: draft.move,
-              params: Map<String, Object?>.of(draft.params),
-              note: draft.note,
-              progression: draft.progression,
-              schemaVersion: draft.schemaVersion,
-            ),
-          );
+          _defaultDanceFigureDrafts.insert(index + 1, draft.clone());
         });
         _persistDanceFiguresTemplate();
       },

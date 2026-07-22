@@ -84,7 +84,105 @@ class DanceChildSelectCounter extends QueryCounter {
   }
 }
 
+/// Counts per-dance `DELETE FROM dance_fts WHERE dance_id = ?` statements — the
+/// FTS delete-by-scan that made [DanceRepository.rebuildAllDerived] O(N²)
+/// (`dance_fts.dance_id` is `UNINDEXED`, so each delete scans the whole index).
+///
+/// A full rebuild clears the index once (`DELETE FROM dance_fts`) and re-inserts
+/// every dance instead, so it must issue ZERO per-dance FTS deletes (#440); a
+/// regression that reintroduces them makes this count scale with the collection.
+/// Per-dance deletes reach the executor as custom statements ([runCustom]); the
+/// [runDelete] override is defensive in case drift routes them differently.
+class FtsDeleteByDanceCounter extends QueryInterceptor {
+  int count = 0;
+
+  bool _matches(String statement) => statement
+      .toLowerCase()
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .contains('delete from dance_fts where dance_id');
+
+  @override
+  Future<void> runCustom(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (_matches(statement)) count++;
+    return super.runCustom(executor, statement, args);
+  }
+
+  @override
+  Future<int> runDelete(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (_matches(statement)) count++;
+    return super.runDelete(executor, statement, args);
+  }
+}
+
 /// An in-memory [CompendiumDatabase] whose executor is wrapped with [counter],
 /// letting a test observe how many (matching) statements a repository issues.
 CompendiumDatabase openCountingTestDatabase(QueryInterceptor counter) =>
     CompendiumDatabase(NativeDatabase.memory().interceptWith(counter));
+
+/// Captures the bound arguments of a repository's post-fetch **sort aggregate**
+/// SELECT so a test can assert the aggregate is scoped to the result-set ids
+/// (chunked `dance_id IN (…)`) rather than scanning the whole collection (#465).
+///
+/// [matches] selects which SELECT to watch; every bound argument of a matching
+/// statement is appended to [boundArgs] (across id-chunks) and each matching
+/// statement bumps [selectCount]. For both the author and last-called sort
+/// aggregates the only bound placeholders are the `dance_id` ids, so
+/// `boundArgs` is exactly the set of ids the aggregate touched.
+abstract class SortAggregateArgCapture extends QueryInterceptor {
+  final List<Object?> boundArgs = [];
+  int selectCount = 0;
+
+  /// Override to select the sort aggregate SELECT of interest.
+  bool matches(String statement);
+
+  /// Clears captured args/count so a test can ignore statements issued during
+  /// setup and observe only the query under test.
+  void reset() {
+    boundArgs.clear();
+    selectCount = 0;
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (matches(statement)) {
+      selectCount++;
+      boundArgs.addAll(args);
+    }
+    return super.runSelect(executor, statement, args);
+  }
+}
+
+/// Watches the author sort aggregate (`dance_authors … WHERE position = 0`).
+class AuthorSortArgCapture extends SortAggregateArgCapture {
+  @override
+  bool matches(String statement) {
+    final s = statement.toLowerCase();
+    return s.startsWith('select') &&
+        s.contains('dance_authors') &&
+        s.contains('position = 0');
+  }
+}
+
+/// Watches the last-called sort aggregate
+/// (`program_slots … GROUP BY program_slots.dance_id`).
+class LastCalledSortArgCapture extends SortAggregateArgCapture {
+  @override
+  bool matches(String statement) {
+    final s = statement.toLowerCase();
+    return s.startsWith('select') &&
+        s.contains('program_slots') &&
+        s.contains('group by program_slots.dance_id');
+  }
+}

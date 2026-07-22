@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
@@ -49,12 +51,14 @@ class _FailOnceMigrationRepositories extends CompendiumRepositories {
   int rebuildAttempts = 0;
 
   @override
-  Future<void> runDerivedRebuild() async {
+  Future<void> runDerivedRebuild({
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
     rebuildAttempts++;
     if (rebuildAttempts == 1) {
       throw StateError('injected migration failure');
     }
-    await super.runDerivedRebuild();
+    await super.runDerivedRebuild(onProgress: onProgress);
   }
 }
 
@@ -328,7 +332,7 @@ void main() {
           windowService: _NoopWindowService(appData.repositories.settings),
           // The preflight runs first; a downgrade rejection must reach the
           // AppBootstrap error screen with a tailored, non-retryable message.
-          migrationPreflight: () async => throw error,
+          migrationPreflight: (_) async => throw error,
           integrityCheck: () async => true,
         ),
       );
@@ -343,6 +347,106 @@ void main() {
         find.textContaining('Could not prepare the collection'),
         findsNothing,
       );
+    },
+  );
+
+  testWidgets(
+    'a failed pre-migration snapshot prompts for consent; Proceed runs the '
+    'migration and opens the app (issue #442)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final failure = SnapshotFailure(
+        fromVersion: 1,
+        toVersion: 2,
+        cause: SnapshotFailureCause.diskFull,
+        error: const FileSystemException('no space left on device'),
+      );
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          // Stand in for a real snapshot failure: drive the injected consent
+          // seam exactly as runMigrationPreflight would, so the app's real
+          // dialog + gating is exercised end-to-end.
+          migrationPreflight: (onSnapshotFailure) async {
+            final proceed = await onSnapshotFailure(failure);
+            if (!proceed) throw MigrationSnapshotAborted(failure);
+          },
+          integrityCheck: () async => true,
+        ),
+      );
+      // Can't pumpAndSettle while the dialog is up: the bootstrap loading
+      // spinner behind it animates forever. Pump explicit frames to let the
+      // guard reach endOfFrame and open the dialog.
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.text('Couldn\u2019t back up your data'), findsOneWidget);
+      expect(find.textContaining('low on storage'), findsOneWidget);
+      expect(find.text('Quit'), findsOneWidget);
+      expect(find.text('Proceed without a backup'), findsOneWidget);
+
+      await tester.tap(find.text('Proceed without a backup'));
+      await tester.pumpAndSettle();
+
+      // Consent given → migration ran and the app opened normally.
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(find.text('Couldn\u2019t back up your data'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a failed pre-migration snapshot with Quit aborts to a non-retryable '
+    'screen, before any schema change (issue #442)',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+      final failure = SnapshotFailure(
+        fromVersion: 1,
+        toVersion: 2,
+        cause: SnapshotFailureCause.unwritableBackupsDir,
+        error: const FileSystemException('permission denied'),
+      );
+      var migrated = false;
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          migrationPreflight: (onSnapshotFailure) async {
+            final proceed = await onSnapshotFailure(failure);
+            if (!proceed) throw MigrationSnapshotAborted(failure);
+            migrated = true;
+          },
+          integrityCheck: () async => true,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.text('Quit'), findsOneWidget);
+      await tester.tap(find.text('Quit'));
+      await tester.pumpAndSettle();
+
+      // Declining aborts startup before any schema change: the terminal
+      // message shows, the app never opens, and Retry is hidden (retrying
+      // can't create the backup — the fix is to free space / fix permissions).
+      expect(migrated, isFalse);
+      expect(find.textContaining('create an automatic backup'), findsOneWidget);
+      expect(find.byType(AppShell), findsNothing);
+      expect(find.text('Retry'), findsNothing);
+      // The terminal icon reflects the actual cause (unwritable backups dir),
+      // not the always-on disc_full glyph the review flagged (issue #442).
+      expect(find.byIcon(Icons.folder_off_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.disc_full), findsNothing);
     },
   );
 }

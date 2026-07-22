@@ -46,6 +46,7 @@ class Figure {
     this.note,
     this.progression = false,
     this.customOrigin = CustomOrigin.userEntered,
+    this.assumedSubject = false,
   }) : params = Map.unmodifiable(params) {
     if (move.trim().isEmpty) {
       throw ArgumentError.value(move, 'move', 'must be non-empty');
@@ -80,6 +81,23 @@ class Figure {
   /// unaffected.
   final CustomOrigin customOrigin;
 
+  /// Whether this figure's dancer/subject (`params['who']`) was ASSUMED by the
+  /// import parser rather than STATED by the source.
+  ///
+  /// A free-text line that omits the subject (e.g. `Allemande left 1½`,
+  /// `Balance and swing`) is still recognised as a structured move, but the
+  /// recognizer has to fall back to the taxonomy default subject
+  /// (`neighbors`/`partners`). Marking that fallback here lets every display
+  /// surface render the subject as a NON-authoritative assumption (a
+  /// `(assumed)` marker) instead of asserting fabricated choreography as fact —
+  /// a provenance-integrity guarantee for untrusted imported input (#460).
+  ///
+  /// Additive and backward compatible: defaults to `false`, is written to JSON
+  /// only when `true`, and absent/legacy data decodes as `false`, so no schema
+  /// migration is required. It is a DISPLAY/provenance flag only — it never
+  /// changes the canonical (search/dedupe) render, which stays byte-stable.
+  final bool assumedSubject;
+
   bool get isCustom => move == customMove;
 
   /// Duration in beats; 0 when unset (taxonomy defaults apply at a higher
@@ -93,6 +111,7 @@ class Figure {
     String? note,
     bool? progression,
     CustomOrigin? customOrigin,
+    bool? assumedSubject,
   }) => Figure(
     schemaVersion: schemaVersion ?? this.schemaVersion,
     move: move ?? this.move,
@@ -100,6 +119,7 @@ class Figure {
     note: note ?? this.note,
     progression: progression ?? this.progression,
     customOrigin: customOrigin ?? this.customOrigin,
+    assumedSubject: assumedSubject ?? this.assumedSubject,
   );
 
   @override
@@ -110,7 +130,8 @@ class Figure {
       _paramsEquality.equals(other.params, params) &&
       other.note == note &&
       other.progression == progression &&
-      other.customOrigin == customOrigin;
+      other.customOrigin == customOrigin &&
+      other.assumedSubject == assumedSubject;
 
   @override
   int get hashCode => Object.hash(
@@ -120,6 +141,7 @@ class Figure {
     note,
     progression,
     customOrigin,
+    assumedSubject,
   );
 
   @override

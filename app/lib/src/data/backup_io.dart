@@ -34,6 +34,23 @@ const _jsonTypeGroup = XTypeGroup(
   mimeTypes: ['application/json'],
 );
 
+/// Filename extension for an *encrypted* backup container (issue #461).
+///
+/// Distinct from `.json` so an encrypted backup is easy to tell apart from a
+/// plain one and the native save/open dialogs can offer the right file type. The
+/// container is still ASCII-armored text on disk (see `backup_crypto.dart`), but
+/// it is not valid backup JSON, so it gets its own extension.
+const String kEncryptedBackupExtension = 'ccbackup';
+
+const _encryptedTypeGroup = XTypeGroup(
+  label: 'Encrypted backup',
+  extensions: [kEncryptedBackupExtension],
+);
+
+/// Whether [fileName] names an encrypted backup (by its extension).
+bool _isEncryptedBackupName(String fileName) =>
+    fileName.toLowerCase().endsWith('.$kEncryptedBackupExtension');
+
 /// Maximum size, in bytes, of a backup file the restore path will read into
 /// memory (~50 MiB).
 ///
@@ -71,26 +88,82 @@ class BackupFileTooLargeException implements Exception {
   static String _mib(int bytes) => (bytes / (1024 * 1024)).toStringAsFixed(1);
 }
 
+/// Atomically writes [contents] to [path].
+///
+/// Backup writes must never corrupt the previous good backup: overwriting a
+/// file in place means an interrupted write (crash, abrupt termination, a
+/// disk-full error) can leave the target half-written, destroying the prior
+/// good copy while the new one is incomplete — potentially losing both
+/// (issue #438).
+///
+/// Instead we write to a sibling temp file `<path>.tmp`, flush it to disk
+/// (`flush: true` performs an `fsync`, so the bytes are durable before we
+/// touch the target), then atomically `rename` it over [path]. `dart:io`'s
+/// [File.rename] is an atomic same-volume replace on every target platform
+/// (`rename(2)` on POSIX; `MoveFileExW` with `MOVEFILE_REPLACE_EXISTING` on
+/// Windows), and keeping the temp beside the target guarantees they share a
+/// volume. So the target is only ever swapped for a fully-written file — a
+/// failed write leaves the old backup untouched.
+///
+/// On any failure the temp file is removed on a best-effort basis (so a failed
+/// write leaves no `.tmp` litter) and the error is rethrown. The pre-existing
+/// file at [path] is never modified unless the rename succeeds.
+///
+/// [debugSimulateFailure], if supplied, is awaited *after* the temp file has
+/// been written but *before* the rename — a test-only seam to prove an
+/// interrupted write can't harm the previous good backup. Production callers
+/// never pass it.
+@visibleForTesting
+Future<void> writeStringAtomically(
+  String path,
+  String contents, {
+  Future<void> Function()? debugSimulateFailure,
+}) async {
+  final tmp = File('$path.tmp');
+  try {
+    await tmp.writeAsString(contents, flush: true);
+    if (debugSimulateFailure != null) await debugSimulateFailure();
+    await tmp.rename(path);
+  } catch (_) {
+    // Best-effort cleanup: never leave a `.tmp` behind, and never touch the
+    // previous good backup at `path` (only a successful rename replaces it).
+    try {
+      if (await tmp.exists()) await tmp.delete();
+    } catch (_) {
+      // Swallow cleanup errors; the original failure below is what matters.
+    }
+    rethrow;
+  }
+}
+
 /// Default [BackupSaver].
 ///
 /// On desktop (macOS/Windows/Linux) a backup is a "save a file" action: this
 /// shows a native Save As dialog (via `file_selector`'s [getSaveLocation]) and
-/// writes [json] straight to the chosen path. Returns `false` without writing
-/// anything if the user cancels the dialog.
+/// writes [json] to the chosen path via [writeStringAtomically], so an
+/// interrupted write can never corrupt a backup the user is overwriting.
+/// Returns `false` without writing anything if the user cancels the dialog.
 ///
 /// On mobile (iOS/Android) a backup is a "share to another app" action: this
-/// writes [json] to a temp file (via `path_provider`) and hands it to the OS
-/// share sheet (via `share_plus`), returning `true` once the sheet has been
-/// invoked (share-sheet completion isn't reliably observable on those
-/// platforms).
+/// writes [json] to a temp file (via `path_provider`, also atomically) and
+/// hands it to the OS share sheet (via `share_plus`), returning `true` once the
+/// sheet has been invoked (share-sheet completion isn't reliably observable on
+/// those platforms).
+///
+/// [json] is the finished backup payload — either plain backup JSON or, when the
+/// user opted into encryption (issue #461), the armored encrypted container. The
+/// suggested file's extension selects the dialog file type and share MIME so
+/// encrypted (`.ccbackup`) and plain (`.json`) backups are handled correctly.
 Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
+  final encrypted = _isEncryptedBackupName(suggestedFileName);
+  final typeGroup = encrypted ? _encryptedTypeGroup : _jsonTypeGroup;
   if (isDesktopPlatform()) {
     final location = await getSaveLocation(
       suggestedName: suggestedFileName,
-      acceptedTypeGroups: const [_jsonTypeGroup],
+      acceptedTypeGroups: [typeGroup],
     );
     if (location == null) return false;
-    await File(location.path).writeAsString(json);
+    await writeStringAtomically(location.path, json);
     return true;
   }
 
@@ -101,10 +174,15 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   // throws `PathNotFoundException`. Defensive I/O for the share-staging path.
   await dir.create(recursive: true);
   final file = File('${dir.path}/$suggestedFileName');
-  await file.writeAsString(json);
+  await writeStringAtomically(file.path, json);
   await SharePlus.instance.share(
     ShareParams(
-      files: [XFile(file.path, mimeType: 'application/json')],
+      files: [
+        XFile(
+          file.path,
+          mimeType: encrypted ? 'application/octet-stream' : 'application/json',
+        ),
+      ],
       fileNameOverrides: [suggestedFileName],
       subject: suggestedFileName,
     ),
@@ -113,11 +191,13 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
 }
 
 /// Default [BackupPicker]: opens the native open-file dialog (via
-/// `file_selector`), restricted to `.json`, and reads the chosen file's text
-/// (subject to the [kMaxBackupFileBytes] size cap). Returns `null` when the
-/// user cancels.
+/// `file_selector`), restricted to `.json` backups and `.ccbackup` encrypted
+/// backups (issue #461), and reads the chosen file's text (subject to the
+/// [kMaxBackupFileBytes] size cap). Returns `null` when the user cancels.
 Future<String?> pickBackupFile() async {
-  final file = await openFile(acceptedTypeGroups: const [_jsonTypeGroup]);
+  final file = await openFile(
+    acceptedTypeGroups: const [_jsonTypeGroup, _encryptedTypeGroup],
+  );
   if (file == null) return null;
   return readBackupFile(file);
 }

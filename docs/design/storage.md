@@ -35,10 +35,16 @@ CREATE INDEX dance_figures_move ON dance_figures(move);
 CREATE VIRTUAL TABLE dance_fts USING fts5(     -- derived; canonical text only
   title, authors, hook, notes, figures_text, custom_values, content='');
 
-programs(id PK, title, event_date, venue, notes, status,
-         created_at, updated_at, deleted_at)
+programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
+         created_at, updated_at, deleted_at)   -- venue_id → venues.id (v14)
 program_slots(id PK, program_id FK, position, dance_id NULL, text,
               is_alt, performed_at)
+
+venues(id PK, name, address1, address2, city, state_prov, country,
+       postal_code, plus4, website, sponsor, event_name, time,
+       generic_schedule, price, notes,
+       contact1_name, contact1_phone, contact1_email,
+       contact2_name, contact2_phone, contact2_email)  -- reusable venue (v14)
 
 custom_field_defs(id PK, key UNIQUE, label, type, choices_json,
                   show_in_list, searchable)
@@ -98,6 +104,18 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   export through the current-schema repositories and cannot run against a file
   that hasn't been migrated to that schema yet, whereas a byte copy is
   schema-agnostic and the highest-fidelity rollback for a botched migration.
+
+  **If the snapshot fails, the preflight fails closed** (issue #442). A backup
+  that cannot be written (disk full, unwritable `db_backups`, checkpoint
+  failure) previously logged and migrated anyway; it now instead surfaces a
+  blocking consent dialog that explains the data-loss risk and names the likely
+  cause (low storage / unwritable backups folder). The user chooses **Quit**
+  (the default — abort so they can free space, fix permissions, or take a manual
+  backup first) or **Proceed without a backup**. Without an explicit "proceed"
+  the migration is aborted (`MigrationSnapshotAborted`, rendered on a
+  non-retryable `AppBootstrap` screen, mirroring the downgrade guard) so a failed
+  upgrade can never become an unrecoverable one. A successful snapshot is
+  unchanged — no prompt.
 
   **Restoring a pre-migration snapshot:** quit the app, replace the live
   `compendium.sqlite` in the app-documents directory with the chosen

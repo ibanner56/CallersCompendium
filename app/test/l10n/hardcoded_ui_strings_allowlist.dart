@@ -60,6 +60,17 @@ const Set<String> hardcodedUiStringAllowlist = <String>{
   'src/widgets/published_source_details_dialog.dart',
   'src/widgets/figure_list_editor.dart',
   'src/widgets/figure_param_editors.dart',
+  // Feature surfaces merged from main (venue management + crash diagnostics)
+  // AFTER the L5 partition was fixed — deferred to L6 with the other
+  // feature-specific screens. NOTE for L6: diagnostics_section's export/clear
+  // snackbars and crash_fallback carry the CWE-209 catch-and-log requirement
+  // (clean localized message + debugPrint the raw error) — do not interpolate
+  // caught exceptions into UI text.
+  'src/diagnostics/crash_fallback.dart',
+  'src/screens/settings/diagnostics_section.dart',
+  'src/screens/venue_editor_sheet.dart',
+  'src/screens/venue_manager_screen.dart',
+  'src/widgets/venue_picker.dart',
 
   // ---- Permanent deferrals (non-UI / by-design English) ----
   // Data/service-layer curated messages: no enum discriminator, need a typed

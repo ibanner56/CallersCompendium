@@ -29,6 +29,13 @@ The **General** section gathers everyday behavior into small groups.
 
 - **Ignore leading articles when sorting** (on by default) — alphabetizes titles by their first meaningful word. With this on, "The Nice Combination" files under **N**, not **T**.
 
+### Venues
+
+- **Use reusable venue records** (off by default) — turns a program's [venue](./glossary.md#venue) into a reusable record with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program's venue is a simple free-text field. Switching is **lossless and reversible**: your typed venue text and any linked record are both kept, so flipping the toggle never discards either.
+- **Manage venues** — browse, edit, and delete your saved venue records. You can also add a venue on the fly while editing a program (when reusable venue records are on). Deleting a venue is permanent — unlike a deleted dance, it isn't held for later restore. To keep you from stranding a program, a venue can't be deleted while any program is still linked to it; change or remove the venue on those programs first, then delete it.
+
+Whether the toggle is on or off, a program that's linked to a saved venue always shows and exports that venue's full details (the linked record wins over free text). See [Programs](./programs.md) for how the venue field behaves in each mode.
+
 ### Performance
 
 - **Auto-size Perform cards** (on) — scales each card so it fits the screen in [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size the text yourself using the **A−** and **A+** buttons while performing. See [Perform mode](./perform.md) for more.
@@ -39,7 +46,7 @@ The **General** section gathers everyday behavior into small groups.
 
 ### Accessibility
 
-- **Reduce motion** — trims animations and movement.
+- **Reduce motion** — trims animations and movement. Follows your device's system *Reduce Motion* setting by default; flip this switch to override it either way.
 - **Always show verbose figure text** — shows the full spoken-style [figure](./glossary.md#figure) wording on screen, not only to screen readers.
 - **Confirm before delete** — adds a prompt before you delete a dance or program. Deletes are still undoable either way.
 

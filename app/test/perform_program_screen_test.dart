@@ -5,12 +5,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/dialect_library_controller.dart';
+import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kAutoSizePerformKey;
+    show
+        kAutoSizePerformKey,
+        kPerformCanonicalViewKey,
+        kPerformStageModeKey,
+        kPerformTextScaleKey;
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
 
@@ -74,20 +80,27 @@ Future<void> _pumpProgram(
   int initialGroup = 0,
   Dialect? activeDialect,
   bool autoSize = false,
+  Size surfaceSize = const Size(1400, 2400),
+  DialectLibraryController? dialectLibrary,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1400, 2400));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
   addTearDown(notifier.dispose);
   final repos = openTestRepositories();
   await repos.settings.set(kAutoSizePerformKey, autoSize);
+  Widget withLibrary(Widget child) => dialectLibrary == null
+      ? child
+      : DialectLibraryScope(controller: dialectLibrary, child: child);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: withLibrary(
+          ActiveDialectScope(notifier: notifier, child: child!),
+        ),
       ),
       home: PerformProgramScreen(
         program: program,
@@ -157,46 +170,176 @@ void main() {
     expect(find.text('First Dance'), findsOneWidget);
   });
 
-  testWidgets('AppBar action row fits a narrow phone width without overflowing', (
-    tester,
-  ) async {
-    // Regression: on a ~402pt-wide phone (e.g. iPhone) the trailing AppBar
-    // action row overflowed by ~17px whenever the dialect toggle was visible,
-    // because PerformDialectToggle rendered a wide "Canonical" label + Switch
-    // instead of an icon button like its sibling toggles. See perform_card.dart.
-    await tester.binding.setSurfaceSize(const Size(402, 844));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+  group('AppBar responsive overflow (issue #433)', () {
+    // The full Perform toolbar is ~10 controls; on phones narrower than ~430px
+    // it used to RenderFlex-overflow, clipping the stage-mode toggle. Secondary
+    // actions now collapse into a "More actions" overflow while the stage toggle
+    // (and the per-gig dialect quick-switch) stay inline. These tests mount the
+    // FULL action set — DialectLibraryScope so the quick-switch renders, a group
+    // with alternates so alt-swap shows, and a non-canonical dialect so the
+    // canonical toggle shows — so the no-overflow assertions are meaningful.
 
-    final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
-    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
-    addTearDown(notifier.dispose);
-    final repos = openTestRepositories();
-    await repos.settings.set(kAutoSizePerformKey, false);
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: testLocalizationsDelegates,
-        supportedLocales: testSupportedLocales,
-        builder: (context, child) => RepositoriesScope(
-          repositories: repos,
-          child: ActiveDialectScope(notifier: notifier, child: child!),
-        ),
-        home: PerformProgramScreen(
-          program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
-          data: data,
-          renderer: _renderer,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+    Future<DialectLibraryController> loadedLibrary() async {
+      final repos = openTestRepositories();
+      await repos.ensureMigrated();
+      final controller = DialectLibraryController(repos.settings);
+      await controller.load();
+      addTearDown(controller.dispose);
+      return controller;
+    }
 
-    // A non-canonical active dialect keeps the toggle visible — the control
-    // that made the row overflow — so this exercises the widest common case.
-    expect(
-      find.byKey(const ValueKey('perform-dialect-toggle')),
-      findsOneWidget,
-    );
-    // No RenderFlex overflow (or any other exception) during layout.
-    expect(tester.takeException(), isNull);
+    Future<void> pumpFullSet(WidgetTester tester, Size size) async {
+      final data = await _dataWith([
+        _dance(id: 'd1', title: 'Primary Dance'),
+        _dance(id: 'd2', title: 'Alternate Dance'),
+      ]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        // Primary + alt collapse into one navigable group, so `hasAlternates`
+        // is true and the swap control is part of the action set.
+        program: _program([
+          // s1 (the current slot) carries a non-null planned length so the
+          // timing readout renders its LONGER "planned N min" form — the widest
+          // content the FittedBox scale-down is there to protect at 360–430px.
+          // Without it the readout is short and the scale-down path (and thus
+          // this regression guard) would never be exercised (issue #433).
+          _slot(id: 's1', position: 0, danceId: 'd1', plannedMinutes: 45),
+          _slot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+        ]),
+        surfaceSize: size,
+        dialectLibrary: await loadedLibrary(),
+      );
+    }
+
+    const inlineSecondaryKeys = [
+      'perform-adjust',
+      'perform-jump',
+      'perform-metronome',
+      'perform-alt-swap',
+      'decrease-text-size',
+      'increase-text-size',
+      'perform-autosize-toggle',
+      'perform-dialect-toggle',
+    ];
+    const overflowItemKeys = [
+      'perform-adjust-menu',
+      'perform-jump-menu',
+      'perform-metronome-menu',
+      'perform-alt-swap-menu',
+      'decrease-text-size-menu',
+      'increase-text-size-menu',
+      'perform-autosize-toggle-menu',
+      'perform-dialect-toggle-menu',
+    ];
+
+    for (final width in const [360.0, 430.0]) {
+      testWidgets(
+        'collapses secondary actions with no overflow at ${width.toInt()}px',
+        (tester) async {
+          await pumpFullSet(tester, Size(width, 900));
+
+          // No RenderFlex overflow (or any other exception) during layout.
+          expect(tester.takeException(), isNull);
+
+          // The current slot renders the longer "planned N min" readout that the
+          // FittedBox scale-down protects; assert it's actually present so this
+          // setup can't silently regress to the short readout and let a future
+          // overflow slip through unnoticed.
+          expect(find.byKey(const ValueKey('perform-planned')), findsOneWidget);
+
+          // Primary actions stay inline and reachable.
+          expect(
+            find.byKey(const ValueKey('perform-stage-toggle')),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(const ValueKey('dialect-quick-switch')),
+            findsOneWidget,
+          );
+          // The overflow control is present...
+          expect(
+            find.byKey(const ValueKey('perform-overflow-menu')),
+            findsOneWidget,
+          );
+          // ...and secondary actions are NOT inline (they moved to overflow).
+          for (final key in inlineSecondaryKeys) {
+            expect(
+              find.byKey(ValueKey(key)),
+              findsNothing,
+              reason: '$key should be collapsed into the overflow menu',
+            );
+          }
+
+          // Opening the overflow menu makes every secondary action reachable.
+          await tester.tap(find.byKey(const ValueKey('perform-overflow-menu')));
+          await tester.pumpAndSettle();
+          for (final key in overflowItemKeys) {
+            expect(
+              find.byKey(ValueKey(key)),
+              findsOneWidget,
+              reason: '$key should be reachable via the overflow menu',
+            );
+          }
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+
+    testWidgets('a secondary action in the overflow menu stays functional', (
+      tester,
+    ) async {
+      await pumpFullSet(tester, const Size(360, 900));
+
+      await tester.tap(find.byKey(const ValueKey('perform-overflow-menu')));
+      await tester.pumpAndSettle();
+      // "Jump to slot" opens the jump sheet just as the inline button did.
+      await tester.tap(find.byKey(const ValueKey('perform-jump-menu')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('perform-jump-list')), findsOneWidget);
+    });
+
+    testWidgets('stage-mode toggle stays inline and works on a narrow phone', (
+      tester,
+    ) async {
+      await pumpFullSet(tester, const Size(360, 900));
+
+      // Stage mode defaults on (high-contrast scheme).
+      expect(
+        Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+        AppColorSchemes.highContrast,
+      );
+      // The inline toggle (not the overflow menu) flips it — no menu needed.
+      await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
+      await tester.pumpAndSettle();
+      expect(
+        Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+        isNot(AppColorSchemes.highContrast),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('shows the full action set inline on a wide tablet', (
+      tester,
+    ) async {
+      await pumpFullSet(tester, const Size(1024, 1366));
+
+      expect(tester.takeException(), isNull);
+      // No overflow control on wide layouts.
+      expect(find.byKey(const ValueKey('perform-overflow-menu')), findsNothing);
+      // Every action renders inline.
+      expect(
+        find.byKey(const ValueKey('dialect-quick-switch')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('perform-stage-toggle')),
+        findsOneWidget,
+      );
+      for (final key in inlineSecondaryKeys) {
+        expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
+      }
+    });
   });
 
   testWidgets('keyboard arrows navigate between groups', (tester) async {
@@ -1137,6 +1280,134 @@ void main() {
       expect(tester.getSemantics(toggle), isSemantics(isToggled: false));
 
       handle.dispose();
+    });
+  });
+
+  group('a11y prefs persistence (issue #449)', () {
+    // Builds the program Perform view against a caller-supplied repositories so
+    // a test can seed the settings store (restore) or read it back after
+    // interacting (write-through). Mirrors [_pumpProgram] but shares one store.
+    Future<void> pumpWith(
+      WidgetTester tester,
+      CompendiumRepositories repos, {
+      required Program program,
+      required CollectionData data,
+      Dialect? activeDialect,
+    }) async {
+      await tester.binding.setSurfaceSize(const Size(1400, 2400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final notifier = ValueNotifier<Dialect>(
+        activeDialect ?? Dialect.larksRobins,
+      );
+      addTearDown(notifier.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
+          home: PerformProgramScreen(
+            program: program,
+            data: data,
+            renderer: _renderer,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<CollectionData> singleDanceData() =>
+        _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+
+    Program singleDanceProgram() =>
+        _program([_slot(id: 's1', position: 0, danceId: 'd1')]);
+
+    testWidgets('restores persisted stage mode and canonical view on entry', (
+      tester,
+    ) async {
+      final data = await singleDanceData();
+      final repos = openTestRepositories();
+      await repos.settings.set(kAutoSizePerformKey, false);
+      await repos.settings.set(kPerformStageModeKey, false);
+      await repos.settings.set(kPerformCanonicalViewKey, true);
+
+      await pumpWith(tester, repos, program: singleDanceProgram(), data: data);
+
+      // Stage mode restored OFF -> the ambient (non-stage) theme applies.
+      expect(
+        Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+        isNot(AppColorSchemes.highContrast),
+      );
+      // Canonical view restored ON -> figures show canonical tokens.
+      expect(find.text('role2s chain'), findsOneWidget);
+      expect(find.text('robins chain'), findsNothing);
+    });
+
+    testWidgets('restores a persisted manual text scale on entry', (
+      tester,
+    ) async {
+      final data = await singleDanceData();
+      final repos = openTestRepositories();
+      await repos.settings.set(kAutoSizePerformKey, false);
+      await repos.settings.set(
+        kPerformTextScaleKey,
+        kPerformDefaultScale + 2 * kPerformScaleStep,
+      );
+
+      await pumpWith(tester, repos, program: singleDanceProgram(), data: data);
+
+      // Manual mode with an empty store renders at exactly the default scale,
+      // so a restored larger scale must read above the default.
+      final restoredScale = MediaQuery.of(
+        tester.element(find.byKey(const ValueKey('perform-title'))),
+      ).textScaler.scale(1);
+      expect(restoredScale, greaterThan(kPerformDefaultScale));
+    });
+
+    testWidgets('applies defaults and does not crash when the store is empty', (
+      tester,
+    ) async {
+      final data = await singleDanceData();
+      final repos = openTestRepositories();
+
+      await pumpWith(tester, repos, program: singleDanceProgram(), data: data);
+
+      expect(tester.takeException(), isNull);
+      expect(
+        Theme.of(tester.element(find.byType(PerformCard))).colorScheme,
+        AppColorSchemes.highContrast,
+      );
+      expect(find.text('robins chain'), findsOneWidget);
+      expect(find.text('role2s chain'), findsNothing);
+    });
+
+    testWidgets('writes each pref through to the settings store on change', (
+      tester,
+    ) async {
+      final data = await singleDanceData();
+      final repos = openTestRepositories();
+      await repos.settings.set(kAutoSizePerformKey, false);
+
+      await pumpWith(tester, repos, program: singleDanceProgram(), data: data);
+
+      await tester.tap(find.byKey(const ValueKey('perform-stage-toggle')));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kPerformStageModeKey), isFalse);
+
+      await tester.tap(find.byKey(const ValueKey('perform-dialect-toggle')));
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kPerformCanonicalViewKey), isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('increase-text-size')));
+      await tester.pumpAndSettle();
+      final storedScale = await repos.settings.get(kPerformTextScaleKey);
+      expect(storedScale, isA<num>());
+      expect(
+        (storedScale as num).toDouble(),
+        greaterThan(kPerformDefaultScale),
+      );
     });
   });
 }

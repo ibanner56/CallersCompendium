@@ -38,6 +38,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appBootstrapPreparing => 'Preparing your collection';
 
   @override
+  String get appBootstrapRebuildingIndex => 'Rebuilding search index';
+
+  @override
+  String appBootstrapRebuildingIndexProgress(int percent) {
+    return 'Rebuilding search index… $percent%';
+  }
+
+  @override
   String get appBootstrapError => 'Could not prepare the collection.';
 
   @override
@@ -1366,6 +1374,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsDiscard => 'Discard';
 
   @override
+  String get programsDraftTitle => 'Unsaved draft';
+
+  @override
+  String get programsDraftBody =>
+      'You have an unsaved draft for this program. Would you like to restore it?';
+
+  @override
+  String get programsDraftRestore => 'Restore';
+
+  @override
+  String get programsDraftDiscard => 'Discard';
+
+  @override
   String get programsBuildProgram => 'Build program';
 
   @override
@@ -1442,6 +1463,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsVenueHint => 'e.g. Grange Hall';
+
+  @override
+  String programsVenueLinkedHint(String venueName) {
+    return 'Also linked to saved venue: $venueName. Turn on reusable venues in Settings to view or change it.';
+  }
+
+  @override
+  String get programsVenueLinkedHintFallbackName => 'a saved venue';
+
+  @override
+  String programsVenueLegacyTextHint(String venueText) {
+    return 'Previously entered venue: “$venueText”. Link a saved venue below to use reusable details — your typed venue is kept.';
+  }
 
   @override
   String get programsBandLabel => 'Band';
@@ -2104,6 +2138,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get performShowCanonicalTerms => 'Show canonical terms';
+
+  @override
+  String get performMoreActions => 'More actions';
+
+  @override
+  String get performAutoSizeMenuLabel => 'Auto-size text to screen';
 
   @override
   String get performAutoSizeOnTooltip =>
