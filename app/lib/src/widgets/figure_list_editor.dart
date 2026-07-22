@@ -675,6 +675,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.draft.params
       ..clear()
       ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
+    // Picking a move is an explicit authorship action: any inherited
+    // parser-assumed-subject marker (#460) no longer applies.
+    widget.draft.assumedSubject = false;
     // A fresh move brings a fresh canonical beat default; that default is
     // authoritative until the user overrides it again. A saved per-move beats
     // default (DD.3) is a user-configured value, so _applyMoveParamDefaults
@@ -695,6 +698,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       ..clear()
       ..addAll(widget.taxonomy.effectiveParams(Figure(move: customMove)));
     widget.draft.beatsTouched = false;
+    // A user-authored custom figure carries no assumed subject (#460).
+    widget.draft.assumedSubject = false;
     _applyMoveParamDefaults(customMove);
     widget.draft.params['text'] = trimmed;
     _showMoreOptions = false;
@@ -750,6 +755,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// ([FigureDraft.beatsTouched]) is never overwritten.
   void _applyNonBeatsParamChange(String key, Object? value) {
     final draft = widget.draft;
+    // Explicitly editing the subject makes it a stated choice, so it is no
+    // longer a parser-assumed default (#460): drop the non-authoritative marker.
+    if (key == 'who') draft.assumedSubject = false;
     final oldDefault = _canonicalBeats(draft.params);
     draft.params[key] = value;
     final newDefault = _canonicalBeats(draft.params);

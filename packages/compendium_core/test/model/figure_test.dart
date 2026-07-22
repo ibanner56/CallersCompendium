@@ -104,5 +104,33 @@ void main() {
         expect(user.hashCode, isNot(equals(gap.hashCode)));
       });
     });
+
+    group('assumedSubject', () {
+      test('defaults to false', () {
+        expect(Figure(move: 'swing').assumedSubject, isFalse);
+        expect(
+          Figure(move: 'balance', params: {'who': 'neighbors'}).assumedSubject,
+          isFalse,
+        );
+      });
+
+      test('copyWith sets and overrides the flag', () {
+        final stated = Figure(move: 'swing', params: {'who': 'neighbors'});
+        final assumed = stated.copyWith(assumedSubject: true);
+        expect(assumed.assumedSubject, isTrue);
+        // An untouched copyWith preserves the assumed flag (e.g. the
+        // reparse-custom flow copyWith(note:) must not launder provenance).
+        expect(assumed.copyWith(note: 'hi').assumedSubject, isTrue);
+        // It can be cleared back to false explicitly.
+        expect(assumed.copyWith(assumedSubject: false).assumedSubject, isFalse);
+      });
+
+      test('== and hashCode distinguish an assumed from a stated subject', () {
+        final stated = Figure(move: 'swing', params: {'who': 'partners'});
+        final assumed = stated.copyWith(assumedSubject: true);
+        expect(stated, isNot(equals(assumed)));
+        expect(stated.hashCode, isNot(equals(assumed.hashCode)));
+      });
+    });
   });
 }

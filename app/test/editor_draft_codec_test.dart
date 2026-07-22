@@ -122,6 +122,71 @@ void main() {
       expect(decoded.links, isEmpty);
     });
 
+    test('figure draft assumedSubject round-trips (#460)', () {
+      final snapshot = _minimalSnapshot();
+      final withDrafts = EditorSnapshot(
+        title: snapshot.title,
+        hook: snapshot.hook,
+        notes: snapshot.notes,
+        phrase: snapshot.phrase,
+        formationDetail: snapshot.formationDetail,
+        form: snapshot.form,
+        formationShape: snapshot.formationShape,
+        progression: snapshot.progression,
+        status: snapshot.status,
+        authorIds: snapshot.authorIds,
+        tagIds: snapshot.tagIds,
+        tunes: snapshot.tunes,
+        links: snapshot.links,
+        sourceCitations: snapshot.sourceCitations,
+        customValues: snapshot.customValues,
+        figureDrafts: const [
+          FigureDraftSnapshot(
+            id: 'f-assumed',
+            move: 'allemande',
+            params: {'who': 'neighbors', 'hand': 'left'},
+            note: '',
+            progression: false,
+            schemaVersion: figureSchemaVersion,
+            assumedSubject: true,
+          ),
+          FigureDraftSnapshot(
+            id: 'f-stated',
+            move: 'swing',
+            params: {'who': 'partners'},
+            note: '',
+            progression: false,
+            schemaVersion: figureSchemaVersion,
+          ),
+        ],
+      );
+
+      final encoded = encodeDraft(withDrafts);
+      // Additive shape: written only for the assumed draft.
+      expect(encoded, contains('"assumedSubject":true'));
+
+      final decoded = decodeDraft(encoded);
+      final assumed = decoded.figureDrafts.firstWhere(
+        (d) => d.id == 'f-assumed',
+      );
+      final stated = decoded.figureDrafts.firstWhere((d) => d.id == 'f-stated');
+      expect(assumed.assumedSubject, isTrue);
+      expect(stated.assumedSubject, isFalse);
+    });
+
+    test('a legacy figure draft without assumedSubject decodes to false', () {
+      const legacy =
+          '{"v":6,"title":"T","hook":"","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":'
+          '"dupleImproper","progression":"single","status":"active",'
+          '"authorIds":[],"tagIds":[],"tunes":[],"links":[],'
+          '"customValues":{},"figureDrafts":[{"id":"f1","move":"swing",'
+          '"params":{"who":"partners"},"note":"","progression":false,'
+          '"sv":1}]}';
+      final decoded = decodeDraft(legacy);
+      expect(decoded.figureDrafts.single.assumedSubject, isFalse);
+    });
+
     test('level and mixedLevel round-trip', () {
       final snapshot = EditorSnapshot(
         title: 'Test',

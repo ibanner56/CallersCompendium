@@ -20,6 +20,11 @@ void main() {
         params: {'text': 'kept verbatim', 'beats': 8},
         customOrigin: CustomOrigin.importGap,
       ),
+      Figure(
+        move: 'allemande',
+        params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
+        assumedSubject: true,
+      ),
     ];
 
     test('encode then decode preserves every figure', () {
@@ -66,6 +71,44 @@ void main() {
         ),
       );
       expect(json['customOrigin'], 'importGap');
+    });
+
+    test('omits assumedSubject for a stated subject', () {
+      final json = figureToJson(
+        Figure(move: 'swing', params: {'who': 'partners'}),
+      );
+      expect(json.containsKey('assumedSubject'), isFalse);
+    });
+
+    test('writes assumedSubject only when true', () {
+      final json = figureToJson(
+        Figure(
+          move: 'balance',
+          params: {'who': 'neighbors'},
+          assumedSubject: true,
+        ),
+      );
+      expect(json['assumedSubject'], isTrue);
+    });
+  });
+
+  group('assumedSubject decoding', () {
+    test('missing key defaults to false (backward compatible)', () {
+      final f = figureFromJson({
+        'move': 'balance',
+        'params': {'who': 'neighbors'},
+      });
+      expect(f.assumedSubject, isFalse);
+    });
+
+    test('non-bool value falls back to false', () {
+      final f = figureFromJson({'move': 'swing', 'assumedSubject': 'yes'});
+      expect(f.assumedSubject, isFalse);
+    });
+
+    test('parses assumedSubject:true', () {
+      final f = figureFromJson({'move': 'swing', 'assumedSubject': true});
+      expect(f.assumedSubject, isTrue);
     });
   });
 

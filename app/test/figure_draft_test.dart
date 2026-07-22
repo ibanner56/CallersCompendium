@@ -30,4 +30,33 @@ void main() {
       expect(draft.toFigure()!.customOrigin, CustomOrigin.userEntered);
     });
   });
+
+  group('FigureDraft.toFigure assumedSubject (#460)', () {
+    test('defaults to false for a freshly built draft', () {
+      final draft = FigureDraft(move: 'swing', params: {'who': 'partners'});
+      expect(draft.assumedSubject, isFalse);
+      expect(draft.toFigure()!.assumedSubject, isFalse);
+    });
+
+    test('fromFigure → toFigure preserves an assumed subject', () {
+      // Merely opening and saving an imported dance must NOT launder off the
+      // provenance marker (unlike customOrigin, which is user-owned on edit).
+      final imported = Figure(
+        move: 'allemande',
+        params: const {'who': 'neighbors', 'hand': 'left'},
+        assumedSubject: true,
+      );
+      final draft = FigureDraft.fromFigure(imported);
+      expect(draft.assumedSubject, isTrue);
+      expect(draft.toFigure()!.assumedSubject, isTrue);
+    });
+
+    test('a stated subject round-trips as not assumed', () {
+      final draft = FigureDraft.fromFigure(
+        Figure(move: 'swing', params: const {'who': 'partners'}),
+      );
+      expect(draft.assumedSubject, isFalse);
+      expect(draft.toFigure()!.assumedSubject, isFalse);
+    });
+  });
 }

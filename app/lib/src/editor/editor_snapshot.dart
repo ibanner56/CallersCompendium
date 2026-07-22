@@ -16,6 +16,7 @@ class FigureDraftSnapshot {
     required this.note,
     required this.progression,
     required this.schemaVersion,
+    this.assumedSubject = false,
   });
 
   factory FigureDraftSnapshot.fromDraft(FigureDraft draft) =>
@@ -26,6 +27,7 @@ class FigureDraftSnapshot {
         note: draft.note,
         progression: draft.progression,
         schemaVersion: draft.schemaVersion,
+        assumedSubject: draft.assumedSubject,
       );
 
   final String id;
@@ -35,6 +37,11 @@ class FigureDraftSnapshot {
   final bool progression;
   final int schemaVersion;
 
+  /// Whether the figure's subject was parser-assumed (#460); preserved across
+  /// undo/redo and autosave so the non-authoritative marker never silently
+  /// disappears while editing.
+  final bool assumedSubject;
+
   FigureDraft toDraft() => FigureDraft(
     id: id,
     move: move,
@@ -42,6 +49,7 @@ class FigureDraftSnapshot {
     note: note,
     progression: progression,
     schemaVersion: schemaVersion,
+    assumedSubject: assumedSubject,
   );
 }
 

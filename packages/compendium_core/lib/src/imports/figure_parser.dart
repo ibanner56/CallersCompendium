@@ -76,6 +76,7 @@ Figure? parseFigureLine(
       params: params,
       note: match.note,
       progression: progression,
+      assumedSubject: match.assumedSubject,
     );
     final hasError = tax
         .validateFigure(candidate)
@@ -214,13 +215,24 @@ List<String> _splitTopLevel(String t, String sep) {
 /// A recognised move: its taxonomy [moveId] and the params extracted from the
 /// text (never including `beats`, which the caller layers on from the source).
 class _Match {
-  const _Match(this.moveId, [this.params = const {}, this.note]);
+  const _Match(
+    this.moveId, [
+    this.params = const {},
+    this.note,
+    this.assumedSubject = false,
+  ]);
   final String moveId;
   final Map<String, Object?> params;
 
   /// Optional free-text note preserved from the source when a detail cannot be
   /// expressed as a structured param (e.g. chain's "to neighbor" target).
   final String? note;
+
+  /// Whether the subject in [params] (`who`) was DEFAULTED by the recognizer
+  /// because the source line omitted it, rather than stated by the source. The
+  /// caller propagates this to [Figure.assumedSubject] so the defaulted subject
+  /// renders as a non-authoritative assumption, never as fabricated fact (#460).
+  final bool assumedSubject;
 }
 
 /// Attempts to recognise [scrubbed] as one covered move. Returns `null` when no
@@ -586,10 +598,12 @@ _Match? _swing(List<String> w) {
   final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('swing', {
-    'who': who2 ?? 'partners',
-    if (prefix != 'none') 'prefix': prefix,
-  });
+  return _Match(
+    'swing',
+    {'who': who2 ?? 'partners', if (prefix != 'none') 'prefix': prefix},
+    null,
+    who2 == null,
+  );
 }
 
 _Match? _petronella(List<String> w) {
@@ -620,7 +634,7 @@ _Match? _balance(List<String> w) {
   final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('balance', {'who': who2 ?? 'neighbors'});
+  return _Match('balance', {'who': who2 ?? 'neighbors'}, null, who2 == null);
 }
 
 _Match? _shoulderRound(List<String> w) {
@@ -632,11 +646,12 @@ _Match? _shoulderRound(List<String> w) {
   final turn = _takeRotation(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('shoulder_round', {
-    'who': who2 ?? 'neighbors',
-    'shoulder': ?side2,
-    'turn': ?turn,
-  });
+  return _Match(
+    'shoulder_round',
+    {'who': who2 ?? 'neighbors', 'shoulder': ?side2, 'turn': ?turn},
+    null,
+    who2 == null,
+  );
 }
 
 _Match? _allemande(List<String> w) {
@@ -647,11 +662,12 @@ _Match? _allemande(List<String> w) {
   final turn = _takeRotation(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('allemande', {
-    'who': who2 ?? 'neighbors',
-    'hand': ?hand,
-    'turn': ?turn,
-  });
+  return _Match(
+    'allemande',
+    {'who': who2 ?? 'neighbors', 'hand': ?hand, 'turn': ?turn},
+    null,
+    who2 == null,
+  );
 }
 
 _Match? _doSiDo(List<String> w) {
@@ -667,7 +683,12 @@ _Match? _doSiDo(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   final moveId = seeSaw ? 'see_saw' : 'do_si_do';
-  return _Match(moveId, {'who': who2 ?? 'neighbors', 'turn': ?turn});
+  return _Match(
+    moveId,
+    {'who': who2 ?? 'neighbors', 'turn': ?turn},
+    null,
+    who2 == null,
+  );
 }
 
 _Match? _revolvingDoor(List<String> w) {
@@ -694,7 +715,7 @@ _Match? _boxTheGnat(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   final moveId = swat ? 'swat_the_flea' : 'box_the_gnat';
-  return _Match(moveId, {'who': who2 ?? 'partners'});
+  return _Match(moveId, {'who': who2 ?? 'partners'}, null, who2 == null);
 }
 
 // ContraDB `box circulate`. A single "box circulate" line states no balance, so
@@ -707,7 +728,12 @@ _Match? _boxCirculate(List<String> w) {
   final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('box_circulate', {'who': who2 ?? 'partners'});
+  return _Match(
+    'box_circulate',
+    {'who': who2 ?? 'partners'},
+    null,
+    who2 == null,
+  );
 }
 
 // Takes a TCB rotation-gate direction token (clockwise/cw, counterclockwise/ccw
@@ -752,11 +778,12 @@ _Match? _rotationGate(List<String> w) {
   if (turn == null) return null;
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('rotation_gate', {
-    'who': who2 ?? 'neighbors',
-    'direction': direction,
-    'turn': turn,
-  });
+  return _Match(
+    'rotation_gate',
+    {'who': who2 ?? 'neighbors', 'direction': direction, 'turn': turn},
+    null,
+    who2 == null,
+  );
 }
 
 // `star through`: mirrors california_twirl — who only, no `balance` param,
@@ -771,7 +798,12 @@ _Match? _starThrough(List<String> w) {
   final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('star_through', {'who': who2 ?? 'partners'});
+  return _Match(
+    'star_through',
+    {'who': who2 ?? 'partners'},
+    null,
+    who2 == null,
+  );
 }
 
 _Match? _circle(List<String> w) {

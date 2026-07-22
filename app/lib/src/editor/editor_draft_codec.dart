@@ -127,6 +127,7 @@ String encodeDraft(EditorSnapshot snapshot) {
           'note': d.note,
           'progression': d.progression,
           'sv': d.schemaVersion,
+          if (d.assumedSubject) 'assumedSubject': true,
         },
     ],
   });
@@ -378,5 +379,7 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(Object? e) {
     note: note,
     progression: progression,
     schemaVersion: sv,
+    // Additive/tolerant (#460): absent or non-bool → not assumed.
+    assumedSubject: m['assumedSubject'] == true,
   );
 }

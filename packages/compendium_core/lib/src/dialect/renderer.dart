@@ -228,9 +228,12 @@ class FigureRenderer {
     if (!forCanonical) {
       final displayBase = _displayBaseRenderers[def.id];
       if (displayBase != null) {
-        return _collapseSpaces(
+        final line = _collapseSpaces(
           displayBase(this, def, params, dialect, verbose, decimals),
         );
+        return figure.assumedSubject
+            ? _withAssumedSubjectMarker(line, params['who'], dialect)
+            : line;
       }
     }
     // Aliases render under their own name (a "see saw" is not shown as
@@ -268,7 +271,35 @@ class FigureRenderer {
         forCanonical,
       );
     });
-    return _collapseSpaces(rendered);
+    final line = _collapseSpaces(rendered);
+    // DISPLAY-ONLY: flag a subject the import parser DEFAULTED (the source
+    // omitted it) with a non-authoritative "(assumed)" marker, so fabricated
+    // choreography never reads as source-stated fact (#460). Gated behind
+    // `!forCanonical`, so the search/dedupe render stays byte-for-byte stable.
+    return (!forCanonical && figure.assumedSubject)
+        ? _withAssumedSubjectMarker(line, params['who'], dialect)
+        : line;
+  }
+
+  /// The non-authoritative marker appended after an ASSUMED subject in the
+  /// display render (#460). Fixed structural vocabulary (like "balance &"),
+  /// dialect-independent, and never emitted by [renderCanonical].
+  static const String _assumedSubjectMarker = '(assumed)';
+
+  /// DISPLAY-ONLY: inserts [_assumedSubjectMarker] immediately after the
+  /// rendered subject in [line]. The subject substring is recomputed with the
+  /// same [_displaySubject] the base line used, so it matches byte-for-byte;
+  /// when it renders empty (an omitted subject) or cannot be located the line
+  /// is returned unchanged rather than emitting a dangling marker. NEVER used
+  /// by the canonical render, so search/dedupe text stays byte-stable.
+  String _withAssumedSubjectMarker(String line, Object? who, Dialect dialect) {
+    final subject = _displaySubject(who, dialect);
+    if (subject.isEmpty) return line;
+    final idx = line.indexOf(subject);
+    if (idx < 0) return line;
+    final end = idx + subject.length;
+    return '${line.substring(0, end)} '
+        '$_assumedSubjectMarker${line.substring(end)}';
   }
 
   /// Whether the template token [name] of [def] is omitted in the DISPLAY path
