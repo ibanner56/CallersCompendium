@@ -289,6 +289,59 @@ void main() {
     );
   });
 
+  group('isolate-backed default (decryptBackupOffThread)', () {
+    // These exercise the REAL isolate-backed default (Isolate.run), not the
+    // in-process seam, to prove the fail-closed contract holds across the
+    // isolate boundary: Isolate.run forwards errors via Isolate.exit (transfer
+    // semantics), so our String-only BackupDecryptException propagates intact
+    // and callers' `on BackupDecryptException` path runs.
+    test('correct passphrase round-trips through the real isolate', () async {
+      const json = '{"backupVersion":1,"hello":"world"}';
+      final armored = await _encryptFast(json, 'open sesame');
+      expect(await decryptBackupOffThread(armored, 'open sesame'), json);
+    });
+
+    test(
+      'wrong passphrase surfaces as BackupDecryptException across the isolate',
+      () async {
+        final armored = await _encryptFast('{"backupVersion":1}', 'right');
+        await expectLater(
+          decryptBackupOffThread(armored, 'wrong'),
+          throwsA(isA<BackupDecryptException>()),
+        );
+      },
+    );
+
+    test(
+      'tampered/truncated container surfaces as BackupDecryptException across '
+      'the isolate',
+      () async {
+        final tiny = base64.encode([0x43, 0x43, 0x45, 0x42, 0x01]);
+        final armored =
+            '$_sampleReconstructPrefix$tiny\n$_sampleReconstructSuffix';
+        await expectLater(
+          decryptBackupOffThread(armored, 'pw'),
+          throwsA(isA<BackupDecryptException>()),
+        );
+      },
+    );
+
+    test(
+      'valid armored + wrong passphrase (encrypted off-thread too)',
+      () async {
+        final armored = await encryptBackupOffThread(
+          '{"backupVersion":1}',
+          'pw',
+        );
+        expect(isEncryptedBackup(armored), isTrue);
+        await expectLater(
+          decryptBackupOffThread(armored, 'nope'),
+          throwsA(isA<BackupDecryptException>()),
+        );
+      },
+    );
+  });
+
   group('production defaults', () {
     test('match the intended OWASP-baseline parameters', () {
       expect(kDefaultArgon2MemoryKiB, 19456);
