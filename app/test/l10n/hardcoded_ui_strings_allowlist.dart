@@ -39,13 +39,15 @@ const Set<String> hardcodedUiStringAllowlist = <String>{
   'src/screens/dialect_editor_screen.dart',
   // Settings general (data-management) section: Library/Performance/
   // Calling-history/Accessibility toggles, Deleted-items, Import, and the full
-  // Backup/Restore flow. NOTE for L6: the Backup/Restore snackbars carry the
-  // CWE-209 catch-and-log requirement (clean localized message + debugPrint the
-  // raw error) — do not interpolate caught exceptions into UI text.
+  // Backup/Restore flow. Deferred to L6: the main-merge folded in the
+  // backup-encryption feature (#461: _EncryptExportDialog / _PassphrasePromptDialog
+  // / _RestoreBackupDialog + passphrase strength meter) and venue-records toggles,
+  // growing this file to ~78 keys — localizing it in L5 would push the PR past the
+  // user's hard ~160 ceiling (~238), so it belongs with L6's feature surface.
+  // NOTE for L6: the Backup/Restore snackbars carry the CWE-209 catch-and-log
+  // requirement (clean localized message + debugPrint the raw error) — do not
+  // interpolate caught exceptions into UI text.
   'src/screens/settings/general_section.dart',
-  // Formation-colours screen: L5 landed its formationShapeLabel helper-swap;
-  // its own screen prose is deferred to L6.
-  'src/screens/formation_colors_screen.dart',
   'src/screens/recently_deleted_screen.dart',
   'src/screens/reparse_custom_figures_screen.dart',
   'src/screens/theme_editor_screen.dart',

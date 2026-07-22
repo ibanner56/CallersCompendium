@@ -489,6 +489,27 @@ class AppLocalizationsEn extends AppLocalizations {
       'This move has no parameters to default.';
 
   @override
+  String get settingsFormationColoursTitle => 'Formation colours';
+
+  @override
+  String get settingsFormationColoursIntro =>
+      'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.';
+
+  @override
+  String get settingsFormationColoursListHeader => 'Formations';
+
+  @override
+  String get settingsFormationColoursCustom => 'Custom colour';
+
+  @override
+  String get settingsFormationColoursFamilyDefault => 'Family default';
+
+  @override
+  String settingsFormationColoursResetTooltip(String label) {
+    return 'Reset $label to the family default';
+  }
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override

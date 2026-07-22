@@ -200,6 +200,9 @@ void main() {
       'src/utils/launch_external_url.dart',
       'src/widgets/app_bootstrap.dart',
       'src/widgets/color_edit_dialog.dart',
+      // Formation-colours screen: prose localized in L5 (its formationShapeLabel
+      // helper-swap was already in place).
+      'src/screens/formation_colors_screen.dart',
     };
     final leaked = l5Targets.intersection(hardcodedUiStringAllowlist);
     expect(

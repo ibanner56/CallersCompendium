@@ -920,6 +920,42 @@ abstract class AppLocalizations {
   /// **'This move has no parameters to default.'**
   String get settingsDefaultsMoveNoParams;
 
+  /// App-bar title of the per-formation label-colour settings screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation colours'**
+  String get settingsFormationColoursTitle;
+
+  /// Intro paragraph explaining per-formation label colours.
+  ///
+  /// In en, this message translates to:
+  /// **'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.'**
+  String get settingsFormationColoursIntro;
+
+  /// Section header above the list of formation shapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Formations'**
+  String get settingsFormationColoursListHeader;
+
+  /// Subtitle shown when a formation has a custom label colour set.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom colour'**
+  String get settingsFormationColoursCustom;
+
+  /// Subtitle shown when a formation uses its family-default label colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Family default'**
+  String get settingsFormationColoursFamilyDefault;
+
+  /// Tooltip on the button that resets one formation's custom colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset {label} to the family default'**
+  String settingsFormationColoursResetTooltip(String label);
+
   /// Generic dialog dismiss button that discards the pending action.
   ///
   /// In en, this message translates to:
