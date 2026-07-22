@@ -44,12 +44,14 @@ These parts of the app are built and ready for you to lean on:
 
 Being honest about the state of things saves everyone time:
 
-- **Signing is uneven across platforms.** The **macOS** build is signed with an
-  Apple Developer ID and notarized, and the **Android** APK is signed, so both
-  open normally. **Windows** and **Linux** builds aren't code-signed yet, so those
-  operating systems show a one-time caution the first time you open the app —
-  [How to install](#how-to-install) walks you past it. Code-signing for Windows
-  and Linux is planned for a later release.
+- **Signing and first-run steps vary by platform.** The **macOS** build is signed
+  with an Apple Developer ID and notarized, so it opens normally. The **Android**
+  APK is signed, but because it isn't on the Play Store you'll still grant a
+  one-time **"install unknown apps"** permission to sideload it. **Windows** isn't
+  code-signed yet, so **SmartScreen** shows a caution the first time you run it.
+  **Linux** has no signing prompt at all — you just mark the AppImage as runnable.
+  [How to install](#how-to-install) walks through each; code-signing for Windows is
+  planned for a later release.
 - **You may hit bugs.** That is the point — when you do, tell us (see
   [How to give feedback](#how-to-give-feedback)).
 
@@ -79,9 +81,12 @@ in more depth.
 1. Read this guide and skim the [test charter](./test-charter.md) so you know the
    kinds of things we are hoping you will try.
 2. Fill out the **[Join the beta](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml)**
-   form — it asks which platforms you call on, and (for iPhone/iPad) the Apple ID
-   email for your TestFlight invite. A free GitHub account is all you need. You can
-   also just say hello in
+   form to tell us which platforms you call on. A free GitHub account is all you
+   need. **Heads-up: the signup issue is public**, so keep personal contact details
+   out of it — if you want an iPhone/iPad **TestFlight** invite, email the Apple ID
+   address it should go to privately to
+   [isaac@banner.is](mailto:isaac@banner.is) rather than posting it in the issue.
+   You can also just say hello in
    [GitHub Discussions](https://github.com/ibanner56/CallersCompendium/discussions)
    if you would rather start with a conversation.
 3. Install the app (below) and start using it for your real dances.

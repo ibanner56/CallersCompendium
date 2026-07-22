@@ -612,7 +612,7 @@ taxonomy are unchanged.
   - **Remaining (maintainer ops)**
     - Confirm the feedback email/alias (config currently routes to the maintainer's address).
   - **In progress**
-    - Beta execution — recruit → run → interview → GA. Underway: signed builds ship for every platform, the Getting Started guide is live, and invited callers are filing beta feedback against `v0.1.0-beta.x`. Remaining is the run → interview → GA arc with more real callers.
+    - Beta execution — recruit → run → interview → GA. Underway: builds ship for every platform (macOS signed + notarized and Android signed; Windows and Linux still unsigned; iPhone/iPad via TestFlight), the Getting Started guide is live, and invited callers are filing beta feedback against `v0.1.0-beta.x`. Remaining is the run → interview → GA arc with more real callers.
 
 ## Later milestones
 

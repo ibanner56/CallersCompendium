@@ -359,9 +359,9 @@ refresh anything the release changed:
 - **Screenshots** — replace or add captures for changed UI (see
   [`site/README.md`](../../site/README.md#adding-real-screenshots) for the capture
   procedure).
-- **Version fallbacks** — the static `v0.1.0-beta.2` strings in `index.html` are
-  only shown before the manifest fetch resolves; bump them at a major beta so the
-  pre-hydration flash matches.
+- **Version fallbacks** — the static `v0.1.0-beta.<n>` string in `index.html`'s
+  version pill is only shown before the manifest fetch resolves; bump it at a major
+  beta so the pre-hydration flash matches the current release.
 
 Commit those edits to `main` in the release prep PR; merging triggers
 `pages-site.yml` and the page redeploys. To refresh the page **without** a code
