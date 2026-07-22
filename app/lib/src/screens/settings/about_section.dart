@@ -1,6 +1,7 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
 import '../../app_metadata.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../utils/launch_external_url.dart';
 import '../../widgets/brand_mark.dart';
@@ -38,18 +39,16 @@ class _AboutView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return ListView(
       children: [
         const _AboutBrandHeader(),
-        SectionHeader(title: 'Help'),
+        SectionHeader(title: l10n.settingsAboutHelpHeader),
         ListTile(
           key: const ValueKey('about-user-guide'),
           leading: const Icon(Icons.help_outline),
-          title: const Text('User guide'),
-          subtitle: const Text(
-            'Read the built-in guides — getting started, dialects, imports, '
-            'and more. Works offline.',
-          ),
+          title: Text(l10n.settingsAboutUserGuideTitle),
+          subtitle: Text(l10n.settingsAboutUserGuideSubtitle),
           trailing: const Icon(Icons.chevron_right),
           isThreeLine: true,
           onTap:
@@ -64,93 +63,63 @@ class _AboutView extends StatelessWidget {
                   // reserves the safe-area insets itself, so no SafeArea wrapper
                   // is needed here (that would double-inset).
                   builder: (_) => Scaffold(
-                    appBar: AppBar(title: const Text('User guide')),
+                    appBar: AppBar(
+                      title: Text(l10n.settingsAboutUserGuideTitle),
+                    ),
                     body: const UserGuideScreen(),
                   ),
                 ),
               ),
         ),
-        SectionHeader(title: 'License'),
-        const _AboutParagraph(
-          "Caller's Compendium is free software, licensed under the GNU "
-          'Affero General Public License, version 3 (AGPL-3.0). You are free '
-          'to use, study, share, and modify it under that license. Because the '
-          'AGPL requires it, the complete corresponding source code is offered '
-          'to everyone who uses the app.',
-        ),
+        SectionHeader(title: l10n.settingsAboutLicenseHeader),
+        _AboutParagraph(l10n.settingsAboutLicenseBody),
         ListTile(
           key: const ValueKey('about-source-link'),
           leading: const Icon(Icons.code),
-          title: const Text('View source on GitHub'),
+          title: Text(l10n.settingsAboutViewSourceTitle),
           subtitle: const Text(kSourceRepoUrl),
           trailing: const Icon(Icons.open_in_new),
           onTap: () => launchExternalUrl(context, kSourceRepoUrl),
         ),
-        SectionHeader(title: 'Fonts'),
-        const _AboutParagraph(
-          'This app bundles the following typefaces under the SIL Open Font '
-          'License 1.1. Their full license texts are available under '
-          '“View licenses” below.',
-        ),
-        const ListTile(
+        SectionHeader(title: l10n.settingsAboutFontsHeader),
+        _AboutParagraph(l10n.settingsAboutFontsBody),
+        ListTile(
           dense: true,
-          leading: Icon(Icons.font_download_outlined),
-          title: Text('Fraunces'),
-          subtitle: Text(
-            'SIL Open Font License 1.1 · © The Fraunces Project Authors — '
-            'display & headings',
-          ),
+          leading: const Icon(Icons.font_download_outlined),
+          title: const Text('Fraunces'),
+          subtitle: Text(l10n.settingsAboutFontFrauncesSubtitle),
           isThreeLine: true,
         ),
-        const ListTile(
+        ListTile(
           dense: true,
-          leading: Icon(Icons.font_download_outlined),
-          title: Text('Atkinson Hyperlegible'),
-          subtitle: Text(
-            'SIL Open Font License 1.1 · © Braille Institute of America, Inc. '
-            '— body, UI & Perform',
-          ),
+          leading: const Icon(Icons.font_download_outlined),
+          title: const Text('Atkinson Hyperlegible'),
+          subtitle: Text(l10n.settingsAboutFontAtkinsonSubtitle),
           isThreeLine: true,
         ),
-        const ListTile(
+        ListTile(
           dense: true,
-          leading: Icon(Icons.font_download_outlined),
-          title: Text('Roboto'),
-          subtitle: Text(
-            'SIL Open Font License 1.1 · © The Roboto Project Authors — '
-            'fallback',
-          ),
+          leading: const Icon(Icons.font_download_outlined),
+          title: const Text('Roboto'),
+          subtitle: Text(l10n.settingsAboutFontRobotoSubtitle),
           isThreeLine: true,
         ),
-        SectionHeader(title: 'Themes'),
-        const _AboutParagraph(
-          'Several optional color themes are inspired by popular code-editor '
-          'palettes — One Dark, Dracula, Nord, Tokyo Night, Gruvbox, and '
-          'Catppuccin among them — re-derived and contrast-tuned for this app. '
-          'Theme names are used only to credit that inspiration.',
-        ),
-        SectionHeader(title: 'Dance data'),
-        const _AboutParagraph(
-          'Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), '
-          'whose collection is published under the Creative Commons '
-          'Attribution-NonCommercial license (CC BY-NC), with gratitude.',
-        ),
-        SectionHeader(title: 'Licenses'),
+        SectionHeader(title: l10n.settingsAboutThemesHeader),
+        _AboutParagraph(l10n.settingsAboutThemesBody),
+        SectionHeader(title: l10n.settingsAboutDanceDataHeader),
+        _AboutParagraph(l10n.settingsAboutDanceDataBody),
+        SectionHeader(title: l10n.settingsAboutLicensesHeader),
         ListTile(
           key: const ValueKey('about-view-licenses'),
           leading: const Icon(Icons.description_outlined),
-          title: const Text('View licenses'),
-          subtitle: const Text(
-            'Full open-source license texts, including the bundled fonts.',
-          ),
+          title: Text(l10n.settingsAboutViewLicensesTitle),
+          subtitle: Text(l10n.settingsAboutViewLicensesSubtitle),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => showLicensePage(
             context: context,
             applicationName: kAppName,
             applicationVersion: kAppVersion,
-            applicationLegalese:
-                '© The Caller’s Compendium contributors. '
-                'Licensed under AGPL-3.0.',
+            applicationLegalese: l10n.settingsAboutLegalese,
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -162,7 +131,11 @@ class _AboutView extends StatelessWidget {
             AppSpacing.md,
           ),
           child: Text(
-            '$kAppName · Version $kAppVersion · $kAppLicenseSpdx',
+            l10n.settingsAboutVersionLine(
+              kAppName,
+              kAppVersion,
+              kAppLicenseSpdx,
+            ),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -183,6 +156,7 @@ class _AboutBrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       key: const ValueKey('about-brand-header'),
       padding: const EdgeInsets.fromLTRB(
@@ -203,7 +177,7 @@ class _AboutBrandHeader extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            'Version $kAppVersion',
+            l10n.settingsAboutVersion(kAppVersion),
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,

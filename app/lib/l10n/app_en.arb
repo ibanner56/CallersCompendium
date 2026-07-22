@@ -100,6 +100,305 @@
     "description": "Subtitle for the app-language control."
   },
 
+  "settingsAboutHelpHeader": "Help",
+  "@settingsAboutHelpHeader": {
+    "description": "About section header for the help/user-guide group."
+  },
+  "settingsAboutUserGuideTitle": "User guide",
+  "@settingsAboutUserGuideTitle": {
+    "description": "Title of the tile (and its full-screen route) that opens the built-in user guide."
+  },
+  "settingsAboutUserGuideSubtitle": "Read the built-in guides — getting started, dialects, imports, and more. Works offline.",
+  "@settingsAboutUserGuideSubtitle": {
+    "description": "Subtitle describing the built-in user guide tile."
+  },
+  "settingsAboutLicenseHeader": "License",
+  "@settingsAboutLicenseHeader": {
+    "description": "About section header introducing the app's software license notice."
+  },
+  "settingsAboutLicenseBody": "Caller's Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.",
+  "@settingsAboutLicenseBody": {
+    "description": "Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0' are proper nouns kept verbatim."
+  },
+  "settingsAboutViewSourceTitle": "View source on GitHub",
+  "@settingsAboutViewSourceTitle": {
+    "description": "Title of the tile that opens the app's source-code repository."
+  },
+  "settingsAboutFontsHeader": "Fonts",
+  "@settingsAboutFontsHeader": {
+    "description": "About section header for the bundled-typeface attribution group."
+  },
+  "settingsAboutFontsBody": "This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under “View licenses” below.",
+  "@settingsAboutFontsBody": {
+    "description": "Paragraph introducing the bundled fonts. 'SIL Open Font License 1.1' is a proper noun kept verbatim; “View licenses” refers to the tile of the same name."
+  },
+  "settingsAboutFontFrauncesSubtitle": "SIL Open Font License 1.1 · © The Fraunces Project Authors — display & headings",
+  "@settingsAboutFontFrauncesSubtitle": {
+    "description": "Attribution subtitle for the Fraunces typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim."
+  },
+  "settingsAboutFontAtkinsonSubtitle": "SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI & Perform",
+  "@settingsAboutFontAtkinsonSubtitle": {
+    "description": "Attribution subtitle for the Atkinson Hyperlegible typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim."
+  },
+  "settingsAboutFontRobotoSubtitle": "SIL Open Font License 1.1 · © The Roboto Project Authors — fallback",
+  "@settingsAboutFontRobotoSubtitle": {
+    "description": "Attribution subtitle for the Roboto typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim."
+  },
+  "settingsAboutThemesHeader": "Themes",
+  "@settingsAboutThemesHeader": {
+    "description": "About section header for the theme-inspiration attribution."
+  },
+  "settingsAboutThemesBody": "Several optional color themes are inspired by popular code-editor palettes — One Dark, Dracula, Nord, Tokyo Night, Gruvbox, and Catppuccin among them — re-derived and contrast-tuned for this app. Theme names are used only to credit that inspiration.",
+  "@settingsAboutThemesBody": {
+    "description": "Paragraph crediting the code-editor palettes that inspired the optional themes. The palette names are proper nouns kept verbatim."
+  },
+  "settingsAboutDanceDataHeader": "Dance data",
+  "@settingsAboutDanceDataHeader": {
+    "description": "About section header for the dance-data provenance attribution."
+  },
+  "settingsAboutDanceDataBody": "Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.",
+  "@settingsAboutDanceDataBody": {
+    "description": "Paragraph crediting The Caller's Box dance-data source. 'The Caller's Box', the author names, and 'CC BY-NC' are proper nouns kept verbatim."
+  },
+  "settingsAboutLicensesHeader": "Licenses",
+  "@settingsAboutLicensesHeader": {
+    "description": "About section header for the full open-source license texts entry."
+  },
+  "settingsAboutViewLicensesTitle": "View licenses",
+  "@settingsAboutViewLicensesTitle": {
+    "description": "Title of the tile that opens the full open-source license texts page."
+  },
+  "settingsAboutViewLicensesSubtitle": "Full open-source license texts, including the bundled fonts.",
+  "@settingsAboutViewLicensesSubtitle": {
+    "description": "Subtitle for the 'View licenses' tile."
+  },
+  "settingsAboutLegalese": "© The Caller’s Compendium contributors. Licensed under AGPL-3.0.",
+  "@settingsAboutLegalese": {
+    "description": "Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim."
+  },
+  "settingsAboutVersion": "Version {version}",
+  "@settingsAboutVersion": {
+    "description": "Version line under the app wordmark in the About header.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.4.0"
+      }
+    }
+  },
+  "settingsAboutVersionLine": "{appName} · Version {version} · {license}",
+  "@settingsAboutVersionLine": {
+    "description": "One-line footer at the bottom of the About section combining the app name, version, and license identifier. All three values are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.",
+    "placeholders": {
+      "appName": {
+        "type": "String",
+        "example": "Caller's Compendium"
+      },
+      "version": {
+        "type": "String",
+        "example": "1.4.0"
+      },
+      "license": {
+        "type": "String",
+        "example": "AGPL-3.0"
+      }
+    }
+  },
+
+  "settingsUpdatesHeader": "Updates",
+  "@settingsUpdatesHeader": {
+    "description": "Updates settings section header."
+  },
+  "settingsUpdatesCheckNowTitle": "Check for updates",
+  "@settingsUpdatesCheckNowTitle": {
+    "description": "Title of the tile that manually checks for a newer app version."
+  },
+  "settingsUpdatesStatusIdle": "You're on version {version}.",
+  "@settingsUpdatesStatusIdle": {
+    "description": "Status line before any check has run, stating the current version.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.4.0"
+      }
+    }
+  },
+  "settingsUpdatesStatusChecking": "Checking…",
+  "@settingsUpdatesStatusChecking": {
+    "description": "Status line while an update check is in progress."
+  },
+  "settingsUpdatesStatusNoUpdate": "No update found. You're on version {version}.",
+  "@settingsUpdatesStatusNoUpdate": {
+    "description": "Status line after a check that found no newer version.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.4.0"
+      }
+    }
+  },
+  "settingsUpdatesStatusAvailable": "Version {version} is available. See the banner to view it.",
+  "@settingsUpdatesStatusAvailable": {
+    "description": "Status line after a check that found a newer version.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.5.0"
+      }
+    }
+  },
+  "settingsUpdatesChannelHeader": "Channel",
+  "@settingsUpdatesChannelHeader": {
+    "description": "Header for the update-channel (stable vs beta) group."
+  },
+  "settingsUpdatesBetaTitle": "Beta channel",
+  "@settingsUpdatesBetaTitle": {
+    "description": "Title of the beta-channel opt-in toggle."
+  },
+  "settingsUpdatesBetaSubtitle": "Receive pre-release beta updates. Off means stable releases only.",
+  "@settingsUpdatesBetaSubtitle": {
+    "description": "Subtitle explaining the beta-channel toggle."
+  },
+  "settingsUpdatesAutoHeader": "Automatic checks",
+  "@settingsUpdatesAutoHeader": {
+    "description": "Header for the automatic-background-check group."
+  },
+  "settingsUpdatesAutoTitle": "Check automatically",
+  "@settingsUpdatesAutoTitle": {
+    "description": "Title of the automatic-background-check toggle."
+  },
+  "settingsUpdatesAutoSubtitle": "Check for a newer version in the background when the app starts. Off by default.",
+  "@settingsUpdatesAutoSubtitle": {
+    "description": "Subtitle explaining the automatic-background-check toggle."
+  },
+  "settingsUpdatesPrivacyNote": "The update check downloads a small version file over HTTPS and nothing else — no data about you, your device, or your usage is ever sent. Nothing is downloaded or installed automatically: you choose when to download an update, it is verified before it opens, and your system installer completes the install.",
+  "@settingsUpdatesPrivacyNote": {
+    "description": "Privacy/behaviour paragraph reassuring the user how the update check and assisted download work."
+  },
+  "settingsUpdatesDownloadingTitle": "Downloading update",
+  "@settingsUpdatesDownloadingTitle": {
+    "description": "Title of the assisted-download tile while the update is downloading."
+  },
+  "settingsUpdatesDownloadingIndeterminate": "Downloading…",
+  "@settingsUpdatesDownloadingIndeterminate": {
+    "description": "Progress label while downloading when a percentage is not yet known."
+  },
+  "settingsUpdatesDownloadingPercent": "Downloading… {percent}%",
+  "@settingsUpdatesDownloadingPercent": {
+    "description": "Progress label while downloading, showing the completed percentage.",
+    "placeholders": {
+      "percent": {
+        "type": "int",
+        "example": "42"
+      }
+    }
+  },
+  "settingsUpdatesVerifyingTitle": "Verifying download",
+  "@settingsUpdatesVerifyingTitle": {
+    "description": "Title of the assisted-download tile while verifying the downloaded file."
+  },
+  "settingsUpdatesVerifyingSubtitle": "Checking the sha256 integrity of the download…",
+  "@settingsUpdatesVerifyingSubtitle": {
+    "description": "Subtitle shown while verifying the download's sha256 integrity. 'sha256' is a technical term kept verbatim."
+  },
+  "settingsUpdatesHandoffTitle": "Opening the installer",
+  "@settingsUpdatesHandoffTitle": {
+    "description": "Title of the assisted-download tile while handing the verified update to the OS installer."
+  },
+  "settingsUpdatesHandoffSubtitle": "Handing the verified update to your system…",
+  "@settingsUpdatesHandoffSubtitle": {
+    "description": "Subtitle shown while handing the verified update to the system installer."
+  },
+  "settingsUpdatesCompletedTitle": "Update downloaded",
+  "@settingsUpdatesCompletedTitle": {
+    "description": "Title of the assisted-download tile after the download completes."
+  },
+  "settingsUpdatesCompletedSubtitle": "Follow your system installer to finish updating.",
+  "@settingsUpdatesCompletedSubtitle": {
+    "description": "Subtitle shown after the download completes, directing the user to the system installer."
+  },
+  "settingsUpdatesDownloadTitle": "Download & install update",
+  "@settingsUpdatesDownloadTitle": {
+    "description": "Title of the assisted-download tile in its idle and failed states, offering to download the update."
+  },
+  "settingsUpdatesDownloadError": "The update could not be downloaded.",
+  "@settingsUpdatesDownloadError": {
+    "description": "Fallback error message when an assisted download fails without a more specific reason. The raw error is logged, not shown (CWE-209)."
+  },
+  "settingsUpdatesDownloadSubtitle": "Download version {version}, verify it, then open your installer. The app never replaces itself in place.",
+  "@settingsUpdatesDownloadSubtitle": {
+    "description": "Subtitle of the idle assisted-download tile describing the download → verify → install flow.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.5.0"
+      }
+    }
+  },
+
+  "settingsDialectHeader": "Dialects",
+  "@settingsDialectHeader": {
+    "description": "Dialect settings section header for the dialect library."
+  },
+  "settingsDialectNewButton": "New dialect",
+  "@settingsDialectNewButton": {
+    "description": "Label of the button (and title of the prompt) that creates a new custom dialect."
+  },
+  "settingsDialectNewDefaultName": "My dialect",
+  "@settingsDialectNewDefaultName": {
+    "description": "Default name pre-filled when creating a new dialect. Resolves at creation time and is persisted as the dialect's name thereafter."
+  },
+  "settingsDialectCreateConfirm": "Create",
+  "@settingsDialectCreateConfirm": {
+    "description": "Confirm button of the new-dialect name prompt."
+  },
+  "settingsDialectDuplicateFrom": "Duplicate from…",
+  "@settingsDialectDuplicateFrom": {
+    "description": "Label of the button (and title of the chooser dialog) that duplicates an existing dialect."
+  },
+  "settingsDialectRenameTitle": "Rename dialect",
+  "@settingsDialectRenameTitle": {
+    "description": "Title of the rename-dialect prompt."
+  },
+  "settingsDialectRename": "Rename",
+  "@settingsDialectRename": {
+    "description": "Rename action: the rename-prompt confirm button and the row menu item."
+  },
+  "settingsDialectEditTerms": "Edit terms",
+  "@settingsDialectEditTerms": {
+    "description": "Row menu item that opens the dialect's term editor."
+  },
+  "settingsDialectDuplicateToCustomize": "Duplicate to customize",
+  "@settingsDialectDuplicateToCustomize": {
+    "description": "Row menu item on a read-only preset that duplicates it into an editable custom dialect."
+  },
+  "settingsDialectDeleteTitle": "Delete dialect?",
+  "@settingsDialectDeleteTitle": {
+    "description": "Title of the confirm-delete dialog for a custom dialect."
+  },
+  "settingsDialectDeleteConfirmBody": "“{name}” will be permanently removed.",
+  "@settingsDialectDeleteConfirmBody": {
+    "description": "Body of the confirm-delete dialog, quoting the dialect name (untrusted user text, rendered as plain text).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "My dialect"
+      }
+    }
+  },
+  "settingsDialectActionsTooltip": "Dialect actions",
+  "@settingsDialectActionsTooltip": {
+    "description": "Tooltip for the per-dialect actions menu button."
+  },
+  "settingsDialectPresetBadge": "Preset",
+  "@settingsDialectPresetBadge": {
+    "description": "Badge marking a dialect as a shipped, read-only preset."
+  },
+  "settingsDialectNameLabel": "Name",
+  "@settingsDialectNameLabel": {
+    "description": "Text-field label in the dialect name prompt."
+  },
+
   "commonCancel": "Cancel",
   "@commonCancel": {
     "description": "Generic dialog dismiss button that discards the pending action."

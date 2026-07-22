@@ -220,6 +220,370 @@ abstract class AppLocalizations {
   /// **'Choose the language of the app\'s interface.'**
   String get settingsAppLanguageSubtitle;
 
+  /// About section header for the help/user-guide group.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get settingsAboutHelpHeader;
+
+  /// Title of the tile (and its full-screen route) that opens the built-in user guide.
+  ///
+  /// In en, this message translates to:
+  /// **'User guide'**
+  String get settingsAboutUserGuideTitle;
+
+  /// Subtitle describing the built-in user guide tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the built-in guides — getting started, dialects, imports, and more. Works offline.'**
+  String get settingsAboutUserGuideSubtitle;
+
+  /// About section header introducing the app's software license notice.
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get settingsAboutLicenseHeader;
+
+  /// Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0' are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
+  String get settingsAboutLicenseBody;
+
+  /// Title of the tile that opens the app's source-code repository.
+  ///
+  /// In en, this message translates to:
+  /// **'View source on GitHub'**
+  String get settingsAboutViewSourceTitle;
+
+  /// About section header for the bundled-typeface attribution group.
+  ///
+  /// In en, this message translates to:
+  /// **'Fonts'**
+  String get settingsAboutFontsHeader;
+
+  /// Paragraph introducing the bundled fonts. 'SIL Open Font License 1.1' is a proper noun kept verbatim; “View licenses” refers to the tile of the same name.
+  ///
+  /// In en, this message translates to:
+  /// **'This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under “View licenses” below.'**
+  String get settingsAboutFontsBody;
+
+  /// Attribution subtitle for the Fraunces typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'SIL Open Font License 1.1 · © The Fraunces Project Authors — display & headings'**
+  String get settingsAboutFontFrauncesSubtitle;
+
+  /// Attribution subtitle for the Atkinson Hyperlegible typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI & Perform'**
+  String get settingsAboutFontAtkinsonSubtitle;
+
+  /// Attribution subtitle for the Roboto typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'SIL Open Font License 1.1 · © The Roboto Project Authors — fallback'**
+  String get settingsAboutFontRobotoSubtitle;
+
+  /// About section header for the theme-inspiration attribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Themes'**
+  String get settingsAboutThemesHeader;
+
+  /// Paragraph crediting the code-editor palettes that inspired the optional themes. The palette names are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'Several optional color themes are inspired by popular code-editor palettes — One Dark, Dracula, Nord, Tokyo Night, Gruvbox, and Catppuccin among them — re-derived and contrast-tuned for this app. Theme names are used only to credit that inspiration.'**
+  String get settingsAboutThemesBody;
+
+  /// About section header for the dance-data provenance attribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance data'**
+  String get settingsAboutDanceDataHeader;
+
+  /// Paragraph crediting The Caller's Box dance-data source. 'The Caller's Box', the author names, and 'CC BY-NC' are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.'**
+  String get settingsAboutDanceDataBody;
+
+  /// About section header for the full open-source license texts entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Licenses'**
+  String get settingsAboutLicensesHeader;
+
+  /// Title of the tile that opens the full open-source license texts page.
+  ///
+  /// In en, this message translates to:
+  /// **'View licenses'**
+  String get settingsAboutViewLicensesTitle;
+
+  /// Subtitle for the 'View licenses' tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Full open-source license texts, including the bundled fonts.'**
+  String get settingsAboutViewLicensesSubtitle;
+
+  /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'© The Caller’s Compendium contributors. Licensed under AGPL-3.0.'**
+  String get settingsAboutLegalese;
+
+  /// Version line under the app wordmark in the About header.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String settingsAboutVersion(String version);
+
+  /// One-line footer at the bottom of the About section combining the app name, version, and license identifier. All three values are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
+  ///
+  /// In en, this message translates to:
+  /// **'{appName} · Version {version} · {license}'**
+  String settingsAboutVersionLine(
+    String appName,
+    String version,
+    String license,
+  );
+
+  /// Updates settings section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates'**
+  String get settingsUpdatesHeader;
+
+  /// Title of the tile that manually checks for a newer app version.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get settingsUpdatesCheckNowTitle;
+
+  /// Status line before any check has run, stating the current version.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on version {version}.'**
+  String settingsUpdatesStatusIdle(String version);
+
+  /// Status line while an update check is in progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get settingsUpdatesStatusChecking;
+
+  /// Status line after a check that found no newer version.
+  ///
+  /// In en, this message translates to:
+  /// **'No update found. You\'re on version {version}.'**
+  String settingsUpdatesStatusNoUpdate(String version);
+
+  /// Status line after a check that found a newer version.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} is available. See the banner to view it.'**
+  String settingsUpdatesStatusAvailable(String version);
+
+  /// Header for the update-channel (stable vs beta) group.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel'**
+  String get settingsUpdatesChannelHeader;
+
+  /// Title of the beta-channel opt-in toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Beta channel'**
+  String get settingsUpdatesBetaTitle;
+
+  /// Subtitle explaining the beta-channel toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive pre-release beta updates. Off means stable releases only.'**
+  String get settingsUpdatesBetaSubtitle;
+
+  /// Header for the automatic-background-check group.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic checks'**
+  String get settingsUpdatesAutoHeader;
+
+  /// Title of the automatic-background-check toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check automatically'**
+  String get settingsUpdatesAutoTitle;
+
+  /// Subtitle explaining the automatic-background-check toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for a newer version in the background when the app starts. Off by default.'**
+  String get settingsUpdatesAutoSubtitle;
+
+  /// Privacy/behaviour paragraph reassuring the user how the update check and assisted download work.
+  ///
+  /// In en, this message translates to:
+  /// **'The update check downloads a small version file over HTTPS and nothing else — no data about you, your device, or your usage is ever sent. Nothing is downloaded or installed automatically: you choose when to download an update, it is verified before it opens, and your system installer completes the install.'**
+  String get settingsUpdatesPrivacyNote;
+
+  /// Title of the assisted-download tile while the update is downloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update'**
+  String get settingsUpdatesDownloadingTitle;
+
+  /// Progress label while downloading when a percentage is not yet known.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get settingsUpdatesDownloadingIndeterminate;
+
+  /// Progress label while downloading, showing the completed percentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading… {percent}%'**
+  String settingsUpdatesDownloadingPercent(int percent);
+
+  /// Title of the assisted-download tile while verifying the downloaded file.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying download'**
+  String get settingsUpdatesVerifyingTitle;
+
+  /// Subtitle shown while verifying the download's sha256 integrity. 'sha256' is a technical term kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the sha256 integrity of the download…'**
+  String get settingsUpdatesVerifyingSubtitle;
+
+  /// Title of the assisted-download tile while handing the verified update to the OS installer.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening the installer'**
+  String get settingsUpdatesHandoffTitle;
+
+  /// Subtitle shown while handing the verified update to the system installer.
+  ///
+  /// In en, this message translates to:
+  /// **'Handing the verified update to your system…'**
+  String get settingsUpdatesHandoffSubtitle;
+
+  /// Title of the assisted-download tile after the download completes.
+  ///
+  /// In en, this message translates to:
+  /// **'Update downloaded'**
+  String get settingsUpdatesCompletedTitle;
+
+  /// Subtitle shown after the download completes, directing the user to the system installer.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow your system installer to finish updating.'**
+  String get settingsUpdatesCompletedSubtitle;
+
+  /// Title of the assisted-download tile in its idle and failed states, offering to download the update.
+  ///
+  /// In en, this message translates to:
+  /// **'Download & install update'**
+  String get settingsUpdatesDownloadTitle;
+
+  /// Fallback error message when an assisted download fails without a more specific reason. The raw error is logged, not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'The update could not be downloaded.'**
+  String get settingsUpdatesDownloadError;
+
+  /// Subtitle of the idle assisted-download tile describing the download → verify → install flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Download version {version}, verify it, then open your installer. The app never replaces itself in place.'**
+  String settingsUpdatesDownloadSubtitle(String version);
+
+  /// Dialect settings section header for the dialect library.
+  ///
+  /// In en, this message translates to:
+  /// **'Dialects'**
+  String get settingsDialectHeader;
+
+  /// Label of the button (and title of the prompt) that creates a new custom dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'New dialect'**
+  String get settingsDialectNewButton;
+
+  /// Default name pre-filled when creating a new dialect. Resolves at creation time and is persisted as the dialect's name thereafter.
+  ///
+  /// In en, this message translates to:
+  /// **'My dialect'**
+  String get settingsDialectNewDefaultName;
+
+  /// Confirm button of the new-dialect name prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get settingsDialectCreateConfirm;
+
+  /// Label of the button (and title of the chooser dialog) that duplicates an existing dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate from…'**
+  String get settingsDialectDuplicateFrom;
+
+  /// Title of the rename-dialect prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename dialect'**
+  String get settingsDialectRenameTitle;
+
+  /// Rename action: the rename-prompt confirm button and the row menu item.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get settingsDialectRename;
+
+  /// Row menu item that opens the dialect's term editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit terms'**
+  String get settingsDialectEditTerms;
+
+  /// Row menu item on a read-only preset that duplicates it into an editable custom dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate to customize'**
+  String get settingsDialectDuplicateToCustomize;
+
+  /// Title of the confirm-delete dialog for a custom dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete dialect?'**
+  String get settingsDialectDeleteTitle;
+
+  /// Body of the confirm-delete dialog, quoting the dialect name (untrusted user text, rendered as plain text).
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” will be permanently removed.'**
+  String settingsDialectDeleteConfirmBody(String name);
+
+  /// Tooltip for the per-dialect actions menu button.
+  ///
+  /// In en, this message translates to:
+  /// **'Dialect actions'**
+  String get settingsDialectActionsTooltip;
+
+  /// Badge marking a dialect as a shipped, read-only preset.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset'**
+  String get settingsDialectPresetBadge;
+
+  /// Text-field label in the dialect name prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get settingsDialectNameLabel;
+
   /// Generic dialog dismiss button that discards the pending action.
   ///
   /// In en, this message translates to:

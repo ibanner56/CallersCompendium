@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app_metadata.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../update/update_controller.dart';
 import '../../update/update_scope.dart';
@@ -25,18 +26,19 @@ class UpdatesSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final controller = UpdateScope.of(context);
     final status = controller.status;
     final checking = status == UpdateCheckStatus.checking;
 
     return ListView(
       children: [
-        SectionHeader(title: 'Updates'),
+        SectionHeader(title: l10n.settingsUpdatesHeader),
         ListTile(
           key: const ValueKey('updates-check-now'),
           leading: const Icon(Icons.system_update_alt),
-          title: const Text('Check for updates'),
-          subtitle: Text(_statusText(controller)),
+          title: Text(l10n.settingsUpdatesCheckNowTitle),
+          subtitle: Text(_statusText(l10n, controller)),
           trailing: checking
               ? const SizedBox(
                   width: 20,
@@ -48,26 +50,21 @@ class UpdatesSection extends StatelessWidget {
         ),
         if (controller.canAssistDownload)
           _downloadTile(context, controller, theme),
-        SectionHeader(title: 'Channel'),
+        SectionHeader(title: l10n.settingsUpdatesChannelHeader),
         SwitchListTile(
           key: const ValueKey('updates-beta-toggle'),
           secondary: const Icon(Icons.science_outlined),
-          title: const Text('Beta channel'),
-          subtitle: const Text(
-            'Receive pre-release beta updates. Off means stable releases only.',
-          ),
+          title: Text(l10n.settingsUpdatesBetaTitle),
+          subtitle: Text(l10n.settingsUpdatesBetaSubtitle),
           value: controller.betaChannel,
           onChanged: controller.setBetaChannel,
         ),
-        SectionHeader(title: 'Automatic checks'),
+        SectionHeader(title: l10n.settingsUpdatesAutoHeader),
         SwitchListTile(
           key: const ValueKey('updates-auto-toggle'),
           secondary: const Icon(Icons.schedule_outlined),
-          title: const Text('Check automatically'),
-          subtitle: const Text(
-            'Check for a newer version in the background when the app starts. '
-            'Off by default.',
-          ),
+          title: Text(l10n.settingsUpdatesAutoTitle),
+          subtitle: Text(l10n.settingsUpdatesAutoSubtitle),
           value: controller.autoCheck,
           onChanged: controller.setAutoCheck,
         ),
@@ -79,11 +76,7 @@ class UpdatesSection extends StatelessWidget {
             AppSpacing.md,
           ),
           child: Text(
-            'The update check downloads a small version file over HTTPS and '
-            'nothing else — no data about you, your device, or your usage is '
-            'ever sent. Nothing is downloaded or installed automatically: you '
-            'choose when to download an update, it is verified before it opens, '
-            'and your system installer completes the install.',
+            l10n.settingsUpdatesPrivacyNote,
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -102,6 +95,7 @@ class UpdatesSection extends StatelessWidget {
     UpdateController controller,
     ThemeData theme,
   ) {
+    final l10n = AppLocalizations.of(context);
     final version = controller.foundUpdate?.version.toString() ?? '';
     const spinner = SizedBox(
       width: 20,
@@ -116,7 +110,7 @@ class UpdatesSection extends StatelessWidget {
         return ListTile(
           key: const ValueKey('updates-download'),
           leading: const Icon(Icons.download_outlined),
-          title: const Text('Downloading update'),
+          title: Text(l10n.settingsUpdatesDownloadingTitle),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -126,29 +120,33 @@ class UpdatesSection extends StatelessWidget {
                 value: fraction,
               ),
               const SizedBox(height: 4),
-              Text(pct == null ? 'Downloading…' : 'Downloading… $pct%'),
+              Text(
+                pct == null
+                    ? l10n.settingsUpdatesDownloadingIndeterminate
+                    : l10n.settingsUpdatesDownloadingPercent(pct),
+              ),
             ],
           ),
           trailing: TextButton(
             key: const ValueKey('updates-download-cancel'),
             onPressed: controller.cancelDownload,
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
         );
       case AssistedDownloadStatus.verifying:
-        return const ListTile(
-          key: ValueKey('updates-download'),
-          leading: Icon(Icons.verified_outlined),
-          title: Text('Verifying download'),
-          subtitle: Text('Checking the sha256 integrity of the download…'),
+        return ListTile(
+          key: const ValueKey('updates-download'),
+          leading: const Icon(Icons.verified_outlined),
+          title: Text(l10n.settingsUpdatesVerifyingTitle),
+          subtitle: Text(l10n.settingsUpdatesVerifyingSubtitle),
           trailing: spinner,
         );
       case AssistedDownloadStatus.handingOff:
-        return const ListTile(
-          key: ValueKey('updates-download'),
-          leading: Icon(Icons.open_in_new),
-          title: Text('Opening the installer'),
-          subtitle: Text('Handing the verified update to your system…'),
+        return ListTile(
+          key: const ValueKey('updates-download'),
+          leading: const Icon(Icons.open_in_new),
+          title: Text(l10n.settingsUpdatesHandoffTitle),
+          subtitle: Text(l10n.settingsUpdatesHandoffSubtitle),
           trailing: spinner,
         );
       case AssistedDownloadStatus.completed:
@@ -158,18 +156,16 @@ class UpdatesSection extends StatelessWidget {
             Icons.check_circle_outline,
             color: theme.colorScheme.primary,
           ),
-          title: const Text('Update downloaded'),
-          subtitle: const Text(
-            'Follow your system installer to finish updating.',
-          ),
+          title: Text(l10n.settingsUpdatesCompletedTitle),
+          subtitle: Text(l10n.settingsUpdatesCompletedSubtitle),
         );
       case AssistedDownloadStatus.failed:
         return ListTile(
           key: const ValueKey('updates-download'),
           leading: Icon(Icons.error_outline, color: theme.colorScheme.error),
-          title: const Text('Download & install update'),
+          title: Text(l10n.settingsUpdatesDownloadTitle),
           subtitle: Text(
-            controller.downloadError ?? 'The update could not be downloaded.',
+            controller.downloadError ?? l10n.settingsUpdatesDownloadError,
             key: const ValueKey('updates-download-error'),
             style: TextStyle(color: theme.colorScheme.error),
           ),
@@ -181,11 +177,8 @@ class UpdatesSection extends StatelessWidget {
         return ListTile(
           key: const ValueKey('updates-download'),
           leading: const Icon(Icons.download_outlined),
-          title: const Text('Download & install update'),
-          subtitle: Text(
-            'Download version $version, verify it, then open your installer. '
-            'The app never replaces itself in place.',
-          ),
+          title: Text(l10n.settingsUpdatesDownloadTitle),
+          subtitle: Text(l10n.settingsUpdatesDownloadSubtitle(version)),
           trailing: const Icon(Icons.download),
           onTap: controller.startAssistedDownload,
         );
@@ -194,18 +187,18 @@ class UpdatesSection extends StatelessWidget {
 
   /// The inline status line under "Check for updates". Never an error — a
   /// silent failure reads the same as "no update found" by design (§5).
-  String _statusText(UpdateController controller) {
+  String _statusText(AppLocalizations l10n, UpdateController controller) {
     switch (controller.status) {
       case UpdateCheckStatus.idle:
-        return "You're on version $kAppVersion.";
+        return l10n.settingsUpdatesStatusIdle(kAppVersion);
       case UpdateCheckStatus.checking:
-        return 'Checking…';
+        return l10n.settingsUpdatesStatusChecking;
       case UpdateCheckStatus.noUpdate:
-        return "No update found. You're on version $kAppVersion.";
+        return l10n.settingsUpdatesStatusNoUpdate(kAppVersion);
       case UpdateCheckStatus.updateAvailable:
         final found = controller.foundUpdate;
         final version = found?.version.toString() ?? '';
-        return 'Version $version is available. See the banner to view it.';
+        return l10n.settingsUpdatesStatusAvailable(version);
     }
   }
 }

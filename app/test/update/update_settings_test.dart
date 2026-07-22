@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
+import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
 /// Builds a controller with a fetcher that records the requested channel and
@@ -43,6 +44,8 @@ Future<void> _pump(WidgetTester tester, UpdateController controller) async {
   await controller.load();
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: UpdateScope(
           controller: controller,

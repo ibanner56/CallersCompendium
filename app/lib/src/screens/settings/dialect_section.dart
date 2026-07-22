@@ -3,6 +3,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import '../../data/dialect_library_controller.dart';
 import '../../data/dialect_library_scope.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
@@ -42,11 +43,12 @@ class _DialectLibrarySection extends StatelessWidget {
   }
 
   Future<void> _createNew(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final name = await _promptName(
       context,
-      title: 'New dialect',
-      confirmLabel: 'Create',
-      initial: 'My dialect',
+      title: l10n.settingsDialectNewButton,
+      confirmLabel: l10n.settingsDialectCreateConfirm,
+      initial: l10n.settingsDialectNewDefaultName,
     );
     if (name == null || !context.mounted) return;
     // Seed a blank dialect and open the editor; only persist on save so a
@@ -61,10 +63,11 @@ class _DialectLibrarySection extends StatelessWidget {
   }
 
   Future<void> _duplicateFrom(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final source = await showDialog<Dialect>(
       context: context,
       builder: (ctx) => SimpleDialog(
-        title: const Text('Duplicate from…'),
+        title: Text(l10n.settingsDialectDuplicateFrom),
         children: [
           for (final d in controller.all)
             SimpleDialogOption(
@@ -76,15 +79,19 @@ class _DialectLibrarySection extends StatelessWidget {
       ),
     );
     if (source == null) return;
-    await controller.duplicate(name: '${source.name} (copy)', from: source);
+    await controller.duplicate(
+      name: l10n.commonDuplicateTitleSuffix(source.name),
+      from: source,
+    );
   }
 
   Future<void> _duplicateToCustomize(
     BuildContext context,
     Dialect preset,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final copy = await controller.duplicate(
-      name: '${preset.name} (copy)',
+      name: l10n.commonDuplicateTitleSuffix(preset.name),
       from: preset,
     );
     if (!context.mounted) return;
@@ -92,10 +99,11 @@ class _DialectLibrarySection extends StatelessWidget {
   }
 
   Future<void> _rename(BuildContext context, Dialect dialect) async {
+    final l10n = AppLocalizations.of(context);
     final name = await _promptName(
       context,
-      title: 'Rename dialect',
-      confirmLabel: 'Rename',
+      title: l10n.settingsDialectRenameTitle,
+      confirmLabel: l10n.settingsDialectRename,
       initial: dialect.name,
     );
     if (name == null || name == dialect.name) return;
@@ -103,19 +111,20 @@ class _DialectLibrarySection extends StatelessWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, Dialect dialect) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete dialect?'),
-        content: Text('“${dialect.name}” will be permanently removed.'),
+        title: Text(l10n.settingsDialectDeleteTitle),
+        content: Text(l10n.settingsDialectDeleteConfirmBody(dialect.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
+            child: Text(l10n.commonDelete),
           ),
         ],
       ),
@@ -145,6 +154,7 @@ class _DialectLibrarySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final all = controller.all;
     // The resolved active dialect's name — falls back to the app default, so a
     // preset row is selected by default when nothing has been chosen.
@@ -152,7 +162,7 @@ class _DialectLibrarySection extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
-        SectionHeader(title: 'Dialects'),
+        SectionHeader(title: l10n.settingsDialectHeader),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Wrap(
@@ -163,13 +173,13 @@ class _DialectLibrarySection extends StatelessWidget {
                 key: const ValueKey('new-dialect'),
                 onPressed: () async => _createNew(context),
                 icon: const Icon(Icons.add),
-                label: const Text('New dialect'),
+                label: Text(l10n.settingsDialectNewButton),
               ),
               OutlinedButton.icon(
                 key: const ValueKey('duplicate-dialect'),
                 onPressed: () async => _duplicateFrom(context),
                 icon: const Icon(Icons.copy_all_outlined),
-                label: const Text('Duplicate from…'),
+                label: Text(l10n.settingsDialectDuplicateFrom),
               ),
             ],
           ),
@@ -227,6 +237,7 @@ class _DialectRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return RadioListTile<String>(
       value: dialect.name,
       title: Row(
@@ -234,14 +245,14 @@ class _DialectRow extends StatelessWidget {
           Flexible(child: Text(dialect.name)),
           if (isPreset) ...[
             const SizedBox(width: AppSpacing.xs),
-            _presetBadge(theme),
+            _presetBadge(theme, l10n),
           ],
         ],
       ),
       subtitle: _dialectSubtitle(dialect),
       secondary: PopupMenuButton<String>(
         key: ValueKey('dialect-menu-${dialect.name}'),
-        tooltip: 'Dialect actions',
+        tooltip: l10n.settingsDialectActionsTooltip,
         onSelected: (value) {
           switch (value) {
             case 'edit':
@@ -255,22 +266,28 @@ class _DialectRow extends StatelessWidget {
           }
         },
         itemBuilder: (_) => isPreset
-            ? const [
+            ? [
                 PopupMenuItem(
                   value: 'duplicate-customize',
-                  child: Text('Duplicate to customize'),
+                  child: Text(l10n.settingsDialectDuplicateToCustomize),
                 ),
               ]
-            : const [
-                PopupMenuItem(value: 'edit', child: Text('Edit terms')),
-                PopupMenuItem(value: 'rename', child: Text('Rename')),
-                PopupMenuItem(value: 'delete', child: Text('Delete')),
+            : [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Text(l10n.settingsDialectEditTerms),
+                ),
+                PopupMenuItem(
+                  value: 'rename',
+                  child: Text(l10n.settingsDialectRename),
+                ),
+                PopupMenuItem(value: 'delete', child: Text(l10n.commonDelete)),
               ],
       ),
     );
   }
 
-  Widget _presetBadge(ThemeData theme) {
+  Widget _presetBadge(ThemeData theme, AppLocalizations l10n) {
     return Container(
       key: ValueKey('dialect-preset-badge-${dialect.name}'),
       padding: const EdgeInsets.symmetric(
@@ -283,7 +300,7 @@ class _DialectRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        'Preset',
+        l10n.settingsDialectPresetBadge,
         style: theme.textTheme.labelSmall?.copyWith(
           color: theme.colorScheme.onSecondaryContainer,
         ),
@@ -336,19 +353,20 @@ class _DialectNameDialogState extends State<_DialectNameDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
       title: Text(widget.title),
       content: TextField(
         key: const ValueKey('dialect-name-field'),
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(labelText: 'Name'),
+        decoration: InputDecoration(labelText: l10n.settingsDialectNameLabel),
         onSubmitted: (_) => _submit(),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('dialect-name-confirm'),

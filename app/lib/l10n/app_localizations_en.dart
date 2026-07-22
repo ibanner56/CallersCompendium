@@ -76,6 +76,223 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose the language of the app\'s interface.';
 
   @override
+  String get settingsAboutHelpHeader => 'Help';
+
+  @override
+  String get settingsAboutUserGuideTitle => 'User guide';
+
+  @override
+  String get settingsAboutUserGuideSubtitle =>
+      'Read the built-in guides — getting started, dialects, imports, and more. Works offline.';
+
+  @override
+  String get settingsAboutLicenseHeader => 'License';
+
+  @override
+  String get settingsAboutLicenseBody =>
+      'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.';
+
+  @override
+  String get settingsAboutViewSourceTitle => 'View source on GitHub';
+
+  @override
+  String get settingsAboutFontsHeader => 'Fonts';
+
+  @override
+  String get settingsAboutFontsBody =>
+      'This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under “View licenses” below.';
+
+  @override
+  String get settingsAboutFontFrauncesSubtitle =>
+      'SIL Open Font License 1.1 · © The Fraunces Project Authors — display & headings';
+
+  @override
+  String get settingsAboutFontAtkinsonSubtitle =>
+      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI & Perform';
+
+  @override
+  String get settingsAboutFontRobotoSubtitle =>
+      'SIL Open Font License 1.1 · © The Roboto Project Authors — fallback';
+
+  @override
+  String get settingsAboutThemesHeader => 'Themes';
+
+  @override
+  String get settingsAboutThemesBody =>
+      'Several optional color themes are inspired by popular code-editor palettes — One Dark, Dracula, Nord, Tokyo Night, Gruvbox, and Catppuccin among them — re-derived and contrast-tuned for this app. Theme names are used only to credit that inspiration.';
+
+  @override
+  String get settingsAboutDanceDataHeader => 'Dance data';
+
+  @override
+  String get settingsAboutDanceDataBody =>
+      'Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.';
+
+  @override
+  String get settingsAboutLicensesHeader => 'Licenses';
+
+  @override
+  String get settingsAboutViewLicensesTitle => 'View licenses';
+
+  @override
+  String get settingsAboutViewLicensesSubtitle =>
+      'Full open-source license texts, including the bundled fonts.';
+
+  @override
+  String get settingsAboutLegalese =>
+      '© The Caller’s Compendium contributors. Licensed under AGPL-3.0.';
+
+  @override
+  String settingsAboutVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String settingsAboutVersionLine(
+    String appName,
+    String version,
+    String license,
+  ) {
+    return '$appName · Version $version · $license';
+  }
+
+  @override
+  String get settingsUpdatesHeader => 'Updates';
+
+  @override
+  String get settingsUpdatesCheckNowTitle => 'Check for updates';
+
+  @override
+  String settingsUpdatesStatusIdle(String version) {
+    return 'You\'re on version $version.';
+  }
+
+  @override
+  String get settingsUpdatesStatusChecking => 'Checking…';
+
+  @override
+  String settingsUpdatesStatusNoUpdate(String version) {
+    return 'No update found. You\'re on version $version.';
+  }
+
+  @override
+  String settingsUpdatesStatusAvailable(String version) {
+    return 'Version $version is available. See the banner to view it.';
+  }
+
+  @override
+  String get settingsUpdatesChannelHeader => 'Channel';
+
+  @override
+  String get settingsUpdatesBetaTitle => 'Beta channel';
+
+  @override
+  String get settingsUpdatesBetaSubtitle =>
+      'Receive pre-release beta updates. Off means stable releases only.';
+
+  @override
+  String get settingsUpdatesAutoHeader => 'Automatic checks';
+
+  @override
+  String get settingsUpdatesAutoTitle => 'Check automatically';
+
+  @override
+  String get settingsUpdatesAutoSubtitle =>
+      'Check for a newer version in the background when the app starts. Off by default.';
+
+  @override
+  String get settingsUpdatesPrivacyNote =>
+      'The update check downloads a small version file over HTTPS and nothing else — no data about you, your device, or your usage is ever sent. Nothing is downloaded or installed automatically: you choose when to download an update, it is verified before it opens, and your system installer completes the install.';
+
+  @override
+  String get settingsUpdatesDownloadingTitle => 'Downloading update';
+
+  @override
+  String get settingsUpdatesDownloadingIndeterminate => 'Downloading…';
+
+  @override
+  String settingsUpdatesDownloadingPercent(int percent) {
+    return 'Downloading… $percent%';
+  }
+
+  @override
+  String get settingsUpdatesVerifyingTitle => 'Verifying download';
+
+  @override
+  String get settingsUpdatesVerifyingSubtitle =>
+      'Checking the sha256 integrity of the download…';
+
+  @override
+  String get settingsUpdatesHandoffTitle => 'Opening the installer';
+
+  @override
+  String get settingsUpdatesHandoffSubtitle =>
+      'Handing the verified update to your system…';
+
+  @override
+  String get settingsUpdatesCompletedTitle => 'Update downloaded';
+
+  @override
+  String get settingsUpdatesCompletedSubtitle =>
+      'Follow your system installer to finish updating.';
+
+  @override
+  String get settingsUpdatesDownloadTitle => 'Download & install update';
+
+  @override
+  String get settingsUpdatesDownloadError =>
+      'The update could not be downloaded.';
+
+  @override
+  String settingsUpdatesDownloadSubtitle(String version) {
+    return 'Download version $version, verify it, then open your installer. The app never replaces itself in place.';
+  }
+
+  @override
+  String get settingsDialectHeader => 'Dialects';
+
+  @override
+  String get settingsDialectNewButton => 'New dialect';
+
+  @override
+  String get settingsDialectNewDefaultName => 'My dialect';
+
+  @override
+  String get settingsDialectCreateConfirm => 'Create';
+
+  @override
+  String get settingsDialectDuplicateFrom => 'Duplicate from…';
+
+  @override
+  String get settingsDialectRenameTitle => 'Rename dialect';
+
+  @override
+  String get settingsDialectRename => 'Rename';
+
+  @override
+  String get settingsDialectEditTerms => 'Edit terms';
+
+  @override
+  String get settingsDialectDuplicateToCustomize => 'Duplicate to customize';
+
+  @override
+  String get settingsDialectDeleteTitle => 'Delete dialect?';
+
+  @override
+  String settingsDialectDeleteConfirmBody(String name) {
+    return '“$name” will be permanently removed.';
+  }
+
+  @override
+  String get settingsDialectActionsTooltip => 'Dialect actions';
+
+  @override
+  String get settingsDialectPresetBadge => 'Preset';
+
+  @override
+  String get settingsDialectNameLabel => 'Name';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override
