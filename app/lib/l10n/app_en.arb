@@ -1184,6 +1184,22 @@
   "@programsDiscard": {
     "description": "Button that confirms discarding unsaved program changes and leaves the editor."
   },
+  "programsDraftTitle": "Unsaved draft",
+  "@programsDraftTitle": {
+    "description": "Title of the dialog offering to restore an autosaved program draft from an interrupted prior session."
+  },
+  "programsDraftBody": "You have an unsaved draft for this program. Would you like to restore it?",
+  "@programsDraftBody": {
+    "description": "Body of the dialog offering to restore an autosaved program draft."
+  },
+  "programsDraftRestore": "Restore",
+  "@programsDraftRestore": {
+    "description": "Button that restores the autosaved program draft into the editor."
+  },
+  "programsDraftDiscard": "Discard",
+  "@programsDraftDiscard": {
+    "description": "Button that discards the autosaved program draft and starts from the saved program."
+  },
   "programsBuildProgram": "Build program",
   "@programsBuildProgram": {
     "description": "App bar title of the program editor when editing an existing program."

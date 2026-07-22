@@ -841,6 +841,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsDiscard => 'Discard';
 
   @override
+  String get programsDraftTitle => 'Unsaved draft';
+
+  @override
+  String get programsDraftBody =>
+      'You have an unsaved draft for this program. Would you like to restore it?';
+
+  @override
+  String get programsDraftRestore => 'Restore';
+
+  @override
+  String get programsDraftDiscard => 'Discard';
+
+  @override
   String get programsBuildProgram => 'Build program';
 
   @override

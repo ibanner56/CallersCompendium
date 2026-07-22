@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
+import 'package:compendium_app/src/editor/program_editor_draft_codec.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 
 import 'support/test_repositories.dart';
@@ -142,6 +143,54 @@ void main() {
       final saved = await repos.programs.getById('p1');
       expect(saved!.venueId, 'v1');
       expect(saved.venue, 'Old Hall');
+    },
+  );
+
+  testWidgets(
+    'autosave captures a linked venueId and an interrupted build restores it',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
+
+      await _pumpEditor(tester, repos, enriched: true, programId: 'p1');
+
+      // Link a saved venue via the enriched-mode picker.
+      await tester.enterText(
+        find.byKey(const ValueKey('venue-picker-input')),
+        'grange',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('venue-option-v1')));
+      await tester.pumpAndSettle();
+
+      // Let the 500 ms autosave debounce fire; the draft carries the venue id.
+      await tester.pump(const Duration(milliseconds: 600));
+      const key = 'program_editor_draft:p1';
+      expect(await repos.settings.contains(key), isTrue);
+      expect(decodeProgramDraft(await repos.settings.get(key)).venueId, 'v1');
+
+      // Tear the editor down so the relaunch gets a fresh State (otherwise
+      // Flutter reuses the element and never re-runs load/restore).
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+
+      // Simulate an interrupted relaunch: a fresh editor detects the draft and
+      // offers to restore it.
+      await _pumpEditor(tester, repos, enriched: true, programId: 'p1');
+      await tester.pump();
+      await tester.pumpAndSettle();
+      expect(find.text('Unsaved draft'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
+      await tester.pumpAndSettle();
+
+      // The restored editor shows the linked venue selected — the venue link
+      // survived the interruption.
+      expect(
+        find.byKey(const ValueKey('venue-picker-selected')),
+        findsOneWidget,
+      );
     },
   );
 
