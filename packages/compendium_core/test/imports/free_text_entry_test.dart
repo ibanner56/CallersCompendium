@@ -165,10 +165,10 @@ void main() {
       // the reparse — only importGap customs are eligible.
       final authored = typed.copyWith(customOrigin: CustomOrigin.userEntered);
 
-      final outcome = reparseImportGapFigures(
-        [typed, authored],
-        taxonomy: contraTaxonomy,
-      );
+      final outcome = reparseImportGapFigures([
+        typed,
+        authored,
+      ], taxonomy: contraTaxonomy);
       expect(outcome.upgradedCount, 1);
       expect(outcome.figures[0].isCustom, isFalse);
       expect(outcome.figures[0].move, 'swing');
