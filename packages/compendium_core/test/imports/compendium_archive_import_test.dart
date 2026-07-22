@@ -971,5 +971,68 @@ void main() {
       expect(counter.count, 0);
       expect(await countingPrograms.listAll(), hasLength(3));
     });
+
+    test(
+      'preserves a user-linked venueId when re-importing a pre-venue archive',
+      () async {
+        // A program first imported from a pre-venue (venue-less) bundle: its
+        // requiredSchemaVersion is the base version, so the importer treats it as
+        // unable to express `venueId`.
+        final preVenue = bundleWithVenue();
+        await run(preVenue);
+        final imported = (await programs.listAll()).single;
+        expect(imported.venueId, isNull);
+
+        // The user later links that program to a venue locally.
+        await venues.upsert(Venue(id: 'user-v1', name: 'User Hall'));
+        await programs.update(imported.copyWith(venueId: 'user-v1'));
+
+        // Re-importing the SAME pre-venue bundle must NOT clobber that link: the
+        // source cannot express `venueId`, so the rebuilt program's null is
+        // "unknown", not "explicitly cleared" — mirroring the `.USR` re-import.
+        await importer.import(
+          encodeArchive(preVenue),
+          preVenue,
+          now: now.add(const Duration(days: 1)),
+          newId: sequentialIds('second'),
+          newSlotId: sequentialIds('secondslot'),
+        );
+
+        final after = (await programs.listAll()).single;
+        expect(after.id, imported.id, reason: 'deduped in place, not inserted');
+        expect(after.venueId, 'user-v1', reason: 'app-local link preserved');
+        expect(await venues.getById('user-v1'), isNotNull);
+      },
+    );
+
+    test('a venue-aware re-import honors an explicit cleared venueId', () async {
+      // A program imported from a venue-aware bundle, linked to a venue.
+      final withVenue = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [Venue(id: 'orig-v1', name: 'Guiding Star Grange')],
+      );
+      await run(withVenue);
+      final imported = (await programs.listAll()).single;
+      expect(imported.venueId, isNotNull);
+
+      // Re-import a bundle that is still venue-aware (it carries venue records)
+      // but whose SAME program now has no venue link. Because the source *can*
+      // express venue semantics, the explicit absence overwrites the match —
+      // the link is cleared, unlike the pre-venue case above.
+      final cleared = bundleWithVenue(
+        venues: [Venue(id: 'orig-v2', name: 'Town Hall')],
+      );
+      await importer.import(
+        encodeArchive(cleared),
+        cleared,
+        now: now.add(const Duration(days: 1)),
+        newId: sequentialIds('second'),
+        newSlotId: sequentialIds('secondslot'),
+      );
+
+      final after = (await programs.listAll()).single;
+      expect(after.id, imported.id, reason: 'deduped in place, not inserted');
+      expect(after.venueId, isNull, reason: 'v2 explicit clear honored');
+    });
   });
 }

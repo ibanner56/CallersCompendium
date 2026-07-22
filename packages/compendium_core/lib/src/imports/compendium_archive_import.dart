@@ -377,6 +377,18 @@ class CompendiumArchiveImporter {
       // venue SELECTs. Safe: this commit only inserts venues, never deletes one.
       final knownVenueIds = insertedVenueIds.toSet();
 
+      // A pre-venue archive cannot express `venueId` at all, so on a
+      // provenance-matched re-import its programs carry a null one; honoring that
+      // would silently drop a link the user established after the original
+      // import. Only a venue-aware archive has *explicit* venue semantics whose
+      // (remapped-or-nulled) value should overwrite the matched program — see
+      // [_rebuildProgramWithId]. Keyed on [requiredSchemaVersion] (the archive's
+      // actual venue content, exactly what the encoder stamps the wire version
+      // from) rather than the passed object's `schemaVersion`, so the decision is
+      // correct regardless of how that field was set.
+      final archiveCarriesVenueLinks =
+          requiredSchemaVersion(archive) >= archiveSchemaVersionVenues;
+
       for (final program in built.programs) {
         final externalId = program.provenance?.externalId;
         final hasExternalId = externalId != null && externalId.isNotEmpty;
@@ -397,6 +409,8 @@ class CompendiumArchiveImporter {
             program,
             id: mappedId,
             createdAt: existing.createdAt,
+            priorVenueId: existing.venueId,
+            archiveCarriesVenueLinks: archiveCarriesVenueLinks,
           );
           // Capture the true pre-import state exactly once per existing id, and
           // never for a row this commit inserted (its prior state is "absent",
@@ -406,7 +420,17 @@ class CompendiumArchiveImporter {
               priorCapturedFor.add(mappedId)) {
             priorStates.add(existing);
           }
-          await _programs.update(target, knownVenueIds: knownVenueIds);
+          // A preserved prior `venueId` (pre-venue re-import) references a venue
+          // already in the DB, not one this import inserted, so it is absent from
+          // [knownVenueIds]. Admit it for this write: the venue delete-guard keeps
+          // a referenced venue alive and this commit only inserts venues, so the
+          // reference is sound and needs no extra per-write SELECT.
+          final venueId = target.venueId;
+          final knownForWrite =
+              venueId != null && !knownVenueIds.contains(venueId)
+              ? {...knownVenueIds, venueId}
+              : knownVenueIds;
+          await _programs.update(target, knownVenueIds: knownForWrite);
           persisted[mappedId] = target;
         }
       }
@@ -541,18 +565,29 @@ class CompendiumArchiveImporter {
   /// Rebuilds [src] under an existing program [id] and [createdAt] (preserving
   /// the matched program's identity/creation stamp on a re-import) while keeping
   /// every other field from the freshly built program.
+  ///
+  /// [priorVenueId] is the matched program's current `venueId`, and
+  /// [archiveCarriesVenueLinks] is whether the incoming archive is venue-aware
+  /// (its [requiredSchemaVersion] reaches [archiveSchemaVersionVenues]). A
+  /// venue-aware archive has *explicit* venue semantics, so [src]'s
+  /// already-remapped-or-nulled `venueId` overwrites the match (an explicit null
+  /// clears the link). A pre-venue archive cannot express `venueId` at all, so
+  /// [src]'s is necessarily null; overwriting with it would silently drop a link
+  /// the user established after the original import, so [priorVenueId] is
+  /// preserved instead (like [id]/[createdAt]) — mirroring the `.USR` re-import's
+  /// venue-link preservation for a source that likewise cannot reconstruct it.
   Program _rebuildProgramWithId(
     Program src, {
     required String id,
     required DateTime createdAt,
+    required String? priorVenueId,
+    required bool archiveCarriesVenueLinks,
   }) => Program(
     id: id,
     title: src.title,
     eventDate: src.eventDate,
     venue: src.venue,
-    // [src] is the freshly-built program, so its `venueId` is already the
-    // remapped (or nulled) reference — carry it through the re-import verbatim.
-    venueId: src.venueId,
+    venueId: archiveCarriesVenueLinks ? src.venueId : priorVenueId,
     band: src.band,
     caller: src.caller,
     dancerLevel: src.dancerLevel,

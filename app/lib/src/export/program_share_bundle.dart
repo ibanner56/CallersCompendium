@@ -44,7 +44,7 @@ import 'share_sanitization.dart';
 /// is injectable for deterministic tests.
 ///
 /// Venue gathering is deliberately **not** done here yet: a program's
-/// `venueId` (schema v13) rides along inside the embedded [program], but the
+/// `venueId` (schema v14) rides along inside the embedded [program], but the
 /// referenced [Venue] record is not gathered into `CompendiumArchive.venues`.
 /// The core receive path handles this safely — `CompendiumArchiveImporter`
 /// nulls a `venueId` that resolves to no bundled venue — so a shared program
