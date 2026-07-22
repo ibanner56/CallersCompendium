@@ -8,7 +8,7 @@ import 'package:compendium_app/src/data/archive_intake_service.dart';
 import 'package:compendium_app/src/data/incoming_file_channel.dart';
 import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
-import 'package:compendium_app/src/screens/program_summary_screen.dart';
+import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
@@ -102,7 +102,8 @@ void main() {
   setUp(rootBundle.clear);
 
   testWidgets(
-    'a shared bundle opened at launch imports and auto-opens the program',
+    'issue #432: a shared bundle opened at launch routes to the import review '
+    'screen and commits nothing until the user confirms',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -120,12 +121,15 @@ void main() {
         ),
       );
       // Bootstrap builds the ready app, which schedules the cold-start intake;
-      // the in-memory import + auto-open navigation settle within these pumps.
+      // the in-memory validation + review-screen navigation settle within these
+      // pumps.
       await tester.pumpAndSettle();
 
-      expect(find.byType(ProgramSummaryScreen), findsOneWidget);
-      expect(await appData.repositories.programs.listAll(), hasLength(1));
-      expect(await appData.repositories.dances.listAll(), hasLength(1));
+      // The untrusted bundle lands on the review/consent screen — never the old
+      // auto-open ProgramSummaryScreen — and NOTHING is written yet.
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(await appData.repositories.programs.listAll(), isEmpty);
+      expect(await appData.repositories.dances.listAll(), isEmpty);
     },
   );
 
@@ -150,7 +154,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
-    expect(find.byType(ProgramSummaryScreen), findsNothing);
+    expect(find.byType(ImportReviewScreen), findsNothing);
     expect(await appData.repositories.programs.listAll(), isEmpty);
   });
 

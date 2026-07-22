@@ -1,7 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:compendium_app/src/data/archive_intake_service.dart';
 import 'package:compendium_app/src/export/program_share_bundle.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -352,18 +348,25 @@ void main() {
 
   // The whole point of #412: verify on the RECEIVE side that the choreographers
   // the builder now embeds actually restore author attribution end-to-end, via
-  // the real shared receive path (ArchiveIntakeService -> CompendiumArchive
-  // importer -> ImportPipeline) over the real CompendiumDatabase (FK enforced).
+  // the real receive-side commit engine (CompendiumArchiveImporter ->
+  // ImportPipeline) over the real CompendiumDatabase (FK enforced).
   group('end-to-end author attribution on the receiver (#412)', () {
-    Future<ArchiveIntakeResult> receive(
+    // #432 moved the commit engine out of ArchiveIntakeService (now a
+    // validation-only gate) into the core CompendiumArchiveImporter, which the
+    // review screen drives after consent. This helper exercises that same
+    // engine directly — decode Dart-side (as intake does), then commit — to keep
+    // the receive-side author-attribution coverage.
+    Future<CompendiumArchiveImportResult> receive(
       CompendiumRepositories repos,
       String json,
     ) async {
-      final intake = ArchiveIntakeService(
-        repositories: repos,
-        now: () => DateTime.utc(2026, 7, 20),
+      final archive = decodeArchive(json).archive;
+      final importer = CompendiumArchiveImporter(
+        ImportPipeline(repos.dances, repos.choreographers),
+        repos.programs,
+        repos.venues,
       );
-      return intake.importBytes(Uint8List.fromList(utf8.encode(json)));
+      return importer.import(json, archive, now: DateTime.utc(2026, 7, 20));
     }
 
     Future<Dance> danceByTitle(
@@ -405,7 +408,7 @@ void main() {
       );
 
       final result = await receive(repos, json);
-      expect(result.isImported, isTrue, reason: result.message);
+      expect(result.primaryProgramId, isNotNull);
 
       final imported = await danceByTitle(repos, 'Rory O\'More');
       expect(
@@ -418,7 +421,7 @@ void main() {
       final importedProgram = (await repos.programs.listAll()).single;
       expect(importedProgram.slots.single.danceId, imported.id);
       expect(
-        result.issues.where(
+        result.programIssues.where(
           (i) => i.code == 'archive_program_unresolved_dance',
         ),
         isEmpty,
@@ -452,7 +455,7 @@ void main() {
       );
 
       final result = await receive(repos, json);
-      expect(result.isImported, isTrue, reason: result.message);
+      expect(result.primaryProgramId, isNotNull);
 
       final imported = await danceByTitle(repos, 'Rory O\'More');
       expect(imported.authorIds, ['local-cary'], reason: 'matched by name');
@@ -478,7 +481,7 @@ void main() {
         );
 
         final result = await receive(repos, json);
-        expect(result.isImported, isTrue, reason: result.message);
+        expect(result.primaryProgramId, isNotNull);
 
         final imported = await danceByTitle(repos, 'Anonymous Reel');
         expect(imported.authorIds, isEmpty);

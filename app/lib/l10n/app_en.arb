@@ -1134,6 +1134,86 @@
       }
     }
   },
+  "collectionBatchMore": "More batch actions",
+  "@collectionBatchMore": {
+    "description": "Tooltip for the overflow menu holding the additional batch-edit actions (rating, tunes, custom field)."
+  },
+  "collectionSetRating": "Set rating",
+  "@collectionSetRating": {
+    "description": "Batch action (menu item and dialog title) for setting the star rating on the selected dances."
+  },
+  "collectionAddTunes": "Add tunes",
+  "@collectionAddTunes": {
+    "description": "Batch action (menu item and dialog title) for adding tunes to the selected dances (additive; never removes)."
+  },
+  "collectionClearTunes": "Clear tunes",
+  "@collectionClearTunes": {
+    "description": "Batch action (menu item) for removing all tunes from the selected dances."
+  },
+  "collectionEditCustomField": "Edit custom field",
+  "@collectionEditCustomField": {
+    "description": "Batch action (menu item and dialog title) for setting or clearing one custom field across the selected dances."
+  },
+  "collectionBatchRatingSet": "{count, plural, =1{Set rating on 1 dance} other{Set rating on {count} dances}}",
+  "@collectionBatchRatingSet": {
+    "description": "Announcement/snackbar confirming a rating was set on the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionBatchRatingCleared": "{count, plural, =1{Cleared rating on 1 dance} other{Cleared rating on {count} dances}}",
+  "@collectionBatchRatingCleared": {
+    "description": "Announcement/snackbar confirming the rating was cleared on the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionBatchTunesAdded": "{count, plural, =1{Added tunes to 1 dance} other{Added tunes to {count} dances}}",
+  "@collectionBatchTunesAdded": {
+    "description": "Announcement/snackbar confirming tunes were added to the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionBatchTunesCleared": "{count, plural, =1{Cleared tunes from 1 dance} other{Cleared tunes from {count} dances}}",
+  "@collectionBatchTunesCleared": {
+    "description": "Announcement/snackbar confirming tunes were cleared from the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionBatchCustomFieldSet": "{count, plural, =1{Updated field on 1 dance} other{Updated field on {count} dances}}",
+  "@collectionBatchCustomFieldSet": {
+    "description": "Announcement/snackbar confirming a custom field was set on the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionBatchCustomFieldCleared": "{count, plural, =1{Cleared field on 1 dance} other{Cleared field on {count} dances}}",
+  "@collectionBatchCustomFieldCleared": {
+    "description": "Announcement/snackbar confirming a custom field was cleared on the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
 
   "collectionSelectDanceLabel": "Select {title}",
   "@collectionSelectDanceLabel": {
@@ -1535,6 +1615,83 @@
   "collectionBatchTagRemoveConfirm": "Remove",
   "@collectionBatchTagRemoveConfirm": {
     "description": "Confirm button of the batch remove-tags dialog."
+  },
+
+  "collectionBatchRatingStars": "{count, plural, =1{1 star} other{{count} stars}}",
+  "@collectionBatchRatingStars": {
+    "description": "Text label for a star-rating option in the batch set-rating dialog (paired with the star icon; the label is the accessible name, never the star shape alone).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "collectionBatchRatingUnrated": "Unrated (clear)",
+  "@collectionBatchRatingUnrated": {
+    "description": "Batch set-rating option that clears (unsets) the rating on the selected dances."
+  },
+  "collectionBatchRatingConfirm": "Set",
+  "@collectionBatchRatingConfirm": {
+    "description": "Confirm button of the batch set-rating dialog."
+  },
+  "collectionBatchTunesFieldLabel": "Add a tune",
+  "@collectionBatchTunesFieldLabel": {
+    "description": "Label of the text field for typing a tune to add in the batch add-tunes dialog."
+  },
+  "collectionBatchTunesAddButton": "Add tune to list",
+  "@collectionBatchTunesAddButton": {
+    "description": "Tooltip for the button that adds the typed tune to the pending list in the batch add-tunes dialog."
+  },
+  "collectionBatchTunesEmpty": "Type a tune name and add it to the list.",
+  "@collectionBatchTunesEmpty": {
+    "description": "Empty state in the batch add-tunes dialog before any tune has been added to the list."
+  },
+  "collectionBatchTunesRemove": "Remove {tune} from list",
+  "@collectionBatchTunesRemove": {
+    "description": "Tooltip/label for removing a tune from the pending add list in the batch add-tunes dialog.",
+    "placeholders": {
+      "tune": {
+        "type": "String",
+        "example": "Reel de Montreal"
+      }
+    }
+  },
+  "collectionBatchTunesConfirm": "Add",
+  "@collectionBatchTunesConfirm": {
+    "description": "Confirm button of the batch add-tunes dialog."
+  },
+  "collectionBatchClearTunesConfirmTitle": "Clear tunes?",
+  "@collectionBatchClearTunesConfirmTitle": {
+    "description": "Title of the confirmation dialog for clearing all tunes from the selected dances."
+  },
+  "collectionBatchClearTunesConfirmBody": "This removes all tunes from the selected dances. You can undo it afterwards.",
+  "@collectionBatchClearTunesConfirmBody": {
+    "description": "Body of the confirmation dialog for clearing all tunes from the selected dances."
+  },
+  "collectionBatchClearTunesConfirmButton": "Clear tunes",
+  "@collectionBatchClearTunesConfirmButton": {
+    "description": "Confirm button of the clear-tunes confirmation dialog."
+  },
+  "collectionBatchCustomFieldKeyLabel": "Field",
+  "@collectionBatchCustomFieldKeyLabel": {
+    "description": "Label of the picker for choosing which custom field to edit across the selection."
+  },
+  "collectionBatchCustomFieldClearOption": "Clear this field",
+  "@collectionBatchCustomFieldClearOption": {
+    "description": "Toggle in the batch edit-custom-field dialog that clears the chosen field across the selection instead of setting a value."
+  },
+  "collectionBatchCustomFieldEmpty": "No custom fields are defined yet.",
+  "@collectionBatchCustomFieldEmpty": {
+    "description": "Empty state in the batch edit-custom-field dialog when no custom field definitions exist."
+  },
+  "collectionBatchCustomFieldNumberInvalid": "Enter a number",
+  "@collectionBatchCustomFieldNumberInvalid": {
+    "description": "Validation error when a non-numeric value is entered for a number custom field in the batch edit dialog."
+  },
+  "collectionBatchCustomFieldConfirm": "Apply",
+  "@collectionBatchCustomFieldConfirm": {
+    "description": "Confirm button of the batch edit-custom-field dialog."
   },
 
   "danceFiguresEmpty": "No figures yet.",
@@ -3107,6 +3264,12 @@
   "@importReviewWarningPrefix": {"description": "Screen-reader label that prefixes the overwrite-warning message with 'Warning:'.", "placeholders": {"message": {"type": "String", "example": "1 existing dance will be overwritten"}}},
   "importReviewComplete": "Import complete",
   "@importReviewComplete": {"description": "Title of the dialog shown after an import commit finishes."},
+  "sharedImportSoftCapWarning": "{count, plural, =1{This import contains 1 item — more than expected for a normal share.} other{This import contains {count} items — more than expected for a normal share.}}",
+  "@sharedImportSoftCapWarning": {"description": "Advisory (non-blocking) warning shown on the review screen when a shared bundle carries an unusually large number of entities.", "placeholders": {"count": {"type": "int"}}},
+  "sharedImportComplete": "{count, plural, =0{Import complete.} =1{Imported 1 item.} other{Imported {count} items.}}",
+  "@sharedImportComplete": {"description": "Transient snackbar message shown after a shared bundle is imported, alongside an Undo action.", "placeholders": {"count": {"type": "int"}}},
+  "sharedImportProgramsOnly": "{count, plural, =1{This share contains 1 program and no dances.} other{This share contains {count} programs and no dances.}}",
+  "@sharedImportProgramsOnly": {"description": "Shown on the review screen when a shared bundle carries programs but no dances, so the user can still consent to importing the programs.", "placeholders": {"count": {"type": "int"}}},
   "importReviewSummaryCreated": "Created: {count}",
   "@importReviewSummaryCreated": {"description": "Import result summary line: number of dances created.", "placeholders": {"count": {"type": "int"}}},
   "importReviewSummaryReimported": "Re-imported: {count}",

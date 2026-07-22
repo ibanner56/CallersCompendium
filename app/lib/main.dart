@@ -44,7 +44,7 @@ import 'src/diagnostics/crash_reporter.dart';
 import 'src/licenses.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/contradb_program_import_screen.dart';
-import 'src/screens/program_summary_screen.dart';
+import 'src/screens/import_review_screen.dart';
 import 'src/screens/settings_screen.dart'
     show
         kAppThemeKey,
@@ -360,45 +360,30 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dialectNotifier.value = _dialectLibrary.active;
   }
 
-  /// Imports a shared [CompendiumArchive] file (issue #298, receive side) the OS
-  /// handed the app, then auto-opens the restored program.
+  /// Handles a shared [CompendiumArchive] file (issue #298, receive side) the OS
+  /// handed the app, routing it through the same import review/consent screen the
+  /// manual imports use (issue #432) — nothing is committed until the user
+  /// confirms.
   ///
-  /// The file is **untrusted input**: [ArchiveIntakeService] enforces a size
+  /// The file is **untrusted input**: [ArchiveIntakeService] enforces the size
   /// cap, validates the archive schema/version, and never throws — a bad file
-  /// resolves to a rejection message shown in a snackbar. On success the
-  /// imported dances/programs are committed through the shared import pipeline,
-  /// the live Collection is refreshed, and the restored program is pushed.
+  /// resolves to a rejection message shown in a snackbar and **writes nothing**
+  /// (fail closed). A valid bundle is decoded Dart-side *before* any UI renders,
+  /// then handed to [ImportReviewScreen], which previews it, applies per-entity
+  /// dispositions, and commits (dances + programs + venues) only on the user's
+  /// confirmation — offering a transient Undo afterwards.
   Future<void> _handleIncomingFile(String path) async {
-    final intake = ArchiveIntakeService(
-      repositories: _appData.repositories,
-      readBytes: widget.incomingFileReader,
-    );
-    final result = await intake.importFromPath(path);
+    final intake = ArchiveIntakeService(readBytes: widget.incomingFileReader);
+    final validation = await intake.validateFromPath(path);
     if (!mounted) return;
 
-    if (result.isRejected) {
+    if (validation.isRejected) {
       _messengerKey.currentState?.showSnackBar(
         SnackBar(
           key: const ValueKey('shared-import-error'),
-          content: Text(result.message ?? "Couldn't import the shared file."),
-        ),
-      );
-      return;
-    }
-
-    // Refresh the live Collection so imported dances appear immediately, using
-    // the same revision notifier the manual Import flow bumps via
-    // [CollectionRefreshScope].
-    _collectionRefreshNotifier.value++;
-
-    final programId = result.programId;
-    if (programId == null) {
-      // A bundle with dances but no program: nothing to open, but confirm the
-      // import landed.
-      _messengerKey.currentState?.showSnackBar(
-        const SnackBar(
-          key: ValueKey('shared-import-ok'),
-          content: Text('Imported shared dances.'),
+          content: Text(
+            validation.message ?? "Couldn't import the shared file.",
+          ),
         ),
       );
       return;
@@ -406,7 +391,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
 
     await _navigatorKey.currentState?.push(
       MaterialPageRoute<void>(
-        builder: (_) => ProgramSummaryScreen(programId: programId),
+        builder: (_) => ImportReviewScreen(
+          sources: defaultImportSources(),
+          sharedBundle: SharedBundleImport(
+            json: validation.json!,
+            archive: validation.archive!,
+            entityCount: validation.entityCount,
+          ),
+        ),
       ),
     );
   }

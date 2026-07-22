@@ -138,6 +138,23 @@ class CompendiumArchive {
   );
 }
 
+/// The number of entities a shared/imported [archive] would write into the
+/// collection: its dances, their author choreographers, its programs, and the
+/// venues those programs reference. Program slots ride inside their program and
+/// the published-source / custom-field / tag metadata is not committed by the
+/// import path, so none of those is counted separately.
+///
+/// Used by the share-target intake (issue #432) to decide whether an incoming
+/// bundle is unusually large (a **soft** cap). The count is derived once from
+/// the already-validated, Dart-side-decoded archive — never trusted from any
+/// self-reported field in the untrusted bundle — and drives an advisory warning
+/// on the review screen, not a hard block.
+int compendiumArchiveEntityCount(CompendiumArchive archive) =>
+    archive.dances.length +
+    archive.choreographers.length +
+    archive.programs.length +
+    archive.venues.length;
+
 /// Which phase produced an [ArchiveError].
 enum ArchiveErrorKind {
   /// Raised while decoding archive JSON into the in-memory model.

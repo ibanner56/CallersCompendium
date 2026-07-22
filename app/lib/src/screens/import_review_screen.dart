@@ -7,7 +7,46 @@ import '../../l10n/app_localizations.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
+import '../utils/undo_snack_bar.dart';
 import 'dance_editor_screen.dart';
+
+/// Soft threshold (issue #432) on the number of entities in a **shared** bundle
+/// (dances + choreographers + programs + venues, via
+/// [compendiumArchiveEntityCount]). At or below this the review proceeds
+/// silently; above it the review screen shows an advisory warning — but the
+/// import can still be completed. It is deliberately a soft cap, not a block: a
+/// user may legitimately share a large collection, and the real protection is
+/// that nothing commits without the review/consent step.
+const int kSharedBundleSoftCapEntities = 500;
+
+/// A shared [CompendiumArchive] bundle that has already been decoded and
+/// validated Dart-side by `ArchiveIntakeService` (size cap, UTF-8, well-formed
+/// archive, schema-forward refusal) and is ready to be reviewed and — only on
+/// the user's confirmation — committed through [CompendiumArchiveImporter].
+///
+/// Handed to [ImportReviewScreen] so the OS share target reuses the exact same
+/// review/consent UI as the manual import flows (issue #432): nothing is written
+/// until the user confirms on the review screen.
+@immutable
+class SharedBundleImport {
+  const SharedBundleImport({
+    required this.json,
+    required this.archive,
+    required this.entityCount,
+  });
+
+  /// The raw, validated archive JSON the dance side is planned from.
+  final String json;
+
+  /// The decoded archive; its programs and venues are committed alongside the
+  /// dances by [CompendiumArchiveImporter] once the user confirms.
+  final CompendiumArchive archive;
+
+  /// Total entities the bundle would write, computed pre-render from the
+  /// validated decode. Drives the soft-cap warning (see
+  /// [kSharedBundleSoftCapEntities]).
+  final int entityCount;
+}
 
 /// The adapter-agnostic in-app import experience (ROADMAP 6.3): pick or paste a
 /// source payload, [ImportPipeline.plan] it non-destructively, review every
@@ -33,6 +72,7 @@ class ImportReviewScreen extends StatefulWidget {
     this.bytePicker,
     this.fetcher,
     this.onClose,
+    this.sharedBundle,
   }) : assert(sources.length > 0, 'at least one import source is required');
 
   /// The selectable import sources; the first is selected by default.
@@ -61,6 +101,14 @@ class ImportReviewScreen extends StatefulWidget {
   /// the whole shell). When null (the pushed / Settings case) the default back
   /// arrow and [Navigator.pop] behavior is preserved.
   final VoidCallback? onClose;
+
+  /// A pre-validated shared bundle to review (issue #432). When non-null the
+  /// screen skips the manual input phase: it seeds the bundle, plans it
+  /// immediately, and lands the user on the review/consent list. On commit it
+  /// routes through [CompendiumArchiveImporter] (dances + programs + venues) and
+  /// offers a transient Undo snackbar. When null the screen behaves exactly as
+  /// the manual import flows do.
+  final SharedBundleImport? sharedBundle;
 
   @override
   State<ImportReviewScreen> createState() => _ImportReviewScreenState();
@@ -141,6 +189,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
+      final bundle = widget.sharedBundle;
+      if (bundle != null) {
+        // Share-target intake (issue #432): the bundle was already decoded and
+        // validated Dart-side. Seed it and plan immediately so the user lands
+        // on the review/consent list — skipping the manual input phase — with
+        // nothing written until they confirm.
+        _pasteController.text = bundle.json;
+        _sourceUri = null;
+        _plan();
+      }
     }
   }
 
@@ -443,8 +501,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // programs. A hypothetical future dance-only byte source would fall through
     // to the shared dance path and never touch programs.
     final adapter = _selected.adapterFactory();
+    final sharedBundle = widget.sharedBundle;
     try {
-      if (adapter is CallersCompanionUsrAdapter) {
+      if (sharedBundle != null) {
+        // Share target (issue #432): commit dances + programs + venues through
+        // the archive importer, then offer a transient Undo that reverts exactly
+        // this batch. Routed first and gated on the pre-validated bundle, never
+        // on the adapter type.
+        await _commitSharedBundle(
+          pipeline,
+          sharedBundle,
+          commitBatch,
+          resolutions,
+        );
+      } else if (adapter is CallersCompanionUsrAdapter) {
         final importer = CallersCompanionUsrImporter(pipeline, _repos.programs);
         final archive = readCcUsrArchive(_payloadBytes!);
         final result = await importer.commit(
@@ -493,6 +563,83 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           content: Text(AppLocalizations.of(context).importReviewImportError),
         ),
       );
+    }
+  }
+
+  /// Commits a validated shared [bundle] (issue #432): dances + their author
+  /// choreographers + programs + venues, via [CompendiumArchiveImporter] — the
+  /// same commit engine the receive-side share path has always used — then hands
+  /// off to a transient Undo snackbar. Any failure propagates to [_commit]'s
+  /// catch (which surfaces the generic commit-error snackbar and writes nothing
+  /// further), keeping intake fail-closed on malformed/hostile input.
+  Future<void> _commitSharedBundle(
+    ImportPipeline pipeline,
+    SharedBundleImport bundle,
+    ImportBatchResult commitBatch,
+    Map<int, DedupeResolution> resolutions,
+  ) async {
+    final importer = CompendiumArchiveImporter(
+      pipeline,
+      _repos.programs,
+      _repos.venues,
+    );
+    final result = await importer.commit(
+      commitBatch,
+      bundle.archive,
+      now: DateTime.now().toUtc(),
+      newId: uuidV4,
+      newSlotId: uuidV4,
+      resolutions: resolutions,
+    );
+    if (!mounted) return;
+    setState(() => _phase = _Phase.review);
+    // Refresh the live Collection so the imported rows appear immediately.
+    CollectionRefreshScope.bump(context);
+    await _showSharedBundleUndo(result: result, importer: importer);
+  }
+
+  /// Shows the transient post-commit Undo for a shared bundle and returns the
+  /// user to where they were. The Undo reverts **exactly** this import (the ids
+  /// the commit returned) via [CompendiumArchiveImporter.undo]; once the
+  /// snackbar auto-dismisses (see [kUndoSnackBarDuration]) the action is gone —
+  /// session-transient, never persisted (issue #432 / reusing #463's helper).
+  Future<void> _showSharedBundleUndo({
+    required CompendiumArchiveImportResult result,
+    required CompendiumArchiveImporter importer,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    // Capture the refresh notifier now: the snackbar (and its Undo) outlives
+    // this screen once we pop back to the shell, so the async Undo callback
+    // can't read it from this (by then defunct) context.
+    final refresh = CollectionRefreshScope.maybeOf(context);
+    final importedDances = result.danceSession.records
+        .where((r) => r.succeeded && r.action != CommitAction.skip)
+        .length;
+    final importedCount = importedDances + result.programs.length;
+
+    showUndoSnackBar(
+      messenger,
+      key: const ValueKey('shared-import-undo-snackbar'),
+      message: l10n.sharedImportComplete(importedCount),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () async {
+        // Idempotent: a repeated tap (or a tap after another undo) is a no-op.
+        if (result.isUndone) return;
+        await importer.undo(result);
+        refresh?.value++;
+      },
+    );
+
+    // Return to where the user was; the transient snackbar rides the app-level
+    // ScaffoldMessenger, so it stays visible after this route is gone.
+    final onClose = widget.onClose;
+    if (onClose != null) {
+      onClose();
+    } else {
+      Navigator.of(context).pop();
     }
   }
 
@@ -662,31 +809,46 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.importDances),
-        key: const ValueKey('import-review-appbar'),
-        leading: widget.onClose == null
-            ? null
-            : IconButton(
-                key: const ValueKey('import-close'),
-                tooltip: l10n.importReviewClose,
-                icon: const Icon(Icons.close),
-                onPressed: widget.onClose,
-              ),
+    // Block a user-initiated back/dismiss while a commit is in flight: leaving
+    // mid-commit would let the write finish with the screen unmounted, stranding
+    // freshly-imported data without the transient Undo (issue #432). The
+    // imperative pop the post-commit flow performs is unaffected by PopScope.
+    return PopScope(
+      canPop: _phase != _Phase.committing,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.importDances),
+          key: const ValueKey('import-review-appbar'),
+          leading: widget.onClose == null
+              ? null
+              : IconButton(
+                  key: const ValueKey('import-close'),
+                  tooltip: l10n.importReviewClose,
+                  icon: const Icon(Icons.close),
+                  // Disabled mid-commit to mirror the PopScope guard: the
+                  // embedded Close invokes [widget.onClose] directly (not a
+                  // route pop), which PopScope does not intercept, so a tap
+                  // during [_Phase.committing] would unmount the screen while
+                  // the write is in flight and strand the imported data without
+                  // its Undo/refresh (issue #432).
+                  onPressed: _phase == _Phase.committing
+                      ? null
+                      : widget.onClose,
+                ),
+        ),
+        body: switch (_phase) {
+          _Phase.input => _buildInput(context),
+          _Phase.planning => const Center(
+            key: ValueKey('import-planning'),
+            child: CircularProgressIndicator(),
+          ),
+          _Phase.committing => const Center(
+            key: ValueKey('import-committing'),
+            child: CircularProgressIndicator(),
+          ),
+          _Phase.review => _buildReview(context),
+        },
       ),
-      body: switch (_phase) {
-        _Phase.input => _buildInput(context),
-        _Phase.planning => const Center(
-          key: ValueKey('import-planning'),
-          child: CircularProgressIndicator(),
-        ),
-        _Phase.committing => const Center(
-          key: ValueKey('import-committing'),
-          child: CircularProgressIndicator(),
-        ),
-        _Phase.review => _buildReview(context),
-      },
     );
   }
 
@@ -914,6 +1076,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
     final unreadable = batch.errors;
     if (batch.records.isEmpty) {
+      // A shared bundle can legitimately carry programs but no dances (e.g. a
+      // program of only free-text/announcement slots). It passed intake (which
+      // rejects only a bundle with neither dances nor programs), so the review
+      // must still let the user consent to importing the programs — dead-ending
+      // on "no dances" would regress the pre-#432 behavior that imported such
+      // bundles. Only fall through here when there is nothing importable at all.
+      final sharedBundle = widget.sharedBundle;
+      if (unreadable.isEmpty &&
+          sharedBundle != null &&
+          sharedBundle.archive.programs.isNotEmpty) {
+        return _buildSharedProgramsOnlyReview(
+          context,
+          sharedBundle.archive.programs.length,
+        );
+      }
       return _buildMessage(
         context,
         icon: unreadable.isEmpty ? Icons.inbox_outlined : Icons.error_outline,
@@ -953,6 +1130,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             key: const ValueKey('import-review-list'),
             padding: const EdgeInsets.all(12),
             children: [
+              if (_showSoftCapWarning) _buildSoftCapWarning(context),
               if (unreadable.isNotEmpty) _buildBatchErrors(context, unreadable),
               for (var i = 0; i < batch.records.length; i++)
                 _buildRow(context, i, batch.records[i]),
@@ -990,6 +1168,112 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   ],
                 ),
               ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Whether the shared bundle exceeds the soft entity cap (issue #432). Only
+  /// ever true on the share-target path (a manual import has no [sharedBundle]).
+  bool get _showSoftCapWarning {
+    final bundle = widget.sharedBundle;
+    return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;
+  }
+
+  /// An accessible advisory banner shown when a **shared** bundle carries more
+  /// than [kSharedBundleSoftCapEntities] entities (issue #432). It is a soft
+  /// warning, not a block: the Import button stays enabled and the user can
+  /// still proceed. Distinct from the overwrite warning (which uses the error
+  /// palette) — this uses the tertiary palette so "unusually large" reads as
+  /// caution, not error.
+  Widget _buildSoftCapWarning(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final message = l10n.sharedImportSoftCapWarning(
+      widget.sharedBundle!.entityCount,
+    );
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: l10n.importReviewWarningPrefix(message),
+      child: Container(
+        key: const ValueKey('import-soft-cap-warning'),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: scheme.tertiaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ExcludeSemantics(
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, color: scheme.onTertiaryContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  message,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: scheme.onTertiaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The review body for a shared bundle that carries **programs but no dances**
+  /// (issue #432). Such a bundle is valid (intake only rejects one with neither),
+  /// and the pre-#432 auto-commit path imported it — so the consent screen must
+  /// still offer an Import (routing through the same [_commit] → archive-importer
+  /// path, which commits the programs and any venues from an empty dance batch),
+  /// rather than dead-ending on the generic "no dances" message. Shows the
+  /// soft-cap warning if applicable and honors the same transient Undo.
+  Widget _buildSharedProgramsOnlyReview(
+    BuildContext context,
+    int programCount,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      children: [
+        Expanded(
+          child: ListView(
+            key: const ValueKey('import-review-list'),
+            padding: const EdgeInsets.all(12),
+            children: [
+              if (_showSoftCapWarning) _buildSoftCapWarning(context),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.event_note_outlined),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.sharedImportProgramsOnly(programCount),
+                      key: const ValueKey('import-count-label'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                key: const ValueKey('import-commit-button'),
+                onPressed: _commit,
+                icon: const Icon(Icons.download_done),
+                label: Text(l10n.importAction),
+              ),
             ),
           ),
         ),
@@ -1117,18 +1401,25 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               )
             else ...[
               _buildActions(context, i, plan.verdict),
-              const SizedBox(height: 4),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  key: ValueKey('import-row-$i-edit'),
-                  onPressed: _choices[i].kind == _ActionKind.skip
-                      ? null
-                      : () => _editRow(i),
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: Text(l10n.commonEdit),
+              // The per-row Edit commits that one dance immediately (issue
+              // #266). It is suppressed for a shared bundle (issue #432) so a
+              // shared file can never write before the single batch Import
+              // consent, and so every imported row is covered by the transient
+              // batch Undo.
+              if (widget.sharedBundle == null) ...[
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: ValueKey('import-row-$i-edit'),
+                    onPressed: _choices[i].kind == _ActionKind.skip
+                        ? null
+                        : () => _editRow(i),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: Text(l10n.commonEdit),
+                  ),
                 ),
-              ),
+              ],
             ],
           ],
         ),
