@@ -591,6 +591,14 @@
   "@settingsDefaultsAuthoringHeader": {
     "description": "Section header for defaults applied when authoring a new dance."
   },
+  "settingsDefaultsFreeTextEntryTitle": "Free-text entry",
+  "@settingsDefaultsFreeTextEntryTitle": {
+    "description": "Title of the opt-in setting that lets a new figure be typed as one line instead of built field by field (#419)."
+  },
+  "settingsDefaultsFreeTextEntrySubtitle": "When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.",
+  "@settingsDefaultsFreeTextEntrySubtitle": {
+    "description": "Explanatory subtitle for the free-text-entry setting, describing what turning it on does."
+  },
   "settingsDefaultsFormTitle": "Form",
   "@settingsDefaultsFormTitle": {
     "description": "Title of the default dance-form picker."
@@ -904,11 +912,11 @@
   "@importGapMessage": {
     "description": "Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label."
   },
-  "importGapDialogTitle": "Custom figure from import",
+  "importGapDialogTitle": "Unrecognized figure",
   "@importGapDialogTitle": {
-    "description": "Title of the dialog explaining an import-gap custom figure (shown when the badge is tapped)."
+    "description": "Title of the dialog explaining an unrecognized (import-gap or free-text) custom figure (shown when the badge is tapped)."
   },
-  "importGapSemanticLabel": "Unparsed import. Couldn't parse this call — kept verbatim as a custom figure.",
+  "importGapSemanticLabel": "Unrecognized figure. Couldn't parse this call — kept verbatim as a custom figure.",
   "@importGapSemanticLabel": {
     "description": "Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments."
   },

@@ -17,6 +17,7 @@ class FigureDraft {
     this.schemaVersion = figureSchemaVersion,
     this.beatsTouched = false,
     this.assumedSubject = false,
+    this.customOrigin = CustomOrigin.userEntered,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
 
@@ -40,6 +41,7 @@ class FigureDraft {
     schemaVersion: figure.schemaVersion,
     beatsTouched: figure.params.containsKey('beats'),
     assumedSubject: figure.assumedSubject,
+    customOrigin: figure.customOrigin,
   );
 
   /// Stable identity for widget keys across reorders/rebuilds.
@@ -69,6 +71,17 @@ class FigureDraft {
   /// an explicit, authoritative choice of subject.
   bool assumedSubject;
 
+  /// How this figure originated when it is a [customMove] custom (see
+  /// [CustomOrigin]). Carried through the editor so a custom figure produced by
+  /// the opt-in free-text entry path (or an import) that the parser could not
+  /// map keeps its [CustomOrigin.importGap] flag across open/save and
+  /// undo/autosave round-trips — which is what keeps it showing the #398
+  /// parser-gap marker and eligible for the reparse-customs upgrade (#419/#417).
+  /// Only meaningful when the draft is a custom; explicitly choosing a move or
+  /// authoring a custom in the structured editor resets it to
+  /// [CustomOrigin.userEntered] (a stated, user-authored choice).
+  CustomOrigin customOrigin;
+
   int get beats => (params['beats'] as int?) ?? 0;
 
   /// Returns an independent copy with a FRESH [id] (the stable-identity
@@ -86,6 +99,7 @@ class FigureDraft {
     schemaVersion: schemaVersion,
     beatsTouched: beatsTouched,
     assumedSubject: assumedSubject,
+    customOrigin: customOrigin,
   );
 
   /// Builds the immutable figure, or `null` when no move is chosen yet.
@@ -100,6 +114,7 @@ class FigureDraft {
       note: trimmedNote.isEmpty ? null : trimmedNote,
       progression: progression,
       assumedSubject: assumedSubject,
+      customOrigin: customOrigin,
     );
   }
 }

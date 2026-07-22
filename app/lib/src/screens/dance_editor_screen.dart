@@ -13,6 +13,7 @@ import '../widgets/published_source_details_dialog.dart';
 import 'dance_editor/dance_editor_controller.dart';
 import 'dance_editor/dance_editor_form.dart';
 import 'dance_editor/name_picker.dart';
+import 'settings/settings_keys.dart';
 
 /// Dance editor (`docs/design/ux.md` §3). Covers the metadata form — title,
 /// authors (with inline choreographer/tag creation), formation, form/type,
@@ -53,6 +54,12 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// failure), so the editor falls back to pure taxonomy defaults rather than
   /// failing. Applies whenever the user inserts a move — for any dance.
   Map<String, Map<String, Object?>> _moveParamDefaults = {};
+
+  /// Whether the opt-in "Free-text entry" dance-authoring toggle is on (issue
+  /// #419), loaded once in [_load] from the saved Defaults. Defaults to `false`
+  /// (off) until loaded and on any read failure, so the Add flow keeps its
+  /// structured behaviour unless the caller has explicitly opted in.
+  bool _freeTextEntry = false;
 
   /// Active dialect for lingo-line styling (discouraged strike-through + role
   /// underline) on the free-text prose fields. Seeded with the default and
@@ -166,6 +173,15 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         );
       } catch (_) {
         _moveParamDefaults = {};
+      }
+
+      // Load the opt-in "Free-text entry" toggle (#419). A read/parse failure
+      // falls back to off, so the Add flow keeps its structured behaviour.
+      try {
+        final stored = await _repos.settings.get(kFreeTextEntryKey);
+        _freeTextEntry = stored is bool ? stored : false;
+      } catch (_) {
+        _freeTextEntry = false;
       }
 
       // Hand off to the controller: it seeds the draft (from the dance or
@@ -547,6 +563,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       formKey: _formKey,
       taxonomy: _taxonomy,
       moveParamDefaults: _moveParamDefaults,
+      freeTextEntry: _freeTextEntry,
       dialect: dialect,
       isNew: widget.isNew,
       authorOptions: [

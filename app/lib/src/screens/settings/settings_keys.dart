@@ -49,3 +49,10 @@ const String kColourDanceThemeKey = 'colour_dance_theme';
 /// is entry/display-mode only: `Program.venue` and `Program.venueId` persist
 /// independently so flipping it is lossless in both directions.
 const String kVenueEntityModeKey = 'venue_entity_mode';
+
+/// Key used to persist the "Free-text entry" dance-authoring toggle (issue
+/// #419). Stored as a bool; absent/unset means off (`false`), so free-text
+/// entry is strictly opt-in. When on, adding a NEW figure opens a single
+/// free-text field (routed through the shared core parser) instead of a blank
+/// structured draft; editing an existing figure always stays structured.
+const String kFreeTextEntryKey = 'free_text_entry';

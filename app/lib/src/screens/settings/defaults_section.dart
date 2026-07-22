@@ -15,6 +15,7 @@ import '../../widgets/figure_list_editor.dart';
 import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/section_header.dart';
+import 'settings_keys.dart';
 
 /// The Defaults settings section: owns all Display/Program/Dance-authoring
 /// default loads, saves, per-setting load-race guards, and text controllers.
@@ -83,6 +84,13 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// a freshly-added move stay visible before its first override is recorded.
   final List<String> _moveDefaultsShown = [];
   bool _defaultMoveParamOverridesUserSet = false;
+
+  /// The opt-in "Free-text entry" dance-authoring toggle (issue #419). Defaults
+  /// to `false` (off) until the read resolves and on any read failure, so the
+  /// feature is strictly opt-in. A late storage read must not clobber a toggle
+  /// the user flipped first, hence its own user-set guard.
+  bool _freeTextEntry = false;
+  bool _freeTextEntryUserSet = false;
 
   /// Lazily loads the persisted Display defaults the first time the Defaults
   /// section is built. Mirrors [_ensureAutoSizeLoaded]: a late read must not
@@ -229,6 +237,16 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         .catchError((_) {
           /* keep the empty override map (pure taxonomy defaults) */
         });
+    repos.settings
+        .get(kFreeTextEntryKey)
+        .then((stored) {
+          if (!mounted || _freeTextEntryUserSet) return;
+          setState(() => _freeTextEntry = stored is bool ? stored : false);
+        })
+        .catchError((_) {
+          if (!mounted || _freeTextEntryUserSet) return;
+          setState(() => _freeTextEntry = false);
+        });
   }
 
   Future<void> _onDefaultProgramCallerChanged(String value) async {
@@ -276,6 +294,17 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     _defaultDancePhraseUserSet = true;
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kDefaultDancePhraseStructureKey, value.trim());
+  }
+
+  /// Persists the "Free-text entry" toggle (#419). Marks it user-set so a late
+  /// storage read can't clobber the flip.
+  Future<void> _onFreeTextEntryChanged(bool value) async {
+    setState(() {
+      _freeTextEntryUserSet = true;
+      _freeTextEntry = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kFreeTextEntryKey, value);
   }
 
   /// Persists the current starting-figures template as a `figures_json` string
@@ -402,6 +431,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       onDefaultDanceProgressionChanged: _onDefaultDanceProgressionChanged,
       dancePhraseController: _defaultDancePhrase,
       onDefaultDancePhraseChanged: _onDefaultDancePhraseChanged,
+      freeTextEntry: _freeTextEntry,
+      onFreeTextEntryChanged: _onFreeTextEntryChanged,
       danceFigureTemplateDrafts: _defaultDanceFigureDrafts,
       onDanceFigureTemplateChanged: () {
         setState(() {});
@@ -409,6 +440,15 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       },
       onDanceFigureTemplateAdd: () {
         setState(() => _defaultDanceFigureDrafts.add(FigureDraft()));
+        _persistDanceFiguresTemplate();
+      },
+      onDanceFigureTemplateAddFreeText: (figures) {
+        if (figures.isEmpty) return;
+        setState(
+          () => _defaultDanceFigureDrafts.addAll(
+            figures.map(FigureDraft.fromFigure),
+          ),
+        );
         _persistDanceFiguresTemplate();
       },
       onDanceFigureTemplateDelete: (draft) {
@@ -463,9 +503,12 @@ class _DefaultsView extends StatelessWidget {
     required this.onDefaultDanceProgressionChanged,
     required this.dancePhraseController,
     required this.onDefaultDancePhraseChanged,
+    required this.freeTextEntry,
+    required this.onFreeTextEntryChanged,
     required this.danceFigureTemplateDrafts,
     required this.onDanceFigureTemplateChanged,
     required this.onDanceFigureTemplateAdd,
+    required this.onDanceFigureTemplateAddFreeText,
     required this.onDanceFigureTemplateDelete,
     required this.onDanceFigureTemplateDuplicate,
     required this.onDanceFigureTemplateReorder,
@@ -493,12 +536,23 @@ class _DefaultsView extends StatelessWidget {
   final TextEditingController dancePhraseController;
   final ValueChanged<String> onDefaultDancePhraseChanged;
 
+  /// The opt-in "Free-text entry" toggle state + its change handler (#419).
+  /// Forwarded to the embedded template [FigureListEditor] so the toggle also
+  /// governs the Settings starting-figures editor, keeping the toggle's effect
+  /// consistent with the dance editor it sits above.
+  final bool freeTextEntry;
+  final ValueChanged<bool> onFreeTextEntryChanged;
+
   /// The live draft list backing the starting-figures template editor (ROADMAP
   /// DD.2), plus callbacks mirroring the dance editor's [FigureListEditor]
   /// wiring. Owned by [_DefaultsSectionState]; mutated in the callbacks.
   final List<FigureDraft> danceFigureTemplateDrafts;
   final VoidCallback onDanceFigureTemplateChanged;
   final VoidCallback onDanceFigureTemplateAdd;
+
+  /// Inserts the figure(s) parsed from one free-text line into the template
+  /// (#419); only used when [freeTextEntry] is on.
+  final ValueChanged<List<Figure>> onDanceFigureTemplateAddFreeText;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDelete;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDuplicate;
   final void Function(int oldIndex, int newIndex) onDanceFigureTemplateReorder;
@@ -608,6 +662,13 @@ class _DefaultsView extends StatelessWidget {
           isThreeLine: true,
         ),
         SectionHeader(title: l10n.settingsDefaultsAuthoringHeader),
+        SwitchListTile(
+          key: const ValueKey('defaults-free-text-entry'),
+          value: freeTextEntry,
+          onChanged: onFreeTextEntryChanged,
+          title: Text(l10n.settingsDefaultsFreeTextEntryTitle),
+          subtitle: Text(l10n.settingsDefaultsFreeTextEntrySubtitle),
+        ),
         ListTile(
           title: Text(l10n.settingsDefaultsFormTitle),
           subtitle: Text(l10n.settingsDefaultsFormSubtitle),
@@ -709,8 +770,10 @@ class _DefaultsView extends StatelessWidget {
             taxonomy: contraTaxonomy,
             phraseStructure: PhraseStructure.standard,
             dialect: ActiveDialectScope.of(context),
+            freeTextEntry: freeTextEntry,
             onChanged: onDanceFigureTemplateChanged,
             onAdd: onDanceFigureTemplateAdd,
+            onAddFreeText: onDanceFigureTemplateAddFreeText,
             onDelete: onDanceFigureTemplateDelete,
             onDuplicate: onDanceFigureTemplateDuplicate,
             onReorder: onDanceFigureTemplateReorder,

@@ -28,6 +28,7 @@ class DanceEditorForm extends StatelessWidget {
     required this.formKey,
     required this.taxonomy,
     required this.moveParamDefaults,
+    this.freeTextEntry = false,
     required this.dialect,
     required this.isNew,
     required this.authorOptions,
@@ -52,6 +53,12 @@ class DanceEditorForm extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final Taxonomy taxonomy;
   final Map<String, Map<String, Object?>> moveParamDefaults;
+
+  /// Whether the opt-in "Free-text entry" toggle is on (#419). Forwarded to the
+  /// figure list editor so adding a NEW figure opens a single free-text field
+  /// instead of a blank structured draft. Editing existing figures is
+  /// unaffected. Defaults to `false` (structured Add).
+  final bool freeTextEntry;
   final Dialect dialect;
   final bool isNew;
 
@@ -226,6 +233,8 @@ class DanceEditorForm extends StatelessWidget {
                   moveParamDefaults: moveParamDefaults,
                   onChanged: controller.onFiguresChanged,
                   onAdd: controller.addFigure,
+                  freeTextEntry: freeTextEntry,
+                  onAddFreeText: controller.insertFreeTextFigures,
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,
                   onReorder: controller.reorderFigure,

@@ -433,6 +433,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsAuthoringHeader => 'Dance-authoring defaults';
 
   @override
+  String get settingsDefaultsFreeTextEntryTitle => 'Free-text entry';
+
+  @override
+  String get settingsDefaultsFreeTextEntrySubtitle =>
+      'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.';
+
+  @override
   String get settingsDefaultsFormTitle => 'Form';
 
   @override
@@ -660,11 +667,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t parse this call — kept verbatim as a custom figure.';
 
   @override
-  String get importGapDialogTitle => 'Custom figure from import';
+  String get importGapDialogTitle => 'Unrecognized figure';
 
   @override
   String get importGapSemanticLabel =>
-      'Unparsed import. Couldn\'t parse this call — kept verbatim as a custom figure.';
+      'Unrecognized figure. Couldn\'t parse this call — kept verbatim as a custom figure.';
 
   @override
   String get collectionScreenTitle => 'Collection';

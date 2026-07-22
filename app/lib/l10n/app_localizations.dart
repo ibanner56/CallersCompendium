@@ -824,6 +824,18 @@ abstract class AppLocalizations {
   /// **'Dance-authoring defaults'**
   String get settingsDefaultsAuthoringHeader;
 
+  /// Title of the opt-in setting that lets a new figure be typed as one line instead of built field by field (#419).
+  ///
+  /// In en, this message translates to:
+  /// **'Free-text entry'**
+  String get settingsDefaultsFreeTextEntryTitle;
+
+  /// Explanatory subtitle for the free-text-entry setting, describing what turning it on does.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.'**
+  String get settingsDefaultsFreeTextEntrySubtitle;
+
   /// Title of the default dance-form picker.
   ///
   /// In en, this message translates to:
@@ -1238,16 +1250,16 @@ abstract class AppLocalizations {
   /// **'Couldn\'t parse this call — kept verbatim as a custom figure.'**
   String get importGapMessage;
 
-  /// Title of the dialog explaining an import-gap custom figure (shown when the badge is tapped).
+  /// Title of the dialog explaining an unrecognized (import-gap or free-text) custom figure (shown when the badge is tapped).
   ///
   /// In en, this message translates to:
-  /// **'Custom figure from import'**
+  /// **'Unrecognized figure'**
   String get importGapDialogTitle;
 
   /// Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments.
   ///
   /// In en, this message translates to:
-  /// **'Unparsed import. Couldn\'t parse this call — kept verbatim as a custom figure.'**
+  /// **'Unrecognized figure. Couldn\'t parse this call — kept verbatim as a custom figure.'**
   String get importGapSemanticLabel;
 
   /// App-bar title of the Collection screen (phone layout).
