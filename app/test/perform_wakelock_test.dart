@@ -61,6 +61,27 @@ Future<void> _pushPerform(WidgetTester tester, Widget screen) async {
   await tester.pumpAndSettle();
 }
 
+/// Simulates the app going to the background and returning to the foreground,
+/// stepping through the valid [AppLifecycleState] transitions so the
+/// `WidgetsBindingObserver` fires `didChangeAppLifecycleState` for each — ending
+/// on [AppLifecycleState.resumed].
+Future<void> _backgroundThenResume(WidgetTester tester) async {
+  const toBackground = [
+    AppLifecycleState.inactive,
+    AppLifecycleState.hidden,
+    AppLifecycleState.paused,
+  ];
+  const toForeground = [
+    AppLifecycleState.hidden,
+    AppLifecycleState.inactive,
+    AppLifecycleState.resumed,
+  ];
+  for (final state in [...toBackground, ...toForeground]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+  await tester.pump();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -114,5 +135,66 @@ void main() {
 
     expect(find.byType(PerformProgramScreen), findsNothing);
     expect(wakelock.isEnabled, isFalse);
+  });
+
+  testWidgets(
+    'single-dance Perform re-asserts the wake-lock after backgrounding',
+    (tester) async {
+      await _pushPerform(
+        tester,
+        PerformDanceScreen(dance: _dance(), renderer: _renderer),
+      );
+      expect(wakelock.isEnabled, isTrue);
+
+      // The OS releases the wake-lock while the app is backgrounded.
+      wakelock.isEnabled = false;
+      wakelock.toggles.clear();
+
+      await _backgroundThenResume(tester);
+
+      expect(
+        wakelock.isEnabled,
+        isTrue,
+        reason: 'resuming the app must re-assert the wake-lock',
+      );
+      expect(
+        wakelock.toggles,
+        contains(true),
+        reason: 'resume should issue a fresh enable toggle',
+      );
+    },
+  );
+
+  testWidgets('program Perform re-asserts the wake-lock after backgrounding', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Program Dance'));
+    final data = await CollectionData.load(repos);
+    final program = Program(
+      id: 'p1',
+      title: 'Spring Dance',
+      slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      createdAt: _now,
+      updatedAt: _now,
+    );
+
+    await _pushPerform(
+      tester,
+      PerformProgramScreen(program: program, data: data, renderer: _renderer),
+    );
+    expect(wakelock.isEnabled, isTrue);
+
+    wakelock.isEnabled = false;
+    wakelock.toggles.clear();
+
+    await _backgroundThenResume(tester);
+
+    expect(
+      wakelock.isEnabled,
+      isTrue,
+      reason: 'resuming the app must re-assert the wake-lock',
+    );
+    expect(wakelock.toggles, contains(true));
   });
 }

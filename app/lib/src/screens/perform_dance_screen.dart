@@ -41,7 +41,7 @@ class PerformDanceScreen extends StatefulWidget {
 }
 
 class _PerformDanceScreenState extends State<PerformDanceScreen>
-    with PerformWakelockMixin {
+    with WidgetsBindingObserver, PerformWakelockMixin {
   double _textScale = kPerformDefaultScale;
 
   /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the

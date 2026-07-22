@@ -774,6 +774,32 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets(
+    'a per-second tick rebuilds only the clock, not the card/figures',
+    (tester) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'First Dance')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+      );
+
+      // Capture the exact PerformCard widget instance and the clock reading.
+      final cardBefore = tester.widget<PerformCard>(find.byType(PerformCard));
+      final clockBefore = _seconds(_textOf(tester, 'perform-clock'));
+
+      await tester.pump(const Duration(seconds: 1));
+
+      // The clock advanced (the tick fired)...
+      expect(_seconds(_textOf(tester, 'perform-clock')), clockBefore + 1);
+      // ...but the screen did not rebuild: the card is the same widget
+      // instance, so `deriveSections`/`renderSummary` are not re-run each
+      // second (that full-rebuild storm was the bug).
+      final cardAfter = tester.widget<PerformCard>(find.byType(PerformCard));
+      expect(identical(cardBefore, cardAfter), isTrue);
+    },
+  );
+
   group('auto-size (ROADMAP G.1)', () {
     testWidgets('recomputes the fit when navigating to another slot', (
       tester,
@@ -800,6 +826,45 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byKey(const ValueKey('perform-text')), findsOneWidget);
     });
+
+    testWidgets(
+      'revisiting a fitted slot keeps its scale (no auto-size grow-in flash)',
+      (tester) async {
+        final data = await _dataWith([
+          _dance(id: 'd1', title: 'First Dance'),
+          _dance(id: 'd2', title: 'Second Dance'),
+        ]);
+        await _pumpProgram(
+          tester,
+          data: data,
+          autoSize: true,
+          program: _program([
+            _slot(id: 's1', position: 0, danceId: 'd1'),
+            _slot(id: 's2', position: 1, danceId: 'd2'),
+          ]),
+        );
+
+        // Slot 1 has settled at its fitted scale.
+        final fitted = tester.getSize(
+          find.byKey(const ValueKey('perform-title')),
+        );
+
+        // Visit slot 2 (settles at its own fit), then return to slot 1.
+        await tester.tap(find.byKey(const ValueKey('perform-next')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-prev')));
+        // Exactly one frame after returning: the cached per-slot scale means
+        // slot 1 renders at its remembered fit immediately. Without the cache
+        // the fit restarts at minScale, so the title would be visibly smaller
+        // for this frame (the "grow-in" flash) before growing back.
+        await tester.pump();
+
+        final revisitFirstFrame = tester.getSize(
+          find.byKey(const ValueKey('perform-title')),
+        );
+        expect(revisitFirstFrame.height, closeTo(fitted.height, 1.0));
+      },
+    );
 
     testWidgets('auto-size toggle is AT-reachable and reflects its state', (
       tester,

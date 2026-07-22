@@ -190,9 +190,14 @@ class PerformTextCard extends StatelessWidget {
 /// smallest scale still overflows (a very long dance on a tiny screen) the text
 /// is scrollable rather than clipped — content is never hidden.
 ///
-/// The search resets when the viewport size changes (orientation / window
-/// resize) or when [resetToken] changes (dance/slot or dialect change), so the
-/// fit recomputes on exactly the events the roadmap calls for.
+/// The first fit for a given [resetToken] must measure across a few frames, so
+/// it grows in from [minScale]. To avoid that visible "grow-in" flash *every*
+/// time the caller pages back to a slot they have already seen, the converged
+/// scale is cached per [resetToken] (for the current viewport) in
+/// [_FitToHeightState._cache]; revisiting a token starts at its remembered
+/// scale and skips the search. The cache is cleared whenever the viewport size
+/// changes (orientation / window resize), since a fit is only valid for the
+/// viewport it was measured against.
 class _FitToHeight extends StatefulWidget {
   const _FitToHeight({
     required this.minScale,
@@ -216,6 +221,12 @@ class _FitToHeightState extends State<_FitToHeight> {
 
   final GlobalKey _contentKey = GlobalKey();
 
+  /// Converged fit scale per [_FitToHeight.resetToken] for the *current*
+  /// viewport. Lets a revisited slot render at its remembered scale immediately
+  /// instead of restarting the binary search from [minScale] (the "grow-in"
+  /// flash). Cleared on viewport change, where cached scales no longer hold.
+  final Map<Object?, double> _tokenScales = <Object?, double>{};
+
   late double _lo = widget.minScale;
   late double _hi = widget.maxScale;
   late double _scale = widget.minScale;
@@ -223,6 +234,21 @@ class _FitToHeightState extends State<_FitToHeight> {
   Size? _lastViewport;
   Object? _lastToken;
   bool _converged = false;
+
+  /// Prepares the search for [token]: if a converged scale for it is cached
+  /// (same viewport), reuse it directly and skip the search — no flash — else
+  /// restart the binary search from [minScale].
+  void _beginToken(Object? token) {
+    final cached = _tokenScales[token];
+    if (cached != null) {
+      _lo = cached;
+      _hi = widget.maxScale;
+      _scale = cached;
+      _converged = true;
+    } else {
+      _resetSearch();
+    }
+  }
 
   void _resetSearch() {
     _lo = widget.minScale;
@@ -245,9 +271,11 @@ class _FitToHeightState extends State<_FitToHeight> {
     }
 
     if (_hi - _lo <= _scaleEpsilon) {
-      // Settle on the largest scale known to fit.
+      // Settle on the largest scale known to fit, and remember it so a return
+      // visit to this slot skips the search.
       final settled = _lo.clamp(widget.minScale, widget.maxScale);
       _converged = true;
+      _tokenScales[widget.resetToken] = settled;
       if ((settled - _scale).abs() > _scaleEpsilon / 2) {
         setState(() => _scale = settled);
       }
@@ -263,10 +291,15 @@ class _FitToHeightState extends State<_FitToHeight> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
-        if (_lastViewport != viewport || _lastToken != widget.resetToken) {
+        if (_lastViewport != viewport) {
+          // A cached scale only holds for the viewport it was measured against.
+          _tokenScales.clear();
           _lastViewport = viewport;
           _lastToken = widget.resetToken;
-          _resetSearch();
+          _beginToken(widget.resetToken);
+        } else if (_lastToken != widget.resetToken) {
+          _lastToken = widget.resetToken;
+          _beginToken(widget.resetToken);
         }
         final viewportHeight = constraints.maxHeight;
         if (viewportHeight.isFinite) {

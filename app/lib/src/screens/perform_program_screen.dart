@@ -62,7 +62,7 @@ class PerformProgramScreen extends StatefulWidget {
 }
 
 class _PerformProgramScreenState extends State<PerformProgramScreen>
-    with PerformWakelockMixin {
+    with WidgetsBindingObserver, PerformWakelockMixin {
   /// The live working copy of the program. In-event adjustments mutate this and
   /// persist through [PerformProgramScreen.onProgramChanged]; navigation and
   /// grouping recompute from it so the reading view reflects edits immediately.
@@ -104,15 +104,20 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// written back to the program (that is 5.3 territory).
   ///
   /// A single [Timer.periodic] (1s) drives both the running program clock and
-  /// the per-slot elapsed. We accumulate whole seconds in [_elapsedSeconds]
-  /// rather than diffing wall-clock time so the readouts advance deterministically
-  /// under `tester.pump(Duration(...))`. The timer is independent of
+  /// the per-slot elapsed. We accumulate whole seconds in [_elapsed] rather than
+  /// diffing wall-clock time so the readouts advance deterministically under
+  /// `tester.pump(Duration(...))`. The timer is independent of
   /// [PerformWakelockMixin] (which only toggles the wake-lock in initState/
-  /// dispose), so the two do not interfere.
+  /// dispose and re-asserts it on resume), so the two do not interfere.
+  ///
+  /// Elapsed lives in a [ValueNotifier] rather than plain state so the per-second
+  /// tick rebuilds only the timing line (via a [ValueListenableBuilder] in
+  /// [_buildTimingLine]) — not the whole card/figures, which would otherwise
+  /// re-run `deriveSections`/`renderSummary` for every figure each second.
   Timer? _timer;
-  int _elapsedSeconds = 0;
+  final ValueNotifier<int> _elapsed = ValueNotifier<int>(0);
 
-  /// Value of [_elapsedSeconds] when the current group was entered; the per-slot
+  /// Value of [_elapsed] when the current group was entered; the per-slot
   /// elapsed is the difference. Reset to "now" on every navigation.
   int _slotStartSeconds = 0;
   bool _paused = false;
@@ -126,13 +131,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_paused || !mounted) return;
-      setState(() => _elapsedSeconds++);
+      // Bump the notifier only — the [ValueListenableBuilder] in the timing
+      // line rebuilds the clock text without rebuilding the card/figures.
+      _elapsed.value++;
     });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _elapsed.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -156,11 +164,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
-  void _resetSlotTimer() => _slotStartSeconds = _elapsedSeconds;
+  void _resetSlotTimer() => _slotStartSeconds = _elapsed.value;
 
   void _togglePause() => setState(() => _paused = !_paused);
 
-  int get _slotElapsedSeconds => _elapsedSeconds - _slotStartSeconds;
+  int _slotElapsedFrom(int elapsed) => elapsed - _slotStartSeconds;
 
   /// `H:MM:SS` once past an hour, otherwise `MM:SS`.
   static String _formatDuration(int totalSeconds) {
@@ -648,65 +656,78 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// The running program clock, per-slot elapsed, and (when present) the
   /// planned slot length with a subtle over-run cue.
   ///
+  /// Only this line rebuilds on each 1s tick: a [ValueListenableBuilder] listens
+  /// to [_elapsed] so the clock/elapsed text updates without rebuilding the
+  /// card/figures (which would re-run `deriveSections`/`renderSummary` per
+  /// figure every second).
+  ///
   /// AT reading is deliberately *on demand*: the whole line is one
   /// [Semantics] node with a composed [label] that a screen reader voices when
   /// focused, wrapping [ExcludeSemantics] visuals. A per-second live region
   /// would spam AT, so the value is read at focus time instead of on every tick.
   Widget _buildTimingLine(ProgramSlot slot, TextTheme textTheme) {
     final planned = slot.plannedMinutes;
-    final slotElapsed = _slotElapsedSeconds;
-    final isOver = planned != null && slotElapsed > planned * 60;
     final style = textTheme.bodyMedium;
 
-    final label = StringBuffer(
-      'Program time ${_formatDuration(_elapsedSeconds)}, '
-      'slot time ${_formatDuration(slotElapsed)}',
-    );
-    if (planned != null) {
-      label.write(', planned $planned ${planned == 1 ? 'minute' : 'minutes'}');
-      if (isOver) label.write(', over planned');
-    }
-    if (_paused) label.write(', paused');
+    return ValueListenableBuilder<int>(
+      valueListenable: _elapsed,
+      builder: (context, elapsed, _) {
+        final slotElapsed = _slotElapsedFrom(elapsed);
+        final isOver = planned != null && slotElapsed > planned * 60;
 
-    return Semantics(
-      label: label.toString(),
-      child: ExcludeSemantics(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.timer_outlined, size: 16),
-            const SizedBox(width: 4),
-            Text(
-              _formatDuration(_elapsedSeconds),
-              key: const ValueKey('perform-clock'),
-              style: style,
-            ),
-            Text('  ·  ', style: style),
-            Text(
-              _formatDuration(slotElapsed),
-              key: const ValueKey('perform-slot-elapsed'),
-              style: style,
-            ),
-            if (planned != null) ...[
-              Text('  ·  ', style: style),
-              Text(
-                'planned $planned min',
-                key: const ValueKey('perform-planned'),
-                style: style,
-              ),
-              if (isOver) ...[
+        final label = StringBuffer(
+          'Program time ${_formatDuration(elapsed)}, '
+          'slot time ${_formatDuration(slotElapsed)}',
+        );
+        if (planned != null) {
+          label.write(
+            ', planned $planned ${planned == 1 ? 'minute' : 'minutes'}',
+          );
+          if (isOver) label.write(', over planned');
+        }
+        if (_paused) label.write(', paused');
+
+        return Semantics(
+          label: label.toString(),
+          child: ExcludeSemantics(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.timer_outlined, size: 16),
                 const SizedBox(width: 4),
-                const Icon(Icons.timelapse, size: 16),
                 Text(
-                  ' over',
-                  key: const ValueKey('perform-over'),
+                  _formatDuration(elapsed),
+                  key: const ValueKey('perform-clock'),
                   style: style,
                 ),
+                Text('  ·  ', style: style),
+                Text(
+                  _formatDuration(slotElapsed),
+                  key: const ValueKey('perform-slot-elapsed'),
+                  style: style,
+                ),
+                if (planned != null) ...[
+                  Text('  ·  ', style: style),
+                  Text(
+                    'planned $planned min',
+                    key: const ValueKey('perform-planned'),
+                    style: style,
+                  ),
+                  if (isOver) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Icons.timelapse, size: 16),
+                    Text(
+                      ' over',
+                      key: const ValueKey('perform-over'),
+                      style: style,
+                    ),
+                  ],
+                ],
               ],
-            ],
-          ],
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
