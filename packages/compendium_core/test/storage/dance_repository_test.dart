@@ -1235,5 +1235,31 @@ void main() {
             'rebuild must clear dance_fts in one bulk DELETE, not per dance',
       );
     });
+
+    test('rejects a non-positive chunkSize before touching the index '
+        '(#440)', () async {
+      // A non-positive chunkSize would leave the chunk loop unable to advance
+      // and hang the rebuild, so it must fail fast with an ArgumentError even
+      // in release builds (where asserts are stripped) — and before the bulk
+      // clear runs, so an existing index is left intact.
+      await dances.create(sampleDance(id: 'd1', title: 'Existing'));
+      await dances.rebuildAllDerived();
+      expect(await dances.searchText('Existing'), ['d1']);
+
+      for (final bad in [0, -1, -250]) {
+        await expectLater(
+          () => dances.rebuildAllDerived(chunkSize: bad),
+          throwsA(
+            isA<ArgumentError>()
+                .having((e) => e.name, 'name', 'chunkSize')
+                .having((e) => e.invalidValue, 'invalidValue', bad),
+          ),
+        );
+      }
+
+      // The guard threw before clearing, so the previously built index is
+      // untouched.
+      expect(await dances.searchText('Existing'), ['d1']);
+    });
   });
 }

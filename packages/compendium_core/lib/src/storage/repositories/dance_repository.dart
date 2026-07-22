@@ -395,7 +395,12 @@ class DanceRepository {
     int chunkSize = _rebuildChunkSize,
     DerivedRebuildProgressCallback? onProgress,
   }) async {
-    assert(chunkSize > 0, 'chunkSize must be positive');
+    // Runtime guard (not just an assert, which is stripped in release builds):
+    // a non-positive chunkSize would make the `start += chunkSize` loop never
+    // advance and hang the rebuild, so fail fast in production too (#440).
+    if (chunkSize <= 0) {
+      throw ArgumentError.value(chunkSize, 'chunkSize', 'must be > 0');
+    }
     final dances = await listAll(includeDeleted: true);
     final total = dances.length;
     onProgress?.call(DerivedRebuildProgress(completed: 0, total: total));
