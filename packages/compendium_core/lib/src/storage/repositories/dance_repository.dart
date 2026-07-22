@@ -837,6 +837,231 @@ class DanceRepository {
     });
   }
 
+  /// Sets the curatorial star [rating] on many dances at once, in a single
+  /// transaction, for the Collection multi-select "batch set rating" flow
+  /// (#423). Direct analogue of [setLevelForMany].
+  ///
+  /// Contract: to *set* a rating pass a non-null [rating] on the closed `1..5`
+  /// scale; to *unset* it pass [clearRating] `true`. Calling with neither
+  /// throws an [ArgumentError] (and trips a debug assert) to prevent the
+  /// footgun of accidentally clearing every dance by omitting [rating] (which
+  /// would otherwise diverge from [Dance.copyWith], where a null value without
+  /// a clear flag keeps the existing value). A set [clearRating] wins over any
+  /// [rating] value, matching [Dance.copyWith]. An out-of-range [rating] is
+  /// rejected up front with an [ArgumentError] so no dance is touched.
+  ///
+  /// Skips unknown ids and dances already at the target rating (idempotent),
+  /// and stamps [now] as `updatedAt` only on dances that actually change.
+  /// Returns the number of dances changed. An empty [ids] is a no-op returning
+  /// `0`. Because the whole batch runs in one transaction, an error leaves the
+  /// collection untouched rather than half-updated.
+  Future<int> setRatingForMany(
+    Iterable<String> ids, {
+    int? rating,
+    bool clearRating = false,
+    required DateTime now,
+  }) {
+    // Release-safe guard (asserts are stripped in release): a caller must pass
+    // a concrete rating, or opt in to clearing via clearRating. clearRating
+    // still takes precedence when both are set.
+    if (!clearRating && rating == null) {
+      throw ArgumentError(
+        'setRatingForMany requires a non-null rating unless clearRating is true',
+      );
+    }
+    assert(
+      clearRating || rating != null,
+      'setRatingForMany: pass a non-null rating, or clearRating: true to unset',
+    );
+    // Reject an out-of-range rating before opening the transaction so the
+    // thrown error is deterministic and the collection is never half-updated.
+    if (!clearRating && rating != null && (rating < 1 || rating > 5)) {
+      throw ArgumentError.value(rating, 'rating', 'must be null or 1..5');
+    }
+    assertUtc(now, 'now');
+    final target = clearRating ? null : rating;
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      var changed = 0;
+      for (final id in list) {
+        final dance = await getById(id);
+        if (dance == null) continue;
+        if (dance.rating == target) continue;
+        await _upsert(
+          dance.copyWith(
+            rating: target,
+            clearRating: target == null,
+            updatedAt: now,
+          ),
+        );
+        changed++;
+      }
+      return changed;
+    });
+  }
+
+  /// Merges [tunes] into the tune set of many dances at once (additive union),
+  /// in a single transaction, for the Collection multi-select "batch add tunes"
+  /// flow (#423). Mirrors the tag *add* model: existing tunes are preserved and
+  /// the specified tunes are appended where missing — nothing is ever removed.
+  /// Use [clearTunesForMany] for removal.
+  ///
+  /// Incoming tunes are sanitized once up front (trimmed, blanks dropped,
+  /// case-sensitively de-duplicated preserving first-seen order), matching the
+  /// single-dance edit path (`DanceEditorController.addTune`). Per dance, tunes
+  /// are appended only where not already present; a dance whose set does not
+  /// grow is skipped (idempotent). Skips unknown ids, stamps [now] as
+  /// `updatedAt` only on changed dances, and returns the number changed. An
+  /// empty [ids] — or an [tunes] that sanitizes to empty — is a no-op returning
+  /// `0`.
+  Future<int> addTunesForMany(
+    Iterable<String> ids, {
+    required Iterable<String> tunes,
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    final additions = <String>[];
+    for (final raw in tunes) {
+      final tune = raw.trim();
+      if (tune.isEmpty || additions.contains(tune)) continue;
+      additions.add(tune);
+    }
+    final list = ids.toList();
+    if (list.isEmpty || additions.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      var changed = 0;
+      for (final id in list) {
+        final dance = await getById(id);
+        if (dance == null) continue;
+        final current = dance.tunes;
+        final next = [
+          ...current,
+          for (final tune in additions)
+            if (!current.contains(tune)) tune,
+        ];
+        // Append-only: an unchanged length means every addition was already
+        // present, so there is nothing to write.
+        if (next.length == current.length) continue;
+        await _upsert(dance.copyWith(tunes: next, updatedAt: now));
+        changed++;
+      }
+      return changed;
+    });
+  }
+
+  /// Removes *all* tunes from many dances at once, in a single transaction, for
+  /// the Collection multi-select "batch clear tunes" flow (#423) — the explicit
+  /// removal counterpart to the additive [addTunesForMany].
+  ///
+  /// Skips unknown ids and dances that already have no tunes (idempotent),
+  /// stamps [now] as `updatedAt` only on changed dances, and returns the number
+  /// changed. An empty [ids] is a no-op returning `0`.
+  Future<int> clearTunesForMany(Iterable<String> ids, {required DateTime now}) {
+    assertUtc(now, 'now');
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      var changed = 0;
+      for (final id in list) {
+        final dance = await getById(id);
+        if (dance == null) continue;
+        if (dance.tunes.isEmpty) continue;
+        await _upsert(dance.copyWith(tunes: const [], updatedAt: now));
+        changed++;
+      }
+      return changed;
+    });
+  }
+
+  /// Upserts a single custom-field key→[value] across many dances at once, in a
+  /// single transaction, for the Collection multi-select "batch edit custom
+  /// field" flow (#423). For each selected dance the entry for [def] is set or
+  /// overwritten while **all other custom-field keys are left untouched**; a
+  /// dance lacking the key has it added.
+  ///
+  /// The [value] is validated against [def] via [CustomFieldValue.matchesType]
+  /// (respecting `choice` options and numeric/boolean/text typing) and an
+  /// invalid value is rejected up front with an [ArgumentError] so no dance is
+  /// touched — the OWASP-aligned guard mirroring the single-dance edit path.
+  ///
+  /// Skips unknown ids and dances whose entry for [def] already equals [value]
+  /// (idempotent), stamps [now] as `updatedAt` only on changed dances, and
+  /// returns the number changed. An empty [ids] is a no-op returning `0`.
+  Future<int> upsertCustomFieldForMany(
+    Iterable<String> ids, {
+    required CustomFieldDef def,
+    required Object value,
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    final incoming = CustomFieldValue(fieldId: def.id, value: value);
+    if (!incoming.matchesType(def)) {
+      throw ArgumentError.value(
+        value,
+        'value',
+        'does not match custom field "${def.key}" of type ${def.type.name}',
+      );
+    }
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      var changed = 0;
+      for (final id in list) {
+        final dance = await getById(id);
+        if (dance == null) continue;
+        final current = dance.customFields;
+        final alreadySet = current.any(
+          (f) => f.fieldId == def.id && f.value == value,
+        );
+        if (alreadySet) continue;
+        final next = [
+          for (final f in current)
+            if (f.fieldId != def.id) f,
+          incoming,
+        ];
+        await _upsert(dance.copyWith(customFields: next, updatedAt: now));
+        changed++;
+      }
+      return changed;
+    });
+  }
+
+  /// Clears a single custom-field key (identified by [fieldId]) across many
+  /// dances at once, in a single transaction, for the Collection multi-select
+  /// "batch edit custom field" flow (#423) — the removal counterpart to
+  /// [upsertCustomFieldForMany]. Only the entry for [fieldId] is removed from
+  /// each dance; **all other keys are left untouched**.
+  ///
+  /// Skips unknown ids and dances that lack the key (idempotent), stamps [now]
+  /// as `updatedAt` only on changed dances, and returns the number changed. An
+  /// empty [ids] is a no-op returning `0`.
+  Future<int> clearCustomFieldForMany(
+    Iterable<String> ids, {
+    required String fieldId,
+    required DateTime now,
+  }) {
+    assertUtc(now, 'now');
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value(0);
+    return _db.transaction(() async {
+      var changed = 0;
+      for (final id in list) {
+        final dance = await getById(id);
+        if (dance == null) continue;
+        final current = dance.customFields;
+        if (!current.any((f) => f.fieldId == fieldId)) continue;
+        final next = [
+          for (final f in current)
+            if (f.fieldId != fieldId) f,
+        ];
+        await _upsert(dance.copyWith(customFields: next, updatedAt: now));
+        changed++;
+      }
+      return changed;
+    });
+  }
+
   /// Read-only dry-run for the #417 "re-check custom figures" flow: scans every
   /// non-deleted dance and returns a [CustomReparsePreview] for each one that
   /// has at least one import-gap custom figure whose stored text now parses to
