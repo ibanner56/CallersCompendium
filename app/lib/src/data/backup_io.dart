@@ -102,12 +102,11 @@ Future<void> writeStringAtomically(
   String contents, {
   Future<void> Function()? debugSimulateFailure,
 }) async {
-  final target = File(path);
   final tmp = File('$path.tmp');
   try {
     await tmp.writeAsString(contents, flush: true);
     if (debugSimulateFailure != null) await debugSimulateFailure();
-    await tmp.rename(target.path);
+    await tmp.rename(path);
   } catch (_) {
     // Best-effort cleanup: never leave a `.tmp` behind, and never touch the
     // previous good backup at `path` (only a successful rename replaces it).
