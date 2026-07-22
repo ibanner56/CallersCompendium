@@ -1400,6 +1400,30 @@ abstract class AppLocalizations {
   /// **'Discard'**
   String get programsDiscard;
 
+  /// Title of the dialog offering to restore an autosaved program draft from an interrupted prior session.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved draft'**
+  String get programsDraftTitle;
+
+  /// Body of the dialog offering to restore an autosaved program draft.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an unsaved draft for this program. Would you like to restore it?'**
+  String get programsDraftBody;
+
+  /// Button that restores the autosaved program draft into the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get programsDraftRestore;
+
+  /// Button that discards the autosaved program draft and starts from the saved program.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get programsDraftDiscard;
+
   /// App bar title of the program editor when editing an existing program.
   ///
   /// In en, this message translates to:

@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import '../editor/editor_draft_codec.dart' show kDanceEditorDraftKeyPrefix;
+import '../editor/program_editor_draft_codec.dart'
+    show kProgramEditorDraftKeyPrefix;
 import 'backup_document.dart';
 import 'backup_reminder.dart';
 import 'custom_theme.dart';
@@ -35,8 +37,11 @@ const Set<String> kBackupSettingsDenylist = {
 /// - [kDanceEditorDraftKeyPrefix] — transient, device-local dance-editor
 ///   autosave drafts (`editor_draft:<id>`); unsaved in-progress edits that are
 ///   neither user content nor preferences and must never travel in a backup.
+/// - [kProgramEditorDraftKeyPrefix] — the program-editor equivalent
+///   (`program_editor_draft:<id>`); same device-local, transient rationale.
 const Set<String> kBackupSettingsDenylistPrefixes = {
   kDanceEditorDraftKeyPrefix,
+  kProgramEditorDraftKeyPrefix,
 };
 
 /// Whether a settings-table [key] is eligible to travel in a backup's

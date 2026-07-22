@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
@@ -11,6 +13,7 @@ import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
+import '../editor/program_editor_draft_codec.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
 import '../theme/keyboard_dismiss.dart';
@@ -98,6 +101,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   CollectionData? _data;
   bool _saving = false;
   bool _dirty = false;
+
+  /// Debounced autosave timer for the in-progress draft (issue #436). Persists
+  /// the working set list to [SettingsRepository] so an OS background/kill
+  /// before an explicit Save no longer silently loses it.
+  Timer? _autosaveTimer;
+
+  /// `true` while [_applyRestoredDraft] repopulates state from a restored draft,
+  /// so [_scheduleAutosave] doesn't re-arm a write mid-restore.
+  bool _restoringDraft = false;
+
+  /// A decoded draft staged by [_load] awaiting a restore/discard prompt; shown
+  /// after the first frame by [_maybeShowRestoreDialog].
+  ProgramEditorDraft? _pendingDraft;
 
   /// In-memory Perform resume state (issue #434). Perform is pushed *on top* of
   /// this editor, so this field survives that navigation: on exit the Perform
@@ -194,6 +210,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _slots = program?.slots.toList() ?? const [];
         _loaded = true;
       });
+      // Detect an autosaved draft from an interrupted prior session and stage a
+      // restore/discard prompt (issue #436). Runs after the loaded-state
+      // setState so the editor is fully built before any dialog appears.
+      await _maybeStageDraft();
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -236,6 +256,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   @override
   void dispose() {
+    _autosaveTimer?.cancel();
     _tabController.dispose();
     _titleController.dispose();
     _venueController.dispose();
@@ -248,6 +269,148 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   void _markDirty() {
     if (!_dirty) setState(() => _dirty = true);
+    _scheduleAutosave();
+  }
+
+  // --- Autosave / draft persistence (issue #436) ----------------------------
+
+  /// Settings-table key for this editor's draft, keyed by program id (or `new`
+  /// for an unsaved program), mirroring the dance editor's `editor_draft:<id>`.
+  String get _draftKey =>
+      '$kProgramEditorDraftKeyPrefix${widget.programId ?? 'new'}';
+
+  /// Debounces autosave writes (500 ms after the last change), matching the
+  /// dance editor. No-op before the initial load completes or while restoring a
+  /// draft, so neither seeding defaults nor a restore triggers a spurious write.
+  void _scheduleAutosave() {
+    if (!_loaded || _restoringDraft) return;
+    _autosaveTimer?.cancel();
+    _autosaveTimer = Timer(const Duration(milliseconds: 500), _saveDraft);
+  }
+
+  /// Captures the current working state as an immutable draft snapshot. The
+  /// title is kept verbatim (may be empty for an in-progress build); slots are
+  /// renumbered so positions stay contiguous.
+  ProgramEditorDraft _captureDraft() {
+    String? nn(TextEditingController c) {
+      final v = c.text.trim();
+      return v.isEmpty ? null : v;
+    }
+
+    return ProgramEditorDraft(
+      title: _titleController.text,
+      eventDate: _eventDate,
+      venue: nn(_venueController),
+      band: nn(_bandController),
+      caller: nn(_callerController),
+      dancerLevel: nn(_levelController),
+      notes: _notesController.text,
+      status: _status,
+      hideAlternates: _hideAlternates,
+      slots: _renumber(_slots),
+    );
+  }
+
+  Future<void> _saveDraft() async {
+    if (!_loaded || !mounted || _restoringDraft) return;
+    try {
+      await _repos.settings.set(_draftKey, encodeProgramDraft(_captureDraft()));
+    } catch (_) {
+      // A draft write failure must never disrupt editing; the next edit retries.
+    }
+  }
+
+  /// Cancels the pending autosave and removes the draft from storage. Called on
+  /// every terminal path (explicit save, delete, confirmed discard) so a
+  /// committed or abandoned program never leaves a stale draft behind.
+  Future<void> _clearDraft() async {
+    _autosaveTimer?.cancel();
+    try {
+      await _repos.settings.remove(_draftKey);
+    } catch (_) {
+      // Best-effort cleanup; a failure here is non-fatal.
+    }
+  }
+
+  /// Reads any autosaved draft for this program, decodes it (silently
+  /// discarding a corrupt/unrecognised one), and stages a restore/discard
+  /// prompt after the first frame.
+  Future<void> _maybeStageDraft() async {
+    if (!mounted) return;
+    ProgramEditorDraft? draft;
+    try {
+      if (await _repos.settings.contains(_draftKey)) {
+        draft = decodeProgramDraft(await _repos.settings.get(_draftKey));
+      }
+    } catch (_) {
+      // Corrupt / unrecognised draft version — silently discard.
+      await _clearDraft();
+      draft = null;
+    }
+    if (draft == null || !mounted) return;
+    _pendingDraft = draft;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _maybeShowRestoreDialog(),
+    );
+  }
+
+  /// Shows the restore/discard dialog for a staged draft. Restoring applies the
+  /// draft and keeps it (it is still unsaved work); discarding removes it.
+  Future<void> _maybeShowRestoreDialog() async {
+    final draft = _pendingDraft;
+    if (draft == null || !mounted) return;
+    _pendingDraft = null;
+    final l10n = AppLocalizations.of(context);
+    final restore = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.programsDraftTitle),
+        content: Text(l10n.programsDraftBody),
+        actions: [
+          TextButton(
+            key: const ValueKey('program-draft-discard'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.programsDraftDiscard),
+          ),
+          FilledButton(
+            key: const ValueKey('program-draft-restore'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.programsDraftRestore),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (restore == true) {
+      _applyRestoredDraft(draft);
+    } else {
+      await _clearDraft();
+    }
+  }
+
+  /// Repopulates the editor's working state from a restored [draft] and marks it
+  /// dirty (restored content is unsaved work). The [_restoringDraft] guard stops
+  /// the repopulation from re-arming autosave; the on-disk draft is left intact.
+  void _applyRestoredDraft(ProgramEditorDraft draft) {
+    _restoringDraft = true;
+    try {
+      _titleController.text = draft.title;
+      _venueController.text = draft.venue ?? '';
+      _bandController.text = draft.band ?? '';
+      _callerController.text = draft.caller ?? '';
+      _levelController.text = draft.dancerLevel ?? '';
+      _notesController.text = draft.notes;
+      setState(() {
+        _eventDate = draft.eventDate;
+        _status = draft.status;
+        _hideAlternates = draft.hideAlternates;
+        _slots = _renumber(draft.slots);
+        _dirty = true;
+      });
+    } finally {
+      _restoringDraft = false;
+    }
   }
 
   /// Renumbers positions contiguously (0..n-1) in list order.
@@ -345,6 +508,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               _slots = slots;
               _dirty = true;
             });
+            _scheduleAutosave();
           },
         ),
       ),
@@ -361,6 +525,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ]);
       _dirty = true;
     });
+    _scheduleAutosave();
     final l10n = AppLocalizations.of(context);
     final title = _titleForDance(danceId) ?? l10n.programsUntitledDanceFallback;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -386,6 +551,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ]);
       _dirty = true;
     });
+    _scheduleAutosave();
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsAddedNoteAnnounce,
@@ -405,6 +571,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ]);
       _dirty = true;
     });
+    _scheduleAutosave();
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsAddedBreakAnnounce,
@@ -420,6 +587,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _slots = _renumber(list);
       _dirty = true;
     });
+    _scheduleAutosave();
   }
 
   void _updateSlot(int index, ProgramSlot updated) {
@@ -429,6 +597,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _slots = _renumber(list);
       _dirty = true;
     });
+    _scheduleAutosave();
   }
 
   void _removeSlot(int index) {
@@ -437,6 +606,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _slots = _renumber(list);
       _dirty = true;
     });
+    _scheduleAutosave();
   }
 
   Future<void> _markAllPerformed() async {
@@ -451,6 +621,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ];
       _dirty = true;
     });
+    _scheduleAutosave();
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsMarkedAllPerformed,
@@ -557,6 +728,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         await _repos.programs.update(updated);
         _existing = updated;
       }
+      // Work is committed — drop the autosave draft so it can't resurface.
+      await _clearDraft();
       if (!mounted) return;
       setState(() {
         _saving = false;
@@ -621,6 +794,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (!mounted) return;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
+    // Drop the autosave draft so it can't resurface for a deleted program.
+    await _clearDraft();
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
@@ -676,7 +852,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (didPop) return;
         final ok = await _confirmDiscard();
         if (!context.mounted) return;
-        if (ok) Navigator.of(context).pop();
+        if (ok) {
+          // User confirmed the discard: drop the autosave draft so it can't
+          // resurface, then pop.
+          await _clearDraft();
+          if (!context.mounted) return;
+          Navigator.of(context).pop();
+        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -1102,10 +1284,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   key: const ValueKey('clear-event-date'),
                   tooltip: l10n.programsClearEventDate,
                   icon: const Icon(Icons.clear),
-                  onPressed: () => setState(() {
-                    _eventDate = null;
-                    _dirty = true;
-                  }),
+                  onPressed: () {
+                    setState(() {
+                      _eventDate = null;
+                      _dirty = true;
+                    });
+                    _scheduleAutosave();
+                  },
                 ),
             ],
           ),
@@ -1202,6 +1387,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 _status = value;
                 _dirty = true;
               });
+              _scheduleAutosave();
             }
           },
         ),
@@ -1217,6 +1403,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               _hideAlternates = value;
               _dirty = true;
             });
+            _scheduleAutosave();
           },
         ),
       ],
@@ -1242,6 +1429,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _eventDate = DateTime.utc(picked.year, picked.month, picked.day);
         _dirty = true;
       });
+      _scheduleAutosave();
     }
   }
 }
