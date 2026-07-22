@@ -2791,7 +2791,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   final String? venue;
 
   /// Optional reference to a first-class [Venues] row (`venues.id`), added in
-  /// schema v13. A deliberately un-constrained soft reference (no drift
+  /// schema v14. A deliberately un-constrained soft reference (no drift
   /// `.references()`/FK): the free-text [venue] label and this entity link
   /// coexist non-destructively. Referential integrity is enforced at the app
   /// layer instead of by a DB constraint — `ProgramRepository` rejects a write

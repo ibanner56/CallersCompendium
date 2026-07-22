@@ -195,7 +195,7 @@ class Program {
   /// the free-text [venue] label so the two coexist non-destructively: the
   /// display layer prefers a resolvable [venueId], falling back to [venue]
   /// (`docs/design/domain-model.md`). `null` when the program has no linked
-  /// venue entity (the default, and every program before schema v13).
+  /// venue entity (the default, and every program before schema v14).
   final String? venueId;
 
   /// The band playing the event.

@@ -22,7 +22,7 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 /// Version history:
 /// * **v1** — the original envelope: dances, programs, choreographers,
 ///   published sources, custom fields, tags.
-/// * **v2** — adds the schema-v13 venue entity: an optional top-level `venues`
+/// * **v2** — adds the schema-v14 venue entity: an optional top-level `venues`
 ///   array and a `program.venueId` soft link. A **v1** reader silently ignores
 ///   both, so an archive that actually carries venue data is stamped v2 (see
 ///   [requiredSchemaVersion]) to trip the "newer than supported" warning
@@ -33,7 +33,7 @@ const int archiveSchemaVersion = archiveSchemaVersionVenues;
 /// The original, pre-venue archive envelope version.
 const int archiveSchemaVersionBase = 1;
 
-/// The envelope version introduced with the schema-v13 venue entity (see
+/// The envelope version introduced with the schema-v14 venue entity (see
 /// [archiveSchemaVersion]).
 const int archiveSchemaVersionVenues = 2;
 
@@ -107,7 +107,7 @@ class CompendiumArchive {
   final List<Tag> tags;
 
   /// Reusable venue entities referenced by programs' `venueId`. Added
-  /// alongside the schema-v13 venue entity; older archives simply omit the
+  /// alongside the schema-v14 venue entity; older archives simply omit the
   /// `venues` array and decode to an empty list.
   final List<Venue> venues;
 

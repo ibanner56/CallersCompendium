@@ -147,7 +147,7 @@ class Programs extends Table {
   TextColumn get venue => text().nullable()();
 
   /// Optional reference to a first-class [Venues] row (`venues.id`), added in
-  /// schema v13. A deliberately un-constrained soft reference (no drift
+  /// schema v14. A deliberately un-constrained soft reference (no drift
   /// `.references()`/FK): the free-text [venue] label and this entity link
   /// coexist non-destructively. Referential integrity is enforced at the app
   /// layer instead of by a DB constraint — `ProgramRepository` rejects a write
@@ -310,7 +310,7 @@ class DanceSources extends Table {
 /// A reusable venue (hall, church, grange, festival site) that programs are
 /// held at. A first-class entity (like [PublishedSources]/[Choreographers]);
 /// a program links to it by [Programs.venueId] while the free-text
-/// [Programs.venue] label persists independently. Added in schema v13.
+/// [Programs.venue] label persists independently. Added in schema v14.
 ///
 /// Faithful to Caller's Companion's `Venue` table minus its FileMaker plumbing
 /// (`VenueDisplay_c`, `zc_*`/`zi_*`, `zk_Constant`, `SiteID`): CC's stored

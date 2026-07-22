@@ -73,7 +73,7 @@ Map<String, Object?> archiveToJson(CompendiumArchive archive) => {
   ],
   // Omit the `venues` array entirely when empty so archives produced before
   // the venue entity (and any that simply have no venues) stay byte-identical
-  // to the pre-v13 format and older readers are unaffected.
+  // to the pre-v14 format and older readers are unaffected.
   if (archive.venues.isNotEmpty)
     'venues': [
       for (final v in _sortedById(archive.venues, (v) => v.id)) _venueToJson(v),
