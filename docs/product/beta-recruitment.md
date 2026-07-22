@@ -16,7 +16,7 @@ A good beta cohort is small (roughly 10–25 active testers) and varied along th
 axes that stress the app differently:
 
 - **Experience** — from newer callers to veterans with big repertoires.
-- **Platforms** — Linux, macOS, Windows, Android, and iOS/iPadOS, so packaging and
+- **Platforms** — Linux, macOS, Windows, Android, and iOS/iPadOS, so installs and
   Perform mode get exercised everywhere.
 - **Calling context** — regular series callers, weekend/festival callers, and folks
   who call occasionally, since they build programs and use Perform mode differently.
@@ -107,8 +107,8 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 >
 > What I'm asking: use it for your own dances — ideally call at least one real gig
 > with it — and tell me how it went. All feedback is voluntary and goes through
-> GitHub. Installers are still being packaged, so early testers run a development
-> build; I'll happily walk you through it.
+> GitHub. Downloadable builds are ready for Linux, macOS, Windows, and Android
+> (iPhone/iPad go out through TestFlight); I'll happily walk you through install.
 >
 > Interested? Start here: https://github.com/ibanner56/CallersCompendium/blob/main/docs/beta/beta-guide.md
 > and say hello in Discussions: https://github.com/ibanner56/CallersCompendium/discussions
@@ -164,9 +164,8 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 > in.
 >
 > Since many of us call the same series, this is a great chance to try it at a real
-> [region] dance and tell me what works on your device. Installers are still being
-> packaged, so early testers run a development build — I'm glad to help you get set
-> up.
+> [region] dance and tell me what works on your device. Ready-to-install builds are
+> available for every platform — I'm glad to help you get set up.
 >
 > Interested? Details are here:
 > https://github.com/ibanner56/CallersCompendium/blob/main/docs/beta/beta-guide.md
@@ -179,7 +178,7 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 
 Every template says the same true things: the app is free, local-first, and
 collects nothing; testers keep control of their data; and this is pre-release
-software that still needs packaging. We do not oversell. Callers are a
+software with rough edges we want reported. We do not oversell. Callers are a
 tight-knit, generous community — the fastest way to earn their help is to be
 straight with them.
 

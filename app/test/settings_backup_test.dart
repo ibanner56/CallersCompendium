@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 Dance _dance(String id, String title) => Dance(
   id: id,
@@ -58,7 +59,13 @@ Future<void> _pumpGeneral(
     tree = BackupControllerScope(onRestored: onRestored, child: tree);
   }
 
-  await tester.pumpWidget(MaterialApp(home: tree));
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: tree,
+    ),
+  );
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
   await tester.pumpAndSettle();

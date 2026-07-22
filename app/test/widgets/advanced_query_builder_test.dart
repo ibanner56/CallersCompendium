@@ -3,6 +3,7 @@ import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/l10n_harness.dart';
 
 // ---------------------------------------------------------------------------
 // Minimal host that owns the mutable builder root and calls onChanged to
@@ -22,6 +23,8 @@ class _HostState extends State<_Host> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: SingleChildScrollView(
           child: AdvancedQueryBuilder(

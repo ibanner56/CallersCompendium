@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/backup_io.dart';
 import '../data/import_io.dart';
 import '../theme/app_spacing.dart';
@@ -89,6 +90,17 @@ enum _SettingsSection {
   final IconData selectedIcon;
 }
 
+/// The localized sidebar/app-bar label for [section].
+///
+/// i18n foundation (PR 1): only the Language & region section is localized so
+/// far — it is the extraction proof for this slice. Other sections fall back to
+/// the enum's [_SettingsSection.label] and are localized in later extraction
+/// PRs, so this deliberately mixes localized and not-yet-localized labels.
+String _sectionLabel(BuildContext context, _SettingsSection section) =>
+    section == _SettingsSection.regional
+    ? AppLocalizations.of(context).settingsLanguageRegionTitle
+    : section.label;
+
 class _SettingsScreenState extends State<SettingsScreen> {
   _SettingsSection _section = _SettingsSection.appearance;
 
@@ -123,7 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (routeContext) => Scaffold(
-          appBar: AppBar(title: Text(section.label)),
+          appBar: AppBar(title: Text(_sectionLabel(routeContext, section))),
           body: _content(routeContext, section),
         ),
       ),
@@ -140,7 +152,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (sideBySide) {
           return Scaffold(
             appBar: AppBar(
-              title: const Text('Settings'),
+              title: Text(AppLocalizations.of(context).settingsTitle),
               automaticallyImplyLeading: false,
             ),
             body: Row(
@@ -162,7 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Settings'),
+            title: Text(AppLocalizations.of(context).settingsTitle),
             automaticallyImplyLeading: false,
           ),
           body: ListView(
@@ -171,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ListTile(
                   key: ValueKey('settings-nav-${s.name}'),
                   leading: Icon(s.icon),
-                  title: Text(s.label),
+                  title: Text(_sectionLabel(context, s)),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => _openSection(s),
                 ),
@@ -200,7 +212,7 @@ class _SettingsSidebar extends StatelessWidget {
           ListTile(
             key: ValueKey('settings-nav-${s.name}'),
             leading: Icon(s == selected ? s.selectedIcon : s.icon),
-            title: Text(s.label),
+            title: Text(_sectionLabel(context, s)),
             selected: s == selected,
             onTap: () => onSelect(s),
           ),

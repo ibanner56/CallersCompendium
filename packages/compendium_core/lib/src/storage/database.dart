@@ -37,7 +37,7 @@ const List<String> searchIndexSql = [
       'ON dance_figures(move, section)',
 ];
 
-/// The v13 lookup index over `programs.venue_id`.
+/// The v14 lookup index over `programs.venue_id`.
 ///
 /// `VenueRepository.delete`'s guard counts the programs still referencing a
 /// venue (`SELECT COUNT(id) FROM programs WHERE venue_id = ?`). Because a
@@ -45,11 +45,29 @@ const List<String> searchIndexSql = [
 /// COUNT would full-scan the whole `programs` table on every guarded delete
 /// (O(total programs)); the index lets SQLite restrict the scan to just the
 /// matching references. Declared raw (like [searchIndexSql]) rather than as a
-/// drift-managed index, and applied in both `onCreate` and the `from < 13`
+/// drift-managed index, and applied in both `onCreate` and the `from < 14`
 /// upgrade step so fresh and migrated databases get it identically.
 const List<String> venueLookupIndexSql = [
   'CREATE INDEX IF NOT EXISTS programs_venue_id ON programs(venue_id)',
 ];
+
+/// Lookup index for `dance_id` on `dance_links` (schema v13).
+///
+/// Unlike the other dance-child tables — `dance_figures {danceId, idx}`,
+/// `dance_authors {danceId, choreographerId}`, `dance_tags {danceId, tagId}`,
+/// `dance_sources {danceId, sourceId}`, `custom_field_values {danceId, fieldId}`
+/// and `provenance {danceId}` — whose composite primary keys lead with
+/// `danceId` (so SQLite's implicit PK index already serves `WHERE dance_id IN
+/// (…)`), `dance_links` is keyed on its own `id` alone. Without this index every
+/// `dance_id IN (…)` chunk in [DanceRepository.listAll]'s batched link loader
+/// (and the single-id lookup behind `getById`) is a full table scan, making the
+/// link hydration O(N²) in row work as links grow with the collection. This
+/// index turns each lookup into an index seek (`SEARCH … USING INDEX`) — the
+/// loader still visits the matched `dance_links` rows to read the other columns
+/// (it is a lookup index, not a covering one), but it no longer scans the whole
+/// table — so the batching scales in execution work, not only in query count.
+const String danceLinksDanceIdIndexSql =
+    'CREATE INDEX IF NOT EXISTS dance_links_dance_id ON dance_links(dance_id)';
 
 /// Settings key marking that a schema migration touched the derived figure
 /// index and the `dance_figures` rows must be rebuilt from `figures_json`.
@@ -65,7 +83,7 @@ const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 13;
+const int kCompendiumSchemaVersion = 14;
 
 /// The Caller's Compendium local database.
 ///
@@ -161,7 +179,14 @@ const int kCompendiumSchemaVersion = 13;
 ///   or figure that can't be cleanly remapped is left byte-identical so it falls
 ///   through to the non-destructive unknown-move path (issue #358) at read time,
 ///   never dropped or corrupted.
-/// - v13 (2026-07-21): first-class venue entity. Adds one brand-new table,
+/// - v13 (2026-07-22): performance-only index. Adds
+///   `dance_links_dance_id` (`dance_links(dance_id)`) so the batched link
+///   hydration in [DanceRepository.listAll] (and the single-id lookup behind
+///   `getById`) seeks by index instead of full-scanning `dance_links` on every
+///   `dance_id IN (…)` chunk. Pure DDL: no columns/tables added, no data
+///   rewritten, and the derived `dance_fts`/`dance_figures` indexes are
+///   untouched, so no derived rebuild is required.
+/// - v14 (2026-07-22): first-class venue entity. Adds one brand-new table,
 ///   `venues` (a reusable venue — id/name plus 20 nullable address/contact/
 ///   schedule columns, faithful to CC's `Venue` table), and a single nullable
 ///   `programs.venue_id` soft reference to it. Purely additive: `createTable` +
@@ -222,6 +247,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       for (final sql in searchIndexSql) {
         await customStatement(sql);
       }
+      await customStatement(danceLinksDanceIdIndexSql);
       for (final sql in venueLookupIndexSql) {
         await customStatement(sql);
       }
@@ -381,6 +407,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         }
       }
       if (from < 13) {
+        // Performance-only index on `dance_links(dance_id)`. `dance_links` is
+        // the one dance-child table not keyed by a `danceId`-leading composite
+        // PK, so before this every batched `dance_id IN (…)` link lookup in
+        // `DanceRepository.listAll` full-scanned the table (O(N²) as links grow
+        // with the collection). Pure DDL — no data touched, no derived rebuild.
+        await customStatement(danceLinksDanceIdIndexSql);
+      }
+      if (from < 14) {
         // First-class venue entity. One brand-new table (`venues`) plus a
         // single nullable soft-reference column `programs.venue_id`. Purely
         // additive: existing programs get `venue_id` NULL and keep their

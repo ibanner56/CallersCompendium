@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../search/collection_query.dart';
 import 'advanced_query_builder.dart' show MoveTypeAheadField;
 
@@ -33,16 +34,20 @@ class ByPhrasePanel extends StatelessWidget {
   /// Caller's Box-style caption for the [index]-th phrase, e.g.
   /// "first phrase (usually A1)". Ordinals beyond the fourth fall back to
   /// "phrase N".
-  static String captionFor(int index, String label) {
-    const ordinals = ['first', 'second', 'third', 'fourth'];
-    final ordinal = index < ordinals.length
-        ? '${ordinals[index]} phrase'
-        : 'phrase ${index + 1}';
-    return '$ordinal (usually $label)';
+  static String captionFor(AppLocalizations l10n, int index, String label) {
+    final ordinal = switch (index) {
+      0 => l10n.collectionByPhraseOrdinalFirst,
+      1 => l10n.collectionByPhraseOrdinalSecond,
+      2 => l10n.collectionByPhraseOrdinalThird,
+      3 => l10n.collectionByPhraseOrdinalFourth,
+      _ => l10n.collectionByPhraseOrdinalN(index + 1),
+    };
+    return l10n.collectionByPhraseCaption(ordinal, label);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -50,7 +55,7 @@ class ByPhrasePanel extends StatelessWidget {
           _PhraseRow(
             key: ValueKey('by-phrase-$label'),
             label: label,
-            caption: captionFor(index, label),
+            caption: captionFor(l10n, index, label),
             selections: selections,
             taxonomy: taxonomy,
             onChanged: onChanged,
@@ -79,6 +84,7 @@ class _PhraseRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -93,7 +99,7 @@ class _PhraseRow extends StatelessWidget {
           const SizedBox(height: 4),
           _MoveMultiField(
             keyPrefix: 'match-$label',
-            fieldLabel: '$caption, figures match',
+            fieldLabel: l10n.collectionByPhraseFieldMatch(caption),
             moves: selections.match.putIfAbsent(label, () => []),
             taxonomy: taxonomy,
             onChanged: onChanged,
@@ -101,7 +107,7 @@ class _PhraseRow extends StatelessWidget {
           const SizedBox(height: 4),
           _MoveMultiField(
             keyPrefix: 'exclude-$label',
-            fieldLabel: '$caption, but do not match',
+            fieldLabel: l10n.collectionByPhraseFieldExclude(caption),
             moves: selections.exclude.putIfAbsent(label, () => []),
             taxonomy: taxonomy,
             onChanged: onChanged,
@@ -136,6 +142,7 @@ class _MoveMultiField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -154,8 +161,11 @@ class _MoveMultiField extends StatelessWidget {
                       moves.remove(moveId);
                       onChanged();
                     },
-                    deleteButtonTooltipMessage:
-                        'Remove ${_displayName(moveId)} from $fieldLabel',
+                    deleteButtonTooltipMessage: l10n
+                        .collectionByPhraseRemoveMove(
+                          _displayName(moveId),
+                          fieldLabel,
+                        ),
                   ),
               ],
             ),

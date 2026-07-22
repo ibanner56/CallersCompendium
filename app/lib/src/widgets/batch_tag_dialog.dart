@@ -2,22 +2,10 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/repositories_scope.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Which batch operation the dialog is picking tags for.
-enum BatchTagMode {
-  add,
-  remove;
-
-  String get title => switch (this) {
-    BatchTagMode.add => 'Add tags',
-    BatchTagMode.remove => 'Remove tags',
-  };
-
-  String get confirmLabel => switch (this) {
-    BatchTagMode.add => 'Add',
-    BatchTagMode.remove => 'Remove',
-  };
-}
+enum BatchTagMode { add, remove }
 
 /// Shows the batch-tag picker for the Collection multi-select flow
 /// (`docs/design/ux.md` §1).
@@ -93,6 +81,7 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
     }
     setState(() => _creating = true);
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final tag = Tag(id: uuidV4(), name: name);
     try {
@@ -101,7 +90,7 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
       if (!mounted) return;
       setState(() => _creating = false);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Could not create tag. Try again.')),
+        SnackBar(content: Text(l10n.collectionCreateTagError)),
       );
       return;
     }
@@ -118,9 +107,10 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
   @override
   Widget build(BuildContext context) {
     final isAdd = widget.mode == BatchTagMode.add;
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
       key: const ValueKey('batch-tag-dialog'),
-      title: Text(widget.mode.title),
+      title: Text(isAdd ? l10n.collectionAddTags : l10n.collectionRemoveTags),
       content: SizedBox(
         width: 360,
         child: Column(
@@ -132,8 +122,8 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
                   isAdd
-                      ? 'No tags yet. Create one below.'
-                      : 'The selected dances have no tags to remove.',
+                      ? l10n.collectionBatchTagEmptyAdd
+                      : l10n.collectionBatchTagEmptyRemove,
                 ),
               )
             else
@@ -170,10 +160,10 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
                       key: const ValueKey('batch-new-tag-field'),
                       controller: _newTagController,
                       textInputAction: TextInputAction.done,
-                      decoration: const InputDecoration(
-                        labelText: 'Create a tag',
+                      decoration: InputDecoration(
+                        labelText: l10n.collectionCreateTagLabel,
                         isDense: true,
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                       onSubmitted: (_) => _createTag(),
                     ),
@@ -181,7 +171,7 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
                   const SizedBox(width: 8),
                   IconButton(
                     key: const ValueKey('batch-create-tag'),
-                    tooltip: 'Create tag',
+                    tooltip: l10n.collectionCreateTagButton,
                     icon: const Icon(Icons.add),
                     onPressed: _creating ? null : _createTag,
                   ),
@@ -195,14 +185,18 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
         TextButton(
           key: const ValueKey('batch-tag-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('batch-tag-confirm'),
           onPressed: _selected.isEmpty
               ? null
               : () => Navigator.of(context).pop(Set<String>.of(_selected)),
-          child: Text(widget.mode.confirmLabel),
+          child: Text(
+            isAdd
+                ? l10n.collectionBatchTagAddConfirm
+                : l10n.collectionBatchTagRemoveConfirm,
+          ),
         ),
       ],
     );

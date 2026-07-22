@@ -12,6 +12,7 @@ import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 /// Pumps the settings screen on a wide surface backed by [repos] and opens the
 /// Defaults section.
@@ -32,6 +33,8 @@ Future<void> _pumpDefaults(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(

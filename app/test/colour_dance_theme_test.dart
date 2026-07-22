@@ -14,6 +14,7 @@ import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/colour_dance_theme.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 /// Pumps the [SettingsScreen] with the scopes it needs (including the
 /// colour-tint easter-egg scope the Appearance toggle mutates) and opens the
@@ -37,6 +38,8 @@ Future<ValueNotifier<bool>> _pumpAppearance(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(

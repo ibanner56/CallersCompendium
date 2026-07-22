@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,8 @@ void main() {
             child: ActiveDialectScope(
               notifier: dialect,
               child: MaterialApp(
+                localizationsDelegates: testLocalizationsDelegates,
+                supportedLocales: testSupportedLocales,
                 home: SettingsScreen(
                   importPicker: () async => '{"schemaVersion":1}',
                 ),

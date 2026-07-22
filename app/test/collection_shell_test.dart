@@ -14,6 +14,7 @@ import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -60,6 +61,8 @@ Future<void> _pumpShell(
   addTearDown(refresh.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: ActiveDialectScope(

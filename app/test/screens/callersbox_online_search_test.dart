@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 String _danceJson({String id = '10600', String name = 'Money Musk'}) =>
     '{'
@@ -55,6 +56,8 @@ Future<void> _pumpShell(
   addTearDown(dialect.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: ActiveDialectScope(notifier: dialect, child: child!),

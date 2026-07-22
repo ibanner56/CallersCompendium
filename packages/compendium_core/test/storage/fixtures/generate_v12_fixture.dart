@@ -1,28 +1,21 @@
 // Regenerates `test/storage/fixtures/v12.sqlite` — the schema-v12 database that
-// `migration_test.dart` opens through the real `onUpgrade` (v12 -> v13) path,
-// which adds the `venues` table and the `programs.venue_id` column.
+// `migration_test.dart` opens through the real `onUpgrade` (v12 -> v13) path.
 //
 // Run from the package root:
 //
 //     dart run test/storage/fixtures/generate_v12_fixture.dart
 //
-// Ordering trap: the current code is already at schema v13, so opening a fresh
-// `CompendiumDatabase` creates the v13 shape (with `venues` + `programs.venue_id`
-// already present). Seeding at v13 would make the v12 -> v13 migration a no-op
-// (or make `createTable(venues)` fail with "table venues already exists"). So we
-// seed realistic data at the current schema and then *strip back to the v12
-// shape* with raw SQL before stamping `user_version = 12`:
-//   * DROP TABLE venues            — remove the v13-only table;
-//   * DROP INDEX programs_venue_id — remove the v13-only lookup index, which
-//     must go before the DROP COLUMN below (SQLite refuses to drop a column an
-//     index still references);
-//   * ALTER TABLE programs DROP COLUMN venue_id  — remove the v13-only column
-//     (SQLite >= 3.35; the bundled sqlite3 is 3.53+);
-//   * PRAGMA user_version = 12.
-// v11 and v12 are structurally identical (v12 only rewrote `figures_json`
-// content), so the resulting file is a valid v12 fixture: NO `venues` table, NO
-// `programs.venue_id`, and a pre-existing program whose `venue_id` must come
-// back null after the upgrade.
+// Strategy (mirrors `generate_v11_fixture.dart`): seed a fresh database at the
+// *current* schema through the repositories (so the choreographer/dance/link
+// rows are realistic), then raw-SQL strip the one structural difference the
+// v12 -> v13 migration introduces — the `dance_links_dance_id` index — and reset
+// `user_version` to 12. v13 adds no columns/tables and rewrites no data (it only
+// creates that index), so dropping the index and rewinding `user_version` yields
+// a structurally-faithful v12 database.
+//
+// The seeded dance carries a video `DanceLink`, so the fixture exercises the
+// exact access path the new index accelerates: a `dance_links` row whose
+// `dance_id` is looked up by the batched link loader.
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -48,6 +41,8 @@ Future<void> main() async {
   await repos.choreographers.upsert(
     Choreographer(id: 'chor-1', name: 'Cary Ravitz'),
   );
+
+  // A dance WITH a link — the row the v13 index accelerates.
   await repos.dances.create(
     Dance(
       id: 'dance-1',
@@ -56,19 +51,28 @@ Future<void> main() async {
       figures: [
         Figure(move: 'swing', params: const {'who': 'partners', 'beats': 16}),
       ],
+      links: [
+        DanceLink(
+          id: 'link-1',
+          kind: LinkKind.video,
+          url: 'https://example.test/ocean-motion',
+          label: 'Video',
+        ),
+      ],
       createdAt: now,
       updatedAt: now,
     ),
   );
-  // A program captured before the venue entity existed: its reference to a
-  // venue must materialise as a null `venueId` after the v12 -> v13 upgrade.
-  await repos.programs.create(
-    Program(
-      id: 'prog-1',
-      title: 'Second Saturday Contra',
-      eventDate: DateTime.utc(2026, 3, 14),
-      venue: 'Guiding Star Grange',
-      slots: [ProgramSlot(id: 'slot-1', position: 0, danceId: 'dance-1')],
+
+  // A dance WITHOUT a link — proves link-less dances survive the migration.
+  await repos.dances.create(
+    Dance(
+      id: 'dance-2',
+      title: 'Plain Reel',
+      authorIds: const ['chor-1'],
+      figures: [
+        Figure(move: 'swing', params: const {'who': 'neighbors', 'beats': 16}),
+      ],
       createdAt: now,
       updatedAt: now,
     ),
@@ -76,13 +80,10 @@ Future<void> main() async {
 
   await db.close();
 
-  // Strip the v13-only additions and stamp the file back to v12.
+  // Strip the v13 index and rewind user_version so the fixture is a faithful
+  // v12 database (structurally identical to v12: v13's only change is the index).
   final raw = sqlite3.sqlite3.open(fixturePath);
-  raw.execute('DROP TABLE IF EXISTS venues');
-  // Drop the v13-only lookup index first: SQLite refuses to DROP COLUMN while
-  // an index still references it.
-  raw.execute('DROP INDEX IF EXISTS programs_venue_id');
-  raw.execute('ALTER TABLE programs DROP COLUMN venue_id');
+  raw.execute('DROP INDEX IF EXISTS dance_links_dance_id');
   raw.execute('PRAGMA user_version = 12');
   raw.close();
 

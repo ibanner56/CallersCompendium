@@ -1533,7 +1533,7 @@ void main() {
     });
   });
 
-  group('v12 -> v13 upgrade (venue entity)', () {
+  group('v12 -> v13 upgrade (dance_links dance_id index)', () {
     late Directory dir;
     late String dbPath;
 
@@ -1555,6 +1555,156 @@ void main() {
 
     tearDown(() => dir.delete(recursive: true));
 
+    test('the v12 fixture starts WITHOUT the dance_links index', () async {
+      // Guards the migration's premise: the fixture is a genuine pre-v13 DB, so
+      // the assertions below prove `onUpgrade` created the index (not the
+      // fixture generator).
+      final raw = sqlite3.sqlite3.open(dbPath);
+      final before = raw
+          .select(
+            "SELECT name FROM sqlite_master WHERE type='index' "
+            "AND name='dance_links_dance_id'",
+          )
+          .toList();
+      expect(before, isEmpty, reason: 'fixture must predate the v13 index');
+      expect(raw.select('PRAGMA user_version').first.values.first, 12);
+      raw.close();
+    });
+
+    test('creates the dance_links_dance_id index and bumps the schema '
+        'version', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final indexes = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='index' "
+            "AND name='dance_links_dance_id'",
+          )
+          .get();
+      expect(
+        indexes.map((r) => r.read<String>('name')),
+        contains('dance_links_dance_id'),
+      );
+
+      // The index is actually usable: a dance_id lookup plans as an index seek,
+      // not a full scan (the whole point of the migration).
+      final plan = await db
+          .customSelect(
+            'EXPLAIN QUERY PLAN '
+            "SELECT * FROM dance_links WHERE dance_id = 'dance-1'",
+          )
+          .get();
+      final planText = plan
+          .map((r) => r.data.values.map((v) => '$v').join(' '))
+          .join(' | ');
+      expect(
+        planText,
+        contains('USING INDEX dance_links_dance_id'),
+        reason: 'dance_id lookups must seek by index after v13',
+      );
+
+      final version = await db.customSelect('PRAGMA user_version').get();
+      expect(version.single.data.values.first, db.schemaVersion);
+
+      await db.close();
+    });
+
+    test(
+      'preserves dance_links rows and hydrates links through listAll',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        // The seeded link survived the migration byte-for-byte.
+        final links = await db
+            .customSelect(
+              'SELECT id, dance_id, kind, url, label FROM dance_links '
+              'ORDER BY id',
+            )
+            .get();
+        expect(links, hasLength(1));
+        expect(links.single.read<String>('id'), 'link-1');
+        expect(links.single.read<String>('dance_id'), 'dance-1');
+        expect(links.single.read<String>('url'), contains('ocean-motion'));
+
+        // And it hydrates through the batched listAll link loader.
+        final dances = await repos.dances.listAll();
+        final withLink = dances.firstWhere((d) => d.id == 'dance-1');
+        final withoutLink = dances.firstWhere((d) => d.id == 'dance-2');
+        expect(withLink.links, hasLength(1));
+        expect(withLink.links.single.id, 'link-1');
+        expect(withLink.links.single.kind, LinkKind.video);
+        expect(withoutLink.links, isEmpty);
+
+        await db.close();
+      },
+    );
+
+    test('is a pure index migration — schedules no derived rebuild', () async {
+      // Stamp a sentinel into the derived table; a spurious rebuild would wipe
+      // it. v13 touches no figure text, so the derived rows must survive.
+      final raw = sqlite3.sqlite3.open(dbPath);
+      raw.execute(
+        "UPDATE dance_figures SET canonical_text = 'SENTINEL' "
+        "WHERE dance_id = 'dance-1'",
+      );
+      expect(raw.select('PRAGMA user_version').first.values.first, 12);
+      raw.close();
+
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [Variable.withString(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(
+        marker,
+        isEmpty,
+        reason: 'an index-only migration rebuilds nothing',
+      );
+
+      final rows = await db
+          .customSelect(
+            'SELECT canonical_text FROM dance_figures '
+            "WHERE dance_id = 'dance-1'",
+          )
+          .get();
+      expect(rows, hasLength(1));
+      expect(rows.single.read<String?>('canonical_text'), 'SENTINEL');
+
+      await db.close();
+    });
+  });
+
+  group('v13 -> v14 upgrade (venue entity)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v14_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v13 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v13.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
     test('drift schema version is current after upgrade', () async {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       final repos = CompendiumRepositories(db, contraTaxonomy);
@@ -1562,7 +1712,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 13);
+      expect(db.schemaVersion, 14);
 
       await db.close();
     });

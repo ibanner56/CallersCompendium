@@ -16,6 +16,7 @@ import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 /// Pumps the [SettingsScreen] with the scopes it needs and opens the About
 /// section. [surfaceSize] chooses the wide (side-by-side) or narrow (detail
@@ -42,6 +43,8 @@ Future<CompendiumRepositories> _pumpAbout(
 
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(

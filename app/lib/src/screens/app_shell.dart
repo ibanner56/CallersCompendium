@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/collection_filter_scope.dart';
 import '../screens/dance_detail_screen.dart';
 import '../screens/program_editor_screen.dart';
@@ -86,28 +87,33 @@ class _AppShellState extends State<AppShell> {
   /// and the first three bottom-bar destinations on narrow. The User Guide is
   /// index [_guideIndex] — a fourth [IndexedStack] page reached from the
   /// bottom-of-rail Help affordance (wide) or a fourth bottom-bar destination
-  /// (narrow), so it is deliberately *not* in this list.
+  /// (narrow), so it is deliberately *not* in this list. Labels are resolved by
+  /// index from [AppLocalizations] via [_destinationLabel].
   static const _destinations = [
-    (
-      icon: Icons.auto_stories_outlined,
-      selectedIcon: Icons.auto_stories,
-      label: 'Collection',
-    ),
-    (
-      icon: Icons.event_note_outlined,
-      selectedIcon: Icons.event_note,
-      label: 'Programs',
-    ),
-    (
-      icon: Icons.settings_outlined,
-      selectedIcon: Icons.settings,
-      label: 'Settings',
-    ),
+    (icon: Icons.auto_stories_outlined, selectedIcon: Icons.auto_stories),
+    (icon: Icons.event_note_outlined, selectedIcon: Icons.event_note),
+    (icon: Icons.settings_outlined, selectedIcon: Icons.settings),
   ];
 
   /// The IndexedStack position of the User Guide destination (after the three
   /// [_destinations]).
   static const int _guideIndex = 3;
+
+  /// The localized navigation label for the destination at [index] (0-based,
+  /// matching [_destinations]; [_guideIndex] and anything else resolve to the
+  /// User Guide label). Labels come from [AppLocalizations].
+  static String _destinationLabel(AppLocalizations l10n, int index) {
+    switch (index) {
+      case 0:
+        return l10n.navCollection;
+      case 1:
+        return l10n.navPrograms;
+      case 2:
+        return l10n.navSettings;
+      default:
+        return l10n.navGuide;
+    }
+  }
 
   /// Whether the User Guide is the current destination.
   bool get _guideSelected => _index == _guideIndex;
@@ -172,6 +178,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   Widget _buildScaffold(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= AppShell.railBreakpoint;
@@ -220,11 +227,11 @@ class _AppShellState extends State<AppShell> {
                     ),
                   ),
                   destinations: [
-                    for (final d in _destinations)
+                    for (final (i, d) in _destinations.indexed)
                       NavigationRailDestination(
                         icon: Icon(d.icon),
                         selectedIcon: Icon(d.selectedIcon),
-                        label: Text(d.label),
+                        label: Text(_destinationLabel(l10n, i)),
                       ),
                   ],
                   // Bottom-aligned Help affordance: the natural home for the
@@ -238,6 +245,8 @@ class _AppShellState extends State<AppShell> {
                         child: _RailHelpButton(
                           onPressed: _openGuide,
                           selected: _guideSelected,
+                          label: _destinationLabel(l10n, _guideIndex),
+                          tooltip: l10n.navGuideTooltip,
                         ),
                       ),
                     ),
@@ -263,20 +272,20 @@ class _AppShellState extends State<AppShell> {
               selectedIndex: _index,
               onDestinationSelected: _onSelect,
               destinations: [
-                for (final d in _destinations)
+                for (final (i, d) in _destinations.indexed)
                   NavigationDestination(
                     icon: Icon(d.icon),
                     selectedIcon: Icon(d.selectedIcon),
-                    label: d.label,
+                    label: _destinationLabel(l10n, i),
                   ),
                 // The guide is a persistent fourth destination on narrow
                 // layouts (parity with the wide rail's Help affordance), so
                 // viewing it keeps the bottom bar visible.
-                const NavigationDestination(
-                  key: ValueKey('user-guide-destination'),
-                  icon: Icon(Icons.help_outline),
-                  selectedIcon: Icon(Icons.help),
-                  label: 'Guide',
+                NavigationDestination(
+                  key: const ValueKey('user-guide-destination'),
+                  icon: const Icon(Icons.help_outline),
+                  selectedIcon: const Icon(Icons.help),
+                  label: l10n.navGuide,
                 ),
               ],
             ),
@@ -348,9 +357,20 @@ class _RailSearchButton extends StatelessWidget {
 /// help/help_outline glyph still swaps to signal when the guide is the active
 /// destination.
 class _RailHelpButton extends StatelessWidget {
-  const _RailHelpButton({required this.onPressed, this.selected = false});
+  const _RailHelpButton({
+    required this.onPressed,
+    required this.label,
+    required this.tooltip,
+    this.selected = false,
+  });
 
   final VoidCallback onPressed;
+
+  /// Localized navigation label (mirrors the narrow layout's guide label).
+  final String label;
+
+  /// Localized tooltip shown on hover/long-press.
+  final String tooltip;
 
   /// Whether the guide is the current destination.
   final bool selected;
@@ -360,7 +380,7 @@ class _RailHelpButton extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Tooltip(
-      message: 'User guide',
+      message: tooltip,
       child: InkWell(
         key: const ValueKey('user-guide-button'),
         onTap: onPressed,
@@ -383,7 +403,7 @@ class _RailHelpButton extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text('Guide', style: theme.textTheme.labelMedium),
+              Text(label, style: theme.textTheme.labelMedium),
             ],
           ),
         ),

@@ -66,6 +66,7 @@ void main() {
   group('regional-format constants (G.8)', () {
     test('use their stable stored key', () {
       expect(kDateFormatKey, 'date_format');
+      expect(kFirstDayOfWeekKey, 'first_day_of_week');
     });
 
     test('enum tokens are stable', () {
@@ -73,6 +74,47 @@ void main() {
       expect(DateFormatPref.ymd.token, 'ymd');
       expect(DateFormatPref.dmy.token, 'dmy');
       expect(DateFormatPref.mdy.token, 'mdy');
+    });
+  });
+
+  group('firstDayOfWeekPrefFromStored', () {
+    test('defaults to system when unset (null)', () {
+      expect(firstDayOfWeekPrefFromStored(null), FirstDayOfWeekPref.system);
+    });
+
+    test('resolves each known token to its enum', () {
+      expect(firstDayOfWeekPrefFromStored('system'), FirstDayOfWeekPref.system);
+      expect(firstDayOfWeekPrefFromStored('sunday'), FirstDayOfWeekPref.sunday);
+      expect(firstDayOfWeekPrefFromStored('monday'), FirstDayOfWeekPref.monday);
+      expect(
+        firstDayOfWeekPrefFromStored('saturday'),
+        FirstDayOfWeekPref.saturday,
+      );
+    });
+
+    test('falls back to system for garbage: unknown token, non-string', () {
+      expect(firstDayOfWeekPrefFromStored('nope'), FirstDayOfWeekPref.system);
+      expect(firstDayOfWeekPrefFromStored(''), FirstDayOfWeekPref.system);
+      expect(firstDayOfWeekPrefFromStored(7), FirstDayOfWeekPref.system);
+      expect(
+        firstDayOfWeekPrefFromStored(<String>['monday']),
+        FirstDayOfWeekPref.system,
+      );
+    });
+
+    test('startWeekday maps to the DateTime weekday constant (null for '
+        'system)', () {
+      expect(FirstDayOfWeekPref.system.startWeekday, isNull);
+      expect(FirstDayOfWeekPref.sunday.startWeekday, DateTime.sunday);
+      expect(FirstDayOfWeekPref.monday.startWeekday, DateTime.monday);
+      expect(FirstDayOfWeekPref.saturday.startWeekday, DateTime.saturday);
+    });
+
+    test('tokens are stable', () {
+      expect(FirstDayOfWeekPref.system.token, 'system');
+      expect(FirstDayOfWeekPref.sunday.token, 'sunday');
+      expect(FirstDayOfWeekPref.monday.token, 'monday');
+      expect(FirstDayOfWeekPref.saturday.token, 'saturday');
     });
   });
 }

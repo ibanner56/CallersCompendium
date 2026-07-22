@@ -44,14 +44,14 @@ These parts of the app are built and ready for you to lean on:
 
 Being honest about the state of things saves everyone time:
 
-- **Installation is not packaged yet.** Signed, one-click installers for each
-  platform are the main remaining pre-release work (roadmap **Phase 7.1**). Until
-  those land, joining the beta means running a development build — see
-  [How to install](#how-to-install).
-- **Some polish is unfinished.** A named-dialect library manager and a couple of
-  import sources (a hosted Caller's Box snapshot and the Caller's Companion binary
-  `.USR` migration) are still in progress. Everything else in the list above is
-  ready to use.
+- **Signing and first-run steps vary by platform.** The **macOS** build is signed
+  with an Apple Developer ID and notarized, so it opens normally. The **Android**
+  APK is signed, but because it isn't on the Play Store you'll still grant a
+  one-time **"install unknown apps"** permission to sideload it. **Windows** isn't
+  code-signed yet, so **SmartScreen** shows a caution the first time you run it.
+  **Linux** has no signing prompt at all — you just mark the AppImage as runnable.
+  [How to install](#how-to-install) walks through each; code-signing for Windows is
+  planned for a later release.
 - **You may hit bugs.** That is the point — when you do, tell us (see
   [How to give feedback](#how-to-give-feedback)).
 
@@ -80,10 +80,15 @@ in more depth.
 
 1. Read this guide and skim the [test charter](./test-charter.md) so you know the
    kinds of things we are hoping you will try.
-2. Say hello in
+2. Fill out the **[Join the beta](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml)**
+   form to tell us which platforms you call on. A free GitHub account is all you
+   need. **Heads-up: the signup issue is public**, so keep personal contact details
+   out of it — if you want an iPhone/iPad **TestFlight** invite, email the Apple ID
+   address it should go to privately to
+   [isaac@banner.is](mailto:isaac@banner.is) rather than posting it in the issue.
+   You can also just say hello in
    [GitHub Discussions](https://github.com/ibanner56/CallersCompendium/discussions)
-   — introduce yourself, tell us where you call and on what devices, and we will
-   help you get set up. A free GitHub account is all you need.
+   if you would rather start with a conversation.
 3. Install the app (below) and start using it for your real dances.
 
 You can step back at any time, and you never have to share anything you would
@@ -130,14 +135,12 @@ Pick the channel that fits:
   we can chat before anything becomes a formal request.
 
 All of the issue forms live on the
-[new-issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose).
-The **Bug report** and **Feature request** forms are always available there; the
-beta-specific forms above (**General feedback**, **Beta check-in**, and **Import
-source problem**) join them as the beta program rolls out. If a form you are
-looking for is not on the chooser yet, a **Bug report** or a
-[Discussion](https://github.com/ibanner56/CallersCompendium/discussions) always
-works in the meantime. Not sure which to pick? Start a Discussion — we will sort it
-out together. Once you file something, a maintainer sorts it using the
+[new-issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose):
+**Bug report**, **Feature request**, **General feedback**, **Beta check-in**,
+**Import source problem**, and **Join the beta** are all available there now. Not
+sure which to pick? Start a
+[Discussion](https://github.com/ibanner56/CallersCompendium/discussions) — we will
+sort it out together. Once you file something, a maintainer sorts it using the
 [triage rubric](./triage-rubric.md), so you can see how reports move from "just
 arrived" to "fixed."
 

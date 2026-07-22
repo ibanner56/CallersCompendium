@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 /// Widget tests for the ContraDB online-search source: it is reachable via the
 /// source selector, renders results, hides the by-phrase panel (ContraDB search
@@ -76,6 +77,8 @@ Future<void> _pumpShell(
   addTearDown(dialect.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: ActiveDialectScope(notifier: dialect, child: child!),

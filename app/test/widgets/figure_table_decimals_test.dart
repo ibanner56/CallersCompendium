@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/widgets/figure_table.dart';
+import '../support/l10n_harness.dart';
 
 Future<void> _pump(
   WidgetTester tester, {
@@ -15,6 +16,8 @@ Future<void> _pump(
   addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: DecimalTurnsScope(
           notifier: notifier,

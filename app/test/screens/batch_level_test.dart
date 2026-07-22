@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 Dance _dance({required String id, required String title, DanceLevel? level}) =>
     Dance(
@@ -44,6 +45,8 @@ Future<void> _pumpScreen(
   addTearDown(customThemes.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: AppThemeScope(

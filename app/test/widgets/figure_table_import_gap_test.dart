@@ -4,10 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/import_gap_badge.dart';
+import '../support/l10n_harness.dart';
 
 Future<void> _pump(WidgetTester tester, List<Figure> figures) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: FigureTable(
           figures: figures,

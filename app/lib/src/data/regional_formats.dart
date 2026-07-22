@@ -85,3 +85,60 @@ String? formatDatePattern(DateTime date, DateFormatPref pref) {
       return '$m/$d/$y';
   }
 }
+
+/// Key used to persist the first-day-of-week preference (ROADMAP G.8).
+///
+/// Stored as a stable string token: one of `system` (the default), `sunday`,
+/// `monday`, or `saturday`. Absent/unset or an unrecognized value ⇒
+/// [FirstDayOfWeekPref.system].
+const String kFirstDayOfWeekKey = 'first_day_of_week';
+
+/// Which day the week starts on in date UIs the app renders itself.
+///
+/// NOTE: Flutter's [showDatePicker] derives its first day of week from the
+/// active locale and offers no per-call override, so this preference cannot
+/// change the system calendar picker. It applies only to date surfaces the app
+/// draws directly. See `docs/dev/localization.md`.
+enum FirstDayOfWeekPref {
+  /// Defer to the platform locale (via `MaterialLocalizations`).
+  system('system'),
+
+  /// Start the week on Sunday.
+  sunday('sunday'),
+
+  /// Start the week on Monday (ISO-8601).
+  monday('monday'),
+
+  /// Start the week on Saturday.
+  saturday('saturday');
+
+  const FirstDayOfWeekPref(this.token);
+
+  /// The stable token persisted via `SettingsRepository`.
+  final String token;
+
+  /// The [DateTime] weekday constant (Mon=1 … Sun=7) this preference starts the
+  /// week on, or `null` for [system] (defer to the platform locale). Provided
+  /// so date UIs the app controls can honor the setting without re-deriving it.
+  int? get startWeekday => switch (this) {
+    FirstDayOfWeekPref.system => null,
+    FirstDayOfWeekPref.monday => DateTime.monday,
+    FirstDayOfWeekPref.saturday => DateTime.saturday,
+    FirstDayOfWeekPref.sunday => DateTime.sunday,
+  };
+}
+
+/// Resolves a persisted settings value into a [FirstDayOfWeekPref].
+///
+/// Defensive by design (OWASP: validate untrusted persisted input): `null`, a
+/// non-string, or an unrecognized token all fall back to
+/// [FirstDayOfWeekPref.system], so a corrupted stored value can never crash or
+/// select an out-of-range weekday.
+FirstDayOfWeekPref firstDayOfWeekPrefFromStored(Object? stored) {
+  if (stored is String) {
+    for (final pref in FirstDayOfWeekPref.values) {
+      if (pref.token == stored) return pref;
+    }
+  }
+  return FirstDayOfWeekPref.system;
+}

@@ -1,0 +1,1043 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Caller's Compendium",
+  "@appTitle": {
+    "description": "The application's name. Shown as the window/task-switcher title via MaterialApp.onGenerateTitle."
+  },
+
+  "navCollection": "Collection",
+  "@navCollection": {
+    "description": "Bottom/rail navigation label for the dance collection destination."
+  },
+  "navPrograms": "Programs",
+  "@navPrograms": {
+    "description": "Bottom/rail navigation label for the programs destination."
+  },
+  "navSettings": "Settings",
+  "@navSettings": {
+    "description": "Bottom/rail navigation label for the settings destination."
+  },
+  "navGuide": "Guide",
+  "@navGuide": {
+    "description": "Bottom/rail navigation label for the in-app user guide destination."
+  },
+  "navGuideTooltip": "User guide",
+  "@navGuideTooltip": {
+    "description": "Tooltip for the wide-layout navigation-rail Help button that opens the in-app user guide."
+  },
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title of the Settings screen (sidebar header on wide layouts, app bar on narrow)."
+  },
+
+  "commonSystemDefault": "System default",
+  "@commonSystemDefault": {
+    "description": "Generic option meaning 'follow the device/platform setting'. Shared by the date-format and app-language controls."
+  },
+
+  "commonComingSoon": "Coming soon",
+  "@commonComingSoon": {
+    "description": "Trailing badge on a settings control whose feature is not available yet."
+  },
+
+  "settingsLanguageRegionTitle": "Language & region",
+  "@settingsLanguageRegionTitle": {
+    "description": "Label of the Settings section that groups app-language and regional-format preferences."
+  },
+  "settingsRegionalFormatsHeader": "Formats",
+  "@settingsRegionalFormatsHeader": {
+    "description": "Header for the group of regional-format controls (date format, first day of week)."
+  },
+  "settingsRegionalLanguageHeader": "Language",
+  "@settingsRegionalLanguageHeader": {
+    "description": "Header for the app-language group in the Language & region settings section."
+  },
+
+  "settingsDateFormatTitle": "Date format",
+  "@settingsDateFormatTitle": {
+    "description": "Title of the control that chooses how program event dates are formatted."
+  },
+  "settingsDateFormatSubtitle": "How program event dates appear. Example: {example}",
+  "@settingsDateFormatSubtitle": {
+    "description": "Subtitle for the date-format control, showing a live example of today's date in the chosen format.",
+    "placeholders": {
+      "example": {
+        "type": "String",
+        "example": "2026-07-15"
+      }
+    }
+  },
+  "settingsDateFormatYmd": "Year-month-day (2026-07-15)",
+  "@settingsDateFormatYmd": {
+    "description": "Date-format option: ISO-like year-month-day. The parenthetical is an illustrative sample date."
+  },
+  "settingsDateFormatDmy": "Day/month/year (15/07/2026)",
+  "@settingsDateFormatDmy": {
+    "description": "Date-format option: day/month/year. The parenthetical is an illustrative sample date."
+  },
+  "settingsDateFormatMdy": "Month/day/year (07/15/2026)",
+  "@settingsDateFormatMdy": {
+    "description": "Date-format option: month/day/year. The parenthetical is an illustrative sample date."
+  },
+
+  "settingsFirstDayOfWeekTitle": "First day of week",
+  "@settingsFirstDayOfWeekTitle": {
+    "description": "Title of the control that chooses which day the week starts on."
+  },
+  "settingsFirstDayOfWeekSubtitle": "Which day the week starts on in the app's date views. Coming in a future update.",
+  "@settingsFirstDayOfWeekSubtitle": {
+    "description": "Subtitle for the disabled, not-yet-available first-day-of-week row. Describes the future feature without implying it works today."
+  },
+
+  "settingsAppLanguageTitle": "App language",
+  "@settingsAppLanguageTitle": {
+    "description": "Title of the control that chooses the language of the app's interface."
+  },
+  "settingsAppLanguageSubtitle": "Choose the language of the app's interface.",
+  "@settingsAppLanguageSubtitle": {
+    "description": "Subtitle for the app-language control."
+  },
+
+  "commonCancel": "Cancel",
+  "@commonCancel": {
+    "description": "Generic dialog dismiss button that discards the pending action."
+  },
+  "commonUndo": "Undo",
+  "@commonUndo": {
+    "description": "Snackbar action that reverses the action just performed (delete, batch tag/level change)."
+  },
+  "commonRetry": "Retry",
+  "@commonRetry": {
+    "description": "Button that re-attempts a failed load."
+  },
+  "commonDelete": "Delete",
+  "@commonDelete": {
+    "description": "Generic destructive action label for removing a single item (row menu, swipe action)."
+  },
+  "commonDuplicate": "Duplicate",
+  "@commonDuplicate": {
+    "description": "Row action that makes a copy of an item."
+  },
+  "commonYes": "Yes",
+  "@commonYes": {
+    "description": "Affirmative choice for a yes/no filter chip."
+  },
+  "commonNo": "No",
+  "@commonNo": {
+    "description": "Negative choice for a yes/no filter chip."
+  },
+  "commonProgression": "Progression",
+  "@commonProgression": {
+    "description": "Label for the progression concept: used as a filter section heading and the figure-row progression-marker tooltip."
+  },
+  "commonMixedLevel": "Mixed level",
+  "@commonMixedLevel": {
+    "description": "Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip."
+  },
+  "commonShowDancesTaggedTooltip": "Show dances tagged “{tagName}”",
+  "@commonShowDancesTaggedTooltip": {
+    "description": "Tooltip on a tag chip that filters the collection to dances carrying that tag.",
+    "placeholders": {
+      "tagName": {
+        "type": "String",
+        "example": "smooth"
+      }
+    }
+  },
+  "commonDeletedSnack": "\"{title}\" deleted.",
+  "@commonDeletedSnack": {
+    "description": "Snackbar confirming a dance was soft-deleted, quoting its title.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+
+  "collectionScreenTitle": "Collection",
+  "@collectionScreenTitle": {
+    "description": "App-bar title of the Collection screen (phone layout)."
+  },
+  "collectionNewDance": "New dance",
+  "@collectionNewDance": {
+    "description": "Label of the floating action button that creates a new dance."
+  },
+  "collectionSearchTooltip": "Search (Ctrl/Cmd-K)",
+  "@collectionSearchTooltip": {
+    "description": "Tooltip for the app-bar search button, noting its keyboard shortcut."
+  },
+  "collectionSelectDancesTooltip": "Select dances",
+  "@collectionSelectDancesTooltip": {
+    "description": "Tooltip for the app-bar button that enters multi-select (batch) mode."
+  },
+  "collectionManageCustomFieldsTooltip": "Manage custom fields",
+  "@collectionManageCustomFieldsTooltip": {
+    "description": "Tooltip for the app-bar button that opens custom-field management."
+  },
+  "collectionRecentlyDeletedTooltip": "Recently deleted",
+  "@collectionRecentlyDeletedTooltip": {
+    "description": "Tooltip for the app-bar button that opens the recently-deleted dances view."
+  },
+  "collectionSortByTooltip": "Sort by ({sortLabel})",
+  "@collectionSortByTooltip": {
+    "description": "Tooltip for the sort menu button, showing the current sort option.",
+    "placeholders": {
+      "sortLabel": {
+        "type": "String",
+        "example": "Title"
+      }
+    }
+  },
+  "collectionSortRelevance": "Best match",
+  "@collectionSortRelevance": {
+    "description": "Collection sort option: order by full-text search relevance."
+  },
+  "collectionSortTitle": "Title",
+  "@collectionSortTitle": {
+    "description": "Collection sort option: order by dance title."
+  },
+  "collectionSortAuthor": "Author",
+  "@collectionSortAuthor": {
+    "description": "Collection sort option: order by author name."
+  },
+  "collectionSortRecentlyAdded": "Recently added",
+  "@collectionSortRecentlyAdded": {
+    "description": "Collection sort option: order by when the dance was added."
+  },
+  "collectionSortLastCalled": "Last called",
+  "@collectionSortLastCalled": {
+    "description": "Collection sort option: order by when the dance was last called."
+  },
+  "collectionSortAscendingTooltip": "Ascending (tap for descending)",
+  "@collectionSortAscendingTooltip": {
+    "description": "Tooltip for the sort-direction toggle while ascending; tapping switches to descending."
+  },
+  "collectionSortDescendingTooltip": "Descending (tap for ascending)",
+  "@collectionSortDescendingTooltip": {
+    "description": "Tooltip for the sort-direction toggle while descending; tapping switches to ascending."
+  },
+  "collectionExitSelectionTooltip": "Exit selection",
+  "@collectionExitSelectionTooltip": {
+    "description": "Tooltip for the button that leaves multi-select (batch) mode."
+  },
+  "collectionSelectedCount": "{count} selected",
+  "@collectionSelectedCount": {
+    "description": "Live-region title in the selection app bar showing how many dances are selected.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "collectionAddTags": "Add tags",
+  "@collectionAddTags": {
+    "description": "Batch action (tooltip and dialog title) for adding tags to the selected dances."
+  },
+  "collectionRemoveTags": "Remove tags",
+  "@collectionRemoveTags": {
+    "description": "Batch action (tooltip and dialog title) for removing tags from the selected dances."
+  },
+  "collectionSetLevel": "Set level",
+  "@collectionSetLevel": {
+    "description": "Batch action (tooltip and dialog title) for setting the difficulty level on the selected dances."
+  },
+  "collectionSearchFieldLabel": "Search dances",
+  "@collectionSearchFieldLabel": {
+    "description": "Label of the local collection search field."
+  },
+  "collectionSearchFieldHint": "Search titles, authors, figures, notes…",
+  "@collectionSearchFieldHint": {
+    "description": "Hint text of the local collection search field, listing what is searched."
+  },
+  "collectionClearSearchTooltip": "Clear search and filters",
+  "@collectionClearSearchTooltip": {
+    "description": "Tooltip for the button that clears the search text and all active filters."
+  },
+  "collectionLoadError": "Could not load the collection.",
+  "@collectionLoadError": {
+    "description": "Message shown when the collection fails to load."
+  },
+  "collectionDuplicatedSnack": "Duplicated as \"{title}\".",
+  "@collectionDuplicatedSnack": {
+    "description": "Snackbar confirming a dance was duplicated, quoting the copy's title.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig (copy)"
+      }
+    }
+  },
+  "collectionEmpty": "Your collection is empty. Add or import a dance to get started — or turn on Online search above to import from an online source.",
+  "@collectionEmpty": {
+    "description": "Empty-state message shown in the results area when the collection has no dances."
+  },
+  "collectionFiltersTitle": "Filters",
+  "@collectionFiltersTitle": {
+    "description": "Title of the facet filters panel when no filters are active."
+  },
+  "collectionFiltersActive": "Filters ({count} active)",
+  "@collectionFiltersActive": {
+    "description": "Title of the facet filters panel, noting how many filters are active.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "collectionByPhraseTitle": "By phrase",
+  "@collectionByPhraseTitle": {
+    "description": "Title of the by-phrase (Caller's Box style) filter panel when nothing is set."
+  },
+  "collectionByPhraseActive": "By phrase ({count} active)",
+  "@collectionByPhraseActive": {
+    "description": "Title of the by-phrase filter panel, noting how many phrase constraints are active.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "collectionAdvancedTitle": "Advanced",
+  "@collectionAdvancedTitle": {
+    "description": "Title of the advanced (online toggle + boolean query builder) filter panel."
+  },
+  "collectionUseAdvancedQuery": "Use advanced query",
+  "@collectionUseAdvancedQuery": {
+    "description": "Toggle that enables the boolean advanced-query builder."
+  },
+  "collectionUseAdvancedQuerySubtitle": "Combine figures and sequences with all / any / none groups.",
+  "@collectionUseAdvancedQuerySubtitle": {
+    "description": "Subtitle explaining what the advanced-query builder does."
+  },
+  "collectionDanceCount": "{count, plural, =1{1 dance} other{{count} dances}}",
+  "@collectionDanceCount": {
+    "description": "Result count of local dances matching the current query.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "collectionSearchError": "Something went wrong running the search.",
+  "@collectionSearchError": {
+    "description": "Message shown when the local search fails."
+  },
+  "collectionNoResults": "No dances match your search.",
+  "@collectionNoResults": {
+    "description": "Empty-state message when the local search returns no dances."
+  },
+
+  "collectionBatchNoChanges": "No changes",
+  "@collectionBatchNoChanges": {
+    "description": "Announcement/snackbar when a batch tag or level operation changed nothing."
+  },
+  "collectionBatchTagged": "{count, plural, =1{Tagged 1 dance} other{Tagged {count} dances}}",
+  "@collectionBatchTagged": {
+    "description": "Announcement/snackbar confirming tags were added to the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionBatchUntagged": "{count, plural, =1{Removed tags from 1 dance} other{Removed tags from {count} dances}}",
+  "@collectionBatchUntagged": {
+    "description": "Announcement/snackbar confirming tags were removed from the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionBatchLevelSet": "{count, plural, =1{Set level on 1 dance} other{Set level on {count} dances}}",
+  "@collectionBatchLevelSet": {
+    "description": "Announcement/snackbar confirming a level was set on the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionBatchLevelCleared": "{count, plural, =1{Cleared level on 1 dance} other{Cleared level on {count} dances}}",
+  "@collectionBatchLevelCleared": {
+    "description": "Announcement/snackbar confirming the level was cleared on the given number of dances.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+
+  "collectionSelectDanceLabel": "Select {title}",
+  "@collectionSelectDanceLabel": {
+    "description": "Accessible label for the per-row selection checkbox in batch mode.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "collectionCalledBadge": "called ×{count}",
+  "@collectionCalledBadge": {
+    "description": "Compact chip on a dance row showing how many times it has been called (× is the multiplication sign).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "collectionCalledBadgeSemantic": "{count, plural, =1{called 1 time} other{called {count} times}}",
+  "@collectionCalledBadgeSemantic": {
+    "description": "Accessible reading of the called-count chip on a dance row.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "collectionRatingSemantic": "Rating: {rating} of 5 stars",
+  "@collectionRatingSemantic": {
+    "description": "Accessible label for the star-rating chip on a dance row.",
+    "placeholders": {
+      "rating": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "collectionRowActionsSemantic": "Actions for {title}",
+  "@collectionRowActionsSemantic": {
+    "description": "Tooltip/label for a dance row's action (overflow) menu button.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+
+  "collectionSplitEmptyTitle": "Select a dance",
+  "@collectionSplitEmptyTitle": {
+    "description": "Title of the split-pane placeholder shown when no dance is selected."
+  },
+  "collectionSplitEmptySubtitle": "Choose a dance from the list to view its details.",
+  "@collectionSplitEmptySubtitle": {
+    "description": "Subtitle of the split-pane placeholder shown when no dance is selected."
+  },
+
+  "collectionFacetType": "Type",
+  "@collectionFacetType": {
+    "description": "Filter section heading for the dance form/type facet."
+  },
+  "collectionFacetFormation": "Formation",
+  "@collectionFacetFormation": {
+    "description": "Filter section heading for the formation facet."
+  },
+  "collectionFacetStatus": "Status",
+  "@collectionFacetStatus": {
+    "description": "Filter section heading for the dance status facet."
+  },
+  "collectionFacetLevel": "Level",
+  "@collectionFacetLevel": {
+    "description": "Filter section heading for the difficulty level facet."
+  },
+  "collectionFacetMinRating": "Minimum rating",
+  "@collectionFacetMinRating": {
+    "description": "Filter section heading for the minimum star-rating facet."
+  },
+  "collectionFacetMinRatingChip": "≥{min}★",
+  "@collectionFacetMinRatingChip": {
+    "description": "Minimum-rating filter chip: at least {min} stars (≥ and ★ are symbols).",
+    "placeholders": {
+      "min": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "collectionFacetTags": "Tags",
+  "@collectionFacetTags": {
+    "description": "Filter section heading for the tags facet."
+  },
+  "collectionFacetSource": "Source",
+  "@collectionFacetSource": {
+    "description": "Filter section heading for the cited-source facet."
+  },
+  "collectionFacetAuthor": "Author",
+  "@collectionFacetAuthor": {
+    "description": "Filter section heading for the author/choreographer facet."
+  },
+  "collectionFacetNone": "No filters available for this collection yet.",
+  "@collectionFacetNone": {
+    "description": "Message shown when the collection has no facets to filter by."
+  },
+  "collectionFacetClear": "Clear filters",
+  "@collectionFacetClear": {
+    "description": "Button that clears all active facet filters."
+  },
+  "collectionFacetRemoveAuthor": "Remove {name}",
+  "@collectionFacetRemoveAuthor": {
+    "description": "Tooltip on a selected-author chip that removes it from the author filter.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Cary Ravitz"
+      }
+    }
+  },
+  "collectionFacetAuthorSearchHint": "Search authors…",
+  "@collectionFacetAuthorSearchHint": {
+    "description": "Hint text of the author-filter search field."
+  },
+  "collectionFacetOpContains": "contains",
+  "@collectionFacetOpContains": {
+    "description": "Text custom-field filter operator: substring match."
+  },
+  "collectionFacetOpEquals": "equals",
+  "@collectionFacetOpEquals": {
+    "description": "Text custom-field filter operator: exact match."
+  },
+  "collectionFacetTextHint": "Filter by {label}…",
+  "@collectionFacetTextHint": {
+    "description": "Hint text of a text custom-field filter input, naming the field.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Notes"
+      }
+    }
+  },
+  "collectionFacetNumOpEq": "=",
+  "@collectionFacetNumOpEq": {
+    "description": "Number custom-field filter operator: equal to (symbol)."
+  },
+  "collectionFacetNumOpLt": "<",
+  "@collectionFacetNumOpLt": {
+    "description": "Number custom-field filter operator: less than (symbol)."
+  },
+  "collectionFacetNumOpGt": ">",
+  "@collectionFacetNumOpGt": {
+    "description": "Number custom-field filter operator: greater than (symbol)."
+  },
+  "collectionFacetNumOpBetween": "between",
+  "@collectionFacetNumOpBetween": {
+    "description": "Number custom-field filter operator: within an inclusive range."
+  },
+  "collectionFacetNumFrom": "From",
+  "@collectionFacetNumFrom": {
+    "description": "Hint for the lower-bound input of a number 'between' filter."
+  },
+  "collectionFacetNumValue": "Value",
+  "@collectionFacetNumValue": {
+    "description": "Hint for the single-value input of a number filter (=, <, >)."
+  },
+  "collectionFacetNumTo": "To",
+  "@collectionFacetNumTo": {
+    "description": "Hint for the upper-bound input of a number 'between' filter."
+  },
+
+  "collectionByPhraseOrdinalFirst": "first phrase",
+  "@collectionByPhraseOrdinalFirst": {
+    "description": "Ordinal name of the first dance phrase (usually A1) in the by-phrase panel."
+  },
+  "collectionByPhraseOrdinalSecond": "second phrase",
+  "@collectionByPhraseOrdinalSecond": {
+    "description": "Ordinal name of the second dance phrase (usually A2) in the by-phrase panel."
+  },
+  "collectionByPhraseOrdinalThird": "third phrase",
+  "@collectionByPhraseOrdinalThird": {
+    "description": "Ordinal name of the third dance phrase (usually B1) in the by-phrase panel."
+  },
+  "collectionByPhraseOrdinalFourth": "fourth phrase",
+  "@collectionByPhraseOrdinalFourth": {
+    "description": "Ordinal name of the fourth dance phrase (usually B2) in the by-phrase panel."
+  },
+  "collectionByPhraseOrdinalN": "phrase {number}",
+  "@collectionByPhraseOrdinalN": {
+    "description": "Fallback ordinal name for phrases beyond the fourth.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "collectionByPhraseCaption": "{ordinal} (usually {label})",
+  "@collectionByPhraseCaption": {
+    "description": "Caption for a by-phrase row combining the ordinal name and the section label.",
+    "placeholders": {
+      "ordinal": {
+        "type": "String",
+        "example": "first phrase"
+      },
+      "label": {
+        "type": "String",
+        "example": "A1"
+      }
+    }
+  },
+  "collectionByPhraseFieldMatch": "{caption}, figures match",
+  "@collectionByPhraseFieldMatch": {
+    "description": "Accessible label for the 'figures match' input of a by-phrase row.",
+    "placeholders": {
+      "caption": {
+        "type": "String",
+        "example": "first phrase (usually A1)"
+      }
+    }
+  },
+  "collectionByPhraseFieldExclude": "{caption}, but do not match",
+  "@collectionByPhraseFieldExclude": {
+    "description": "Accessible label for the 'but do not match' input of a by-phrase row.",
+    "placeholders": {
+      "caption": {
+        "type": "String",
+        "example": "first phrase (usually A1)"
+      }
+    }
+  },
+  "collectionByPhraseRemoveMove": "Remove {move} from {field}",
+  "@collectionByPhraseRemoveMove": {
+    "description": "Tooltip on a chosen-move chip that removes it from a by-phrase input.",
+    "placeholders": {
+      "move": {
+        "type": "String",
+        "example": "swing"
+      },
+      "field": {
+        "type": "String",
+        "example": "first phrase (usually A1), figures match"
+      }
+    }
+  },
+
+  "collectionQueryMatchLabel": "Match",
+  "@collectionQueryMatchLabel": {
+    "description": "Accessible label for the advanced-query group match-kind dropdown (all/any/none)."
+  },
+  "collectionQueryGroupAll": "All of",
+  "@collectionQueryGroupAll": {
+    "description": "Advanced-query group match kind: every condition must match."
+  },
+  "collectionQueryGroupAny": "Any of",
+  "@collectionQueryGroupAny": {
+    "description": "Advanced-query group match kind: at least one condition must match."
+  },
+  "collectionQueryGroupNone": "None of",
+  "@collectionQueryGroupNone": {
+    "description": "Advanced-query group match kind: no condition may match."
+  },
+  "collectionQueryTheseConditions": "these conditions",
+  "@collectionQueryTheseConditions": {
+    "description": "Text after the match-kind dropdown in an advanced-query group (e.g. 'All of these conditions')."
+  },
+  "collectionQueryRemoveGroup": "Remove group",
+  "@collectionQueryRemoveGroup": {
+    "description": "Tooltip for the button that removes a condition group in the advanced-query builder."
+  },
+  "collectionQueryEmptyGroup": "No conditions yet — add one below.",
+  "@collectionQueryEmptyGroup": {
+    "description": "Placeholder shown in an advanced-query group that has no conditions yet."
+  },
+  "collectionQueryAddCondition": "Add a condition",
+  "@collectionQueryAddCondition": {
+    "description": "Tooltip for the menu that adds a condition to an advanced-query group."
+  },
+  "collectionQueryHasFigure": "Has figure",
+  "@collectionQueryHasFigure": {
+    "description": "Advanced-query condition type / row label: the dance contains a given figure."
+  },
+  "collectionQuerySequenceThen": "Sequence (then)",
+  "@collectionQuerySequenceThen": {
+    "description": "Advanced-query 'add' menu item: a two-figure ordered sequence condition."
+  },
+  "collectionQueryConditionGroup": "Condition group",
+  "@collectionQueryConditionGroup": {
+    "description": "Advanced-query 'add' menu item: a nested group of conditions."
+  },
+  "collectionQueryAddButton": "Add",
+  "@collectionQueryAddButton": {
+    "description": "Label of the advanced-query builder's add-condition menu button."
+  },
+  "collectionQueryRemoveFigure": "Remove figure",
+  "@collectionQueryRemoveFigure": {
+    "description": "Tooltip for the button that removes a figure condition in the advanced-query builder."
+  },
+  "collectionQueryThenFirst": "First",
+  "@collectionQueryThenFirst": {
+    "description": "Label for the earlier figure of a 'then' sequence condition."
+  },
+  "collectionQueryThenConnector": "then",
+  "@collectionQueryThenConnector": {
+    "description": "Connector between the two figures of a 'then' sequence condition."
+  },
+  "collectionQueryThenLater": "Later",
+  "@collectionQueryThenLater": {
+    "description": "Label for the later figure of a 'then' sequence condition."
+  },
+  "collectionQueryRemoveSequence": "Remove sequence",
+  "@collectionQueryRemoveSequence": {
+    "description": "Tooltip for the button that removes a 'then' sequence condition."
+  },
+  "collectionQueryGroupFigures": "Group figures",
+  "@collectionQueryGroupFigures": {
+    "description": "Button that wraps a single figure operand in a figure group."
+  },
+  "collectionQueryFigureGroupMatch": "Figure group match",
+  "@collectionQueryFigureGroupMatch": {
+    "description": "Accessible label for the match-kind dropdown of a figure group."
+  },
+  "collectionQueryOfTheseFigures": "of these figures",
+  "@collectionQueryOfTheseFigures": {
+    "description": "Text after the match-kind dropdown in a figure group (e.g. 'Any of these figures')."
+  },
+  "collectionQuerySingleFigure": "Single figure",
+  "@collectionQuerySingleFigure": {
+    "description": "Button that collapses a single-child figure group back to one figure."
+  },
+  "collectionQueryAddFigure": "Add figure",
+  "@collectionQueryAddFigure": {
+    "description": "Button that adds another figure to a figure group."
+  },
+  "collectionQueryRemoveFigureGroup": "Remove figure group",
+  "@collectionQueryRemoveFigureGroup": {
+    "description": "Tooltip for the button that removes a nested figure group."
+  },
+  "collectionQueryMoveLabel": "Move",
+  "@collectionQueryMoveLabel": {
+    "description": "Default label of the move type-ahead field."
+  },
+  "collectionQueryMoveHint": "e.g. swing",
+  "@collectionQueryMoveHint": {
+    "description": "Default hint of the move type-ahead field, giving an example move."
+  },
+  "collectionQuerySectionLabel": "Section",
+  "@collectionQuerySectionLabel": {
+    "description": "Accessible label for the phrase-section dropdown of a figure condition."
+  },
+  "collectionQueryAnySection": "Any section",
+  "@collectionQueryAnySection": {
+    "description": "Figure-condition section option meaning the figure may occur in any phrase."
+  },
+  "collectionQueryAnyParam": "Any {param}",
+  "@collectionQueryAnyParam": {
+    "description": "Figure-parameter dropdown option meaning the parameter is unconstrained.",
+    "placeholders": {
+      "param": {
+        "type": "String",
+        "example": "hands"
+      }
+    }
+  },
+
+  "collectionBatchLevelUnspecified": "Unspecified (clear)",
+  "@collectionBatchLevelUnspecified": {
+    "description": "Batch set-level option that clears (unsets) the level on the selected dances."
+  },
+  "collectionBatchLevelConfirm": "Set",
+  "@collectionBatchLevelConfirm": {
+    "description": "Confirm button of the batch set-level dialog."
+  },
+  "collectionBatchTagEmptyAdd": "No tags yet. Create one below.",
+  "@collectionBatchTagEmptyAdd": {
+    "description": "Empty state in the batch add-tags dialog when no tags exist yet."
+  },
+  "collectionBatchTagEmptyRemove": "The selected dances have no tags to remove.",
+  "@collectionBatchTagEmptyRemove": {
+    "description": "Empty state in the batch remove-tags dialog when the selection has no tags."
+  },
+  "collectionCreateTagLabel": "Create a tag",
+  "@collectionCreateTagLabel": {
+    "description": "Label of the new-tag text field in the batch add-tags dialog."
+  },
+  "collectionCreateTagButton": "Create tag",
+  "@collectionCreateTagButton": {
+    "description": "Tooltip for the button that creates the typed tag in the batch add-tags dialog."
+  },
+  "collectionCreateTagError": "Could not create tag. Try again.",
+  "@collectionCreateTagError": {
+    "description": "Snackbar shown when creating a tag fails."
+  },
+  "collectionBatchTagAddConfirm": "Add",
+  "@collectionBatchTagAddConfirm": {
+    "description": "Confirm button of the batch add-tags dialog."
+  },
+  "collectionBatchTagRemoveConfirm": "Remove",
+  "@collectionBatchTagRemoveConfirm": {
+    "description": "Confirm button of the batch remove-tags dialog."
+  },
+
+  "danceFiguresEmpty": "No figures yet.",
+  "@danceFiguresEmpty": {
+    "description": "Placeholder shown in the figure table when a dance has no figures."
+  },
+  "danceFigureBeats": "{beats, plural, =1{1 beat} other{{beats} beats}}",
+  "@danceFigureBeats": {
+    "description": "Beat count shown at the end of a figure row and in its accessible label.",
+    "placeholders": {
+      "beats": {
+        "type": "int",
+        "example": "8"
+      }
+    }
+  },
+  "danceFigureProgressionSemantic": "progression",
+  "@danceFigureProgressionSemantic": {
+    "description": "Word inserted into a figure row's accessible label when the figure carries the progression."
+  },
+  "danceFigureNote": "note: {note}",
+  "@danceFigureNote": {
+    "description": "Figure-row note as read into the accessible label.",
+    "placeholders": {
+      "note": {
+        "type": "String",
+        "example": "give weight"
+      }
+    }
+  },
+
+  "danceScreenTitle": "Dance",
+  "@danceScreenTitle": {
+    "description": "App-bar title of the dance detail screen."
+  },
+  "danceNotFound": "Dance not found.",
+  "@danceNotFound": {
+    "description": "Message shown when the requested dance cannot be loaded."
+  },
+  "danceEditFab": "Edit",
+  "@danceEditFab": {
+    "description": "Label of the floating action button that opens the dance editor."
+  },
+  "danceDuplicateTooltip": "Duplicate dance",
+  "@danceDuplicateTooltip": {
+    "description": "Tooltip/menu label for the action that duplicates the current dance."
+  },
+  "danceDeleteTooltip": "Delete dance",
+  "@danceDeleteTooltip": {
+    "description": "Tooltip/menu label for the action that deletes the current dance."
+  },
+  "danceMoreActions": "More actions",
+  "@danceMoreActions": {
+    "description": "Tooltip for the dance detail overflow (⋮) menu on narrow layouts."
+  },
+  "danceSectionFigures": "Figures",
+  "@danceSectionFigures": {
+    "description": "Heading of the figures section on the dance detail screen."
+  },
+  "danceSectionCallingNotes": "Calling notes",
+  "@danceSectionCallingNotes": {
+    "description": "Heading of the calling-notes section on the dance detail screen."
+  },
+  "danceSectionTunes": "Tunes",
+  "@danceSectionTunes": {
+    "description": "Heading of the tunes section on the dance detail screen."
+  },
+  "danceSectionLinks": "Links",
+  "@danceSectionLinks": {
+    "description": "Heading of the links section on the dance detail screen."
+  },
+  "danceMissingRelated": "(missing dance)",
+  "@danceMissingRelated": {
+    "description": "Placeholder for a related-dance link whose target has been deleted."
+  },
+  "danceSectionPublishedSources": "Published sources",
+  "@danceSectionPublishedSources": {
+    "description": "Heading of the published-sources section on the dance detail screen."
+  },
+  "danceSectionCustomFields": "Custom fields",
+  "@danceSectionCustomFields": {
+    "description": "Heading of the custom-fields section on the dance detail screen."
+  },
+  "danceSectionCallingHistory": "Calling history",
+  "@danceSectionCallingHistory": {
+    "description": "Heading of the calling-history section on the dance detail screen."
+  },
+  "danceCallingHistoryEmpty": "Not yet included in any program.",
+  "@danceCallingHistoryEmpty": {
+    "description": "Empty state for the calling-history section when the dance is in no program."
+  },
+  "danceShowCanonicalTerms": "Show canonical terms",
+  "@danceShowCanonicalTerms": {
+    "description": "Accessible label for the toggle that shows canonical (undialected) figure terms."
+  },
+  "danceCanonicalToggleLabel": "Canonical",
+  "@danceCanonicalToggleLabel": {
+    "description": "Visible label beside the canonical-terms toggle."
+  },
+  "danceProvenanceVia": "via {source}",
+  "@danceProvenanceVia": {
+    "description": "Provenance line prefix naming where the dance came from.",
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "manual entry"
+      }
+    }
+  },
+  "danceProvenanceSourceManual": "manual entry",
+  "@danceProvenanceSourceManual": {
+    "description": "Provenance source label for a manually entered dance."
+  },
+  "danceProvenanceSourceJson": "JSON import",
+  "@danceProvenanceSourceJson": {
+    "description": "Provenance source label for a dance imported from a JSON file."
+  },
+  "danceLinkKindVideo": "video",
+  "@danceLinkKindVideo": {
+    "description": "Noun for a video link, used in its 'Open …' accessible label."
+  },
+  "danceLinkKindSource": "source link",
+  "@danceLinkKindSource": {
+    "description": "Noun for a source link, used in its 'Open …' accessible label."
+  },
+  "danceLinkKindLink": "link",
+  "@danceLinkKindLink": {
+    "description": "Generic noun for a link (related-dance or other), used in its 'Open …' accessible label."
+  },
+  "danceOpenLinkSemantic": "Open {kind}: {display}",
+  "@danceOpenLinkSemantic": {
+    "description": "Accessible label for a launchable link row on the dance detail screen.",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "video"
+      },
+      "display": {
+        "type": "String",
+        "example": "youtube.com/watch"
+      }
+    }
+  },
+  "danceOpenProgramSemantic": "Open program: {title}, {details}",
+  "@danceOpenProgramSemantic": {
+    "description": "Accessible label for a calling-history row that opens a program.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Fall Contra"
+      },
+      "details": {
+        "type": "String",
+        "example": "15 Jul 2026, Town Hall"
+      }
+    }
+  },
+  "danceHalfStatsFirstHalf": "{count, plural, =1{Called 1 time in the first half} other{Called {count} times in the first half}}",
+  "@danceHalfStatsFirstHalf": {
+    "description": "First clause of the half-calling stats: times called in the first half.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "danceHalfStatsSecondHalf": "{count, plural, =1{1 time in the second half} other{{count} times in the second half}}",
+  "@danceHalfStatsSecondHalf": {
+    "description": "Second clause of the half-calling stats: times called in the second half.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "danceHalfStatsOpened": "{count, plural, =1{opened the first half 1 time} other{opened the first half {count} times}}",
+  "@danceHalfStatsOpened": {
+    "description": "Optional half-calling stats clause: times the dance opened the first half.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceHalfStatsClosed": "{count, plural, =1{closed the evening (last dance of the second half) 1 time} other{closed the evening (last dance of the second half) {count} times}}",
+  "@danceHalfStatsClosed": {
+    "description": "Optional half-calling stats clause: times the dance closed the evening.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceHalfStatsSemanticLabel": "Half breakdown: {description}",
+  "@danceHalfStatsSemanticLabel": {
+    "description": "Accessible label wrapping the assembled half-calling stats sentence.",
+    "placeholders": {
+      "description": {
+        "type": "String",
+        "example": "Called 3 times in the first half; 1 time in the second half."
+      }
+    }
+  },
+  "danceSourceUnknown": "(unknown source)",
+  "@danceSourceUnknown": {
+    "description": "Fallback title for a cited source whose record has been purged."
+  },
+  "danceSourcePage": "p. {page}",
+  "@danceSourcePage": {
+    "description": "Page locator for a source citation (p. = page).",
+    "placeholders": {
+      "page": {
+        "type": "String",
+        "example": "42"
+      }
+    }
+  },
+  "danceSourceNumber": "no. {number}",
+  "@danceSourceNumber": {
+    "description": "Number locator for a source citation (no. = number).",
+    "placeholders": {
+      "number": {
+        "type": "String",
+        "example": "17"
+      }
+    }
+  },
+  "danceOpenSourceLinkSemantic": "Open source link: {title}",
+  "@danceOpenSourceLinkSemantic": {
+    "description": "Accessible label for a cited source row that opens an external URL.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Zesty Contras"
+      }
+    }
+  },
+  "danceSourceSemanticPrefix": "Source: {title}",
+  "@danceSourceSemanticPrefix": {
+    "description": "Prefix of the accessible label for a non-launchable cited source row.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Zesty Contras"
+      }
+    }
+  },
+  "danceOpenDanceCrossRefSemantic": "Open dance: {title}",
+  "@danceOpenDanceCrossRefSemantic": {
+    "description": "Accessible label for a cross-reference link that opens another dance.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  }
+}

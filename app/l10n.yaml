@@ -1,0 +1,16 @@
+# gen-l10n configuration (Flutter 3.44.6). `flutter pub get` / `flutter gen-l10n`
+# reads this and generates the AppLocalizations sources from the ARB files.
+#
+# Generated Dart lands in `lib/l10n/` (same dir as the ARB templates) and is
+# checked into the repo so builds/tests never depend on generation timing. The
+# generated files ship a `// ignore_for_file: type=lint` header (so they pass
+# `flutter analyze` with no analyzer-exclude) and are already `dart format`-clean,
+# so the CI format/analyze gates stay green even though `flutter pub get`
+# regenerates them (deterministically, same toolchain) before those checks run.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+# Non-null AppLocalizations.of(context): delegates are always wired on
+# MaterialApp, so callers never need a null check.
+nullable-getter: false
