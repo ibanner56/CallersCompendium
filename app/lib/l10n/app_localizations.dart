@@ -3267,6 +3267,24 @@ abstract class AppLocalizations {
   /// **'Import complete'**
   String get importReviewComplete;
 
+  /// Advisory (non-blocking) warning shown on the review screen when a shared bundle carries an unusually large number of entities.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{This import contains 1 item — more than expected for a normal share.} other{This import contains {count} items — more than expected for a normal share.}}'**
+  String sharedImportSoftCapWarning(int count);
+
+  /// Transient snackbar message shown after a shared bundle is imported, alongside an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Import complete.} =1{Imported 1 item.} other{Imported {count} items.}}'**
+  String sharedImportComplete(int count);
+
+  /// Shown on the review screen when a shared bundle carries programs but no dances, so the user can still consent to importing the programs.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{This share contains 1 program and no dances.} other{This share contains {count} programs and no dances.}}'**
+  String sharedImportProgramsOnly(int count);
+
   /// Import result summary line: number of dances created.
   ///
   /// In en, this message translates to:

@@ -1,10 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/utils/undo_snack_bar.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1436,6 +1438,333 @@ void main() {
       );
       expect(editButton.onPressed, isNull);
     });
+  });
+
+  group('shared bundle (share-target consent, issue #432)', () {
+    Dance sharedDance(String id, String title) => Dance(
+      id: id,
+      title: title,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+    );
+
+    // A bundle carrying one new dance, one program referencing it, and one
+    // venue the program is set at — exercising the full archive commit path.
+    CompendiumArchive danceProgramVenueArchive() => CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 7, 15),
+      dances: [sharedDance('d1', 'Shared Reel')],
+      programs: [
+        Program(
+          id: 'p1',
+          title: 'Shared Spring Fling',
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          createdAt: DateTime.utc(2026, 4, 1),
+          updatedAt: DateTime.utc(2026, 4, 1),
+        ),
+      ],
+      venues: [Venue(id: 'v1', name: 'The Grange Hall')],
+    );
+
+    SharedBundleImport bundleFor(
+      CompendiumArchive archive, {
+      int? entityCount,
+    }) {
+      final json = encodeArchive(archive);
+      return SharedBundleImport(
+        json: json,
+        archive: archive,
+        entityCount: entityCount ?? compendiumArchiveEntityCount(archive),
+      );
+    }
+
+    // Mounts the review screen for a shared [bundle], pushed on top of a home
+    // scaffold (mirroring main.dart's `_navigatorKey.push`) so the post-commit
+    // Undo snackbar — which rides the app-level ScaffoldMessenger and outlives
+    // the popped review route — stays reachable, and returns the refresh
+    // notifier so a test can assert it is bumped.
+    Future<ValueNotifier<int>> pumpShared(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+      SharedBundleImport bundle,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1000, 1600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final refresh = ValueNotifier<int>(0);
+      addTearDown(refresh.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: CollectionRefreshScope(revision: refresh, child: child!),
+          ),
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  key: const ValueKey('open-review'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ImportReviewScreen(
+                        sources: [
+                          ImportSource(
+                            label: 'test JSON',
+                            adapterFactory: GenericJsonAdapter.new,
+                          ),
+                        ],
+                        sharedBundle: bundle,
+                      ),
+                    ),
+                  ),
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('open-review')));
+      await tester.pumpAndSettle();
+      return refresh;
+    }
+
+    testWidgets(
+      'lands directly on the review list and commits NOTHING until Import',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+        // Skipped the manual input phase — straight to the review/consent list.
+        expect(
+          find.byKey(const ValueKey('import-review-list')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
+        expect(find.text('Shared Reel'), findsOneWidget);
+
+        // The untrusted bundle has written nothing before the user confirms.
+        expect(await repos.dances.listAll(), isEmpty);
+        expect(await repos.programs.listAll(), isEmpty);
+        expect(await repos.venues.listAll(), isEmpty);
+      },
+    );
+
+    testWidgets(
+      'Import commits dances + programs + venues via the archive importer, '
+      'shows the transient undo snackbar (no result dialog)',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        final refresh = await pumpShared(
+          tester,
+          repos,
+          bundleFor(danceProgramVenueArchive()),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        // The whole archive committed — not just the dance.
+        final dances = await repos.dances.listAll();
+        expect(dances.map((d) => d.title), contains('Shared Reel'));
+        expect(await repos.programs.listAll(), hasLength(1));
+        expect(await repos.venues.listAll(), hasLength(1));
+        expect(refresh.value, greaterThan(0));
+
+        // Share-target path uses the transient snackbar, NOT the manual-import
+        // result dialog.
+        expect(
+          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('import-result-dialog')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'a bundle above the soft cap shows the warning yet still imports; '
+      'at or below the cap shows no warning',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        // entityCount drives the banner directly (computed pre-render by the
+        // intake service); pass it explicitly so the commit stays cheap.
+        await pumpShared(
+          tester,
+          repos,
+          bundleFor(danceProgramVenueArchive(), entityCount: 501),
+        );
+
+        expect(
+          find.byKey(const ValueKey('import-soft-cap-warning')),
+          findsOneWidget,
+        );
+        // Soft, not a block: the Import button is still enabled and works.
+        final button = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('import-commit-button')),
+        );
+        expect(button.onPressed, isNotNull);
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+        expect(await repos.programs.listAll(), hasLength(1));
+      },
+    );
+
+    testWidgets('exactly at the soft cap (500) shows no warning', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+
+      await pumpShared(
+        tester,
+        repos,
+        bundleFor(
+          danceProgramVenueArchive(),
+          entityCount: kSharedBundleSoftCapEntities,
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey('import-soft-cap-warning')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the transient Undo removes EXACTLY the imported batch, leaving '
+        'pre-existing rows untouched', (tester) async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      // A pre-existing dance the user already had — the undo must not touch it.
+      await repos.dances.create(sharedDance('keeper', 'Keeper Jig'));
+
+      await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      // Imported alongside the keeper.
+      expect(await repos.dances.listAll(), hasLength(2));
+      expect(await repos.programs.listAll(), hasLength(1));
+      expect(await repos.venues.listAll(), hasLength(1));
+
+      // Undo the batch.
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      // Precisely the imported batch is gone; the pre-existing row remains.
+      final remaining = await repos.dances.listAll();
+      expect(remaining, hasLength(1));
+      expect(remaining.single.title, 'Keeper Jig');
+      expect(await repos.programs.listAll(), isEmpty);
+      expect(await repos.venues.listAll(), isEmpty);
+    });
+
+    testWidgets(
+      'the Undo is transient: after it auto-dismisses the snackbar is gone and '
+      'the import is retained',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsOneWidget,
+        );
+
+        // Let the transient timer elapse.
+        await tester.pump(kUndoSnackBarDuration + const Duration(seconds: 1));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsNothing,
+        );
+        // Undo never fired, so the committed batch is retained.
+        expect(await repos.programs.listAll(), hasLength(1));
+        expect(await repos.dances.listAll(), hasLength(1));
+      },
+    );
+
+    testWidgets(
+      'suppresses the per-row Edit affordance so nothing writes before the '
+      'batch Import consent',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
+
+        // The dance row renders, but its one-click Edit (which would commit that
+        // dance immediately, outside the batch Undo) is gone on the share path.
+        expect(find.byKey(const ValueKey('import-row-0')), findsOneWidget);
+        expect(find.byKey(const ValueKey('import-row-0-edit')), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'a program-only bundle (no dances) can still be imported with consent',
+      (tester) async {
+        final repos = openTestRepositories();
+        addTearDown(repos.db.close);
+
+        // A valid bundle carrying a program of only free-text slots and no
+        // dances — intake accepts it, and the pre-#432 path imported it, so the
+        // consent screen must still offer an Import.
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          programs: [
+            Program(
+              id: 'p1',
+              title: 'Announcements Night',
+              slots: [ProgramSlot(id: 's1', position: 0, text: 'Welcome!')],
+              createdAt: DateTime.utc(2026, 4, 1),
+              updatedAt: DateTime.utc(2026, 4, 1),
+            ),
+          ],
+        );
+
+        await pumpShared(tester, repos, bundleFor(archive));
+
+        // Lands on the review list with an enabled Import and no dance rows —
+        // not the dead-end "no dances" message — and writes nothing yet.
+        expect(
+          find.byKey(const ValueKey('import-review-list')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('import-row-0')), findsNothing);
+        final button = tester.widget<FilledButton>(
+          find.byKey(const ValueKey('import-commit-button')),
+        );
+        expect(button.onPressed, isNotNull);
+        expect(await repos.programs.listAll(), isEmpty);
+
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        expect(await repos.programs.listAll(), hasLength(1));
+        expect(await repos.dances.listAll(), isEmpty);
+        expect(
+          find.byKey(const ValueKey('shared-import-undo-snackbar')),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }
 
