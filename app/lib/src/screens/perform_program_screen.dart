@@ -290,9 +290,25 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         ],
       ),
     );
-    // A direct pop (not `maybePop`) so it bypasses the PopScope guard below
+    // A direct pop (not `maybePop`) so it bypasses the PopScope in [_guardExit]
     // rather than re-triggering the confirmation.
     if (confirmed == true) navigator.pop();
+  }
+
+  /// Wraps a Perform scaffold so an implicit pop (system back / predictive-back
+  /// gesture) is intercepted and routed through the same [_confirmAndExit]
+  /// confirmation as the close control (issue #434). Applied to *both* the
+  /// populated and empty-state builds so a single tap / back never drops the
+  /// caller out — the guard's contract holds regardless of slot count.
+  Widget _guardExit({required Widget child}) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _confirmAndExit();
+      },
+      child: child,
+    );
   }
 
   int _slotElapsedFrom(int elapsed) => elapsed - _slotStartSeconds;
@@ -582,20 +598,23 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
     if (_groups.isEmpty) {
       // Defensive: the entry point hides the affordance for an empty program,
-      // so this should not normally be reached.
+      // so this should not normally be reached. The exit is still guarded so a
+      // directly constructed empty screen honors the same contract (#434).
       return PerformStageTheme(
         enabled: _stageMode,
-        child: Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              key: const ValueKey('perform-program-exit'),
-              tooltip: 'Exit performance view',
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(context).pop(),
+        child: _guardExit(
+          child: Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                key: const ValueKey('perform-program-exit'),
+                tooltip: 'Exit performance view',
+                icon: const Icon(Icons.close),
+                onPressed: _confirmAndExit,
+              ),
+              title: Text(widget.program.title),
             ),
-            title: Text(widget.program.title),
+            body: const Center(child: Text('This program has no slots.')),
           ),
-          body: const Center(child: Text('This program has no slots.')),
         ),
       );
     }
@@ -613,15 +632,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       title: _slotLabel(slot),
       child: PerformStageTheme(
         enabled: _stageMode,
-        // Guard the exit (issue #434): block an implicit pop (system back /
-        // predictive-back gesture) and route it through the same confirmation
-        // as the close control so a stray gesture can't drop the caller out.
-        child: PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, _) {
-            if (didPop) return;
-            _confirmAndExit();
-          },
+        child: _guardExit(
           child: Scaffold(
             appBar: AppBar(
               leading: IconButton(
