@@ -417,19 +417,74 @@ class DanceRepository {
   }) async {
     assertUtc(now, 'now');
     final cutoff = now.subtract(retention);
-    final toPurge = await (_db.select(
-      _db.dances,
-    )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
     return _db.transaction(() async {
-      for (final row in toPurge) {
+      // Select eligibility INSIDE the transaction so selection, cleanup, and
+      // deletion all operate on one consistent snapshot. Selecting outside the
+      // txn opened a TOCTOU race: a dance restored between the SELECT and the
+      // DELETE would keep its row (it no longer matches the cutoff predicate)
+      // while its dance-only slots were already tombstoned and its incoming
+      // relatedDance links deleted — corrupting a dance that ends up surviving.
+      final toPurge = await (_db.select(
+        _db.dances,
+      )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
+      if (toPurge.isEmpty) return 0;
+      await _cleanupDanglingReferences([
+        for (final r in toPurge) (id: r.id, title: r.title),
+      ]);
+      final ids = [for (final r in toPurge) r.id];
+      for (final id in ids) {
         await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
-          row.id,
+          id,
         ]);
       }
-      return (_db.delete(
-        _db.dances,
-      )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).go();
+      // Delete exactly the rows we selected and cleaned up — by id, not by a
+      // re-evaluated cutoff predicate — so cleanup and deletion can never
+      // diverge onto different sets of dances.
+      var deleted = 0;
+      for (final chunk in _chunkIds(ids)) {
+        deleted += await (_db.delete(
+          _db.dances,
+        )..where((t) => t.id.isIn(chunk))).go();
+      }
+      return deleted;
     });
+  }
+
+  /// Neutralises the two `onDelete: SET NULL` FKs that point at [toPurge]
+  /// **before** the owning dances are hard-deleted, so the SET NULL can never
+  /// leave a row the domain layer rejects. Called inside the delete
+  /// transaction of both [purgeDeleted] and [hardDelete].
+  ///
+  /// - **#429** — `program_slots.danceId`: a *dance-only* slot (its `text` is
+  ///   NULL) would become `(danceId, text) = (null, null)`, which the
+  ///   [ProgramSlot] constructor rejects, corrupting every Programs load. We
+  ///   tombstone it in place with the purged dance's title so the caption
+  ///   survives and the slot stays valid. Text-bearing slots already survive
+  ///   SET NULL unharmed, so they are left untouched.
+  /// - **#466** — `dance_links.targetDanceId`: a `relatedDance` link whose
+  ///   *target* is purged would become `(relatedDance, targetDanceId = null)`,
+  ///   which the [DanceLink] constructor rejects, corrupting the *owner*
+  ///   dance's load. The link no longer refers to anything, so we delete it.
+  ///   (Owner-side links are cascade-deleted with their dance separately.)
+  Future<void> _cleanupDanglingReferences(
+    List<({String id, String title})> toPurge,
+  ) async {
+    if (toPurge.isEmpty) return;
+    for (final d in toPurge) {
+      await _db.customStatement(
+        'UPDATE program_slots SET text = ? WHERE dance_id = ? AND text IS NULL',
+        [d.title, d.id],
+      );
+    }
+    final ids = [for (final d in toPurge) d.id];
+    for (final chunk in _chunkIds(ids)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      await _db.customStatement(
+        'DELETE FROM dance_links WHERE kind = ? AND target_dance_id IN '
+        '($placeholders)',
+        [LinkKind.relatedDance.name, ...chunk],
+      );
+    }
   }
 
   /// Immediately and permanently removes the dances identified by [ids]
@@ -446,6 +501,12 @@ class DanceRepository {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
+      final rows = await (_db.select(
+        _db.dances,
+      )..where((t) => t.id.isIn(list))).get();
+      await _cleanupDanglingReferences([
+        for (final r in rows) (id: r.id, title: r.title),
+      ]);
       for (final id in list) {
         await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
           id,
@@ -1005,18 +1066,32 @@ class DanceRepository {
                 ]))
               .get();
       for (final r in rows) {
-        (byDance[r.danceId] ??= <DanceLink>[]).add(
-          DanceLink(
-            id: r.id,
-            kind: r.kind,
-            url: r.url,
-            targetDanceId: r.targetDanceId,
-            label: r.label,
-          ),
-        );
+        final link = _linkFromRow(r);
+        if (link == null) continue;
+        (byDance[r.danceId] ??= <DanceLink>[]).add(link);
       }
     }
     return byDance;
+  }
+
+  /// Maps a link row to a [DanceLink], returning `null` for a row the domain
+  /// invariants reject rather than throwing. A pre-fix purge could leave a
+  /// `relatedDance` link whose `target_dance_id` was SET NULL (#466); tolerating
+  /// it here means one corrupt row can't fail the whole Collection load
+  /// (`listAll`/`getById`). [purgeDeleted]/[hardDelete] and the one-time repair
+  /// in `CompendiumRepositories.ensureMigrated` remove such rows for good.
+  DanceLink? _linkFromRow(DanceLinkRow r) {
+    try {
+      return DanceLink(
+        id: r.id,
+        kind: r.kind,
+        url: r.url,
+        targetDanceId: r.targetDanceId,
+        label: r.label,
+      );
+    } on ArgumentError {
+      return null;
+    }
   }
 
   /// `dance_id → [SourceCitation]` in position order.

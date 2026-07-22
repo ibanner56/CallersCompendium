@@ -98,6 +98,66 @@ void main() {
       expect(loaded.slots.single.text, 'played anyway');
     });
 
+    test('a DANCE-ONLY slot survives its dance being hard-purged as a title '
+        'tombstone (#429)', () async {
+      // The regression that #429 exposed and #459 masked: a slot with a
+      // dance but NO text. A pre-fix purge nulled its dance_id, leaving
+      // (danceId, text) = (null, null) — which ProgramSlot rejects — so
+      // loading ANY program threw. The purge now tombstones the slot's text
+      // with the dance's title so it stays valid.
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Doomed Dance',
+          deletedAt: DateTime.utc(2026, 1, 1),
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+
+      await dances.purgeDeleted(now: DateTime.utc(2026, 4, 1));
+
+      // getById must not throw; the slot survives with the title as caption.
+      final loaded = await repo.getById('p1');
+      expect(loaded, isNotNull);
+      expect(loaded!.slots.single.danceId, isNull);
+      expect(loaded.slots.single.text, 'Doomed Dance');
+
+      // listAll builds every program's slots in one loop, so it is the path
+      // a single corrupt row historically took down. It must also succeed.
+      final all = await repo.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.slots.single.text, 'Doomed Dance');
+    });
+
+    test('loading tolerates a legacy (null,null) corrupt slot rather than '
+        'throwing (#429 belt-and-suspenders)', () async {
+      // Simulate a row left corrupt by a build that predates the tombstone
+      // fix. The mapper must skip it so it cannot block loading the program.
+      await repo.create(
+        sampleProgram(
+          slots: [ProgramSlot(id: 's-ok', position: 0, text: 'Waltz')],
+        ),
+      );
+      await db.customStatement(
+        'INSERT INTO program_slots (id, program_id, position, dance_id, '
+        'text, is_alt) VALUES (?, ?, ?, NULL, NULL, 0)',
+        ['s-bad', 'p1', 1],
+      );
+
+      final loaded = await repo.getById('p1');
+      expect(loaded, isNotNull);
+      expect(loaded!.slots.map((s) => s.id), ['s-ok']);
+
+      final all = await repo.listAll();
+      expect(all.single.slots.map((s) => s.id), ['s-ok']);
+    });
+
     test('returns null for a missing id', () async {
       expect(await repo.getById('nope'), isNull);
     });

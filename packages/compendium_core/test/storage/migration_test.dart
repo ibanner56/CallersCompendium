@@ -1639,6 +1639,16 @@ void main() {
         expect(withLink.links.single.kind, LinkKind.video);
         expect(withoutLink.links, isEmpty);
 
+        // The migrated database is referentially intact: no dangling FKs.
+        final fkViolations = await db
+            .customSelect('PRAGMA foreign_key_check')
+            .get();
+        expect(
+          fkViolations,
+          isEmpty,
+          reason: 'the v13 migration must not leave any dangling foreign keys',
+        );
+
         await db.close();
       },
     );
@@ -1883,6 +1893,161 @@ void main() {
       second.customSelect('SELECT 1').get(),
       throwsA(isA<StateError>()),
     );
+  });
+
+  group('purge-corruption repair (#429/#466)', () {
+    test(
+      'ensureMigrated removes legacy corrupt rows once and marks it done',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        // A healthy dance + a program whose slot references it, plus a VALID
+        // owner->target relatedDance link (both dances present) that the
+        // destructive repair sweep must PRESERVE.
+        await repos.dances.create(
+          Dance(
+            id: 'd-target',
+            title: 'Target Dance',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'd-ok',
+            title: 'Good Dance',
+            links: [
+              DanceLink(
+                id: 'l-good',
+                kind: LinkKind.relatedDance,
+                targetDanceId: 'd-target',
+              ),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await repos.programs.create(
+          Program(
+            id: 'p1',
+            title: 'Set',
+            slots: [ProgramSlot(id: 's-ok', position: 0, danceId: 'd-ok')],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+
+        // Inject the two row shapes a pre-fix hard purge would have left: a
+        // (danceId, text)-both-null slot (#429) and a relatedDance link whose
+        // target was SET NULL (#466). Written raw so they bypass the domain
+        // guards, exactly like a legacy on-disk database.
+        await db.customStatement(
+          'INSERT INTO program_slots (id, program_id, position, dance_id, '
+          'text, is_alt) VALUES (?, ?, ?, NULL, NULL, 0)',
+          ['s-bad', 'p1', 1],
+        );
+        await db.customStatement(
+          'INSERT INTO dance_links (id, dance_id, kind, target_dance_id) '
+          'VALUES (?, ?, ?, NULL)',
+          ['l-bad', 'd-ok', LinkKind.relatedDance.name],
+        );
+
+        await repos.ensureMigrated();
+
+        // The corrupt rows are gone; the healthy rows — including the VALID
+        // relatedDance link — survive untouched (the sweep is not over-eager).
+        final slots = await db
+            .customSelect('SELECT id FROM program_slots ORDER BY id')
+            .get();
+        expect(slots.map((r) => r.read<String>('id')), ['s-ok']);
+        final links = await db
+            .customSelect('SELECT id FROM dance_links ORDER BY id')
+            .get();
+        expect(links.map((r) => r.read<String>('id')), ['l-good']);
+
+        // Loads succeed after the repair, and the valid link still hydrates.
+        final programs = await repos.programs.listAll();
+        expect(programs.single.slots.single.danceId, 'd-ok');
+        final loadedDances = await repos.dances.listAll();
+        expect(loadedDances, hasLength(2));
+        final owner = loadedDances.firstWhere((d) => d.id == 'd-ok');
+        expect(owner.links.single.id, 'l-good');
+        expect(owner.links.single.targetDanceId, 'd-target');
+
+        // The database is referentially clean and its FTS index is a perfect
+        // 1:1 mirror of `dances`. We compare the ORDERED id multisets (not just
+        // row counts): dance_fts.dance_id is an unconstrained FTS column, so a
+        // count-only check would pass even if one dance were missing while
+        // another had a duplicate row. Comparing sorted id lists catches
+        // missing, orphaned, and duplicated FTS rows alike.
+        final fkViolations = await db
+            .customSelect('PRAGMA foreign_key_check')
+            .get();
+        expect(fkViolations, isEmpty, reason: 'no dangling FKs after repair');
+        final ftsIds =
+            (await db
+                    .customSelect(
+                      'SELECT dance_id FROM dance_fts ORDER BY dance_id',
+                    )
+                    .get())
+                .map((r) => r.read<String>('dance_id'))
+                .toList();
+        final danceIds =
+            (await db.customSelect('SELECT id FROM dances ORDER BY id').get())
+                .map((r) => r.read<String>('id'))
+                .toList();
+        expect(
+          ftsIds,
+          danceIds,
+          reason: 'dance_fts must be an exact 1:1 mirror of dances',
+        );
+
+        // The one-shot marker is durably recorded.
+        final marker = await db
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ?',
+              variables: [Variable.withString(purgeCorruptionRepairDoneKey)],
+            )
+            .get();
+        expect(marker, hasLength(1));
+      },
+    );
+
+    test('skips the repair when the done-marker is already set', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+
+      // Pre-stamp the marker (this first statement also triggers onCreate), so
+      // a later corrupt row must be left alone — the sweep runs at most once.
+      await db.customStatement(
+        'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+        [purgeCorruptionRepairDoneKey, 'true'],
+      );
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Set',
+          slots: [ProgramSlot(id: 's-ok', position: 0, text: 'Waltz')],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await db.customStatement(
+        'INSERT INTO program_slots (id, program_id, position, dance_id, text, '
+        'is_alt) VALUES (?, ?, ?, NULL, NULL, 0)',
+        ['s-bad', 'p1', 1],
+      );
+
+      await repos.ensureMigrated();
+
+      final slots = await db
+          .customSelect('SELECT id FROM program_slots ORDER BY id')
+          .get();
+      expect(slots.map((r) => r.read<String>('id')), ['s-bad', 's-ok']);
+    });
   });
 }
 

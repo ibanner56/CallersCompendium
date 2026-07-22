@@ -77,6 +77,22 @@ const String danceLinksDanceIdIndexSql =
 /// [CompendiumRepositories.ensureMigrated] only after the rebuild succeeds.
 const String derivedRebuildRequiredKey = '__derived_rebuild_required__';
 
+/// Settings key marking that the one-time purge-corruption repair (#429/#466)
+/// has run against this database.
+///
+/// A pre-fix hard purge could leave two kinds of row that the domain layer
+/// rejects: a *dance-only* `program_slots` row nulled to `(danceId, text) =
+/// (null, null)` (#429), and a `relatedDance` `dance_links` row whose
+/// `targetDanceId` was SET NULL (#466). Either one throws on load and takes
+/// down the whole Programs / Collection listing. [CompendiumRepositories.
+/// ensureMigrated] repairs any such legacy rows once and then writes this key
+/// so the sweep is skipped on every later open.
+///
+/// Deliberately a durable settings marker rather than a schema bump: the
+/// corruption can exist in databases already stamped at the current schema
+/// version, so a version-gated migration would miss them.
+const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
+
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.

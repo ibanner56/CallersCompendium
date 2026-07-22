@@ -334,7 +334,7 @@ class ProgramRepository {
               ..where((t) => t.programId.equals(programId))
               ..orderBy([(t) => OrderingTerm(expression: t.position)]))
             .get();
-    return rows.map(_slotFromRow).toList();
+    return rows.map(_slotFromRow).whereType<ProgramSlot>().toList();
   }
 
   /// Batched sibling of [_slotsFor]: loads the slots for many programs in a
@@ -360,21 +360,36 @@ class ProgramRepository {
             .get();
     final byProgram = <String, List<ProgramSlot>>{};
     for (final row in rows) {
-      (byProgram[row.programId] ??= <ProgramSlot>[]).add(_slotFromRow(row));
+      final slot = _slotFromRow(row);
+      if (slot == null) continue;
+      (byProgram[row.programId] ??= <ProgramSlot>[]).add(slot);
     }
     return byProgram;
   }
 
-  ProgramSlot _slotFromRow(ProgramSlotRow r) => ProgramSlot(
-    id: r.id,
-    position: r.position,
-    danceId: r.danceId,
-    text: r.text_,
-    isAlt: r.isAlt,
-    guestCaller: r.guestCaller,
-    plannedMinutes: r.plannedMinutes,
-    performedAt: asUtcOrNull(r.performedAt),
-  );
+  /// Maps a slot row to a [ProgramSlot], returning `null` for a row the domain
+  /// invariants reject rather than throwing. A pre-fix purge could leave a
+  /// *dance-only* slot as `(danceId, text) = (null, null)` when the SET NULL FK
+  /// fired (#429); tolerating it here means one corrupt row can't fail the whole
+  /// Programs load (`listAll`/`getById`). [DanceRepository.purgeDeleted]
+  /// tombstones such slots going forward, and the one-time repair in
+  /// `CompendiumRepositories.ensureMigrated` clears any left by a prior build.
+  ProgramSlot? _slotFromRow(ProgramSlotRow r) {
+    try {
+      return ProgramSlot(
+        id: r.id,
+        position: r.position,
+        danceId: r.danceId,
+        text: r.text_,
+        isAlt: r.isAlt,
+        guestCaller: r.guestCaller,
+        plannedMinutes: r.plannedMinutes,
+        performedAt: asUtcOrNull(r.performedAt),
+      );
+    } on ArgumentError {
+      return null;
+    }
+  }
 
   /// Maps dance id → the most recent `performedAt` timestamp across every
   /// slot of every non-deleted program, for dances that have actually been
