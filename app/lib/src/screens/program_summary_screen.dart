@@ -13,6 +13,7 @@ import '../search/collection_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
@@ -257,15 +258,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.programsDeletedSnack(source.title)),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () =>
-              _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
-        ),
-      ),
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      message: l10n.programsDeletedSnack(source.title),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () =>
+          _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
     );
     widget.onDeleted();
   }

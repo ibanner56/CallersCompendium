@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
+import '../utils/undo_snack_bar.dart';
 
 /// Opens a modal bottom sheet listing existing (non-deleted) programs so the
 /// user can append the dance identified by [danceId] as a new slot at the end
@@ -29,6 +30,7 @@ Future<void> showAddToProgramSheet(
   programs.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
+  final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -71,6 +73,7 @@ Future<void> showAddToProgramSheet(
                           danceId: danceId,
                           danceTitle: danceTitle,
                           messenger: messenger,
+                          accessibleNavigation: accessibleNavigation,
                           l10n: l10n,
                         ),
                       ),
@@ -93,6 +96,7 @@ Widget _buildProgramPickRow(
   required String danceId,
   required String danceTitle,
   required ScaffoldMessengerState messenger,
+  required bool accessibleNavigation,
   required AppLocalizations l10n,
 }) {
   final slotCount = program.slots.length;
@@ -124,6 +128,7 @@ Widget _buildProgramPickRow(
           danceId: danceId,
           danceTitle: danceTitle,
           messenger: messenger,
+          accessibleNavigation: accessibleNavigation,
           l10n: l10n,
         ),
       ),
@@ -189,6 +194,7 @@ Future<void> _selectProgram(
   required String danceId,
   required String danceTitle,
   required ScaffoldMessengerState messenger,
+  required bool accessibleNavigation,
   required AppLocalizations l10n,
 }) async {
   // Re-load fresh so we append onto the latest persisted slot list.
@@ -208,24 +214,22 @@ Future<void> _selectProgram(
     fresh.copyWith(slots: [...fresh.slots, newSlot], updatedAt: now),
   );
   if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-  messenger.showSnackBar(
-    SnackBar(
-      key: const ValueKey('added-to-program-snackbar'),
-      content: Text(l10n.programsAddedToProgramSnack(danceTitle, fresh.title)),
-      action: SnackBarAction(
-        label: l10n.commonUndo,
-        onPressed: () async {
-          final current = await repositories.programs.getById(fresh.id);
-          if (current == null) return;
-          await repositories.programs.update(
-            current.copyWith(
-              slots: previousSlots,
-              updatedAt: DateTime.now().toUtc(),
-            ),
-          );
-        },
-      ),
-    ),
+  showUndoSnackBar(
+    messenger,
+    key: const ValueKey('added-to-program-snackbar'),
+    message: l10n.programsAddedToProgramSnack(danceTitle, fresh.title),
+    undoLabel: l10n.commonUndo,
+    accessibleNavigation: accessibleNavigation,
+    onUndo: () async {
+      final current = await repositories.programs.getById(fresh.id);
+      if (current == null) return;
+      await repositories.programs.update(
+        current.copyWith(
+          slots: previousSlots,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+    },
   );
 }
 

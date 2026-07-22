@@ -6,6 +6,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/program_list_tile.dart';
 import '../widgets/skeleton.dart';
 import 'app_shell_search_scope.dart';
@@ -225,21 +226,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     setState(() => _programs?.removeWhere((p) => p.id == program.id));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        key: const ValueKey('program-deleted-snackbar'),
-        content: Text(l10n.programsDeletedSnack(program.title)),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () async {
-            await _repos.programs.restore(
-              program.id,
-              at: DateTime.now().toUtc(),
-            );
-            if (mounted) await _load();
-          },
-        ),
-      ),
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      key: const ValueKey('program-deleted-snackbar'),
+      message: l10n.programsDeletedSnack(program.title),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () async {
+        await _repos.programs.restore(program.id, at: DateTime.now().toUtc());
+        if (mounted) await _load();
+      },
     );
   }
 
