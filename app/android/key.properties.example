@@ -7,8 +7,10 @@
 #
 # The real `key.properties` — and any `*.jks` / `*.keystore` file — is GITIGNORED
 # (see app/android/.gitignore); never commit your keystore or its passwords.
-# When `key.properties` is absent, `app/android/app/build.gradle.kts` falls back
-# to the debug signing config, so release builds still work without a keystore.
+# When `key.properties` is absent, `app/android/app/build.gradle.kts` refuses to
+# assemble a release build — it fails with a clear error — rather than silently
+# signing the "release" with the debug key. Debug builds and `flutter test` do
+# not need a keystore.
 #
 # In CI the forthcoming release job (see docs/dev/releasing.md, "Android (signed
 # APK)") reconstructs this file from repository secrets — the keystore is decoded

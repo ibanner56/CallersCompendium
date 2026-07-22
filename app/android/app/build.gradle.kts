@@ -9,8 +9,10 @@ plugins {
 // Load the upload keystore config from android/key.properties when present.
 // The file is gitignored and reconstructed in CI from secrets (see
 // docs/dev/releasing.md). When it is absent (contributors, CI debug builds,
-// `flutter build apk --release` without a keystore) we fall back to the debug
-// signing config below, so nothing breaks.
+// `flutter build apk --release` without a keystore) the release signing config
+// is left unset and any attempt to actually assemble a release artifact fails
+// loudly (see the release-task guard below) — we deliberately do NOT fall back
+// to debug signing, so a local release build can never silently ship debug-signed.
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 val hasKeystore = keystorePropertiesFile.exists()
@@ -41,7 +43,9 @@ android {
 
     signingConfigs {
         // Only populate the release config when key.properties exists; otherwise
-        // it stays empty and unused (buildTypes.release falls back to debug below).
+        // it stays empty and unused, and buildTypes.release below leaves signing
+        // unset so a release build without a keystore fails loudly (see the
+        // release-task guard) rather than falling back to debug signing.
         create("release") {
             if (hasKeystore) {
                 // Fail loudly with a clear message if a required field is missing,
@@ -62,12 +66,56 @@ android {
     buildTypes {
         release {
             // Use the release signing config when a keystore is configured via
-            // key.properties; otherwise sign with the debug keys so
-            // `flutter run --release` and CI builds keep working without secrets.
+            // key.properties (contributors who set one up, and CI). When it is
+            // absent we intentionally leave the release signing config unset
+            // instead of falling back to the debug keys: a release build with no
+            // keystore must fail, not silently produce a debug-signed "release".
+            // The failure itself is raised by the release-task guard below so
+            // that debug builds and `flutter test` — which never run release
+            // packaging tasks — remain completely unaffected.
             signingConfig = if (hasKeystore) {
                 signingConfigs.getByName("release")
             } else {
-                signingConfigs.getByName("debug")
+                null
+            }
+        }
+    }
+}
+
+// Fail loudly when a release artifact is actually being assembled without a
+// release signing config. We attach a `doFirst` guard to this (`:app`) project's
+// aggregate release build tasks via the lazy `configureEach`, rather than using
+// `gradle.taskGraph.whenReady` — throwing from `whenReady` is not a reliable way
+// to fail a build on modern Gradle. Matching is intentionally tight:
+//   * `tasks` is the :app TaskContainer, so plugin subprojects are never touched;
+//   * the name must *end with* the release variant, so we only hit the release
+//     artifact tasks (`assembleRelease`, `bundleRelease`, `packageRelease`) and
+//     NOT same-prefix non-artifact tasks such as `assembleReleaseUnitTest`,
+//     `assembleReleaseAndroidTest`, or `bundleReleaseLocalLintAar`.
+// The guard fires only when such a task actually executes, so debug builds
+// (`flutter run`, `--debug`) and `flutter test` (pure Dart, never runs Gradle)
+// are unaffected, and it is never registered at all when a keystore is present
+// (so CI, which reconstructs key.properties from secrets, is not impacted).
+// Only a release build WITHOUT a keystore trips the exception; combined with the
+// unset (null) release signingConfig above, a debug-signed "release" can never
+// be produced.
+if (!hasKeystore) {
+    tasks.configureEach {
+        val isReleaseArtifactTask = name.endsWith("Release") &&
+            (name.startsWith("assemble") ||
+                name.startsWith("bundle") ||
+                name.startsWith("package"))
+        if (isReleaseArtifactTask) {
+            doFirst {
+                throw GradleException(
+                    "Refusing to build an Android release without a release signing " +
+                        "config: app/android/key.properties was not found. A release " +
+                        "must be signed with the upload keystore, not the debug key. " +
+                        "Copy app/android/key.properties.example to " +
+                        "app/android/key.properties and fill in the real values (see " +
+                        "docs/dev/releasing.md), then rebuild. Debug builds and " +
+                        "`flutter test` do not require a keystore.",
+                )
             }
         }
     }
