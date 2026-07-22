@@ -37,19 +37,21 @@ const List<String> searchIndexSql = [
       'ON dance_figures(move, section)',
 ];
 
-/// Covering index for `dance_id` lookups on `dance_links` (schema v13).
+/// Lookup index for `dance_id` on `dance_links` (schema v13).
 ///
 /// Unlike the other dance-child tables — `dance_figures {danceId, idx}`,
 /// `dance_authors {danceId, choreographerId}`, `dance_tags {danceId, tagId}`,
 /// `dance_sources {danceId, sourceId}`, `custom_field_values {danceId, fieldId}`
-/// and `dance_provenance {danceId}` — whose composite primary keys lead with
+/// and `provenance {danceId}` — whose composite primary keys lead with
 /// `danceId` (so SQLite's implicit PK index already serves `WHERE dance_id IN
 /// (…)`), `dance_links` is keyed on its own `id` alone. Without this index every
 /// `dance_id IN (…)` chunk in [DanceRepository.listAll]'s batched link loader
 /// (and the single-id lookup behind `getById`) is a full table scan, making the
 /// link hydration O(N²) in row work as links grow with the collection. This
-/// index turns each lookup into an index seek (`SEARCH … USING INDEX`), so the
-/// batching scales in execution work, not only in query count.
+/// index turns each lookup into an index seek (`SEARCH … USING INDEX`) — the
+/// loader still visits the matched `dance_links` rows to read the other columns
+/// (it is a lookup index, not a covering one), but it no longer scans the whole
+/// table — so the batching scales in execution work, not only in query count.
 const String danceLinksDanceIdIndexSql =
     'CREATE INDEX IF NOT EXISTS dance_links_dance_id ON dance_links(dance_id)';
 
