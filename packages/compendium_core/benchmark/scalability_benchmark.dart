@@ -181,14 +181,20 @@ Future<void> main() async {
       );
     }
 
-    // 2. Backup export — listAll(includeDeleted) for dances + programs + lookups.
+    // 2. Backup export — the ArchiveExporter snapshot (where the N+1 lived)
+    // plus encodeArchive, the deterministic JSON serialization the app's
+    // BackupService.exportToJson runs over that same 20k-dance snapshot. (The
+    // app layer only adds tiny settings/dialect/theme reads on top, which live
+    // in the app package and issue no dance queries.)
     if (wants('export')) {
       results.add(
-        await _measure(dbPath, 'Backup export (ArchiveExporter)', (
+        await _measure(dbPath, 'Backup export (snapshot + encodeArchive)', (
           repos,
           _,
         ) async {
           final archive = await ArchiveExporter(repos).export();
+          final json = encodeArchive(archive);
+          if (json.isEmpty) throw StateError('empty backup payload');
           return archive.dances.length;
         }),
       );
