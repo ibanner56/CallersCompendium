@@ -1,6 +1,7 @@
 import '../model/figure.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_parser.dart';
+import 'shorthand_mappings.dart';
 
 /// Longest inline beat count we will read from a free-text line. Bounds the
 /// captured digit run so a hostile/absurd value (`(999999999999)`) can never
@@ -75,6 +76,15 @@ _BeatSplit _splitInlineBeats(String line) {
 /// Parses one free-text figure line typed in the editor's opt-in "Free-text
 /// entry" mode (issue #419) into structured/custom [Figure]s.
 ///
+/// When a [shorthands] store is supplied it is consulted FIRST (issue #420):
+/// the whole trimmed line is matched against the user's shorthand tokens as an
+/// EXACT, whole-line token (case-insensitive + trim-insensitive; no mid-line or
+/// substring substitution, keeping expansion deterministic). On a hit the line
+/// expands to the mapped figure(s) and those are returned verbatim — inline
+/// beat parsing is skipped because a shorthand's targets carry their own beats.
+/// On a miss (or when no store is given) the line falls through to the normal
+/// #419 parser path below.
+///
 /// This is the local-typed counterpart to the import adapters: it reuses the
 /// SAME hardened, bounded, never-throw core parser ([parseFigureLines]) rather
 /// than any "trusted-local" fast-path, so a typed line behaves identically to
@@ -103,10 +113,21 @@ _BeatSplit _splitInlineBeats(String line) {
 /// unrecognised lines yield [customMove] figures tagged
 /// [CustomOrigin.importGap] (via [parseFigureLine]) so they surface the #398
 /// parser-gap marker and remain eligible for the reparse-customs upgrade.
-List<Figure> parseFreeTextFigureEntry(String input, {Taxonomy? taxonomy}) {
+List<Figure> parseFreeTextFigureEntry(
+  String input, {
+  Taxonomy? taxonomy,
+  ShorthandMappings? shorthands,
+}) {
   final trimmed = input.trim();
   if (trimmed.isEmpty || trimmed.length > maxFreeTextEntryLength) {
     return const [];
+  }
+  // Shorthand resolution runs FIRST (issue #420): a whole-line exact-token hit
+  // expands to the mapped figure(s) and short-circuits the parser. A miss (or
+  // no store) falls through to the normal #419 recognition below.
+  if (shorthands != null) {
+    final expanded = shorthands.resolve(trimmed);
+    if (expanded != null) return expanded;
   }
   final split = _splitInlineBeats(trimmed);
   return parseFigureLines(split.text, beats: split.beats, taxonomy: taxonomy);
