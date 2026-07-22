@@ -339,18 +339,26 @@ class CompendiumArchiveImporter {
       // absent from the bundle is nulled — see [buildArchivePrograms]).
       //
       // Known limitation (tracked, PR A-accepted): venues carry no provenance /
-      // dedupe key, so re-importing the same bundle inserts duplicate venue
-      // records rather than matching the previously-imported ones. This is
-      // consistent with the additive-import model used elsewhere; a
-      // dedupe/provenance primitive is deferred to a later PR.
-      // TODO(follow-up, issue #298): add a venue dedupe/provenance key so a
+      // dedupe key *across imports*, so re-importing the same bundle inserts
+      // duplicate venue records rather than matching the previously-imported
+      // ones. This is consistent with the additive-import model used elsewhere;
+      // a cross-import dedupe/provenance primitive is deferred to a later PR.
+      // TODO(follow-up, issue #456): add a venue dedupe/provenance key so a
       // re-imported bundle matches existing venues instead of duplicating them.
+      //
+      // *Within* a single (untrusted) bundle, a repeated original id must NOT
+      // leave an orphaned extra row: it collapses to one minted venue whose
+      // content is the last-seen occurrence (mirroring the duplicate-program-id
+      // handling below), and it is counted/tracked once.
       final venueIdByOriginalId = <String, String>{};
       for (final venue in archive.venues) {
-        final mintedVenueId = mintId();
+        final existingMinted = venueIdByOriginalId[venue.id];
+        final mintedVenueId = existingMinted ?? mintId();
         await _venues.upsert(_venueWithId(venue, mintedVenueId));
-        venueIdByOriginalId[venue.id] = mintedVenueId;
-        insertedVenueIds.add(mintedVenueId);
+        if (existingMinted == null) {
+          venueIdByOriginalId[venue.id] = mintedVenueId;
+          insertedVenueIds.add(mintedVenueId);
+        }
       }
 
       final built = buildArchivePrograms(
@@ -464,17 +472,31 @@ class CompendiumArchiveImporter {
 
   /// Reverts a committed [result]: hard-deletes the **inserted** programs (slots
   /// cascade) and restores every **updated** (re-imported) program to its
-  /// captured prior state, then removes the **inserted** venues (now
-  /// unreferenced, since the programs that linked them are gone), **before**
+  /// captured prior state, then removes the **inserted** venues, **before**
   /// delegating to [ImportPipeline.undo] for the dances, authors and
   /// updated-dance rollbacks. Idempotent — a second call is a no-op.
+  ///
+  /// Venue removal is **guarded**, mirroring [ImportPipeline.undo]'s
+  /// created-choreographer handling: after a successful import a surviving user
+  /// program may have linked to an imported venue, so an unconditional delete
+  /// would orphan that program's `venueId`. Each imported venue is deleted only
+  /// when no program still references it (the repository guard throws
+  /// otherwise); a still-referenced venue is retained. Inserted programs are
+  /// removed first, so a venue referenced solely by this import is reclaimed.
   Future<void> undo(CompendiumArchiveImportResult result) async {
     if (result.isUndone) return;
     await _programs.hardDelete(result.insertedProgramIds);
     for (final prior in result.updatedProgramPriorStates) {
       await _programs.update(prior);
     }
-    await _venues.hardDelete(result.insertedVenueIds);
+    for (final id in result.insertedVenueIds) {
+      try {
+        await _venues.delete(id);
+      } on StateError {
+        // Still referenced by a surviving program — leave it in place rather
+        // than orphan that program's venueId.
+      }
+    }
     await _pipeline.undo(result.danceSession);
     result._undone = true;
   }

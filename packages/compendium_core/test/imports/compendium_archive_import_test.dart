@@ -816,5 +816,58 @@ void main() {
       await importer.undo(result);
       expect(await venues.listAll(), isEmpty);
     });
+
+    test('undo retains an imported venue a surviving program references', () async {
+      // After a successful import a user program can link to an imported venue.
+      // Undo must NOT hard-delete that venue out from under the survivor (which
+      // would orphan its venueId); the guarded delete retains it.
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [Venue(id: 'orig-v1', name: 'Guiding Star Grange')],
+      );
+      final result = await run(archive);
+      final importedVenueId = (await venues.listAll()).single.id;
+
+      await programs.create(
+        Program(
+          id: 'user-p1',
+          title: 'Local Dance',
+          venueId: importedVenueId,
+          status: ProgramStatus.draft,
+          slots: const [],
+          createdAt: DateTime.utc(2026, 5, 1),
+          updatedAt: DateTime.utc(2026, 5, 1),
+        ),
+      );
+
+      await importer.undo(result);
+
+      // The imported program is reverted, but the venue survives because the
+      // user program still references it — no dangling venueId.
+      final survivor = await programs.getById('user-p1');
+      expect(survivor, isNotNull);
+      expect(survivor!.venueId, importedVenueId);
+      expect(await venues.getById(importedVenueId), isNotNull);
+    });
+
+    test('collapses duplicate venue ids within one bundle (no orphan)', () async {
+      // Untrusted input: two venue entries sharing the same original id must
+      // collapse to a single minted row (last-seen content wins), never leaving
+      // an orphaned extra venue.
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [
+          Venue(id: 'orig-v1', name: 'First Name'),
+          Venue(id: 'orig-v1', name: 'Second Name'),
+        ],
+      );
+      final result = await run(archive);
+
+      final all = await venues.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.name, 'Second Name');
+      expect(result.insertedVenueCount, 1);
+      expect((await programs.listAll()).single.venueId, all.single.id);
+    });
   });
 }
