@@ -1329,4 +1329,355 @@ void main() {
       expect(result.first, isA<Dance>());
     });
   });
+
+  // #465: the author / last-called post-sorts restrict their aggregate reads to
+  // the incoming result ids (chunked `dance_id IN (…)`) instead of scanning the
+  // whole collection. These prove the narrowed sort output is byte-for-byte the
+  // same order as the whole-collection sort restricted to the same ids, that
+  // the chunked merge is correct across a chunk boundary, and (via arg capture)
+  // that the aggregate no longer touches ids outside the result set.
+  group('result-scoped sort aggregates (#465)', () {
+    test(
+      'author: narrowed order == whole-collection order for same ids',
+      () async {
+        await choreographers.upsert(Choreographer(id: 'bob', name: 'Bob'));
+        await choreographers.upsert(Choreographer(id: 'ann', name: 'Ann'));
+        await choreographers.upsert(Choreographer(id: 'zed', name: 'Zed'));
+        await choreographers.upsert(Choreographer(id: 'amy', name: 'Amy'));
+        // Subset = ECD; decoys = contra. Two subset dances share an author (Ann)
+        // to exercise the title tiebreak, and one subset dance has no author.
+        await dances.create(
+          _dance(
+            id: 'e_bob',
+            title: 'Beta',
+            form: DanceForm.ecd,
+            authorIds: ['bob'],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'e_ann1',
+            title: 'Delta',
+            form: DanceForm.ecd,
+            authorIds: ['ann'],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'e_ann2',
+            title: 'Charlie',
+            form: DanceForm.ecd,
+            authorIds: ['ann'],
+          ),
+        );
+        await dances.create(
+          _dance(id: 'e_none', title: 'Alpha', form: DanceForm.ecd),
+        );
+        await dances.create(
+          _dance(
+            id: 'c_zed',
+            title: 'Zoo',
+            form: DanceForm.contra,
+            authorIds: ['zed'],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'c_amy',
+            title: 'Amble',
+            form: DanceForm.contra,
+            authorIds: ['amy'],
+          ),
+        );
+        const subset = {'e_bob', 'e_ann1', 'e_ann2', 'e_none'};
+
+        for (final dir in SortDirection.values) {
+          final full = await dances.search(
+            const AndFilter([]),
+            sort: SearchSort.author,
+            direction: dir,
+          );
+          final reference = full.where(subset.contains).toList();
+          final narrowed = await dances.search(
+            const FormFilter(DanceForm.ecd),
+            sort: SearchSort.author,
+            direction: dir,
+          );
+          expect(narrowed, reference, reason: 'author $dir');
+        }
+        // Author-less dance is first ascending, last descending (empty key).
+        expect(
+          (await dances.search(
+            const FormFilter(DanceForm.ecd),
+            sort: SearchSort.author,
+            direction: SortDirection.ascending,
+          )).first,
+          'e_none',
+        );
+        expect(
+          (await dances.search(
+            const FormFilter(DanceForm.ecd),
+            sort: SearchSort.author,
+            direction: SortDirection.descending,
+          )).last,
+          'e_none',
+        );
+      },
+    );
+
+    test(
+      'lastCalled: narrowed order == whole-collection order for same ids',
+      () async {
+        await dances.create(
+          _dance(id: 'e_recent', title: 'Recent', form: DanceForm.ecd),
+        );
+        await dances.create(
+          _dance(id: 'e_old', title: 'Old', form: DanceForm.ecd),
+        );
+        await dances.create(
+          _dance(id: 'e_never', title: 'Never', form: DanceForm.ecd),
+        );
+        await dances.create(
+          _dance(id: 'c_mid', title: 'Mid', form: DanceForm.contra),
+        );
+        await programs.create(
+          Program(
+            id: 'p1',
+            title: 'Event',
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                danceId: 'e_recent',
+                performedAt: DateTime.utc(2026, 5),
+              ),
+              ProgramSlot(
+                id: 's2',
+                position: 1,
+                danceId: 'e_old',
+                performedAt: DateTime.utc(2020, 5),
+              ),
+              ProgramSlot(
+                id: 's3',
+                position: 2,
+                danceId: 'c_mid',
+                performedAt: DateTime.utc(2023, 5),
+              ),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        const subset = {'e_recent', 'e_old', 'e_never'};
+
+        for (final dir in SortDirection.values) {
+          final full = await dances.search(
+            const AndFilter([]),
+            sort: SearchSort.lastCalled,
+            direction: dir,
+          );
+          final reference = full.where(subset.contains).toList();
+          final narrowed = await dances.search(
+            const FormFilter(DanceForm.ecd),
+            sort: SearchSort.lastCalled,
+            direction: dir,
+          );
+          expect(narrowed, reference, reason: 'lastCalled $dir');
+        }
+        // Never-called dance is last in both directions.
+        for (final dir in SortDirection.values) {
+          expect(
+            (await dances.search(
+              const FormFilter(DanceForm.ecd),
+              sort: SearchSort.lastCalled,
+              direction: dir,
+            )).last,
+            'e_never',
+            reason: 'never-called last ($dir)',
+          );
+        }
+      },
+    );
+
+    test('author sort merges correctly across an id-chunk boundary', () async {
+      // 501 dances => two id-chunks (500 + 1). Each dance gets a unique author
+      // whose name is the reverse of its title index, so the correct author
+      // order is the reverse of the title (base) order — a merge bug that drops
+      // the trailing chunk's names would mis-sort those ids to the front.
+      await choreographers.upsert(Choreographer(id: 'noop', name: 'noop'));
+      const total = 501;
+      for (var i = 0; i < total; i++) {
+        final idx = i.toString().padLeft(3, '0');
+        final rev = (total - 1 - i).toString().padLeft(3, '0');
+        await choreographers.upsert(Choreographer(id: 'a$idx', name: 'A$rev'));
+        await dances.create(
+          _dance(id: 'd$idx', title: 'D $idx', authorIds: ['a$idx']),
+        );
+      }
+      final expected = [
+        for (var i = total - 1; i >= 0; i--) 'd${i.toString().padLeft(3, '0')}',
+      ];
+      expect(
+        await dances.search(const AndFilter([]), sort: SearchSort.author),
+        expected,
+      );
+    });
+
+    test(
+      'lastCalled sort merges correctly across an id-chunk boundary',
+      () async {
+        // 501 dances => two id-chunks; performed_at increases with the title
+        // index, so most-recent-first (default) order is the reverse of the base
+        // order and spans the chunk boundary.
+        const total = 501;
+        final slots = <ProgramSlot>[];
+        for (var i = 0; i < total; i++) {
+          final idx = i.toString().padLeft(3, '0');
+          await dances.create(_dance(id: 'd$idx', title: 'D $idx'));
+          slots.add(
+            ProgramSlot(
+              id: 's$idx',
+              position: i,
+              danceId: 'd$idx',
+              performedAt: DateTime.utc(2000).add(Duration(days: i)),
+            ),
+          );
+        }
+        await programs.create(
+          Program(
+            id: 'p1',
+            title: 'Event',
+            slots: slots,
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        final expected = [
+          for (var i = total - 1; i >= 0; i--)
+            'd${i.toString().padLeft(3, '0')}',
+        ];
+        expect(
+          await dances.search(const AndFilter([]), sort: SearchSort.lastCalled),
+          expected,
+        );
+      },
+    );
+
+    test(
+      'author aggregate binds only the result ids, not the whole collection',
+      () async {
+        final capture = AuthorSortArgCapture();
+        final countingDb = openCountingTestDatabase(capture);
+        addTearDown(countingDb.close);
+        final countingDances = DanceRepository(countingDb, contraTaxonomy);
+        final countingChoreographers = ChoreographerRepository(countingDb);
+
+        await countingChoreographers.upsert(
+          Choreographer(id: 'k', name: 'Kay'),
+        );
+        // Subset (ECD) is what we search; contra decoys must never be scanned.
+        await countingDances.create(
+          _dance(
+            id: 'keep1',
+            title: 'K1',
+            form: DanceForm.ecd,
+            authorIds: ['k'],
+          ),
+        );
+        await countingDances.create(
+          _dance(id: 'keep2', title: 'K2', form: DanceForm.ecd),
+        );
+        await countingDances.create(
+          _dance(
+            id: 'decoy1',
+            title: 'X1',
+            form: DanceForm.contra,
+            authorIds: ['k'],
+          ),
+        );
+        await countingDances.create(
+          _dance(
+            id: 'decoy2',
+            title: 'X2',
+            form: DanceForm.contra,
+            authorIds: ['k'],
+          ),
+        );
+
+        capture.reset();
+        final result = await countingDances.search(
+          const FormFilter(DanceForm.ecd),
+          sort: SearchSort.author,
+        );
+        expect(result, ['keep2', 'keep1']); // author-less (K2) first, then Kay.
+        expect(
+          capture.selectCount,
+          1,
+          reason: 'single chunk for a small subset',
+        );
+        expect(capture.boundArgs.toSet(), {'keep1', 'keep2'});
+        expect(capture.boundArgs, isNot(contains('decoy1')));
+        expect(capture.boundArgs, isNot(contains('decoy2')));
+      },
+    );
+
+    test(
+      'lastCalled aggregate binds only the result ids, not the whole collection',
+      () async {
+        final capture = LastCalledSortArgCapture();
+        final countingDb = openCountingTestDatabase(capture);
+        addTearDown(countingDb.close);
+        final countingDances = DanceRepository(countingDb, contraTaxonomy);
+        final countingPrograms = ProgramRepository(countingDb);
+
+        await countingDances.create(
+          _dance(id: 'keep_called', title: 'K1', form: DanceForm.ecd),
+        );
+        await countingDances.create(
+          _dance(id: 'keep_never', title: 'K2', form: DanceForm.ecd),
+        );
+        await countingDances.create(
+          _dance(id: 'decoy', title: 'X1', form: DanceForm.contra),
+        );
+        await countingPrograms.create(
+          Program(
+            id: 'p1',
+            title: 'Event',
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                danceId: 'keep_called',
+                performedAt: DateTime.utc(2026, 5),
+              ),
+              ProgramSlot(
+                id: 's2',
+                position: 1,
+                danceId: 'decoy',
+                performedAt: DateTime.utc(2026, 6),
+              ),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+
+        capture.reset();
+        final result = await countingDances.search(
+          const FormFilter(DanceForm.ecd),
+          sort: SearchSort.lastCalled,
+        );
+        expect(result, ['keep_called', 'keep_never']); // never-called last.
+        expect(
+          capture.selectCount,
+          1,
+          reason: 'single chunk for a small subset',
+        );
+        // Both subset ids are bound (the IN clause lists every result id, even
+        // the never-called one); the contra decoy is never scanned.
+        expect(capture.boundArgs.toSet(), {'keep_called', 'keep_never'});
+        expect(capture.boundArgs, isNot(contains('decoy')));
+      },
+    );
+  });
 }
