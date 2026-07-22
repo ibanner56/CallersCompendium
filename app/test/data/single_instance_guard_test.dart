@@ -59,6 +59,21 @@ void main() {
 
   File lockFile() => File(p.join(dir.path, kSingleInstanceLockFileName));
 
+  /// The errno/OS code the current platform reports for genuine lock
+  /// contention (EAGAIN/EWOULDBLOCK; ERROR_LOCK_VIOLATION on Windows), so the
+  /// contention tests stay portable across the CI matrix.
+  int platformContentionCode() {
+    if (Platform.isWindows) return 33; // ERROR_LOCK_VIOLATION
+    if (Platform.isMacOS) return 35; // EAGAIN / EWOULDBLOCK (Darwin)
+    return 11; // EAGAIN / EWOULDBLOCK (Linux)
+  }
+
+  /// A real [AdvisoryFileLock] whose lock call fails with [error], so the
+  /// contention-vs-unexpected-fault classification is exercised end-to-end
+  /// without a real second process.
+  AdvisoryFileLock lockFailingWith(FileSystemException error) =>
+      AdvisoryFileLock(lockOverride: (_) async => throw error);
+
   group('acquire (real advisory lock)', () {
     test('first acquire succeeds and creates the lock file', () async {
       final result = await guardWith().acquire();
@@ -135,6 +150,77 @@ void main() {
       );
 
       expect(await guard.acquire(), SingleInstanceResult.unavailable);
+    });
+  });
+
+  group('contention vs. unexpected lock failure (real AdvisoryFileLock)', () {
+    test(
+      'genuine OS contention maps to alreadyRunning (refuse 2nd instance)',
+      () async {
+        final guard = guardWith(
+          primitive: lockFailingWith(
+            FileSystemException(
+              'resource temporarily unavailable',
+              lockFile().path,
+              OSError('EAGAIN', platformContentionCode()),
+            ),
+          ),
+        );
+
+        expect(await guard.acquire(), SingleInstanceResult.alreadyRunning);
+      },
+    );
+
+    test('EACCES is treated as contention on POSIX', () async {
+      // Skipped on Windows, where contention uses distinct codes (32/33).
+      final primitive = lockFailingWith(
+        FileSystemException(
+          'permission denied',
+          lockFile().path,
+          const OSError('EACCES', 13),
+        ),
+      );
+
+      expect(await primitive.tryAcquire(lockFile()), isNull);
+    }, skip: Platform.isWindows);
+
+    test(
+      'a non-contention lock failure FAILS OPEN (unavailable), not closed',
+      () async {
+        // e.g. a filesystem that does not support advisory locking (ENOSYS 38):
+        // must NOT be misread as "already running" (which would brick launch).
+        final guard = guardWith(
+          primitive: lockFailingWith(
+            const FileSystemException(
+              'function not implemented',
+              '',
+              OSError('ENOSYS', 38),
+            ),
+          ),
+        );
+
+        expect(await guard.acquire(), SingleInstanceResult.unavailable);
+      },
+    );
+
+    test('a lock failure with no OSError fails open (rethrows)', () async {
+      final primitive = lockFailingWith(
+        const FileSystemException('opaque lock failure'),
+      );
+
+      await expectLater(
+        primitive.tryAcquire(lockFile()),
+        throwsA(isA<FileSystemException>()),
+      );
+    });
+
+    test('classifier: unrecognized errno is not contention', () {
+      expect(isAdvisoryLockContention(const OSError('ENOSPC', 28)), isFalse);
+      expect(isAdvisoryLockContention(null), isFalse);
+      expect(
+        isAdvisoryLockContention(OSError('EAGAIN', platformContentionCode())),
+        isTrue,
+      );
     });
   });
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show debugPrint, kIsWeb, visibleForTesting;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -36,10 +37,51 @@ abstract class InstanceLockPrimitive {
   /// Attempts to take an exclusive, non-blocking lock on [lockFile].
   ///
   /// Returns a handle when the lock is acquired, or `null` when it is already
-  /// held by another live process. Throws (a [FileSystemException]) only on an
-  /// unexpected IO fault — e.g. the directory can't be created or the file
-  /// can't be opened — which the guard treats as fail-open.
+  /// held by another live process. Throws (a [FileSystemException]) on any
+  /// *other* fault — the directory/file can't be created or opened, or the lock
+  /// failed for a reason other than genuine contention (e.g. a filesystem that
+  /// doesn't support advisory locking) — which the guard treats as fail-open.
   Future<InstanceLockHandle?> tryAcquire(File lockFile);
+}
+
+/// POSIX `EACCES` (13): `fcntl`/`flock` reports this when the lock is held by
+/// another process. The value is stable across POSIX platforms.
+const int _eacces = 13;
+
+/// `EAGAIN`/`EWOULDBLOCK` — the canonical "would block, lock is held" errno for
+/// a non-blocking lock. Its numeric value is platform-specific: 11 on Linux,
+/// 35 on macOS/BSD (Darwin).
+const int _eagainLinux = 11;
+const int _eagainDarwin = 35;
+
+/// Windows lock-contention codes: `ERROR_SHARING_VIOLATION` (32) and
+/// `ERROR_LOCK_VIOLATION` (33).
+const int _errorSharingViolation = 32;
+const int _errorLockViolation = 33;
+
+/// Whether [osError] from a non-blocking [RandomAccessFile.lock] means the lock
+/// is genuinely held by *another live process* (true contention → refuse the
+/// second instance), as opposed to an unexpected fault (e.g. a filesystem that
+/// doesn't support advisory locking, or an unusual I/O error) that must **fail
+/// open** so we never wrongly refuse the only instance and brick launch.
+///
+/// When the code is absent or unrecognized we deliberately return `false`
+/// (treat it as an unexpected fault → fail open): a false "already running"
+/// that blocks the sole instance is the worst outcome.
+bool isAdvisoryLockContention(OSError? osError) {
+  final code = osError?.errorCode;
+  if (code == null) return false;
+  if (Platform.isWindows) {
+    return code == _errorSharingViolation || code == _errorLockViolation;
+  }
+  // POSIX: EACCES is universal; EAGAIN/EWOULDBLOCK differs by platform.
+  if (code == _eacces) return true;
+  if (Platform.isMacOS) return code == _eagainDarwin;
+  if (Platform.isLinux) return code == _eagainLinux;
+  // Unknown/other platform: accept the common EAGAIN values so a genuine second
+  // instance is still refused, but nothing else (anything unrecognized fails
+  // open above).
+  return code == _eagainLinux || code == _eagainDarwin;
 }
 
 /// Real [InstanceLockPrimitive] backed by `dart:io` OS advisory file locks
@@ -50,7 +92,16 @@ abstract class InstanceLockPrimitive {
 /// inert and a fresh launch acquires normally. There is no PID-liveness check
 /// or stale-marker cleanup to get wrong.
 class AdvisoryFileLock implements InstanceLockPrimitive {
-  const AdvisoryFileLock();
+  const AdvisoryFileLock({this.lockOverride});
+
+  /// Test seam: replaces the real [RandomAccessFile.lock] call so tests can
+  /// simulate a specific lock failure (a genuine-contention errno vs. an
+  /// unexpected fault) without a real second process. `null` in production.
+  @visibleForTesting
+  final Future<void> Function(RandomAccessFile raf)? lockOverride;
+
+  Future<void> _lock(RandomAccessFile raf) =>
+      lockOverride?.call(raf) ?? raf.lock(FileLock.exclusive);
 
   @override
   Future<InstanceLockHandle?> tryAcquire(File lockFile) async {
@@ -60,13 +111,19 @@ class AdvisoryFileLock implements InstanceLockPrimitive {
     await lockFile.parent.create(recursive: true);
     final raf = await lockFile.open(mode: FileMode.write);
     try {
-      // Non-blocking exclusive lock: throws instead of waiting when another
-      // live process already holds it. On the app's private support directory
-      // (always a local filesystem) this is the "second instance" signal.
-      await raf.lock(FileLock.exclusive);
-    } on FileSystemException {
+      // Non-blocking exclusive lock: throws instead of waiting when the lock
+      // can't be taken.
+      await _lock(raf);
+    } on FileSystemException catch (error) {
       await raf.close();
-      return null;
+      // Only *genuine contention* (the lock is held by another live process)
+      // means a second instance is running → return null (alreadyRunning). Any
+      // other lock failure — e.g. a filesystem that doesn't support advisory
+      // locking, or an unclassifiable error — is an unexpected fault: rethrow
+      // so the guard fails OPEN (SingleInstanceResult.unavailable) rather than
+      // fail CLOSED (wrongly refusing the only instance and bricking launch).
+      if (isAdvisoryLockContention(error.osError)) return null;
+      rethrow;
     }
     return _RandomAccessFileLockHandle(raf);
   }
