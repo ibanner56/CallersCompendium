@@ -584,6 +584,324 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get settingsDialectNameLabel;
 
+  /// Section header above the built-in theme gallery in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsAppearanceThemeHeader;
+
+  /// Section header above the user's saved custom themes in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom themes'**
+  String get settingsAppearanceCustomThemesHeader;
+
+  /// Section header for playful optional visual features in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Easter eggs'**
+  String get settingsAppearanceEasterEggsHeader;
+
+  /// Section header for set-list appearance options in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Set lists'**
+  String get settingsAppearanceSetListsHeader;
+
+  /// Section header for the formation-colour customisation entry in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation colours'**
+  String get settingsAppearanceFormationColoursHeader;
+
+  /// Toggle title: tint a dance's view when its title names a colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour-named dances tint the theme'**
+  String get settingsAppearanceColourDanceTitle;
+
+  /// Explanation for the colour-named-dances tinting toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'A playful surprise: when you open a dance whose title names a colour — like Baby Rose or Blue Boy — its view is tinted that colour. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.'**
+  String get settingsAppearanceColourDanceSubtitle;
+
+  /// Toggle title: tint set-list rows by formation family.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour-code set-list rows'**
+  String get settingsAppearanceSetListColorTitle;
+
+  /// Explanation for the set-list colour-coding toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tint each dance row by its formation family (contra, mixer, square, …). The formation is always shown as text too, so rows stay readable without colour.'**
+  String get settingsAppearanceSetListColorSubtitle;
+
+  /// List-tile title opening the formation-colour customisation screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation label colours'**
+  String get settingsAppearanceFormationColoursTitle;
+
+  /// Explanation for the formation-colour customisation entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.'**
+  String get settingsAppearanceFormationColoursSubtitle;
+
+  /// Label shown on the currently-selected theme card in the gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected'**
+  String get settingsAppearanceSelectedBadge;
+
+  /// Sample heading text shown in a theme preview swatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Aa Preview'**
+  String get settingsAppearancePreviewHeading;
+
+  /// Sample body text shown in a theme preview swatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Body text sample'**
+  String get settingsAppearancePreviewBody;
+
+  /// Button that starts creating a new custom theme from the active theme.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom theme'**
+  String get settingsAppearanceNewThemeButton;
+
+  /// Default name a brand-new custom theme is seeded with before the user renames it.
+  ///
+  /// In en, this message translates to:
+  /// **'My theme'**
+  String get settingsAppearanceNewThemeDefaultName;
+
+  /// Helper text shown when the user has no saved custom themes yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy the current theme and tune any color. Custom themes are saved on this device.'**
+  String get settingsAppearanceCustomThemesEmpty;
+
+  /// Title of the confirm-delete dialog for a custom theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete theme?'**
+  String get settingsAppearanceDeleteThemeTitle;
+
+  /// Body of the confirm-delete dialog for a custom theme.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” will be permanently removed.'**
+  String settingsAppearanceDeleteThemeBody(String name);
+
+  /// Screen-reader label for a saved custom-theme card.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom theme {name}'**
+  String settingsAppearanceCustomThemeSemantic(String name);
+
+  /// Tooltip for the overflow menu (edit/duplicate/delete) on a custom-theme card.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme actions'**
+  String get settingsAppearanceThemeActionsTooltip;
+
+  /// Section header for defaults prefilled into new programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Program defaults'**
+  String get settingsDefaultsProgramHeader;
+
+  /// Text-field label for the default caller prefilled into new programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Default caller'**
+  String get settingsDefaultsCallerLabel;
+
+  /// Helper text under the default caller and band fields.
+  ///
+  /// In en, this message translates to:
+  /// **'Prefilled into new programs; editable per program.'**
+  String get settingsDefaultsPrefilledHelper;
+
+  /// Text-field label for the default band prefilled into new programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Default band'**
+  String get settingsDefaultsBandLabel;
+
+  /// Section header for display-related default settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Display defaults'**
+  String get settingsDefaultsDisplayHeader;
+
+  /// Title of the default Collection sort-order picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection sort order'**
+  String get settingsDefaultsSortTitle;
+
+  /// Explanation for the default Collection sort-order picker.
+  ///
+  /// In en, this message translates to:
+  /// **'How the Collection is sorted when you open it. You can still change the sort while browsing.'**
+  String get settingsDefaultsSortSubtitle;
+
+  /// Toggle title: open dances in canonical terms rather than the active dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Open dance details in canonical terms'**
+  String get settingsDefaultsCanonicalTitle;
+
+  /// Explanation for the canonical-terms default toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.'**
+  String get settingsDefaultsCanonicalSubtitle;
+
+  /// Section header for defaults applied when authoring a new dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance-authoring defaults'**
+  String get settingsDefaultsAuthoringHeader;
+
+  /// Title of the default dance-form picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Form'**
+  String get settingsDefaultsFormTitle;
+
+  /// Explanation for the default dance-form picker.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance form a new dance starts as. You can still change it per dance.'**
+  String get settingsDefaultsFormSubtitle;
+
+  /// Title of the default dance-formation picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get settingsDefaultsFormationTitle;
+
+  /// Explanation for the default dance-formation picker.
+  ///
+  /// In en, this message translates to:
+  /// **'The formation a new dance starts in. You can still change it per dance.'**
+  String get settingsDefaultsFormationSubtitle;
+
+  /// Title of the default dance-progression picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Progression'**
+  String get settingsDefaultsProgressionTitle;
+
+  /// Explanation for the default dance-progression picker.
+  ///
+  /// In en, this message translates to:
+  /// **'The progression a new dance starts with. You can still change it per dance.'**
+  String get settingsDefaultsProgressionSubtitle;
+
+  /// Text-field label for the default phrase structure seeded into new dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Default phrase structure'**
+  String get settingsDefaultsPhraseLabel;
+
+  /// Helper text for the default phrase-structure field. '4×16', 'A1 A2 B1 B2' and '6*8*2' are notation examples.
+  ///
+  /// In en, this message translates to:
+  /// **'Seeded into new dances. Blank = standard 4×16 (A1 A2 B1 B2); else e.g. 6*8*2.'**
+  String get settingsDefaultsPhraseHelper;
+
+  /// Sub-heading for the figures a new dance starts with.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting figures'**
+  String get settingsDefaultsStartingFiguresTitle;
+
+  /// Explanation for the starting-figures default.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures a new dance starts with. Defaults to a single stand still (8 beats); clear it for a blank new dance. Editable per dance.'**
+  String get settingsDefaultsStartingFiguresSubtitle;
+
+  /// Sub-heading for per-move default parameter overrides.
+  ///
+  /// In en, this message translates to:
+  /// **'Move defaults'**
+  String get settingsDefaultsMoveDefaultsTitle;
+
+  /// Explanation for per-move default parameter overrides.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred parameter values applied when you insert a move while entering a dance. These override that move\'s built-in defaults; you can still change any parameter on the figure afterward. Unset moves and parameters use the built-in defaults.'**
+  String get settingsDefaultsMoveDefaultsSubtitle;
+
+  /// Button and dialog title for adding a per-move parameter default.
+  ///
+  /// In en, this message translates to:
+  /// **'Add move default'**
+  String get settingsDefaultsAddMoveButton;
+
+  /// Tooltip on the button that removes a per-move default override.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get settingsDefaultsRemoveMoveTooltip;
+
+  /// Shown on a move-default card when the move no longer exists in the taxonomy.
+  ///
+  /// In en, this message translates to:
+  /// **'This move is no longer in the taxonomy.'**
+  String get settingsDefaultsMoveGone;
+
+  /// Shown on a move-default card when the move has no parameters to override.
+  ///
+  /// In en, this message translates to:
+  /// **'This move has no parameters to default.'**
+  String get settingsDefaultsMoveNoParams;
+
+  /// App-bar title of the per-formation label-colour settings screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation colours'**
+  String get settingsFormationColoursTitle;
+
+  /// Intro paragraph explaining per-formation label colours.
+  ///
+  /// In en, this message translates to:
+  /// **'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.'**
+  String get settingsFormationColoursIntro;
+
+  /// Section header above the list of formation shapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Formations'**
+  String get settingsFormationColoursListHeader;
+
+  /// Subtitle shown when a formation has a custom label colour set.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom colour'**
+  String get settingsFormationColoursCustom;
+
+  /// Subtitle shown when a formation uses its family-default label colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Family default'**
+  String get settingsFormationColoursFamilyDefault;
+
+  /// Tooltip on the button that resets one formation's custom colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset {label} to the family default'**
+  String settingsFormationColoursResetTooltip(String label);
+
   /// Generic dialog dismiss button that discards the pending action.
   ///
   /// In en, this message translates to:

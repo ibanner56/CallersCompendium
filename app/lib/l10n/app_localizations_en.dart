@@ -293,6 +293,190 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDialectNameLabel => 'Name';
 
   @override
+  String get settingsAppearanceThemeHeader => 'Theme';
+
+  @override
+  String get settingsAppearanceCustomThemesHeader => 'Custom themes';
+
+  @override
+  String get settingsAppearanceEasterEggsHeader => 'Easter eggs';
+
+  @override
+  String get settingsAppearanceSetListsHeader => 'Set lists';
+
+  @override
+  String get settingsAppearanceFormationColoursHeader => 'Formation colours';
+
+  @override
+  String get settingsAppearanceColourDanceTitle =>
+      'Colour-named dances tint the theme';
+
+  @override
+  String get settingsAppearanceColourDanceSubtitle =>
+      'A playful surprise: when you open a dance whose title names a colour — like Baby Rose or Blue Boy — its view is tinted that colour. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.';
+
+  @override
+  String get settingsAppearanceSetListColorTitle => 'Colour-code set-list rows';
+
+  @override
+  String get settingsAppearanceSetListColorSubtitle =>
+      'Tint each dance row by its formation family (contra, mixer, square, …). The formation is always shown as text too, so rows stay readable without colour.';
+
+  @override
+  String get settingsAppearanceFormationColoursTitle =>
+      'Formation label colours';
+
+  @override
+  String get settingsAppearanceFormationColoursSubtitle =>
+      'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.';
+
+  @override
+  String get settingsAppearanceSelectedBadge => 'Selected';
+
+  @override
+  String get settingsAppearancePreviewHeading => 'Aa Preview';
+
+  @override
+  String get settingsAppearancePreviewBody => 'Body text sample';
+
+  @override
+  String get settingsAppearanceNewThemeButton => 'New custom theme';
+
+  @override
+  String get settingsAppearanceNewThemeDefaultName => 'My theme';
+
+  @override
+  String get settingsAppearanceCustomThemesEmpty =>
+      'Copy the current theme and tune any color. Custom themes are saved on this device.';
+
+  @override
+  String get settingsAppearanceDeleteThemeTitle => 'Delete theme?';
+
+  @override
+  String settingsAppearanceDeleteThemeBody(String name) {
+    return '“$name” will be permanently removed.';
+  }
+
+  @override
+  String settingsAppearanceCustomThemeSemantic(String name) {
+    return 'Custom theme $name';
+  }
+
+  @override
+  String get settingsAppearanceThemeActionsTooltip => 'Theme actions';
+
+  @override
+  String get settingsDefaultsProgramHeader => 'Program defaults';
+
+  @override
+  String get settingsDefaultsCallerLabel => 'Default caller';
+
+  @override
+  String get settingsDefaultsPrefilledHelper =>
+      'Prefilled into new programs; editable per program.';
+
+  @override
+  String get settingsDefaultsBandLabel => 'Default band';
+
+  @override
+  String get settingsDefaultsDisplayHeader => 'Display defaults';
+
+  @override
+  String get settingsDefaultsSortTitle => 'Collection sort order';
+
+  @override
+  String get settingsDefaultsSortSubtitle =>
+      'How the Collection is sorted when you open it. You can still change the sort while browsing.';
+
+  @override
+  String get settingsDefaultsCanonicalTitle =>
+      'Open dance details in canonical terms';
+
+  @override
+  String get settingsDefaultsCanonicalSubtitle =>
+      'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.';
+
+  @override
+  String get settingsDefaultsAuthoringHeader => 'Dance-authoring defaults';
+
+  @override
+  String get settingsDefaultsFormTitle => 'Form';
+
+  @override
+  String get settingsDefaultsFormSubtitle =>
+      'The dance form a new dance starts as. You can still change it per dance.';
+
+  @override
+  String get settingsDefaultsFormationTitle => 'Formation';
+
+  @override
+  String get settingsDefaultsFormationSubtitle =>
+      'The formation a new dance starts in. You can still change it per dance.';
+
+  @override
+  String get settingsDefaultsProgressionTitle => 'Progression';
+
+  @override
+  String get settingsDefaultsProgressionSubtitle =>
+      'The progression a new dance starts with. You can still change it per dance.';
+
+  @override
+  String get settingsDefaultsPhraseLabel => 'Default phrase structure';
+
+  @override
+  String get settingsDefaultsPhraseHelper =>
+      'Seeded into new dances. Blank = standard 4×16 (A1 A2 B1 B2); else e.g. 6*8*2.';
+
+  @override
+  String get settingsDefaultsStartingFiguresTitle => 'Starting figures';
+
+  @override
+  String get settingsDefaultsStartingFiguresSubtitle =>
+      'The figures a new dance starts with. Defaults to a single stand still (8 beats); clear it for a blank new dance. Editable per dance.';
+
+  @override
+  String get settingsDefaultsMoveDefaultsTitle => 'Move defaults';
+
+  @override
+  String get settingsDefaultsMoveDefaultsSubtitle =>
+      'Preferred parameter values applied when you insert a move while entering a dance. These override that move\'s built-in defaults; you can still change any parameter on the figure afterward. Unset moves and parameters use the built-in defaults.';
+
+  @override
+  String get settingsDefaultsAddMoveButton => 'Add move default';
+
+  @override
+  String get settingsDefaultsRemoveMoveTooltip => 'Remove';
+
+  @override
+  String get settingsDefaultsMoveGone =>
+      'This move is no longer in the taxonomy.';
+
+  @override
+  String get settingsDefaultsMoveNoParams =>
+      'This move has no parameters to default.';
+
+  @override
+  String get settingsFormationColoursTitle => 'Formation colours';
+
+  @override
+  String get settingsFormationColoursIntro =>
+      'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.';
+
+  @override
+  String get settingsFormationColoursListHeader => 'Formations';
+
+  @override
+  String get settingsFormationColoursCustom => 'Custom colour';
+
+  @override
+  String get settingsFormationColoursFamilyDefault => 'Family default';
+
+  @override
+  String settingsFormationColoursResetTooltip(String label) {
+    return 'Reset $label to the family default';
+  }
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override
