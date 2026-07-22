@@ -135,6 +135,49 @@ void main() {
       expect(all.single.slots.single.text, 'Doomed Dance');
     });
 
+    test('a purged-dance program exports to plaintext without corruption '
+        '(#459 export coverage)', () async {
+      // #459 asked for export coverage of the purge case. The fix keeps the
+      // throwing ProgramSlot invariant, so a purged dance-only slot becomes a
+      // valid title tombstone (danceId null, text = former title). Re-exporting
+      // the affected program must therefore render that caption as an ordinary
+      // text slot and never throw — even though the dance itself is now gone
+      // (so `titleFor` returns null for it).
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Doomed Dance',
+          deletedAt: DateTime.utc(2026, 1, 1),
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, text: 'Waltz break'),
+          ],
+        ),
+      );
+
+      await dances.purgeDeleted(now: DateTime.utc(2026, 4, 1));
+
+      final loaded = await repo.getById('p1');
+      expect(loaded, isNotNull);
+
+      // The dance is purged, so a real exporter's title lookup misses it.
+      final text = programToPlainText(loaded!, titleFor: (_) => null);
+
+      // The program header and the surviving text slot render as usual, and the
+      // tombstoned slot renders its preserved caption rather than being dropped
+      // or degrading to the unknown-dance placeholder.
+      expect(text, contains('Spring Dance 2026'));
+      expect(text, contains('Doomed Dance'));
+      expect(text, contains('Waltz break'));
+      expect(text, isNot(contains('Untitled dance')));
+    });
+
     test('loading tolerates a legacy (null,null) corrupt slot rather than '
         'throwing (#429 belt-and-suspenders)', () async {
       // Simulate a row left corrupt by a build that predates the tombstone
