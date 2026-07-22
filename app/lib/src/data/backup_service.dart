@@ -60,6 +60,7 @@ class BackupRestoreOutcome {
     this.errors = const [],
     this.warnings = const [],
     this.applied = false,
+    this.incompleteCore = false,
   });
 
   final List<ArchiveError> errors;
@@ -67,9 +68,18 @@ class BackupRestoreOutcome {
 
   /// Whether the restore actually wrote to live data. `false` means the backup
   /// was rejected before anything was touched (a fatal envelope error such as
-  /// invalid JSON or a missing/invalid `core` section), so the live app is
-  /// unchanged and no refresh is warranted.
+  /// invalid JSON or a missing/invalid `core` section, an incomplete core, or a
+  /// core restore that failed and rolled back), so the live app is unchanged
+  /// and no refresh is warranted.
   final bool applied;
+
+  /// Whether the restore was refused because the backup's core did not decode
+  /// completely — some entities were dropped (an unknown enum from a newer app
+  /// version) or failed to decode. Distinguishes "the file isn't a valid
+  /// backup" from "this is a valid but partially-unreadable backup, so a
+  /// destructive replace was cancelled to protect your data" (issue #430), so
+  /// the UI never reports a clean success when entities were skipped/refused.
+  final bool incompleteCore;
 
   bool get hasErrors => errors.isNotEmpty;
 }
@@ -124,35 +134,47 @@ class BackupService {
   Future<void> recordBackup(DateTime at) =>
       _repos.settings.set(kLastBackupAtKey, at.toUtc().toIso8601String());
 
-  /// Decodes [json] and applies it, replacing all current data.
+  /// Decodes [json] and applies it to the live app.
   ///
-  /// Core content is restored via [ArchiveRestorer] in [RestoreMode.replace];
-  /// the app-local dialects, themes, and preference settings are written back
-  /// into the `settings` table. Tolerant throughout: decode/restore problems are
-  /// collected into the returned [BackupRestoreOutcome] rather than thrown.
+  /// Core content is restored via [ArchiveRestorer]; the app-local dialects,
+  /// themes, and preference settings are written back into the `settings` table.
+  /// Tolerant throughout: decode/restore problems are collected into the
+  /// returned [BackupRestoreOutcome] rather than thrown.
   ///
-  /// A restore is refused before touching live data when the backup cannot be
-  /// applied in full:
-  /// - a **fatal** envelope (invalid JSON, non-object root, or a
-  ///   missing/invalid `core` section), or
-  /// - a **core** archive that did not fully decode ([BackupReadResult.coreHasErrors]).
+  /// [mode] selects the core restore strategy and, with it, how strict the
+  /// pre-flight guard is:
+  /// - [RestoreMode.replace] (default, used by the settings "restore backup"
+  ///   flow) is **destructive** — it wipes the live collection before loading
+  ///   the archive — so it is refused before touching live data unless the
+  ///   backup decoded *completely*. A restore is refused when:
+  ///   - the envelope is **fatal** (invalid JSON, non-object root, or a
+  ///     missing/invalid `core` section), or
+  ///   - the core had a per-entity decode **error**
+  ///     ([BackupReadResult.coreHasErrors]), or
+  ///   - the core **dropped** entities for forward-compatibility
+  ///     ([BackupReadResult.coreIncomplete]) — e.g. a dance carrying an enum
+  ///     value written by a newer app version.
+  ///   Committing a partially-decoded or reduced archive in replace mode would
+  ///   swap the user's data for an incomplete copy — exactly the loss this
+  ///   guard prevents (issue #430). Such a restore returns
+  ///   [BackupRestoreOutcome.applied] `false` with the live app untouched.
+  /// - [RestoreMode.merge] is **additive** and stays tolerant: it applies
+  ///   whatever decoded, keeping survivors and recording the rest.
   ///
-  /// Because a replace restore wipes the live collection before loading the
-  /// archive, applying a partially-decoded core would swap the user's data for
-  /// an incomplete copy — exactly the loss this guard prevents (issue #430).
-  /// Such a restore returns [BackupRestoreOutcome.applied] `false` with the live
-  /// app untouched. Forward-compatible skips (an unknown enum written by a newer
-  /// app version) are surfaced as warnings rather than errors, so a merely newer
-  /// backup still restores, dropping only the affected entities. Recoverable
-  /// app-local problems (a single corrupt dialect/theme) remain non-fatal and do
-  /// not block the restore.
-  Future<BackupRestoreOutcome> restoreFromJson(String json) async {
+  /// A fatal envelope is refused in both modes. In replace mode, if the core
+  /// restore itself fails it is rolled back atomically and this method returns
+  /// `applied: false` **without** mutating app settings (dialect/theme/prefs),
+  /// so a failed replace never leaves core intact but preferences overwritten.
+  Future<BackupRestoreOutcome> restoreFromJson(
+    String json, {
+    RestoreMode mode = RestoreMode.replace,
+  }) async {
     final read = decodeBackup(json);
     final errors = <ArchiveError>[...read.errors];
     final warnings = <String>[...read.warnings];
 
-    if (read.fatal || read.coreHasErrors) {
-      // Nothing safe to restore — leave live data untouched.
+    // A fatal envelope has nothing safe to apply in any mode.
+    if (read.fatal) {
       return BackupRestoreOutcome(
         errors: errors,
         warnings: warnings,
@@ -160,12 +182,39 @@ class BackupService {
       );
     }
 
+    // Replace is destructive, so it must only run on a backup that decoded
+    // completely: a per-entity decode error OR a forward-compat drop means the
+    // decoded archive is not a faithful copy, and committing it would silently
+    // lose data (#430). Merge is additive and tolerates both.
+    if (mode == RestoreMode.replace &&
+        (read.coreHasErrors || read.coreIncomplete)) {
+      return BackupRestoreOutcome(
+        errors: errors,
+        warnings: warnings,
+        applied: false,
+        incompleteCore: read.coreIncomplete,
+      );
+    }
+
     final doc = read.document;
     final restoreResult = await ArchiveRestorer(
       _repos,
-    ).restore(doc.core, mode: RestoreMode.replace);
+    ).restore(doc.core, mode: mode);
     errors.addAll(restoreResult.errors);
     warnings.addAll(restoreResult.warnings);
+
+    // A replace restore is transactional and all-or-nothing: if it recorded any
+    // error it rolled the whole thing back and the live core is untouched. Do
+    // NOT mutate app settings or report success in that case — otherwise a
+    // failed replace would leave core data intact while overwriting
+    // dialect/theme/preferences and misreporting the restore as applied.
+    if (mode == RestoreMode.replace && restoreResult.hasErrors) {
+      return BackupRestoreOutcome(
+        errors: errors,
+        warnings: warnings,
+        applied: false,
+      );
+    }
 
     await _applyAppSettings(doc);
 

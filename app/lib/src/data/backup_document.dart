@@ -73,6 +73,7 @@ class BackupReadResult {
     this.warnings = const [],
     this.fatal = false,
     this.coreHasErrors = false,
+    this.coreDroppedEntities = 0,
   });
 
   final BackupDocument document;
@@ -92,11 +93,25 @@ class BackupReadResult {
   ///
   /// A replace restore wipes the live collection before loading the archive, so
   /// applying a core archive that is missing entities would silently lose data.
-  /// [BackupService.restoreFromJson] therefore treats this like [fatal] and
-  /// refuses to touch live data. Forward-compatible skips (an unknown enum from
-  /// a newer app version) are surfaced as [warnings], not errors, so a merely
-  /// newer backup still restores — dropping only the affected entities.
+  /// [BackupService.restoreFromJson] therefore treats this like [fatal] in
+  /// replace mode and refuses to touch live data.
   final bool coreHasErrors;
+
+  /// How many core entities were **dropped** during decode because they carried
+  /// an unknown enum value (a field written by a newer app version).
+  ///
+  /// Unlike [coreHasErrors] these are forward-compatible skips — a *merge* can
+  /// safely keep the survivors. But a dropped entity still means the decoded
+  /// core is not a faithful copy of the backup, so a destructive *replace*
+  /// restore off it would silently discard those entities. This is tracked
+  /// separately from [warnings] so the "incomplete core" signal cannot be lost
+  /// among benign notes: [BackupService.restoreFromJson] refuses a replace when
+  /// [coreIncomplete] is set (issue #430).
+  final int coreDroppedEntities;
+
+  /// Whether any core entity was dropped for forward-compatibility reasons.
+  /// An incomplete core must never drive a destructive replace restore.
+  bool get coreIncomplete => coreDroppedEntities > 0;
 
   bool get hasErrors => errors.isNotEmpty;
 }
@@ -208,12 +223,14 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
   // the result fatal so the service refuses to touch live data.
   var coreFatal = false;
   var coreHasErrors = false;
+  var coreDroppedEntities = 0;
   CompendiumArchive core = CompendiumArchive(exportedAt: _epoch);
   final rawCore = root['core'];
   if (rawCore is Map) {
     final coreResult = archiveFromJson(rawCore.cast<String, Object?>());
     core = coreResult.archive;
     coreHasErrors = coreResult.hasErrors;
+    coreDroppedEntities = coreResult.droppedEntities.length;
     errors.addAll(coreResult.errors);
     warnings.addAll(coreResult.warnings);
   } else if (rawCore != null) {
@@ -324,5 +341,6 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
     warnings: warnings,
     fatal: coreFatal,
     coreHasErrors: coreHasErrors,
+    coreDroppedEntities: coreDroppedEntities,
   );
 }

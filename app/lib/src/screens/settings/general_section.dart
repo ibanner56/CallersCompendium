@@ -242,14 +242,17 @@ class _GeneralSectionState extends State<GeneralSection> {
       final outcome = await BackupService(repos).restoreFromJson(json);
       if (!outcome.applied) {
         if (!mounted) return;
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Couldn't restore: the file isn't a valid backup. "
-              'Your data is unchanged.',
-            ),
-          ),
-        );
+        // Distinguish a genuinely invalid file from a valid-but-incomplete
+        // backup that was refused to protect live data (issue #430): a replace
+        // that would have dropped entities must never look like a clean
+        // success, and must not be mistaken for an unreadable file.
+        final message = outcome.incompleteCore
+            ? 'This backup contains items this version of the app '
+                  "can't read (it may be from a newer version), so the "
+                  'restore was cancelled. Your data is unchanged.'
+            : "Couldn't restore: the file isn't a valid backup. "
+                  'Your data is unchanged.';
+        messenger.showSnackBar(SnackBar(content: Text(message)));
         return;
       }
       if (onRestored != null) await onRestored();

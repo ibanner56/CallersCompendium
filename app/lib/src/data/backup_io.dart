@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
@@ -123,19 +125,41 @@ Future<String?> pickBackupFile() async {
 /// Reads [file]'s text for restore, refusing a file larger than [maxBytes]
 /// ([kMaxBackupFileBytes] by default) with a [BackupFileTooLargeException].
 ///
-/// The size is checked via `XFile.length()` — which stats the file rather than
-/// loading it — *before* the whole file is read into a `String`, so an oversized
-/// corrupt or hostile file can never be slurped into memory (OWASP A04/A05:
-/// uncontrolled resource consumption). Exposed for testing; production code
-/// reaches it through [pickBackupFile].
+/// Enforcement is two-layered so the cap holds even against a hostile or
+/// racing path (OWASP A04/A05: uncontrolled resource consumption):
+/// 1. A fast pre-rejection using `XFile.length()` (a cheap stat) rejects an
+///    obviously-oversized file before any bytes are read. This is advisory
+///    only — the file could grow or be swapped between the stat and the read
+///    (a TOCTOU gap), so it is NOT the real guarantee.
+/// 2. The **actual** read streams the file via `openRead()` and aborts the
+///    moment the accumulated size exceeds [maxBytes] (reading at most
+///    `maxBytes + 1` worth before rejecting). This bounds the real allocation
+///    regardless of what `length()` claimed, so a file that reports a small or
+///    stale size but streams more than the cap is still rejected.
+///
+/// Only the collected bytes (guaranteed within the cap) are decoded as UTF-8.
+/// Exposed for testing; production code reaches it through [pickBackupFile].
 @visibleForTesting
 Future<String> readBackupFile(
   XFile file, {
   int maxBytes = kMaxBackupFileBytes,
 }) async {
-  final size = await file.length();
-  if (size > maxBytes) {
-    throw BackupFileTooLargeException(sizeBytes: size, maxBytes: maxBytes);
+  // Layer 1: fast pre-rejection on the reported size (advisory; see above).
+  final reported = await file.length();
+  if (reported > maxBytes) {
+    throw BackupFileTooLargeException(sizeBytes: reported, maxBytes: maxBytes);
   }
-  return file.readAsString();
+
+  // Layer 2: bound the real read. Accumulate stream chunks and stop as soon as
+  // we cross the cap, so the actual bytes held never exceed maxBytes.
+  final builder = BytesBuilder(copy: false);
+  var total = 0;
+  await for (final chunk in file.openRead()) {
+    total += chunk.length;
+    if (total > maxBytes) {
+      throw BackupFileTooLargeException(sizeBytes: total, maxBytes: maxBytes);
+    }
+    builder.add(chunk);
+  }
+  return utf8.decode(builder.takeBytes());
 }

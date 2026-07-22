@@ -54,5 +54,42 @@ void main() {
       expect(e.message, contains('50.0 MB'));
       expect(e.message, contains('unchanged'));
     });
+
+    test('rejects a file that reports a small/stale length but STREAMS more '
+        'than the cap (TOCTOU: the stat is not trusted as the bound)', () async {
+      // The reported length (1) is well under the cap, so the fast pre-check
+      // passes — but the file actually streams 32 bytes. The real, streamed
+      // read must enforce the bound and reject, proving length() alone is not
+      // relied on (the path could grow/be swapped between stat and read).
+      const maxBytes = 10;
+      final file = XFile.fromData(
+        Uint8List.fromList(List<int>.filled(32, 0x20)),
+        name: 'stale-length.json',
+        length: 1,
+      );
+
+      await expectLater(
+        readBackupFile(file, maxBytes: maxBytes),
+        throwsA(
+          isA<BackupFileTooLargeException>()
+              // The rejection reflects the ACTUAL streamed size, not the stale
+              // reported length.
+              .having((e) => e.sizeBytes, 'sizeBytes', greaterThan(maxBytes))
+              .having((e) => e.maxBytes, 'maxBytes', maxBytes),
+        ),
+      );
+    });
+
+    test('reads a within-cap file through the streamed path (UTF-8)', () async {
+      const contents = '{"backupVersion":1,"core":{"dances":[]}}';
+      final file = XFile.fromData(
+        Uint8List.fromList(utf8.encode(contents)),
+        name: 'streamed.json',
+        // Stale small length must not truncate the real read.
+        length: 1,
+      );
+
+      expect(await readBackupFile(file, maxBytes: 1024), contents);
+    });
   });
 }

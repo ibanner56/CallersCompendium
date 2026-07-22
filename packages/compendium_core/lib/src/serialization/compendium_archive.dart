@@ -156,13 +156,32 @@ class ArchiveReadResult {
     required this.archive,
     this.errors = const [],
     this.warnings = const [],
+    this.droppedEntities = const [],
   });
 
   final CompendiumArchive archive;
   final List<ArchiveError> errors;
   final List<String> warnings;
 
+  /// Entities dropped during decode because they carried an **unknown enum
+  /// value** — a field written by a newer app version. Each entry is a
+  /// human-readable reference such as `dance (d2)`.
+  ///
+  /// Deliberately distinct from [errors]: a drop is forward-compatible (not
+  /// corruption), so a *merge* can safely tolerate it and keep the survivors.
+  /// But it also means the decoded [archive] is **not a faithful copy** of its
+  /// source — it is missing entities. A destructive *replace* restore off such
+  /// an archive would silently discard the dropped entities, so callers MUST
+  /// refuse replace mode when this is non-empty (issue #430). It is surfaced
+  /// separately from [warnings] precisely so this "incomplete" signal cannot be
+  /// lost among benign, non-structural warnings.
+  final List<String> droppedEntities;
+
   bool get hasErrors => errors.isNotEmpty;
+
+  /// Whether decode dropped any entity for forward-compatibility reasons.
+  /// An incomplete archive must never drive a destructive replace restore.
+  bool get isIncomplete => droppedEntities.isNotEmpty;
 }
 
 /// Outcome of applying an archive to a live dataset.

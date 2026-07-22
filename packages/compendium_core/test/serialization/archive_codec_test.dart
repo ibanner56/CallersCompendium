@@ -391,7 +391,7 @@ void main() {
     });
 
     test(
-      'an unknown enum value skips its entity with a warning, not an error',
+      'an unknown enum value skips its entity as a tracked drop, not an error',
       () {
         final map =
             jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
@@ -406,13 +406,18 @@ void main() {
         expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
         expect(result.warnings, isNotEmpty);
         expect(result.warnings.any((w) => w.contains('d2')), isTrue);
+        // The drop is ALSO tracked structurally so the replace gate can refuse
+        // an incomplete archive — it must not be lost among warnings.
+        expect(result.isIncomplete, isTrue);
+        expect(result.droppedEntities, hasLength(1));
+        expect(result.droppedEntities.single, contains('d2'));
         // The offending entity is still dropped; the rest load.
         expect(result.archive.dances, hasLength(2));
         expect(result.archive.dances.map((d) => d.id), isNot(contains('d2')));
       },
     );
 
-    test('an unknown REQUIRED enum value also skips with a warning', () {
+    test('an unknown REQUIRED enum value also skips as a tracked drop', () {
       // `level` uses the strict `_enumByName` path (no fallback). A newer
       // level value must still skip-with-warning, not error out.
       final map =
@@ -423,7 +428,16 @@ void main() {
       final result = decodeArchive(jsonEncode(map));
       expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
       expect(result.warnings, isNotEmpty);
+      expect(result.isIncomplete, isTrue);
+      expect(result.droppedEntities.single, contains('d2'));
       expect(result.archive.dances.map((d) => d.id), isNot(contains('d2')));
+    });
+
+    test('a fully-decodable archive is not marked incomplete', () {
+      final result = decodeArchive(encodeArchive(_sampleArchive()));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      expect(result.isIncomplete, isFalse);
+      expect(result.droppedEntities, isEmpty);
     });
   });
 }
