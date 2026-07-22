@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../data/migration_guard.dart' show DatabaseDowngradeError;
+import '../data/migration_guard.dart'
+    show DatabaseDowngradeError, MigrationSnapshotAborted;
 
 /// Gates the app on a startup [future] — the schema migration / derived-index
 /// back-fill run by `CompendiumRepositories.ensureMigrated()`. Shows a loading
@@ -48,6 +49,28 @@ class AppBootstrap extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.system_update_alt, size: 48),
+                      const SizedBox(height: 8),
+                      Text(error.message, textAlign: TextAlign.center),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+          // The user was asked to consent to migrating without a recoverable
+          // backup (the pre-migration snapshot failed) and chose to abort, or
+          // there was no way to ask (issue #442). Like the downgrade case this
+          // is terminal with *no* Retry: retrying wouldn't create the backup —
+          // the user must free space / fix the backups folder and reopen.
+          if (error is MigrationSnapshotAborted) {
+            return Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.disc_full, size: 48),
                       const SizedBox(height: 8),
                       Text(error.message, textAlign: TextAlign.center),
                     ],

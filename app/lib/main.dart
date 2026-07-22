@@ -84,8 +84,9 @@ Future<void> main() async {
         appData: appData,
         windowService: windowService,
         crashReporter: crashReporter,
-        migrationPreflight: () => runMigrationPreflightForApp(
+        migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
           runningSchemaVersion: kCompendiumSchemaVersion,
+          onSnapshotFailure: onSnapshotFailure,
         ),
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
         incomingFileChannel: IncomingFileChannel(),
@@ -140,9 +141,15 @@ class CompendiumApp extends StatefulWidget {
   /// forces the database open (see `migration_guard.dart`): it guards against
   /// opening a file written by a newer build (throws [DatabaseDowngradeError],
   /// routed to the [AppBootstrap] error screen) and snapshots the file before a
-  /// pending upgrade migration. Injected from [main]; left `null` in tests that
-  /// don't exercise it (the step is then skipped), mirroring [integrityCheck].
-  final Future<void> Function()? migrationPreflight;
+  /// pending upgrade migration. It is handed a [SnapshotFailureDecision] seam so
+  /// that, when the pre-migration snapshot fails, it can ask the user whether to
+  /// proceed without a backup or abort (issue #442) — the app supplies
+  /// [_CompendiumAppState._confirmProceedWithoutBackup], which pumps a blocking
+  /// consent dialog on the root navigator. Injected from [main]; left `null` in
+  /// tests that don't exercise it (the step is then skipped), mirroring
+  /// [integrityCheck].
+  final Future<void> Function(SnapshotFailureDecision onSnapshotFailure)?
+  migrationPreflight;
 
   /// Fast, once-per-launch data-integrity probe run during bootstrap. Returns
   /// `true` when the database is healthy; `false` triggers a (non-fatal)
@@ -411,13 +418,71 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
   }
 
+  /// Consent seam for the pre-migration snapshot guard (issue #442). Passed to
+  /// [runMigrationPreflight] and invoked *only* when the automatic pre-upgrade
+  /// backup fails. Because the preflight is the very first bootstrap step — the
+  /// full app UI doesn't exist yet — this pumps a blocking dialog on the root
+  /// navigator (over the bootstrap loading screen) that spells out the
+  /// data-loss risk and names the likely cause, then returns the user's
+  /// explicit choice: `true` to migrate without a backup, `false` (the safe
+  /// default) to abort startup. Returning `false` makes the guard throw
+  /// [MigrationSnapshotAborted], which the [AppBootstrap] terminal screen
+  /// renders — so no schema change happens until the user decides.
+  Future<bool> _confirmProceedWithoutBackup(SnapshotFailure failure) async {
+    // The root navigator's overlay may not be mounted for the first frame yet
+    // (the snapshot can fail before the app has settled). Wait for it; if it
+    // never becomes available there is no way to ask, so fail closed.
+    await WidgetsBinding.instance.endOfFrame;
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return false;
+
+    final likelyCause = failure.likelyCause;
+    final proceed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          icon: const Icon(Icons.warning_amber_rounded),
+          title: const Text('Couldn\u2019t back up your data'),
+          content: Text(
+            'Before upgrading your saved data to a new format, Caller\u2019s '
+            'Compendium makes an automatic backup so a failed upgrade can be '
+            'undone. That backup couldn\u2019t be created this time.'
+            '${likelyCause.isEmpty ? '' : '\n\n$likelyCause'}'
+            '\n\nIf you continue without a backup and the upgrade is '
+            'interrupted, some of your dances or programs could be lost. You '
+            'can quit, free up space (or fix the backups folder), and reopen '
+            'the app to try again.',
+          ),
+          actions: [
+            // Safest choice is the default: Quit, autofocused so a keyboard
+            // Enter/confirm aborts rather than proceeding without a backup.
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Quit'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Proceed without a backup'),
+            ),
+          ],
+        ),
+      ),
+    );
+    // A dismissed dialog (blocked above, but belt-and-braces) is the safe
+    // default: decline, so the guard fails closed.
+    return proceed ?? false;
+  }
+
   Future<void> _startupSequence() async {
     // Data-safety preflight, before anything opens the database (Phase 7):
     // refuse to open a file written by a newer build (routes to the error
     // screen) and snapshot the file before a pending upgrade migration. Runs
     // first so no drift open — including the window restore below — precedes it.
     if (widget.migrationPreflight != null) {
-      await widget.migrationPreflight!();
+      await widget.migrationPreflight!(_confirmProceedWithoutBackup);
     }
     // Restore the last-known desktop window size/position (no-op off desktop).
     // This reads the persisted frame, which forces the database open, so it
