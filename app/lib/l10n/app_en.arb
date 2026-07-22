@@ -603,6 +603,23 @@
   "@settingsDefaultsFreeTextEntrySubtitle": {
     "description": "Explanatory subtitle for the free-text-entry setting, describing what turning it on does."
   },
+  "settingsDefaultsFigureShorthandsTitle": "Figure shorthands",
+  "@settingsDefaultsFigureShorthandsTitle": {
+    "description": "Title of the Defaults settings row that opens the figure-shorthand mappings editor (#420)."
+  },
+  "settingsDefaultsFigureShorthandsEmptySubtitle": "Map short tokens to one or more figures you can insert during free-text entry.",
+  "@settingsDefaultsFigureShorthandsEmptySubtitle": {
+    "description": "Subtitle for the figure-shorthands row when no shorthands are defined yet, explaining what the feature does."
+  },
+  "settingsDefaultsFigureShorthandsCountSubtitle": "{count, plural, =1{1 shorthand defined.} other{{count} shorthands defined.}}",
+  "@settingsDefaultsFigureShorthandsCountSubtitle": {
+    "description": "Subtitle for the figure-shorthands row showing how many shorthands the user has defined.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "settingsDefaultsFormTitle": "Form",
   "@settingsDefaultsFormTitle": {
     "description": "Title of the default dance-form picker."

@@ -444,6 +444,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.';
 
   @override
+  String get settingsDefaultsFigureShorthandsTitle => 'Figure shorthands';
+
+  @override
+  String get settingsDefaultsFigureShorthandsEmptySubtitle =>
+      'Map short tokens to one or more figures you can insert during free-text entry.';
+
+  @override
+  String settingsDefaultsFigureShorthandsCountSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count shorthands defined.',
+      one: '1 shorthand defined.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsDefaultsFormTitle => 'Form';
 
   @override

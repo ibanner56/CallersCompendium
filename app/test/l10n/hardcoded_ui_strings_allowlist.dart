@@ -28,6 +28,12 @@ const Set<String> hardcodedUiStringAllowlist = <String>{
   'src/screens/contradb_program_import_screen.dart',
   'src/screens/custom_fields_screen.dart',
   'src/screens/dialect_editor_screen.dart',
+  // Figure-shorthand mappings feature (#420) merged from main AFTER the L6
+  // partition was drafted. Deferred to a later L6 sub-PR (secondary screens)
+  // to keep the dance-editor sub-PR coherent and under the key ceiling; the
+  // Defaults-section entry point ('Figure shorthands' tile) IS localized.
+  'src/screens/shorthand_mapping_editor_screen.dart',
+  'src/screens/shorthand_mappings_screen.dart',
   // Settings general (data-management) section: Library/Performance/
   // Calling-history/Accessibility toggles, Deleted-items, Import, and the full
   // Backup/Restore flow. Deferred to L6: the main-merge folded in the

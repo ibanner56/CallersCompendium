@@ -842,6 +842,24 @@ abstract class AppLocalizations {
   /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.'**
   String get settingsDefaultsFreeTextEntrySubtitle;
 
+  /// Title of the Defaults settings row that opens the figure-shorthand mappings editor (#420).
+  ///
+  /// In en, this message translates to:
+  /// **'Figure shorthands'**
+  String get settingsDefaultsFigureShorthandsTitle;
+
+  /// Subtitle for the figure-shorthands row when no shorthands are defined yet, explaining what the feature does.
+  ///
+  /// In en, this message translates to:
+  /// **'Map short tokens to one or more figures you can insert during free-text entry.'**
+  String get settingsDefaultsFigureShorthandsEmptySubtitle;
+
+  /// Subtitle for the figure-shorthands row showing how many shorthands the user has defined.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 shorthand defined.} other{{count} shorthands defined.}}'**
+  String settingsDefaultsFigureShorthandsCountSubtitle(int count);
+
   /// Title of the default dance-form picker.
   ///
   /// In en, this message translates to:

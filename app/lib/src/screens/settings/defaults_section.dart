@@ -679,12 +679,11 @@ class _DefaultsView extends StatelessWidget {
             return ListTile(
               key: const ValueKey('defaults-figure-shorthands'),
               enabled: freeTextEntry,
-              title: const Text('Figure shorthands'),
+              title: Text(l10n.settingsDefaultsFigureShorthandsTitle),
               subtitle: Text(
                 count == 0
-                    ? 'Map short tokens to one or more figures you can insert '
-                          'during free-text entry.'
-                    : '$count shorthand${count == 1 ? '' : 's'} defined.',
+                    ? l10n.settingsDefaultsFigureShorthandsEmptySubtitle
+                    : l10n.settingsDefaultsFigureShorthandsCountSubtitle(count),
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: freeTextEntry
