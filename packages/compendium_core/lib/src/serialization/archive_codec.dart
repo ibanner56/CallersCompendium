@@ -370,7 +370,14 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
   // Tolerate a missing/absent `venues` array (older bundles predate the venue
   // entity): `_decodeList` returns an empty list for a null field and records
   // a structured error for a present-but-malformed one, never throwing.
-  final venues = _decodeList(root['venues'], 'venue', _venueFromJson, errors);
+  final venues = _decodeList(
+    root['venues'],
+    'venue',
+    _venueFromJson,
+    errors,
+    warnings,
+    dropped,
+  );
 
   return ArchiveReadResult(
     archive: CompendiumArchive(
