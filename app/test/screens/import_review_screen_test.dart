@@ -13,6 +13,7 @@ import 'package:http/testing.dart';
 
 import '../support/fmp_fixture_builder.dart';
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 Dance _dance(
   String id,
@@ -47,6 +48,8 @@ Future<void> _pump(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: RepositoriesScope(
         repositories: repos,
         child: ImportReviewScreen(
@@ -99,6 +102,8 @@ Future<void> _pumpForEdit(
   addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: ActiveDialectScope(notifier: notifier, child: child!),

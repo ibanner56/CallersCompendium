@@ -9,6 +9,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
 
+import 'support/l10n_harness.dart';
+
 final _now = DateTime.utc(2026, 1, 1);
 
 Program _program({
@@ -63,6 +65,8 @@ Dance? _danceFor(String id) => _dances[id];
 Future<void> _pumpMenu(WidgetTester tester, Program program) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         appBar: AppBar(
           actions: [ProgramExportMenu(program: program, titleFor: _titles)],
@@ -178,6 +182,8 @@ void main() {
     testWidgets('surfaces a SnackBar when sharing throws', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -208,6 +214,8 @@ void main() {
       ShareParams? captured;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -237,6 +245,8 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [
@@ -276,6 +286,8 @@ void main() {
         // With danceFor: the bundle action appears.
         await tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
             home: Scaffold(
               appBar: AppBar(
                 actions: [
@@ -305,6 +317,8 @@ void main() {
         ShareParams? captured;
         await tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
             home: Scaffold(
               appBar: AppBar(
                 actions: [
@@ -362,6 +376,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: Scaffold(
             appBar: AppBar(
               actions: [

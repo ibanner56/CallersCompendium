@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 /// A minimal, but real-shaped, ContraDB program page: two linked dances with a
 /// note between them.
@@ -55,6 +56,8 @@ Future<void> _pump(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) {
         final scoped = revision == null
             ? child!
@@ -582,6 +585,8 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           builder: (context, child) =>
               RepositoriesScope(repositories: repos, child: child!),
           home: ContraDbProgramImportScreen(

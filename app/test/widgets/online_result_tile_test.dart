@@ -3,6 +3,8 @@ import 'package:compendium_app/src/widgets/online_result_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/l10n_harness.dart';
+
 OnlineSearchResultRow _result({
   OnlineSource source = OnlineSource.callersBox,
   String id = '10600',
@@ -19,6 +21,8 @@ OnlineSearchResultRow _result({
 
 Future<void> _pump(WidgetTester tester, Widget child) => tester.pumpWidget(
   MaterialApp(
+    localizationsDelegates: testLocalizationsDelegates,
+    supportedLocales: testSupportedLocales,
     home: Scaffold(body: ListView(children: [child])),
   ),
 );
@@ -72,4 +76,35 @@ void main() {
     await tester.tap(find.byType(OnlineResultTile));
     expect(taps, 1);
   });
+
+  testWidgets(
+    'renders an untrusted result title verbatim as plain text (no markup '
+    'interpretation)',
+    (tester) async {
+      // A hostile online result whose fields contain markup-/ICU-looking
+      // sequences. They must surface as literal, plain-text characters — never
+      // parsed as HTML/rich text and never re-interpreted as an ICU template —
+      // so an online source can't inject markup into the localized UI.
+      const hostileName = '<script>alert(1)</script> {count} \$name';
+      const hostileAuthor = '</b>{0}';
+      await _pump(
+        tester,
+        OnlineResultTile(
+          result: _result(
+            name: hostileName,
+            author: hostileAuthor,
+            formation: '',
+          ),
+        ),
+      );
+
+      // The title is found by an exact (literal) text match: the widget tree
+      // contains the raw string unchanged, proving no markup/placeholder
+      // interpretation occurred.
+      expect(find.text(hostileName), findsOneWidget);
+      expect(find.text(hostileAuthor), findsOneWidget);
+      // The localized attribution line still renders normally alongside it.
+      expect(find.text("From The Caller's Box (online)"), findsOneWidget);
+    },
+  );
 }

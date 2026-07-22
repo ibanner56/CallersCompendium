@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/online_search.dart';
+import '../data/online_search_labels.dart';
 import '../theme/app_spacing.dart';
 
 /// One online search result row: the dance title, its author and formation, and
@@ -32,6 +34,7 @@ class OnlineResultTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final subtitleParts = <String>[
       if (result.author.isNotEmpty) result.author,
       if (result.formation.isNotEmpty) result.formation,
@@ -47,7 +50,7 @@ class OnlineResultTile extends StatelessWidget {
           if (subtitleParts.isNotEmpty) Text(subtitleParts.join(' • ')),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            result.source.attribution,
+            onlineSourceAttribution(l10n, result.source),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

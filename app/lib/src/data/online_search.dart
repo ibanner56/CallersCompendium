@@ -134,13 +134,6 @@ class OnlineImportResult {
   final int danceCount;
 }
 
-/// User-facing snackbar message for an online import [result]. Shared by every
-/// source so imports are reported identically.
-String onlineImportMessage(OnlineImportResult result) =>
-    result.kind == OnlineImportKind.alreadyInCollection
-    ? '"${result.title}" is already in your collection.'
-    : 'Imported "${result.title}".';
-
 /// An online dance loaded for preview in the detail pane, plus the planned
 /// import decision so the Import button can commit it without re-fetching.
 class OnlinePreview {

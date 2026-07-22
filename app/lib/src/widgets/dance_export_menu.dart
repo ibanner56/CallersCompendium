@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../export/dance_pdf.dart';
 
 /// Actions offered by the [DanceExportMenu].
@@ -87,10 +88,9 @@ class DanceExportMenu extends StatelessWidget {
 
   Future<void> _copyText(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     await Clipboard.setData(ClipboardData(text: _plainText()));
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Dance copied to clipboard.')),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
   }
 
   Future<void> _exportPdf() async {
@@ -111,6 +111,7 @@ class DanceExportMenu extends StatelessWidget {
 
   Future<void> _onSelected(BuildContext context, _ExportAction action) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     // Capture the button's screen position before any await: on desktop
     // `share_plus` needs a `sharePositionOrigin` to anchor the native share
     // popover, and the render tree may have moved on by the time the async
@@ -124,13 +125,13 @@ class DanceExportMenu extends StatelessWidget {
       case _ExportAction.shareText:
         await _guard(
           messenger,
-          "Couldn't share this dance",
+          l10n.exportShareDanceError,
           () => _shareText(origin),
         );
       case _ExportAction.copyText:
         await _copyText(context);
       case _ExportAction.pdf:
-        await _guard(messenger, "Couldn't export this dance", _exportPdf);
+        await _guard(messenger, l10n.exportDanceError, _exportPdf);
     }
   }
 
@@ -153,33 +154,34 @@ class DanceExportMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopupMenuButton<_ExportAction>(
       key: const ValueKey('dance-export-menu'),
-      tooltip: 'Export',
+      tooltip: l10n.exportTooltip,
       icon: const Icon(Icons.ios_share),
       onSelected: (action) => _onSelected(context, action),
-      itemBuilder: (context) => const [
+      itemBuilder: (context) => [
         PopupMenuItem<_ExportAction>(
           value: _ExportAction.shareText,
           child: ListTile(
-            leading: Icon(Icons.mail_outline),
-            title: Text('Share dance (text)'),
+            leading: const Icon(Icons.mail_outline),
+            title: Text(l10n.exportShareDanceText),
             contentPadding: EdgeInsets.zero,
           ),
         ),
         PopupMenuItem<_ExportAction>(
           value: _ExportAction.copyText,
           child: ListTile(
-            leading: Icon(Icons.copy_outlined),
-            title: Text('Copy dance'),
+            leading: const Icon(Icons.copy_outlined),
+            title: Text(l10n.exportCopyDance),
             contentPadding: EdgeInsets.zero,
           ),
         ),
         PopupMenuItem<_ExportAction>(
           value: _ExportAction.pdf,
           child: ListTile(
-            leading: Icon(Icons.picture_as_pdf_outlined),
-            title: Text('Export / print PDF'),
+            leading: const Icon(Icons.picture_as_pdf_outlined),
+            title: Text(l10n.exportPrintPdf),
             contentPadding: EdgeInsets.zero,
           ),
         ),

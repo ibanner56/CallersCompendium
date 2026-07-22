@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/plaintext_program_import.dart';
@@ -163,12 +164,15 @@ class _PlaintextProgramImportScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('plaintext-import-resolve-error-snackbar'),
-          content: Text('Could not search The Caller\'s Box: $error'),
+          content: Text(
+            AppLocalizations.of(context).importPlaintextSearchError('$error'),
+          ),
         ),
       );
       return;
     }
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final linked = resolved.where((l) => l.importedOnline).length;
     // Any dances resolved from The Caller's Box are now in the collection
     // (their authors too), so ask the live Collection view to reload (#340).
@@ -199,12 +203,8 @@ class _PlaintextProgramImportScreenState
         key: const ValueKey('plaintext-import-resolved-snackbar'),
         content: Text(
           linked == 0
-              ? 'No confident Caller\'s Box matches found — '
-                    '$remaining ${remaining == 1 ? 'title' : 'titles'} kept as '
-                    '${remaining == 1 ? 'a note' : 'notes'}.'
-              : 'Linked $linked ${linked == 1 ? 'title' : 'titles'} from The '
-                    'Caller\'s Box'
-                    '${remaining == 0 ? '.' : '; $remaining still ${remaining == 1 ? 'a note' : 'notes'}.'}',
+              ? l10n.importPlaintextResolvedNone(remaining)
+              : l10n.importPlaintextResolvedLinked(linked, remaining),
         ),
       ),
     );
@@ -232,13 +232,16 @@ class _PlaintextProgramImportScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('plaintext-import-error-snackbar'),
-          content: Text('Could not import program: $error'),
+          content: Text(
+            AppLocalizations.of(context).importProgramCreateError('$error'),
+          ),
         ),
       );
       return;
     }
 
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final matched = lines
@@ -249,12 +252,15 @@ class _PlaintextProgramImportScreenState
       SnackBar(
         key: const ValueKey('plaintext-import-committed-snackbar'),
         content: Text(
-          'Imported "${program.title}" — ${lines.length} '
-          '${lines.length == 1 ? 'slot' : 'slots'} '
-          '($matched linked, $notes ${notes == 1 ? 'note' : 'notes'}).',
+          l10n.importProgramCommitted(
+            program.title,
+            lines.length,
+            matched,
+            notes,
+          ),
         ),
         action: SnackBarAction(
-          label: 'Undo',
+          label: l10n.commonUndo,
           onPressed: () => _repos.programs.hardDelete([id]),
         ),
       ),
@@ -264,14 +270,15 @@ class _PlaintextProgramImportScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Import from title list'),
+        title: Text(l10n.importTitleListTitle),
         actions: [
           TextButton(
             key: const ValueKey('plaintext-import-commit'),
             onPressed: _canCommit ? _commit : null,
-            child: const Text('Import'),
+            child: Text(l10n.importAction),
           ),
         ],
       ),
@@ -280,6 +287,7 @@ class _PlaintextProgramImportScreenState
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
       return Center(
         child: Column(
@@ -287,7 +295,7 @@ class _PlaintextProgramImportScreenState
           children: [
             const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 8),
-            const Text('Could not load your collection.'),
+            Text(l10n.importCollectionLoadError),
             const SizedBox(height: 8),
             FilledButton(
               onPressed: () {
@@ -297,7 +305,7 @@ class _PlaintextProgramImportScreenState
                 });
                 _load();
               },
-              child: const Text('Retry'),
+              child: Text(l10n.commonRetry),
             ),
           ],
         ),
@@ -314,9 +322,9 @@ class _PlaintextProgramImportScreenState
               key: const ValueKey('plaintext-import-title'),
               controller: _titleController,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Program title',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.importProgramTitleLabel,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -325,13 +333,11 @@ class _PlaintextProgramImportScreenState
               controller: _pasteController,
               minLines: 4,
               maxLines: 8,
-              decoration: const InputDecoration(
-                labelText: 'Dance titles (one per line)',
-                hintText:
-                    'Paste one dance title per line.\n'
-                    'Unrecognised lines are kept as notes.',
+              decoration: InputDecoration(
+                labelText: l10n.importTitleListDancesLabel,
+                hintText: l10n.importTitleListDancesHint,
                 alignLabelWithHint: true,
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
@@ -343,6 +349,7 @@ class _PlaintextProgramImportScreenState
   }
 
   Widget _buildPreview() {
+    final l10n = AppLocalizations.of(context);
     if (_collection == null) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -351,7 +358,7 @@ class _PlaintextProgramImportScreenState
       return Center(
         key: const ValueKey('plaintext-import-empty-preview'),
         child: Text(
-          'Paste a list of dance titles above to preview the program.',
+          l10n.importTitleListEmptyHint,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).colorScheme.outline,
@@ -368,7 +375,7 @@ class _PlaintextProgramImportScreenState
             children: [
               Expanded(
                 child: Text(
-                  '${lines.length} ${lines.length == 1 ? 'slot' : 'slots'}',
+                  l10n.importPlaintextSlotCount(lines.length),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -384,7 +391,9 @@ class _PlaintextProgramImportScreenState
                         )
                       : const Icon(Icons.travel_explore, size: 18),
                   label: Text(
-                    _resolving ? 'Searching…' : 'Resolve unmatched online',
+                    _resolving
+                        ? l10n.importResolving
+                        : l10n.importResolveOnline,
                   ),
                 ),
             ],
@@ -403,6 +412,7 @@ class _PlaintextProgramImportScreenState
   }
 
   Widget _previewTile(ParsedProgramLine line, int index) {
+    final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final (
       IconData icon,
@@ -414,18 +424,18 @@ class _PlaintextProgramImportScreenState
             ? (
                 Icons.cloud_download_outlined,
                 scheme.primary,
-                'Imported from Caller\'s Box',
+                l10n.importPlaintextImportedOnline,
               )
-            : (Icons.link, scheme.primary, 'Linked to dance'),
+            : (Icons.link, scheme.primary, l10n.importPlaintextLinked),
       PlaintextLineResolution.ambiguous => (
         Icons.help_outline,
         scheme.tertiary,
-        'Multiple matches — added as note',
+        l10n.importPlaintextAmbiguous,
       ),
       PlaintextLineResolution.unmatched => (
         Icons.sticky_note_2_outlined,
         scheme.outline,
-        'No match — added as note',
+        l10n.importPlaintextUnmatched,
       ),
     };
     return ListTile(
