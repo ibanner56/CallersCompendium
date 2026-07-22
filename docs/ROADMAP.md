@@ -217,6 +217,15 @@ Design items (each produces a design doc + review):
   in addition to date/venue/notes; per-slot **guest caller** and **planned
   time/length** (CC `SetItem.Caller`/`Time`) as structured fields, not just the
   free-text slot note; ALT dances (done in model via `isAlt`).
+  **Delivered follow-on — Venue as a reusable entity** (schema v14): the
+  per-program free-text `venue` is joined by an optional link to a first-class,
+  reusable `Venue` (CC `Venue`: address, contacts, sponsor, price, website,
+  generic schedule), so venues are picked once and reused across programs. A
+  Settings toggle chooses the editor's entry mode (free-text vs. picker); the
+  free-text label and the linked record persist independently (lossless,
+  reversible). A linked venue's details win on-screen and in text/PDF export
+  (the set-list PDF renders a richer venue block). **Out of scope (follow-up,
+  #382 family)**: importing CC `Venue` rows from a Caller's Companion `.USR`.
 - [x] 4.3 Program printing/export (PDF, plain text, **emailable text set list** —
   CC parity: "email set list")
 - [x] 4.4 Programming matrix view (figures × dances, computed from structured
@@ -517,7 +526,9 @@ taxonomy are unchanged.
   schema audit: `Dance` (incl. `Level`, composed/revised dates, `Rating`,
   `UserDefined_*` → custom fields), `Set`+`SetItem` → Programs (with band/caller/
   dancerLevel, ALT flags, guest caller, timing), `Author` → Choreographers,
-  `Venue` → venue entity, `Term` → glossary, `Dance_Related` → related links.
+  `Venue` → venue entity (the entity itself has shipped — schema v14, Phase 4.2
+  — though this CC import mapping into it is still pending), `Term` → glossary,
+  `Dance_Related` → related links.
   Free-text figures import as `custom` (see design/imports.md §2).
   - **Clipboard/text migration adapter delivered** (part 1 of 2):
     `CallersCompanionTextAdapter` (pure-Dart CORE `SourceAdapter`,
@@ -564,9 +575,11 @@ taxonomy are unchanged.
       programs instead of duplicating them.
     - Honest caveats keeping 6.5 open: the free-text figure → `custom` scrub is
       **unvalidated against real figure data** (the sample library has no
-      `A1`–`B2`/`Moves` notation); and `Author`/`Venue`/`Term`/`Dance_Related`
+      `A1`–`B2`/`Moves` notation); and `Author`/`Term`/`Dance_Related`
       tables are confirmed present in the real file but their entity resolution
-      is **deferred** (no models yet).
+      is **deferred** (no models yet). The `Venue` entity now **exists**
+      (shipped, schema v14 — see Phase 4.2), but importing CC `Venue` rows into
+      it from a `.USR` file is still deferred (the #382 follow-up).
 - [x] 6.6 Generic import/export (JSON) for backup and inter-user sharing
   - Export/backup delivered under G.5 (whole-collection archive + restore/merge).
   - Inter-user-sharing **import** delivered: `GenericJsonAdapter` (pure-Dart CORE
@@ -629,9 +642,6 @@ taxonomy are unchanged.
 
 - ECD and Squares support
 - Optional device-to-device sync, beyond Apple-native AirDrop support.
-- **Venue as a reusable entity** (CC `Venue`: address, contacts, sponsor, price,
-  website, generic schedule) rather than a per-program free-text `venue` string,
-  so venues are picked once and reused across programs.
 - **Glossary / terms** (CC `Term`: term + definition + source) — a browsable
   reference of caller terminology, dialect-aware.
 - **User-defined quick-entry snippets** — CC's "Insert Call" buttons (per-user

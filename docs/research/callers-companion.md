@@ -152,7 +152,12 @@ calc/display/search helpers, prefixed `zc_`/`zi_`/`zk_`). Substantive user data:
   per-slot **`Caller`** (guest) and **`Time`**.
 - **Author**: full contact card (address, phones, email, website, DOB,
   `Deceased`, notes) — richer than our `Choreographer`.
-- **Venue**: address, two contacts, sponsor, price, website, generic schedule.
+- **Venue**: name, address (`address1`/`address2`, city, state/province,
+  country, postal code, ZIP+4 `plus4`), website, sponsor, event name, time,
+  generic schedule, price, notes, and two contacts (name/phone/email each). Our
+  shipped `Venue` entity (schema v14) mirrors this column set, dropping only CC's
+  FileMaker plumbing (`VenueDisplay_c` — reimplemented as a computed
+  `displayName` — plus `zc_*`/`zi_*` audit, `zk_Constant`, `SiteID`).
 - **Term**: term + definition + source (a glossary).
 
 ### Parity implications (folded into ROADMAP Phase 4b/5/6 + design docs)

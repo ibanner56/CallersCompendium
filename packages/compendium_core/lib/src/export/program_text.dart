@@ -15,6 +15,13 @@ import '../model/program.dart';
 /// - [titleFor] resolves a slot's [ProgramSlot.danceId] to a dance title;
 ///   return `null` for an unknown/unavailable dance and the renderer falls back
 ///   to [unknownDanceLabel].
+/// - [venueNameFor] resolves a linked venue entity's id ([Program.venueId]) to
+///   its already-formatted display label; return `null` when the id doesn't
+///   resolve. This keeps the renderer pure Dart (it never imports the `Venue`
+///   model): the app passes a closure backed by its loaded venue records. A
+///   resolvable linked venue wins over the free-text [Program.venue]; when the
+///   callback is `null` (or returns `null`), the free-text label is used —
+///   preserving the pre-venue-entity behavior.
 /// - [formatDate] formats [Program.eventDate]; defaults to an ISO `yyyy-MM-dd`
 ///   date. The app passes a locale-aware formatter
 ///   (`MaterialLocalizations.formatMediumDate`).
@@ -41,6 +48,7 @@ import '../model/program.dart';
 String programToPlainText(
   Program program, {
   required String? Function(String danceId) titleFor,
+  String? Function(String venueId)? venueNameFor,
   String Function(DateTime date)? formatDate,
   String unknownDanceLabel = 'Untitled dance',
 }) {
@@ -49,10 +57,18 @@ String programToPlainText(
 
   lines.add(program.title.trim());
 
-  // date · venue on one line (only the present parts).
+  // date · venue on one line (only the present parts). A resolvable linked
+  // venue's display label wins over the free-text label; either falls back to
+  // the other, and both to nothing (the venue part is then omitted).
+  final linkedVenue = program.venueId != null
+      ? venueNameFor?.call(program.venueId!)
+      : null;
+  final venueLabel = _has(linkedVenue)
+      ? linkedVenue!.trim()
+      : (_has(program.venue) ? program.venue!.trim() : null);
   final dateVenue = <String>[
     if (program.eventDate != null) fmtDate(program.eventDate!),
-    if (_has(program.venue)) program.venue!.trim(),
+    ?venueLabel,
   ];
   if (dateVenue.isNotEmpty) lines.add(dateVenue.join(' · '));
 

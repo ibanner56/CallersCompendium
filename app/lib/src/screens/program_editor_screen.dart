@@ -14,6 +14,7 @@ import '../data/display_defaults.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/venue_entity_mode_scope.dart';
+import '../data/venue_label.dart';
 import '../editor/program_editor_draft_codec.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
@@ -963,6 +964,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ProgramExportMenu(
                 program: _draftProgram!,
                 titleFor: _titleForDance,
+                venuesById: _exportVenuesById,
                 danceFor: (id) => _data?.dancesById[id],
                 choreographerFor: (id) => _data?.choreographersById[id],
               ),
@@ -1162,7 +1164,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final localizations = MaterialLocalizations.of(context);
     final l10n = AppLocalizations.of(context);
     final title = _titleController.text.trim();
-    final venue = _venueController.text.trim();
+    // Prefer a linked venue's display label over the free-text field, matching
+    // the set-list export and on-screen resolution.
+    final venue = resolveVenueLabelParts(
+      _venueId,
+      _venueController.text,
+      _exportVenuesById,
+    );
     await Printing.layoutPdf(
       name: sanitizeExportName(title, fallback: l10n.exportMatrixPdfFilename),
       onLayout: (format) => buildProgramMatrixPdf(
@@ -1171,12 +1179,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         dialect: _dialect,
         programTitle: title,
         eventDate: _eventDate,
-        venue: venue.isEmpty ? null : venue,
+        venue: venue,
         omittedFreeTextCount: omittedFreeTextCount,
         formatDate: localizations.formatMediumDate,
       ),
     );
   }
+
+  /// The loaded venue records needed to resolve this program's linked venue on
+  /// export. A program links at most one venue, so only [_linkedVenue] (kept in
+  /// sync with the current selection) need be threaded through — no full
+  /// `venues.listAll()` load is required.
+  Map<String, Venue> get _exportVenuesById => {
+    ?_linkedVenue?.id: ?_linkedVenue,
+  };
 
   Widget _buildEditorColumn({required bool twoPane}) {
     final l10n = AppLocalizations.of(context);
