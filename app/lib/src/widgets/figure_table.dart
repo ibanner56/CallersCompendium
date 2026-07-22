@@ -141,7 +141,7 @@ class _FigureRow extends StatelessWidget {
     final beatsLabel = l10n.danceFigureBeats(beats);
     final semanticsLabel = [
       verboseText,
-      if (isImportGap) importGapMessage,
+      if (isImportGap) l10n.importGapMessage,
       if (progression) l10n.danceFigureProgressionSemantic,
       beatsLabel,
       if (note != null && note!.trim().isNotEmpty)

@@ -117,7 +117,7 @@ class DanceListTile extends StatelessWidget {
               semanticLabel: l10n.collectionSelectDanceLabel(dance.title),
             )
           : Tooltip(
-              message: danceFormLabel(dance.form),
+              message: danceFormLabel(l10n, dance.form),
               child: CircleAvatar(
                 radius: 20,
                 backgroundColor: theme.colorScheme.secondaryContainer,
@@ -154,7 +154,7 @@ class DanceListTile extends StatelessWidget {
             Chip(
               avatar: Icon(formationIcon, size: 16, color: formationFg),
               label: Text(
-                formationLabel(dance.formation),
+                formationLabel(l10n, dance.formation),
                 style: formationFg == null
                     ? null
                     : TextStyle(color: formationFg),
@@ -171,7 +171,7 @@ class DanceListTile extends StatelessWidget {
                   Icons.signal_cellular_alt_outlined,
                   size: 16,
                 ),
-                label: Text(danceLevelLabel(dance.level!)),
+                label: Text(danceLevelLabel(l10n, dance.level!)),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),

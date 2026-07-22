@@ -5,7 +5,7 @@ import 'package:flutter/semantics.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/app_theme_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
-import '../models/dance_list_entry.dart';
+import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
 
 /// Editable, reorderable list of a program's slots for the builder
@@ -408,7 +408,7 @@ class _SlotTile extends StatelessWidget {
         : null;
 
     final subtitleParts = <String>[
-      if (formation != null) formationLabel(formation!),
+      if (formation != null) formationLabel(l10n, formation!),
       if (isDanceSlot && (slot.text?.trim().isNotEmpty ?? false))
         l10n.programsSummaryNote(slot.text!.trim()),
       if (!isDanceSlot && (slot.text?.trim().isNotEmpty ?? false)) '',

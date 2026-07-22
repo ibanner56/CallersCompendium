@@ -1,7 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
-import '../../models/dance_list_entry.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
@@ -84,6 +84,7 @@ class DanceEditorForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Form(
       key: formKey,
       child: ListView(
@@ -141,7 +142,7 @@ class DanceEditorForm extends StatelessWidget {
                     for (final shape in FormationShape.values)
                       DropdownMenuItem(
                         value: shape,
-                        child: Text(formationShapeLabel(shape)),
+                        child: Text(formationShapeLabel(l10n, shape)),
                       ),
                   ],
                   onChanged: (value) {
@@ -173,7 +174,7 @@ class DanceEditorForm extends StatelessWidget {
                         label: 'Progression',
                         value: controller.progression,
                         values: Progression.values,
-                        labelOf: progressionLabel,
+                        labelOf: (value) => progressionLabel(l10n, value),
                         onChanged: controller.setProgression,
                       ),
                     ),
@@ -305,6 +306,7 @@ class DanceEditorForm extends StatelessWidget {
   Widget _buildMoreDetails(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
     final sectionShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(12),
       side: BorderSide(color: colorScheme.outlineVariant),
@@ -335,7 +337,7 @@ class DanceEditorForm extends StatelessWidget {
           label: 'Status',
           value: controller.status,
           values: DanceStatus.values,
-          labelOf: danceStatusLabel,
+          labelOf: (value) => danceStatusLabel(l10n, value),
           onChanged: controller.setStatus,
         ),
         const SizedBox(height: AppSpacing.md),

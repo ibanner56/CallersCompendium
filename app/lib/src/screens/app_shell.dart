@@ -216,10 +216,10 @@ class _AppShellState extends State<AppShell> {
                         // ones where a bare glyph could fall below contrast.
                         // Decorative + labeled (Semantics image, not focusable),
                         // so keyboard focus order is unchanged.
-                        const BrandMark(
+                        BrandMark(
                           size: 32,
                           showTile: true,
-                          semanticLabel: "Caller's Compendium",
+                          semanticLabel: l10n.appTitle,
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         _RailSearchButton(onPressed: _openSearch),
@@ -309,6 +309,7 @@ class _RailSearchButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isApple =
@@ -316,7 +317,7 @@ class _RailSearchButton extends StatelessWidget {
         theme.platform == TargetPlatform.iOS;
     final hint = isApple ? '\u2318K' : 'Ctrl K';
     return Tooltip(
-      message: 'Search ($hint)',
+      message: l10n.navSearchTooltip(hint),
       child: InkWell(
         key: const ValueKey('global-search-button'),
         onTap: onPressed,
@@ -336,7 +337,7 @@ class _RailSearchButton extends StatelessWidget {
                 child: Icon(Icons.search, color: scheme.onSecondaryContainer),
               ),
               const SizedBox(height: 4),
-              Text('Search', style: theme.textTheme.labelMedium),
+              Text(l10n.navSearch, style: theme.textTheme.labelMedium),
               const SizedBox(height: 2),
               _ShortcutHint(hint),
             ],

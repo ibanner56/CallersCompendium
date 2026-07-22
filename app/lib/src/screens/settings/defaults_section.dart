@@ -1,12 +1,13 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../editor/figure_draft.dart';
-import '../../models/dance_list_entry.dart' show formationShapeLabel;
 import '../../search/collection_query.dart';
+import '../../search/collection_query_labels.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
@@ -586,10 +587,11 @@ class _DefaultsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
-        SectionHeader(title: 'Program defaults'),
+        SectionHeader(title: l10n.settingsDefaultsProgramHeader),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.md,
@@ -602,10 +604,10 @@ class _DefaultsView extends StatelessWidget {
             controller: programCallerController,
             onChanged: onDefaultProgramCallerChanged,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Default caller',
-              helperText: 'Prefilled into new programs; editable per program.',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.settingsDefaultsCallerLabel,
+              helperText: l10n.settingsDefaultsPrefilledHelper,
+              border: const OutlineInputBorder(),
             ),
           ),
         ),
@@ -621,20 +623,17 @@ class _DefaultsView extends StatelessWidget {
             controller: programBandController,
             onChanged: onDefaultProgramBandChanged,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Default band',
-              helperText: 'Prefilled into new programs; editable per program.',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.settingsDefaultsBandLabel,
+              helperText: l10n.settingsDefaultsPrefilledHelper,
+              border: const OutlineInputBorder(),
             ),
           ),
         ),
-        SectionHeader(title: 'Display defaults'),
+        SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
         ListTile(
-          title: const Text('Collection sort order'),
-          subtitle: const Text(
-            'How the Collection is sorted when you open it. You can still '
-            'change the sort while browsing.',
-          ),
+          title: Text(l10n.settingsDefaultsSortTitle),
+          subtitle: Text(l10n.settingsDefaultsSortSubtitle),
           trailing: DropdownButton<CollectionSort>(
             key: const ValueKey('defaults-collection-sort'),
             value: defaultCollectionSort,
@@ -643,7 +642,10 @@ class _DefaultsView extends StatelessWidget {
             },
             items: [
               for (final sort in _sortOptions)
-                DropdownMenuItem(value: sort, child: Text(sort.label)),
+                DropdownMenuItem(
+                  value: sort,
+                  child: Text(collectionSortLabel(l10n, sort)),
+                ),
             ],
           ),
         ),
@@ -655,34 +657,21 @@ class _DefaultsView extends StatelessWidget {
                 ? DanceDetailRendering.canonical
                 : DanceDetailRendering.activeDialect,
           ),
-          title: const Text('Open dance details in canonical terms'),
-          subtitle: const Text(
-            'When on, a dance opens showing canonical role and move names '
-            'instead of your active dialect. You can still switch views on the '
-            'dance while it is open.',
-          ),
+          title: Text(l10n.settingsDefaultsCanonicalTitle),
+          subtitle: Text(l10n.settingsDefaultsCanonicalSubtitle),
           isThreeLine: true,
         ),
-        SectionHeader(title: 'Dance-authoring defaults'),
+        SectionHeader(title: l10n.settingsDefaultsAuthoringHeader),
         SwitchListTile(
           key: const ValueKey('defaults-free-text-entry'),
           value: freeTextEntry,
           onChanged: onFreeTextEntryChanged,
-          title: const Text('Free-text entry'),
-          subtitle: const Text(
-            'When on, adding a new figure lets you type it as one line (e.g. '
-            '"neighbor balance & swing") instead of building it field by field. '
-            'The line is parsed into figure(s); anything unrecognized is kept as '
-            'a custom figure you can fix later. Editing an existing figure '
-            'always uses the full editor.',
-          ),
+          title: Text(l10n.settingsDefaultsFreeTextEntryTitle),
+          subtitle: Text(l10n.settingsDefaultsFreeTextEntrySubtitle),
         ),
         ListTile(
-          title: const Text('Form'),
-          subtitle: const Text(
-            'The dance form a new dance starts as. You can still change it per '
-            'dance.',
-          ),
+          title: Text(l10n.settingsDefaultsFormTitle),
+          subtitle: Text(l10n.settingsDefaultsFormSubtitle),
           trailing: DropdownButton<DanceForm>(
             key: const ValueKey('defaults-dance-form'),
             value: defaultDanceForm,
@@ -693,17 +682,14 @@ class _DefaultsView extends StatelessWidget {
               for (final form in DanceForm.values)
                 DropdownMenuItem(
                   value: form,
-                  child: Text(danceFormLabel(form)),
+                  child: Text(danceFormLabel(l10n, form)),
                 ),
             ],
           ),
         ),
         ListTile(
-          title: const Text('Formation'),
-          subtitle: const Text(
-            'The formation a new dance starts in. You can still change it per '
-            'dance.',
-          ),
+          title: Text(l10n.settingsDefaultsFormationTitle),
+          subtitle: Text(l10n.settingsDefaultsFormationSubtitle),
           trailing: DropdownButton<FormationShape>(
             key: const ValueKey('defaults-dance-formation'),
             value: defaultDanceFormationShape,
@@ -714,17 +700,14 @@ class _DefaultsView extends StatelessWidget {
               for (final shape in FormationShape.values)
                 DropdownMenuItem(
                   value: shape,
-                  child: Text(formationShapeLabel(shape)),
+                  child: Text(formationShapeLabel(l10n, shape)),
                 ),
             ],
           ),
         ),
         ListTile(
-          title: const Text('Progression'),
-          subtitle: const Text(
-            'The progression a new dance starts with. You can still change it '
-            'per dance.',
-          ),
+          title: Text(l10n.settingsDefaultsProgressionTitle),
+          subtitle: Text(l10n.settingsDefaultsProgressionSubtitle),
           trailing: DropdownButton<Progression>(
             key: const ValueKey('defaults-dance-progression'),
             value: defaultDanceProgression,
@@ -735,7 +718,7 @@ class _DefaultsView extends StatelessWidget {
               for (final progression in Progression.values)
                 DropdownMenuItem(
                   value: progression,
-                  child: Text(progressionLabel(progression)),
+                  child: Text(progressionLabel(l10n, progression)),
                 ),
             ],
           ),
@@ -751,12 +734,10 @@ class _DefaultsView extends StatelessWidget {
             key: const ValueKey('defaults-dance-phrase'),
             controller: dancePhraseController,
             onChanged: onDefaultDancePhraseChanged,
-            decoration: const InputDecoration(
-              labelText: 'Default phrase structure',
-              helperText:
-                  'Seeded into new dances. Blank = standard 4×16 (A1 A2 B1 B2); '
-                  'else e.g. 6*8*2.',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.settingsDefaultsPhraseLabel,
+              helperText: l10n.settingsDefaultsPhraseHelper,
+              border: const OutlineInputBorder(),
             ),
           ),
         ),
@@ -771,14 +752,12 @@ class _DefaultsView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Starting figures',
+                l10n.settingsDefaultsStartingFiguresTitle,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: AppSpacing.xxs),
               Text(
-                'The figures a new dance starts with. Defaults to a single '
-                'stand still (8 beats); clear it for a blank new dance. Editable '
-                'per dance.',
+                l10n.settingsDefaultsStartingFiguresSubtitle,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -811,16 +790,12 @@ class _DefaultsView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Move defaults',
+                l10n.settingsDefaultsMoveDefaultsTitle,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: AppSpacing.xxs),
               Text(
-                'Preferred parameter values applied when you insert a move '
-                'while entering a dance. These override that move\'s built-in '
-                'defaults; you can still change any parameter on the figure '
-                'afterward. Unset moves and parameters use the built-in '
-                'defaults.',
+                l10n.settingsDefaultsMoveDefaultsSubtitle,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -867,6 +842,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final dialect = ActiveDialectScope.of(context);
     final renderer = FigureRenderer(contraTaxonomy);
     return Column(
@@ -881,7 +857,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
             child: OutlinedButton.icon(
               key: const ValueKey('move-defaults-add'),
               icon: const Icon(Icons.add),
-              label: const Text('Add move default'),
+              label: Text(l10n.settingsDefaultsAddMoveButton),
               onPressed: () => _openAddMoveDialog(context, dialect),
             ),
           ),
@@ -896,6 +872,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
     Dialect dialect,
     FigureRenderer renderer,
   ) {
+    final l10n = AppLocalizations.of(context);
     final def = contraTaxonomy.resolve(moveId);
     final displayName = def == null
         ? moveId
@@ -929,7 +906,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
                 ),
                 IconButton(
                   key: ValueKey('move-default-remove-$moveId'),
-                  tooltip: 'Remove',
+                  tooltip: l10n.settingsDefaultsRemoveMoveTooltip,
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => onRemoveMoveDefault(moveId),
                 ),
@@ -937,12 +914,12 @@ class _MoveDefaultsEditor extends StatelessWidget {
             ),
             if (def == null)
               Text(
-                'This move is no longer in the taxonomy.',
+                l10n.settingsDefaultsMoveGone,
                 style: Theme.of(context).textTheme.bodySmall,
               )
             else if (def.params.isEmpty)
               Text(
-                'This move has no parameters to default.',
+                l10n.settingsDefaultsMoveNoParams,
                 style: Theme.of(context).textTheme.bodySmall,
               )
             else
@@ -973,11 +950,12 @@ class _MoveDefaultsEditor extends StatelessWidget {
   }
 
   Future<void> _openAddMoveDialog(BuildContext context, Dialect dialect) async {
+    final l10n = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Add move default'),
+          title: Text(l10n.settingsDefaultsAddMoveButton),
           content: SizedBox(
             width: 320,
             child: MoveAutocomplete(
@@ -997,7 +975,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.commonCancel),
             ),
           ],
         );

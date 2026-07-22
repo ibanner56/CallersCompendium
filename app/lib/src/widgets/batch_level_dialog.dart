@@ -75,7 +75,7 @@ class _BatchLevelDialogState extends State<_BatchLevelDialog> {
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
                   value: v,
-                  title: Text(danceLevelLabel(v)),
+                  title: Text(danceLevelLabel(l10n, v)),
                 ),
               RadioListTile<Object>(
                 key: const ValueKey('batch-level-option-unspecified'),

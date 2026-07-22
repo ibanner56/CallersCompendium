@@ -1510,18 +1510,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// Duplicate (appends " (copy)" to the copy's title), then reloads so the
   /// copy appears in the list and confirms with a snackbar.
   Future<void> _duplicateFromList(String danceId) async {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
     final copy = await _repos.dances.duplicate(
       id: danceId,
       newId: uuidV4(),
       now: now,
     );
-    final newTitle = '${copy.title} (copy)';
+    final newTitle = l10n.commonDuplicateTitleSuffix(copy.title);
     await _repos.dances.update(copy.copyWith(title: newTitle, updatedAt: now));
     if (!mounted) return;
     await _boot();
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         key: const ValueKey('list-duplicated-snackbar'),

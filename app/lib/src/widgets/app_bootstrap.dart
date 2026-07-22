@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/migration_guard.dart'
     show DatabaseDowngradeError, MigrationSnapshotAborted, SnapshotFailureCause;
 
@@ -43,6 +44,7 @@ class AppBootstrap extends StatelessWidget {
     return FutureBuilder<void>(
       future: future,
       builder: (context, snapshot) {
+        final l10n = AppLocalizations.of(context);
         if (snapshot.connectionState != ConnectionState.done) {
           return _buildLoading(context);
         }
@@ -94,9 +96,12 @@ class AppBootstrap extends StatelessWidget {
                 children: [
                   const Icon(Icons.error_outline, size: 48),
                   const SizedBox(height: 8),
-                  const Text('Could not prepare the collection.'),
+                  Text(l10n.appBootstrapError),
                   const SizedBox(height: 8),
-                  FilledButton(onPressed: onRetry, child: const Text('Retry')),
+                  FilledButton(
+                    onPressed: onRetry,
+                    child: Text(l10n.commonRetry),
+                  ),
                 ],
               ),
             ),
@@ -112,13 +117,14 @@ class AppBootstrap extends StatelessWidget {
   /// non-empty collection, in which case it shows a determinate indicator and a
   /// percentage label (#440).
   Widget _buildLoading(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final progress = rebuildProgress;
-    if (progress == null) return _indeterminateLoading();
+    if (progress == null) return _indeterminateLoading(l10n);
     return ValueListenableBuilder<DerivedRebuildProgress?>(
       valueListenable: progress,
       builder: (context, value, _) {
         if (value == null || value.total == 0) {
-          return _indeterminateLoading();
+          return _indeterminateLoading(l10n);
         }
         final percent = (value.fraction * 100).round();
         return Scaffold(
@@ -131,12 +137,12 @@ class AppBootstrap extends StatelessWidget {
                   height: 48,
                   child: CircularProgressIndicator(
                     value: value.fraction,
-                    semanticsLabel: 'Rebuilding search index',
+                    semanticsLabel: l10n.appBootstrapRebuildingIndex,
                     semanticsValue: '$percent%',
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text('Rebuilding search index… $percent%'),
+                Text(l10n.appBootstrapRebuildingIndexProgress(percent)),
               ],
             ),
           ),
@@ -145,10 +151,10 @@ class AppBootstrap extends StatelessWidget {
     );
   }
 
-  Widget _indeterminateLoading() => const Scaffold(
+  Widget _indeterminateLoading(AppLocalizations l10n) => Scaffold(
     body: Center(
       child: CircularProgressIndicator(
-        semanticsLabel: 'Preparing your collection',
+        semanticsLabel: l10n.appBootstrapPreparing,
       ),
     ),
   );

@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/widgets/command_palette.dart';
 
+import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
 Dance _dance(String id, String title) => Dance(
@@ -37,6 +38,8 @@ Future<List<CommandResult?>> _openPalette(
   final holder = <CommandResult?>[null];
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) =>
           RepositoriesScope(repositories: repos, child: child!),
       home: Builder(

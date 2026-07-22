@@ -206,7 +206,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// ordered [Dance.level] with the [Dance.mixedLevel] flag. Returns `null`
   /// when neither is set so the export omits the Level line.
   static String? _levelLabel(Dance dance) {
-    final base = dance.level != null ? danceLevelLabel(dance.level!) : null;
+    final base = dance.level?.label;
     if (base != null) return dance.mixedLevel ? '$base (mixed)' : base;
     return dance.mixedLevel ? 'Mixed' : null;
   }
@@ -251,15 +251,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// [Navigator.pushReplacement]; in embedded split-pane mode, calls
   /// [widget.onNavigateTo] so the parent shell updates the selected id.
   Future<void> _duplicate() async {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
     final copy = await _repos.dances.duplicate(
       id: widget.danceId!,
       newId: uuidV4(),
       now: now,
     );
-    // Append " (copy)" so the duplicate is visually distinct in the list.
+    // Append the localized " (copy)" suffix so the duplicate is visually
+    // distinct in the list. This wording is persisted into the copy's title.
     await _repos.dances.update(
-      copy.copyWith(title: '${copy.title} (copy)', updatedAt: now),
+      copy.copyWith(
+        title: l10n.commonDuplicateTitleSuffix(copy.title),
+        updatedAt: now,
+      ),
     );
     if (!mounted) return;
     if (widget.onNavigateTo != null) {
@@ -370,9 +375,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         dance: detail.dance,
         dialect: ActiveDialectScope.of(context),
         authorNames: detail.authorNames,
-        formationLabel: formationLabel(detail.dance.formation),
+        formationLabel: detail.dance.formation.label,
         levelLabel: _levelLabel(detail.dance),
-        statusLabel: danceStatusLabel(detail.dance.status),
+        statusLabel: detail.dance.status.label,
         renderer: _renderer,
       );
 
@@ -431,9 +436,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
-      formationLabel: formationLabel(detail.dance.formation),
+      formationLabel: detail.dance.formation.label,
       levelLabel: _levelLabel(detail.dance),
-      statusLabel: danceStatusLabel(detail.dance.status),
+      statusLabel: detail.dance.status.label,
       renderer: _renderer,
     );
 
@@ -537,9 +542,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           detail.dance,
           dialect: dialect,
           authorNames: detail.authorNames,
-          formationLabel: formationLabel(detail.dance.formation),
+          formationLabel: detail.dance.formation.label,
           levelLabel: _levelLabel(detail.dance),
-          statusLabel: danceStatusLabel(detail.dance.status),
+          statusLabel: detail.dance.status.label,
           renderer: _renderer,
         ),
       );
@@ -673,7 +678,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                           final color = FormationColorsScope.of(
                             context,
                           )?.overrideFor(dance.formation.shape);
-                          final text = Text(formationLabel(dance.formation));
+                          final text = Text(
+                            formationLabel(l10n, dance.formation),
+                          );
                           if (color == null) return text;
                           return Align(
                             alignment: Alignment.centerLeft,
@@ -692,7 +699,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   children: [
                     const Icon(progressionIcon, size: 18),
                     const SizedBox(width: AppSpacing.xs),
-                    Text(progressionLabel(dance.progression)),
+                    Text(progressionLabel(l10n, dance.progression)),
                   ],
                 ),
                 if (dance.status != DanceStatus.active) ...[
@@ -930,6 +937,7 @@ class _StatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final (icon, color) = switch (status) {
       DanceStatus.broken => (Icons.error_outline, theme.colorScheme.error),
       DanceStatus.deprecated => (
@@ -952,7 +960,7 @@ class _StatusBanner extends StatelessWidget {
           Icon(icon, size: 18, color: color),
           const SizedBox(width: AppSpacing.xs),
           Text(
-            danceStatusLabel(status),
+            danceStatusLabel(l10n, status),
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),

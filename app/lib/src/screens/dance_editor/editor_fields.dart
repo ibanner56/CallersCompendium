@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 
@@ -148,6 +149,7 @@ class LevelDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return DropdownButtonFormField<DanceLevel?>(
       // Value-based key so the FormField re-initialises when `value` changes
       // externally (e.g. via undo/redo), matching [EnumDropdown].
@@ -162,7 +164,7 @@ class LevelDropdown extends StatelessWidget {
         for (final v in DanceLevel.values)
           DropdownMenuItem<DanceLevel?>(
             value: v,
-            child: Text(danceLevelLabel(v)),
+            child: Text(danceLevelLabel(l10n, v)),
           ),
       ],
       onChanged: onChanged,

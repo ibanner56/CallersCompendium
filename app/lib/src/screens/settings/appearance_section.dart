@@ -1,5 +1,7 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
+
+import '../../../l10n/app_localizations.dart';
 import 'settings_keys.dart';
 import '../../data/app_theme_scope.dart';
 import '../../data/colour_dance_theme_scope.dart';
@@ -103,9 +105,10 @@ class _AppearanceView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       children: [
-        SectionHeader(title: 'Theme'),
+        SectionHeader(title: l10n.settingsAppearanceThemeHeader),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: _ThemeGallery(
@@ -113,7 +116,7 @@ class _AppearanceView extends StatelessWidget {
             onSelected: onThemeSelected,
           ),
         ),
-        SectionHeader(title: 'Custom themes'),
+        SectionHeader(title: l10n.settingsAppearanceCustomThemesHeader),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.md,
@@ -126,42 +129,29 @@ class _AppearanceView extends StatelessWidget {
             seedScheme: seedScheme,
           ),
         ),
-        SectionHeader(title: 'Easter eggs'),
+        SectionHeader(title: l10n.settingsAppearanceEasterEggsHeader),
         SwitchListTile(
           key: const ValueKey('appearance-colour-dance-theme'),
           value: colourDanceTheme,
           onChanged: onColourDanceThemeChanged,
-          title: const Text('Colour-named dances tint the theme'),
-          subtitle: const Text(
-            'A playful surprise: when you open a dance whose title names a '
-            'colour — like Baby Rose or Blue Boy — its view is tinted that '
-            'colour. Off by default, and it steps aside when a high-contrast '
-            'theme is active so readability always wins.',
-          ),
+          title: Text(l10n.settingsAppearanceColourDanceTitle),
+          subtitle: Text(l10n.settingsAppearanceColourDanceSubtitle),
           isThreeLine: true,
         ),
-        SectionHeader(title: 'Set lists'),
+        SectionHeader(title: l10n.settingsAppearanceSetListsHeader),
         SwitchListTile(
           key: const ValueKey('appearance-set-list-color-coding'),
-          title: const Text('Colour-code set-list rows'),
-          subtitle: const Text(
-            'Tint each dance row by its formation family (contra, mixer, '
-            'square, …). The formation is always shown as text too, so rows '
-            'stay readable without colour.',
-          ),
+          title: Text(l10n.settingsAppearanceSetListColorTitle),
+          subtitle: Text(l10n.settingsAppearanceSetListColorSubtitle),
           value: setListColorCoding,
           onChanged: onSetListColorCodingChanged,
         ),
-        SectionHeader(title: 'Formation colours'),
+        SectionHeader(title: l10n.settingsAppearanceFormationColoursHeader),
         ListTile(
           key: const ValueKey('appearance-formation-colours'),
           leading: const Icon(Icons.palette_outlined),
-          title: const Text('Formation label colours'),
-          subtitle: const Text(
-            'Highlight individual formations in your own colours — e.g. '
-            'Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, '
-            'dance detail, and the Perform header.',
-          ),
+          title: Text(l10n.settingsAppearanceFormationColoursTitle),
+          subtitle: Text(l10n.settingsAppearanceFormationColoursSubtitle),
           isThreeLine: true,
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
@@ -253,6 +243,7 @@ class _ThemePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final appTheme = Theme.of(context);
     // "System" has no single scheme: preview it with the *default* Hearth
     // scheme for the current OS brightness (what selecting System actually
@@ -294,7 +285,7 @@ class _ThemePreviewCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _sample(scheme, fonts),
+                  _sample(context, scheme, fonts),
                   const SizedBox(height: AppSpacing.xs),
                   Row(
                     children: [
@@ -315,7 +306,7 @@ class _ThemePreviewCard extends StatelessWidget {
                       ),
                       if (selected)
                         Text(
-                          'Selected',
+                          l10n.settingsAppearanceSelectedBadge,
                           style: fonts.labelSmall?.copyWith(
                             color: appTheme.colorScheme.primary,
                           ),
@@ -332,7 +323,8 @@ class _ThemePreviewCard extends StatelessWidget {
   }
 
   /// The miniature palette sample drawn in the palette's own colors.
-  Widget _sample(ColorScheme scheme, TextTheme fonts) {
+  Widget _sample(BuildContext context, ColorScheme scheme, TextTheme fonts) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
@@ -345,13 +337,13 @@ class _ThemePreviewCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Aa Preview',
+            l10n.settingsAppearancePreviewHeading,
             style: fonts.titleMedium?.copyWith(color: scheme.onSurface),
           ),
           // intentional: 2px optical inset, below the 4px AppSpacing grid
           const SizedBox(height: 2),
           Text(
-            'Body text sample',
+            l10n.settingsAppearancePreviewBody,
             style: fonts.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -390,7 +382,7 @@ class _ThemePreviewCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
-        'A',
+        'A', // i18n-ignore: single-glyph font specimen, not translatable
         style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );
@@ -414,9 +406,10 @@ class _CustomThemesSection extends StatelessWidget {
   final ColorScheme seedScheme;
 
   Future<void> _createNew(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final seed = CustomTheme(
       id: '',
-      name: 'My theme',
+      name: l10n.settingsAppearanceNewThemeDefaultName,
       brightness: seedScheme.brightness,
       roles: CustomTheme.rolesFromScheme(seedScheme),
     );
@@ -439,28 +432,29 @@ class _CustomThemesSection extends StatelessWidget {
     if (edited != null) await controller.upsert(edited);
   }
 
-  Future<void> _duplicate(CustomTheme theme) async {
+  Future<void> _duplicate(CustomTheme theme, String duplicateName) async {
     await controller.duplicate(
-      name: '${theme.name} (copy)',
+      name: duplicateName,
       brightness: theme.brightness,
       roles: theme.roles,
     );
   }
 
   Future<void> _confirmDelete(BuildContext context, CustomTheme theme) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete theme?'),
-        content: Text('“${theme.name}” will be permanently removed.'),
+        title: Text(l10n.settingsAppearanceDeleteThemeTitle),
+        content: Text(l10n.settingsAppearanceDeleteThemeBody(theme.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
+            child: Text(l10n.commonDelete),
           ),
         ],
       ),
@@ -470,6 +464,7 @@ class _CustomThemesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final themes = controller.themes;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -480,15 +475,14 @@ class _CustomThemesSection extends StatelessWidget {
             key: const ValueKey('new-custom-theme'),
             onPressed: () async => _createNew(context),
             icon: const Icon(Icons.add),
-            label: const Text('New custom theme'),
+            label: Text(l10n.settingsAppearanceNewThemeButton),
           ),
         ),
         if (themes.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.sm),
             child: Text(
-              'Copy the current theme and tune any color. Custom themes are '
-              'saved on this device.',
+              l10n.settingsAppearanceCustomThemesEmpty,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -508,7 +502,10 @@ class _CustomThemesSection extends StatelessWidget {
                     selected: controller.activeId == theme.id,
                     onTap: () async => controller.setActive(theme.id),
                     onEdit: () async => _edit(context, theme),
-                    onDuplicate: () async => _duplicate(theme),
+                    onDuplicate: () async => _duplicate(
+                      theme,
+                      l10n.commonDuplicateTitleSuffix(theme.name),
+                    ),
                     onDelete: () async => _confirmDelete(context, theme),
                   ),
               ],
@@ -543,6 +540,7 @@ class _CustomThemeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final appTheme = Theme.of(context);
     final scheme = theme.toScheme();
     final fonts = appTheme.textTheme;
@@ -554,7 +552,7 @@ class _CustomThemeCard extends StatelessWidget {
       button: true,
       inMutuallyExclusiveGroup: true,
       selected: selected,
-      label: 'Custom theme ${theme.name}',
+      label: l10n.settingsAppearanceCustomThemeSemantic(theme.name),
       child: SizedBox(
         width: 220,
         child: Material(
@@ -576,7 +574,7 @@ class _CustomThemeCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _sample(scheme, fonts),
+                  _sample(context, scheme, fonts),
                   const SizedBox(height: AppSpacing.xs),
                   Row(
                     children: [
@@ -597,7 +595,7 @@ class _CustomThemeCard extends StatelessWidget {
                       ),
                       PopupMenuButton<String>(
                         key: ValueKey('custom-menu-${theme.id}'),
-                        tooltip: 'Theme actions',
+                        tooltip: l10n.settingsAppearanceThemeActionsTooltip,
                         onSelected: (value) {
                           switch (value) {
                             case 'edit':
@@ -608,13 +606,19 @@ class _CustomThemeCard extends StatelessWidget {
                               onDelete();
                           }
                         },
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'edit', child: Text('Edit')),
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Text(l10n.commonEdit),
+                          ),
                           PopupMenuItem(
                             value: 'duplicate',
-                            child: Text('Duplicate'),
+                            child: Text(l10n.commonDuplicate),
                           ),
-                          PopupMenuItem(value: 'delete', child: Text('Delete')),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text(l10n.commonDelete),
+                          ),
                         ],
                       ),
                     ],
@@ -628,7 +632,8 @@ class _CustomThemeCard extends StatelessWidget {
     );
   }
 
-  Widget _sample(ColorScheme scheme, TextTheme fonts) {
+  Widget _sample(BuildContext context, ColorScheme scheme, TextTheme fonts) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
@@ -641,13 +646,13 @@ class _CustomThemeCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Aa Preview',
+            l10n.settingsAppearancePreviewHeading,
             style: fonts.titleMedium?.copyWith(color: scheme.onSurface),
           ),
           // intentional: 2px optical inset, below the 4px AppSpacing grid
           const SizedBox(height: 2),
           Text(
-            'Body text sample',
+            l10n.settingsAppearancePreviewBody,
             style: fonts.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -675,7 +680,7 @@ class _CustomThemeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
-        'A',
+        'A', // i18n-ignore: single-glyph font specimen, not translatable
         style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );

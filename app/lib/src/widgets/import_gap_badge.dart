@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 
-/// User-facing explanation of a parser-gap custom figure, shared by the badge's
-/// tooltip (desktop hover), dialog (mobile tap), and Semantics label so screen
-/// readers, high-contrast users, and sighted users all get the same message.
+import '../../l10n/app_localizations.dart';
+
+/// The canonical English explanation for an import-gap custom figure.
+///
+/// [ImportGapBadge] itself renders this through `l10n.importGapMessage` (L5
+/// localization). The const is retained as the English source for the one
+/// remaining not-yet-localized consumer — the screen-reader composite in
+/// `figure_list_editor.dart`, which is deferred to L6. Its value must stay in
+/// sync with the `importGapMessage` ARB message; L6 removes this const when it
+/// localizes that composite.
 const String importGapMessage =
     "Couldn't parse this call — kept verbatim as a custom figure.";
 
@@ -26,6 +33,7 @@ class ImportGapBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final resolvedSize =
         size ??
         MediaQuery.textScalerOf(
@@ -33,9 +41,9 @@ class ImportGapBadge extends StatelessWidget {
         ).scale(theme.textTheme.bodyLarge?.fontSize ?? 16).clamp(16.0, 24.0);
     return Semantics(
       button: true,
-      label: 'Unrecognized figure. $importGapMessage',
+      label: l10n.importGapSemanticLabel,
       child: Tooltip(
-        message: importGapMessage,
+        message: l10n.importGapMessage,
         child: InkResponse(
           radius: resolvedSize,
           onTap: () => _showExplanation(context),
@@ -49,21 +57,24 @@ class ImportGapBadge extends StatelessWidget {
     );
   }
 
-  Future<void> _showExplanation(BuildContext context) => showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      icon: Icon(
-        Icons.report_gmailerrorred,
-        color: Theme.of(context).colorScheme.tertiary,
-      ),
-      title: const Text('Unrecognized figure'),
-      content: const Text(importGapMessage),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('OK'),
+  Future<void> _showExplanation(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.report_gmailerrorred,
+          color: Theme.of(context).colorScheme.tertiary,
         ),
-      ],
-    ),
-  );
+        title: Text(l10n.importGapDialogTitle),
+        content: Text(l10n.importGapMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonOk),
+          ),
+        ],
+      ),
+    );
+  }
 }

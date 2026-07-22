@@ -130,6 +130,60 @@ abstract class AppLocalizations {
   /// **'User guide'**
   String get navGuideTooltip;
 
+  /// Label under the wide-layout navigation-rail global-search button.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get navSearch;
+
+  /// Tooltip for the navigation-rail global-search button; {hint} is the platform keyboard shortcut (e.g. the Command-K glyph on Apple platforms or 'Ctrl K' elsewhere), rendered as plain tooltip text.
+  ///
+  /// In en, this message translates to:
+  /// **'Search ({hint})'**
+  String navSearchTooltip(String hint);
+
+  /// Accessibility label on the startup loading spinner shown while the collection database is being prepared.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your collection'**
+  String get appBootstrapPreparing;
+
+  /// Accessibility label on the startup progress indicator shown while the search index is being rebuilt after a migration.
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuilding search index'**
+  String get appBootstrapRebuildingIndex;
+
+  /// Startup label under the determinate progress indicator during the post-migration search-index rebuild. '{percent}' is the completion percentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuilding search index… {percent}%'**
+  String appBootstrapRebuildingIndexProgress(int percent);
+
+  /// Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not prepare the collection.'**
+  String get appBootstrapError;
+
+  /// Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete?'**
+  String get confirmDeleteTitle;
+
+  /// Body of the confirm-before-delete dialog. {itemLabel} is the untrusted user-entered name of the item being deleted (a dance or program title), rendered as plain text between typographic quotes.
+  ///
+  /// In en, this message translates to:
+  /// **'“{itemLabel}” will be deleted. You can undo this.'**
+  String confirmDeleteBody(String itemLabel);
+
+  /// Field label for the hexadecimal colour input in the shared colour-picker dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Hex'**
+  String get colorEditHexLabel;
+
   /// Title of the Settings screen (sidebar header on wide layouts, app bar on narrow).
   ///
   /// In en, this message translates to:
@@ -220,6 +274,706 @@ abstract class AppLocalizations {
   /// **'Choose the language of the app\'s interface.'**
   String get settingsAppLanguageSubtitle;
 
+  /// About section header for the help/user-guide group.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get settingsAboutHelpHeader;
+
+  /// Title of the tile (and its full-screen route) that opens the built-in user guide.
+  ///
+  /// In en, this message translates to:
+  /// **'User guide'**
+  String get settingsAboutUserGuideTitle;
+
+  /// Subtitle describing the built-in user guide tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the built-in guides — getting started, dialects, imports, and more. Works offline.'**
+  String get settingsAboutUserGuideSubtitle;
+
+  /// About section header introducing the app's software license notice.
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get settingsAboutLicenseHeader;
+
+  /// Explanatory paragraph about the app's AGPL-3.0 license and the corresponding source-code offer. 'Caller's Compendium', 'GNU Affero General Public License', and 'AGPL-3.0' are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.'**
+  String get settingsAboutLicenseBody;
+
+  /// Title of the tile that opens the app's source-code repository.
+  ///
+  /// In en, this message translates to:
+  /// **'View source on GitHub'**
+  String get settingsAboutViewSourceTitle;
+
+  /// About section header for the bundled-typeface attribution group.
+  ///
+  /// In en, this message translates to:
+  /// **'Fonts'**
+  String get settingsAboutFontsHeader;
+
+  /// Paragraph introducing the bundled fonts. 'SIL Open Font License 1.1' is a proper noun kept verbatim; “View licenses” refers to the tile of the same name.
+  ///
+  /// In en, this message translates to:
+  /// **'This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under “View licenses” below.'**
+  String get settingsAboutFontsBody;
+
+  /// Attribution subtitle for the Fraunces typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'SIL Open Font License 1.1 · © The Fraunces Project Authors — display & headings'**
+  String get settingsAboutFontFrauncesSubtitle;
+
+  /// Attribution subtitle for the Atkinson Hyperlegible typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI & Perform'**
+  String get settingsAboutFontAtkinsonSubtitle;
+
+  /// Attribution subtitle for the Roboto typeface: its license, copyright, and role in the app. License name and copyright are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'SIL Open Font License 1.1 · © The Roboto Project Authors — fallback'**
+  String get settingsAboutFontRobotoSubtitle;
+
+  /// About section header for the theme-inspiration attribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Themes'**
+  String get settingsAboutThemesHeader;
+
+  /// Paragraph crediting the code-editor palettes that inspired the optional themes. The palette names are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'Several optional color themes are inspired by popular code-editor palettes — One Dark, Dracula, Nord, Tokyo Night, Gruvbox, and Catppuccin among them — re-derived and contrast-tuned for this app. Theme names are used only to credit that inspiration.'**
+  String get settingsAboutThemesBody;
+
+  /// About section header for the dance-data provenance attribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance data'**
+  String get settingsAboutDanceDataHeader;
+
+  /// Paragraph crediting The Caller's Box dance-data source. 'The Caller's Box', the author names, and 'CC BY-NC' are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.'**
+  String get settingsAboutDanceDataBody;
+
+  /// About section header for the full open-source license texts entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Licenses'**
+  String get settingsAboutLicensesHeader;
+
+  /// Title of the tile that opens the full open-source license texts page.
+  ///
+  /// In en, this message translates to:
+  /// **'View licenses'**
+  String get settingsAboutViewLicensesTitle;
+
+  /// Subtitle for the 'View licenses' tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Full open-source license texts, including the bundled fonts.'**
+  String get settingsAboutViewLicensesSubtitle;
+
+  /// Legal notice shown on the license page. 'The Caller's Compendium' and 'AGPL-3.0' are proper nouns kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'© The Caller’s Compendium contributors. Licensed under AGPL-3.0.'**
+  String get settingsAboutLegalese;
+
+  /// Version line under the app wordmark in the About header.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String settingsAboutVersion(String version);
+
+  /// One-line footer at the bottom of the About section combining the app name, version, and license identifier. All three values are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
+  ///
+  /// In en, this message translates to:
+  /// **'{appName} · Version {version} · {license}'**
+  String settingsAboutVersionLine(
+    String appName,
+    String version,
+    String license,
+  );
+
+  /// Updates settings section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates'**
+  String get settingsUpdatesHeader;
+
+  /// Title of the tile that manually checks for a newer app version.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get settingsUpdatesCheckNowTitle;
+
+  /// Status line before any check has run, stating the current version.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on version {version}.'**
+  String settingsUpdatesStatusIdle(String version);
+
+  /// Status line while an update check is in progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get settingsUpdatesStatusChecking;
+
+  /// Status line after a check that found no newer version.
+  ///
+  /// In en, this message translates to:
+  /// **'No update found. You\'re on version {version}.'**
+  String settingsUpdatesStatusNoUpdate(String version);
+
+  /// Status line after a check that found a newer version.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} is available. See the banner to view it.'**
+  String settingsUpdatesStatusAvailable(String version);
+
+  /// Header for the update-channel (stable vs beta) group.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel'**
+  String get settingsUpdatesChannelHeader;
+
+  /// Title of the beta-channel opt-in toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Beta channel'**
+  String get settingsUpdatesBetaTitle;
+
+  /// Subtitle explaining the beta-channel toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive pre-release beta updates. Off means stable releases only.'**
+  String get settingsUpdatesBetaSubtitle;
+
+  /// Header for the automatic-background-check group.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic checks'**
+  String get settingsUpdatesAutoHeader;
+
+  /// Title of the automatic-background-check toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check automatically'**
+  String get settingsUpdatesAutoTitle;
+
+  /// Subtitle explaining the automatic-background-check toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for a newer version in the background when the app starts. Off by default.'**
+  String get settingsUpdatesAutoSubtitle;
+
+  /// Privacy/behaviour paragraph reassuring the user how the update check and assisted download work.
+  ///
+  /// In en, this message translates to:
+  /// **'The update check downloads a small version file over HTTPS and nothing else — no data about you, your device, or your usage is ever sent. Nothing is downloaded or installed automatically: you choose when to download an update, it is verified before it opens, and your system installer completes the install.'**
+  String get settingsUpdatesPrivacyNote;
+
+  /// Title of the assisted-download tile while the update is downloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update'**
+  String get settingsUpdatesDownloadingTitle;
+
+  /// Progress label while downloading when a percentage is not yet known.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading…'**
+  String get settingsUpdatesDownloadingIndeterminate;
+
+  /// Progress label while downloading, showing the completed percentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading… {percent}%'**
+  String settingsUpdatesDownloadingPercent(int percent);
+
+  /// Title of the assisted-download tile while verifying the downloaded file.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying download'**
+  String get settingsUpdatesVerifyingTitle;
+
+  /// Subtitle shown while verifying the download's sha256 integrity. 'sha256' is a technical term kept verbatim.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the sha256 integrity of the download…'**
+  String get settingsUpdatesVerifyingSubtitle;
+
+  /// Title of the assisted-download tile while handing the verified update to the OS installer.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the installer'**
+  String get settingsUpdatesHandoffTitle;
+
+  /// Subtitle shown while handing the verified update to the system installer.
+  ///
+  /// In en, this message translates to:
+  /// **'Handing the verified update to your system…'**
+  String get settingsUpdatesHandoffSubtitle;
+
+  /// Title of the assisted-download tile after the download completes.
+  ///
+  /// In en, this message translates to:
+  /// **'Update downloaded'**
+  String get settingsUpdatesCompletedTitle;
+
+  /// Subtitle shown after the download completes, directing the user to the system installer.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow your system installer to finish updating.'**
+  String get settingsUpdatesCompletedSubtitle;
+
+  /// Subtitle shown after the download completes when the verified installer was revealed in the file manager, directing the user to run it.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified and revealed in your file manager — run the installer to finish updating.'**
+  String get settingsUpdatesCompletedSubtitleRevealed;
+
+  /// Title of the assisted-download tile in its idle and failed states, offering to download the update.
+  ///
+  /// In en, this message translates to:
+  /// **'Download & install update'**
+  String get settingsUpdatesDownloadTitle;
+
+  /// Fallback error message when an assisted download fails without a more specific reason. The raw error is logged, not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'The update could not be downloaded.'**
+  String get settingsUpdatesDownloadError;
+
+  /// Subtitle of the idle assisted-download tile describing the download → verify → install flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Download version {version}, verify it, then open your installer. The app never replaces itself in place.'**
+  String settingsUpdatesDownloadSubtitle(String version);
+
+  /// Dialect settings section header for the dialect library.
+  ///
+  /// In en, this message translates to:
+  /// **'Dialects'**
+  String get settingsDialectHeader;
+
+  /// Label of the button (and title of the prompt) that creates a new custom dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'New dialect'**
+  String get settingsDialectNewButton;
+
+  /// Default name pre-filled when creating a new dialect. Resolves at creation time and is persisted as the dialect's name thereafter.
+  ///
+  /// In en, this message translates to:
+  /// **'My dialect'**
+  String get settingsDialectNewDefaultName;
+
+  /// Confirm button of the new-dialect name prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get settingsDialectCreateConfirm;
+
+  /// Label of the button (and title of the chooser dialog) that duplicates an existing dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate from…'**
+  String get settingsDialectDuplicateFrom;
+
+  /// Title of the rename-dialect prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename dialect'**
+  String get settingsDialectRenameTitle;
+
+  /// Rename action: the rename-prompt confirm button and the row menu item.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get settingsDialectRename;
+
+  /// Row menu item that opens the dialect's term editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit terms'**
+  String get settingsDialectEditTerms;
+
+  /// Row menu item on a read-only preset that duplicates it into an editable custom dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate to customize'**
+  String get settingsDialectDuplicateToCustomize;
+
+  /// Title of the confirm-delete dialog for a custom dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete dialect?'**
+  String get settingsDialectDeleteTitle;
+
+  /// Body of the confirm-delete dialog, quoting the dialect name (untrusted user text, rendered as plain text).
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” will be permanently removed.'**
+  String settingsDialectDeleteConfirmBody(String name);
+
+  /// Tooltip for the per-dialect actions menu button.
+  ///
+  /// In en, this message translates to:
+  /// **'Dialect actions'**
+  String get settingsDialectActionsTooltip;
+
+  /// Badge marking a dialect as a shipped, read-only preset.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset'**
+  String get settingsDialectPresetBadge;
+
+  /// Text-field label in the dialect name prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get settingsDialectNameLabel;
+
+  /// Section header above the built-in theme gallery in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsAppearanceThemeHeader;
+
+  /// Section header above the user's saved custom themes in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom themes'**
+  String get settingsAppearanceCustomThemesHeader;
+
+  /// Section header for playful optional visual features in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Easter eggs'**
+  String get settingsAppearanceEasterEggsHeader;
+
+  /// Section header for set-list appearance options in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Set lists'**
+  String get settingsAppearanceSetListsHeader;
+
+  /// Section header for the formation-colour customisation entry in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation colours'**
+  String get settingsAppearanceFormationColoursHeader;
+
+  /// Toggle title: tint a dance's view when its title names a colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour-named dances tint the theme'**
+  String get settingsAppearanceColourDanceTitle;
+
+  /// Explanation for the colour-named-dances tinting toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'A playful surprise: when you open a dance whose title names a colour — like Baby Rose or Blue Boy — its view is tinted that colour. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.'**
+  String get settingsAppearanceColourDanceSubtitle;
+
+  /// Toggle title: tint set-list rows by formation family.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour-code set-list rows'**
+  String get settingsAppearanceSetListColorTitle;
+
+  /// Explanation for the set-list colour-coding toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tint each dance row by its formation family (contra, mixer, square, …). The formation is always shown as text too, so rows stay readable without colour.'**
+  String get settingsAppearanceSetListColorSubtitle;
+
+  /// List-tile title opening the formation-colour customisation screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation label colours'**
+  String get settingsAppearanceFormationColoursTitle;
+
+  /// Explanation for the formation-colour customisation entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.'**
+  String get settingsAppearanceFormationColoursSubtitle;
+
+  /// Label shown on the currently-selected theme card in the gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected'**
+  String get settingsAppearanceSelectedBadge;
+
+  /// Sample heading text shown in a theme preview swatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Aa Preview'**
+  String get settingsAppearancePreviewHeading;
+
+  /// Sample body text shown in a theme preview swatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Body text sample'**
+  String get settingsAppearancePreviewBody;
+
+  /// Button that starts creating a new custom theme from the active theme.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom theme'**
+  String get settingsAppearanceNewThemeButton;
+
+  /// Default name a brand-new custom theme is seeded with before the user renames it.
+  ///
+  /// In en, this message translates to:
+  /// **'My theme'**
+  String get settingsAppearanceNewThemeDefaultName;
+
+  /// Helper text shown when the user has no saved custom themes yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy the current theme and tune any color. Custom themes are saved on this device.'**
+  String get settingsAppearanceCustomThemesEmpty;
+
+  /// Title of the confirm-delete dialog for a custom theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete theme?'**
+  String get settingsAppearanceDeleteThemeTitle;
+
+  /// Body of the confirm-delete dialog for a custom theme.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” will be permanently removed.'**
+  String settingsAppearanceDeleteThemeBody(String name);
+
+  /// Screen-reader label for a saved custom-theme card.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom theme {name}'**
+  String settingsAppearanceCustomThemeSemantic(String name);
+
+  /// Tooltip for the overflow menu (edit/duplicate/delete) on a custom-theme card.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme actions'**
+  String get settingsAppearanceThemeActionsTooltip;
+
+  /// Section header for defaults prefilled into new programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Program defaults'**
+  String get settingsDefaultsProgramHeader;
+
+  /// Text-field label for the default caller prefilled into new programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Default caller'**
+  String get settingsDefaultsCallerLabel;
+
+  /// Helper text under the default caller and band fields.
+  ///
+  /// In en, this message translates to:
+  /// **'Prefilled into new programs; editable per program.'**
+  String get settingsDefaultsPrefilledHelper;
+
+  /// Text-field label for the default band prefilled into new programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Default band'**
+  String get settingsDefaultsBandLabel;
+
+  /// Section header for display-related default settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Display defaults'**
+  String get settingsDefaultsDisplayHeader;
+
+  /// Title of the default Collection sort-order picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection sort order'**
+  String get settingsDefaultsSortTitle;
+
+  /// Explanation for the default Collection sort-order picker.
+  ///
+  /// In en, this message translates to:
+  /// **'How the Collection is sorted when you open it. You can still change the sort while browsing.'**
+  String get settingsDefaultsSortSubtitle;
+
+  /// Toggle title: open dances in canonical terms rather than the active dialect.
+  ///
+  /// In en, this message translates to:
+  /// **'Open dance details in canonical terms'**
+  String get settingsDefaultsCanonicalTitle;
+
+  /// Explanation for the canonical-terms default toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.'**
+  String get settingsDefaultsCanonicalSubtitle;
+
+  /// Section header for defaults applied when authoring a new dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance-authoring defaults'**
+  String get settingsDefaultsAuthoringHeader;
+
+  /// Title of the opt-in setting that lets a new figure be typed as one line instead of built field by field (#419).
+  ///
+  /// In en, this message translates to:
+  /// **'Free-text entry'**
+  String get settingsDefaultsFreeTextEntryTitle;
+
+  /// Explanatory subtitle for the free-text-entry setting, describing what turning it on does.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.'**
+  String get settingsDefaultsFreeTextEntrySubtitle;
+
+  /// Title of the default dance-form picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Form'**
+  String get settingsDefaultsFormTitle;
+
+  /// Explanation for the default dance-form picker.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance form a new dance starts as. You can still change it per dance.'**
+  String get settingsDefaultsFormSubtitle;
+
+  /// Title of the default dance-formation picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get settingsDefaultsFormationTitle;
+
+  /// Explanation for the default dance-formation picker.
+  ///
+  /// In en, this message translates to:
+  /// **'The formation a new dance starts in. You can still change it per dance.'**
+  String get settingsDefaultsFormationSubtitle;
+
+  /// Title of the default dance-progression picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Progression'**
+  String get settingsDefaultsProgressionTitle;
+
+  /// Explanation for the default dance-progression picker.
+  ///
+  /// In en, this message translates to:
+  /// **'The progression a new dance starts with. You can still change it per dance.'**
+  String get settingsDefaultsProgressionSubtitle;
+
+  /// Text-field label for the default phrase structure seeded into new dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Default phrase structure'**
+  String get settingsDefaultsPhraseLabel;
+
+  /// Helper text for the default phrase-structure field. '4×16', 'A1 A2 B1 B2' and '6*8*2' are notation examples.
+  ///
+  /// In en, this message translates to:
+  /// **'Seeded into new dances. Blank = standard 4×16 (A1 A2 B1 B2); else e.g. 6*8*2.'**
+  String get settingsDefaultsPhraseHelper;
+
+  /// Sub-heading for the figures a new dance starts with.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting figures'**
+  String get settingsDefaultsStartingFiguresTitle;
+
+  /// Explanation for the starting-figures default.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures a new dance starts with. Defaults to a single stand still (8 beats); clear it for a blank new dance. Editable per dance.'**
+  String get settingsDefaultsStartingFiguresSubtitle;
+
+  /// Sub-heading for per-move default parameter overrides.
+  ///
+  /// In en, this message translates to:
+  /// **'Move defaults'**
+  String get settingsDefaultsMoveDefaultsTitle;
+
+  /// Explanation for per-move default parameter overrides.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred parameter values applied when you insert a move while entering a dance. These override that move\'s built-in defaults; you can still change any parameter on the figure afterward. Unset moves and parameters use the built-in defaults.'**
+  String get settingsDefaultsMoveDefaultsSubtitle;
+
+  /// Button and dialog title for adding a per-move parameter default.
+  ///
+  /// In en, this message translates to:
+  /// **'Add move default'**
+  String get settingsDefaultsAddMoveButton;
+
+  /// Tooltip on the button that removes a per-move default override.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get settingsDefaultsRemoveMoveTooltip;
+
+  /// Shown on a move-default card when the move no longer exists in the taxonomy.
+  ///
+  /// In en, this message translates to:
+  /// **'This move is no longer in the taxonomy.'**
+  String get settingsDefaultsMoveGone;
+
+  /// Shown on a move-default card when the move has no parameters to override.
+  ///
+  /// In en, this message translates to:
+  /// **'This move has no parameters to default.'**
+  String get settingsDefaultsMoveNoParams;
+
+  /// App-bar title of the per-formation label-colour settings screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation colours'**
+  String get settingsFormationColoursTitle;
+
+  /// Intro paragraph explaining per-formation label colours.
+  ///
+  /// In en, this message translates to:
+  /// **'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.'**
+  String get settingsFormationColoursIntro;
+
+  /// Section header above the list of formation shapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Formations'**
+  String get settingsFormationColoursListHeader;
+
+  /// Subtitle shown when a formation has a custom label colour set.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom colour'**
+  String get settingsFormationColoursCustom;
+
+  /// Subtitle shown when a formation uses its family-default label colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Family default'**
+  String get settingsFormationColoursFamilyDefault;
+
+  /// Tooltip on the button that resets one formation's custom colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset {label} to the family default'**
+  String settingsFormationColoursResetTooltip(String label);
+
   /// Generic dialog dismiss button that discards the pending action.
   ///
   /// In en, this message translates to:
@@ -250,6 +1004,12 @@ abstract class AppLocalizations {
   /// **'Duplicate'**
   String get commonDuplicate;
 
+  /// Title given to a duplicated item: the original title followed by a ' (copy)' marker so the copy is visually distinct. {title} is untrusted user-entered text, rendered as plain text. Note: this resolves at duplicate-time and is persisted into user data, so the copy keeps the creation-locale wording thereafter.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} (copy)'**
+  String commonDuplicateTitleSuffix(String title);
+
   /// Affirmative choice for a yes/no filter chip.
   ///
   /// In en, this message translates to:
@@ -262,11 +1022,215 @@ abstract class AppLocalizations {
   /// **'No'**
   String get commonNo;
 
+  /// Generic acknowledgement button that dismisses an informational dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get commonOk;
+
+  /// Confirm button in the shared colour-picker dialog that applies the chosen colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get commonApply;
+
+  /// Snackbar shown when an external http/https link cannot be opened in the browser.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open link'**
+  String get commonCouldntOpenLink;
+
   /// Label for the progression concept: used as a filter section heading and the figure-row progression-marker tooltip.
   ///
   /// In en, this message translates to:
   /// **'Progression'**
   String get commonProgression;
+
+  /// Dance form value: contra dancing. Shown on facet chips, the command palette, and the default-form picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Contra'**
+  String get commonDanceFormContra;
+
+  /// Dance form value: English Country Dance (ECD).
+  ///
+  /// In en, this message translates to:
+  /// **'English (ECD)'**
+  String get commonDanceFormEcd;
+
+  /// Dance form value: square dancing.
+  ///
+  /// In en, this message translates to:
+  /// **'Square'**
+  String get commonDanceFormSquare;
+
+  /// Progression value: the dance does not progress dancers to new neighbours.
+  ///
+  /// In en, this message translates to:
+  /// **'No progression'**
+  String get commonProgressionNone;
+
+  /// Progression value: a single progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Single'**
+  String get commonProgressionSingle;
+
+  /// Progression value: a double progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Double'**
+  String get commonProgressionDouble;
+
+  /// Progression value: a triple progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Triple'**
+  String get commonProgressionTriple;
+
+  /// Progression value: a quadruple progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Quadruple'**
+  String get commonProgressionQuadruple;
+
+  /// Progression value: some other progression not covered by the named options.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get commonProgressionOther;
+
+  /// Dance status value: the dance is active/current.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get commonDanceStatusActive;
+
+  /// Dance status value: the dance is deprecated (kept but discouraged).
+  ///
+  /// In en, this message translates to:
+  /// **'Deprecated'**
+  String get commonDanceStatusDeprecated;
+
+  /// Dance status value: the dance is marked broken/unusable.
+  ///
+  /// In en, this message translates to:
+  /// **'Broken'**
+  String get commonDanceStatusBroken;
+
+  /// Dance difficulty value: beginner level.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner'**
+  String get commonDanceLevelBeginner;
+
+  /// Dance difficulty value: intermediate level.
+  ///
+  /// In en, this message translates to:
+  /// **'Intermediate'**
+  String get commonDanceLevelIntermediate;
+
+  /// Dance difficulty value: advanced level.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get commonDanceLevelAdvanced;
+
+  /// Formation shape value: duple improper.
+  ///
+  /// In en, this message translates to:
+  /// **'Duple improper'**
+  String get commonFormationDupleImproper;
+
+  /// Formation shape value: Becket, clockwise progression (CW).
+  ///
+  /// In en, this message translates to:
+  /// **'Becket (CW)'**
+  String get commonFormationBecketCw;
+
+  /// Formation shape value: Becket, counter-clockwise progression (CCW).
+  ///
+  /// In en, this message translates to:
+  /// **'Becket (CCW)'**
+  String get commonFormationBecketCcw;
+
+  /// Formation shape value: duple proper.
+  ///
+  /// In en, this message translates to:
+  /// **'Duple proper'**
+  String get commonFormationDupleProper;
+
+  /// Formation shape value: duple indecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Duple indecent'**
+  String get commonFormationDupleIndecent;
+
+  /// Formation shape value: triple minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Triple minor'**
+  String get commonFormationTripleMinor;
+
+  /// Formation shape value: three-face-three.
+  ///
+  /// In en, this message translates to:
+  /// **'Three-face-three'**
+  String get commonFormationThreeFaceThree;
+
+  /// Formation shape value: four-face-four.
+  ///
+  /// In en, this message translates to:
+  /// **'Four-face-four'**
+  String get commonFormationFourFaceFour;
+
+  /// Formation shape value: circle mixer.
+  ///
+  /// In en, this message translates to:
+  /// **'Circle mixer'**
+  String get commonFormationCircleMixer;
+
+  /// Formation shape value: Sicilian circle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sicilian circle'**
+  String get commonFormationSicilianCircle;
+
+  /// Formation shape value: scatter mixer.
+  ///
+  /// In en, this message translates to:
+  /// **'Scatter mixer'**
+  String get commonFormationScatterMixer;
+
+  /// Formation shape value: longways.
+  ///
+  /// In en, this message translates to:
+  /// **'Longways'**
+  String get commonFormationLongways;
+
+  /// Formation shape value: triplet.
+  ///
+  /// In en, this message translates to:
+  /// **'Triplet'**
+  String get commonFormationTriplet;
+
+  /// Formation shape value: grid.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid'**
+  String get commonFormationGrid;
+
+  /// Formation shape value: some other formation not covered by the named shapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get commonFormationOther;
+
+  /// A formation shape label followed by its free-text detail. {shape} is a localized formation shape name; {detail} is untrusted free text entered by the user, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'{shape} — {detail}'**
+  String commonFormationWithDetail(String shape, String detail);
 
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
@@ -285,6 +1249,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{title}\" deleted.'**
   String commonDeletedSnack(String title);
+
+  /// Explanation shown for a figure that an import parser could not map to a structured move and kept verbatim. Shared by the import-gap badge tooltip, its explanation dialog body, and the figure-row Semantics label.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t parse this call — kept verbatim as a custom figure.'**
+  String get importGapMessage;
+
+  /// Title of the dialog explaining an unrecognized (import-gap or free-text) custom figure (shown when the badge is tapped).
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognized figure'**
+  String get importGapDialogTitle;
+
+  /// Full Semantics label announced for the import-gap badge itself (screen readers): a short prefix plus the explanation, modelled as one message rather than concatenated fragments.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrecognized figure. Couldn\'t parse this call — kept verbatim as a custom figure.'**
+  String get importGapSemanticLabel;
 
   /// App-bar title of the Collection screen (phone layout).
   ///

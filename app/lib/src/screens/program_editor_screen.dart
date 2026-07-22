@@ -827,22 +827,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _duplicate() async {
     final source = _existing;
     if (source == null) return;
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
     final copy = await _repos.programs.duplicate(
       id: source.id,
       newId: uuidV4(),
       newSlotId: uuidV4,
       now: now,
-      newTitle: '${source.title} (copy)',
+      newTitle: l10n.commonDuplicateTitleSuffix(source.title),
     );
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.of(context).programsDuplicatedSnack(copy.title),
-        ),
-      ),
+      SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
     );
     if (widget.isEmbedded) {
       widget.onNavigateTo?.call(copy.id);

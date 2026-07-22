@@ -7,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
 import 'package:compendium_app/src/widgets/app_bootstrap.dart';
 
+import '../support/l10n_harness.dart';
+
 void main() {
   testWidgets('shows a loading screen until the startup future completes', (
     tester,
@@ -14,6 +16,8 @@ void main() {
     final completer = Completer<void>();
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: AppBootstrap(
           future: completer.future,
           onRetry: () {},
@@ -40,6 +44,8 @@ void main() {
     final completer = Completer<void>();
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: AppBootstrap(
           future: completer.future,
           onRetry: () => retried = true,
@@ -67,6 +73,8 @@ void main() {
     final completer = Completer<void>();
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: AppBootstrap(
           future: completer.future,
           onRetry: () {},
@@ -92,6 +100,8 @@ void main() {
     addTearDown(progress.dispose);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: AppBootstrap(
           future: completer.future,
           onRetry: () {},
@@ -133,6 +143,8 @@ void main() {
     addTearDown(progress.dispose);
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: AppBootstrap(
           future: completer.future,
           onRetry: () {},

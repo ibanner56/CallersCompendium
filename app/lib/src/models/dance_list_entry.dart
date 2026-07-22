@@ -37,28 +37,59 @@ class DanceListEntry {
   String get title => dance.title;
 }
 
-/// Human-readable label for a [FormationShape], for chips and filters.
-String formationShapeLabel(FormationShape shape) => switch (shape) {
-  FormationShape.dupleImproper => 'Duple improper',
-  FormationShape.becketCw => 'Becket (CW)',
-  FormationShape.becketCcw => 'Becket (CCW)',
-  FormationShape.dupleProper => 'Duple proper',
-  FormationShape.dupleIndecent => 'Duple indecent',
-  FormationShape.tripleMinor => 'Triple minor',
-  FormationShape.threeFaceThree => 'Three-face-three',
-  FormationShape.fourFaceFour => 'Four-face-four',
-  FormationShape.circleMixer => 'Circle mixer',
-  FormationShape.sicilianCircle => 'Sicilian circle',
-  FormationShape.scatterMixer => 'Scatter mixer',
-  FormationShape.longways => 'Longways',
-  FormationShape.triplet => 'Triplet',
-  FormationShape.grid => 'Grid',
-  FormationShape.other => 'Other',
-};
+/// English display labels for the facet enums, kept in the **source locale**
+/// for the deferred export path (the plain-text / PDF builders in
+/// `export/` and `compendium_core`), so exported documents stay byte-identical
+/// English regardless of the app's UI locale (localization decision D2).
+///
+/// The facet enums live in the Flutter-free `compendium_core` package
+/// (ADR-001) and cannot carry an `AppLocalizations`-aware label, so **UI** call
+/// sites route through the localized helpers in `search/facet_labels.dart`
+/// instead; these `.label` extensions are only for the export path.
+extension FormationShapeLabel on FormationShape {
+  String get label => switch (this) {
+    FormationShape.dupleImproper => 'Duple improper',
+    FormationShape.becketCw => 'Becket (CW)',
+    FormationShape.becketCcw => 'Becket (CCW)',
+    FormationShape.dupleProper => 'Duple proper',
+    FormationShape.dupleIndecent => 'Duple indecent',
+    FormationShape.tripleMinor => 'Triple minor',
+    FormationShape.threeFaceThree => 'Three-face-three',
+    FormationShape.fourFaceFour => 'Four-face-four',
+    FormationShape.circleMixer => 'Circle mixer',
+    FormationShape.sicilianCircle => 'Sicilian circle',
+    FormationShape.scatterMixer => 'Scatter mixer',
+    FormationShape.longways => 'Longways',
+    FormationShape.triplet => 'Triplet',
+    FormationShape.grid => 'Grid',
+    FormationShape.other => 'Other',
+  };
+}
 
-/// Full formation label, including free-text [Formation.detail] if present.
-String formationLabel(Formation formation) {
-  final base = formationShapeLabel(formation.shape);
-  final detail = formation.detail?.trim();
-  return (detail == null || detail.isEmpty) ? base : '$base — $detail';
+/// English full formation label (shape plus free-text [Formation.detail]),
+/// for the export path only.
+extension FormationLabel on Formation {
+  String get label {
+    final base = shape.label;
+    final trimmed = detail?.trim();
+    return (trimmed == null || trimmed.isEmpty) ? base : '$base — $trimmed';
+  }
+}
+
+/// English label for a [DanceStatus], for the export path only.
+extension DanceStatusExportLabel on DanceStatus {
+  String get label => switch (this) {
+    DanceStatus.active => 'Active',
+    DanceStatus.deprecated => 'Deprecated',
+    DanceStatus.broken => 'Broken',
+  };
+}
+
+/// English label for a difficulty [DanceLevel], for the export path only.
+extension DanceLevelExportLabel on DanceLevel {
+  String get label => switch (this) {
+    DanceLevel.beginner => 'Beginner',
+    DanceLevel.intermediate => 'Intermediate',
+    DanceLevel.advanced => 'Advanced',
+  };
 }

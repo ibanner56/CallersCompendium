@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// A lightweight, dependency-free color editor: a live swatch, a hex field, and
 /// R/G/B sliders. Returns the chosen [Color] (fully opaque) via
 /// [Navigator.pop], or `null` if canceled.
@@ -75,6 +77,7 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
       title: Text(widget.title),
       content: SingleChildScrollView(
@@ -95,10 +98,10 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
             const SizedBox(height: 12),
             TextField(
               controller: _hexController,
-              decoration: const InputDecoration(
-                labelText: 'Hex',
+              decoration: InputDecoration(
+                labelText: l10n.colorEditHexLabel,
                 prefixText: '',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
               inputFormatters: [
                 LengthLimitingTextInputFormatter(7),
@@ -125,11 +128,11 @@ class _ColorEditDialogState extends State<ColorEditDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_color),
-          child: const Text('Apply'),
+          child: Text(l10n.commonApply),
         ),
       ],
     );

@@ -1,9 +1,10 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/app_theme_scope.dart';
 import '../data/formation_colors_controller.dart';
-import '../models/dance_list_entry.dart';
+import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import '../widgets/color_edit_dialog.dart';
@@ -25,6 +26,7 @@ class FormationColorsScreen extends StatelessWidget {
   final FormationColorsController controller;
 
   Future<void> _edit(BuildContext context, FormationShape shape) async {
+    final l10n = AppLocalizations.of(context);
     final highContrast =
         (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
         MediaQuery.highContrastOf(context);
@@ -36,19 +38,22 @@ class FormationColorsScreen extends StatelessWidget {
         Theme.of(context).colorScheme.primary;
     final picked = await showDialog<Color>(
       context: context,
-      builder: (_) =>
-          ColorEditDialog(title: formationShapeLabel(shape), initial: seed),
+      builder: (_) => ColorEditDialog(
+        title: formationShapeLabel(l10n, shape),
+        initial: seed,
+      ),
     );
     if (picked != null) await controller.setColor(shape, picked);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final highContrast =
         (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
         MediaQuery.highContrastOf(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Formation colours')),
+      appBar: AppBar(title: Text(l10n.settingsFormationColoursTitle)),
       body: AnimatedBuilder(
         animation: controller,
         builder: (context, _) {
@@ -62,15 +67,11 @@ class FormationColorsScreen extends StatelessWidget {
                   0,
                 ),
                 child: Text(
-                  'Give a formation its own colour to highlight its label on '
-                  'dance cards, dance detail, and the Perform header. Only the '
-                  'formations you customise are highlighted; the rest show '
-                  'their label as usual. The formation is always shown as text '
-                  'too, so labels stay readable without colour.',
+                  l10n.settingsFormationColoursIntro,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
-              SectionHeader(title: 'Formations'),
+              SectionHeader(title: l10n.settingsFormationColoursListHeader),
               for (final shape in FormationShape.values)
                 _FormationColorTile(
                   shape: shape,
@@ -108,7 +109,8 @@ class _FormationColorTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = formationShapeLabel(shape);
+    final l10n = AppLocalizations.of(context);
+    final label = formationShapeLabel(l10n, shape);
     final overridden = overrideColor != null;
     // Preview the exact badge for an override; for a not-yet-customised shape,
     // preview against the family seed so the user sees where it starts.
@@ -124,12 +126,16 @@ class _FormationColorTile extends StatelessWidget {
                 child: Text(label),
               ),
             ),
-      subtitle: Text(overridden ? 'Custom colour' : 'Family default'),
+      subtitle: Text(
+        overridden
+            ? l10n.settingsFormationColoursCustom
+            : l10n.settingsFormationColoursFamilyDefault,
+      ),
       trailing: overridden
           ? IconButton(
               key: ValueKey('formation-color-reset-${shape.name}'),
               icon: const Icon(Icons.settings_backup_restore),
-              tooltip: 'Reset $label to the family default',
+              tooltip: l10n.settingsFormationColoursResetTooltip(label),
               onPressed: onReset,
             )
           : const Icon(Icons.edit_outlined),

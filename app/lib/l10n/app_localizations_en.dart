@@ -27,6 +27,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navGuideTooltip => 'User guide';
 
   @override
+  String get navSearch => 'Search';
+
+  @override
+  String navSearchTooltip(String hint) {
+    return 'Search ($hint)';
+  }
+
+  @override
+  String get appBootstrapPreparing => 'Preparing your collection';
+
+  @override
+  String get appBootstrapRebuildingIndex => 'Rebuilding search index';
+
+  @override
+  String appBootstrapRebuildingIndexProgress(int percent) {
+    return 'Rebuilding search index… $percent%';
+  }
+
+  @override
+  String get appBootstrapError => 'Could not prepare the collection.';
+
+  @override
+  String get confirmDeleteTitle => 'Delete?';
+
+  @override
+  String confirmDeleteBody(String itemLabel) {
+    return '“$itemLabel” will be deleted. You can undo this.';
+  }
+
+  @override
+  String get colorEditHexLabel => 'Hex';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override
@@ -76,6 +109,418 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose the language of the app\'s interface.';
 
   @override
+  String get settingsAboutHelpHeader => 'Help';
+
+  @override
+  String get settingsAboutUserGuideTitle => 'User guide';
+
+  @override
+  String get settingsAboutUserGuideSubtitle =>
+      'Read the built-in guides — getting started, dialects, imports, and more. Works offline.';
+
+  @override
+  String get settingsAboutLicenseHeader => 'License';
+
+  @override
+  String get settingsAboutLicenseBody =>
+      'Caller\'s Compendium is free software, licensed under the GNU Affero General Public License, version 3 (AGPL-3.0). You are free to use, study, share, and modify it under that license. Because the AGPL requires it, the complete corresponding source code is offered to everyone who uses the app.';
+
+  @override
+  String get settingsAboutViewSourceTitle => 'View source on GitHub';
+
+  @override
+  String get settingsAboutFontsHeader => 'Fonts';
+
+  @override
+  String get settingsAboutFontsBody =>
+      'This app bundles the following typefaces under the SIL Open Font License 1.1. Their full license texts are available under “View licenses” below.';
+
+  @override
+  String get settingsAboutFontFrauncesSubtitle =>
+      'SIL Open Font License 1.1 · © The Fraunces Project Authors — display & headings';
+
+  @override
+  String get settingsAboutFontAtkinsonSubtitle =>
+      'SIL Open Font License 1.1 · © Braille Institute of America, Inc. — body, UI & Perform';
+
+  @override
+  String get settingsAboutFontRobotoSubtitle =>
+      'SIL Open Font License 1.1 · © The Roboto Project Authors — fallback';
+
+  @override
+  String get settingsAboutThemesHeader => 'Themes';
+
+  @override
+  String get settingsAboutThemesBody =>
+      'Several optional color themes are inspired by popular code-editor palettes — One Dark, Dracula, Nord, Tokyo Night, Gruvbox, and Catppuccin among them — re-derived and contrast-tuned for this app. Theme names are used only to credit that inspiration.';
+
+  @override
+  String get settingsAboutDanceDataHeader => 'Dance data';
+
+  @override
+  String get settingsAboutDanceDataBody =>
+      'Dance data draws on The Caller’s Box (Chris Page & Michael Dyck), whose collection is published under the Creative Commons Attribution-NonCommercial license (CC BY-NC), with gratitude.';
+
+  @override
+  String get settingsAboutLicensesHeader => 'Licenses';
+
+  @override
+  String get settingsAboutViewLicensesTitle => 'View licenses';
+
+  @override
+  String get settingsAboutViewLicensesSubtitle =>
+      'Full open-source license texts, including the bundled fonts.';
+
+  @override
+  String get settingsAboutLegalese =>
+      '© The Caller’s Compendium contributors. Licensed under AGPL-3.0.';
+
+  @override
+  String settingsAboutVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String settingsAboutVersionLine(
+    String appName,
+    String version,
+    String license,
+  ) {
+    return '$appName · Version $version · $license';
+  }
+
+  @override
+  String get settingsUpdatesHeader => 'Updates';
+
+  @override
+  String get settingsUpdatesCheckNowTitle => 'Check for updates';
+
+  @override
+  String settingsUpdatesStatusIdle(String version) {
+    return 'You\'re on version $version.';
+  }
+
+  @override
+  String get settingsUpdatesStatusChecking => 'Checking…';
+
+  @override
+  String settingsUpdatesStatusNoUpdate(String version) {
+    return 'No update found. You\'re on version $version.';
+  }
+
+  @override
+  String settingsUpdatesStatusAvailable(String version) {
+    return 'Version $version is available. See the banner to view it.';
+  }
+
+  @override
+  String get settingsUpdatesChannelHeader => 'Channel';
+
+  @override
+  String get settingsUpdatesBetaTitle => 'Beta channel';
+
+  @override
+  String get settingsUpdatesBetaSubtitle =>
+      'Receive pre-release beta updates. Off means stable releases only.';
+
+  @override
+  String get settingsUpdatesAutoHeader => 'Automatic checks';
+
+  @override
+  String get settingsUpdatesAutoTitle => 'Check automatically';
+
+  @override
+  String get settingsUpdatesAutoSubtitle =>
+      'Check for a newer version in the background when the app starts. Off by default.';
+
+  @override
+  String get settingsUpdatesPrivacyNote =>
+      'The update check downloads a small version file over HTTPS and nothing else — no data about you, your device, or your usage is ever sent. Nothing is downloaded or installed automatically: you choose when to download an update, it is verified before it opens, and your system installer completes the install.';
+
+  @override
+  String get settingsUpdatesDownloadingTitle => 'Downloading update';
+
+  @override
+  String get settingsUpdatesDownloadingIndeterminate => 'Downloading…';
+
+  @override
+  String settingsUpdatesDownloadingPercent(int percent) {
+    return 'Downloading… $percent%';
+  }
+
+  @override
+  String get settingsUpdatesVerifyingTitle => 'Verifying download';
+
+  @override
+  String get settingsUpdatesVerifyingSubtitle =>
+      'Checking the sha256 integrity of the download…';
+
+  @override
+  String get settingsUpdatesHandoffTitle => 'Preparing the installer';
+
+  @override
+  String get settingsUpdatesHandoffSubtitle =>
+      'Handing the verified update to your system…';
+
+  @override
+  String get settingsUpdatesCompletedTitle => 'Update downloaded';
+
+  @override
+  String get settingsUpdatesCompletedSubtitle =>
+      'Follow your system installer to finish updating.';
+
+  @override
+  String get settingsUpdatesCompletedSubtitleRevealed =>
+      'Verified and revealed in your file manager — run the installer to finish updating.';
+
+  @override
+  String get settingsUpdatesDownloadTitle => 'Download & install update';
+
+  @override
+  String get settingsUpdatesDownloadError =>
+      'The update could not be downloaded.';
+
+  @override
+  String settingsUpdatesDownloadSubtitle(String version) {
+    return 'Download version $version, verify it, then open your installer. The app never replaces itself in place.';
+  }
+
+  @override
+  String get settingsDialectHeader => 'Dialects';
+
+  @override
+  String get settingsDialectNewButton => 'New dialect';
+
+  @override
+  String get settingsDialectNewDefaultName => 'My dialect';
+
+  @override
+  String get settingsDialectCreateConfirm => 'Create';
+
+  @override
+  String get settingsDialectDuplicateFrom => 'Duplicate from…';
+
+  @override
+  String get settingsDialectRenameTitle => 'Rename dialect';
+
+  @override
+  String get settingsDialectRename => 'Rename';
+
+  @override
+  String get settingsDialectEditTerms => 'Edit terms';
+
+  @override
+  String get settingsDialectDuplicateToCustomize => 'Duplicate to customize';
+
+  @override
+  String get settingsDialectDeleteTitle => 'Delete dialect?';
+
+  @override
+  String settingsDialectDeleteConfirmBody(String name) {
+    return '“$name” will be permanently removed.';
+  }
+
+  @override
+  String get settingsDialectActionsTooltip => 'Dialect actions';
+
+  @override
+  String get settingsDialectPresetBadge => 'Preset';
+
+  @override
+  String get settingsDialectNameLabel => 'Name';
+
+  @override
+  String get settingsAppearanceThemeHeader => 'Theme';
+
+  @override
+  String get settingsAppearanceCustomThemesHeader => 'Custom themes';
+
+  @override
+  String get settingsAppearanceEasterEggsHeader => 'Easter eggs';
+
+  @override
+  String get settingsAppearanceSetListsHeader => 'Set lists';
+
+  @override
+  String get settingsAppearanceFormationColoursHeader => 'Formation colours';
+
+  @override
+  String get settingsAppearanceColourDanceTitle =>
+      'Colour-named dances tint the theme';
+
+  @override
+  String get settingsAppearanceColourDanceSubtitle =>
+      'A playful surprise: when you open a dance whose title names a colour — like Baby Rose or Blue Boy — its view is tinted that colour. Off by default, and it steps aside when a high-contrast theme is active so readability always wins.';
+
+  @override
+  String get settingsAppearanceSetListColorTitle => 'Colour-code set-list rows';
+
+  @override
+  String get settingsAppearanceSetListColorSubtitle =>
+      'Tint each dance row by its formation family (contra, mixer, square, …). The formation is always shown as text too, so rows stay readable without colour.';
+
+  @override
+  String get settingsAppearanceFormationColoursTitle =>
+      'Formation label colours';
+
+  @override
+  String get settingsAppearanceFormationColoursSubtitle =>
+      'Highlight individual formations in your own colours — e.g. Becket (CW) in yellow, Becket (CCW) in pink — on dance cards, dance detail, and the Perform header.';
+
+  @override
+  String get settingsAppearanceSelectedBadge => 'Selected';
+
+  @override
+  String get settingsAppearancePreviewHeading => 'Aa Preview';
+
+  @override
+  String get settingsAppearancePreviewBody => 'Body text sample';
+
+  @override
+  String get settingsAppearanceNewThemeButton => 'New custom theme';
+
+  @override
+  String get settingsAppearanceNewThemeDefaultName => 'My theme';
+
+  @override
+  String get settingsAppearanceCustomThemesEmpty =>
+      'Copy the current theme and tune any color. Custom themes are saved on this device.';
+
+  @override
+  String get settingsAppearanceDeleteThemeTitle => 'Delete theme?';
+
+  @override
+  String settingsAppearanceDeleteThemeBody(String name) {
+    return '“$name” will be permanently removed.';
+  }
+
+  @override
+  String settingsAppearanceCustomThemeSemantic(String name) {
+    return 'Custom theme $name';
+  }
+
+  @override
+  String get settingsAppearanceThemeActionsTooltip => 'Theme actions';
+
+  @override
+  String get settingsDefaultsProgramHeader => 'Program defaults';
+
+  @override
+  String get settingsDefaultsCallerLabel => 'Default caller';
+
+  @override
+  String get settingsDefaultsPrefilledHelper =>
+      'Prefilled into new programs; editable per program.';
+
+  @override
+  String get settingsDefaultsBandLabel => 'Default band';
+
+  @override
+  String get settingsDefaultsDisplayHeader => 'Display defaults';
+
+  @override
+  String get settingsDefaultsSortTitle => 'Collection sort order';
+
+  @override
+  String get settingsDefaultsSortSubtitle =>
+      'How the Collection is sorted when you open it. You can still change the sort while browsing.';
+
+  @override
+  String get settingsDefaultsCanonicalTitle =>
+      'Open dance details in canonical terms';
+
+  @override
+  String get settingsDefaultsCanonicalSubtitle =>
+      'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.';
+
+  @override
+  String get settingsDefaultsAuthoringHeader => 'Dance-authoring defaults';
+
+  @override
+  String get settingsDefaultsFreeTextEntryTitle => 'Free-text entry';
+
+  @override
+  String get settingsDefaultsFreeTextEntrySubtitle =>
+      'When on, adding a new figure lets you type it as one line (e.g. \"neighbor balance & swing\") instead of building it field by field. The line is parsed into figure(s); anything unrecognized is kept as a custom figure you can fix later. Editing an existing figure always uses the full editor.';
+
+  @override
+  String get settingsDefaultsFormTitle => 'Form';
+
+  @override
+  String get settingsDefaultsFormSubtitle =>
+      'The dance form a new dance starts as. You can still change it per dance.';
+
+  @override
+  String get settingsDefaultsFormationTitle => 'Formation';
+
+  @override
+  String get settingsDefaultsFormationSubtitle =>
+      'The formation a new dance starts in. You can still change it per dance.';
+
+  @override
+  String get settingsDefaultsProgressionTitle => 'Progression';
+
+  @override
+  String get settingsDefaultsProgressionSubtitle =>
+      'The progression a new dance starts with. You can still change it per dance.';
+
+  @override
+  String get settingsDefaultsPhraseLabel => 'Default phrase structure';
+
+  @override
+  String get settingsDefaultsPhraseHelper =>
+      'Seeded into new dances. Blank = standard 4×16 (A1 A2 B1 B2); else e.g. 6*8*2.';
+
+  @override
+  String get settingsDefaultsStartingFiguresTitle => 'Starting figures';
+
+  @override
+  String get settingsDefaultsStartingFiguresSubtitle =>
+      'The figures a new dance starts with. Defaults to a single stand still (8 beats); clear it for a blank new dance. Editable per dance.';
+
+  @override
+  String get settingsDefaultsMoveDefaultsTitle => 'Move defaults';
+
+  @override
+  String get settingsDefaultsMoveDefaultsSubtitle =>
+      'Preferred parameter values applied when you insert a move while entering a dance. These override that move\'s built-in defaults; you can still change any parameter on the figure afterward. Unset moves and parameters use the built-in defaults.';
+
+  @override
+  String get settingsDefaultsAddMoveButton => 'Add move default';
+
+  @override
+  String get settingsDefaultsRemoveMoveTooltip => 'Remove';
+
+  @override
+  String get settingsDefaultsMoveGone =>
+      'This move is no longer in the taxonomy.';
+
+  @override
+  String get settingsDefaultsMoveNoParams =>
+      'This move has no parameters to default.';
+
+  @override
+  String get settingsFormationColoursTitle => 'Formation colours';
+
+  @override
+  String get settingsFormationColoursIntro =>
+      'Give a formation its own colour to highlight its label on dance cards, dance detail, and the Perform header. Only the formations you customise are highlighted; the rest show their label as usual. The formation is always shown as text too, so labels stay readable without colour.';
+
+  @override
+  String get settingsFormationColoursListHeader => 'Formations';
+
+  @override
+  String get settingsFormationColoursCustom => 'Custom colour';
+
+  @override
+  String get settingsFormationColoursFamilyDefault => 'Family default';
+
+  @override
+  String settingsFormationColoursResetTooltip(String label) {
+    return 'Reset $label to the family default';
+  }
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override
@@ -91,13 +536,122 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonDuplicate => 'Duplicate';
 
   @override
+  String commonDuplicateTitleSuffix(String title) {
+    return '$title (copy)';
+  }
+
+  @override
   String get commonYes => 'Yes';
 
   @override
   String get commonNo => 'No';
 
   @override
+  String get commonOk => 'OK';
+
+  @override
+  String get commonApply => 'Apply';
+
+  @override
+  String get commonCouldntOpenLink => 'Couldn\'t open link';
+
+  @override
   String get commonProgression => 'Progression';
+
+  @override
+  String get commonDanceFormContra => 'Contra';
+
+  @override
+  String get commonDanceFormEcd => 'English (ECD)';
+
+  @override
+  String get commonDanceFormSquare => 'Square';
+
+  @override
+  String get commonProgressionNone => 'No progression';
+
+  @override
+  String get commonProgressionSingle => 'Single';
+
+  @override
+  String get commonProgressionDouble => 'Double';
+
+  @override
+  String get commonProgressionTriple => 'Triple';
+
+  @override
+  String get commonProgressionQuadruple => 'Quadruple';
+
+  @override
+  String get commonProgressionOther => 'Other';
+
+  @override
+  String get commonDanceStatusActive => 'Active';
+
+  @override
+  String get commonDanceStatusDeprecated => 'Deprecated';
+
+  @override
+  String get commonDanceStatusBroken => 'Broken';
+
+  @override
+  String get commonDanceLevelBeginner => 'Beginner';
+
+  @override
+  String get commonDanceLevelIntermediate => 'Intermediate';
+
+  @override
+  String get commonDanceLevelAdvanced => 'Advanced';
+
+  @override
+  String get commonFormationDupleImproper => 'Duple improper';
+
+  @override
+  String get commonFormationBecketCw => 'Becket (CW)';
+
+  @override
+  String get commonFormationBecketCcw => 'Becket (CCW)';
+
+  @override
+  String get commonFormationDupleProper => 'Duple proper';
+
+  @override
+  String get commonFormationDupleIndecent => 'Duple indecent';
+
+  @override
+  String get commonFormationTripleMinor => 'Triple minor';
+
+  @override
+  String get commonFormationThreeFaceThree => 'Three-face-three';
+
+  @override
+  String get commonFormationFourFaceFour => 'Four-face-four';
+
+  @override
+  String get commonFormationCircleMixer => 'Circle mixer';
+
+  @override
+  String get commonFormationSicilianCircle => 'Sicilian circle';
+
+  @override
+  String get commonFormationScatterMixer => 'Scatter mixer';
+
+  @override
+  String get commonFormationLongways => 'Longways';
+
+  @override
+  String get commonFormationTriplet => 'Triplet';
+
+  @override
+  String get commonFormationGrid => 'Grid';
+
+  @override
+  String get commonFormationOther => 'Other';
+
+  @override
+  String commonFormationWithDetail(String shape, String detail) {
+    return '$shape — $detail';
+  }
 
   @override
   String get commonMixedLevel => 'Mixed level';
@@ -111,6 +665,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String commonDeletedSnack(String title) {
     return '\"$title\" deleted.';
   }
+
+  @override
+  String get importGapMessage =>
+      'Couldn\'t parse this call — kept verbatim as a custom figure.';
+
+  @override
+  String get importGapDialogTitle => 'Unrecognized figure';
+
+  @override
+  String get importGapSemanticLabel =>
+      'Unrecognized figure. Couldn\'t parse this call — kept verbatim as a custom figure.';
 
   @override
   String get collectionScreenTitle => 'Collection';
