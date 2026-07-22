@@ -66,6 +66,22 @@ void main() {
       expect(venueFingerprint(a), isNot(venueFingerprint(b)));
     });
 
+    test('strips control/bidi characters so the separator stays unambiguous', () {
+      // A locally-created venue never passes through the import sanitizer, so a
+      // field could carry an embedded NUL (the separator itself) or a bidi
+      // override. These MUST be stripped before fingerprinting, or a control
+      // char could leak into the key (shifting field boundaries) and let two
+      // distinct venues falsely merge.
+      final clean = Venue(id: 'a', name: 'GrangeHall', city: 'Greenfield');
+      final withControls = Venue(
+        id: 'b',
+        name: 'Grange\u0000Hall', // embedded NUL == the field separator
+        city: 'Green\u202Efield', // embedded RTL override
+      );
+      expect(venueFingerprint(withControls), isNotNull);
+      expect(venueFingerprint(withControls), venueFingerprint(clean));
+    });
+
     group('strong-key threshold', () {
       test('name-only venue is a weak key (null)', () {
         expect(venueFingerprint(Venue(id: 'a', name: 'Town Hall')), isNull);

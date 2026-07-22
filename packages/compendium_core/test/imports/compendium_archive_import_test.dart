@@ -1082,6 +1082,52 @@ void main() {
       },
     );
 
+    test(
+      'a repeated deduped id never overwrites another id\'s minted venue',
+      () async {
+        // Untrusted bundle: id B mints a venue; id A (fingerprint-equal) dedupes
+        // onto B's minted row; then A repeats with DIFFERENT content. A never
+        // minted, so its repeat must be a no-op — it must not clobber the row B
+        // (and A's first occurrence) resolved to. Guards the non-deterministic
+        // "deduped id later mutates a shared minted venue" hazard.
+        final archive = bundleWithVenue(
+          programVenueId: 'B',
+          venues: [
+            Venue(id: 'B', name: 'Guiding Star Grange', city: 'Greenfield'),
+            // A fingerprint-equals B → dedupes onto B's minted row.
+            Venue(id: 'A', name: 'Guiding Star Grange', city: 'Greenfield'),
+            // A repeats with hijacked content: must NOT overwrite the row.
+            Venue(id: 'A', name: 'Evil Hall', city: 'Nowhere'),
+          ],
+        );
+        final result = await run(archive);
+
+        expect(result.insertedVenueCount, 1);
+        final all = await venues.listAll();
+        expect(all, hasLength(1));
+        expect(all.single.name, 'Guiding Star Grange', reason: 'not clobbered');
+        expect(all.single.city, 'Greenfield', reason: 'not clobbered');
+      },
+    );
+
+    test('a repeated minting id still refreshes to last-seen content', () async {
+      // Counterpart to the above: an id that actually MINTED its row keeps the
+      // documented within-bundle "last-seen wins" refresh.
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [
+          Venue(id: 'orig-v1', name: 'Guiding Star Grange', city: 'Greenfield'),
+          Venue(id: 'orig-v1', name: 'Guiding Star Grange', city: 'Amherst'),
+        ],
+      );
+      final result = await run(archive);
+
+      expect(result.insertedVenueCount, 1);
+      final all = await venues.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.city, 'Amherst', reason: 'last-seen wins for a minter');
+    });
+
     test('undo after a dedupe deletes only newly-minted venues', () async {
       // The receiver already holds a venue; a bundle dedupes to it. Undo must
       // remove nothing — the matched venue is pre-existing, never in

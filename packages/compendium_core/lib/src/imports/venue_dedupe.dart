@@ -1,24 +1,40 @@
 import '../model/venue.dart';
+import '../util/text_sanitizer.dart';
 
-/// Separator between fingerprint fields. `\u0000` (NUL) can never occur in a
-/// sanitized venue field (`sanitizeImportedText` strips C0 controls on decode),
-/// so it unambiguously delimits fields — a "Foo" / "Bar, Baz" pairing can never
-/// collide with a "Foo, Bar" / "Baz" pairing.
+/// Separator between fingerprint fields. `\u0000` (NUL) is a C0 control, which
+/// [_normalizeField] strips from every field via [sanitizeImportedText] before
+/// joining — so it can never occur *inside* a field and unambiguously delimits
+/// them: a "Foo" / "Bar Baz" pairing can never collide with a "Foo Bar" / "Baz"
+/// pairing. The strip runs here (not only on the import path) so the invariant
+/// holds for **all** stored venues, including ones created/edited locally that
+/// never passed through the importer's sanitizer.
 const String _fieldSeparator = '\u0000';
 
-/// Normalizes one venue field for fingerprinting: trims, lowercases and
-/// collapses internal whitespace runs to a single space. Empty/whitespace-only
-/// (or null) becomes `null` so an absent field never contributes noise.
+/// Normalizes one venue field for fingerprinting: strips control/bidi/invisible
+/// characters (via [sanitizeImportedText] — see below), then trims, lowercases
+/// and collapses internal whitespace runs to a single space. Empty/whitespace-
+/// only (or null) becomes `null` so an absent field never contributes noise.
 ///
-/// Deliberately conservative — it does NOT fold diacritics or strip punctuation
-/// (unlike `normalizeTitle` in `dedupe.dart`). A venue fingerprint must never
-/// produce a *false merge* (two distinct halls collapsing into one), so it
-/// tolerates *false splits* ("St." vs "Street", "Café" vs "Cafe") instead:
+/// The [sanitizeImportedText] pass is a **security invariant**, not cosmetic: a
+/// locally-created venue never goes through the import sanitizer, so without
+/// this an embedded NUL (the field separator) or other control character could
+/// shift field boundaries and make two distinct venues fingerprint-equal — a
+/// *false merge*. Stripping the same disallowed set the importer strips (C0/C1
+/// controls, DEL, bidi overrides, invisible format chars) keeps the separator
+/// guarantee true for every stored venue and also denies display-spoofing
+/// characters any influence over a match.
+///
+/// Deliberately conservative otherwise — it does NOT fold diacritics or strip
+/// punctuation (unlike `normalizeTitle` in `dedupe.dart`). A venue fingerprint
+/// must never produce a *false merge* (two distinct halls collapsing into one),
+/// so it tolerates *false splits* ("St." vs "Street", "Café" vs "Cafe") instead:
 /// splitting duplicates a row harmlessly; merging would repoint a program at the
 /// wrong venue.
 String? _normalizeField(String? value) {
   if (value == null) return null;
-  final normalized = value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  final normalized = sanitizeImportedText(
+    value,
+  ).trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   return normalized.isEmpty ? null : normalized;
 }
 

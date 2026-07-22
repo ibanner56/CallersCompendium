@@ -353,13 +353,20 @@ class CompendiumArchiveImporter {
       // venue shares the fingerprint) always fresh-mints — never a wrong guess.
       //
       // *Within* a single (untrusted) bundle, a repeated original id must NOT
-      // leave an orphaned extra row: it collapses to one minted venue whose
-      // content is the last-seen occurrence (mirroring the duplicate-program-id
-      // handling below), and it is counted/tracked once. Two *distinct* ids that
-      // fingerprint-equal within one bundle likewise collapse to one inserted
-      // venue, because each mint is folded into the fingerprint index.
+      // leave an orphaned extra row: the id's *first* occurrence decides its
+      // target (mint or dedupe) and later occurrences collapse onto it. Only an
+      // id that actually **minted** a fresh row on first sight refreshes it to
+      // the last-seen content (mirroring the duplicate-program-id handling
+      // below); a repeat of an id that *deduped* is a no-op, so one original
+      // id's later occurrence can never mutate a venue that other ids were
+      // repointed to (a non-deterministic clobber for a malformed bundle). Two
+      // *distinct* ids that fingerprint-equal within one bundle likewise
+      // collapse to one inserted venue, because each mint is folded into the
+      // fingerprint index.
       final venueIdByOriginalId = <String, String>{};
-      final insertedVenueIdSet = <String>{};
+      // Original ids whose first occurrence minted a fresh venue this commit —
+      // the only ids permitted to "last-seen wins" refresh their row.
+      final mintingOriginalIds = <String>{};
       // Seed the fingerprint index once from the current collection (a single
       // load — venue counts are small — never an N+1 of per-venue queries), then
       // fold in each venue this commit mints. Skipped entirely when the bundle
@@ -370,10 +377,12 @@ class CompendiumArchiveImporter {
       for (final venue in archive.venues) {
         final existingMapped = venueIdByOriginalId[venue.id];
         if (existingMapped != null) {
-          // A repeated original id within this bundle. If it resolved to a venue
-          // *this commit minted*, refresh that row to the last-seen content (as
-          // before); if it deduped to a pre-existing venue, never touch it.
-          if (insertedVenueIdSet.contains(existingMapped)) {
+          // A repeated original id within this bundle. Refresh the row to the
+          // last-seen content ONLY when *this* id minted it on first sight; a
+          // repeat of an id that deduped (to a pre-existing venue OR to another
+          // id's minted venue) is a no-op — it must never overwrite a record
+          // other ids already resolved to.
+          if (mintingOriginalIds.contains(venue.id)) {
             await _venues.upsert(_venueWithId(venue, existingMapped));
             venueIndex.add(existingMapped, venue);
           }
@@ -391,8 +400,8 @@ class CompendiumArchiveImporter {
         final mintedVenueId = mintId();
         await _venues.upsert(_venueWithId(venue, mintedVenueId));
         venueIdByOriginalId[venue.id] = mintedVenueId;
+        mintingOriginalIds.add(venue.id);
         insertedVenueIds.add(mintedVenueId);
-        insertedVenueIdSet.add(mintedVenueId);
         venueIndex.add(mintedVenueId, venue);
       }
 
