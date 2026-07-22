@@ -201,6 +201,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         // failure falls back silently to a blank field.
         await _prefillNewProgramDefaults();
       }
+      // Guard again: the venue lookup / defaults prefill above are async, so the
+      // widget may have been disposed while they were in-flight.
+      if (!mounted) return;
       setState(() {
         _data = data;
         _existing = program;
