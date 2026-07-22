@@ -9,8 +9,8 @@ void main() {
       expect(draft.toFigure()!.customOrigin, CustomOrigin.userEntered);
     });
 
-    test('editing an importGap custom in the editor takes ownership '
-        '(commits as userEntered)', () {
+    test('an importGap custom round-trips through the editor preserving its '
+        'origin (stays reparse-eligible)', () {
       final gap = customFigure(
         'kept verbatim',
         beats: 8,
@@ -18,9 +18,16 @@ void main() {
       );
       expect(gap.customOrigin, CustomOrigin.importGap);
 
-      // Loading it into the editor and committing = taking ownership.
+      // Merely loading a parser-gap custom into a draft and committing it back
+      // (an open/save round-trip, or the #419 free-text insert path) must NOT
+      // launder off the importGap marker — otherwise a locally-typed or
+      // imported gap would silently lose its #398 badge and reparse
+      // eligibility the moment the dance is saved. Ownership is only taken when
+      // the user makes an explicit authoring choice in the structured editor
+      // (picking a move or re-authoring the custom), which resets it to
+      // userEntered (covered in figure_list_editor_test.dart).
       final draft = FigureDraft.fromFigure(gap);
-      expect(draft.toFigure()!.customOrigin, CustomOrigin.userEntered);
+      expect(draft.toFigure()!.customOrigin, CustomOrigin.importGap);
     });
 
     test('a structured figure is unaffected (userEntered)', () {
@@ -40,7 +47,9 @@ void main() {
 
     test('fromFigure → toFigure preserves an assumed subject', () {
       // Merely opening and saving an imported dance must NOT launder off the
-      // provenance marker (unlike customOrigin, which is user-owned on edit).
+      // provenance marker — the same open/save-preserving contract now applies
+      // to customOrigin too (see the importGap round-trip test above); both are
+      // reset only on an explicit authoring choice.
       final imported = Figure(
         move: 'allemande',
         params: const {'who': 'neighbors', 'hand': 'left'},

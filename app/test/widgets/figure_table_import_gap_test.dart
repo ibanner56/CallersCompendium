@@ -66,7 +66,7 @@ void main() {
     await tester.tap(find.byType(ImportGapBadge));
     await tester.pumpAndSettle();
 
-    expect(find.text('Custom figure from import'), findsOneWidget);
+    expect(find.text('Unrecognized figure'), findsOneWidget);
     expect(find.text(importGapMessage), findsWidgets);
   });
 }

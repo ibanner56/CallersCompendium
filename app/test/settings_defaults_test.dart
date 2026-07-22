@@ -685,4 +685,85 @@ void main() {
       );
     });
   });
+
+  group('Free-text entry toggle (#419)', () {
+    const toggleKey = ValueKey('defaults-free-text-entry');
+
+    testWidgets('renders in the Dance-authoring section, off by default', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await _scrollTo(tester, toggleKey);
+
+      expect(find.text('Free-text entry'), findsOneWidget);
+      expect(
+        tester.widget<SwitchListTile>(find.byKey(toggleKey)).value,
+        isFalse,
+      );
+    });
+
+    testWidgets('toggling it on persists the preference', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await _scrollTo(tester, toggleKey);
+
+      await tester.tap(find.byKey(toggleKey));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<SwitchListTile>(find.byKey(toggleKey)).value,
+        isTrue,
+      );
+      expect(await repos.settings.get(kFreeTextEntryKey), isTrue);
+    });
+
+    testWidgets('a saved preference reflects on reload', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+
+      await _pumpDefaults(tester, repos);
+      await _scrollTo(tester, toggleKey);
+
+      expect(
+        tester.widget<SwitchListTile>(find.byKey(toggleKey)).value,
+        isTrue,
+      );
+    });
+
+    testWidgets('when on, the template editor Add opens a free-text field', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      // Start from an empty template so the Add button is unambiguous.
+      await repos.settings.set(kDefaultDanceFiguresTemplateKey, '[]');
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('figure-free-text-field')),
+        findsOneWidget,
+      );
+
+      // Typing a recognised line inserts a structured figure into the template.
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-free-text-field')),
+        'Neighbor swing',
+      );
+      await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+      await tester.pumpAndSettle();
+
+      final stored = danceFiguresTemplateFromStored(
+        await repos.settings.get(kDefaultDanceFiguresTemplateKey),
+      );
+      expect(stored, hasLength(1));
+      expect(stored.single.move, 'swing');
+    });
+  });
 }
