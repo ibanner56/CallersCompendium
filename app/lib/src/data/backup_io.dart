@@ -34,6 +34,23 @@ const _jsonTypeGroup = XTypeGroup(
   mimeTypes: ['application/json'],
 );
 
+/// Filename extension for an *encrypted* backup container (issue #461).
+///
+/// Distinct from `.json` so an encrypted backup is easy to tell apart from a
+/// plain one and the native save/open dialogs can offer the right file type. The
+/// container is still ASCII-armored text on disk (see `backup_crypto.dart`), but
+/// it is not valid backup JSON, so it gets its own extension.
+const String kEncryptedBackupExtension = 'ccbackup';
+
+const _encryptedTypeGroup = XTypeGroup(
+  label: 'Encrypted backup',
+  extensions: [kEncryptedBackupExtension],
+);
+
+/// Whether [fileName] names an encrypted backup (by its extension).
+bool _isEncryptedBackupName(String fileName) =>
+    fileName.toLowerCase().endsWith('.$kEncryptedBackupExtension');
+
 /// Maximum size, in bytes, of a backup file the restore path will read into
 /// memory (~50 MiB).
 ///
@@ -132,11 +149,18 @@ Future<void> writeStringAtomically(
 /// hands it to the OS share sheet (via `share_plus`), returning `true` once the
 /// sheet has been invoked (share-sheet completion isn't reliably observable on
 /// those platforms).
+///
+/// [json] is the finished backup payload — either plain backup JSON or, when the
+/// user opted into encryption (issue #461), the armored encrypted container. The
+/// suggested file's extension selects the dialog file type and share MIME so
+/// encrypted (`.ccbackup`) and plain (`.json`) backups are handled correctly.
 Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
+  final encrypted = _isEncryptedBackupName(suggestedFileName);
+  final typeGroup = encrypted ? _encryptedTypeGroup : _jsonTypeGroup;
   if (isDesktopPlatform()) {
     final location = await getSaveLocation(
       suggestedName: suggestedFileName,
-      acceptedTypeGroups: const [_jsonTypeGroup],
+      acceptedTypeGroups: [typeGroup],
     );
     if (location == null) return false;
     await writeStringAtomically(location.path, json);
@@ -153,7 +177,12 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
   await writeStringAtomically(file.path, json);
   await SharePlus.instance.share(
     ShareParams(
-      files: [XFile(file.path, mimeType: 'application/json')],
+      files: [
+        XFile(
+          file.path,
+          mimeType: encrypted ? 'application/octet-stream' : 'application/json',
+        ),
+      ],
       fileNameOverrides: [suggestedFileName],
       subject: suggestedFileName,
     ),
@@ -162,11 +191,13 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
 }
 
 /// Default [BackupPicker]: opens the native open-file dialog (via
-/// `file_selector`), restricted to `.json`, and reads the chosen file's text
-/// (subject to the [kMaxBackupFileBytes] size cap). Returns `null` when the
-/// user cancels.
+/// `file_selector`), restricted to `.json` backups and `.ccbackup` encrypted
+/// backups (issue #461), and reads the chosen file's text (subject to the
+/// [kMaxBackupFileBytes] size cap). Returns `null` when the user cancels.
 Future<String?> pickBackupFile() async {
-  final file = await openFile(acceptedTypeGroups: const [_jsonTypeGroup]);
+  final file = await openFile(
+    acceptedTypeGroups: const [_jsonTypeGroup, _encryptedTypeGroup],
+  );
   if (file == null) return null;
   return readBackupFile(file);
 }

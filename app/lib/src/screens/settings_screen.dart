@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/backup_crypto.dart';
 import '../data/backup_io.dart';
 import '../data/import_io.dart';
 import '../diagnostics/crash_log_io.dart';
@@ -31,6 +32,8 @@ class SettingsScreen extends StatefulWidget {
     super.key,
     this.backupSaver,
     this.backupPicker,
+    this.backupEncryptor,
+    this.backupDecryptor,
     this.importPicker,
     this.urlFetcher,
     this.onOpenGuide,
@@ -46,6 +49,13 @@ class SettingsScreen extends StatefulWidget {
   /// Test seam for choosing a backup file to restore; defaults to
   /// [pickBackupFile] (native open-file dialog).
   final BackupPicker? backupPicker;
+
+  /// Test seam for encrypting a backup on export; forwarded to [GeneralSection].
+  final BackupEncryptor? backupEncryptor;
+
+  /// Test seam for decrypting a backup on restore; forwarded to
+  /// [GeneralSection].
+  final BackupDecryptor? backupDecryptor;
 
   /// Test seam for choosing an import file; defaults to [pickImportFile]
   /// (native open-file dialog). Forwarded to [ImportReviewScreen].
@@ -138,6 +148,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return GeneralSection(
           backupSaver: widget.backupSaver,
           backupPicker: widget.backupPicker,
+          backupEncryptor: widget.backupEncryptor,
+          backupDecryptor: widget.backupDecryptor,
           importPicker: widget.importPicker,
           urlFetcher: widget.urlFetcher,
         );
