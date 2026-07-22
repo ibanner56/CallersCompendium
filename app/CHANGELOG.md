@@ -19,18 +19,22 @@ This section covers the `0.1.0` line. **`v0.1.0-beta.4`** (this pre-release) bui
 on **`v0.1.0-beta.3`** with the project's biggest round of hardening yet — a broad
 data-safety and update-integrity pass — alongside genuinely new capabilities:
 **venues as a first-class entity**, **free-text figure entry** with your own
-shorthands, **encrypted backups**, **crash diagnostics**, and the groundwork for
-**localization**. The changes **since beta.3** are grouped first; the standing
-feature overview and install notes follow.
+shorthands, **encrypted backups**, **crash diagnostics**, and a **translation-ready**
+(still English-only) interface. The changes **since beta.3** are grouped first; the
+standing feature overview and install notes follow.
 
 ### Added
 
 - **Venues are now a first-class entity.** Create a reusable venue once — hall or
   grange name, address, contact, schedule, and notes — and attach it to any program
   from the program editor's venue picker, or manage the whole list from a dedicated
-  Venues screen. Programs that carry a venue print and share with its details filled
-  in. The feature is **opt-in** behind a Settings toggle; with it off, programs keep
-  their existing free-text venue label exactly as before.
+  Venues screen. A program's linked venue fills in its printed and exported set list,
+  and now **travels with the program when you share it** — with the venue's **contact
+  details (contact names, phones, emails) left out by default** and an opt-in prompt to
+  include them before you send. Importing a shared program **reuses a matching venue
+  already in your list instead of creating a duplicate**. The feature is **opt-in**
+  behind a Settings toggle; with it off, programs keep their existing free-text venue
+  label exactly as before.
 - **Free-text figure entry (opt-in).** With the new Settings toggle on, you can type a
   figure as plain text (including `;`-separated compounds) and Caller's Compendium
   parses it into a structured, editable figure on the spot. Anything it can't map is
@@ -58,12 +62,12 @@ feature overview and install notes follow.
   verifies a cryptographically **signed update manifest** (Ed25519, with the public key
   pinned in the app), only accepts artifacts from an **allowlist of GitHub-owned
   hosts**, and gates launch on that verification.
-- **Localization groundwork.** Work is underway to move the app's user-facing text
-  into a translation framework (Flutter's `gen-l10n`), so the interface can be
-  translated down the road. This release is foundational plumbing: **beta.4 is
-  English-only** — English is the source language and **no translations ship yet** —
-  and the text you see is unchanged. String extraction is substantially complete, with
-  the remaining screens following in later updates.
+- **Localization: the interface is now translation-ready.** The app's user-facing
+  text has been moved into a translation framework (Flutter's `gen-l10n`), so the
+  interface can be translated without further code changes. beta.4 remains
+  **English-only** — English is the source language and **no translations ship yet** —
+  and the text you see is unchanged; community translations are welcome in a future
+  release.
 
 ### Changed
 
