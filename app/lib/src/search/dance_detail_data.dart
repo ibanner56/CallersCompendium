@@ -150,8 +150,12 @@ class DanceDetailData {
     // fallback used elsewhere. Keeps venue resolution app-layer only.
     final venueLabelsByProgramId = <String, String?>{};
     if (callingHistory.isNotEmpty) {
-      final venues = await repos.venues.listAll();
-      final venuesById = {for (final v in venues) v.id: v};
+      // Only pay for the venue catalogue when a record actually links one;
+      // otherwise every label resolves from free text alone.
+      final hasLinkedVenue = callingHistory.any((r) => r.venueId != null);
+      final venuesById = hasLinkedVenue
+          ? {for (final v in await repos.venues.listAll()) v.id: v}
+          : const <String, Venue>{};
       for (final record in callingHistory) {
         venueLabelsByProgramId[record.programId] = resolveVenueLabelParts(
           record.venueId,

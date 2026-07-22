@@ -4,9 +4,14 @@ import 'package:flutter/widgets.dart';
 /// the widget tree.
 ///
 /// When `true`, the program editor swaps its free-text venue field for a picker
-/// over reusable [Venue] records (address/contacts/schedule) and screens
-/// resolve a program's `venueId` to that venue's display name. When `false`
-/// (the default) programs use the simple free-text `Program.venue` field.
+/// over reusable [Venue] records (address/contacts/schedule); when `false` (the
+/// default) the editor uses the simple free-text `Program.venue` field. The
+/// setting governs the editor's ENTRY mode only.
+///
+/// Display resolution is independent of this setting: wherever a program links a
+/// reusable [Venue] (`venueId`), screens show that venue's display name
+/// regardless of the toggle (see `resolveVenueLabel`), because both columns
+/// persist independently.
 ///
 /// The toggle is entry/display-mode only — `Program.venue` and
 /// `Program.venueId` persist independently, so flipping it is lossless and

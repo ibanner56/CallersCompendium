@@ -120,11 +120,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Future<void> _load() async {
     try {
       final programs = await _repos.programs.listAll();
-      final venues = await _repos.venues.listAll();
+      // Only load the venue catalogue when a program actually links one;
+      // ProgramListTile falls back to Program.venue with an empty map.
+      final hasLinkedVenue = programs.any((p) => p.venueId != null);
+      final venuesById = hasLinkedVenue
+          ? {for (final v in await _repos.venues.listAll()) v.id: v}
+          : const <String, Venue>{};
       if (!mounted) return;
       setState(() {
         _programs = programs;
-        _venuesById = {for (final v in venues) v.id: v};
+        _venuesById = venuesById;
         _loadError = null;
       });
     } catch (error) {

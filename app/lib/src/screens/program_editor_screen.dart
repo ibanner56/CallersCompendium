@@ -272,7 +272,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     });
     if (id == null) return;
     final venue = await _repos.venues.getById(id);
-    if (!mounted) return;
+    // Guard against a stale late result: if the user changed the selection
+    // again while this fetch was in flight, `_venueId` no longer matches `id`,
+    // so dropping it keeps the hint in sync with the current selection.
+    if (!mounted || _venueId != id) return;
     setState(() => _linkedVenue = venue);
   }
 

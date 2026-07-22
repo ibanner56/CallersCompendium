@@ -203,13 +203,22 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           dances[dance.id] = dance;
         }
       }
-      final venues = await _repos.venues.listAll();
+      // Resolve only the linked venue (if any). The summary shows a single
+      // program, so loading the whole catalogue just to look up one id is
+      // wasteful; resolveVenueLabel falls back to free text when the map is
+      // empty (no link, or the link no longer resolves).
+      final venuesById = <String, Venue>{};
+      final linkedVenueId = program.venueId;
+      if (linkedVenueId != null) {
+        final linked = await _repos.venues.getById(linkedVenueId);
+        if (linked != null) venuesById[linkedVenueId] = linked;
+      }
       if (!mounted) return;
       setState(() {
         _program = program;
         _danceTitles = titles;
         _dances = dances;
-        _venuesById = {for (final v in venues) v.id: v};
+        _venuesById = venuesById;
         _collectionData = data;
         _loading = false;
         _error = null;
