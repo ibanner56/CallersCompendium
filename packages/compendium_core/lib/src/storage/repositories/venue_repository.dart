@@ -57,12 +57,17 @@ class VenueRepository {
     return rows.map(_toModel).toList();
   }
 
-  /// Throws if [id] is still referenced by any `programs.venue_id` — callers
-  /// must unlink (or delete) the referencing programs first, since deleting a
-  /// venue out from under a linked program would orphan its reference. Mirrors
-  /// the `PublishedSourceRepository` delete guard (adapted from the
-  /// `dance_sources` join to the `programs.venue_id` column).
-  Future<void> delete(String id) async {
+  /// Deletes the venue [id], guarding — **atomically** — against deleting a
+  /// venue any program still links to. The "is any program referencing this
+  /// venue?" check and the delete run inside a single transaction so no program
+  /// can acquire a reference between the check and the delete (no check-then-act
+  /// race). Throws a [StateError] if still referenced: callers must unlink (or
+  /// delete) the referencing programs first, since deleting a venue out from
+  /// under a linked program would orphan its reference. Mirrors the
+  /// `PublishedSourceRepository` delete guard (adapted from the `dance_sources`
+  /// join to the `programs.venue_id` column), tightened to be transactional
+  /// because `venueId` is an app-layer-enforced soft reference, not a DB FK.
+  Future<void> delete(String id) => _db.transaction(() async {
     final stillUsed = await (_db.select(
       _db.programs,
     )..where((t) => t.venueId.equals(id))).get();
@@ -73,6 +78,19 @@ class VenueRepository {
       );
     }
     await (_db.delete(_db.venues)..where((t) => t.id.equals(id))).go();
+  });
+
+  /// Unconditionally removes the venues [ids] in a single transaction, skipping
+  /// the reference guard. Intended solely for reverting a just-committed import
+  /// batch (see `CompendiumArchiveImporter.undo`), where the caller has already
+  /// removed the programs that referenced these venues; an empty [ids] is a
+  /// no-op. Ordinary deletes must go through [delete].
+  Future<void> hardDelete(Iterable<String> ids) {
+    final list = ids.toList();
+    if (list.isEmpty) return Future.value();
+    return _db.transaction(
+      () => (_db.delete(_db.venues)..where((t) => t.id.isIn(list))).go(),
+    );
   }
 
   Venue _toModel(VenueRow row) => Venue(

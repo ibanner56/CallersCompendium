@@ -464,6 +464,48 @@ void main() {
       expect(program.venueId, 'v1');
     });
 
+    test('stamps a venue-bearing archive at the venue schema version', () {
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
+      expect(map['schemaVersion'], archiveSchemaVersionVenues);
+    });
+
+    test('a program.venueId alone (no venues array) still raises the stamp', () {
+      // A dangling venueId with an omitted venues array must still advertise v2
+      // so an older reader warns instead of silently dropping the link.
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Linked',
+            venueId: 'v-missing',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        ],
+      );
+      final map = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      expect(map.containsKey('venues'), isFalse);
+      expect(map['schemaVersion'], archiveSchemaVersionVenues);
+    });
+
+    test('keeps a venue-less archive at the base version (back-compat)', () {
+      final map =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      expect(map['schemaVersion'], archiveSchemaVersionBase);
+    });
+
+    test('honors an explicitly higher requested schema version', () {
+      final archive = CompendiumArchive(
+        schemaVersion: archiveSchemaVersion + 5,
+        exportedAt: DateTime.utc(2026),
+      );
+      final map = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      expect(map['schemaVersion'], archiveSchemaVersion + 5);
+    });
+
     test('omits the venues array entirely when there are no venues', () {
       final archive = CompendiumArchive(
         exportedAt: DateTime.utc(2026),

@@ -18,7 +18,38 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 /// tolerates unknown fields and reads an archive written by a newer version on
 /// a best-effort basis (known fields only), surfacing a warning rather than
 /// failing.
-const int archiveSchemaVersion = 1;
+///
+/// Version history:
+/// * **v1** — the original envelope: dances, programs, choreographers,
+///   published sources, custom fields, tags.
+/// * **v2** — adds the schema-v13 venue entity: an optional top-level `venues`
+///   array and a `program.venueId` soft link. A **v1** reader silently ignores
+///   both, so an archive that actually carries venue data is stamped v2 (see
+///   [requiredSchemaVersion]) to trip the "newer than supported" warning
+///   instead of dropping the venue records. Venue-*less* archives keep being
+///   stamped v1 so pre-venue readers still accept them byte-compatibly.
+const int archiveSchemaVersion = archiveSchemaVersionVenues;
+
+/// The original, pre-venue archive envelope version.
+const int archiveSchemaVersionBase = 1;
+
+/// The envelope version introduced with the schema-v13 venue entity (see
+/// [archiveSchemaVersion]).
+const int archiveSchemaVersionVenues = 2;
+
+/// The minimum envelope version required to represent [archive] without silent
+/// data loss on an older reader: [archiveSchemaVersionVenues] when it carries
+/// any venue data (a non-empty `venues` list, or any program with a non-null
+/// `venueId`), otherwise [archiveSchemaVersionBase].
+///
+/// The encoder stamps the wire version at `max(archive.schemaVersion, this)` so
+/// venue-bearing archives always advertise v2 (old readers warn instead of
+/// dropping venues) while venue-less archives stay backward-compatible at v1 —
+/// and an explicitly higher requested version is still honored.
+int requiredSchemaVersion(CompendiumArchive archive) =>
+    archive.venues.isNotEmpty || archive.programs.any((p) => p.venueId != null)
+    ? archiveSchemaVersionVenues
+    : archiveSchemaVersionBase;
 
 /// How a [CompendiumArchive] is applied to a live dataset on restore.
 enum RestoreMode {
@@ -48,7 +79,7 @@ enum RestoreMode {
 @immutable
 class CompendiumArchive {
   const CompendiumArchive({
-    this.schemaVersion = archiveSchemaVersion,
+    this.schemaVersion = archiveSchemaVersionBase,
     required this.exportedAt,
     this.dances = const [],
     this.programs = const [],
@@ -59,7 +90,10 @@ class CompendiumArchive {
     this.venues = const [],
   });
 
-  /// The [archiveSchemaVersion] this archive was written under.
+  /// The [archiveSchemaVersion] this archive is stamped as. Defaults to
+  /// [archiveSchemaVersionBase]; the encoder raises the version it actually
+  /// writes to at least [requiredSchemaVersion] so a venue-bearing archive is
+  /// always advertised as v2 even when constructed with the default.
   final int schemaVersion;
 
   /// When the archive was produced (UTC).

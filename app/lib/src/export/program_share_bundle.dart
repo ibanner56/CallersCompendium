@@ -42,6 +42,19 @@ import 'share_sanitization.dart';
 ///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
+///
+/// Venue gathering is deliberately **not** done here yet: a program's
+/// `venueId` (schema v13) rides along inside the embedded [program], but the
+/// referenced [Venue] record is not gathered into `CompendiumArchive.venues`.
+/// The core receive path handles this safely — `CompendiumArchiveImporter`
+/// nulls a `venueId` that resolves to no bundled venue — so a shared program
+/// simply arrives without its venue link for now. Populating `venueId` in the
+/// editor UI (PR B) and gathering the referenced venue here (mirroring the
+/// dance/choreographer gathering above, minding the same privacy sanitization
+/// for venue contact fields) is deferred to the display/export PR (C).
+// TODO(PR C, issue #298): gather the program's referenced Venue into
+// CompendiumArchive.venues so a shared program carries its venue record, once
+// venueId is UI-populated (PR B) and a venue resolver is wired here.
 String buildProgramShareBundle(
   Program program, {
   required Dance? Function(String danceId) danceFor,

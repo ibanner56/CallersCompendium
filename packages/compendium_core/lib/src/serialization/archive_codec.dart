@@ -42,7 +42,12 @@ String encodeArchive(CompendiumArchive archive) =>
 
 /// The canonical JSON object for [archive] (entities sorted by id).
 Map<String, Object?> archiveToJson(CompendiumArchive archive) => {
-  'schemaVersion': archive.schemaVersion,
+  // Stamp at least the version the content requires (v2 when venue data is
+  // present) so an older reader warns rather than silently dropping venues,
+  // while honoring an explicitly higher requested version.
+  'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
+      ? archive.schemaVersion
+      : requiredSchemaVersion(archive),
   'exportedAt': _iso(archive.exportedAt),
   'choreographers': [
     for (final c in _sortedById(archive.choreographers, (c) => c.id))

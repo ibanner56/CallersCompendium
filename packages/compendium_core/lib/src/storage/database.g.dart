@@ -2793,10 +2793,13 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   /// Optional reference to a first-class [Venues] row (`venues.id`), added in
   /// schema v13. A deliberately un-constrained soft reference (no drift
   /// `.references()`/FK): the free-text [venue] label and this entity link
-  /// coexist non-destructively, and referential integrity is enforced at the
-  /// app layer by `VenueRepository.delete`'s guard rather than a DB constraint
-  /// (so an import can carry a program whose venue record is absent without
-  /// tripping a foreign key).
+  /// coexist non-destructively. Referential integrity is enforced at the app
+  /// layer instead of by a DB constraint — `ProgramRepository` rejects a write
+  /// whose non-null `venueId` has no matching venue (checked inside the write
+  /// transaction), and `VenueRepository.delete` atomically refuses to remove a
+  /// venue any program still references. Import paths resolve-or-null a dangling
+  /// `venueId` before persisting, so a bundle can carry a program whose venue
+  /// record is absent without tripping the write-time check.
   final String? venueId;
   final String? band;
   final String? caller;

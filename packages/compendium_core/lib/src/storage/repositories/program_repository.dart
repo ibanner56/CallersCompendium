@@ -147,6 +147,28 @@ class ProgramRepository {
     for (final slot in program.slots) {
       assertUtcOrNull(slot.performedAt, 'slot.performedAt');
     }
+    // `venueId` is a soft reference (no DB foreign key — see [Programs.venueId]),
+    // so referential integrity is enforced here at the app layer instead: a
+    // non-null `venueId` must point at an existing venue, checked *inside* this
+    // write transaction so the reference cannot become dangling between a
+    // check and the write. Import paths (ArchiveRestorer, CompendiumArchive
+    // importer) resolve-or-null a dangling `venueId` *before* calling the repo,
+    // so a bundle referencing an absent venue never reaches this throw.
+    final venueId = program.venueId;
+    if (venueId != null) {
+      final venueExists =
+          await (_db.select(_db.venues)
+                ..where((t) => t.id.equals(venueId))
+                ..limit(1))
+              .getSingleOrNull() !=
+          null;
+      if (!venueExists) {
+        throw StateError(
+          'cannot save program "${program.id}": venueId "$venueId" '
+          'references a venue that does not exist',
+        );
+      }
+    }
     // Auto-stamp performed slots on a status transition to `performed`
     // (issue #356): a program's *status* being performed and its per-slot
     // calling history should agree. We only stamp on the transition — reading
