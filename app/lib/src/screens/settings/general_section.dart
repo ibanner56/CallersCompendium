@@ -15,11 +15,13 @@ import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
 import '../../data/decimal_turns_scope.dart';
+import '../../data/venue_entity_mode_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
 import '../import_review_screen.dart';
 import '../reparse_custom_figures_screen.dart';
+import '../venue_manager_screen.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race
@@ -306,6 +308,13 @@ class _GeneralSectionState extends State<GeneralSection> {
     );
   }
 
+  /// Opens the venue manager (browse/create/edit/delete reusable venues).
+  Future<void> _onManageVenues() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const VenueManagerScreen()));
+  }
+
   Future<void> _onRequirePerformedForHistoryChanged(bool value) async {
     // Same instant-notifier-then-persist pattern as dialect/theme: flip the
     // live notifier so every dependent (including an open dance-detail screen)
@@ -349,6 +358,17 @@ class _GeneralSectionState extends State<GeneralSection> {
     await repos.settings.set(kConfirmBeforeDeleteKey, value);
   }
 
+  Future<void> _onVenueEntityModeChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern: flip the live notifier so an
+    // open program editor swaps its venue field/picker immediately, then
+    // persist in the background. The toggle is entry/display-mode only — both
+    // Program.venue and Program.venueId persist independently, so flipping it
+    // never clears the other mode's value.
+    VenueEntityModeScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kVenueEntityModeKey, value);
+  }
+
   @override
   Widget build(BuildContext context) {
     _ensureAutoSizeLoaded(context);
@@ -367,6 +387,9 @@ class _GeneralSectionState extends State<GeneralSection> {
       onDecimalTurnsChanged: _onDecimalTurnsChanged,
       confirmBeforeDelete: ConfirmBeforeDeleteScope.of(context),
       onConfirmBeforeDeleteChanged: _onConfirmBeforeDeleteChanged,
+      venueEntityMode: VenueEntityModeScope.of(context),
+      onVenueEntityModeChanged: _onVenueEntityModeChanged,
+      onManageVenues: _onManageVenues,
       autoSizePerform: _autoSizePerform ?? true,
       onAutoSizeChanged: _onAutoSizeChanged,
       softDeleteRetentionDays:
@@ -403,6 +426,9 @@ class _GeneralView extends StatelessWidget {
     required this.onDecimalTurnsChanged,
     required this.confirmBeforeDelete,
     required this.onConfirmBeforeDeleteChanged,
+    required this.venueEntityMode,
+    required this.onVenueEntityModeChanged,
+    required this.onManageVenues,
     required this.autoSizePerform,
     required this.onAutoSizeChanged,
     required this.softDeleteRetentionDays,
@@ -428,6 +454,11 @@ class _GeneralView extends StatelessWidget {
   final ValueChanged<bool> onDecimalTurnsChanged;
   final bool confirmBeforeDelete;
   final ValueChanged<bool> onConfirmBeforeDeleteChanged;
+  final bool venueEntityMode;
+  final ValueChanged<bool> onVenueEntityModeChanged;
+
+  /// Opens the venue manager screen.
+  final Future<void> Function() onManageVenues;
   final bool autoSizePerform;
   final ValueChanged<bool> onAutoSizeChanged;
 
@@ -468,6 +499,30 @@ class _GeneralView extends StatelessWidget {
             'Turn off to sort by the literal title.',
           ),
           isThreeLine: true,
+        ),
+        SectionHeader(title: 'Venues'),
+        SwitchListTile(
+          key: const ValueKey('general-venue-entity-mode'),
+          value: venueEntityMode,
+          onChanged: onVenueEntityModeChanged,
+          title: const Text('Use reusable venue records'),
+          subtitle: const Text(
+            'Turn venues into reusable records with address, contacts, and '
+            'schedule that many programs can share and you edit in one place. '
+            'When off, a program’s venue is a simple free-text field. Switching '
+            'is lossless — your typed venue and any linked record are both kept.',
+          ),
+          isThreeLine: true,
+        ),
+        ListTile(
+          key: const ValueKey('general-manage-venues'),
+          leading: const Icon(Icons.place_outlined),
+          title: const Text('Manage venues'),
+          subtitle: const Text(
+            'Browse, edit, and delete your reusable venue records.',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: onManageVenues,
         ),
         SectionHeader(title: 'Performance'),
         SwitchListTile(

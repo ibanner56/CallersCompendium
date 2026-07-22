@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/widgets.dart';
 
+import '../data/venue_label.dart';
+
 /// A resolved custom-field row for display: the definition's [label] paired
 /// with its already-formatted [value].
 typedef CustomFieldDisplay = ({String label, String value});
@@ -26,6 +28,7 @@ class DanceDetailData {
     required this.callingHistory,
     required this.crossRefLinker,
     this.halfCallingStats = HalfCallingStats.empty,
+    this.venueLabelsByProgramId = const {},
   });
 
   final Dance dance;
@@ -63,6 +66,15 @@ class DanceDetailData {
   /// changes; only [load] populates it via the repository. Respects
   /// [performedOnly] the same way [callingHistory] does.
   final HalfCallingStats halfCallingStats;
+
+  /// Maps programId → the venue label to show for that program's calling-history
+  /// row: the linked [Venue]'s display name when the program's `venueId`
+  /// resolves, otherwise its free-text `venue`. Resolved in the app layer from
+  /// the [DanceCallingRecord]'s `venueId` + `venue` against the venue catalogue
+  /// (no per-program hydration). Defaults to `const {}` so the online-preview
+  /// constructors need no changes; only [load] populates it. Rows fall back to
+  /// the record's free-text `venue` for any program missing here.
+  final Map<String, String?> venueLabelsByProgramId;
 
   /// Hydrates the detail data for the dance identified by [danceId] from
   /// [repos], returning `null` when no such dance exists. [performedOnly]
@@ -126,6 +138,33 @@ class DanceDetailData {
       excludeId: dance.id,
     );
 
+    final callingHistory = await repos.programs.callingHistoryForDance(
+      danceId,
+      performedOnly: performedOnly,
+    );
+
+    // Resolve each calling-history program's venue label in the app layer.
+    // Each [DanceCallingRecord] now carries both the program's free-text `venue`
+    // and its linked `venueId`, so we only need the venue catalogue (one query)
+    // — no per-program hydration — to apply the same [resolveVenueLabel]
+    // fallback used elsewhere. Keeps venue resolution app-layer only.
+    final venueLabelsByProgramId = <String, String?>{};
+    if (callingHistory.isNotEmpty) {
+      // Only pay for the venue catalogue when a record actually links one;
+      // otherwise every label resolves from free text alone.
+      final hasLinkedVenue = callingHistory.any((r) => r.venueId != null);
+      final venuesById = hasLinkedVenue
+          ? {for (final v in await repos.venues.listAll()) v.id: v}
+          : const <String, Venue>{};
+      for (final record in callingHistory) {
+        venueLabelsByProgramId[record.programId] = resolveVenueLabelParts(
+          record.venueId,
+          record.venue,
+          venuesById,
+        );
+      }
+    }
+
     return DanceDetailData(
       dance: dance,
       authorNames: [
@@ -147,15 +186,13 @@ class DanceDetailData {
       ],
       relatedDanceTitles: relatedDanceTitles,
       sourcesById: sourcesById,
-      callingHistory: await repos.programs.callingHistoryForDance(
-        danceId,
-        performedOnly: performedOnly,
-      ),
+      callingHistory: callingHistory,
       crossRefLinker: crossRefLinker,
       halfCallingStats: await repos.programs.halfCallingStatsForDance(
         danceId,
         performedOnly: performedOnly,
       ),
+      venueLabelsByProgramId: venueLabelsByProgramId,
     );
   }
 }

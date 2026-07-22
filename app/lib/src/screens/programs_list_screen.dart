@@ -83,6 +83,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   bool _started = false;
 
   List<Program>? _programs;
+  Map<String, Venue> _venuesById = const {};
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
@@ -120,9 +121,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Future<void> _load() async {
     try {
       final programs = await _repos.programs.listAll();
+      // Only load the venue catalogue when a program actually links one;
+      // ProgramListTile falls back to Program.venue with an empty map.
+      final hasLinkedVenue = programs.any((p) => p.venueId != null);
+      final venuesById = hasLinkedVenue
+          ? {for (final v in await _repos.venues.listAll()) v.id: v}
+          : const <String, Venue>{};
       if (!mounted) return;
       setState(() {
         _programs = programs;
+        _venuesById = venuesById;
         _loadError = null;
       });
     } catch (error) {
@@ -480,6 +488,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 ),
                 child: ProgramListTile(
                   program: program,
+                  venuesById: _venuesById,
                   selected:
                       widget.onSelectProgram != null &&
                       widget.selectedProgramId == program.id,

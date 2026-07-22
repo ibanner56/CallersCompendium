@@ -35,6 +35,7 @@ import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
+import 'src/data/venue_entity_mode_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/diagnostics/crash_log_store.dart';
 import 'src/diagnostics/crash_reporter.dart';
@@ -47,7 +48,8 @@ import 'src/screens/settings_screen.dart'
         kAppThemeKey,
         kColourDanceThemeKey,
         kRequirePerformedForHistoryKey,
-        kSortIgnoreArticlesKey;
+        kSortIgnoreArticlesKey,
+        kVenueEntityModeKey;
 import 'src/theme/app_theme.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
@@ -228,6 +230,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   );
   final ValueNotifier<bool> _decimalTurnsNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _venueEntityModeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _setListColorCodingNotifier = ValueNotifier(true);
   final ValueNotifier<DateFormatPref> _dateFormatNotifier = ValueNotifier(
@@ -635,6 +638,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (confirmBeforeDelete is bool) {
       _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
     }
+    // Load the "venue entity mode" setting, off by default when unset. Opt-in,
+    // so a read failure or missing key keeps the simple free-text venue field.
+    final venueEntityMode = await _appData.repositories.settings
+        .get(kVenueEntityModeKey)
+        .catchError((_) => null);
+    if (venueEntityMode is bool) {
+      _venueEntityModeNotifier.value = venueEntityMode;
+    }
     // Load the colour-tint easter egg (#307), off by default when unset. It is
     // opt-in, so a read failure or missing key stays off.
     final colourDanceTheme = await _appData.repositories.settings
@@ -714,6 +725,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _verboseFigureRenderingNotifier.dispose();
     _decimalTurnsNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
+    _venueEntityModeNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
     _dateFormatNotifier.dispose();
@@ -899,7 +911,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                   child: CollectionFilterScope(
                                                     controller:
                                                         _collectionFilterController,
-                                                    child: child!,
+                                                    child: VenueEntityModeScope(
+                                                      notifier:
+                                                          _venueEntityModeNotifier,
+                                                      child: child!,
+                                                    ),
                                                   ),
                                                 ),
                                               ),

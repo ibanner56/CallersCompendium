@@ -26,3 +26,11 @@ const String kSortIgnoreArticlesKey = 'sort_ignore_articles';
 /// (issue #307). Stored as a bool; absent/unset means off (`false`), so the
 /// feature is strictly opt-in.
 const String kColourDanceThemeKey = 'colour_dance_theme';
+
+/// Key used to persist the "venue entity mode" General setting. Stored as a
+/// bool; absent/unset means off (`false`), so programs use the simple free-text
+/// venue field by default. When on, the program editor swaps that field for a
+/// picker over reusable [Venue] records (address/contacts/schedule). The toggle
+/// is entry/display-mode only: `Program.venue` and `Program.venueId` persist
+/// independently so flipping it is lossless in both directions.
+const String kVenueEntityModeKey = 'venue_entity_mode';
