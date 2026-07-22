@@ -1580,6 +1580,24 @@ abstract class AppLocalizations {
   /// **'e.g. Grange Hall'**
   String get programsVenueHint;
 
+  /// Shown in the program editor's simple (free-text) venue mode when the program is also linked to a saved venue; explains the link is preserved and how to view it.
+  ///
+  /// In en, this message translates to:
+  /// **'Also linked to saved venue: {venueName}. Turn on reusable venues in Settings to view or change it.'**
+  String programsVenueLinkedHint(String venueName);
+
+  /// Fallback name used in programsVenueLinkedHint when the linked venue's display name is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'a saved venue'**
+  String get programsVenueLinkedHintFallbackName;
+
+  /// Shown in the program editor's enriched (picker) venue mode when the program has legacy free-text but no linked venue yet; invites linking while assuring the typed text is preserved.
+  ///
+  /// In en, this message translates to:
+  /// **'Previously entered venue: “{venueText}”. Link a saved venue below to use reusable details — your typed venue is kept.'**
+  String programsVenueLegacyTextHint(String venueText);
+
   /// Field label for the program's band in the editor.
   ///
   /// In en, this message translates to:

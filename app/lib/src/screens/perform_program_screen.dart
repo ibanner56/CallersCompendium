@@ -10,9 +10,11 @@ import '../data/dialect_library_scope.dart';
 import '../data/repositories_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/collection_data.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
+import 'perform_a11y_prefs.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
@@ -154,19 +156,39 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     _groups.isEmpty ? 0 : _groups.length - 1,
   );
 
+  /// Manual large-print text scale, applied when auto-size is off. Persisted
+  /// across sessions (issue #449) and restored on entry so a caller's chosen
+  /// size survives app relaunch instead of resetting to the default.
   double _textScale = kPerformDefaultScale;
+
+  /// When `true` figures render canonical role/move tokens; otherwise the
+  /// user's active dialect. Persisted across sessions (issue #449) and restored
+  /// on entry.
   bool _canonicalView = false;
 
   /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the
   /// General setting (on by default) in [didChangeDependencies]; recomputes per
   /// slot as the shown dance/slot changes.
   bool _autoSize = true;
-  bool _autoSizeLoaded = false;
+
+  /// Guards the one-shot settings load in [didChangeDependencies] (auto-size
+  /// plus the persisted Perform a11y prefs) so it runs exactly once.
+  bool _prefsLoaded = false;
+
+  /// Persisted Perform a11y prefs store (issue #449), created once the
+  /// [RepositoriesScope] is available in [didChangeDependencies].
+  PerformA11yPrefsStore? _a11yPrefs;
 
   /// Set once the user changes auto-size in-view (toggle or A-/A+). Guards the
   /// async settings load from overwriting an in-session choice if the read
   /// completes after the user has already acted.
   bool _autoSizeUserSet = false;
+
+  /// Per-pref equivalents of [_autoSizeUserSet]: once the caller changes a pref
+  /// in-view, the async restore must not clobber that fresh choice.
+  bool _textScaleUserSet = false;
+  bool _stageModeUserSet = false;
+  bool _canonicalUserSet = false;
 
   /// Ephemeral, in-view timing state (`docs/ROADMAP.md` §5.2). Timing is a
   /// display-only aid for the caller during an event: never persisted and never
@@ -193,8 +215,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   late int _slotStartSeconds = widget.initialSlotStartSeconds;
   late bool _paused = widget.initialPaused;
 
-  /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5). In
-  /// view only; persistence to Settings is a documented later follow-up.
+  /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5).
+  /// Persisted across sessions (issue #449) and restored on entry.
   bool _stageMode = true;
 
   /// Auto-fit scale cache shared across all slots (ROADMAP G.1). Owned here —
@@ -238,9 +260,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_autoSizeLoaded) return;
-    _autoSizeLoaded = true;
-    RepositoriesScope.of(context).settings
+    if (_prefsLoaded) return;
+    _prefsLoaded = true;
+    final settings = RepositoriesScope.of(context).settings;
+    settings
         .get(kAutoSizePerformKey)
         .then((v) {
           // Don't clobber an in-view choice the user made before the read resolved.
@@ -251,6 +274,34 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         .catchError((_) {
           // Read failure: keep the on-by-default value; nothing to restore.
         });
+    _a11yPrefs = PerformA11yPrefsStore(settings);
+    _a11yPrefs!
+        .load()
+        .then((prefs) {
+          if (!mounted) return;
+          // Apply each restored pref unless the caller already changed it
+          // in-view before the async read resolved.
+          setState(() {
+            if (!_textScaleUserSet) _textScale = prefs.textScale;
+            if (!_stageModeUserSet) _stageMode = prefs.stageMode;
+            if (!_canonicalUserSet) _canonicalView = prefs.canonicalView;
+          });
+        })
+        .catchError((_) {
+          // Read/parse failure: keep defaults; nothing to restore.
+        });
+  }
+
+  void _persistTextScale() {
+    _a11yPrefs?.saveTextScale(_textScale).catchError((_) {});
+  }
+
+  void _persistStageMode() {
+    _a11yPrefs?.saveStageMode(_stageMode).catchError((_) {});
+  }
+
+  void _persistCanonicalView() {
+    _a11yPrefs?.saveCanonicalView(_canonicalView).catchError((_) {});
   }
 
   /// Marks the current group as freshly entered, zeroing the per-slot elapsed.
@@ -329,20 +380,24 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     setState(() {
       // Using A-/A+ hands control back to the manual size (ROADMAP G.1).
       _autoSizeUserSet = true;
+      _textScaleUserSet = true;
       _autoSize = false;
       _textScale = (_textScale - kPerformScaleStep).clamp(
         kPerformMinScale,
         double.infinity,
       );
     });
+    _persistTextScale();
   }
 
   void _increaseTextSize() {
     setState(() {
       _autoSizeUserSet = true;
+      _textScaleUserSet = true;
       _autoSize = false;
       _textScale += kPerformScaleStep;
     });
+    _persistTextScale();
   }
 
   bool get _hasPrev => _groupIndex > 0;
@@ -525,18 +580,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     _applyProgram(updated, announce: announce);
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          action: SnackBarAction(
-            label: l10n.commonUndo,
-            onPressed: () =>
-                _applyProgram(previous, announce: l10n.performAdjustmentUndone),
-          ),
-        ),
-      );
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      message: message,
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () =>
+          _applyProgram(previous, announce: l10n.performAdjustmentUndone),
+    );
   }
 
   /// Opens the non-destructive "adjust" sheet (`docs/design/ux.md` §5) over the
@@ -696,8 +747,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                   if (!isCanonicalDialect)
                     PerformDialectToggle(
                       canonical: _canonicalView,
-                      onChanged: (value) =>
-                          setState(() => _canonicalView = value),
+                      onChanged: (value) {
+                        setState(() {
+                          _canonicalUserSet = true;
+                          _canonicalView = value;
+                        });
+                        _persistCanonicalView();
+                      },
                     ),
                 ],
                 overflowActions: [
@@ -755,13 +811,24 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                       icon: Icons.groups,
                       label: l10n.performShowCanonicalTerms,
                       toggledOn: _canonicalView,
-                      onSelected: () =>
-                          setState(() => _canonicalView = !_canonicalView),
+                      onSelected: () {
+                        setState(() {
+                          _canonicalUserSet = true;
+                          _canonicalView = !_canonicalView;
+                        });
+                        _persistCanonicalView();
+                      },
                     ),
                 ],
                 trailingPrimary: PerformStageToggle(
                   stageOn: _stageMode,
-                  onChanged: (value) => setState(() => _stageMode = value),
+                  onChanged: (value) {
+                    setState(() {
+                      _stageModeUserSet = true;
+                      _stageMode = value;
+                    });
+                    _persistStageMode();
+                  },
                 ),
               ),
             ),

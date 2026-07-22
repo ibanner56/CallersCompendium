@@ -35,6 +35,7 @@ import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
+import 'src/data/venue_entity_mode_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/diagnostics/crash_log_store.dart';
 import 'src/diagnostics/crash_reporter.dart';
@@ -47,7 +48,8 @@ import 'src/screens/settings_screen.dart'
         kAppThemeKey,
         kColourDanceThemeKey,
         kRequirePerformedForHistoryKey,
-        kSortIgnoreArticlesKey;
+        kSortIgnoreArticlesKey,
+        kVenueEntityModeKey;
 import 'src/theme/app_theme.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
@@ -84,8 +86,9 @@ Future<void> main() async {
         appData: appData,
         windowService: windowService,
         crashReporter: crashReporter,
-        migrationPreflight: () => runMigrationPreflightForApp(
+        migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
           runningSchemaVersion: kCompendiumSchemaVersion,
+          onSnapshotFailure: onSnapshotFailure,
         ),
         seedInitialCollection: (repos) => SeedService(repos).ensureSeeded(),
         incomingFileChannel: IncomingFileChannel(),
@@ -140,9 +143,15 @@ class CompendiumApp extends StatefulWidget {
   /// forces the database open (see `migration_guard.dart`): it guards against
   /// opening a file written by a newer build (throws [DatabaseDowngradeError],
   /// routed to the [AppBootstrap] error screen) and snapshots the file before a
-  /// pending upgrade migration. Injected from [main]; left `null` in tests that
-  /// don't exercise it (the step is then skipped), mirroring [integrityCheck].
-  final Future<void> Function()? migrationPreflight;
+  /// pending upgrade migration. It is handed a [SnapshotFailureDecision] seam so
+  /// that, when the pre-migration snapshot fails, it can ask the user whether to
+  /// proceed without a backup or abort (issue #442) — the app supplies
+  /// [_CompendiumAppState._confirmProceedWithoutBackup], which pumps a blocking
+  /// consent dialog on the root navigator. Injected from [main]; left `null` in
+  /// tests that don't exercise it (the step is then skipped), mirroring
+  /// [integrityCheck].
+  final Future<void> Function(SnapshotFailureDecision onSnapshotFailure)?
+  migrationPreflight;
 
   /// Fast, once-per-launch data-integrity probe run during bootstrap. Returns
   /// `true` when the database is healthy; `false` triggers a (non-fatal)
@@ -202,6 +211,15 @@ class CompendiumApp extends StatefulWidget {
 class _CompendiumAppState extends State<CompendiumApp> {
   late final AppData _appData;
   late Future<void> _bootstrap;
+
+  /// Determinate progress of the post-migration derived-index rebuild, surfaced
+  /// on the [AppBootstrap] loading screen so a large-collection rebuild shows a
+  /// progress bar instead of appearing hung (#440). `null` until (and unless) a
+  /// rebuild is actually owed; set from [_startupSequence] via the
+  /// `onDerivedRebuildProgress` callback that [CompendiumRepositories.ensureMigrated]
+  /// forwards to the repository.
+  final ValueNotifier<DerivedRebuildProgress?> _derivedRebuildProgress =
+      ValueNotifier<DerivedRebuildProgress?>(null);
   final ValueNotifier<Dialect> _dialectNotifier = ValueNotifier(
     Dialect.larksRobins,
   );
@@ -212,12 +230,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
     false,
   );
   final ValueNotifier<bool> _sortIgnoreArticlesNotifier = ValueNotifier(true);
-  final ValueNotifier<bool> _reduceMotionNotifier = ValueNotifier(false);
+  // Tri-state (issue #447): null = unset → follow the OS-level Reduce Motion
+  // preference (MediaQuery.disableAnimations); true/false = explicit in-app
+  // override. Resolved to an effective bool by ReduceMotionScope.of.
+  final ValueNotifier<bool?> _reduceMotionNotifier = ValueNotifier<bool?>(null);
   final ValueNotifier<bool> _verboseFigureRenderingNotifier = ValueNotifier(
     false,
   );
   final ValueNotifier<bool> _decimalTurnsNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _confirmBeforeDeleteNotifier = ValueNotifier(false);
+  final ValueNotifier<bool> _venueEntityModeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _colourDanceThemeNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _setListColorCodingNotifier = ValueNotifier(true);
   final ValueNotifier<DateFormatPref> _dateFormatNotifier = ValueNotifier(
@@ -411,13 +433,71 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
   }
 
+  /// Consent seam for the pre-migration snapshot guard (issue #442). Passed to
+  /// [runMigrationPreflight] and invoked *only* when the automatic pre-upgrade
+  /// backup fails. Because the preflight is the very first bootstrap step — the
+  /// full app UI doesn't exist yet — this pumps a blocking dialog on the root
+  /// navigator (over the bootstrap loading screen) that spells out the
+  /// data-loss risk and names the likely cause, then returns the user's
+  /// explicit choice: `true` to migrate without a backup, `false` (the safe
+  /// default) to abort startup. Returning `false` makes the guard throw
+  /// [MigrationSnapshotAborted], which the [AppBootstrap] terminal screen
+  /// renders — so no schema change happens until the user decides.
+  Future<bool> _confirmProceedWithoutBackup(SnapshotFailure failure) async {
+    // The root navigator's overlay may not be mounted for the first frame yet
+    // (the snapshot can fail before the app has settled). Wait for it; if it
+    // never becomes available there is no way to ask, so fail closed.
+    await WidgetsBinding.instance.endOfFrame;
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return false;
+
+    final likelyCause = failure.likelyCause;
+    final proceed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          icon: const Icon(Icons.warning_amber_rounded),
+          title: const Text('Couldn\u2019t back up your data'),
+          content: Text(
+            'Before upgrading your saved data to a new format, Caller\u2019s '
+            'Compendium makes an automatic backup so a failed upgrade can be '
+            'undone. That backup couldn\u2019t be created this time.'
+            '${likelyCause.isEmpty ? '' : '\n\n$likelyCause'}'
+            '\n\nIf you continue without a backup and the upgrade is '
+            'interrupted, some of your dances or programs could be lost. You '
+            'can quit, free up space (or fix the backups folder), and reopen '
+            'the app to try again.',
+          ),
+          actions: [
+            // Safest choice is the default: Quit, autofocused so a keyboard
+            // Enter/confirm aborts rather than proceeding without a backup.
+            TextButton(
+              autofocus: true,
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Quit'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Proceed without a backup'),
+            ),
+          ],
+        ),
+      ),
+    );
+    // A dismissed dialog (blocked above, but belt-and-braces) is the safe
+    // default: decline, so the guard fails closed.
+    return proceed ?? false;
+  }
+
   Future<void> _startupSequence() async {
     // Data-safety preflight, before anything opens the database (Phase 7):
     // refuse to open a file written by a newer build (routes to the error
     // screen) and snapshot the file before a pending upgrade migration. Runs
     // first so no drift open — including the window restore below — precedes it.
     if (widget.migrationPreflight != null) {
-      await widget.migrationPreflight!();
+      await widget.migrationPreflight!(_confirmProceedWithoutBackup);
     }
     // Restore the last-known desktop window size/position (no-op off desktop).
     // This reads the persisted frame, which forces the database open, so it
@@ -426,7 +506,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // on the error/retry screen instead of throwing out of `main` and leaving a
     // blank window with no way to recover (Stage 1.6).
     await widget.windowService.initialize();
-    await _appData.repositories.ensureMigrated();
+    // Reset progress at the start of each attempt (retry re-runs this) so a
+    // prior run's final value never lingers on the loading screen.
+    _derivedRebuildProgress.value = null;
+    await _appData.repositories.ensureMigrated(
+      onDerivedRebuildProgress: (progress) =>
+          _derivedRebuildProgress.value = progress,
+    );
     // First-run seed (issue: "first launch is never empty"): insert exactly one
     // seed dance on a fresh, empty install so the collection is never empty,
     // and never again thereafter (idempotent via a settings latch; safe to skip
@@ -533,9 +619,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (sortIgnoreArticles is bool) {
       _sortIgnoreArticlesNotifier.value = sortIgnoreArticles;
     }
-    // Load the three accessibility toggles (ROADMAP G.7), each defaulting to
-    // off (false) when unset. Defensive: a read failure falls back to false so
-    // startup never blocks on a settings hiccup.
+    // Load the accessibility toggles (ROADMAP G.7). Reduce-motion is tri-state
+    // (issue #447, WCAG 2.3.3): a stored `bool` is an explicit in-app override,
+    // while an absent key leaves the notifier `null` so the scope follows the
+    // OS-level Reduce Motion preference. Only coerce a genuine `bool` into an
+    // override so a missing key (or a read failure, coerced to `null` below)
+    // keeps "follow OS". The remaining toggles default to off (false) when
+    // unset; a read failure falls back so startup never blocks on a settings
+    // hiccup.
     final reduceMotion = await _appData.repositories.settings
         .get(kReduceMotionKey)
         .catchError((_) => null);
@@ -561,6 +652,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
         .catchError((_) => null);
     if (confirmBeforeDelete is bool) {
       _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
+    }
+    // Load the "venue entity mode" setting, off by default when unset. Opt-in,
+    // so a read failure or missing key keeps the simple free-text venue field.
+    final venueEntityMode = await _appData.repositories.settings
+        .get(kVenueEntityModeKey)
+        .catchError((_) => null);
+    if (venueEntityMode is bool) {
+      _venueEntityModeNotifier.value = venueEntityMode;
     }
     // Load the colour-tint easter egg (#307), off by default when unset. It is
     // opt-in, so a read failure or missing key stays off.
@@ -641,12 +740,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _verboseFigureRenderingNotifier.dispose();
     _decimalTurnsNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
+    _venueEntityModeNotifier.dispose();
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
     _dateFormatNotifier.dispose();
     _firstDayOfWeekNotifier.dispose();
     _localeNotifier.dispose();
     _collectionRefreshNotifier.dispose();
+    _derivedRebuildProgress.dispose();
     _collectionFilterController.dispose();
     _customThemes.dispose();
     _formationColors.dispose();
@@ -826,7 +927,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                                   child: CollectionFilterScope(
                                                     controller:
                                                         _collectionFilterController,
-                                                    child: child!,
+                                                    child: VenueEntityModeScope(
+                                                      notifier:
+                                                          _venueEntityModeNotifier,
+                                                      child: child!,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -852,6 +957,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
             future: _bootstrap,
             onRetry: _retry,
             builder: _buildReadyApp,
+            rebuildProgress: _derivedRebuildProgress,
           ),
         );
       },

@@ -7,6 +7,7 @@ import '../data/collection_refresh_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/choreographer_details_dialog.dart';
 import '../widgets/published_source_details_dialog.dart';
 import 'dance_editor/dance_editor_controller.dart';
@@ -240,16 +241,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     // Capture the messenger before popping so the snackbar is enqueued while
     // this Scaffold is still registered with it.
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(
-        key: const ValueKey('deleted-snackbar'),
-        content: Text('"$title" deleted.'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () =>
-              _repos.dances.restore(id, at: DateTime.now().toUtc()),
-        ),
-      ),
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+    showUndoSnackBar(
+      messenger,
+      key: const ValueKey('deleted-snackbar'),
+      message: '"$title" deleted.',
+      undoLabel: 'Undo',
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () => _repos.dances.restore(id, at: DateTime.now().toUtc()),
     );
     // Pop without a result: the editor's routes are typed `<void>`/`<String>`
     // and every caller reloads independently, so navigating back is enough.

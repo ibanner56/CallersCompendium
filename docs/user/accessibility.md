@@ -67,7 +67,7 @@ You can drive Caller's Compendium from the keyboard without reaching for a point
 
 A few smaller settings and behaviors round out the experience:
 
-- **Reduce motion** (**Settings › General**) dampens non-essential animation. If movement on screen is distracting or uncomfortable, turn this on.
+- **Reduce motion** (**Settings › General**) dampens non-essential animation. If you've already turned on *Reduce Motion* (or *Remove animations*) in your device's system accessibility settings, the app honors that automatically — you don't have to find this switch first. Flip the in-app switch when you want to override the system setting in either direction.
 - **Confirm before delete** (**Settings › General**) adds a prompt before you delete a dance or a program. And regardless of this setting, deletes are undoable — so a slip is recoverable either way.
 - **Meaning is never carried by color alone.** Statuses and special slots — like an [alt](./glossary.md#alt) — always include an icon and a text label as well as color, so nothing depends on being able to distinguish hues.
 - **Perform mode keeps the screen awake.** The display won't dim or sleep mid-dance while you're calling.

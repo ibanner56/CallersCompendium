@@ -57,10 +57,19 @@ class CompendiumRepositories {
   /// succeeds, so an interrupted upgrade is retried on the next open;
   /// concurrent calls share one in-flight future. A failed attempt clears the
   /// memo so a later call retries rather than replaying the cached failure.
-  Future<void> ensureMigrated() => _migration ??= _runMigration();
+  ///
+  /// [onDerivedRebuildProgress], when supplied, is forwarded to
+  /// [DanceRepository.rebuildAllDerived] so the caller (e.g. the app's startup
+  /// screen) can show determinate progress for the post-migration derived-index
+  /// rebuild instead of an indeterminate spinner (#440).
+  Future<void> ensureMigrated({
+    DerivedRebuildProgressCallback? onDerivedRebuildProgress,
+  }) => _migration ??= _runMigration(onDerivedRebuildProgress);
   Future<void>? _migration;
 
-  Future<void> _runMigration() async {
+  Future<void> _runMigration(
+    DerivedRebuildProgressCallback? onDerivedRebuildProgress,
+  ) async {
     try {
       // Force the lazily-opened database to run its migration strategy now, so
       // the marker (if any) reflects this open before we check it.
@@ -72,7 +81,7 @@ class CompendiumRepositories {
           )
           .get();
       if (marker.isNotEmpty) {
-        await runDerivedRebuild();
+        await runDerivedRebuild(onProgress: onDerivedRebuildProgress);
         await db.customStatement('DELETE FROM settings WHERE key = ?', [
           derivedRebuildRequiredKey,
         ]);
@@ -89,10 +98,12 @@ class CompendiumRepositories {
 
   /// The derived-index rebuild step of [ensureMigrated]. Extracted so tests can
   /// inject a transient failure and assert the marker survives and the retry
-  /// succeeds.
+  /// succeeds. [onProgress] is forwarded to [DanceRepository.rebuildAllDerived].
   @protected
   @visibleForTesting
-  Future<void> runDerivedRebuild() => dances.rebuildAllDerived();
+  Future<void> runDerivedRebuild({
+    DerivedRebuildProgressCallback? onProgress,
+  }) => dances.rebuildAllDerived(onProgress: onProgress);
 
   /// One-time repair for databases corrupted by a pre-fix hard purge (#429,
   /// #466). A `program_slots` row nulled to `(danceId, text) = (null, null)`

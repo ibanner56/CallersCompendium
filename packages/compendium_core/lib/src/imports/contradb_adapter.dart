@@ -4,6 +4,7 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import '../util/text_sanitizer.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -163,7 +164,7 @@ class ContraDbAdapter implements SourceAdapter {
     }
     final dance = Map<String, Object?>.from(decoded);
 
-    final title = _asString(dance['title'])?.trim();
+    final title = _sanitizeLine(_asString(dance['title']));
     if (title == null || title.isEmpty) {
       throw parseError(
         source,
@@ -175,7 +176,7 @@ class ContraDbAdapter implements SourceAdapter {
     final issues = <ImportIssue>[];
     final figures = _parseFigures(dance['figures_json'], issues);
     final formation = _parseFormation(dance['start_type'], issues);
-    final choreographer = _choreographerName(dance);
+    final choreographer = _sanitizeLine(_choreographerName(dance));
 
     return StructuredDraft(
       dance: Dance(
@@ -183,7 +184,12 @@ class ContraDbAdapter implements SourceAdapter {
         title: title,
         formation: formation,
         figures: figures,
-        hook: _asString(dance['hook'])?.trim() ?? '',
+        // `Dance.hook` is a one-line description, so sanitize single-line
+        // (allowLineBreaks: false) — strips embedded tab/newline/CR too (#444).
+        hook: sanitizeImportedText(
+          _asString(dance['hook'])?.trim() ?? '',
+          allowLineBreaks: false,
+        ),
         callingNotes: _buildNotes(dance),
         // The pipeline attaches provenance at commit, derived from `raw`.
         createdAt: _epoch,
@@ -277,7 +283,7 @@ class ContraDbAdapter implements SourceAdapter {
               note,
             );
       return customFigure(
-        reconstructed,
+        sanitizeImportedText(reconstructed),
         beats: explicitBeats ?? _trailingBeats(paramList) ?? 0,
         progression: progression,
         origin: moveName.isEmpty
@@ -300,7 +306,7 @@ class ContraDbAdapter implements SourceAdapter {
         ),
       );
       return customFigure(
-        _reconstructText(moveName, paramList, note),
+        sanitizeImportedText(_reconstructText(moveName, paramList, note)),
         beats: explicitBeats ?? _trailingBeats(paramList) ?? 0,
         progression: progression,
         origin: CustomOrigin.importGap,
@@ -316,7 +322,7 @@ class ContraDbAdapter implements SourceAdapter {
       explicitBeats: explicitBeats,
       // ContraDB embeds a `custom_figure` sub-field on contra corners / turn
       // alone; carry it onto our matching `custom` text param.
-      customFigureField: _asString(fig['custom_figure'])?.trim(),
+      customFigureField: _sanitizeLine(_asString(fig['custom_figure'])),
       index: index,
       issues: issues,
     );
@@ -400,7 +406,7 @@ class ContraDbAdapter implements SourceAdapter {
   // --- Formation -------------------------------------------------------------
 
   Formation _parseFormation(Object? startType, List<ImportIssue> issues) {
-    final text = _asString(startType)?.trim();
+    final text = _sanitizeLine(_asString(startType));
     if (text == null || text.isEmpty) {
       return const Formation(FormationShape.dupleImproper);
     }
@@ -460,7 +466,10 @@ class ContraDbAdapter implements SourceAdapter {
     if (notes != null && notes.isNotEmpty) {
       parts.add(notes);
     }
-    return parts.join('\n\n');
+    // Multi-line sanitize: strip control/bidi/format spoofing characters from
+    // the assembled free-text notes while keeping legitimate line breaks
+    // (issue #444).
+    return sanitizeImportedText(parts.join('\n\n')).trim();
   }
 
   String? _choreographerName(Map<String, Object?> dance) {
@@ -494,7 +503,7 @@ class ContraDbAdapter implements SourceAdapter {
     if (element is! Map) return null;
     final id = element['id'];
     if (id != null) return id.toString();
-    final title = _asString(element['title'])?.trim();
+    final title = _sanitizeLine(_asString(element['title']));
     if (title != null && title.isNotEmpty) {
       return 'title:${title.toLowerCase()}';
     }
@@ -503,7 +512,7 @@ class ContraDbAdapter implements SourceAdapter {
 
   static String? _titleOf(Object? element) {
     if (element is! Map) return null;
-    return _asString(element['title'])?.trim();
+    return _sanitizeLine(_asString(element['title']));
   }
 
   static String _reconstructText(
@@ -563,6 +572,18 @@ String _normalizeMove(String name) =>
     name.trim().toLowerCase().replaceAll(RegExp(r'[\s_&-]+'), ' ');
 
 String? _asString(Object? v) => v is String ? v : (v == null ? null : '$v');
+
+/// Sanitizes a single-line imported string (title, author, formation detail),
+/// stripping control, bidi-override and invisible/format characters plus any
+/// embedded tab/newline/CR (issue #444). The title also feeds external-id
+/// derivation (`title:<lowercased title>`), so removing line breaks keeps those
+/// ids stable. Returns null for null/blank/all-stripped input.
+String? _sanitizeLine(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  final clean = sanitizeImportedText(trimmed, allowLineBreaks: false).trim();
+  return clean.isEmpty ? null : clean;
+}
 
 bool? _asFlag(Object? v) {
   if (v is bool) return v;

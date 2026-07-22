@@ -686,4 +686,69 @@ void main() {
       expect(result.archive.venues, hasLength(2));
     });
   });
+
+  group('import sanitization (#444)', () {
+    // A hostile archive built BY HAND — `encodeArchive` only ever emits
+    // already-clean strings, so the decode-time sanitizer must be exercised
+    // with raw JSON that smuggles in control/bidi/format spoofing characters.
+    Map<String, Object?> hostileArchive() => {
+      'schemaVersion': archiveSchemaVersion,
+      'exportedAt': '2026-01-01T00:00:00.000Z',
+      'choreographers': [
+        {'id': 'c1', 'name': 'Al\u202Eice\u0007'},
+      ],
+      'dances': [
+        {
+          'id': 'd1',
+          'title': 'Petronella\u202E\u0000',
+          'authorIds': ['c1'],
+          'phraseStructure': '',
+          'hook': 'ho\u200Bok',
+          'callingNotes': 'line1\ndan\u0007ger',
+          'tunes': ['Tu\uFEFFne'],
+          'figures': [
+            {
+              'move': 'custom',
+              'params': {'text': 'balance \u202Eand swing', 'beats': 16},
+              'note': 'no\u0007te',
+            },
+          ],
+          'createdAt': '2026-01-01T00:00:00.000Z',
+          'updatedAt': '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    };
+
+    test('strips control/bidi chars from decoded text before storage', () {
+      final result = decodeArchive(jsonEncode(hostileArchive()));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+      final d = result.archive.dances.single;
+      expect(d.title, 'Petronella');
+      expect(d.hook, 'hook');
+      // The legitimate newline survives; only the control byte is removed.
+      expect(d.callingNotes, 'line1\ndanger');
+      expect(d.tunes, ['Tune']);
+
+      final f = d.figures.single;
+      expect(f.params['text'], 'balance and swing');
+      expect(f.note, 'note');
+      // Non-string params are left untouched.
+      expect(f.params['beats'], 16);
+
+      expect(result.archive.choreographers.single.name, 'Alice');
+    });
+
+    test('the stored title has no disallowed characters remaining', () {
+      final result = decodeArchive(jsonEncode(hostileArchive()));
+      final title = result.archive.dances.single.title;
+      expect(containsDisallowedText(title), isFalse);
+    });
+
+    test('a clean archive still round-trips byte-for-byte (identity)', () {
+      // Sanitizing decode must not perturb archives the encoder produced.
+      final json = encodeArchive(_sampleArchive());
+      expect(encodeArchive(decodeArchive(json).archive), json);
+    });
+  });
 }

@@ -99,6 +99,18 @@ by opening drift — and compares it to the running `kCompendiumSchemaVersion`:
   that hasn't been migrated to that schema yet, whereas a byte copy is
   schema-agnostic and the highest-fidelity rollback for a botched migration.
 
+  **If the snapshot fails, the preflight fails closed** (issue #442). A backup
+  that cannot be written (disk full, unwritable `db_backups`, checkpoint
+  failure) previously logged and migrated anyway; it now instead surfaces a
+  blocking consent dialog that explains the data-loss risk and names the likely
+  cause (low storage / unwritable backups folder). The user chooses **Quit**
+  (the default — abort so they can free space, fix permissions, or take a manual
+  backup first) or **Proceed without a backup**. Without an explicit "proceed"
+  the migration is aborted (`MigrationSnapshotAborted`, rendered on a
+  non-retryable `AppBootstrap` screen, mirroring the downgrade guard) so a failed
+  upgrade can never become an unrecoverable one. A successful snapshot is
+  unchanged — no prompt.
+
   **Restoring a pre-migration snapshot:** quit the app, replace the live
   `compendium.sqlite` in the app-documents directory with the chosen
   `.sqlite.bak` (renaming it back to `compendium.sqlite`), and relaunch. Because

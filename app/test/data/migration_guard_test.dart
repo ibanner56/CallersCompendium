@@ -143,7 +143,8 @@ void main() {
   });
 
   test(
-    'fails open when the snapshot cannot be written, so migration proceeds',
+    'consults the decision callback on snapshot failure and proceeds only on '
+    'explicit consent (issue #442 fail-closed)',
     () async {
       final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
       final older = kCompendiumSchemaVersion - 1;
@@ -155,21 +156,121 @@ void main() {
       await blocker.writeAsString('not a directory');
       final unwritableDir = Directory(p.join(blocker.path, 'db_backups'));
 
-      // Fail-open: the snapshot failure is swallowed and the preflight returns
-      // normally (so drift still migrates), unlike the fail-closed downgrade
-      // guard which must throw.
+      SnapshotFailure? seen;
+      await expectLater(
+        runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: unwritableDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+          onSnapshotFailure: (failure) async {
+            seen = failure;
+            return true; // user explicitly opts to proceed without a backup
+          },
+        ),
+        completes,
+      );
+
+      // The migration was gated on the callback (not auto-proceeded): the
+      // callback was consulted with an accurate description of the failure.
+      expect(seen, isNotNull);
+      expect(seen!.fromVersion, older);
+      expect(seen!.toVersion, kCompendiumSchemaVersion);
+      expect(seen!.error, isA<FileSystemException>());
+
+      // Consent given → the preflight returns (so drift still migrates) and the
+      // original file is left untouched for drift.
+      expect(unwritableDir.existsSync(), isFalse);
+      expect(readUserVersion(dbFile.path), older);
+    },
+  );
+
+  test(
+    'aborts (fail-closed) when the user declines, before any schema change',
+    () async {
+      final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+      final older = kCompendiumSchemaVersion - 1;
+      _createFixture(dbFile.path, userVersion: older, seedValue: 'survive');
+
+      final blocker = File(p.join(dir.path, 'blocker'));
+      await blocker.writeAsString('not a directory');
+      final unwritableDir = Directory(p.join(blocker.path, 'db_backups'));
+
+      var asked = false;
+      await expectLater(
+        runMigrationPreflight(
+          dbFile: dbFile,
+          snapshotDir: unwritableDir,
+          runningSchemaVersion: kCompendiumSchemaVersion,
+          onSnapshotFailure: (failure) async {
+            asked = true;
+            return false; // user chooses Quit
+          },
+        ),
+        throwsA(isA<MigrationSnapshotAborted>()),
+      );
+
+      // The user was asked, and declining stopped the preflight before any
+      // migration: no snapshot, and the file's version is unchanged.
+      expect(asked, isTrue);
+      expect(unwritableDir.existsSync(), isFalse);
+      expect(readUserVersion(dbFile.path), older);
+    },
+  );
+
+  test(
+    'fails closed with no decision callback, rather than silently proceeding',
+    () async {
+      final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+      final older = kCompendiumSchemaVersion - 1;
+      _createFixture(dbFile.path, userVersion: older, seedValue: 'survive');
+
+      final blocker = File(p.join(dir.path, 'blocker'));
+      await blocker.writeAsString('not a directory');
+      final unwritableDir = Directory(p.join(blocker.path, 'db_backups'));
+
+      // No onSnapshotFailure seam → the safest default is to abort, not assume
+      // consent (the pre-#442 behavior silently proceeded here).
       await expectLater(
         runMigrationPreflight(
           dbFile: dbFile,
           snapshotDir: unwritableDir,
           runningSchemaVersion: kCompendiumSchemaVersion,
         ),
-        completes,
+        throwsA(isA<MigrationSnapshotAborted>()),
       );
 
-      // No snapshot was written, and the original file is left for drift.
       expect(unwritableDir.existsSync(), isFalse);
       expect(readUserVersion(dbFile.path), older);
+    },
+  );
+
+  test(
+    'does not consult the decision callback when the snapshot succeeds',
+    () async {
+      final dbFile = File(p.join(dir.path, 'compendium.sqlite'));
+      final older = kCompendiumSchemaVersion - 1;
+      _createFixture(dbFile.path, userVersion: older, seedValue: 'pre-migrate');
+
+      var asked = false;
+      await runMigrationPreflight(
+        dbFile: dbFile,
+        snapshotDir: snapshotDir,
+        runningSchemaVersion: kCompendiumSchemaVersion,
+        onSnapshotFailure: (failure) async {
+          asked = true;
+          return false;
+        },
+      );
+
+      // Success path is unchanged: a snapshot is written and the consent seam
+      // is never touched (no prompt).
+      expect(asked, isFalse);
+      final snapshots = snapshotDir
+          .listSync()
+          .whereType<File>()
+          .where((f) => p.basename(f.path).endsWith('.sqlite.bak'))
+          .toList();
+      expect(snapshots, hasLength(1));
     },
   );
 

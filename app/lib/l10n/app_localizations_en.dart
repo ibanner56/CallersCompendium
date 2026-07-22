@@ -932,6 +932,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsVenueHint => 'e.g. Grange Hall';
 
   @override
+  String programsVenueLinkedHint(String venueName) {
+    return 'Also linked to saved venue: $venueName. Turn on reusable venues in Settings to view or change it.';
+  }
+
+  @override
+  String get programsVenueLinkedHintFallbackName => 'a saved venue';
+
+  @override
+  String programsVenueLegacyTextHint(String venueText) {
+    return 'Previously entered venue: “$venueText”. Link a saved venue below to use reusable details — your typed venue is kept.';
+  }
+
+  @override
   String get programsBandLabel => 'Band';
 
   @override

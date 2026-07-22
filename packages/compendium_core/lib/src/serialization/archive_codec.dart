@@ -14,6 +14,7 @@ import '../model/published_source.dart';
 import '../model/source_citation.dart';
 import '../model/tag.dart';
 import '../model/venue.dart';
+import '../util/text_sanitizer.dart';
 import 'compendium_archive.dart';
 import 'figure_codec.dart';
 
@@ -568,10 +569,31 @@ List<Figure> _figuresFromJson(Object? raw) {
   return [
     for (final e in raw)
       if (e is Map)
-        figureFromJson(e.cast<String, Object?>())
+        figureFromJson(_sanitizeFigureJson(e.cast<String, Object?>()))
       else
         throw FormatException('figure entries must be objects: $e'),
   ];
+}
+
+/// Sanitizes the free-text fields of a raw figure JSON object before it is
+/// decoded, so an imported archive/.ccshare cannot store a custom figure whose
+/// display text (`params['text']`) or `note` carries control/bidi/format
+/// spoofing characters (issue #444). The structural `move` key and non-string
+/// params (e.g. numeric `beats`) are left untouched.
+Map<String, Object?> _sanitizeFigureJson(Map<String, Object?> m) {
+  final out = Map<String, Object?>.of(m);
+  final note = out['note'];
+  if (note is String) out['note'] = sanitizeImportedText(note);
+  final params = out['params'];
+  if (params is Map) {
+    out['params'] = {
+      for (final entry in params.entries)
+        entry.key.toString(): entry.value is String
+            ? sanitizeImportedText(entry.value as String)
+            : entry.value,
+    };
+  }
+  return out;
 }
 
 List<CustomFieldValue> _customFieldValuesFromJson(Object? raw) {
@@ -731,21 +753,21 @@ Map<String, Object?> _asMap(Object? v, String what) {
 String _str(Map<String, Object?> m, String key) {
   final v = m[key];
   if (v is! String) throw FormatException('missing or non-string "$key"');
-  return v;
+  return sanitizeImportedText(v);
 }
 
 String _strOr(Map<String, Object?> m, String key, String fallback) {
   final v = m[key];
   if (v == null) return fallback;
   if (v is! String) throw FormatException('"$key" must be a string');
-  return v;
+  return sanitizeImportedText(v);
 }
 
 String? _strOrNull(Map<String, Object?> m, String key) {
   final v = m[key];
   if (v == null) return null;
   if (v is! String) throw FormatException('"$key" must be a string');
-  return v;
+  return sanitizeImportedText(v);
 }
 
 int _int(Map<String, Object?> m, String key) {
@@ -777,7 +799,10 @@ List<String>? _stringListOrNull(Map<String, Object?> m, String key) {
   if (v is! List) throw FormatException('"$key" must be an array');
   return [
     for (final e in v)
-      if (e is String) e else throw FormatException('"$key" must be strings'),
+      if (e is String)
+        sanitizeImportedText(e)
+      else
+        throw FormatException('"$key" must be strings'),
   ];
 }
 

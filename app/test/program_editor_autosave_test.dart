@@ -27,6 +27,7 @@ ProgramEditorDraft _draft({
   String title = 'Draft Program',
   DateTime? eventDate,
   String? venue,
+  String? venueId,
   String? band,
   String? caller,
   String? dancerLevel,
@@ -38,6 +39,7 @@ ProgramEditorDraft _draft({
   title: title,
   eventDate: eventDate,
   venue: venue,
+  venueId: venueId,
   band: band,
   caller: caller,
   dancerLevel: dancerLevel,
@@ -112,6 +114,7 @@ void main() {
         title: 'Autumn Ball',
         eventDate: DateTime.utc(2026, 9, 12),
         venue: 'The Grange',
+        venueId: 'venue-42',
         band: 'The Reelers',
         caller: 'Pat',
         dancerLevel: 'Intermediate',
@@ -139,6 +142,7 @@ void main() {
       expect(decoded.title, 'Autumn Ball');
       expect(decoded.eventDate, DateTime.utc(2026, 9, 12));
       expect(decoded.venue, 'The Grange');
+      expect(decoded.venueId, 'venue-42');
       expect(decoded.band, 'The Reelers');
       expect(decoded.caller, 'Pat');
       expect(decoded.dancerLevel, 'Intermediate');
@@ -168,6 +172,7 @@ void main() {
       final decoded = decodeProgramDraft(encodeProgramDraft(_draft()));
       expect(decoded.eventDate, isNull);
       expect(decoded.venue, isNull);
+      expect(decoded.venueId, isNull);
       expect(decoded.band, isNull);
       expect(decoded.caller, isNull);
       expect(decoded.dancerLevel, isNull);

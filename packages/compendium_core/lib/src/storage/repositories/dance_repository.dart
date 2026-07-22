@@ -26,6 +26,45 @@ import '../tables.dart';
 import '../utc_datetime.dart';
 import 'custom_field_repository.dart';
 
+/// Progress of a [DanceRepository.rebuildAllDerived] pass: [completed] of
+/// [total] dances have had their derived `dance_figures`/`dance_fts` rows
+/// rewritten.
+///
+/// Emitted once with `completed == 0` before any work starts and again after
+/// every committed chunk, so a UI can render determinate progress and the
+/// post-migration rebuild never appears hung on a large collection (#440).
+/// [completed] is monotonically non-decreasing and ends at [total].
+class DerivedRebuildProgress {
+  const DerivedRebuildProgress({required this.completed, required this.total});
+
+  /// Number of dances whose derived rows have been rewritten and committed.
+  final int completed;
+
+  /// Total number of dances the rebuild will process (including soft-deleted,
+  /// which stay in `dance_fts` and are filtered at query time — see #439).
+  final int total;
+
+  /// Fraction in `[0, 1]`; `1` when there is nothing to rebuild ([total] == 0).
+  double get fraction => total == 0 ? 1 : completed / total;
+
+  @override
+  bool operator ==(Object other) =>
+      other is DerivedRebuildProgress &&
+      other.completed == completed &&
+      other.total == total;
+
+  @override
+  int get hashCode => Object.hash(completed, total);
+
+  @override
+  String toString() => 'DerivedRebuildProgress($completed/$total)';
+}
+
+/// Callback invoked with monotonically non-decreasing [DerivedRebuildProgress]
+/// while [DanceRepository.rebuildAllDerived] runs.
+typedef DerivedRebuildProgressCallback =
+    void Function(DerivedRebuildProgress progress);
+
 /// CRUD + search for [Dance]s.
 ///
 /// Every write rebuilds the two derived indexes ([DanceFigures] rows and the
@@ -192,10 +231,38 @@ class DanceRepository {
     await _rebuildDerived(dance);
   });
 
+  /// Rewrites the derived `dance_figures`/`dance_fts` rows for a single dance:
+  /// drops this dance's existing derived rows, then re-inserts them. Used by the
+  /// per-write path ([_upsert]); the bulk [rebuildAllDerived] path instead
+  /// clears every derived row once up front and calls [_insertDerivedRows]
+  /// directly, so it never pays the per-dance `DELETE FROM dance_fts` scan.
   Future<void> _rebuildDerived(Dance dance) async {
     await (_db.delete(
       _db.danceFigures,
     )..where((t) => t.danceId.equals(dance.id))).go();
+    // `dance_fts` carries `dance_id` UNINDEXED, so this delete-by-scan is O(rows
+    // in the FTS index). Fine for one dance on a write; [rebuildAllDerived]
+    // deliberately avoids doing it N times (see there).
+    await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
+      dance.id,
+    ]);
+    await _insertDerivedRows(dance);
+  }
+
+  /// Inserts this dance's `dance_figures` rows and its single `dance_fts` row,
+  /// assuming any prior derived rows for it have already been removed by the
+  /// caller. Extracted from [_rebuildDerived] so the bulk rebuild can re-insert
+  /// after a one-shot clear instead of a per-dance delete+insert.
+  ///
+  /// [authorNames] (choreographer id → name) and [sources] (published-source id
+  /// → row) let the bulk rebuild pass prefetched lookups so author/source
+  /// resolution doesn't fan out into a per-dance N+1 of single-row selects;
+  /// when omitted (the single-write path) they are resolved on demand.
+  Future<void> _insertDerivedRows(
+    Dance dance, {
+    Map<String, String>? authorNames,
+    Map<String, PublishedSourceRow>? sources,
+  }) async {
     final canonicalTexts = <String>[];
     final sectioned = dance.sectionedFigures;
     for (var i = 0; i < dance.figures.length; i++) {
@@ -218,33 +285,11 @@ class DanceRepository {
           );
     }
 
-    await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
-      dance.id,
-    ]);
-    final authorNames = <String>[];
-    for (final authorId in dance.authorIds) {
-      final row = await (_db.select(
-        _db.choreographers,
-      )..where((t) => t.id.equals(authorId))).getSingleOrNull();
-      if (row != null) authorNames.add(row.name);
-    }
+    final resolvedAuthors = await _resolveAuthorNames(dance, authorNames);
     final customValueText = dance.customFields
         .map((v) => v.value.toString())
         .join(' ');
-    final sourceTexts = <String>[];
-    if (dance.sourceCitations.isNotEmpty) {
-      final sourceIds = dance.sourceCitations.map((c) => c.sourceId).toList();
-      final rows = await (_db.select(
-        _db.publishedSources,
-      )..where((t) => t.id.isIn(sourceIds))).get();
-      final byId = {for (final r in rows) r.id: r};
-      for (final citation in dance.sourceCitations) {
-        final row = byId[citation.sourceId];
-        if (row == null) continue;
-        sourceTexts.add(row.title);
-        if (row.author != null) sourceTexts.add(row.author!);
-      }
-    }
+    final sourceTexts = await _resolveSourceTexts(dance, sources);
     await _db.customStatement(
       'INSERT INTO dance_fts'
       '(dance_id, title, authors, hook, notes, figures_text, custom_values, '
@@ -253,7 +298,7 @@ class DanceRepository {
       [
         dance.id,
         dance.title,
-        authorNames.join(' '),
+        resolvedAuthors.join(' '),
         dance.hook,
         dance.callingNotes,
         canonicalTexts.join(' '),
@@ -263,16 +308,144 @@ class DanceRepository {
     );
   }
 
-  /// Recomputes `dance_figures` and `dance_fts` for every non-deleted dance
-  /// from `figures_json`. Intended as an integrity repair after a migration
-  /// that changes derived-table shape, or if corruption is detected by
-  /// `PRAGMA quick_check`.
-  Future<void> rebuildAllDerived() => _db.transaction(() async {
-    final dances = await listAll(includeDeleted: true);
-    for (final dance in dances) {
-      await _rebuildDerived(dance);
+  /// Author display names for [dance]'s `authorIds`, in position order. Uses
+  /// [prefetched] (choreographer id → name) when the caller supplied it,
+  /// otherwise reads each choreographer row on demand.
+  Future<List<String>> _resolveAuthorNames(
+    Dance dance,
+    Map<String, String>? prefetched,
+  ) async {
+    final names = <String>[];
+    if (prefetched != null) {
+      for (final authorId in dance.authorIds) {
+        final name = prefetched[authorId];
+        if (name != null) names.add(name);
+      }
+      return names;
     }
-  });
+    for (final authorId in dance.authorIds) {
+      final row = await (_db.select(
+        _db.choreographers,
+      )..where((t) => t.id.equals(authorId))).getSingleOrNull();
+      if (row != null) names.add(row.name);
+    }
+    return names;
+  }
+
+  /// Searchable source text (title, then author when present) for [dance]'s
+  /// citations, in citation order. Uses [prefetched] (published-source id →
+  /// row) when supplied, otherwise batch-reads exactly the cited rows.
+  Future<List<String>> _resolveSourceTexts(
+    Dance dance,
+    Map<String, PublishedSourceRow>? prefetched,
+  ) async {
+    if (dance.sourceCitations.isEmpty) return const [];
+    final Map<String, PublishedSourceRow> byId;
+    if (prefetched != null) {
+      byId = prefetched;
+    } else {
+      final sourceIds = dance.sourceCitations.map((c) => c.sourceId).toList();
+      final rows = await (_db.select(
+        _db.publishedSources,
+      )..where((t) => t.id.isIn(sourceIds))).get();
+      byId = {for (final r in rows) r.id: r};
+    }
+    final texts = <String>[];
+    for (final citation in dance.sourceCitations) {
+      final row = byId[citation.sourceId];
+      if (row == null) continue;
+      texts.add(row.title);
+      if (row.author != null) texts.add(row.author!);
+    }
+    return texts;
+  }
+
+  /// Number of dances rebuilt per transaction in [rebuildAllDerived]. Bounds
+  /// each transaction's work so a large-collection rebuild commits incrementally
+  /// (progress is reported per chunk and a crash loses at most one chunk) rather
+  /// than holding one multi-minute transaction open.
+  static const int _rebuildChunkSize = 250;
+
+  /// Recomputes `dance_figures` and `dance_fts` for **every** dance (including
+  /// soft-deleted — they stay in `dance_fts` and are filtered at query time,
+  /// see [searchText] and #439) from `figures_json`. Intended as an integrity
+  /// repair after a migration that changes derived-table shape, or if
+  /// corruption is detected by `PRAGMA quick_check`.
+  ///
+  /// Runs in bounded chunks of [chunkSize] dances, each committed in its own
+  /// transaction, and reports progress through [onProgress] so a post-migration
+  /// rebuild on a large collection shows determinate progress instead of
+  /// appearing hung (#440). [onProgress] fires once with `completed: 0` before
+  /// work begins and again after each committed chunk.
+  ///
+  /// Wall-clock: the whole derived index is cleared once up front
+  /// (`DELETE FROM dance_fts` + `DELETE FROM dance_figures`) and every dance is
+  /// then re-inserted, so the rebuild never runs the per-dance
+  /// `DELETE FROM dance_fts WHERE dance_id = ?` scan N times — that scan is
+  /// O(N²) because `dance_fts.dance_id` is `UNINDEXED` (#440). Shared author /
+  /// source lookups are prefetched once to drop the last per-dance N+1 reads.
+  ///
+  /// Crash-safety: this is idempotent and safe to interrupt. The migration
+  /// marker that schedules it (`derivedRebuildRequiredKey`) is only cleared
+  /// after a *successful* full pass, and `CompendiumRepositories.ensureMigrated`
+  /// gates all reads on that pass, so a crash mid-rebuild simply re-runs the
+  /// whole clear+reinsert on the next open — a partially populated index is
+  /// never observed by a search.
+  Future<void> rebuildAllDerived({
+    int chunkSize = _rebuildChunkSize,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    // Runtime guard (not just an assert, which is stripped in release builds):
+    // a non-positive chunkSize would make the `start += chunkSize` loop never
+    // advance and hang the rebuild, so fail fast in production too (#440).
+    if (chunkSize <= 0) {
+      throw ArgumentError.value(chunkSize, 'chunkSize', 'must be > 0');
+    }
+    final dances = await listAll(includeDeleted: true);
+    final total = dances.length;
+    onProgress?.call(DerivedRebuildProgress(completed: 0, total: total));
+
+    // Prefetch the shared lookups once so per-dance FTS assembly is O(1) reads
+    // instead of an N+1 of single-row author/source selects. These tables are
+    // small relative to the dance collection.
+    final authorNames = {
+      for (final row in await _db.select(_db.choreographers).get())
+        row.id: row.name,
+    };
+    final sources = {
+      for (final row in await _db.select(_db.publishedSources).get())
+        row.id: row,
+    };
+
+    // One-shot bulk clear instead of N per-dance delete-by-scans. `dance_fts`
+    // is a regular (self-contained) FTS5 table, so an unqualified DELETE resets
+    // the whole index cheaply; `dance_figures` is an ordinary table.
+    await _db.transaction(() async {
+      await _db.customStatement('DELETE FROM dance_fts');
+      await _db.delete(_db.danceFigures).go();
+    });
+
+    var completed = 0;
+    for (var start = 0; start < dances.length; start += chunkSize) {
+      final end = start + chunkSize > dances.length
+          ? dances.length
+          : start + chunkSize;
+      final chunk = dances.sublist(start, end);
+      await _db.transaction(() async {
+        for (final dance in chunk) {
+          await _insertDerivedRows(
+            dance,
+            authorNames: authorNames,
+            sources: sources,
+          );
+        }
+      });
+      completed = end;
+      onProgress?.call(
+        DerivedRebuildProgress(completed: completed, total: total),
+      );
+    }
+  }
 
   Future<Dance?> getById(String id, {bool includeDeleted = false}) async {
     final row =
@@ -764,10 +937,18 @@ class DanceRepository {
 
   /// Full-text search over title/authors/hook/notes/figures/custom values.
   /// Returns dance ids ranked by FTS5's `bm25` relevance (best first).
+  ///
+  /// Soft-deleted (trashed) dances are excluded (#439): the `dance_fts` virtual
+  /// table retains a row until the owning dance is purged/hard-deleted, so the
+  /// bare `MATCH` must JOIN `dances` and filter `deleted_at IS NULL` to stay
+  /// consistent with every other list/search path (mirrors the
+  /// `FilterCompiler._compileRelevance` convention). Ranking/order is unchanged.
   Future<List<String>> searchText(String query) async {
     final rows = await _db
         .customSelect(
-          'SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ? '
+          'SELECT dance_fts.dance_id FROM dance_fts '
+          'JOIN dances ON dances.id = dance_fts.dance_id '
+          'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
           'ORDER BY bm25(dance_fts)',
           variables: [Variable.withString(toFtsMatchQuery(query))],
         )

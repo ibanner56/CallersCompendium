@@ -19,6 +19,7 @@ import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
+import '../utils/undo_snack_bar.dart';
 import '../utils/safe_name.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/dance_export_menu.dart';
@@ -299,24 +300,23 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // Capture ScaffoldMessengerState before any navigation/callback so we
     // don't read a deactivating context after the widget is removed.
     final messenger = ScaffoldMessenger.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
     // Show the snackbar first so the Scaffold is still in the tree when the
     // messenger enqueues it — then notify the parent (which may unmount this
     // widget) or pop the route.
-    messenger.showSnackBar(
-      SnackBar(
-        key: const ValueKey('deleted-snackbar'),
-        content: Text(l10n.commonDeletedSnack(title)),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () async {
-            await _repos.dances.restore(
-              widget.danceId!,
-              at: DateTime.now().toUtc(),
-            );
-            widget.onRestored?.call();
-          },
-        ),
-      ),
+    showUndoSnackBar(
+      messenger,
+      key: const ValueKey('deleted-snackbar'),
+      message: l10n.commonDeletedSnack(title),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: () async {
+        await _repos.dances.restore(
+          widget.danceId!,
+          at: DateTime.now().toUtc(),
+        );
+        widget.onRestored?.call();
+      },
     );
     if (widget.onDeleted != null) {
       // Embedded (split-pane) mode: notify the parent; no route to pop.
@@ -867,6 +867,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               _CallingHistoryRow(
                 key: ValueKey('calling-history-${record.slotId}'),
                 record: record,
+                venueLabel: detail.venueLabelsByProgramId[record.programId],
                 onTap: () => _openProgram(record.programId),
               ),
           if (detail.halfCallingStats.hasAny) ...[
@@ -1106,9 +1107,21 @@ class _LinkRow extends StatelessWidget {
 /// opens the program. Mirrors the row-as-button a11y pattern used by [_LinkRow]
 /// and the set-list rows in `programs_shell.dart`.
 class _CallingHistoryRow extends StatelessWidget {
-  const _CallingHistoryRow({super.key, required this.record, this.onTap});
+  const _CallingHistoryRow({
+    super.key,
+    required this.record,
+    this.venueLabel,
+    this.onTap,
+  });
 
   final DanceCallingRecord record;
+
+  /// The venue label to display, already resolved by [DanceDetailData.load]
+  /// (linked [Venue] display name when the program's `venueId` resolves,
+  /// otherwise the free-text `venue`). Null falls back to the record's own
+  /// free-text `venue`, so this row still renders correctly without it.
+  final String? venueLabel;
+
   final VoidCallback? onTap;
 
   @override
@@ -1121,7 +1134,7 @@ class _CallingHistoryRow extends StatelessWidget {
     // its last-updated time, so a date always shows. These are stored UTC
     // values rendered directly (matching the other date labels on this screen).
     final date = localizations.formatMediumDate(record.effectiveDate);
-    final venue = record.venue?.trim();
+    final venue = (venueLabel ?? record.venue)?.trim();
     final subtitleParts = <String>[
       date,
       if (venue != null && venue.isNotEmpty) venue,

@@ -29,15 +29,18 @@ const int _kProgramDraftVersion = 1;
 /// Distinct from a domain [Program]: the title may be **empty** (a still-titled
 /// in-progress build), and there are no `createdAt`/`updatedAt`/`id` — those are
 /// carried by the editor's `_existing` program (for an edit) or minted on save
-/// (for a new one). `venueId`/`provenance` are not part of the editable working
-/// state, so they are deliberately omitted (preserved on `_existing` and
-/// reapplied via `copyWith` on save).
+/// (for a new one). Both venue representations are captured: the free-text
+/// [venue] (simple mode) and the linked [venueId] (enriched venue-entity mode),
+/// so an interrupted build restores whichever the user was populating.
+/// `provenance` is not editable working state, so it is deliberately omitted
+/// (preserved on `_existing` and reapplied via `copyWith` on save).
 @immutable
 class ProgramEditorDraft {
   const ProgramEditorDraft({
     required this.title,
     this.eventDate,
     this.venue,
+    this.venueId,
     this.band,
     this.caller,
     this.dancerLevel,
@@ -53,8 +56,11 @@ class ProgramEditorDraft {
   /// Event date; `null` when unset.
   final DateTime? eventDate;
 
-  /// Free-text venue label; `null` when blank.
+  /// Free-text venue label (simple venue mode); `null` when blank.
   final String? venue;
+
+  /// Linked venue entity id (enriched venue mode); `null` when unlinked.
+  final String? venueId;
 
   /// Band playing the event; `null` when blank.
   final String? band;
@@ -91,7 +97,7 @@ class ProgramEditorDraft {
 ///   "v": 1,
 ///   "title": "...",          // may be ""
 ///   "eventDate": "2026-01-01T00:00:00.000Z", // omitted when null
-///   "venue": "...", "band": "...", "caller": "...", "dancerLevel": "...",
+///   "venue": "...", "venueId": "...", "band": "...", "caller": "...", "dancerLevel": "...",
 ///   "notes": "...",
 ///   "status": "draft",
 ///   "hideAlternates": false,
@@ -101,9 +107,9 @@ class ProgramEditorDraft {
 ///   ]
 /// }
 /// ```
-/// Nullable metadata (`eventDate`/`venue`/`band`/`caller`/`dancerLevel`) and
-/// nullable per-slot fields (`danceId`/`text`/`guestCaller`/`plannedMinutes`/
-/// `performedAt`) are omitted when unset.
+/// Nullable metadata (`eventDate`/`venue`/`venueId`/`band`/`caller`/
+/// `dancerLevel`) and nullable per-slot fields (`danceId`/`text`/`guestCaller`/
+/// `plannedMinutes`/`performedAt`) are omitted when unset.
 String encodeProgramDraft(ProgramEditorDraft draft) {
   return jsonEncode({
     'v': _kProgramDraftVersion,
@@ -111,6 +117,7 @@ String encodeProgramDraft(ProgramEditorDraft draft) {
     if (draft.eventDate != null)
       'eventDate': draft.eventDate!.toUtc().toIso8601String(),
     if (draft.venue != null) 'venue': draft.venue,
+    if (draft.venueId != null) 'venueId': draft.venueId,
     if (draft.band != null) 'band': draft.band,
     if (draft.caller != null) 'caller': draft.caller,
     if (draft.dancerLevel != null) 'dancerLevel': draft.dancerLevel,
@@ -177,6 +184,7 @@ ProgramEditorDraft decodeProgramDraft(Object? value) {
     title: _str(json, 'title'),
     eventDate: _dateOrNull(json['eventDate'], 'eventDate'),
     venue: _strOrNull(json, 'venue'),
+    venueId: _strOrNull(json, 'venueId'),
     band: _strOrNull(json, 'band'),
     caller: _strOrNull(json, 'caller'),
     dancerLevel: _strOrNull(json, 'dancerLevel'),

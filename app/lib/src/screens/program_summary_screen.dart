@@ -8,11 +8,13 @@ import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/app_theme_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
+import '../data/venue_label.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/undo_snack_bar.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
@@ -141,6 +143,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Program? _program;
   Map<String, String> _danceTitles = const {};
   Map<String, Dance> _dances = const {};
+  Map<String, Venue> _venuesById = const {};
   CollectionData? _collectionData;
   bool _loading = true;
   Object? _error;
@@ -187,6 +190,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           _program = null;
           _danceTitles = const {};
           _dances = const {};
+          _venuesById = const {};
           _collectionData = null;
           _loading = false;
           _error = null;
@@ -207,11 +211,22 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           dances[dance.id] = dance;
         }
       }
+      // Resolve only the linked venue (if any). The summary shows a single
+      // program, so loading the whole catalogue just to look up one id is
+      // wasteful; resolveVenueLabel falls back to free text when the map is
+      // empty (no link, or the link no longer resolves).
+      final venuesById = <String, Venue>{};
+      final linkedVenueId = program.venueId;
+      if (linkedVenueId != null) {
+        final linked = await _repos.venues.getById(linkedVenueId);
+        if (linked != null) venuesById[linkedVenueId] = linked;
+      }
       if (!mounted) return;
       setState(() {
         _program = program;
         _danceTitles = titles;
         _dances = dances;
+        _venuesById = venuesById;
         _collectionData = data;
         _loading = false;
         _error = null;
@@ -257,15 +272,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.programsDeletedSnack(source.title)),
-        action: SnackBarAction(
-          label: l10n.commonUndo,
-          onPressed: () =>
-              _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
-        ),
-      ),
+    showUndoSnackBar(
+      ScaffoldMessenger.of(context),
+      message: l10n.programsDeletedSnack(source.title),
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () =>
+          _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
     );
     widget.onDeleted();
   }
@@ -397,8 +410,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ],
         const SizedBox(height: 16),
         if (dateLabel != null) _summaryRow(Icons.event_outlined, dateLabel),
-        if (program.venue != null)
-          _summaryRow(Icons.place_outlined, program.venue!),
+        if (resolveVenueLabel(program, _venuesById) case final venueLabel?)
+          _summaryRow(Icons.place_outlined, venueLabel),
         if (program.band != null)
           _summaryRow(
             Icons.music_note_outlined,

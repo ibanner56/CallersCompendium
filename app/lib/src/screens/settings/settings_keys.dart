@@ -17,6 +17,21 @@ const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 /// (ROADMAP G.1). Defaults to `true` (on) when unset.
 const String kAutoSizePerformKey = 'auto_size_perform_cards';
 
+/// Key used to persist the in-Perform manual text scale (issue #449). Stored as
+/// a number; absent/invalid means the built-in default (`kPerformDefaultScale`),
+/// so a low-vision caller's manual size survives relaunch instead of resetting.
+const String kPerformTextScaleKey = 'perform_text_scale';
+
+/// Key used to persist the in-Perform dark-stage high-contrast theme toggle
+/// (issue #449). Stored as a bool; absent/unset means on (`true`), matching the
+/// stage-mode-on-by-default behaviour (`docs/design/ux.md` §5).
+const String kPerformStageModeKey = 'perform_stage_mode';
+
+/// Key used to persist the in-Perform "show canonical role/move tokens" toggle
+/// (issue #449). Stored as a bool; absent/unset means off (`false`), so figures
+/// render in the active dialect until the caller opts into canonical tokens.
+const String kPerformCanonicalViewKey = 'perform_canonical_view';
+
 /// Key used to persist the "Ignore leading articles when sorting" General
 /// setting. Stored as a bool; absent/unset means on (`true`), so the dance
 /// list alphabetizes titles with a leading article ("the"/"a"/"an") ignored.
@@ -26,3 +41,11 @@ const String kSortIgnoreArticlesKey = 'sort_ignore_articles';
 /// (issue #307). Stored as a bool; absent/unset means off (`false`), so the
 /// feature is strictly opt-in.
 const String kColourDanceThemeKey = 'colour_dance_theme';
+
+/// Key used to persist the "venue entity mode" General setting. Stored as a
+/// bool; absent/unset means off (`false`), so programs use the simple free-text
+/// venue field by default. When on, the program editor swaps that field for a
+/// picker over reusable [Venue] records (address/contacts/schedule). The toggle
+/// is entry/display-mode only: `Program.venue` and `Program.venueId` persist
+/// independently so flipping it is lossless in both directions.
+const String kVenueEntityModeKey = 'venue_entity_mode';

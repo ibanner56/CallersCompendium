@@ -39,7 +39,7 @@ The **General** section gathers everyday behavior into small groups.
 
 ### Accessibility
 
-- **Reduce motion** — trims animations and movement.
+- **Reduce motion** — trims animations and movement. Follows your device's system *Reduce Motion* setting by default; flip this switch to override it either way.
 - **Always show verbose figure text** — shows the full spoken-style [figure](./glossary.md#figure) wording on screen, not only to screen readers.
 - **Confirm before delete** — adds a prompt before you delete a dance or program. Deletes are still undoable either way.
 
