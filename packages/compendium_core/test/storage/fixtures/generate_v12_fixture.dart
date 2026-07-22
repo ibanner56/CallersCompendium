@@ -13,6 +13,9 @@
 // seed realistic data at the current schema and then *strip back to the v12
 // shape* with raw SQL before stamping `user_version = 12`:
 //   * DROP TABLE venues            — remove the v13-only table;
+//   * DROP INDEX programs_venue_id — remove the v13-only lookup index, which
+//     must go before the DROP COLUMN below (SQLite refuses to drop a column an
+//     index still references);
 //   * ALTER TABLE programs DROP COLUMN venue_id  — remove the v13-only column
 //     (SQLite >= 3.35; the bundled sqlite3 is 3.53+);
 //   * PRAGMA user_version = 12.
@@ -76,6 +79,9 @@ Future<void> main() async {
   // Strip the v13-only additions and stamp the file back to v12.
   final raw = sqlite3.sqlite3.open(fixturePath);
   raw.execute('DROP TABLE IF EXISTS venues');
+  // Drop the v13-only lookup index first: SQLite refuses to DROP COLUMN while
+  // an index still references it.
+  raw.execute('DROP INDEX IF EXISTS programs_venue_id');
   raw.execute('ALTER TABLE programs DROP COLUMN venue_id');
   raw.execute('PRAGMA user_version = 12');
   raw.close();
