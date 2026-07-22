@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../app_metadata.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
+import '../../update/artifact_handoff.dart';
 import '../../update/update_controller.dart';
 import '../../update/update_scope.dart';
 import '../../widgets/section_header.dart';
@@ -150,6 +151,7 @@ class UpdatesSection extends StatelessWidget {
           trailing: spinner,
         );
       case AssistedDownloadStatus.completed:
+        final revealed = controller.handoffResult == HandoffResult.revealed;
         return ListTile(
           key: const ValueKey('updates-download'),
           leading: Icon(
@@ -157,7 +159,11 @@ class UpdatesSection extends StatelessWidget {
             color: theme.colorScheme.primary,
           ),
           title: Text(l10n.settingsUpdatesCompletedTitle),
-          subtitle: Text(l10n.settingsUpdatesCompletedSubtitle),
+          subtitle: Text(
+            revealed
+                ? l10n.settingsUpdatesCompletedSubtitleRevealed
+                : l10n.settingsUpdatesCompletedSubtitle,
+          ),
         );
       case AssistedDownloadStatus.failed:
         return ListTile(

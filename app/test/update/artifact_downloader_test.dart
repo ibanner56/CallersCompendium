@@ -10,7 +10,7 @@ import 'package:http/testing.dart';
 UpdateArtifact _artifact({
   int size = 0,
   String url =
-      'https://example.com/CallersCompendium-0.2.0-macos-universal.dmg',
+      'https://release-assets.githubusercontent.com/CallersCompendium-0.2.0-macos-universal.dmg',
   String sha256 = 'abcd',
 }) => UpdateArtifact(
   platform: UpdatePlatform.macos,
@@ -161,13 +161,17 @@ void main() {
     expect(await dest.exists(), isFalse);
   });
 
-  test('an unparseable/non-http URL is a network error', () async {
-    final outcome = await downloadArtifact(
-      _artifact(url: 'ftp://example.com/x.dmg'),
-      destination: dest,
-    );
-    expect(outcome.kind, DownloadResultKind.networkError);
-  });
+  test(
+    'a non-https / off-allowlist URL is refused before any request',
+    () async {
+      final outcome = await downloadArtifact(
+        _artifact(url: 'ftp://github.com/x.dmg'),
+        destination: dest,
+      );
+      expect(outcome.kind, DownloadResultKind.refusedHost);
+      expect(await dest.exists(), isFalse);
+    },
+  );
 
   test('succeeds when the manifest declares no size (size == 0)', () async {
     final client = _streamingClient([utf8.encode('AB')], contentLength: 2);
@@ -212,14 +216,71 @@ void main() {
       });
 
       final outcome = await downloadArtifact(
-        _artifact(url: 'http://example.com/x.dmg'),
+        _artifact(url: 'http://github.com/x.dmg'),
         destination: dest,
         client: client,
       );
 
-      expect(outcome.kind, DownloadResultKind.networkError);
-      expect(outcome.message, contains('https'));
+      expect(outcome.kind, DownloadResultKind.refusedHost);
+      expect(outcome.message, contains('host is not allowed'));
       expect(requested, isFalse);
+      expect(await dest.exists(), isFalse);
+    },
+  );
+
+  test(
+    'an off-allowlist https artifact url is refused before any request',
+    () async {
+      var requested = false;
+      final client = MockClient.streaming((request, bodyStream) async {
+        requested = true;
+        return http.StreamedResponse(Stream.fromIterable(<List<int>>[]), 200);
+      });
+
+      final outcome = await downloadArtifact(
+        _artifact(url: 'https://evil.example.com/x.dmg'),
+        destination: dest,
+        client: client,
+      );
+
+      expect(outcome.kind, DownloadResultKind.refusedHost);
+      expect(requested, isFalse);
+      expect(await dest.exists(), isFalse);
+    },
+  );
+
+  test('a lookalike subdomain of an allowlisted host is refused', () async {
+    var requested = false;
+    final client = MockClient.streaming((request, bodyStream) async {
+      requested = true;
+      return http.StreamedResponse(Stream.fromIterable(<List<int>>[]), 200);
+    });
+
+    final outcome = await downloadArtifact(
+      // Not an exact host match — the allowlist has no subdomain wildcard.
+      _artifact(url: 'https://github.com.evil.example/x.dmg'),
+      destination: dest,
+      client: client,
+    );
+
+    expect(outcome.kind, DownloadResultKind.refusedHost);
+    expect(requested, isFalse);
+  });
+
+  test(
+    'an allowlisted host with userinfo or a non-443 port is refused',
+    () async {
+      final withUserinfo = await downloadArtifact(
+        _artifact(url: 'https://user:pass@github.com/x.dmg'),
+        destination: dest,
+      );
+      expect(withUserinfo.kind, DownloadResultKind.refusedHost);
+
+      final withPort = await downloadArtifact(
+        _artifact(url: 'https://github.com:8443/x.dmg'),
+        destination: dest,
+      );
+      expect(withPort.kind, DownloadResultKind.refusedHost);
       expect(await dest.exists(), isFalse);
     },
   );
@@ -255,7 +316,7 @@ void main() {
     },
   );
 
-  test('refuses an https -> http redirect (no cleartext downgrade)', () async {
+  test('refuses a redirect to an off-allowlist / cleartext host', () async {
     const start = 'https://github.com/o/r/releases/download/v1/a.dmg';
     var reachedHttp = false;
     final client = MockClient.streaming((request, bodyStream) async {
@@ -280,26 +341,63 @@ void main() {
       client: client,
     );
 
-    expect(outcome.kind, DownloadResultKind.networkError);
-    expect(outcome.message, contains('redirect'));
+    expect(outcome.kind, DownloadResultKind.refusedHost);
+    expect(outcome.message, contains('host'));
     expect(reachedHttp, isFalse);
     expect(await dest.exists(), isFalse);
   });
 
+  test('refuses a redirect to an off-allowlist https host', () async {
+    const start = 'https://github.com/o/r/releases/download/v1/a.dmg';
+    var reachedEvil = false;
+    final client = MockClient.streaming((request, bodyStream) async {
+      if (request.url.host == 'evil.example.com') reachedEvil = true;
+      if (request.url.toString() == start) {
+        return http.StreamedResponse(
+          Stream.fromIterable(<List<int>>[]),
+          302,
+          headers: const {'location': 'https://evil.example.com/a.dmg'},
+        );
+      }
+      return http.StreamedResponse(
+        Stream.fromIterable([utf8.encode('EVIL')]),
+        200,
+        contentLength: 4,
+      );
+    });
+
+    final outcome = await downloadArtifact(
+      _artifact(url: start, size: 4),
+      destination: dest,
+      client: client,
+    );
+
+    expect(outcome.kind, DownloadResultKind.refusedHost);
+    expect(reachedEvil, isFalse);
+    expect(await dest.exists(), isFalse);
+  });
+
   test('gives up after too many redirects', () async {
-    // An endless https redirect chain must terminate, not loop forever.
+    // An endless https redirect chain (all on an allowlisted host) must
+    // terminate, not loop forever.
     var hops = 0;
     final client = MockClient.streaming((request, bodyStream) async {
       hops++;
       return http.StreamedResponse(
         Stream.fromIterable(<List<int>>[]),
         302,
-        headers: {'location': 'https://example.com/hop$hops.dmg'},
+        headers: {
+          'location':
+              'https://release-assets.githubusercontent.com/hop$hops.dmg',
+        },
       );
     });
 
     final outcome = await downloadArtifact(
-      _artifact(url: 'https://example.com/hop0.dmg', size: 2),
+      _artifact(
+        url: 'https://release-assets.githubusercontent.com/hop0.dmg',
+        size: 2,
+      ),
       destination: dest,
       client: client,
     );

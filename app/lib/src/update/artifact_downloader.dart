@@ -69,6 +69,12 @@ enum DownloadResultKind {
   /// The download completed but its byte count disagreed with the manifest
   /// `size` — treated as an integrity failure, not a success.
   sizeMismatch,
+
+  /// The artifact URL — or a redirect hop on the way to it — targeted a host
+  /// that is not on [kAllowedArtifactHosts] (or used a non-https scheme,
+  /// userinfo, or a non-443 port). Refused before any bytes are written
+  /// (issue #431).
+  refusedHost,
 }
 
 /// The typed result of [downloadArtifact]. On [DownloadResultKind.success],
@@ -89,6 +95,9 @@ class DownloadOutcome {
 
   factory DownloadOutcome.sizeMismatch(String message) =>
       DownloadOutcome._(DownloadResultKind.sizeMismatch, message: message);
+
+  factory DownloadOutcome.refusedHost(String message) =>
+      DownloadOutcome._(DownloadResultKind.refusedHost, message: message);
 
   final DownloadResultKind kind;
   final File? file;
@@ -115,13 +124,15 @@ typedef ArtifactDownloader =
 ///
 /// Uses `client.send` (streamed) rather than a buffered `get` so a large
 /// artifact never fully materializes in memory and progress/cancel work while
-/// the body is still arriving. The `url` must be **https**, and redirects are
-/// followed manually so every hop is re-validated as https — an `https→http`
-/// downgrade is refused rather than silently downloaded over cleartext
-/// (defense-in-depth alongside the manifest-parse check and the sha256 gate).
-/// An **idle timeout** ([kUpdateDownloadTimeout]) guards a stalled connection
-/// without capping a legitimately long transfer, and the transfer is aborted
-/// the moment it would exceed the manifest's declared `size` (or
+/// the body is still arriving. The `url` — and **every redirect hop** — must be
+/// an https URL whose host is on [kAllowedArtifactHosts] (with no userinfo and
+/// only the default 443 port); redirects are followed manually so an
+/// `https→http` downgrade or an off-allowlist / userinfo / non-443 hop is
+/// refused ([DownloadResultKind.refusedHost]) rather than silently followed
+/// (defense-in-depth alongside the manifest signature+parse checks and the
+/// sha256 gate). An **idle timeout** ([kUpdateDownloadTimeout]) guards a stalled
+/// connection without capping a legitimately long transfer, and the transfer is
+/// aborted the moment it would exceed the manifest's declared `size` (or
 /// [kMaxArtifactDownloadBytes] when the artifact is unsized) so an oversized
 /// body cannot fill the disk. After the stream ends, the written byte count is
 /// validated against the manifest `size`; a mismatch is a
@@ -135,9 +146,9 @@ Future<DownloadOutcome> downloadArtifact(
   DownloadCancelToken? cancelToken,
 }) async {
   final uri = Uri.tryParse(artifact.url);
-  if (uri == null || !uri.isScheme('https')) {
-    return DownloadOutcome.networkError(
-      'artifact URL must be an https URL "${artifact.url}"',
+  if (uri == null || !isAllowedArtifactHost(uri)) {
+    return DownloadOutcome.refusedHost(
+      'artifact URL host is not allowed "${artifact.url}"',
     );
   }
 
@@ -162,7 +173,9 @@ Future<DownloadOutcome> downloadArtifact(
     } on TimeoutException {
       return DownloadOutcome.networkError('connection timed out');
     } on _RedirectException catch (e) {
-      return DownloadOutcome.networkError(e.message);
+      return e.refusedHost
+          ? DownloadOutcome.refusedHost(e.message)
+          : DownloadOutcome.networkError(e.message);
     } on Object catch (e) {
       return DownloadOutcome.networkError(e.toString());
     }
@@ -299,14 +312,17 @@ bool _isRedirectStatus(int status) =>
     status == 308;
 
 /// Sends a streamed `GET` for [uri], following redirects **manually**
-/// (`followRedirects = false`) so every hop is re-validated as an `https` URL
-/// with a non-empty host. This closes the downgrade hole that the `package:http`
-/// default (`followRedirects = true`) would otherwise leave open — an
-/// `https://…` artifact URL that 30x-redirects to `http://…` is refused rather
-/// than silently downloaded over cleartext — while still allowing the
-/// legitimate `https → https` redirect GitHub uses to serve release assets. The
-/// hop count is capped at [kMaxArtifactRedirects]. Returns the final,
-/// non-redirect [http.StreamedResponse] for the caller to stream.
+/// (`followRedirects = false`) so every hop is re-validated against
+/// [isAllowedArtifactHost] — an https URL on [kAllowedArtifactHosts] with no
+/// userinfo and only the default 443 port. This closes the downgrade/exfil hole
+/// that the `package:http` default (`followRedirects = true`) would otherwise
+/// leave open — an artifact URL that 30x-redirects to `http://…`, to an
+/// off-allowlist host, or via a userinfo/port trick is refused rather than
+/// silently followed — while still allowing the legitimate
+/// `github.com → release-assets.githubusercontent.com` redirect GitHub uses to
+/// serve release assets. The hop count is capped at [kMaxArtifactRedirects].
+/// Returns the final, non-redirect [http.StreamedResponse] for the caller to
+/// stream.
 Future<http.StreamedResponse> _sendFollowingHttpsRedirects(
   http.Client client,
   Uri uri,
@@ -328,20 +344,26 @@ Future<http.StreamedResponse> _sendFollowingHttpsRedirects(
       throw const _RedirectException('redirect without a location');
     }
     final next = current.resolve(location);
-    if (!next.isScheme('https') || next.host.isEmpty) {
-      throw const _RedirectException('refused non-https redirect target');
+    if (!isAllowedArtifactHost(next)) {
+      throw const _RedirectException(
+        'refused redirect to a disallowed host',
+        refusedHost: true,
+      );
     }
     current = next;
   }
 }
 
-/// Signals a redirect that [_sendFollowingHttpsRedirects] refused (a non-https
-/// hop, a missing `Location`, or exceeding [kMaxArtifactRedirects]). Surfaced by
-/// [downloadArtifact] as a [DownloadResultKind.networkError]; [message] is for
+/// Signals a redirect that [_sendFollowingHttpsRedirects] refused (an
+/// off-allowlist/non-https hop, a missing `Location`, or exceeding
+/// [kMaxArtifactRedirects]). Surfaced by [downloadArtifact] as a
+/// [DownloadResultKind.refusedHost] when [refusedHost] is set (a host-policy
+/// refusal) and otherwise a [DownloadResultKind.networkError]; [message] is for
 /// tests/logging, not the UI.
 class _RedirectException implements Exception {
-  const _RedirectException(this.message);
+  const _RedirectException(this.message, {this.refusedHost = false});
   final String message;
+  final bool refusedHost;
   @override
   String toString() => 'RedirectException: $message';
 }

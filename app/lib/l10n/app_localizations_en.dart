@@ -256,7 +256,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Checking the sha256 integrity of the download…';
 
   @override
-  String get settingsUpdatesHandoffTitle => 'Opening the installer';
+  String get settingsUpdatesHandoffTitle => 'Preparing the installer';
 
   @override
   String get settingsUpdatesHandoffSubtitle =>
@@ -268,6 +268,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsUpdatesCompletedSubtitle =>
       'Follow your system installer to finish updating.';
+
+  @override
+  String get settingsUpdatesCompletedSubtitleRevealed =>
+      'Verified and revealed in your file manager — run the installer to finish updating.';
 
   @override
   String get settingsUpdatesDownloadTitle => 'Download & install update';

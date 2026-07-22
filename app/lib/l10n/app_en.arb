@@ -356,7 +356,7 @@
   "@settingsUpdatesVerifyingSubtitle": {
     "description": "Subtitle shown while verifying the download's sha256 integrity. 'sha256' is a technical term kept verbatim."
   },
-  "settingsUpdatesHandoffTitle": "Opening the installer",
+  "settingsUpdatesHandoffTitle": "Preparing the installer",
   "@settingsUpdatesHandoffTitle": {
     "description": "Title of the assisted-download tile while handing the verified update to the OS installer."
   },
@@ -371,6 +371,10 @@
   "settingsUpdatesCompletedSubtitle": "Follow your system installer to finish updating.",
   "@settingsUpdatesCompletedSubtitle": {
     "description": "Subtitle shown after the download completes, directing the user to the system installer."
+  },
+  "settingsUpdatesCompletedSubtitleRevealed": "Verified and revealed in your file manager — run the installer to finish updating.",
+  "@settingsUpdatesCompletedSubtitleRevealed": {
+    "description": "Subtitle shown after the download completes when the verified installer was revealed in the file manager, directing the user to run it."
   },
   "settingsUpdatesDownloadTitle": "Download & install update",
   "@settingsUpdatesDownloadTitle": {

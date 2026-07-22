@@ -12,6 +12,82 @@ import 'update_manifest.dart';
 const String kUpdateManifestBaseUrl =
     'https://ibanner56.github.io/CallersCompendium';
 
+/// The pinned Ed25519 **public key** (32 bytes, standard base64) the client
+/// verifies the update manifest's detached signature against (issue #431,
+/// ADR-002 §6). This is the root of trust for the *authenticity* of an update:
+/// a manifest whose signature does not verify against this key — or that has no
+/// signature at all — is refused as a silent no-op, never installed.
+///
+/// **PLACEHOLDER — replace before enabling signed updates in production.** It
+/// ships empty on purpose: an empty pinned key makes verification **fail
+/// closed** (see `verifyManifestSignature`), so the client never offers an
+/// update until the maintainer provisions the real key. To turn signed updates
+/// on, the maintainer must (see docs/dev/releasing.md):
+///   1. generate an Ed25519 keypair,
+///   2. add the private key as the `UPDATE_SIGNING_KEY` CI secret, and
+///   3. replace this constant with the base64 of the 32-byte public key and
+///      ship an app release.
+/// Rotating the key requires publishing the new public key in an app update
+/// **before** switching the signing key, because older clients pin the old key.
+const String kUpdateManifestPublicKey = '';
+
+/// The filename suffix of a channel manifest's detached signature, served next
+/// to `<channel>.json` on gh-pages (e.g. `stable.json` → `stable.json.sig`).
+/// The `.sig` body is the standard-base64 encoding of the raw 64-byte Ed25519
+/// signature over the **exact** bytes of `<channel>.json` (issue #431).
+const String kUpdateSignatureFileSuffix = '.sig';
+
+/// A hard upper bound on the manifest body the client will read (issue #431).
+/// A channel manifest is small JSON (a handful of artifacts); 256 KiB is far
+/// above any realistic manifest yet small enough that a misbehaving or
+/// compromised — even allowlisted — host cannot force a large allocation. The
+/// fetcher streams the body and aborts as soon as the running total exceeds
+/// this cap, so the bound is enforced **before** the bytes are buffered (OWASP
+/// A08 / resource exhaustion), never merely checked after the fact.
+const int kMaxManifestBytes = 256 * 1024;
+
+/// A hard upper bound on the manifest signature body the client will read. A
+/// base64-encoded 64-byte Ed25519 signature is ~88 bytes; this cap (with slack
+/// for whitespace) ensures a misbehaving host cannot stream an unbounded body
+/// into memory at the trust boundary (OWASP A08 / resource exhaustion).
+const int kMaxSignatureBytes = 4 * 1024;
+
+/// The exhaustive allowlist of hosts an update artifact (and every redirect hop
+/// on the way to it) may be served from (issue #431). Restricting downloads to
+/// canonical GitHub-owned domains — the release-assets host that
+/// `https://github.com/<repo>/releases/download/...` redirects to, plus the
+/// gh-pages origin — closes an off-host redirect as an exfiltration/tamper
+/// vector even before the mandatory signature + sha256 gates (OWASP A10 —
+/// Server-Side Request Forgery / A08). Matched **exactly** (no subdomain
+/// wildcard) so a look-alike or taken-over subdomain is never trusted.
+const Set<String> kAllowedArtifactHosts = {
+  // Release-download URLs the manifest publishes.
+  'github.com',
+  // Where `github.com/.../releases/download/...` currently 302-redirects.
+  'release-assets.githubusercontent.com',
+  // GitHub's historical/fallback release-asset host, kept so a redirect to it
+  // is not spuriously refused.
+  'objects.githubusercontent.com',
+  // The gh-pages origin that serves the manifests (and could serve artifacts).
+  'ibanner56.github.io',
+};
+
+/// Whether [uri] is an acceptable target for an artifact download or redirect
+/// hop (issue #431). Requires **all** of: an `https` scheme, a host on
+/// [kAllowedArtifactHosts] (compared case-insensitively, exact match), no
+/// userinfo (`user:pass@host` — a classic host-confusion trick), and either no
+/// explicit port or the default TLS port 443. Anything else is refused so a
+/// scheme downgrade, a userinfo/port trick, or an off-allowlist host — direct
+/// or reached via redirect — can never steer the download (OWASP A10 / A08).
+bool isAllowedArtifactHost(Uri uri) {
+  if (!uri.isScheme('https')) return false;
+  if (uri.userInfo.isNotEmpty) return false;
+  if (uri.hasPort && uri.port != 443) return false;
+  final host = uri.host.toLowerCase();
+  if (host.isEmpty) return false;
+  return kAllowedArtifactHosts.contains(host);
+}
+
 /// How long the update check waits before giving up. Deliberately short: a
 /// missing network must be a fast, silent no-op rather than a hang (ADR-002 §5).
 const Duration kUpdateCheckTimeout = Duration(seconds: 10);
@@ -66,6 +142,12 @@ String downloadFileName(String artifactUrl) {
 /// bare `GET` of this URL — no query params are ever appended (ADR-002 §5).
 String manifestUrlForChannel(UpdateChannel channel) =>
     '$kUpdateManifestBaseUrl/${channel.wire}.json';
+
+/// Builds the detached-signature URL for [channel]'s manifest:
+/// `…/stable.json.sig` (or `…/beta.json.sig`). Like the manifest request this
+/// is a bare `GET` with no query params (ADR-002 §5).
+String signatureUrlForChannel(UpdateChannel channel) =>
+    '${manifestUrlForChannel(channel)}$kUpdateSignatureFileSuffix';
 
 /// Persisted-settings key for the beta-channel opt-in (ADR-002 §3). Stored as a
 /// `bool`; absent/unset means off → the client only ever fetches `stable.json`.

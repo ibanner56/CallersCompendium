@@ -15,7 +15,12 @@
 # action, nothing new to SHA-pin).
 #
 # Usage:
-#   publish_pages_manifest.sh --manifest <path> --channel <stable|beta> --tag <vX.Y.Z>
+#   publish_pages_manifest.sh --manifest <path> --channel <stable|beta> --tag <vX.Y.Z> [--signature <path>]
+#
+# When --signature is given (issue #431), its file is published alongside the
+# manifest as `<channel>.json.sig` (the detached Ed25519 signature the in-app
+# client verifies against the pinned public key). When omitted the behaviour is
+# byte-identical to before (manifest only) so an unsigned release stays green.
 #
 # Environment overrides (defaults target the real release):
 #   REMOTE            git remote to push to           (default: origin)
@@ -29,11 +34,13 @@ set -euo pipefail
 manifest=""
 channel=""
 tag=""
+signature=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --manifest) [ "$#" -ge 2 ] || { echo "::error::--manifest requires a value" >&2; exit 2; }; manifest="$2"; shift 2 ;;
     --channel)  [ "$#" -ge 2 ] || { echo "::error::--channel requires a value" >&2; exit 2; };  channel="$2";  shift 2 ;;
     --tag)      [ "$#" -ge 2 ] || { echo "::error::--tag requires a value" >&2; exit 2; };      tag="$2";      shift 2 ;;
+    --signature) [ "$#" -ge 2 ] || { echo "::error::--signature requires a value" >&2; exit 2; }; signature="$2"; shift 2 ;;
     *) echo "::error::unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -46,6 +53,9 @@ case "$channel" in
   *) echo "::error::--channel must be 'stable' or 'beta', got: $channel" >&2; exit 2 ;;
 esac
 [ -f "$manifest" ] || { echo "::error::manifest file not found: $manifest" >&2; exit 2; }
+if [ -n "$signature" ]; then
+  [ -f "$signature" ] || { echo "::error::signature file not found: $signature" >&2; exit 2; }
+fi
 
 remote="${REMOTE:-origin}"
 branch="${BRANCH:-gh-pages}"
@@ -57,6 +67,11 @@ retries="${PUSH_RETRIES:-5}"
 # Absolute path so the copy survives the `cd` into the worktree.
 manifest_abs="$(cd "$(dirname "$manifest")" && pwd)/$(basename "$manifest")"
 dest="${channel}.json"
+sig_abs=""
+sig_dest="${channel}.json.sig"
+if [ -n "$signature" ]; then
+  sig_abs="$(cd "$(dirname "$signature")" && pwd)/$(basename "$signature")"
+fi
 
 cleanup() { git worktree remove --force "$worktree" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
@@ -88,6 +103,13 @@ commit_manifest() {
   touch "$worktree/.nojekyll"   # serve JSON verbatim; skip Jekyll processing.
 
   git -C "$worktree" add "$dest" .nojekyll
+
+  # Publish the detached signature next to the manifest when provided so the
+  # in-app client can fetch <channel>.json.sig and verify it (issue #431).
+  if [ -n "$sig_abs" ]; then
+    cp "$sig_abs" "$worktree/$sig_dest"
+    git -C "$worktree" add "$sig_dest"
+  fi
 
   if git -C "$worktree" diff --cached --quiet; then
     echo "No change to $dest for $tag; gh-pages already up to date (no-op)."

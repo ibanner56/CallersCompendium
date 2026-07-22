@@ -515,7 +515,7 @@ abstract class AppLocalizations {
   /// Title of the assisted-download tile while handing the verified update to the OS installer.
   ///
   /// In en, this message translates to:
-  /// **'Opening the installer'**
+  /// **'Preparing the installer'**
   String get settingsUpdatesHandoffTitle;
 
   /// Subtitle shown while handing the verified update to the system installer.
@@ -535,6 +535,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Follow your system installer to finish updating.'**
   String get settingsUpdatesCompletedSubtitle;
+
+  /// Subtitle shown after the download completes when the verified installer was revealed in the file manager, directing the user to run it.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified and revealed in your file manager — run the installer to finish updating.'**
+  String get settingsUpdatesCompletedSubtitleRevealed;
 
   /// Title of the assisted-download tile in its idle and failed states, offering to download the update.
   ///

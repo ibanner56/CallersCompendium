@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app_metadata.dart';
 import '../utils/launch_external_url.dart';
+import 'artifact_handoff.dart';
 import 'update_controller.dart';
 import 'update_scope.dart';
 import 'update_service.dart';
@@ -63,11 +64,16 @@ class UpdateBanner extends StatelessWidget {
       case AssistedDownloadStatus.verifying:
         return Text('Verifying $kAppName ${update.version}…');
       case AssistedDownloadStatus.handingOff:
-        return const Text('Opening the installer…');
+        return const Text('Preparing the installer…');
       case AssistedDownloadStatus.completed:
+        final revealed = controller.handoffResult == HandoffResult.revealed;
         return Text(
-          '$kAppName ${update.version} downloaded — follow the installer to '
-          'finish updating.',
+          revealed
+              ? '$kAppName ${update.version} downloaded and verified — we '
+                    'revealed the installer in your file manager. Run it to '
+                    'finish updating.'
+              : '$kAppName ${update.version} downloaded — follow the installer '
+                    'to finish updating.',
         );
       case AssistedDownloadStatus.failed:
         return Text(
