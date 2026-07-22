@@ -288,6 +288,87 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get collectionBatchMore => 'More batch actions';
+
+  @override
+  String get collectionSetRating => 'Set rating';
+
+  @override
+  String get collectionAddTunes => 'Add tunes';
+
+  @override
+  String get collectionClearTunes => 'Clear tunes';
+
+  @override
+  String get collectionEditCustomField => 'Edit custom field';
+
+  @override
+  String collectionBatchRatingSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Set rating on $count dances',
+      one: 'Set rating on 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchRatingCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Cleared rating on $count dances',
+      one: 'Cleared rating on 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchTunesAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Added tunes to $count dances',
+      one: 'Added tunes to 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchTunesCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Cleared tunes from $count dances',
+      one: 'Cleared tunes from 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchCustomFieldSet(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Updated field on $count dances',
+      one: 'Updated field on 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionBatchCustomFieldCleared(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Cleared field on $count dances',
+      one: 'Cleared field on 1 dance',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String collectionSelectDanceLabel(String title) {
     return 'Select $title';
   }
@@ -551,6 +632,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionBatchTagRemoveConfirm => 'Remove';
+
+  @override
+  String collectionBatchRatingStars(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count stars',
+      one: '1 star',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionBatchRatingUnrated => 'Unrated (clear)';
+
+  @override
+  String get collectionBatchRatingConfirm => 'Set';
+
+  @override
+  String get collectionBatchTunesFieldLabel => 'Add a tune';
+
+  @override
+  String get collectionBatchTunesAddButton => 'Add tune to list';
+
+  @override
+  String get collectionBatchTunesEmpty =>
+      'Type a tune name and add it to the list.';
+
+  @override
+  String collectionBatchTunesRemove(String tune) {
+    return 'Remove $tune from list';
+  }
+
+  @override
+  String get collectionBatchTunesConfirm => 'Add';
+
+  @override
+  String get collectionBatchClearTunesConfirmTitle => 'Clear tunes?';
+
+  @override
+  String get collectionBatchClearTunesConfirmBody =>
+      'This removes all tunes from the selected dances. You can undo it afterwards.';
+
+  @override
+  String get collectionBatchClearTunesConfirmButton => 'Clear tunes';
+
+  @override
+  String get collectionBatchCustomFieldKeyLabel => 'Field';
+
+  @override
+  String get collectionBatchCustomFieldClearOption => 'Clear this field';
+
+  @override
+  String get collectionBatchCustomFieldEmpty =>
+      'No custom fields are defined yet.';
+
+  @override
+  String get collectionBatchCustomFieldNumberInvalid => 'Enter a number';
+
+  @override
+  String get collectionBatchCustomFieldConfirm => 'Apply';
 
   @override
   String get danceFiguresEmpty => 'No figures yet.';

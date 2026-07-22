@@ -29,8 +29,11 @@ import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/add_to_program_sheet.dart';
 import '../widgets/advanced_query_builder.dart';
+import '../widgets/batch_custom_field_dialog.dart';
 import '../widgets/batch_level_dialog.dart';
+import '../widgets/batch_rating_dialog.dart';
 import '../widgets/batch_tag_dialog.dart';
+import '../widgets/batch_tunes_dialog.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/by_phrase_panel.dart';
 import '../widgets/dance_list_tile.dart';
@@ -122,6 +125,10 @@ class DanceListScreen extends StatefulWidget {
   @override
   State<DanceListScreen> createState() => _DanceListScreenState();
 }
+
+/// Actions in the Collection multi-select "more" overflow menu (#423), holding
+/// the batch-edit affordances that don't fit as top-level action-bar icons.
+enum _BatchMoreAction { setRating, addTunes, clearTunes, editCustomField }
 
 class _DanceListScreenState extends State<DanceListScreen> {
   /// Active dialect for search canonicalization — read from [ActiveDialectScope]
@@ -979,6 +986,295 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (mounted) await _boot();
   }
 
+  /// Shared tail of the batch handlers: announces [message] to AT, exits
+  /// selection mode, reloads, then shows either a plain "no changes" snackbar
+  /// (when [count] is 0) or an Undo prompt wired to [onUndo].
+  Future<void> _finishBatch({
+    required int count,
+    required String message,
+    required ValueKey<String> snackKey,
+    required VoidCallback onUndo,
+  }) async {
+    if (!mounted) return;
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      Directionality.of(context),
+    );
+    final l10n = AppLocalizations.of(context);
+    final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+
+    _exitSelectionMode();
+    await _boot();
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    if (count == 0) {
+      messenger.showSnackBar(SnackBar(key: snackKey, content: Text(message)));
+      return;
+    }
+    showUndoSnackBar(
+      messenger,
+      key: snackKey,
+      message: message,
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: accessibleNavigation,
+      onUndo: onUndo,
+    );
+  }
+
+  /// Sets the star rating on the selected dances via the batched,
+  /// single-transaction [DanceRepository.setRatingForMany] (parallel to
+  /// [_batchSetLevel]). Captures prior per-dance ratings for Undo.
+  Future<void> _batchSetRating() async {
+    final data = _data;
+    if (data == null || _selectedIds.isEmpty) return;
+
+    final selectedIds = Set<String>.of(_selectedIds);
+    final choice = await showBatchRatingDialog(context);
+    if (choice == null || !mounted) return;
+
+    final priorRatings = <String, int?>{};
+    for (final id in selectedIds) {
+      final dance = await _repos.dances.getById(id);
+      if (dance == null) continue;
+      priorRatings[id] = dance.rating;
+    }
+
+    final count = await _repos.dances.setRatingForMany(
+      priorRatings.keys,
+      rating: choice.rating,
+      clearRating: choice.clear,
+      now: DateTime.now().toUtc(),
+    );
+
+    // Narrow the captured priors to only the dances that actually changed.
+    final target = choice.clear ? null : choice.rating;
+    priorRatings.removeWhere((_, prior) => prior == target);
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final message = count == 0
+        ? l10n.collectionBatchNoChanges
+        : choice.clear
+        ? l10n.collectionBatchRatingCleared(count)
+        : l10n.collectionBatchRatingSet(count);
+    await _finishBatch(
+      count: count,
+      message: message,
+      snackKey: const ValueKey('batch-rating-snackbar'),
+      onUndo: () => _undoBatchRating(priorRatings),
+    );
+  }
+
+  /// Restores the captured [priorRatings] for each affected dance.
+  Future<void> _undoBatchRating(Map<String, int?> priorRatings) async {
+    for (final entry in priorRatings.entries) {
+      final dance = await _repos.dances.getById(entry.key);
+      if (dance == null) continue;
+      await _repos.dances.update(
+        dance.copyWith(
+          rating: entry.value,
+          clearRating: entry.value == null,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+    }
+    if (mounted) await _boot();
+  }
+
+  /// Merges tunes into the selected dances (additive union) via the batched,
+  /// single-transaction [DanceRepository.addTunesForMany]. Captures prior
+  /// per-dance tune lists for Undo.
+  Future<void> _batchAddTunes() async {
+    final data = _data;
+    if (data == null || _selectedIds.isEmpty) return;
+
+    final selectedIds = Set<String>.of(_selectedIds);
+    final chosen = await showBatchTunesDialog(context);
+    if (chosen == null || chosen.isEmpty || !mounted) return;
+
+    final priorTunes = <String, List<String>>{};
+    for (final id in selectedIds) {
+      final dance = await _repos.dances.getById(id);
+      if (dance == null) continue;
+      priorTunes[id] = dance.tunes.toList();
+    }
+
+    final count = await _repos.dances.addTunesForMany(
+      priorTunes.keys,
+      tunes: chosen,
+      now: DateTime.now().toUtc(),
+    );
+
+    // Keep only dances that actually gained a tune (union grew the set).
+    priorTunes.removeWhere((_, prior) => chosen.every(prior.contains));
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final message = count == 0
+        ? l10n.collectionBatchNoChanges
+        : l10n.collectionBatchTunesAdded(count);
+    await _finishBatch(
+      count: count,
+      message: message,
+      snackKey: const ValueKey('batch-tunes-snackbar'),
+      onUndo: () => _undoBatchTunes(priorTunes),
+    );
+  }
+
+  /// Removes all tunes from the selected dances via the batched,
+  /// single-transaction [DanceRepository.clearTunesForMany], after a
+  /// confirmation prompt (this is a destructive removal). Captures prior
+  /// per-dance tune lists for Undo.
+  Future<void> _batchClearTunes() async {
+    final data = _data;
+    if (data == null || _selectedIds.isEmpty) return;
+
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const ValueKey('batch-clear-tunes-confirm'),
+        title: Text(l10n.collectionBatchClearTunesConfirmTitle),
+        content: Text(l10n.collectionBatchClearTunesConfirmBody),
+        actions: [
+          TextButton(
+            key: const ValueKey('batch-clear-tunes-cancel'),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('batch-clear-tunes-confirm-button'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.collectionBatchClearTunesConfirmButton),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final selectedIds = Set<String>.of(_selectedIds);
+    final priorTunes = <String, List<String>>{};
+    for (final id in selectedIds) {
+      final dance = await _repos.dances.getById(id);
+      if (dance == null) continue;
+      priorTunes[id] = dance.tunes.toList();
+    }
+
+    final count = await _repos.dances.clearTunesForMany(
+      priorTunes.keys,
+      now: DateTime.now().toUtc(),
+    );
+
+    // Keep only dances that actually had tunes to clear.
+    priorTunes.removeWhere((_, prior) => prior.isEmpty);
+
+    if (!mounted) return;
+    final message = count == 0
+        ? l10n.collectionBatchNoChanges
+        : l10n.collectionBatchTunesCleared(count);
+    await _finishBatch(
+      count: count,
+      message: message,
+      snackKey: const ValueKey('batch-tunes-snackbar'),
+      onUndo: () => _undoBatchTunes(priorTunes),
+    );
+  }
+
+  /// Restores the captured [priorTunes] for each affected dance.
+  Future<void> _undoBatchTunes(Map<String, List<String>> priorTunes) async {
+    for (final entry in priorTunes.entries) {
+      final dance = await _repos.dances.getById(entry.key);
+      if (dance == null) continue;
+      await _repos.dances.update(
+        dance.copyWith(tunes: entry.value, updatedAt: DateTime.now().toUtc()),
+      );
+    }
+    if (mounted) await _boot();
+  }
+
+  /// Sets or clears ONE custom field across the selected dances (upsert
+  /// per-key) via the batched, single-transaction
+  /// [DanceRepository.upsertCustomFieldForMany] /
+  /// [DanceRepository.clearCustomFieldForMany]. Captures prior per-dance
+  /// custom-field lists for Undo.
+  Future<void> _batchCustomField() async {
+    final data = _data;
+    if (data == null || _selectedIds.isEmpty) return;
+
+    final defs = await _repos.customFieldDefs.listAll();
+    if (!mounted) return;
+    final choice = await showBatchCustomFieldDialog(context, defs: defs);
+    if (choice == null || !mounted) return;
+
+    final selectedIds = Set<String>.of(_selectedIds);
+    final priorFields = <String, List<CustomFieldValue>>{};
+    for (final id in selectedIds) {
+      final dance = await _repos.dances.getById(id);
+      if (dance == null) continue;
+      priorFields[id] = dance.customFields.toList();
+    }
+
+    final int count;
+    if (choice.clear) {
+      count = await _repos.dances.clearCustomFieldForMany(
+        priorFields.keys,
+        fieldId: choice.def.id,
+        now: DateTime.now().toUtc(),
+      );
+    } else {
+      count = await _repos.dances.upsertCustomFieldForMany(
+        priorFields.keys,
+        def: choice.def,
+        value: choice.value!,
+        now: DateTime.now().toUtc(),
+      );
+    }
+
+    // Keep only dances whose value for the chosen key actually changed.
+    priorFields.removeWhere((_, prior) {
+      final existing = prior
+          .where((f) => f.fieldId == choice.def.id)
+          .map((f) => f.value)
+          .toList();
+      if (choice.clear) return existing.isEmpty;
+      return existing.length == 1 && existing.first == choice.value;
+    });
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final message = count == 0
+        ? l10n.collectionBatchNoChanges
+        : choice.clear
+        ? l10n.collectionBatchCustomFieldCleared(count)
+        : l10n.collectionBatchCustomFieldSet(count);
+    await _finishBatch(
+      count: count,
+      message: message,
+      snackKey: const ValueKey('batch-custom-field-snackbar'),
+      onUndo: () => _undoBatchCustomField(priorFields),
+    );
+  }
+
+  /// Restores the captured [priorFields] for each affected dance.
+  Future<void> _undoBatchCustomField(
+    Map<String, List<CustomFieldValue>> priorFields,
+  ) async {
+    for (final entry in priorFields.entries) {
+      final dance = await _repos.dances.getById(entry.key);
+      if (dance == null) continue;
+      await _repos.dances.update(
+        dance.copyWith(
+          customFields: entry.value,
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+    }
+    if (mounted) await _boot();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -1119,6 +1415,46 @@ class _DanceListScreenState extends State<DanceListScreen> {
           tooltip: l10n.collectionSetLevel,
           icon: const Icon(Icons.signal_cellular_alt),
           onPressed: hasSelection ? _batchSetLevel : null,
+        ),
+        PopupMenuButton<_BatchMoreAction>(
+          key: const ValueKey('batch-more'),
+          enabled: hasSelection,
+          tooltip: l10n.collectionBatchMore,
+          icon: const Icon(Icons.more_vert),
+          onSelected: (action) {
+            switch (action) {
+              case _BatchMoreAction.setRating:
+                _batchSetRating();
+              case _BatchMoreAction.addTunes:
+                _batchAddTunes();
+              case _BatchMoreAction.clearTunes:
+                _batchClearTunes();
+              case _BatchMoreAction.editCustomField:
+                _batchCustomField();
+            }
+          },
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              key: const ValueKey('batch-set-rating'),
+              value: _BatchMoreAction.setRating,
+              child: Text(l10n.collectionSetRating),
+            ),
+            PopupMenuItem(
+              key: const ValueKey('batch-add-tunes'),
+              value: _BatchMoreAction.addTunes,
+              child: Text(l10n.collectionAddTunes),
+            ),
+            PopupMenuItem(
+              key: const ValueKey('batch-clear-tunes'),
+              value: _BatchMoreAction.clearTunes,
+              child: Text(l10n.collectionClearTunes),
+            ),
+            PopupMenuItem(
+              key: const ValueKey('batch-edit-custom-field'),
+              value: _BatchMoreAction.editCustomField,
+              child: Text(l10n.collectionEditCustomField),
+            ),
+          ],
         ),
       ],
     );

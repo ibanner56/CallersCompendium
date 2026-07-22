@@ -526,6 +526,72 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Cleared level on 1 dance} other{Cleared level on {count} dances}}'**
   String collectionBatchLevelCleared(int count);
 
+  /// Tooltip for the overflow menu holding the additional batch-edit actions (rating, tunes, custom field).
+  ///
+  /// In en, this message translates to:
+  /// **'More batch actions'**
+  String get collectionBatchMore;
+
+  /// Batch action (menu item and dialog title) for setting the star rating on the selected dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Set rating'**
+  String get collectionSetRating;
+
+  /// Batch action (menu item and dialog title) for adding tunes to the selected dances (additive; never removes).
+  ///
+  /// In en, this message translates to:
+  /// **'Add tunes'**
+  String get collectionAddTunes;
+
+  /// Batch action (menu item) for removing all tunes from the selected dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear tunes'**
+  String get collectionClearTunes;
+
+  /// Batch action (menu item and dialog title) for setting or clearing one custom field across the selected dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit custom field'**
+  String get collectionEditCustomField;
+
+  /// Announcement/snackbar confirming a rating was set on the given number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Set rating on 1 dance} other{Set rating on {count} dances}}'**
+  String collectionBatchRatingSet(int count);
+
+  /// Announcement/snackbar confirming the rating was cleared on the given number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Cleared rating on 1 dance} other{Cleared rating on {count} dances}}'**
+  String collectionBatchRatingCleared(int count);
+
+  /// Announcement/snackbar confirming tunes were added to the given number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Added tunes to 1 dance} other{Added tunes to {count} dances}}'**
+  String collectionBatchTunesAdded(int count);
+
+  /// Announcement/snackbar confirming tunes were cleared from the given number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Cleared tunes from 1 dance} other{Cleared tunes from {count} dances}}'**
+  String collectionBatchTunesCleared(int count);
+
+  /// Announcement/snackbar confirming a custom field was set on the given number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Updated field on 1 dance} other{Updated field on {count} dances}}'**
+  String collectionBatchCustomFieldSet(int count);
+
+  /// Announcement/snackbar confirming a custom field was cleared on the given number of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Cleared field on 1 dance} other{Cleared field on {count} dances}}'**
+  String collectionBatchCustomFieldCleared(int count);
+
   /// Accessible label for the per-row selection checkbox in batch mode.
   ///
   /// In en, this message translates to:
@@ -981,6 +1047,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove'**
   String get collectionBatchTagRemoveConfirm;
+
+  /// Text label for a star-rating option in the batch set-rating dialog (paired with the star icon; the label is the accessible name, never the star shape alone).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 star} other{{count} stars}}'**
+  String collectionBatchRatingStars(int count);
+
+  /// Batch set-rating option that clears (unsets) the rating on the selected dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrated (clear)'**
+  String get collectionBatchRatingUnrated;
+
+  /// Confirm button of the batch set-rating dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get collectionBatchRatingConfirm;
+
+  /// Label of the text field for typing a tune to add in the batch add-tunes dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a tune'**
+  String get collectionBatchTunesFieldLabel;
+
+  /// Tooltip for the button that adds the typed tune to the pending list in the batch add-tunes dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tune to list'**
+  String get collectionBatchTunesAddButton;
+
+  /// Empty state in the batch add-tunes dialog before any tune has been added to the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a tune name and add it to the list.'**
+  String get collectionBatchTunesEmpty;
+
+  /// Tooltip/label for removing a tune from the pending add list in the batch add-tunes dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {tune} from list'**
+  String collectionBatchTunesRemove(String tune);
+
+  /// Confirm button of the batch add-tunes dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get collectionBatchTunesConfirm;
+
+  /// Title of the confirmation dialog for clearing all tunes from the selected dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear tunes?'**
+  String get collectionBatchClearTunesConfirmTitle;
+
+  /// Body of the confirmation dialog for clearing all tunes from the selected dances.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes all tunes from the selected dances. You can undo it afterwards.'**
+  String get collectionBatchClearTunesConfirmBody;
+
+  /// Confirm button of the clear-tunes confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear tunes'**
+  String get collectionBatchClearTunesConfirmButton;
+
+  /// Label of the picker for choosing which custom field to edit across the selection.
+  ///
+  /// In en, this message translates to:
+  /// **'Field'**
+  String get collectionBatchCustomFieldKeyLabel;
+
+  /// Toggle in the batch edit-custom-field dialog that clears the chosen field across the selection instead of setting a value.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear this field'**
+  String get collectionBatchCustomFieldClearOption;
+
+  /// Empty state in the batch edit-custom-field dialog when no custom field definitions exist.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom fields are defined yet.'**
+  String get collectionBatchCustomFieldEmpty;
+
+  /// Validation error when a non-numeric value is entered for a number custom field in the batch edit dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number'**
+  String get collectionBatchCustomFieldNumberInvalid;
+
+  /// Confirm button of the batch edit-custom-field dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get collectionBatchCustomFieldConfirm;
 
   /// Placeholder shown in the figure table when a dance has no figures.
   ///
