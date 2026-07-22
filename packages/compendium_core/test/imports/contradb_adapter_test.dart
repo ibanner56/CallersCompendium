@@ -132,6 +132,17 @@ void main() {
         expect(draft.dance.callingNotes, contains('Careful of the ends.'));
       });
 
+      test('strips embedded newline/tab from the hook (single-line)', () async {
+        // Dance.hook is a one-line description, so an imported hook must not
+        // keep embedded line breaks.
+        final draft = await _importOne(
+          jsonEncode(_dance(hook: 'Line one\nLine\ttwo')),
+        );
+        expect(draft.dance.hook, 'Line oneLinetwo');
+        expect(draft.dance.hook, isNot(contains('\n')));
+        expect(draft.dance.hook, isNot(contains('\t')));
+      });
+
       test('strips spoofing chars from custom figure text', () async {
         final draft = await _importOne(
           jsonEncode(

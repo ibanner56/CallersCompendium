@@ -48,10 +48,24 @@ library;
 ///   every plane.
 ///
 /// Legitimate content is preserved: ordinary letters/marks/punctuation in any
-/// script, emoji, and variation selectors (`U+FE00–U+FE0F`,
-/// `U+E0100–U+E01EF`). The function is a pure, idempotent transform, so applying
-/// it more than once (e.g. at both an adapter and a shared chokepoint) is safe.
-/// When nothing is stripped the original instance is returned unchanged.
+/// script, standalone emoji, and variation selectors (`U+FE00–U+FE0F`,
+/// `U+E0100–U+E01EF`).
+///
+/// **Intentional tradeoff — joiners are stripped.** The zero-width joiner
+/// (`U+200D`, ZWJ) and non-joiner (`U+200C`, ZWNJ) fall in the stripped
+/// `U+200B–U+200F` range, so this sanitizer does **not** preserve emoji *ZWJ
+/// sequences* (a composed glyph like a family/profession emoji degrades to its
+/// component base emoji) and drops the joiners some scripts (e.g. Persian, a few
+/// Indic scripts) use for shaping. This is deliberate: ZWJ/ZWNJ are
+/// default-ignorable format characters that double as a display-spoofing and
+/// dedup-evasion vector (imported titles feed external-id derivation and
+/// duplicate detection), so we fail safe and strip rather than trust — matching
+/// the OWASP guidance above. Callers that must keep joiners should normalize
+/// upstream before storage.
+///
+/// The function is a pure, idempotent transform, so applying it more than once
+/// (e.g. at both an adapter and a shared chokepoint) is safe. When nothing is
+/// stripped the original instance is returned unchanged.
 String sanitizeImportedText(String input, {bool allowLineBreaks = true}) {
   if (input.isEmpty) return input;
 

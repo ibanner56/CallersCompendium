@@ -184,7 +184,12 @@ class ContraDbAdapter implements SourceAdapter {
         title: title,
         formation: formation,
         figures: figures,
-        hook: sanitizeImportedText(_asString(dance['hook'])?.trim() ?? ''),
+        // `Dance.hook` is a one-line description, so sanitize single-line
+        // (allowLineBreaks: false) — strips embedded tab/newline/CR too (#444).
+        hook: sanitizeImportedText(
+          _asString(dance['hook'])?.trim() ?? '',
+          allowLineBreaks: false,
+        ),
         callingNotes: _buildNotes(dance),
         // The pipeline attaches provenance at commit, derived from `raw`.
         createdAt: _epoch,

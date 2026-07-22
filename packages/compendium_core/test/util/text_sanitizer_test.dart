@@ -78,6 +78,14 @@ void main() {
       expect(sanitizeImportedText(input), input);
     });
 
+    test('strips ZWJ, degrading an emoji ZWJ sequence (intentional)', () {
+      // The zero-width joiner (U+200D) is a spoofing/dedup-evasion vector, so it
+      // is stripped even though this degrades composed emoji ZWJ sequences to
+      // their component base emoji. See the sanitizer dartdoc tradeoff note.
+      const family = '👨\u200D👩\u200D👧';
+      expect(sanitizeImportedText(family), '👨👩👧');
+    });
+
     test('returns an empty string untouched', () {
       expect(sanitizeImportedText(''), '');
     });
