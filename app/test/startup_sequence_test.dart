@@ -441,6 +441,10 @@ void main() {
       expect(find.textContaining('create an automatic backup'), findsOneWidget);
       expect(find.byType(AppShell), findsNothing);
       expect(find.text('Retry'), findsNothing);
+      // The terminal icon reflects the actual cause (unwritable backups dir),
+      // not the always-on disc_full glyph the review flagged (issue #442).
+      expect(find.byIcon(Icons.folder_off_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.disc_full), findsNothing);
     },
   );
 }

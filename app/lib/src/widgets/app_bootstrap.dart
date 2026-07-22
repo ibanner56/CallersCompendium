@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/migration_guard.dart'
-    show DatabaseDowngradeError, MigrationSnapshotAborted;
+    show DatabaseDowngradeError, MigrationSnapshotAborted, SnapshotFailureCause;
 
 /// Gates the app on a startup [future] — the schema migration / derived-index
 /// back-fill run by `CompendiumRepositories.ensureMigrated()`. Shows a loading
@@ -70,7 +70,7 @@ class AppBootstrap extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.disc_full, size: 48),
+                      Icon(_snapshotAbortedIcon(error.failure.cause), size: 48),
                       const SizedBox(height: 8),
                       Text(error.message, textAlign: TextAlign.center),
                     ],
@@ -97,5 +97,21 @@ class AppBootstrap extends StatelessWidget {
         return builder(context);
       },
     );
+  }
+
+  /// Picks a terminal-screen icon that reflects the *actual* snapshot-failure
+  /// cause (issue #442 review): a storage glyph for a full disk, a
+  /// folder-off glyph for an unwritable backups folder, and a generic warning
+  /// otherwise — so the icon never misleads (it previously always showed
+  /// `disc_full`, even for permission/unknown failures).
+  IconData _snapshotAbortedIcon(SnapshotFailureCause cause) {
+    switch (cause) {
+      case SnapshotFailureCause.diskFull:
+        return Icons.disc_full;
+      case SnapshotFailureCause.unwritableBackupsDir:
+        return Icons.folder_off_outlined;
+      case SnapshotFailureCause.unknown:
+        return Icons.warning_amber_rounded;
+    }
   }
 }
