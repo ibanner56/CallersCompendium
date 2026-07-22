@@ -903,34 +903,49 @@ jobs:
           Compress-Archive -Path $stage -DestinationPath "dist/$stage.zip" -Force
 
           # Installer via Inno Setup (preinstalled on windows-latest; fall back
-          # to Chocolatey if the image ever drops it). The fallback is PINNED to a
-          # specific Inno Setup version and the Chocolatey package (.nupkg) SHA-512
-          # is verified before install, so builds stay reproducible and
-          # supply-chain-safe (#451). The Inno Setup installer .exe is embedded in
-          # the .nupkg (not fetched from a URL at install time), so the package
-          # hash is the trust anchor: we download the pinned package, verify it,
-          # and install that verified local copy. Only the small
-          # chocolatey-core.extension helper dependency is resolved from the
-          # community feed.
+          # to Chocolatey if the image ever drops it). The fallback is fully
+          # supply-chain hardened (#451): every Chocolatey package it needs is
+          # PINNED to a specific version and its .nupkg SHA-512 is verified
+          # (fail-closed) against the community feed's published PackageHash
+          # BEFORE any install runs, and the install resolves EXCLUSIVELY from
+          # the verified local directory (no live feed). Nothing unverified is
+          # fetched or executed at install time — this matters because a
+          # Chocolatey package's (and its dependencies') install-time PowerShell
+          # runs in the release job, so hashing only the Inno Setup .nupkg would
+          # still leave the dependency chain trusting the live feed.
+          #
+          # The pinned set below is the COMPLETE dependency tree (resolved and
+          # verified transitively; the leaf has no further dependencies):
+          #   innosetup 6.7.1
+          #     -> chocolatey-core.extension 1.4.0
+          #          -> chocolatey-compatibility.extension 1.0.0 (no deps)
+          # innosetup 6.7.1 is the latest stable on the community feed (published
+          # 2026-02-17). Each Sha512 is the hex SHA-512 of that exact .nupkg and
+          # matches the feed's published PackageHash. Bump version + Sha512
+          # together when updating any package, and re-check the dependency tree.
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) {
-            # Inno Setup 6.7.1 — latest stable on the Chocolatey community feed
-            # (published 2026-02-17). SHA-512 of innosetup.6.7.1.nupkg, matching
-            # the feed's published PackageHash. Bump both together when updating.
-            $innoVersion = '6.7.1'
-            $innoSha512  = '431A9F0A8D40D95F8A04C8D98617D2F6E88AC08B65A01BE1F272D6978C3F726AE118F9D7DC04C2B52A429DDEC3D491358A1C8BF2F77DEEE0ABDA8606A975EB61'
+            $innoPackages = @(
+              @{ Id = 'innosetup';                         Version = '6.7.1'; Sha512 = '431A9F0A8D40D95F8A04C8D98617D2F6E88AC08B65A01BE1F272D6978C3F726AE118F9D7DC04C2B52A429DDEC3D491358A1C8BF2F77DEEE0ABDA8606A975EB61' }
+              @{ Id = 'chocolatey-core.extension';          Version = '1.4.0'; Sha512 = '78F66C4259BC7AEAFC177EFD6CE1988112B3EF7FC436D330DBE7EF601308A1795EB94D4E117731A3BEE118439E5809FB05927B065E14D0C69F4E2F93BDC7E11B' }
+              @{ Id = 'chocolatey-compatibility.extension'; Version = '1.0.0'; Sha512 = '7117C2BFDD36396A0151110E21D3E9592E72EC79BEAA9B1C06911E2745F6202D6A364A028452873CCFD7F07D237AEB4EFE8FFAB43FF8B8D4A652E7915A32568D' }
+            )
             $pkgDir = Join-Path $env:RUNNER_TEMP 'innosetup-pkg'
             New-Item -ItemType Directory -Force -Path $pkgDir | Out-Null
-            $nupkg = Join-Path $pkgDir "innosetup.$innoVersion.nupkg"
-            Invoke-WebRequest -UseBasicParsing `
-              -Uri "https://community.chocolatey.org/api/v2/package/innosetup/$innoVersion" `
-              -OutFile $nupkg
-            $actualSha512 = (Get-FileHash -Algorithm SHA512 -Path $nupkg).Hash
-            if ($actualSha512 -ne $innoSha512) {
-              throw "Inno Setup $innoVersion package SHA-512 mismatch: expected $innoSha512, got $actualSha512"
+            foreach ($pkg in $innoPackages) {
+              $nupkg = Join-Path $pkgDir "$($pkg.Id).$($pkg.Version).nupkg"
+              Invoke-WebRequest -UseBasicParsing `
+                -Uri "https://community.chocolatey.org/api/v2/package/$($pkg.Id)/$($pkg.Version)" `
+                -OutFile $nupkg
+              $actualSha512 = (Get-FileHash -Algorithm SHA512 -Path $nupkg).Hash
+              if ($actualSha512 -ne $pkg.Sha512) {
+                throw "$($pkg.Id) $($pkg.Version) package SHA-512 mismatch: expected $($pkg.Sha512), got $actualSha512"
+              }
             }
-            choco install innosetup --version $innoVersion -y --no-progress --require-checksums `
-              --source "$pkgDir;https://community.chocolatey.org/api/v2/"
+            # Install ONLY from the verified local dir (no community feed), so
+            # every package — including the dependency chain — comes from bytes
+            # we just hash-verified. --require-checksums is defense-in-depth.
+            choco install innosetup --version 6.7.1 -y --no-progress --require-checksums --source "$pkgDir"
             if ($LASTEXITCODE -ne 0) { throw "choco install innosetup failed ($LASTEXITCODE)" }
           }
           if (-not (Test-Path $iscc)) { throw "ISCC.exe not found after install" }
