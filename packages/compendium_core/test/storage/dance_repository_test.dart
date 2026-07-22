@@ -1049,6 +1049,17 @@ void main() {
       expect(await dances.searchText('Old'), isEmpty);
       expect(await dances.searchText('New'), ['d1']);
     });
+
+    test('excludes soft-deleted dances (#439)', () async {
+      await dances.create(sampleDance(id: 'd1', title: 'Chase the Squirrel'));
+      await dances.create(sampleDance(id: 'd2', title: 'Squirrel Stampede'));
+      // Soft-delete leaves the dance_fts row intact, so the bare MATCH would
+      // still surface the trashed dance without the deleted_at filter.
+      await dances.softDelete('d1', at: DateTime.utc(2026, 1, 2));
+      final hits = await dances.searchText('Squirrel');
+      expect(hits, ['d2']);
+      expect(hits, isNot(contains('d1')));
+    });
   });
 
   group('structural search', () {

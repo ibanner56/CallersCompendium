@@ -764,10 +764,18 @@ class DanceRepository {
 
   /// Full-text search over title/authors/hook/notes/figures/custom values.
   /// Returns dance ids ranked by FTS5's `bm25` relevance (best first).
+  ///
+  /// Soft-deleted (trashed) dances are excluded (#439): the `dance_fts` virtual
+  /// table retains a row until the owning dance is purged/hard-deleted, so the
+  /// bare `MATCH` must JOIN `dances` and filter `deleted_at IS NULL` to stay
+  /// consistent with every other list/search path (mirrors the
+  /// `FilterCompiler._compileRelevance` convention). Ranking/order is unchanged.
   Future<List<String>> searchText(String query) async {
     final rows = await _db
         .customSelect(
-          'SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ? '
+          'SELECT dance_fts.dance_id FROM dance_fts '
+          'JOIN dances ON dances.id = dance_fts.dance_id '
+          'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
           'ORDER BY bm25(dance_fts)',
           variables: [Variable.withString(toFtsMatchQuery(query))],
         )
