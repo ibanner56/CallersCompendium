@@ -369,11 +369,17 @@ class CompendiumArchiveImporter {
       final mintingOriginalIds = <String>{};
       // Seed the fingerprint index once from the current collection (a single
       // load — venue counts are small — never an N+1 of per-venue queries), then
-      // fold in each venue this commit mints. Skipped entirely when the bundle
-      // carries no venues so a venue-less import issues zero venue reads.
-      final venueIndex = archive.venues.isEmpty
-          ? VenueFingerprintIndex()
-          : VenueFingerprintIndex(await _venues.listAll());
+      // fold in each venue this commit mints. The preload is skipped unless at
+      // least one bundled venue has a strong-enough key to *possibly* match (a
+      // non-null [venueFingerprint]): a bundle with no venues, or only weakly-
+      // described ones, can never dedupe cross-import, so the SELECT would be
+      // pure waste — such an import issues zero venue reads.
+      final canDedupe = archive.venues.any(
+        (venue) => venueFingerprint(venue) != null,
+      );
+      final venueIndex = canDedupe
+          ? VenueFingerprintIndex(await _venues.listAll())
+          : VenueFingerprintIndex();
       for (final venue in archive.venues) {
         final existingMapped = venueIdByOriginalId[venue.id];
         if (existingMapped != null) {

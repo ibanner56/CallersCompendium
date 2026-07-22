@@ -1187,8 +1187,10 @@ void main() {
           p('orig-p3', 'orig-v1'),
         ],
         venues: [
-          Venue(id: 'orig-v1', name: 'Grange A'),
-          Venue(id: 'orig-v2', name: 'Grange B'),
+          // Strong keys (name + city) so the dedupe preload actually runs; the
+          // point of this test is that it runs *once*, not per program.
+          Venue(id: 'orig-v1', name: 'Grange A', city: 'Amherst'),
+          Venue(id: 'orig-v2', name: 'Grange B', city: 'Northampton'),
         ],
       );
 
@@ -1208,6 +1210,51 @@ void main() {
       // an N+1 regression would push this to 4+.
       expect(counter.count, 1);
       expect(await countingPrograms.listAll(), hasLength(3));
+    });
+
+    test('a weak-key-only bundle skips the dedupe preload (zero venue '
+        'SELECTs)', () async {
+      // No bundled venue clears the strong-key threshold, so cross-import
+      // dedupe is impossible and the `listAll` preload must be skipped entirely.
+      final counter = VenueSelectCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final countingImporter = CompendiumArchiveImporter(
+        ImportPipeline(
+          DanceRepository(countingDb, contraTaxonomy),
+          ChoreographerRepository(countingDb),
+        ),
+        ProgramRepository(countingDb),
+        VenueRepository(countingDb),
+      );
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [_dance('orig-d1', 'Simplicity Swing')],
+        programs: [
+          Program(
+            id: 'orig-p1',
+            title: 'P1',
+            venueId: 'orig-v1',
+            status: ProgramStatus.draft,
+            slots: [ProgramSlot(id: 'p1-s0', position: 0, danceId: 'orig-d1')],
+            createdAt: DateTime.utc(2026, 4, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        ],
+        // Name-only venue: below the strong-key threshold (null fingerprint).
+        venues: [Venue(id: 'orig-v1', name: 'Town Hall')],
+      );
+
+      counter.reset();
+      await countingImporter.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('slot'),
+      );
+
+      expect(counter.count, 0);
     });
 
     test(
