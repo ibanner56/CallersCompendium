@@ -55,6 +55,11 @@ import 'share_sanitization.dart';
 // TODO(PR C, issue #298): gather the program's referenced Venue into
 // CompendiumArchive.venues so a shared program carries its venue record, once
 // venueId is UI-populated (PR B) and a venue resolver is wired here.
+// TODO(follow-up, issue #298): venues have no provenance/dedupe key, so
+// re-importing the same bundle duplicates venue records (see
+// CompendiumArchiveImporter.commit). Accepted for PR A (additive-import model);
+// add a dedupe/provenance primitive in a later PR so shared/re-imported
+// bundles match existing venues instead of inserting duplicates.
 String buildProgramShareBundle(
   Program program, {
   required Dance? Function(String danceId) danceFor,

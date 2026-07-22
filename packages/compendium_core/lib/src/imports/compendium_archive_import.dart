@@ -337,6 +337,14 @@ class CompendiumArchiveImporter {
       // never overwrite an existing venue; the original→new remap is what the
       // rebuilt programs resolve their `venueId` against (a reference to a venue
       // absent from the bundle is nulled — see [buildArchivePrograms]).
+      //
+      // Known limitation (tracked, PR A-accepted): venues carry no provenance /
+      // dedupe key, so re-importing the same bundle inserts duplicate venue
+      // records rather than matching the previously-imported ones. This is
+      // consistent with the additive-import model used elsewhere; a
+      // dedupe/provenance primitive is deferred to a later PR.
+      // TODO(follow-up, issue #298): add a venue dedupe/provenance key so a
+      // re-imported bundle matches existing venues instead of duplicating them.
       final venueIdByOriginalId = <String, String>{};
       for (final venue in archive.venues) {
         final mintedVenueId = mintId();
