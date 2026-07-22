@@ -352,6 +352,94 @@ void main() {
       final withDeleted = await dances.listAll(includeDeleted: true);
       expect(withDeleted, hasLength(3));
     });
+
+    test(
+      'batched hydration matches single-row getById for every relation',
+      () async {
+        // Two authors, tags, a published source, custom-field defs, and a
+        // related dance so the batched child loaders exercise authors, tags,
+        // links, sources, custom fields, and provenance at once.
+        await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
+        await choreographers.upsert(Choreographer(id: 'c2', name: 'Bob'));
+        await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+        await tags.upsert(Tag(id: 't2', name: 'smooth'));
+        await PublishedSourceRepository(
+          db,
+        ).upsert(PublishedSource(id: 's1', title: 'Zesty Contras'));
+        await customFieldDefs.upsert(
+          CustomFieldDef(
+            id: 'f-text',
+            key: 'origin',
+            label: 'Origin',
+            type: CustomFieldType.text,
+          ),
+        );
+
+        await dances.create(sampleDance(id: 'target', title: 'Aaa Related'));
+        final rich = sampleDance(
+          id: 'rich',
+          title: 'Bbb Rich Dance',
+          // authorIds reversed vs. choreographer id order to prove position
+          // order (not id order) survives the batched load.
+          authorIds: const ['c2', 'c1'],
+          tagIds: const ['t2', 't1'],
+          links: [
+            DanceLink(id: 'l1', kind: LinkKind.video, url: 'https://v.example'),
+            DanceLink(
+              id: 'l2',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'target',
+              label: 'similar',
+            ),
+          ],
+          sourceCitations: [SourceCitation(sourceId: 's1', page: '7')],
+          customFields: [
+            CustomFieldValue(fieldId: 'f-text', value: 'New England'),
+          ],
+          provenance: Provenance(
+            source: ProvenanceSource.contradb,
+            externalId: 'CDB-9',
+            importedAt: DateTime.utc(2026, 2, 1),
+          ),
+        );
+        await dances.create(rich);
+
+        final all = await dances.listAll();
+        final fromList = all.firstWhere((d) => d.id == 'rich');
+        final fromGet = await dances.getById('rich');
+        // The batched list path must produce a value-identical Dance to the
+        // per-row getById path (same fields, same child-collection ordering).
+        expect(fromList, fromGet);
+        expect(fromList, rich);
+        expect(fromList.authorIds, ['c2', 'c1']);
+        expect(fromList.tagIds, ['t2', 't1']);
+        expect(fromList.links.map((l) => l.id), ['l1', 'l2']);
+      },
+    );
+
+    test('batched load spans an id chunk boundary', () async {
+      // More than one _idChunkSize (500) worth of dances, each with an author
+      // and a tag, so the batched loaders must stitch results across chunks.
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
+      await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+      const total = 1050;
+      for (var i = 0; i < total; i++) {
+        await dances.create(
+          sampleDance(
+            id: 'd${i.toString().padLeft(4, '0')}',
+            title: 'Dance ${i.toString().padLeft(4, '0')}',
+            authorIds: const ['c1'],
+            tagIds: const ['t1'],
+          ),
+        );
+      }
+      final all = await dances.listAll();
+      expect(all, hasLength(total));
+      // Every dance keeps its author + tag regardless of which chunk it fell
+      // in (a grouping/merge bug would drop children for later chunks).
+      expect(all.every((d) => d.authorIds.length == 1), isTrue);
+      expect(all.every((d) => d.tagIds.length == 1), isTrue);
+    });
   });
 
   group('hasAny', () {
