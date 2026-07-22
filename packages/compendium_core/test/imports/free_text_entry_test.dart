@@ -119,6 +119,26 @@ void main() {
       // 5 digits exceeds the inline-beat bound, so it is left in the text.
       expect(f.params['beats'], isNot(99999));
     });
+
+    test('a trailing "(0)" is not stripped as a beat count', () {
+      // 0 is "unspecified" downstream, so peeling a `(0)` token would silently
+      // mutate the user's line for no gain. The token is left in place and no
+      // explicit beats param is set (the parser tolerates the parenthetical).
+      final f = parseFreeTextFigureEntry('Neighbor swing (0)').single;
+      expect(f.params.containsKey('beats'), isFalse);
+      expect(f.beats, 0);
+    });
+
+    test(
+      'a leading "0 " is left in the text, not stripped as a beat count',
+      () {
+        final f = parseFreeTextFigureEntry('0 Neighbor swing').single;
+        expect(f.params.containsKey('beats'), isFalse);
+        // The literal "0" survives into the parser rather than being dropped.
+        expect(f.isCustom, isTrue);
+        expect(f.params['text'], contains('0 Neighbor swing'));
+      },
+    );
   });
 
   group('parseFreeTextFigureEntry — no inline beats → taxonomy default', () {

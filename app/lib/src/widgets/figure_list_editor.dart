@@ -175,10 +175,11 @@ class _FigureListEditorState extends State<FigureListEditor> {
     }
 
     // Close the free-text composer if free-text entry was turned off (or its
-    // insertion callback removed) while it was open.
+    // insertion callback removed) while it was open. Route through
+    // [_dismissFreeText] so focus is restored to the Add button rather than
+    // stranded on the TextField that is about to be removed from the tree.
     if (_freeTextComposing && !_freeTextEnabled) {
-      _freeTextComposing = false;
-      _freeTextController.clear();
+      _dismissFreeText();
     }
   }
 
@@ -320,7 +321,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
   void _submitFreeText() {
     final onAddFreeText = widget.onAddFreeText;
     if (onAddFreeText == null) return;
-    final figures = parseFreeTextFigureEntry(_freeTextController.text);
+    final figures = parseFreeTextFigureEntry(
+      _freeTextController.text,
+      taxonomy: widget.taxonomy,
+    );
     if (figures.isEmpty) {
       // Nothing to insert (blank, or scrubbed to empty) — close the composer.
       _dismissFreeText();

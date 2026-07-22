@@ -2305,5 +2305,30 @@ void main() {
       expect(find.byKey(fieldKey), findsNothing);
       expect(drafts, hasLength(1));
     });
+
+    testWidgets('turning free-text entry off while composing closes the '
+        'composer and restores focus to Add', (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'neighbor swing');
+      await tester.pump();
+      expect(find.byKey(fieldKey), findsOneWidget);
+
+      // Toggle free-text entry OFF (its insertion callback is also removed)
+      // while the composer is open — this drives didUpdateWidget's close path.
+      await _pump(tester, drafts, freeTextEntry: false);
+
+      // The composer is gone, nothing was inserted, and focus was moved back
+      // to the Add button rather than stranded on the removed TextField.
+      expect(find.byKey(fieldKey), findsNothing);
+      expect(drafts, isEmpty);
+      expect(
+        tester.binding.focusManager.primaryFocus?.debugLabel,
+        'figure-add',
+      );
+    });
   });
 }

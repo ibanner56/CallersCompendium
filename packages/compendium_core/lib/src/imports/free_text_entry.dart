@@ -40,17 +40,24 @@ class _BeatSplit {
 /// Extracts an optional inline beat count from a trimmed free-text [line]. A
 /// trailing `(N)` is checked first (it is unambiguous — digits inside parens at
 /// the end), then a leading `N `. Returns the line unchanged with 0 beats when
-/// neither form is present.
+/// neither form is present — or when the stated count parses to 0. Because 0 is
+/// "unspecified" downstream, stripping a `(0)`/`0 ` token would silently mutate
+/// the user's text for no gain, so a zero count leaves the whole line intact
+/// (it flows into the parser verbatim — e.g. as an honest custom).
 _BeatSplit _splitInlineBeats(String line) {
   final trailing = _trailingBeats.firstMatch(line);
   if (trailing != null) {
     final beats = int.tryParse(trailing.group(2)!);
-    if (beats != null) return _BeatSplit(trailing.group(1)!.trim(), beats);
+    if (beats != null && beats > 0) {
+      return _BeatSplit(trailing.group(1)!.trim(), beats);
+    }
   }
   final leading = _leadingBeats.firstMatch(line);
   if (leading != null) {
     final beats = int.tryParse(leading.group(1)!);
-    if (beats != null) return _BeatSplit(leading.group(2)!.trim(), beats);
+    if (beats != null && beats > 0) {
+      return _BeatSplit(leading.group(2)!.trim(), beats);
+    }
   }
   return _BeatSplit(line, 0);
 }
