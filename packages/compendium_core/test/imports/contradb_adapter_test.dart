@@ -67,6 +67,85 @@ void main() {
       expect(ContraDbAdapter().source, ProvenanceSource.contradb);
     });
 
+    // Issue #444: imported text must be scrubbed of control/bidi/format
+    // spoofing characters at ingress, before it is stored.
+    group('import text sanitization (issue #444)', () {
+      const rlo = '\u202E'; // RIGHT-TO-LEFT OVERRIDE
+      const zwsp = '\u200B'; // ZERO WIDTH SPACE
+      const bel = '\u0007'; // BEL (C0 control)
+
+      test('strips bidi/control/format chars from the stored title', () async {
+        final draft = await _importOne(
+          jsonEncode(_dance(title: 'Good${rlo}Title$bel$zwsp!')),
+        );
+        expect(draft.dance.title, 'GoodTitle!');
+      });
+
+      test('strips embedded newline from the title (single-line)', () async {
+        final draft = await _importOne(jsonEncode(_dance(title: 'Foo\nBar')));
+        expect(draft.dance.title, 'FooBar');
+        expect(draft.dance.title, isNot(contains('\n')));
+      });
+
+      test(
+        'newline in title yields a stable external id at discover',
+        () async {
+          final adapter = ContraDbAdapter();
+          final discovered = await adapter.discover(
+            // No id → external id derives from the (sanitized) title.
+            ImportRequest(
+              payload: jsonEncode(_dance(id: null, title: 'Foo\nBar')),
+            ),
+          );
+          expect(discovered.single.externalId, 'title:foobar');
+        },
+      );
+
+      test('strips spoofing chars from choreographer/author', () async {
+        final draft = await _importOne(
+          jsonEncode(_dance(choreographer: {'name': 'Bob${rlo}Isaacs'})),
+        );
+        expect(draft.authorNames, ['BobIsaacs']);
+      });
+
+      test('strips spoofing chars from formation detail', () async {
+        final draft = await _importOne(
+          jsonEncode(_dance(startType: 'spiral$zwsp galaxy$bel')),
+        );
+        expect(draft.dance.formation.shape, FormationShape.other);
+        expect(draft.dance.formation.detail, 'spiral galaxy');
+      });
+
+      test('strips spoofing chars from notes and hook', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              hook: 'A joyful$rlo chestnut',
+              notes: 'Careful$zwsp of the ends.$bel',
+            ),
+          ),
+        );
+        expect(draft.dance.hook, 'A joyful chestnut');
+        expect(draft.dance.callingNotes, isNot(contains(rlo)));
+        expect(draft.dance.callingNotes, isNot(contains(zwsp)));
+        expect(draft.dance.callingNotes, isNot(contains(bel)));
+        expect(draft.dance.callingNotes, contains('Careful of the ends.'));
+      });
+
+      test('strips spoofing chars from custom figure text', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              figures: [_fig('custom', [], customFigure: 'twirl$rlo!$zwsp')],
+            ),
+          ),
+        );
+        final custom = draft.dance.figures.single;
+        expect(custom.isCustom, isTrue);
+        expect(custom.params['text'], 'twirl!');
+      });
+    });
+
     group('structured mapping', () {
       test('mapped moves round-trip to named params', () async {
         final draft = await _importOne(

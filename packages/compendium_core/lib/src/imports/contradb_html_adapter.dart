@@ -325,7 +325,7 @@ class ContraDbHtmlAdapter implements SourceAdapter {
     final stripped = _stripLeadingLabel(raw, 'formation');
     final detailText = stripped == null
         ? null
-        : sanitizeImportedText(stripped).trim();
+        : sanitizeImportedText(stripped, allowLineBreaks: false).trim();
     if (detailText == null || detailText.isEmpty) {
       return const Formation(FormationShape.dupleImproper);
     }
@@ -395,11 +395,11 @@ class ContraDbHtmlAdapter implements SourceAdapter {
     if (element == null) return null;
     final link = element.querySelector('a')?.text.trim();
     if (link != null && link.isNotEmpty) {
-      return sanitizeImportedText(link).trim();
+      return sanitizeImportedText(link, allowLineBreaks: false).trim();
     }
     final stripped = _stripLeadingLabel(element.text.trim(), 'by');
     if (stripped == null || stripped.isEmpty) return null;
-    final clean = sanitizeImportedText(stripped).trim();
+    final clean = sanitizeImportedText(stripped, allowLineBreaks: false).trim();
     return clean.isEmpty ? null : clean;
   }
 
@@ -407,12 +407,15 @@ class ContraDbHtmlAdapter implements SourceAdapter {
 
   /// Extracts and sanitizes the `h1.dance-show-title` text. Sanitizing here (at
   /// ingress) strips control/bidi/format spoofing characters before the title
-  /// is stored or used to derive the dance's external id (issue #444). Returns
-  /// null when the title element is absent.
+  /// is stored or used to derive the dance's external id (issue #444). Uses
+  /// `allowLineBreaks: false` because the title is single-line and also feeds
+  /// external-id derivation (`name:<lowercased title>`) — embedded newlines
+  /// would otherwise yield unstable/invalid ids. Returns null when the title
+  /// element is absent.
   static String? _extractTitle(dom.Document document) {
     final raw = document.querySelector('h1.dance-show-title')?.text.trim();
     if (raw == null) return null;
-    return sanitizeImportedText(raw).trim();
+    return sanitizeImportedText(raw, allowLineBreaks: false).trim();
   }
 
   /// Removes a leading `label:` (or `label`) prefix, case-insensitively, from

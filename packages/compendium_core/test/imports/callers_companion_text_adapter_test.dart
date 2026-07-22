@@ -277,4 +277,63 @@ A1 (8) Do the thing
       expect(second.records.single.verdict.isAmbiguous, isTrue);
     });
   });
+
+  // Issue #444: mapCallersCompanionDance must scrub control/bidi/format
+  // spoofing characters from every user-controlled field before the Dance is
+  // built. Tested at the mapping (the shared ingress for the CC text and
+  // `.USR` adapters) so both sources are covered.
+  group('mapCallersCompanionDance text sanitization (issue #444)', () {
+    const rlo = '\u202E'; // RIGHT-TO-LEFT OVERRIDE
+    const zwsp = '\u200B'; // ZERO WIDTH SPACE
+    const bel = '\u0007'; // BEL (C0 control)
+
+    test('strips bidi/control/format chars from the stored title', () {
+      final mapping = mapCallersCompanionDance(
+        CcDanceRecord(name: 'Good${rlo}Title$bel$zwsp!'),
+      );
+      expect(mapping.dance.title, 'GoodTitle!');
+    });
+
+    test('strips embedded newline/tab from the title (single-line)', () {
+      final mapping = mapCallersCompanionDance(
+        CcDanceRecord(name: 'Foo\nBar\tBaz'),
+      );
+      expect(mapping.dance.title, 'FooBarBaz');
+      expect(mapping.dance.title, isNot(contains('\n')));
+      expect(mapping.dance.title, isNot(contains('\t')));
+    });
+
+    test('strips spoofing chars from author names', () {
+      final mapping = mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'Dance',
+          authors: ['Ada${rlo}Lovelace', '${zwsp}Alan Turing'],
+        ),
+      );
+      expect(mapping.authorNames, ['AdaLovelace', 'Alan Turing']);
+    });
+
+    test('strips spoofing chars from formation detail', () {
+      final mapping = mapCallersCompanionDance(
+        CcDanceRecord(name: 'Dance', formation: 'Hexagon$bel$zwsp'),
+      );
+      expect(mapping.dance.formation.shape, FormationShape.other);
+      expect(mapping.dance.formation.detail, 'Hexagon');
+    });
+
+    test('strips spoofing chars from calling notes', () {
+      final mapping = mapCallersCompanionDance(
+        CcDanceRecord(
+          name: 'Dance',
+          notes: 'Careful$zwsp of the ends.$rlo',
+          music: 'any good$bel reels',
+        ),
+      );
+      expect(mapping.dance.callingNotes, isNot(contains(rlo)));
+      expect(mapping.dance.callingNotes, isNot(contains(zwsp)));
+      expect(mapping.dance.callingNotes, isNot(contains(bel)));
+      expect(mapping.dance.callingNotes, contains('Careful of the ends.'));
+      expect(mapping.dance.callingNotes, contains('Music: any good reels'));
+    });
+  });
 }

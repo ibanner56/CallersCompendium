@@ -135,6 +135,87 @@ void main() {
       expect(CallersBoxAdapter().source, ProvenanceSource.callersbox);
     });
 
+    // Issue #444: imported text must be scrubbed of control/bidi/format
+    // spoofing characters at ingress, before it is stored.
+    group('import text sanitization (issue #444)', () {
+      // U+202E RIGHT-TO-LEFT OVERRIDE, U+200B ZERO WIDTH SPACE,
+      // U+0007 BEL (C0 control), U+200F RIGHT-TO-LEFT MARK.
+      const rlo = '\u202E';
+      const zwsp = '\u200B';
+      const bel = '\u0007';
+      const rlm = '\u200F';
+
+      test('strips bidi/control/format chars from the stored title', () async {
+        final draft = await _importOne(
+          jsonEncode(_dance(id: '1', name: 'Good${rlo}Title$bel$zwsp!')),
+        );
+        expect(draft.dance.title, 'GoodTitle!');
+      });
+
+      test(
+        'strips embedded newline/tab from the title (single-line)',
+        () async {
+          final draft = await _importOne(
+            jsonEncode(_dance(id: '1', name: 'Foo\nBar\tBaz')),
+          );
+          expect(draft.dance.title, 'FooBarBaz');
+          expect(draft.dance.title, isNot(contains('\n')));
+          expect(draft.dance.title, isNot(contains('\t')));
+        },
+      );
+
+      test('newline in name yields a stable external id at discover', () async {
+        final adapter = CallersBoxAdapter();
+        final records = await adapter.discover(
+          // No ID → external id is derived from the (sanitized) name.
+          ImportRequest(
+            payload: jsonEncode(_dance(id: null, name: 'Foo\nBar')),
+          ),
+        );
+        expect(records.single.externalId, 'name:foobar');
+        expect(records.single.label, 'FooBar');
+      });
+
+      test('strips spoofing chars from author names', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              id: '1',
+              authors: ['Ada${rlo}Lovelace', '${rlm}Alan Turing'],
+            ),
+          ),
+        );
+        expect(draft.authorNames, ['AdaLovelace', 'Alan Turing']);
+      });
+
+      test('strips spoofing chars from formation detail', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              id: '1',
+              formationBase: 'Improper$bel',
+              formationDetail: 'chestnut$zwsp',
+            ),
+          ),
+        );
+        expect(draft.dance.formation.detail, isNot(contains(bel)));
+        expect(draft.dance.formation.detail, isNot(contains(zwsp)));
+        expect(draft.dance.formation.detail, contains('Improper'));
+        expect(draft.dance.formation.detail, contains('chestnut'));
+      });
+
+      test('strips spoofing chars from calling notes', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(id: '1', callingNotes: ['A note$rlo with$zwsp overrides']),
+          ),
+        );
+        expect(draft.dance.callingNotes, isNot(contains(rlo)));
+        expect(draft.dance.callingNotes, isNot(contains(zwsp)));
+        expect(draft.dance.callingNotes, contains('A note with overrides'));
+      });
+    });
+
     group('discover', () {
       test('throws on null payload', () {
         expect(

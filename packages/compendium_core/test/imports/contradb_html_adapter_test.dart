@@ -175,6 +175,30 @@ void main() {
     });
 
     test(
+      'title with an embedded newline is single-line → stable externalId (#444)',
+      () async {
+        final adapter = ContraDbHtmlAdapter();
+        // <h1> spanning two source lines yields an embedded newline in the
+        // extracted text; a single-line title must strip it so the derived
+        // `name:<title>` external id is stable (not `name:foo\nbar`).
+        final records = await adapter.discover(
+          ImportRequest(
+            payload: _page('<h1 class="dance-show-title">Foo\nBar</h1>'),
+          ),
+        );
+        expect(records.single.label, 'FooBar');
+        expect(records.single.externalId, 'name:foobar');
+        expect(records.single.externalId, isNot(contains('\n')));
+
+        final draft = await _importOne(
+          _page('<h1 class="dance-show-title">Foo\nBar</h1>'),
+        );
+        expect(draft.dance.title, 'FooBar');
+        expect(draft.dance.title, isNot(contains('\n')));
+      },
+    );
+
+    test(
       'choreographer → authorNames; empty authorIds; no info issue',
       () async {
         final draft = await _importOne(_page(_rendezvousBody));
