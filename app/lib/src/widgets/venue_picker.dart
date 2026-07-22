@@ -241,6 +241,10 @@ class _VenueAutocompleteState extends State<_VenueAutocomplete> {
       onSelected: (choice) async {
         if (choice.isCreate) {
           await widget.onCreate(choice.name);
+          // The create flow is async (it opens the editor sheet); if this
+          // picker was disposed while that was open (e.g. the route was
+          // popped), don't touch the now-defunct controller/focus node.
+          if (!mounted) return;
         } else {
           widget.onSelect(choice.venue!.id);
         }
