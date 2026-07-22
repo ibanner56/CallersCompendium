@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -153,11 +154,7 @@ String _dateVenue(
 /// placeholder. Values are drawn as plain PDF text — no markup interpolation —
 /// so stored venue text can't inject layout.
 List<pw.Widget> _venueBlock(Venue venue) {
-  final cityLine = [
-    venue.city,
-    venue.stateProv,
-    _postal(venue.postalCode, venue.plus4),
-  ].whereType<String>().where((s) => s.isNotEmpty).join(', ');
+  final cityLine = venueLocalityLine(venue);
 
   final detail = <String>[
     if (_has(venue.eventName)) venue.eventName!,
@@ -202,6 +199,23 @@ String? _postal(String? postalCode, String? plus4) {
   final add = plus4?.trim();
   if (zip == null || zip.isEmpty) return null;
   return (add == null || add.isEmpty) ? zip : '$zip-$add';
+}
+
+/// Formats a venue's locality line as "City, ST 05602-1234": the city and
+/// state/province are comma-joined, and the postal code follows separated by a
+/// SPACE (US convention), never a comma. Any absent part is dropped, so a
+/// city-only venue is just "City" and a postal-only one is just the ZIP.
+/// Returns an empty string when none of the parts are present.
+@visibleForTesting
+String venueLocalityLine(Venue venue) {
+  final cityState = [
+    venue.city,
+    venue.stateProv,
+  ].whereType<String>().where((s) => s.isNotEmpty).join(', ');
+  return [
+    if (cityState.isNotEmpty) cityState,
+    ?_postal(venue.postalCode, venue.plus4),
+  ].join(' ');
 }
 
 /// Renders one contact as "name · phone · email", skipping empty parts; empty

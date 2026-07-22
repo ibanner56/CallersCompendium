@@ -562,6 +562,32 @@ void main() {
       expect(bytes, isNotEmpty);
       expect(String.fromCharCodes(bytes.take(4)), '%PDF');
     });
+  });
+
+  group('venueLocalityLine', () {
+    test('joins city/state with a comma and the postal with a space', () {
+      expect(venueLocalityLine(_venue), 'Montpelier, VT 05602-1234');
+    });
+
+    test('drops the state and postal when only a city is present', () {
+      expect(
+        venueLocalityLine(Venue(id: 'v', name: 'X', city: 'Montpelier')),
+        'Montpelier',
+      );
+    });
+
+    test('formats a bare ZIP with no +4', () {
+      expect(
+        venueLocalityLine(
+          Venue(id: 'v', name: 'X', city: 'Montpelier', postalCode: '05602'),
+        ),
+        'Montpelier 05602',
+      );
+    });
+
+    test('is empty when no locality parts are present', () {
+      expect(venueLocalityLine(Venue(id: 'v', name: 'X')), isEmpty);
+    });
 
     testWidgets('exports a program whose dance was purged, without corruption '
         '(#459 export coverage)', (tester) async {
