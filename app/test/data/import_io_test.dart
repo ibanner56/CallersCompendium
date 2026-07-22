@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:compendium_app/src/data/import_io.dart';
+import 'package:file_selector/file_selector.dart' show XFile;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -425,5 +428,115 @@ void main() {
       expect(detect('not a url'), isNull);
       expect(detect('ftp://contradb.com/dances/1'), isNull);
     });
+  });
+
+  group('import file size cap', () {
+    // A picked file is untrusted input (OWASP A04/A05 — uncontrolled resource
+    // consumption). The cap is enforced by reading the file as a BOUNDED stream
+    // and failing closed the instant more than maxBytes bytes are consumed — we
+    // never trust a separate XFile.length() probe (a file can grow or be
+    // swapped after it is picked: a TOCTOU window). Tests inject an in-memory
+    // XFile / synthetic stream + a small maxBytes (mirroring
+    // ArchiveIntakeService's injectable maxBytes) so no real picker plugin runs
+    // and no giant allocation is needed.
+    XFile fileOf(List<int> bytes) =>
+        XFile.fromData(Uint8List.fromList(bytes), name: 'import.bin');
+
+    test('the friendly message never leaks the length', () {
+      const e = ImportFileTooLargeException(999999999);
+      expect(e.message, 'That file is too large to import.');
+      expect(e.toString(), 'That file is too large to import.');
+    });
+
+    test(
+      'readCappedBytes concatenates chunks up to the inclusive boundary',
+      () async {
+        Stream<Uint8List> chunks() async* {
+          yield Uint8List.fromList([1, 2, 3]);
+          yield Uint8List.fromList([4, 5]);
+        }
+
+        // 5 bytes total, cap 5 -> accepted (boundary inclusive), reassembled.
+        expect(await readCappedBytes(chunks(), maxBytes: 5), [1, 2, 3, 4, 5]);
+      },
+    );
+
+    test(
+      'readCappedBytes rejects a growing stream without draining it',
+      () async {
+        var emitted = 0;
+        // A stream that would yield 4 KiB if fully consumed. The cap must trip
+        // during consumption, so we must NOT pull every chunk — proving the
+        // read is bounded even against a file that keeps producing bytes
+        // (TOCTOU / uncontrolled-resource-consumption guard).
+        Stream<Uint8List> chunks() async* {
+          for (var i = 0; i < 1000; i++) {
+            emitted++;
+            yield Uint8List(4);
+          }
+        }
+
+        await expectLater(
+          readCappedBytes(chunks(), maxBytes: 8),
+          throwsA(isA<ImportFileTooLargeException>()),
+        );
+        // Cap 8 B = two 4-byte chunks; the third (total 12 B) trips it, so the
+        // stream is abandoned far short of its 1000 chunks.
+        expect(emitted, lessThan(10));
+      },
+    );
+
+    test(
+      'readImportBytesCapped returns bytes for a file within the cap',
+      () async {
+        final bytes = List<int>.generate(16, (i) => i);
+        expect(await readImportBytesCapped(fileOf(bytes), maxBytes: 32), bytes);
+      },
+    );
+
+    test(
+      'readImportBytesCapped rejects a file over the cap while reading',
+      () async {
+        await expectLater(
+          readImportBytesCapped(
+            fileOf(List<int>.filled(20, 0x41)),
+            maxBytes: 8,
+          ),
+          throwsA(isA<ImportFileTooLargeException>()),
+        );
+      },
+    );
+
+    test(
+      'readImportTextCapped returns text for a file within the cap',
+      () async {
+        expect(
+          await readImportTextCapped(fileOf('hello'.codeUnits), maxBytes: 32),
+          'hello',
+        );
+      },
+    );
+
+    test(
+      'readImportTextCapped rejects a file over the cap while reading',
+      () async {
+        await expectLater(
+          readImportTextCapped(fileOf(List<int>.filled(20, 0x41)), maxBytes: 8),
+          throwsA(isA<ImportFileTooLargeException>()),
+        );
+      },
+    );
+
+    test('the default cap is aligned with the 25 MiB archive intake cap', () {
+      expect(kMaxImportFileBytes, 25 * 1024 * 1024);
+    });
+
+    test(
+      'a file exactly at the cap is accepted (boundary is inclusive)',
+      () async {
+        final bytes = List<int>.filled(8, 0x42);
+        expect(await readImportBytesCapped(fileOf(bytes), maxBytes: 8), bytes);
+      },
+    );
   });
 }

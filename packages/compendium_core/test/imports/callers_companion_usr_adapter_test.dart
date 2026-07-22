@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
+import 'support/fmp_fixture_builder.dart';
+
 /// Tests for [CallersCompanionUsrAdapter]. The reader/archive layers are tested
 /// elsewhere; here we cover the adapter's own contract: byte intake (options
 /// vs base64), the discover→fetch locator round-trip, the JSON parse path
@@ -41,6 +43,46 @@ void main() {
     test('a missing file degrades to an ImportError', () async {
       const request = ImportRequest();
       await expectLater(adapter.discover(request), throwsA(isA<ImportError>()));
+    });
+
+    test('an over-structured .USR fails closed with a friendly too-large '
+        'ImportError', () async {
+      // A valid two-table container, read under a limit of one table, must be
+      // rejected with a user-safe "too large" message (OWASP A04/A05: fail
+      // closed on untrusted, over-structured input) — not a raw exception.
+      final bytes = buildFmp12Fixture([
+        FmpFixtureTable(
+          index: 1,
+          name: 'Dance',
+          columnNames: ['Name'],
+          rows: [
+            MapEntry(1, {1: 'Simplicity Swing'}),
+          ],
+        ),
+        FmpFixtureTable(
+          index: 2,
+          name: 'Set',
+          columnNames: ['Title'],
+          rows: [
+            MapEntry(1, {1: 'Friday Contra'}),
+          ],
+        ),
+      ]);
+      final limited = CallersCompanionUsrAdapter(
+        limits: const FmpReadLimits(maxTables: 1),
+      );
+      await expectLater(
+        limited.discover(ImportRequest(options: {'bytes': bytes})),
+        throwsA(
+          isA<ImportError>()
+              .having((e) => e.stage, 'stage', ImportStage.discover)
+              .having(
+                (e) => e.message,
+                'message',
+                'That file is too large to import.',
+              ),
+        ),
+      );
     });
   });
 

@@ -486,10 +486,13 @@ the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.
 > `dist/` — so it flows into `SHA256SUMS`, the channel manifest, provenance, and
 > the draft release exactly like the desktop binaries.
 >
-> The signing **config** keeps its **debug fallback**: when
-> `app/android/key.properties` is absent (contributors, `flutter build apk
-> --release` without a keystore) the `release` build type signs with the debug
-> keys, so local builds still work.
+> The signing **config** now **fails loudly** instead of falling back to debug
+> signing: when `app/android/key.properties` is absent (contributors, `flutter
+> build apk --release` without a keystore) any attempt to actually assemble the
+> `release` variant aborts with a clear `GradleException` pointing at
+> `key.properties.example`, so a local release can never be silently
+> debug-signed. Debug builds (`flutter run`, `--debug`) and `flutter test` do
+> not require a keystore and are unaffected.
 >
 > **The only remaining maintainer action** is generating the upload keystore and
 > adding the four CI secrets below. Until those secrets exist the android leg is

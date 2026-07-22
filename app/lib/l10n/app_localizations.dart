@@ -1221,6 +1221,1319 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open dance: {title}'**
   String danceOpenDanceCrossRefSemantic(String title);
+
+  /// Action label to add the current dance to a program (tooltip, menu item, sheet title, and Perform adjust section).
+  ///
+  /// In en, this message translates to:
+  /// **'Add to program'**
+  String get commonAddToProgram;
+
+  /// Title of the empty state shown when the user has no programs, on the Programs list and in the add-to-program sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'No programs yet'**
+  String get programsEmptyTitle;
+
+  /// Body of the empty state in the add-to-program sheet, inviting the user to create a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a program to start building a set list.'**
+  String get programsAddToProgramEmptyBody;
+
+  /// Button in the add-to-program sheet that creates a new program seeded with the current dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new program with this dance'**
+  String get programsCreateWithDance;
+
+  /// Accessible label for a program row in the add-to-program sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Add \"{danceTitle}\" to {programTitle}, {details}'**
+  String programsAddDanceToProgramSemantic(
+    String danceTitle,
+    String programTitle,
+    String details,
+  );
+
+  /// Confirmation snackbar after appending a dance to an existing program.
+  ///
+  /// In en, this message translates to:
+  /// **'Added \"{danceTitle}\" to {programTitle}.'**
+  String programsAddedToProgramSnack(String danceTitle, String programTitle);
+
+  /// Label for creating a new program (list button, editor title) and the default title of a newly created program.
+  ///
+  /// In en, this message translates to:
+  /// **'New program'**
+  String get programsNewProgram;
+
+  /// Confirmation snackbar after creating a new program seeded with a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Created \"{programTitle}\" with \"{danceTitle}\".'**
+  String programsCreatedProgramSnack(String programTitle, String danceTitle);
+
+  /// Tooltip for the button that opens the single-dance Perform view from the dance detail screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Perform this dance'**
+  String get dancePerformTooltip;
+
+  /// Tooltip for the app-bar control that switches the active dialect mid-session, shared by the dance detail and Perform screens.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch dialect'**
+  String get commonSwitchDialectTooltip;
+
+  /// Program status label: the program is still a draft (not finalized).
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get programsStatusDraft;
+
+  /// Program status label: the program has been finalized.
+  ///
+  /// In en, this message translates to:
+  /// **'Finalized'**
+  String get programsStatusFinalized;
+
+  /// Program status label: the program has been performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Performed'**
+  String get programsStatusPerformed;
+
+  /// Error shown in the program editor when the program was deleted and can no longer be loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'This program no longer exists.'**
+  String get programsNoLongerExists;
+
+  /// Fallback title used for an untitled program when opening the Perform view from an unsaved draft.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get programsFallbackTitle;
+
+  /// Fallback word used in place of a dance title when the title is unavailable, in add-dance confirmation messages.
+  ///
+  /// In en, this message translates to:
+  /// **'dance'**
+  String get programsUntitledDanceFallback;
+
+  /// Snackbar confirming a dance was added to the program being edited.
+  ///
+  /// In en, this message translates to:
+  /// **'Added \"{title}\".'**
+  String programsAddedDanceSnack(String title);
+
+  /// Screen-reader announcement when a dance is added to the program being edited.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {title} to program.'**
+  String programsAddedDanceAnnounce(String title);
+
+  /// Screen-reader announcement when a free-text note slot is added to the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Added note to program.'**
+  String get programsAddedNoteAnnounce;
+
+  /// Screen-reader announcement when a break slot is added to the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Added break to program.'**
+  String get programsAddedBreakAnnounce;
+
+  /// Confirmation (snackbar and screen-reader announcement) after marking every dance in the program as performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked all dances performed.'**
+  String get programsMarkedAllPerformed;
+
+  /// Snackbar confirming the program was saved, quoting its title.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" saved.'**
+  String programsSavedSnack(String title);
+
+  /// Snackbar shown when saving the program fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the program.'**
+  String get programsSaveError;
+
+  /// Snackbar confirming a program was duplicated, quoting the copy's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicated as \"{title}\".'**
+  String programsDuplicatedSnack(String title);
+
+  /// Snackbar confirming a program was deleted, quoting its title. Paired with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" deleted.'**
+  String programsDeletedSnack(String title);
+
+  /// Title of the confirm dialog shown when leaving the program editor with unsaved changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get programsDiscardTitle;
+
+  /// Body of the confirm dialog shown when leaving the program editor with unsaved changes.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes to this program.'**
+  String get programsDiscardBody;
+
+  /// Button that dismisses the discard-changes dialog and returns to editing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get programsKeepEditing;
+
+  /// Button that confirms discarding unsaved program changes and leaves the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get programsDiscard;
+
+  /// App bar title of the program editor when editing an existing program.
+  ///
+  /// In en, this message translates to:
+  /// **'Build program'**
+  String get programsBuildProgram;
+
+  /// Program editor tab label for the slot-building view.
+  ///
+  /// In en, this message translates to:
+  /// **'Build'**
+  String get programsBuildTab;
+
+  /// Program editor tab label for the programming matrix view.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix'**
+  String get programsMatrixTab;
+
+  /// Tooltip for the button that opens the Perform view for the whole program.
+  ///
+  /// In en, this message translates to:
+  /// **'Perform this program'**
+  String get programsPerformTooltip;
+
+  /// Tooltip for the app-bar action that marks every dance in the program as performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all performed'**
+  String get programsMarkAllPerformedTooltip;
+
+  /// Label of the save button when the program has unsaved changes; the asterisk marks the dirty state.
+  ///
+  /// In en, this message translates to:
+  /// **'Save *'**
+  String get programsSaveDirty;
+
+  /// Generic Save button label.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get commonSave;
+
+  /// Accessible label for the progress spinner shown while a program loads in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading program'**
+  String get programsLoading;
+
+  /// Message shown in the program editor when the program fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the program.'**
+  String get programsLoadError;
+
+  /// Placeholder row title in the programming matrix for a slot whose referenced dance was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'(deleted dance)'**
+  String get programsDeletedDanceFallback;
+
+  /// Section heading above the list of program slots in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Slots'**
+  String get programsSlotsLabel;
+
+  /// Button that opens the dance picker to add a dance slot to the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Add dance'**
+  String get programsAddDanceButton;
+
+  /// Button that adds a free-text note or break slot to the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Add note / break'**
+  String get programsAddNoteBreakButton;
+
+  /// Button that inserts a break slot into the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert break'**
+  String get programsInsertBreakButton;
+
+  /// Title of the bottom sheet for picking a dance to add to the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance'**
+  String get programsAddADanceSheetTitle;
+
+  /// Generic Close button/tooltip label.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get commonClose;
+
+  /// Placeholder shown for the event date field when no date has been chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'No date set'**
+  String get programsNoDateSet;
+
+  /// Field label for the program title in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get programsTitleLabel;
+
+  /// Hint text for the program title field in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Friday Night Contra'**
+  String get programsTitleHint;
+
+  /// Validation message shown when the program title field is left empty.
+  ///
+  /// In en, this message translates to:
+  /// **'A title is required.'**
+  String get programsTitleRequired;
+
+  /// Field label for the program's event date in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Event date'**
+  String get programsEventDateLabel;
+
+  /// Button to pick the program's event date when none is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Set date'**
+  String get programsSetDate;
+
+  /// Button to change the program's already-set event date.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get programsChangeDate;
+
+  /// Tooltip for the button that clears the program's event date.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear event date'**
+  String get programsClearEventDate;
+
+  /// Field label for the program's venue in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get programsVenueLabel;
+
+  /// Hint text for the program venue field.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Grange Hall'**
+  String get programsVenueHint;
+
+  /// Field label for the program's band in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Band'**
+  String get programsBandLabel;
+
+  /// Hint text for the program band field.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. The Fiddleheads'**
+  String get programsBandHint;
+
+  /// Field label for the program's caller in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller'**
+  String get programsCallerLabel;
+
+  /// Hint text for the program caller field.
+  ///
+  /// In en, this message translates to:
+  /// **'Host caller for the event'**
+  String get programsCallerHint;
+
+  /// Field label for the program's intended dancer level in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Dancer level'**
+  String get programsDancerLevelLabel;
+
+  /// Hint text for the program dancer-level field.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. All welcome, Experienced'**
+  String get programsDancerLevelHint;
+
+  /// Field label for the program's free-form notes in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get programsNotesLabel;
+
+  /// Field label for the program status dropdown in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get programsStatusFieldLabel;
+
+  /// Title of the toggle that hides alternate (ALT) slots from the exported set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide alternates in set list'**
+  String get programsHideAlternatesTitle;
+
+  /// Explanatory subtitle for the hide-alternates toggle in the program editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Omits ALT slots from the summary, PDF, and exported set list. The builder still shows every slot.'**
+  String get programsHideAlternatesSubtitle;
+
+  /// Count of non-blocking validation warnings shown on the program editor's warnings card.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 warning} other{{count} warnings}}'**
+  String programsWarningCount(int count);
+
+  /// Title of the dialog for adding a free-text note or break slot to the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Add note or break'**
+  String get programsAddNoteBreakDialogTitle;
+
+  /// Field label for the free-text note/break input in the add-note dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get programsFreeTextLabel;
+
+  /// Hint text for the free-text note/break input.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Break, waltz, announcement'**
+  String get programsFreeTextHint;
+
+  /// Generic Add button label.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get commonAdd;
+
+  /// Title of the Programs list screen and its navigation destination.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs'**
+  String get programsTitle;
+
+  /// Programs list sort option: order alphabetically by program title.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get programsSortTitle;
+
+  /// Programs list sort option: order by most recently updated.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently updated'**
+  String get programsSortRecentlyUpdated;
+
+  /// Programs list sort option: order by the program's event date.
+  ///
+  /// In en, this message translates to:
+  /// **'Event date'**
+  String get programsSortEventDate;
+
+  /// Tooltip for the Programs list sort menu, showing the active sort option.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by ({label})'**
+  String programsSortByTooltip(String label);
+
+  /// Error message shown when the Programs list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load your programs.'**
+  String get programsListLoadError;
+
+  /// Body of the empty state on the Programs list, shown when the user has no programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Build set lists for your events here. Create your first program to get started.'**
+  String get programsListEmptyBody;
+
+  /// Count of programs shown above the Programs list.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 program} other{{count} programs}}'**
+  String programsCount(int count);
+
+  /// App bar title of the read-only program summary screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get programsSummaryTitle;
+
+  /// Button that opens the program builder from the summary screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit program'**
+  String get programsEditProgram;
+
+  /// Message shown on the summary screen when the program can no longer be loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'This program is no longer available.'**
+  String get programsSummaryUnavailable;
+
+  /// Tooltip on the disabled Perform action explaining a program needs at least one slot before it can be performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one slot to perform this program'**
+  String get programsPerformDisabledTooltip;
+
+  /// Summary row showing the program's band.
+  ///
+  /// In en, this message translates to:
+  /// **'Band: {band}'**
+  String programsSummaryBand(String band);
+
+  /// Summary row showing the program's caller.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller: {caller}'**
+  String programsSummaryCaller(String caller);
+
+  /// Summary row showing the program's intended dancer level.
+  ///
+  /// In en, this message translates to:
+  /// **'Level: {level}'**
+  String programsSummaryLevel(String level);
+
+  /// Heading of the program's set list, with the number of slots.
+  ///
+  /// In en, this message translates to:
+  /// **'Set list ({count})'**
+  String programsSetListHeader(int count);
+
+  /// Empty state shown under the set list heading when a program has no slots.
+  ///
+  /// In en, this message translates to:
+  /// **'No slots yet — open the builder to add dances.'**
+  String get programsSummaryEmptySetList;
+
+  /// Secondary metadata on a set-list slot naming a guest caller for that slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Guest: {caller}'**
+  String programsSummaryGuest(String caller);
+
+  /// Planned duration in minutes for a program slot (abbreviated).
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String programsPlannedMinutes(int minutes);
+
+  /// Short badge marking an alternate (ALT) slot in a set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Alt'**
+  String get programsAltBadge;
+
+  /// Fallback shown for a set-list slot whose referenced dance can no longer be found.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance unavailable'**
+  String get programsDanceUnavailable;
+
+  /// Per-slot caller note shown as secondary metadata on a set-list dance row.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: {note}'**
+  String programsSummaryNote(String note);
+
+  /// Accessible prefix identifying an alternate (ALT) dance slot by title in the set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternate: {title}'**
+  String programsSummaryAlternateSemantic(String title);
+
+  /// Accessible label indicating a set-list slot has been marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Performed'**
+  String get programsPerformed;
+
+  /// Count of slots in a program, shown on the Programs list tile subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 slot} other{{count} slots}}'**
+  String programsSlotCount(int count);
+
+  /// Fallback title for a free-text program slot that has no text yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get programsSlotNoteFallback;
+
+  /// Empty state shown in the program slot list editor when a program has no slots.
+  ///
+  /// In en, this message translates to:
+  /// **'No slots yet. Add a dance or a note to get started.'**
+  String get programsSlotEditorEmpty;
+
+  /// Accessibility announcement after a cut slot is pasted into a new position.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot moved.'**
+  String get programsSlotMoved;
+
+  /// Accessibility announcement after a slot is moved up one position.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot moved up.'**
+  String get programsSlotMovedUp;
+
+  /// Accessibility announcement after a slot is moved down one position.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot moved down.'**
+  String get programsSlotMovedDown;
+
+  /// Banner shown while a program slot is cut, prompting the user to paste it.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" is cut — tap Paste to place it.'**
+  String programsSlotCutBanner(String name);
+
+  /// Accessible label for the paste affordance shown before the first program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste before first slot'**
+  String get programsPasteBeforeFirst;
+
+  /// Accessible label for the paste affordance shown after a given program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste after {title}'**
+  String programsPasteAfter(String title);
+
+  /// Label for the compact paste button shown between slots during a cut.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste here'**
+  String get programsPasteHere;
+
+  /// Accessibility announcement after a slot is changed from alternate to primary.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as primary.'**
+  String get programsMarkedPrimary;
+
+  /// Accessibility announcement after a slot is changed from primary to alternate.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as alternate.'**
+  String get programsMarkedAlternate;
+
+  /// Accessibility announcement after a slot is marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked performed.'**
+  String get programsMarkedPerformed;
+
+  /// Accessibility announcement after a slot's performed mark is cleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Performed mark cleared.'**
+  String get programsPerformedCleared;
+
+  /// Accessibility announcement after a slot is removed from the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed {name}.'**
+  String programsRemovedSlot(String name);
+
+  /// Ordinal marker shown for an alternate slot instead of a running-order number.
+  ///
+  /// In en, this message translates to:
+  /// **'ALT'**
+  String get programsAltOrdinal;
+
+  /// Accessible label on the drag handle used to reorder a program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder {title}'**
+  String programsDragToReorder(String title);
+
+  /// Tooltip for the button that moves a program slot up one position.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {title} up'**
+  String programsMoveSlotUp(String title);
+
+  /// Tooltip for the button that moves a program slot down one position.
+  ///
+  /// In en, this message translates to:
+  /// **'Move {title} down'**
+  String programsMoveSlotDown(String title);
+
+  /// Tooltip for the button that cuts a program slot for repositioning.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut {title}'**
+  String programsCutSlot(String title);
+
+  /// Tooltip for the overflow menu offering more actions on a program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions for {title}'**
+  String programsMoreActionsForSlot(String title);
+
+  /// Overflow menu item to edit a program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit slot'**
+  String get programsEditSlotMenu;
+
+  /// Overflow menu item to change an alternate slot into a primary slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Make primary'**
+  String get programsMakePrimaryMenu;
+
+  /// Overflow menu item to change a primary slot into an alternate slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as alternate'**
+  String get programsMarkAlternateMenu;
+
+  /// Overflow menu item to clear a slot's performed mark.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear performed'**
+  String get programsClearPerformedMenu;
+
+  /// Overflow menu item to mark a slot as performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark performed'**
+  String get programsMarkPerformedMenu;
+
+  /// Overflow menu item to remove a slot from the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove slot'**
+  String get programsRemoveSlotMenu;
+
+  /// Validation error when a free-text program slot is left empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter some text for this slot.'**
+  String get programsSlotTextRequiredError;
+
+  /// Validation error when planned minutes is not a whole number of zero or more.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number ≥ 0.'**
+  String get programsWholeNumberError;
+
+  /// Title of the dialog for editing a dance program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit dance slot'**
+  String get programsEditDanceSlotTitle;
+
+  /// Title of the dialog for editing a free-text (note) program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit note'**
+  String get programsEditNoteTitle;
+
+  /// Text field label for an optional per-slot caller note on a dance slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller note (optional)'**
+  String get programsCallerNoteLabel;
+
+  /// Hint text for the optional caller-note field on a dance slot.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. teach the hey first'**
+  String get programsCallerNoteHint;
+
+  /// Text field label for an optional guest caller on a program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Guest caller (optional)'**
+  String get programsGuestCallerLabel;
+
+  /// Text field label for the optional planned minutes on a program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned minutes (optional)'**
+  String get programsPlannedMinutesLabel;
+
+  /// Checkbox label marking a program slot as an alternate dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternate dance'**
+  String get programsAlternateDanceTitle;
+
+  /// Checkbox helper text explaining that an alternate slot is indented under the slot above.
+  ///
+  /// In en, this message translates to:
+  /// **'Renders indented under the slot above it.'**
+  String get programsAlternateDanceSubtitle;
+
+  /// Generic confirmation button label for finishing an edit dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get commonDone;
+
+  /// Container semantics label for the programming matrix, announcing its size (dances by moves).
+  ///
+  /// In en, this message translates to:
+  /// **'Programming matrix: {danceCount} dances by {moveCount} moves'**
+  String programsMatrixSemanticLabel(int danceCount, int moveCount);
+
+  /// Caption noting free-text slots (breaks, notes) that are excluded from the dances-only matrix.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 free-text slot} other{{count} free-text slots}} (breaks, notes) omitted — the matrix shows dances only.'**
+  String programsMatrixOmittedCaption(int count);
+
+  /// Screen-reader label for a matrix column header identifying a move by name.
+  ///
+  /// In en, this message translates to:
+  /// **'Move: {label}'**
+  String programsMatrixMoveHeaderSemantic(String label);
+
+  /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.
+  ///
+  /// In en, this message translates to:
+  /// **'{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}'**
+  String programsMatrixRowHeaderSemantic(String title, String alt, String half);
+
+  /// Short program-half badge label (1st or 2nd half).
+  ///
+  /// In en, this message translates to:
+  /// **'{half, select, first{1st} other{2nd}}'**
+  String programsMatrixHalfShort(String half);
+
+  /// Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use is the move's program debut and/or the dance's opening figure.
+  ///
+  /// In en, this message translates to:
+  /// **'{dance}, {move}: {present, select, no{not present} other{present{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}'**
+  String programsMatrixCellSemantic(
+    String dance,
+    String move,
+    String present,
+    String debut,
+    String first,
+  );
+
+  /// Dance name with its alternate-dance and program-half qualifiers, used by the compact matrix dance chip's screen-reader label.
+  ///
+  /// In en, this message translates to:
+  /// **'{alt, select, yes{{half, select, first{{title} (alternate dance, first half)} second{{title} (alternate dance, second half)} other{{title} (alternate dance)}}} other{{half, select, first{{title} (first half)} second{{title} (second half)} other{{title}}}}}'**
+  String programsMatrixChipQualifiedTitle(
+    String title,
+    String alt,
+    String half,
+  );
+
+  /// Screen-reader label for a compact-matrix move header, stating how many of the program's dances use the move.
+  ///
+  /// In en, this message translates to:
+  /// **'Move: {label}, used in {count} of {total} dances'**
+  String programsMatrixMoveUsedInSemantic(String label, int count, int total);
+
+  /// Compact count shown next to a move in the compact matrix (uses / total dances).
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total}'**
+  String programsMatrixNOfTotal(int count, int total);
+
+  /// Compact matrix message when the program's dances carry no comparable structured moves.
+  ///
+  /// In en, this message translates to:
+  /// **'None of these dances have structured figures yet, so there are no moves to compare.'**
+  String get programsMatrixNoComparableMoves;
+
+  /// Section header in the compact matrix for moves shared by two or more dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeated moves'**
+  String get programsMatrixRepeatedMovesHeader;
+
+  /// Subtitle under the compact matrix 'Repeated moves' section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Moves shared across two or more dances, most-repeated first.'**
+  String get programsMatrixRepeatedMovesSubtitle;
+
+  /// Compact matrix note shown when no move is shared across dances.
+  ///
+  /// In en, this message translates to:
+  /// **'No moves repeat across these dances — every move below is used by a single dance.'**
+  String get programsMatrixNoRepeatsNote;
+
+  /// Section header in the compact matrix for moves used by exactly one dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Used once'**
+  String get programsMatrixUsedOnceHeader;
+
+  /// Matrix legend label for the star marker: the move's first appearance in program order.
+  ///
+  /// In en, this message translates to:
+  /// **'Introduced here'**
+  String get programsMatrixLegendIntroduced;
+
+  /// Matrix legend label for the flag marker: the move a dance opens with.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance\'s first figure'**
+  String get programsMatrixLegendFirstFigure;
+
+  /// Matrix legend label for the check marker: the dance uses the move.
+  ///
+  /// In en, this message translates to:
+  /// **'Present'**
+  String get programsMatrixLegendPresent;
+
+  /// Title of the matrix empty state shown when no dance has structured figures.
+  ///
+  /// In en, this message translates to:
+  /// **'No structured figures yet'**
+  String get programsMatrixEmptyTitle;
+
+  /// Body of the matrix empty state explaining the matrix populates as dances gain structured figures.
+  ///
+  /// In en, this message translates to:
+  /// **'The matrix fills in automatically as the program’s dances gain structured figures.'**
+  String get programsMatrixEmptyBody;
+
+  /// App bar title for the single-dance Perform (large-print performance) view.
+  ///
+  /// In en, this message translates to:
+  /// **'Perform'**
+  String get performTitle;
+
+  /// Tooltip on the button that closes the Perform view and returns to the previous screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit performance view'**
+  String get performExitTooltip;
+
+  /// Title of the confirmation dialog shown before leaving the Perform view, so a stray tap or system back does not drop the caller out mid-program.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Perform?'**
+  String get performExitTitle;
+
+  /// Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.'**
+  String get performExitBody;
+
+  /// Button that dismisses the exit-confirmation dialog and stays in the Perform view.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep performing'**
+  String get performExitCancel;
+
+  /// Button that confirms leaving the Perform view from the exit-confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get performExitConfirm;
+
+  /// Label for the tap-tempo metronome, used both as the toolbar tooltip and the metronome sheet heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap tempo'**
+  String get performTapTempo;
+
+  /// Numeric tempo readout in the tap-tempo metronome (beats per minute, abbreviated).
+  ///
+  /// In en, this message translates to:
+  /// **'{bpm} BPM'**
+  String performBpmReadout(int bpm);
+
+  /// Metronome readout and tap-target label shown before any tempo has been set.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to set tempo'**
+  String get performTapToSetTempo;
+
+  /// Spoken (screen-reader) form of the current tempo in the tap-tempo metronome.
+  ///
+  /// In en, this message translates to:
+  /// **'{bpm} beats per minute'**
+  String performBpmSemantic(int bpm);
+
+  /// Screen-reader description of the tap-tempo readout before any tempo is set.
+  ///
+  /// In en, this message translates to:
+  /// **'No tempo set yet. Tap the target to set a tempo.'**
+  String get performNoTempoSemantic;
+
+  /// Accessibility tap hint for the tap-tempo target (what happens on tap).
+  ///
+  /// In en, this message translates to:
+  /// **'record a beat'**
+  String get performRecordBeatHint;
+
+  /// Helper text under the tap-tempo readout once a tempo is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep tapping to refine · Reset to start over'**
+  String get performTapRefineHint;
+
+  /// Helper text under the tap-tempo target before enough taps are recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap at least twice in time with the beat'**
+  String get performTapTwiceHint;
+
+  /// Button that clears the tapped tempo in the tap-tempo metronome.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get performResetTempo;
+
+  /// Fallback label for a program slot with no dance and no text.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled slot'**
+  String get performUntitledSlot;
+
+  /// Accessibility announcement after marking the current slot performed in the adjust sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked {label} performed'**
+  String performMarkedPerformedAnnounce(String label);
+
+  /// Accessibility announcement after clearing the current slot's performed mark in the adjust sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared performed mark'**
+  String get performClearedPerformedAnnounce;
+
+  /// Accessibility announcement after reordering a slot in the adjust sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved {label} to position {position}'**
+  String performMovedToPosition(String label, int position);
+
+  /// Generic fallback word for an inserted dance whose title is unavailable, used in an announcement.
+  ///
+  /// In en, this message translates to:
+  /// **'dance'**
+  String get performDanceFallback;
+
+  /// Accessibility announcement after inserting a dance into the program from the adjust sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Inserted {title}'**
+  String performInsertedAnnounce(String title);
+
+  /// Accessibility announcement after adding an ad-hoc note/break in the adjust sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Added note'**
+  String get performAddedNoteAnnounce;
+
+  /// Heading of the search picker sheet for inserting a dance during Perform mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert a dance'**
+  String get performInsertADance;
+
+  /// Heading of the Perform-mode adjust sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust program'**
+  String get performAdjustProgram;
+
+  /// Section title in the adjust sheet for the currently-performing slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Current slot'**
+  String get performCurrentSlotSection;
+
+  /// Toggle button label shown when the current slot is already marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Performed — tap to clear'**
+  String get performPerformedTapToClear;
+
+  /// Section title in the adjust sheet for reordering the not-yet-performed slots.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder remaining slots'**
+  String get performReorderSection;
+
+  /// Empty state in the adjust sheet when there are fewer than two remaining slots to reorder.
+  ///
+  /// In en, this message translates to:
+  /// **'No later slots to reorder.'**
+  String get performNoLaterSlots;
+
+  /// Button that opens the search picker to insert a dance in the adjust sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert dance from search'**
+  String get performInsertDanceFromSearch;
+
+  /// Text field label for an ad-hoc note or break added during Perform mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Ad-hoc note / break'**
+  String get performAdHocNoteLabel;
+
+  /// Hint text for the ad-hoc note / break field in the adjust sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Waltz, announcements'**
+  String get performAdHocNoteHint;
+
+  /// Button that adds the typed ad-hoc note/break as a new slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Add note'**
+  String get performAddNote;
+
+  /// Count of alternate dances under a slot, shown as a reorder-row subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 alternate} other{{count} alternates}}'**
+  String performAlternatesCount(int count);
+
+  /// Tooltip for the button that moves a program slot up in the adjust sheet reorder list.
+  ///
+  /// In en, this message translates to:
+  /// **'Move \"{label}\" up'**
+  String performMoveLabelUp(String label);
+
+  /// Tooltip for the button that moves a program slot down in the adjust sheet reorder list.
+  ///
+  /// In en, this message translates to:
+  /// **'Move \"{label}\" down'**
+  String performMoveLabelDown(String label);
+
+  /// Position label/announcement for the current program slot during performance.
+  ///
+  /// In en, this message translates to:
+  /// **'Slot {current} of {total}'**
+  String performSlotPosition(int current, int total);
+
+  /// Screen-reader announcement when swapping to show a different alternate slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {label}'**
+  String performShowingSlot(String label);
+
+  /// Screen-reader announcement after undoing a live program adjustment.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjustment undone'**
+  String get performAdjustmentUndone;
+
+  /// Snackbar message shown after applying a live program adjustment.
+  ///
+  /// In en, this message translates to:
+  /// **'Program adjusted.'**
+  String get performProgramAdjustedSnack;
+
+  /// Screen-reader announcement after applying a live program adjustment.
+  ///
+  /// In en, this message translates to:
+  /// **'Program adjusted'**
+  String get performProgramAdjustedAnnounce;
+
+  /// Empty-state body shown when a program opened in perform mode has no slots.
+  ///
+  /// In en, this message translates to:
+  /// **'This program has no slots.'**
+  String get performNoSlots;
+
+  /// Tooltip for the button that opens the jump-to-slot list in perform mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to slot'**
+  String get performJumpToSlot;
+
+  /// Tooltip for the button that swaps in an alternate dance for the current slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Show alternate'**
+  String get performShowAlternate;
+
+  /// Tooltip for the button that navigates to the previous program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous slot'**
+  String get performPreviousSlot;
+
+  /// Tooltip for the button that navigates to the next program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Next slot'**
+  String get performNextSlot;
+
+  /// Tooltip for the button that resumes the paused performance timers.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume timers'**
+  String get performResumeTimers;
+
+  /// Tooltip for the button that pauses the running performance timers.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause timers'**
+  String get performPauseTimers;
+
+  /// Screen-reader label for the perform-mode timing line: elapsed program time, elapsed slot time, and optional planned length, over-plan cue, and paused state.
+  ///
+  /// In en, this message translates to:
+  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
+  String performTimingSemantic(
+    String programTime,
+    String slotTime,
+    String hasPlanned,
+    int planned,
+    String over,
+    String paused,
+  );
+
+  /// Visible short label for a slot's planned length in minutes on the perform-mode timing line.
+  ///
+  /// In en, this message translates to:
+  /// **'planned {planned} min'**
+  String performPlannedMin(int planned);
+
+  /// Visible suffix (with a leading space) shown after the planned-minutes label when the current slot has run over its planned length.
+  ///
+  /// In en, this message translates to:
+  /// **' over'**
+  String get performOverSuffix;
+
+  /// Section title above a dance's calling notes on the perform-mode card.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes'**
+  String get performCallingNotes;
+
+  /// Empty-state text shown on the perform-mode card when a dance has no figures.
+  ///
+  /// In en, this message translates to:
+  /// **'No figures yet.'**
+  String get performNoFigures;
+
+  /// Tooltip for the button that decreases the perform-mode card text size.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease text size'**
+  String get performDecreaseTextSize;
+
+  /// Tooltip for the button that increases the perform-mode card text size.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase text size'**
+  String get performIncreaseTextSize;
+
+  /// Accessible name/tooltip for the perform-mode toggle that shows canonical (non-dialect) figure terms.
+  ///
+  /// In en, this message translates to:
+  /// **'Show canonical terms'**
+  String get performShowCanonicalTerms;
+
+  /// Tooltip for the perform-mode auto-size toggle when auto-size is currently on.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-size on — tap for manual text size'**
+  String get performAutoSizeOnTooltip;
+
+  /// Tooltip for the perform-mode auto-size toggle when auto-size is currently off.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-size off — tap to fit text to screen'**
+  String get performAutoSizeOffTooltip;
+
+  /// Tooltip for the perform-mode stage-theme toggle when the dark-stage theme is currently on.
+  ///
+  /// In en, this message translates to:
+  /// **'Stage theme on — tap to use app theme'**
+  String get performStageThemeOnTooltip;
+
+  /// Tooltip for the perform-mode stage-theme toggle when the dark-stage theme is currently off.
+  ///
+  /// In en, this message translates to:
+  /// **'Stage theme off — tap for dark stage'**
+  String get performStageThemeOffTooltip;
+
+  /// Tooltip on the progression marker icon shown beside a progressing figure on the perform-mode card.
+  ///
+  /// In en, this message translates to:
+  /// **'Progression'**
+  String get performProgression;
+
+  /// Screen-reader label for one figure row on the perform-mode card: the figure text, an optional import-gap note, an optional progression marker, the beat count, and an optional caller note.
+  ///
+  /// In en, this message translates to:
+  /// **'{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}, {beats, plural, =1{1 beat} other{{beats} beats}}{hasNote, select, yes{, note: {note}} other{}}'**
+  String performFigureSemantic(
+    String main,
+    String importGap,
+    String importGapText,
+    String progression,
+    int beats,
+    String hasNote,
+    String note,
+  );
+
+  /// Title of the empty-state shown in the program editor pane when no program is selected (split-pane layout).
+  ///
+  /// In en, this message translates to:
+  /// **'Select a program'**
+  String get programsSelectTitle;
+
+  /// Body text of the empty-state shown in the program editor pane when no program is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a program from the list, or create a new one.'**
+  String get programsSelectBody;
 }
 
 class _AppLocalizationsDelegate

@@ -37,6 +37,63 @@ class FmpFormatException implements Exception {
   String toString() => 'FmpFormatException: $message';
 }
 
+/// Thrown when a structurally-valid FileMaker container exceeds a
+/// [FmpReadLimits] bound (too many sectors, tables, or records).
+///
+/// **OWASP A04 Insecure Design / A05 Security Misconfiguration — uncontrolled
+/// resource consumption.** [readFmp12] reconstructs each table with its own full
+/// sector traversal, so the reader's cost is O(tables × sectors); a hostile
+/// small-but-pathological `.USR` (e.g. thousands of fabricated table-name
+/// entries) could otherwise force quadratic work even under a byte-size cap.
+/// Bounding tables/sectors/records **fails closed** and converts the reader's
+/// cost to linear in file size. Distinct from [FmpFormatException] (a
+/// not-a-FileMaker-file error) so callers can surface a friendly "too large"
+/// message; the [message] is safe to show to the user.
+class FmpResourceLimitException implements Exception {
+  const FmpResourceLimitException(this.message);
+  final String message;
+  @override
+  String toString() => 'FmpResourceLimitException: $message';
+}
+
+/// Maximum number of body sectors ([FmpDatabase]) [readFmp12] will read.
+///
+/// ~32 MiB of 4 KiB sectors — a defense-in-depth ceiling **inside the core
+/// reader itself** (independent of any app-layer byte cap), bounding the length
+/// of every per-table traversal. The real ~20 MB Caller's Companion sample is
+/// ~5000 sectors, well under this.
+const int kMaxFmpSectors = 8192;
+
+/// Maximum number of distinct tables [readFmp12] will reconstruct.
+///
+/// The reader does one full sector traversal *per table*, so this is the bound
+/// that caps the O(tables × sectors) amplification. Real Caller's Companion
+/// `.USR` files carry ~22 tables (the CC schema tables plus FileMaker's internal
+/// ones); 256 is far above any legitimate file while refusing a file stuffed
+/// with fabricated table-name entries.
+const int kMaxFmpTables = 256;
+
+/// Maximum number of records (rows), summed across all tables, [readFmp12] will
+/// reconstruct. Bounds per-record allocation/decoding work. The real CC sample
+/// holds a few hundred rows; 200k is far above any legitimate file.
+const int kMaxFmpRecords = 200000;
+
+/// Structural bounds enforced by [readFmp12], failing closed with a
+/// [FmpResourceLimitException] once exceeded. Defaults mirror the module
+/// constants; tests inject tiny values to exercise the guards hermetically
+/// (mirroring `ArchiveIntakeService`'s injectable `maxBytes`).
+class FmpReadLimits {
+  const FmpReadLimits({
+    this.maxSectors = kMaxFmpSectors,
+    this.maxTables = kMaxFmpTables,
+    this.maxRecords = kMaxFmpRecords,
+  });
+
+  final int maxSectors;
+  final int maxTables;
+  final int maxRecords;
+}
+
 /// A column definition recovered from a table's schema.
 class FmpColumn {
   FmpColumn(this.index, this.name);
@@ -134,14 +191,20 @@ class _Block {
 
 /// Reads a FileMaker 12 (`.fmp12`/`.USR`) container from [bytes].
 ///
-/// Throws [FmpFormatException] only when [bytes] is not a supported HBAM7
-/// container. Everything else degrades to partial results + warnings.
-FmpDatabase readFmp12(Uint8List bytes) => _FmpReader(bytes).read();
+/// Throws [FmpFormatException] when [bytes] is not a supported HBAM7 container,
+/// and [FmpResourceLimitException] when the container exceeds a [limits] bound
+/// (too many sectors, tables, or records — a fail-closed DoS guard). Everything
+/// else degrades to partial results + warnings.
+FmpDatabase readFmp12(
+  Uint8List bytes, {
+  FmpReadLimits limits = const FmpReadLimits(),
+}) => _FmpReader(bytes, limits).read();
 
 class _FmpReader {
-  _FmpReader(this._bytes);
+  _FmpReader(this._bytes, this._limits);
 
   final Uint8List _bytes;
+  final FmpReadLimits _limits;
   final List<String> _warnings = [];
 
   late final List<_Block> _blocks; // body sectors, 0-based
@@ -155,13 +218,35 @@ class _FmpReader {
 
   FmpDatabase read() {
     _readHeader();
+    // [_readSectors] fails closed *while it builds the chain* — it throws before
+    // allocating the sector past [FmpReadLimits.maxSectors], so a crafted huge
+    // sector count can't force unbounded preprocessing/allocation even for a
+    // direct core caller that isn't behind the app's raw byte cap.
     _readSectors();
 
     final tables = <FmpTable>[];
     final tableNames = _listTables(); // index -> name
+    // The reader traverses every sector once per table, so an unbounded table
+    // count makes the whole read O(tables × sectors). Reject before the loop.
+    if (tableNames.length > _limits.maxTables) {
+      throw FmpResourceLimitException(
+        'The file has too many tables to import safely '
+        '(${tableNames.length} > ${_limits.maxTables}).',
+      );
+    }
+    var totalRecords = 0;
     for (final entry in tableNames.entries) {
       final columns = _listColumns(entry.key);
-      final records = _readValues(entry.key, columns);
+      // Pass the *remaining* record budget so [_readValues] fails closed the
+      // moment a newly discovered row would exceed the cap — before it decodes
+      // and allocates the rest of the table's rows (not after the whole table
+      // has been reconstructed).
+      final records = _readValues(
+        entry.key,
+        columns,
+        _limits.maxRecords - totalRecords,
+      );
+      totalRecords += records.length;
       tables.add(FmpTable(entry.key, entry.value, columns, records));
     }
     tables.sort((a, b) => a.index.compareTo(b.index));
@@ -229,6 +314,15 @@ class _FmpReader {
           'at sector $index; reading the ${blocks.length} available.',
         );
         break;
+      }
+      // Fail closed *before* decoding/allocating the sector past the limit, so
+      // a claimed count larger than [maxSectors] can't force unbounded
+      // preprocessing (OWASP A04/A05 — uncontrolled resource consumption).
+      if (blocks.length >= _limits.maxSectors) {
+        throw FmpResourceLimitException(
+          'The file has too many sectors to import safely '
+          '($numBlocks claimed > ${_limits.maxSectors}).',
+        );
       }
       blocks.add(_blockAt(offset));
     }
@@ -586,7 +680,11 @@ class _FmpReader {
     return columns;
   }
 
-  List<FmpRecord> _readValues(int tableIndex, List<FmpColumn> columns) {
+  List<FmpRecord> _readValues(
+    int tableIndex,
+    List<FmpColumn> columns,
+    int maxRecords,
+  ) {
     final target = tableIndex + 128;
     final numColumns = columns.fold<int>(
       0,
@@ -608,7 +706,24 @@ class _FmpReader {
     var lastColumn = 0;
 
     void store(int row, int column, String value) {
-      rowValues.putIfAbsent(row, () => <int, String>{})[column] = value;
+      final existing = rowValues[row];
+      if (existing != null) {
+        existing[column] = value;
+        return;
+      }
+      // A newly discovered row. Fail closed *before* allocating it when it
+      // would push this read past the remaining record budget, so a table with
+      // millions of rows is rejected as it is traversed rather than after every
+      // row has been decoded and allocated (OWASP A04/A05 — bound per-record
+      // work during consumption). [rowValues.length] is exactly the number of
+      // records this table will yield, so this is the record count.
+      if (rowValues.length >= maxRecords) {
+        throw FmpResourceLimitException(
+          'The file has too many records to import safely '
+          '(> ${_limits.maxRecords}).',
+        );
+      }
+      rowValues[row] = <int, String>{column: value};
     }
 
     void flushLong() {

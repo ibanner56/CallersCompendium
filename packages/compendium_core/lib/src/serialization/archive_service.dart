@@ -1,3 +1,4 @@
+import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
 import 'compendium_archive.dart';
 
@@ -30,6 +31,7 @@ class ArchiveExporter {
     publishedSources: await _repos.publishedSources.listAll(),
     customFields: await _repos.customFieldDefs.listAll(),
     tags: await _repos.tags.listAll(),
+    venues: await _repos.venues.listAll(),
   );
 }
 
@@ -44,9 +46,18 @@ class ArchiveExporter {
 /// resolution (link/duplicate/skip via `src/imports/dedupe.dart`) for
 /// user-to-user sharing is layered on at ROADMAP G.5.
 ///
-/// Restore is transactional and partial-failure tolerant: a single entity that
-/// fails to write is recorded in [ArchiveRestoreResult.errors] and the rest
-/// still load — never a stack-trace UX.
+/// Safety contract differs by mode:
+/// - [RestoreMode.replace] is **all-or-nothing**. The clear and the reload run
+///   in one transaction, and if *any* entity fails to write, the whole
+///   transaction is rolled back — including the clear — so the user's existing
+///   collection is left intact rather than wiped-then-partially-restored. A
+///   replace is the operation users reach for when already in trouble, so a bad
+///   archive must never be able to destroy live data (issue #430). Callers are
+///   expected to fully decode/validate the archive first and refuse to invoke a
+///   replace on an archive that did not decode cleanly.
+/// - [RestoreMode.merge] is partial-failure tolerant: a single entity that
+///   fails to write is recorded in [ArchiveRestoreResult.errors] and the rest
+///   still load — never a stack-trace UX.
 class ArchiveRestorer {
   ArchiveRestorer(this._repos);
 
@@ -57,6 +68,10 @@ class ArchiveRestorer {
     RestoreMode mode = RestoreMode.replace,
   }) async {
     final errors = <ArchiveError>[];
+    // Distinguishes an intentional abort-to-rollback (replace mode saw a write
+    // error) from an unexpected transaction failure, without depending on how
+    // the database layer re-surfaces the thrown sentinel.
+    var abortedForRollback = false;
     try {
       await _repos.db.transaction(() async {
         // Dances can reference each other (relatedDance links), so intra-batch
@@ -66,30 +81,45 @@ class ArchiveRestorer {
         // consistent.
         await _repos.db.customStatement('PRAGMA defer_foreign_keys = ON');
         if (mode == RestoreMode.replace) {
+          // Validate-by-attempt, then commit-or-rollback: clear and reload in
+          // the same transaction, but if the reload recorded any per-entity
+          // failure, abort so the clear is rolled back too. This guarantees a
+          // replace never leaves the user with wiped data and a half-applied
+          // archive — either the whole archive writes, or live data is intact.
           await _clearAll();
+          await _load(archive, errors);
+          if (errors.isNotEmpty) {
+            abortedForRollback = true;
+            throw const _RestoreAborted();
+          }
+        } else {
+          await _load(archive, errors);
         }
-        await _load(archive, errors);
       });
     } on Exception catch (e) {
-      // Deferred foreign-key checks and other integrity constraints only fire at
-      // commit time, outside the per-entity `_guard`. Convert any such failure
-      // into an archive-level structured error so callers always get a result
-      // rather than a stack trace.
-      errors.add(
-        ArchiveError(
-          kind: ArchiveErrorKind.restore,
-          entityType: 'archive',
-          message: 'archive could not be restored',
-          cause: e,
-        ),
-      );
+      if (!abortedForRollback) {
+        // Deferred foreign-key checks and other integrity constraints only fire
+        // at commit time, outside the per-entity `_guard`. Convert any such
+        // failure into an archive-level structured error so callers always get
+        // a result rather than a stack trace. The transaction has rolled back,
+        // so (in replace mode) live data is preserved.
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.restore,
+            entityType: 'archive',
+            message: 'archive could not be restored',
+            cause: e,
+          ),
+        );
+      }
     }
     return ArchiveRestoreResult(errors: errors);
   }
 
   /// Writes every archive entity in foreign-key-safe order: the entities a
   /// dance references (published sources, choreographers, tags, custom-field
-  /// defs) first, then dances, then programs (whose slots reference dances).
+  /// defs) first, then dances, then venues, then programs (whose slots
+  /// reference dances and whose `venueId` references a venue).
   Future<void> _load(
     CompendiumArchive archive,
     List<ArchiveError> errors,
@@ -119,11 +149,44 @@ class ArchiveRestorer {
         await _repos.dances.create(d);
       });
     }
-    for (final p in archive.programs) {
-      await _guard('program', p.id, errors, () async {
-        await _repos.programs.create(p);
+    // Venues before programs: a program's `venueId` soft-references a venue, so
+    // the referenced record must land first for the link to resolve.
+    for (final v in archive.venues) {
+      await _guard('venue', v.id, errors, () async {
+        await _repos.venues.upsert(v);
       });
     }
+    // Load the set of known venue ids **once** for the whole programs phase:
+    // both the dangling-ref resolve-or-null below and the repository's
+    // write-time integrity guard validate against this single snapshot, so
+    // restoring N venue-linked programs issues one venue query instead of 2·N
+    // (a per-program existence read here plus another inside each write).
+    // Sound because restore only inserts venues (above) and never deletes one
+    // mid-batch, so the snapshot cannot go stale under us.
+    final knownVenueIds = await _repos.venues.listAllIds();
+    for (final p in archive.programs) {
+      await _guard('program', p.id, errors, () async {
+        await _repos.programs.create(
+          _withResolvedVenue(p, knownVenueIds),
+          knownVenueIds: knownVenueIds,
+        );
+      });
+    }
+  }
+
+  /// Guards against a **dangling** `venueId` from an untrusted bundle: if the
+  /// program references a venue absent from [knownVenueIds] (the venues present
+  /// after the archive's own venues were loaded, plus any pre-existing ones),
+  /// the link is cleared before the program is written. `venueId` is a soft
+  /// reference (no DB foreign key), so a dangling value would not fail at
+  /// commit — but leaving one silently in place is exactly what the
+  /// OWASP-aligned import contract forbids, so it is nulled rather than
+  /// persisted as an unresolvable reference. A resolvable (or already-null)
+  /// `venueId` is left untouched.
+  Program _withResolvedVenue(Program p, Set<String> knownVenueIds) {
+    final venueId = p.venueId;
+    if (venueId == null) return p;
+    return knownVenueIds.contains(venueId) ? p : p.copyWith(clearVenueId: true);
   }
 
   /// Removes every user-content row (and its derived indexes) so a
@@ -147,6 +210,7 @@ class ArchiveRestorer {
     await db.delete(db.tags).go();
     await db.delete(db.choreographers).go();
     await db.delete(db.publishedSources).go();
+    await db.delete(db.venues).go();
   }
 
   Future<void> _guard(
@@ -173,4 +237,12 @@ class ArchiveRestorer {
       );
     }
   }
+}
+
+/// Internal signal used to roll back a [RestoreMode.replace] transaction when
+/// the reload recorded a per-entity failure. It carries no data — the failures
+/// are already collected in the caller's `errors` list — and only exists to
+/// abort the transaction so the preceding `_clearAll()` is undone.
+class _RestoreAborted implements Exception {
+  const _RestoreAborted();
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/dialect_library_scope.dart';
 
 /// A compact app-bar control for switching the active dialect mid-session
@@ -27,7 +28,7 @@ class DialectQuickSwitch extends StatelessWidget {
     return PopupMenuButton<String>(
       key: const ValueKey('dialect-quick-switch'),
       icon: const Icon(Icons.groups_outlined),
-      tooltip: 'Switch dialect',
+      tooltip: AppLocalizations.of(context).commonSwitchDialectTooltip,
       onSelected: (name) => controller.setActive(name),
       itemBuilder: (context) => [
         for (final dialect in dialects)

@@ -166,6 +166,43 @@ void main() {
     expect(find.text('Backup restored.'), findsOneWidget);
   });
 
+  testWidgets('restoring an incomplete backup is refused with a clear message '
+      'and leaves live data untouched (#430)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('stale', 'Old Dance'));
+
+    var refreshed = false;
+    await _pumpGeneral(tester, repos, onRestored: () async => refreshed = true);
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+
+    // A structurally-valid backup whose only dance carries an enum value this
+    // build can't read: it decodes to an empty (incomplete) core. A replace
+    // must be refused rather than reported as a clean "Backup restored." and
+    // must not wipe live data.
+    const incompleteJson =
+        '{"backupVersion":1,"createdAt":"2026-07-15T00:00:00.000Z",'
+        '"core":{"dances":[{"id":"newer","title":"Newer",'
+        '"status":"from_the_future",'
+        '"createdAt":"2026-01-01T00:00:00.000Z",'
+        '"updatedAt":"2026-01-01T00:00:00.000Z"}]},"app":{}}';
+    await tester.enterText(
+      find.byKey(const ValueKey('restore-paste-field')),
+      incompleteJson,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-confirm')));
+    await tester.pumpAndSettle();
+
+    // Refused, not a clean success; live data intact; no refresh triggered.
+    expect(find.text('Backup restored.'), findsNothing);
+    expect(find.textContaining("can't read"), findsOneWidget);
+    expect(refreshed, isFalse);
+    final dances = await repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['stale']);
+  });
+
   testWidgets('restore dialog can be cancelled without touching data', (
     tester,
   ) async {
@@ -179,6 +216,33 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('restore-cancel')));
     await tester.pumpAndSettle();
 
+    final dances = await repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['stale']);
+  });
+
+  testWidgets('choosing an oversized backup file surfaces a friendly error', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('stale', 'Old Dance'));
+
+    await _pumpGeneral(
+      tester,
+      repos,
+      picker: () async => throw const BackupFileTooLargeException(
+        sizeBytes: 60 * 1024 * 1024,
+        maxBytes: 50 * 1024 * 1024,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('backup-restore-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('restore-choose-file')));
+    await tester.pumpAndSettle();
+
+    // The size-cap refusal is shown as a friendly message, not a crash, and
+    // live data is untouched (the file was never read).
+    expect(find.textContaining('too large'), findsOneWidget);
     final dances = await repos.dances.listAll();
     expect(dances.map((d) => d.id), ['stale']);
   });

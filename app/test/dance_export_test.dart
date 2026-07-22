@@ -9,6 +9,38 @@ import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
+/// A [FigureRenderer] spy that counts calls to [render] vs [renderSummary] while
+/// delegating to the real implementation, so a test can assert which path an
+/// export takes (#457 regression guard).
+class _SpyRenderer extends FigureRenderer {
+  _SpyRenderer() : super(contraTaxonomy);
+
+  int renderCalls = 0;
+  int renderSummaryCalls = 0;
+
+  @override
+  String render(Figure figure, Dialect dialect, {bool decimals = false}) {
+    renderCalls++;
+    return super.render(figure, dialect, decimals: decimals);
+  }
+
+  @override
+  String renderSummary(
+    Figure figure,
+    Dialect dialect, {
+    bool verbose = false,
+    bool decimals = false,
+  }) {
+    renderSummaryCalls++;
+    return super.renderSummary(
+      figure,
+      dialect,
+      verbose: verbose,
+      decimals: decimals,
+    );
+  }
+}
+
 Dance _dance({
   String title = 'Rory O\'More',
   List<String> authorIds = const [],
@@ -284,6 +316,75 @@ void main() {
 
       expect(find.text("Couldn't export this dance"), findsOneWidget);
     });
+
+    testWidgets('sanitizes the dance title in the PDF print-job name', (
+      tester,
+    ) async {
+      String? capturedName;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance(title: 'Rory/O\u0007More: 3\\9'),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  pdfLayouter: ({required name, required onLayout}) async =>
+                      capturedName = name,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      // Path separators and control characters never reach the print-job name.
+      expect(capturedName, 'Rory_O_More__3_9');
+      expect(capturedName, isNot(contains('/')));
+      expect(capturedName, isNot(contains('\\')));
+    });
+
+    testWidgets('falls back to "dance" when the title has no safe content', (
+      tester,
+    ) async {
+      String? capturedName;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance(title: '///'),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  pdfLayouter: ({required name, required onLayout}) async =>
+                      capturedName = name,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      expect(capturedName, 'dance');
+    });
   });
 
   group('buildDancePdf', () {
@@ -306,6 +407,39 @@ void main() {
 
       expect(bytes, isNotEmpty);
       expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    });
+
+    // Regression (#457): the PDF figure path must use renderSummary(), not the
+    // terse render(), so on-screen modifiers survive to the printed card. A bare
+    // down-the-hall carries a default turn-couple ender that renderSummary
+    // surfaces and render() drops, so the two genuinely differ; a spy renderer
+    // asserts the export invoked renderSummary and never render() for the figure.
+    // This FAILS if dance_pdf.dart reverts the call site back to render().
+    testWidgets('renders figures via renderSummary so modifiers survive (#457)', (
+      tester,
+    ) async {
+      final figure = Figure(move: 'down_the_hall', params: {'beats': 8});
+      // Guard: the chosen figure must actually differ between the two renderers,
+      // otherwise the spy assertions below would prove nothing.
+      final plain = FigureRenderer(contraTaxonomy);
+      expect(
+        plain.renderSummary(figure, Dialect.canonical),
+        isNot(equals(plain.render(figure, Dialect.canonical))),
+      );
+
+      final spy = _SpyRenderer();
+      final bytes = await buildDancePdf(
+        _dance(title: 'Hall Dance', figures: [figure]),
+        dialect: Dialect.canonical,
+        authorNames: const [],
+        formationLabel: 'Duple improper',
+        statusLabel: 'Active',
+        renderer: spy,
+      );
+
+      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+      expect(spy.renderSummaryCalls, greaterThan(0));
+      expect(spy.renderCalls, 0);
     });
 
     testWidgets('handles a figureless, note-less dance', (tester) async {

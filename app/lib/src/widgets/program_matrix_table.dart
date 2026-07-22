@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Read-only **programming matrix** (moves × dances) for the Program builder's
 /// Matrix tab (`docs/design/ux.md` §4).
 ///
@@ -98,6 +100,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final matrix = widget.matrix;
 
     if (matrix.isEmpty) {
@@ -135,10 +138,10 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
             Expanded(
               child: Semantics(
                 container: true,
-                label:
-                    'Programming matrix: '
-                    '${matrix.rows.length} dances by '
-                    '$moveCount moves',
+                label: l10n.programsMatrixSemanticLabel(
+                  matrix.rows.length,
+                  moveCount,
+                ),
                 child: content,
               ),
             ),
@@ -146,7 +149,9 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Text(
-                  _omittedCaption(widget.omittedFreeTextCount),
+                  l10n.programsMatrixOmittedCaption(
+                    widget.omittedFreeTextCount,
+                  ),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -253,12 +258,6 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
   }
 }
 
-/// Caption noting free-text slots that don't appear in the matrix (the matrix
-/// is dances-only), so the omission is always explicit.
-String _omittedCaption(int n) =>
-    '$n free-text ${n == 1 ? 'slot' : 'slots'} '
-    '(breaks, notes) omitted — the matrix shows dances only.';
-
 class _Corner extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
@@ -276,9 +275,10 @@ class _ColumnHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Semantics(
       header: true,
-      label: 'Move: $label',
+      label: l10n.programsMatrixMoveHeaderSemantic(label),
       excludeSemantics: true,
       child: Tooltip(
         message: label,
@@ -311,12 +311,17 @@ class _RowHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final halfLong = half == null ? '' : ', ${_halfLongLabel(half!)}';
+    final l10n = AppLocalizations.of(context);
+    final halfSelect = half == null
+        ? 'none'
+        : (half == ProgramHalf.first ? 'first' : 'second');
     return Semantics(
       header: true,
-      label: isAlt
-          ? 'Alternate dance: $title$halfLong'
-          : 'Dance: $title$halfLong',
+      label: l10n.programsMatrixRowHeaderSemantic(
+        title,
+        isAlt ? 'yes' : 'no',
+        halfSelect,
+      ),
       excludeSemantics: true,
       child: Container(
         width: ProgramMatrixTable.rowHeaderWidth,
@@ -333,7 +338,7 @@ class _RowHeader extends StatelessWidget {
                 color: theme.colorScheme.secondary,
               ),
               const SizedBox(width: 4),
-              Text('ALT', style: theme.textTheme.labelSmall),
+              Text(l10n.programsAltOrdinal, style: theme.textTheme.labelSmall),
               const SizedBox(width: 6),
             ],
             if (half != null) ...[
@@ -355,14 +360,6 @@ class _RowHeader extends StatelessWidget {
   }
 }
 
-/// Short/long labels for a program [ProgramHalf], used by the matrix half
-/// badge (short) and its screen-reader semantics (long).
-String _halfShortLabel(ProgramHalf half) =>
-    half == ProgramHalf.first ? '1st' : '2nd';
-
-String _halfLongLabel(ProgramHalf half) =>
-    half == ProgramHalf.first ? 'first half' : 'second half';
-
 /// A "1st"/"2nd" program-half badge. Conveys the half with **icon + text**,
 /// never colour alone (WCAG 1.4.1); the surrounding [_RowHeader]/[_DanceChip]
 /// owns the screen-reader phrasing, so this badge excludes its own semantics.
@@ -374,6 +371,7 @@ class _HalfBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return ExcludeSemantics(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -393,7 +391,9 @@ class _HalfBadge extends StatelessWidget {
             ),
             const SizedBox(width: 2),
             Text(
-              _halfShortLabel(half),
+              l10n.programsMatrixHalfShort(
+                half == ProgramHalf.first ? 'first' : 'second',
+              ),
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onTertiaryContainer,
               ),
@@ -423,11 +423,7 @@ class _Cell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final state = _cellStateLabel(
-      present: present,
-      first: first,
-      programDebut: programDebut,
-    );
+    final l10n = AppLocalizations.of(context);
 
     Widget? mark;
     if (programDebut) {
@@ -445,7 +441,13 @@ class _Cell extends StatelessWidget {
     }
 
     return Semantics(
-      label: '$danceTitle, $moveLabel: $state',
+      label: l10n.programsMatrixCellSemantic(
+        danceTitle,
+        moveLabel,
+        present ? 'yes' : 'no',
+        programDebut ? 'yes' : 'no',
+        first ? 'yes' : 'no',
+      ),
       excludeSemantics: true,
       child: Container(
         width: ProgramMatrixTable.columnWidth,
@@ -468,19 +470,10 @@ class _Cell extends StatelessWidget {
   }
 }
 
-/// Semantics phrasing shared by the grid and compact views. A cell that is both
-/// a program debut and its dance's opening figure announces both, distinctly.
-String _cellStateLabel({
-  required bool present,
-  required bool first,
-  required bool programDebut,
-}) {
-  if (!present && !first && !programDebut) return 'not present';
-  final parts = <String>['present'];
-  if (programDebut) parts.add('introduced here');
-  if (first) parts.add("dance's first figure");
-  return parts.join(', ');
-}
+/// Semantics phrasing shared by the grid and compact views is modelled directly
+/// in the `matrixCellSemantic` ICU message (a single message with select
+/// branches for present / introduced-here / dance's-first-figure), so no
+/// fragment concatenation happens in Dart.
 
 class _CompactMatrix extends StatelessWidget {
   const _CompactMatrix({
@@ -496,6 +489,7 @@ class _CompactMatrix extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final total = matrix.rows.length;
 
     // Group present moves into those shared across dances (the core insight)
@@ -538,8 +532,7 @@ class _CompactMatrix extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Text(
-            'None of these dances have structured figures yet, so there are '
-            'no moves to compare.',
+            l10n.programsMatrixNoComparableMoves,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -548,12 +541,14 @@ class _CompactMatrix extends StatelessWidget {
       );
     } else {
       if (repeated.isNotEmpty) {
-        children.add(_SectionHeader(label: 'Repeated moves'));
+        children.add(
+          _SectionHeader(label: l10n.programsMatrixRepeatedMovesHeader),
+        );
         children.add(
           Padding(
             padding: const EdgeInsets.only(top: 2, bottom: 4),
             child: Text(
-              'Moves shared across two or more dances, most-repeated first.',
+              l10n.programsMatrixRepeatedMovesSubtitle,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -568,8 +563,7 @@ class _CompactMatrix extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              'No moves repeat across these dances — every move below is used '
-              'by a single dance.',
+              l10n.programsMatrixNoRepeatsNote,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -579,7 +573,7 @@ class _CompactMatrix extends StatelessWidget {
       }
 
       if (singles.isNotEmpty) {
-        children.add(_SectionHeader(label: 'Used once'));
+        children.add(_SectionHeader(label: l10n.programsMatrixUsedOnceHeader));
         for (final m in singles) {
           children.add(_MoveCard(summary: m, total: total));
         }
@@ -683,6 +677,7 @@ class _MoveCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final n = summary.dances.length;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -691,7 +686,11 @@ class _MoveCard extends StatelessWidget {
         children: [
           Semantics(
             header: true,
-            label: 'Move: ${summary.label}, used in $n of $total dances',
+            label: l10n.programsMatrixMoveUsedInSemantic(
+              summary.label,
+              n,
+              total,
+            ),
             excludeSemantics: true,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -706,7 +705,7 @@ class _MoveCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '$n of $total',
+                  l10n.programsMatrixNOfTotal(n, total),
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -756,20 +755,18 @@ class _DanceChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final state = _cellStateLabel(
-      present: true,
-      first: first,
-      programDebut: programDebut,
-    );
+    final l10n = AppLocalizations.of(context);
     // Preserve the grid's ALT and half distinctions, which otherwise live only
-    // in the wide row header, so they aren't lost on phones.
-    final qualifiers = [
-      if (isAlt) 'alternate dance',
-      if (half != null) _halfLongLabel(half!),
-    ];
-    final who = qualifiers.isEmpty
-        ? danceTitle
-        : '$danceTitle (${qualifiers.join(', ')})';
+    // in the wide row header, so they aren't lost on phones. The qualifier
+    // phrasing is modelled as one ICU message (no fragment concatenation).
+    final halfSelect = half == null
+        ? 'none'
+        : (half == ProgramHalf.first ? 'first' : 'second');
+    final who = l10n.programsMatrixChipQualifiedTitle(
+      danceTitle,
+      isAlt ? 'yes' : 'no',
+      halfSelect,
+    );
     final IconData markIcon;
     final Color markColor;
     if (programDebut) {
@@ -783,7 +780,13 @@ class _DanceChip extends StatelessWidget {
       markColor = theme.colorScheme.onSurface;
     }
     return Semantics(
-      label: '$who, $moveLabel: $state',
+      label: l10n.programsMatrixCellSemantic(
+        who,
+        moveLabel,
+        'yes',
+        programDebut ? 'yes' : 'no',
+        first ? 'yes' : 'no',
+      ),
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -824,6 +827,7 @@ class _Legend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Wrap(
@@ -833,17 +837,17 @@ class _Legend extends StatelessWidget {
           _LegendItem(
             icon: Icons.star,
             color: theme.colorScheme.primary,
-            label: 'Introduced here',
+            label: l10n.programsMatrixLegendIntroduced,
           ),
           _LegendItem(
             icon: Icons.flag_outlined,
             color: theme.colorScheme.secondary,
-            label: "Dance's first figure",
+            label: l10n.programsMatrixLegendFirstFigure,
           ),
           _LegendItem(
             icon: Icons.check,
             color: theme.colorScheme.onSurface,
-            label: 'Present',
+            label: l10n.programsMatrixLegendPresent,
           ),
         ],
       ),
@@ -884,6 +888,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -897,14 +902,13 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'No structured figures yet',
+              l10n.programsMatrixEmptyTitle,
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
             Text(
-              'The matrix fills in automatically as the program’s dances '
-              'gain structured figures.',
+              l10n.programsMatrixEmptyBody,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -913,7 +917,7 @@ class _EmptyState extends StatelessWidget {
             if (omittedFreeTextCount > 0) ...[
               const SizedBox(height: 12),
               Text(
-                _omittedCaption(omittedFreeTextCount),
+                l10n.programsMatrixOmittedCaption(omittedFreeTextCount),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

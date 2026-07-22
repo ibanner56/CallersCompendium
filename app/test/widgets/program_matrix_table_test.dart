@@ -2,6 +2,7 @@ import 'package:compendium_app/src/widgets/program_matrix_table.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/l10n_harness.dart';
 
 void main() {
   final now = DateTime.utc(2026, 7, 13);
@@ -31,6 +32,9 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+
         home: Scaffold(
           body: ProgramMatrixTable(
             matrix: buildProgramMatrix(dances, halves: halves),
@@ -251,6 +255,9 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+
           home: Scaffold(
             body: ProgramMatrixTable(
               matrix: buildProgramMatrix(dances, halves: halves),
@@ -495,6 +502,9 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+
           home: Scaffold(
             body: ProgramMatrixTable(
               matrix: buildProgramMatrix(

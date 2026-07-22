@@ -3,6 +3,7 @@
 /// deployment specifics (URLs, timeouts, storage keys).
 library;
 
+import '../utils/safe_name.dart';
 import 'update_manifest.dart';
 
 /// The GitHub Pages base under which the per-channel manifests are published
@@ -53,7 +54,7 @@ String downloadFileName(String artifactUrl) {
   }
   // Defense-in-depth: never let a crafted URL segment escape the temp dir or
   // inject shell-unsafe characters into the on-disk name.
-  name = name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  name = replaceUnsafeNameChars(name);
   if (name.isEmpty || name == '.' || name == '..') {
     return 'CallersCompendium-update.download';
   }

@@ -136,6 +136,18 @@ void main() {
     expect(await repos.programs.listAll(), isEmpty);
   });
 
+  testWidgets('missing program shows the no-longer-exists message', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, programId: 'does-not-exist');
+
+    // The editor stores a language-neutral sentinel (not the resolved string)
+    // for the missing case and resolves the message at build time, so a live
+    // locale switch would re-localise it. In English it renders unchanged.
+    expect(find.text('This program no longer exists.'), findsOneWidget);
+  });
+
   testWidgets('create persists a new program', (tester) async {
     final repos = openTestRepositories();
     String? savedId;

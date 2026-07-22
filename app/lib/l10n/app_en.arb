@@ -1039,5 +1039,1036 @@
         "example": "Chorus Jig"
       }
     }
-  }
+  },
+  "commonAddToProgram": "Add to program",
+  "@commonAddToProgram": {
+    "description": "Action label to add the current dance to a program (tooltip, menu item, sheet title, and Perform adjust section)."
+  },
+  "programsEmptyTitle": "No programs yet",
+  "@programsEmptyTitle": {
+    "description": "Title of the empty state shown when the user has no programs, on the Programs list and in the add-to-program sheet."
+  },
+  "programsAddToProgramEmptyBody": "Create a program to start building a set list.",
+  "@programsAddToProgramEmptyBody": {
+    "description": "Body of the empty state in the add-to-program sheet, inviting the user to create a program."
+  },
+  "programsCreateWithDance": "Create a new program with this dance",
+  "@programsCreateWithDance": {
+    "description": "Button in the add-to-program sheet that creates a new program seeded with the current dance."
+  },
+  "programsAddDanceToProgramSemantic": "Add \"{danceTitle}\" to {programTitle}, {details}",
+  "@programsAddDanceToProgramSemantic": {
+    "description": "Accessible label for a program row in the add-to-program sheet.",
+    "placeholders": {
+      "danceTitle": { "type": "String", "example": "Chorus Jig" },
+      "programTitle": { "type": "String", "example": "Friday Night Contra" },
+      "details": { "type": "String", "example": "Jul 4, 2026, 3 dances" }
+    }
+  },
+  "programsAddedToProgramSnack": "Added \"{danceTitle}\" to {programTitle}.",
+  "@programsAddedToProgramSnack": {
+    "description": "Confirmation snackbar after appending a dance to an existing program.",
+    "placeholders": {
+      "danceTitle": { "type": "String", "example": "Chorus Jig" },
+      "programTitle": { "type": "String", "example": "Friday Night Contra" }
+    }
+  },
+  "programsNewProgram": "New program",
+  "@programsNewProgram": {
+    "description": "Label for creating a new program (list button, editor title) and the default title of a newly created program."
+  },
+  "programsCreatedProgramSnack": "Created \"{programTitle}\" with \"{danceTitle}\".",
+  "@programsCreatedProgramSnack": {
+    "description": "Confirmation snackbar after creating a new program seeded with a dance.",
+    "placeholders": {
+      "programTitle": { "type": "String", "example": "New program" },
+      "danceTitle": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "dancePerformTooltip": "Perform this dance",
+  "@dancePerformTooltip": {
+    "description": "Tooltip for the button that opens the single-dance Perform view from the dance detail screen."
+  },
+  "commonSwitchDialectTooltip": "Switch dialect",
+  "@commonSwitchDialectTooltip": {
+    "description": "Tooltip for the app-bar control that switches the active dialect mid-session, shared by the dance detail and Perform screens."
+  },
+  "programsStatusDraft": "Draft",
+  "@programsStatusDraft": {
+    "description": "Program status label: the program is still a draft (not finalized)."
+  },
+  "programsStatusFinalized": "Finalized",
+  "@programsStatusFinalized": {
+    "description": "Program status label: the program has been finalized."
+  },
+  "programsStatusPerformed": "Performed",
+  "@programsStatusPerformed": {
+    "description": "Program status label: the program has been performed."
+  },
+  "programsNoLongerExists": "This program no longer exists.",
+  "@programsNoLongerExists": {
+    "description": "Error shown in the program editor when the program was deleted and can no longer be loaded."
+  },
+  "programsFallbackTitle": "Program",
+  "@programsFallbackTitle": {
+    "description": "Fallback title used for an untitled program when opening the Perform view from an unsaved draft."
+  },
+  "programsUntitledDanceFallback": "dance",
+  "@programsUntitledDanceFallback": {
+    "description": "Fallback word used in place of a dance title when the title is unavailable, in add-dance confirmation messages."
+  },
+  "programsAddedDanceSnack": "Added \"{title}\".",
+  "@programsAddedDanceSnack": {
+    "description": "Snackbar confirming a dance was added to the program being edited.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsAddedDanceAnnounce": "Added {title} to program.",
+  "@programsAddedDanceAnnounce": {
+    "description": "Screen-reader announcement when a dance is added to the program being edited.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsAddedNoteAnnounce": "Added note to program.",
+  "@programsAddedNoteAnnounce": {
+    "description": "Screen-reader announcement when a free-text note slot is added to the program."
+  },
+  "programsAddedBreakAnnounce": "Added break to program.",
+  "@programsAddedBreakAnnounce": {
+    "description": "Screen-reader announcement when a break slot is added to the program."
+  },
+  "programsMarkedAllPerformed": "Marked all dances performed.",
+  "@programsMarkedAllPerformed": {
+    "description": "Confirmation (snackbar and screen-reader announcement) after marking every dance in the program as performed."
+  },
+  "programsSavedSnack": "\"{title}\" saved.",
+  "@programsSavedSnack": {
+    "description": "Snackbar confirming the program was saved, quoting its title.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Friday Night Contra" }
+    }
+  },
+  "programsSaveError": "Could not save the program.",
+  "@programsSaveError": {
+    "description": "Snackbar shown when saving the program fails."
+  },
+  "programsDuplicatedSnack": "Duplicated as \"{title}\".",
+  "@programsDuplicatedSnack": {
+    "description": "Snackbar confirming a program was duplicated, quoting the copy's title.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Friday Night Contra (copy)" }
+    }
+  },
+  "programsDeletedSnack": "\"{title}\" deleted.",
+  "@programsDeletedSnack": {
+    "description": "Snackbar confirming a program was deleted, quoting its title. Paired with an Undo action.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Friday Night Contra" }
+    }
+  },
+  "programsDiscardTitle": "Discard changes?",
+  "@programsDiscardTitle": {
+    "description": "Title of the confirm dialog shown when leaving the program editor with unsaved changes."
+  },
+  "programsDiscardBody": "You have unsaved changes to this program.",
+  "@programsDiscardBody": {
+    "description": "Body of the confirm dialog shown when leaving the program editor with unsaved changes."
+  },
+  "programsKeepEditing": "Keep editing",
+  "@programsKeepEditing": {
+    "description": "Button that dismisses the discard-changes dialog and returns to editing."
+  },
+  "programsDiscard": "Discard",
+  "@programsDiscard": {
+    "description": "Button that confirms discarding unsaved program changes and leaves the editor."
+  },
+  "programsBuildProgram": "Build program",
+  "@programsBuildProgram": {
+    "description": "App bar title of the program editor when editing an existing program."
+  },
+  "programsBuildTab": "Build",
+  "@programsBuildTab": {
+    "description": "Program editor tab label for the slot-building view."
+  },
+  "programsMatrixTab": "Matrix",
+  "@programsMatrixTab": {
+    "description": "Program editor tab label for the programming matrix view."
+  },
+  "programsPerformTooltip": "Perform this program",
+  "@programsPerformTooltip": {
+    "description": "Tooltip for the button that opens the Perform view for the whole program."
+  },
+  "programsMarkAllPerformedTooltip": "Mark all performed",
+  "@programsMarkAllPerformedTooltip": {
+    "description": "Tooltip for the app-bar action that marks every dance in the program as performed."
+  },
+  "programsSaveDirty": "Save *",
+  "@programsSaveDirty": {
+    "description": "Label of the save button when the program has unsaved changes; the asterisk marks the dirty state."
+  },
+  "commonSave": "Save",
+  "@commonSave": {
+    "description": "Generic Save button label."
+  },
+  "programsLoading": "Loading program",
+  "@programsLoading": {
+    "description": "Accessible label for the progress spinner shown while a program loads in the editor."
+  },
+  "programsLoadError": "Could not load the program.",
+  "@programsLoadError": {
+    "description": "Message shown in the program editor when the program fails to load."
+  },
+  "programsDeletedDanceFallback": "(deleted dance)",
+  "@programsDeletedDanceFallback": {
+    "description": "Placeholder row title in the programming matrix for a slot whose referenced dance was deleted."
+  },
+  "programsSlotsLabel": "Slots",
+  "@programsSlotsLabel": {
+    "description": "Section heading above the list of program slots in the editor."
+  },
+  "programsAddDanceButton": "Add dance",
+  "@programsAddDanceButton": {
+    "description": "Button that opens the dance picker to add a dance slot to the program."
+  },
+  "programsAddNoteBreakButton": "Add note / break",
+  "@programsAddNoteBreakButton": {
+    "description": "Button that adds a free-text note or break slot to the program."
+  },
+  "programsInsertBreakButton": "Insert break",
+  "@programsInsertBreakButton": {
+    "description": "Button that inserts a break slot into the program."
+  },
+  "programsAddADanceSheetTitle": "Add a dance",
+  "@programsAddADanceSheetTitle": {
+    "description": "Title of the bottom sheet for picking a dance to add to the program."
+  },
+  "commonClose": "Close",
+  "@commonClose": {
+    "description": "Generic Close button/tooltip label."
+  },
+  "programsNoDateSet": "No date set",
+  "@programsNoDateSet": {
+    "description": "Placeholder shown for the event date field when no date has been chosen."
+  },
+  "programsTitleLabel": "Title",
+  "@programsTitleLabel": {
+    "description": "Field label for the program title in the editor."
+  },
+  "programsTitleHint": "e.g. Friday Night Contra",
+  "@programsTitleHint": {
+    "description": "Hint text for the program title field in the editor."
+  },
+  "programsTitleRequired": "A title is required.",
+  "@programsTitleRequired": {
+    "description": "Validation message shown when the program title field is left empty."
+  },
+  "programsEventDateLabel": "Event date",
+  "@programsEventDateLabel": {
+    "description": "Field label for the program's event date in the editor."
+  },
+  "programsSetDate": "Set date",
+  "@programsSetDate": {
+    "description": "Button to pick the program's event date when none is set."
+  },
+  "programsChangeDate": "Change",
+  "@programsChangeDate": {
+    "description": "Button to change the program's already-set event date."
+  },
+  "programsClearEventDate": "Clear event date",
+  "@programsClearEventDate": {
+    "description": "Tooltip for the button that clears the program's event date."
+  },
+  "programsVenueLabel": "Venue",
+  "@programsVenueLabel": {
+    "description": "Field label for the program's venue in the editor."
+  },
+  "programsVenueHint": "e.g. Grange Hall",
+  "@programsVenueHint": {
+    "description": "Hint text for the program venue field."
+  },
+  "programsBandLabel": "Band",
+  "@programsBandLabel": {
+    "description": "Field label for the program's band in the editor."
+  },
+  "programsBandHint": "e.g. The Fiddleheads",
+  "@programsBandHint": {
+    "description": "Hint text for the program band field."
+  },
+  "programsCallerLabel": "Caller",
+  "@programsCallerLabel": {
+    "description": "Field label for the program's caller in the editor."
+  },
+  "programsCallerHint": "Host caller for the event",
+  "@programsCallerHint": {
+    "description": "Hint text for the program caller field."
+  },
+  "programsDancerLevelLabel": "Dancer level",
+  "@programsDancerLevelLabel": {
+    "description": "Field label for the program's intended dancer level in the editor."
+  },
+  "programsDancerLevelHint": "e.g. All welcome, Experienced",
+  "@programsDancerLevelHint": {
+    "description": "Hint text for the program dancer-level field."
+  },
+  "programsNotesLabel": "Notes",
+  "@programsNotesLabel": {
+    "description": "Field label for the program's free-form notes in the editor."
+  },
+  "programsStatusFieldLabel": "Status",
+  "@programsStatusFieldLabel": {
+    "description": "Field label for the program status dropdown in the editor."
+  },
+  "programsHideAlternatesTitle": "Hide alternates in set list",
+  "@programsHideAlternatesTitle": {
+    "description": "Title of the toggle that hides alternate (ALT) slots from the exported set list."
+  },
+  "programsHideAlternatesSubtitle": "Omits ALT slots from the summary, PDF, and exported set list. The builder still shows every slot.",
+  "@programsHideAlternatesSubtitle": {
+    "description": "Explanatory subtitle for the hide-alternates toggle in the program editor."
+  },
+  "programsWarningCount": "{count, plural, =1{1 warning} other{{count} warnings}}",
+  "@programsWarningCount": {
+    "description": "Count of non-blocking validation warnings shown on the program editor's warnings card.",
+    "placeholders": {
+      "count": { "type": "int", "example": "2" }
+    }
+  },
+  "programsAddNoteBreakDialogTitle": "Add note or break",
+  "@programsAddNoteBreakDialogTitle": {
+    "description": "Title of the dialog for adding a free-text note or break slot to the program."
+  },
+  "programsFreeTextLabel": "Text",
+  "@programsFreeTextLabel": {
+    "description": "Field label for the free-text note/break input in the add-note dialog."
+  },
+  "programsFreeTextHint": "e.g. Break, waltz, announcement",
+  "@programsFreeTextHint": {
+    "description": "Hint text for the free-text note/break input."
+  },
+  "commonAdd": "Add",
+  "@commonAdd": {
+    "description": "Generic Add button label."
+  },
+  "programsTitle": "Programs",
+  "@programsTitle": {
+    "description": "Title of the Programs list screen and its navigation destination."
+  },
+  "programsSortTitle": "Title",
+  "@programsSortTitle": {
+    "description": "Programs list sort option: order alphabetically by program title."
+  },
+  "programsSortRecentlyUpdated": "Recently updated",
+  "@programsSortRecentlyUpdated": {
+    "description": "Programs list sort option: order by most recently updated."
+  },
+  "programsSortEventDate": "Event date",
+  "@programsSortEventDate": {
+    "description": "Programs list sort option: order by the program's event date."
+  },
+  "programsSortByTooltip": "Sort by ({label})",
+  "@programsSortByTooltip": {
+    "description": "Tooltip for the Programs list sort menu, showing the active sort option.",
+    "placeholders": {
+      "label": { "type": "String", "example": "Title" }
+    }
+  },
+  "programsListLoadError": "Could not load your programs.",
+  "@programsListLoadError": {
+    "description": "Error message shown when the Programs list fails to load."
+  },
+  "programsListEmptyBody": "Build set lists for your events here. Create your first program to get started.",
+  "@programsListEmptyBody": {
+    "description": "Body of the empty state on the Programs list, shown when the user has no programs."
+  },
+  "programsCount": "{count, plural, =1{1 program} other{{count} programs}}",
+  "@programsCount": {
+    "description": "Count of programs shown above the Programs list.",
+    "placeholders": {
+      "count": { "type": "int", "example": "3" }
+    }
+  },
+  "programsSummaryTitle": "Program",
+  "@programsSummaryTitle": {
+    "description": "App bar title of the read-only program summary screen."
+  },
+  "programsEditProgram": "Edit program",
+  "@programsEditProgram": {
+    "description": "Button that opens the program builder from the summary screen."
+  },
+  "programsSummaryUnavailable": "This program is no longer available.",
+  "@programsSummaryUnavailable": {
+    "description": "Message shown on the summary screen when the program can no longer be loaded."
+  },
+  "programsPerformDisabledTooltip": "Add at least one slot to perform this program",
+  "@programsPerformDisabledTooltip": {
+    "description": "Tooltip on the disabled Perform action explaining a program needs at least one slot before it can be performed."
+  },
+  "programsSummaryBand": "Band: {band}",
+  "@programsSummaryBand": {
+    "description": "Summary row showing the program's band.",
+    "placeholders": {
+      "band": { "type": "String", "example": "The Fiddleheads" }
+    }
+  },
+  "programsSummaryCaller": "Caller: {caller}",
+  "@programsSummaryCaller": {
+    "description": "Summary row showing the program's caller.",
+    "placeholders": {
+      "caller": { "type": "String", "example": "Jo Smith" }
+    }
+  },
+  "programsSummaryLevel": "Level: {level}",
+  "@programsSummaryLevel": {
+    "description": "Summary row showing the program's intended dancer level.",
+    "placeholders": {
+      "level": { "type": "String", "example": "All welcome" }
+    }
+  },
+  "programsSetListHeader": "Set list ({count})",
+  "@programsSetListHeader": {
+    "description": "Heading of the program's set list, with the number of slots.",
+    "placeholders": {
+      "count": { "type": "int", "example": "8" }
+    }
+  },
+  "programsSummaryEmptySetList": "No slots yet — open the builder to add dances.",
+  "@programsSummaryEmptySetList": {
+    "description": "Empty state shown under the set list heading when a program has no slots."
+  },
+  "programsSummaryGuest": "Guest: {caller}",
+  "@programsSummaryGuest": {
+    "description": "Secondary metadata on a set-list slot naming a guest caller for that slot.",
+    "placeholders": {
+      "caller": { "type": "String", "example": "Pat Lee" }
+    }
+  },
+  "programsPlannedMinutes": "{minutes} min",
+  "@programsPlannedMinutes": {
+    "description": "Planned duration in minutes for a program slot (abbreviated).",
+    "placeholders": {
+      "minutes": { "type": "int", "example": "10" }
+    }
+  },
+  "programsAltBadge": "Alt",
+  "@programsAltBadge": {
+    "description": "Short badge marking an alternate (ALT) slot in a set list."
+  },
+  "programsDanceUnavailable": "Dance unavailable",
+  "@programsDanceUnavailable": {
+    "description": "Fallback shown for a set-list slot whose referenced dance can no longer be found."
+  },
+  "programsSummaryNote": "Note: {note}",
+  "@programsSummaryNote": {
+    "description": "Per-slot caller note shown as secondary metadata on a set-list dance row.",
+    "placeholders": {
+      "note": { "type": "String", "example": "Announce next dance" }
+    }
+  },
+  "programsSummaryAlternateSemantic": "Alternate: {title}",
+  "@programsSummaryAlternateSemantic": {
+    "description": "Accessible prefix identifying an alternate (ALT) dance slot by title in the set list.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsPerformed": "Performed",
+  "@programsPerformed": {
+    "description": "Accessible label indicating a set-list slot has been marked performed."
+  },
+  "programsSlotCount": "{count, plural, =1{1 slot} other{{count} slots}}",
+  "@programsSlotCount": {
+    "description": "Count of slots in a program, shown on the Programs list tile subtitle.",
+    "placeholders": {
+      "count": { "type": "int", "example": "8" }
+    }
+  },
+  "programsSlotNoteFallback": "Note",
+  "@programsSlotNoteFallback": {
+    "description": "Fallback title for a free-text program slot that has no text yet."
+  },
+  "programsSlotEditorEmpty": "No slots yet. Add a dance or a note to get started.",
+  "@programsSlotEditorEmpty": {
+    "description": "Empty state shown in the program slot list editor when a program has no slots."
+  },
+  "programsSlotMoved": "Slot moved.",
+  "@programsSlotMoved": {
+    "description": "Accessibility announcement after a cut slot is pasted into a new position."
+  },
+  "programsSlotMovedUp": "Slot moved up.",
+  "@programsSlotMovedUp": {
+    "description": "Accessibility announcement after a slot is moved up one position."
+  },
+  "programsSlotMovedDown": "Slot moved down.",
+  "@programsSlotMovedDown": {
+    "description": "Accessibility announcement after a slot is moved down one position."
+  },
+  "programsSlotCutBanner": "\"{name}\" is cut — tap Paste to place it.",
+  "@programsSlotCutBanner": {
+    "description": "Banner shown while a program slot is cut, prompting the user to paste it.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsPasteBeforeFirst": "Paste before first slot",
+  "@programsPasteBeforeFirst": {
+    "description": "Accessible label for the paste affordance shown before the first program slot."
+  },
+  "programsPasteAfter": "Paste after {title}",
+  "@programsPasteAfter": {
+    "description": "Accessible label for the paste affordance shown after a given program slot.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsPasteHere": "Paste here",
+  "@programsPasteHere": {
+    "description": "Label for the compact paste button shown between slots during a cut."
+  },
+  "programsMarkedPrimary": "Marked as primary.",
+  "@programsMarkedPrimary": {
+    "description": "Accessibility announcement after a slot is changed from alternate to primary."
+  },
+  "programsMarkedAlternate": "Marked as alternate.",
+  "@programsMarkedAlternate": {
+    "description": "Accessibility announcement after a slot is changed from primary to alternate."
+  },
+  "programsMarkedPerformed": "Marked performed.",
+  "@programsMarkedPerformed": {
+    "description": "Accessibility announcement after a slot is marked performed."
+  },
+  "programsPerformedCleared": "Performed mark cleared.",
+  "@programsPerformedCleared": {
+    "description": "Accessibility announcement after a slot's performed mark is cleared."
+  },
+  "programsRemovedSlot": "Removed {name}.",
+  "@programsRemovedSlot": {
+    "description": "Accessibility announcement after a slot is removed from the program.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsAltOrdinal": "ALT",
+  "@programsAltOrdinal": {
+    "description": "Ordinal marker shown for an alternate slot instead of a running-order number."
+  },
+  "programsDragToReorder": "Drag to reorder {title}",
+  "@programsDragToReorder": {
+    "description": "Accessible label on the drag handle used to reorder a program slot.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsMoveSlotUp": "Move {title} up",
+  "@programsMoveSlotUp": {
+    "description": "Tooltip for the button that moves a program slot up one position.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsMoveSlotDown": "Move {title} down",
+  "@programsMoveSlotDown": {
+    "description": "Tooltip for the button that moves a program slot down one position.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsCutSlot": "Cut {title}",
+  "@programsCutSlot": {
+    "description": "Tooltip for the button that cuts a program slot for repositioning.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsMoreActionsForSlot": "More actions for {title}",
+  "@programsMoreActionsForSlot": {
+    "description": "Tooltip for the overflow menu offering more actions on a program slot.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "programsEditSlotMenu": "Edit slot",
+  "@programsEditSlotMenu": {
+    "description": "Overflow menu item to edit a program slot."
+  },
+  "programsMakePrimaryMenu": "Make primary",
+  "@programsMakePrimaryMenu": {
+    "description": "Overflow menu item to change an alternate slot into a primary slot."
+  },
+  "programsMarkAlternateMenu": "Mark as alternate",
+  "@programsMarkAlternateMenu": {
+    "description": "Overflow menu item to change a primary slot into an alternate slot."
+  },
+  "programsClearPerformedMenu": "Clear performed",
+  "@programsClearPerformedMenu": {
+    "description": "Overflow menu item to clear a slot's performed mark."
+  },
+  "programsMarkPerformedMenu": "Mark performed",
+  "@programsMarkPerformedMenu": {
+    "description": "Overflow menu item to mark a slot as performed."
+  },
+  "programsRemoveSlotMenu": "Remove slot",
+  "@programsRemoveSlotMenu": {
+    "description": "Overflow menu item to remove a slot from the program."
+  },
+  "programsSlotTextRequiredError": "Enter some text for this slot.",
+  "@programsSlotTextRequiredError": {
+    "description": "Validation error when a free-text program slot is left empty."
+  },
+  "programsWholeNumberError": "Enter a whole number ≥ 0.",
+  "@programsWholeNumberError": {
+    "description": "Validation error when planned minutes is not a whole number of zero or more."
+  },
+  "programsEditDanceSlotTitle": "Edit dance slot",
+  "@programsEditDanceSlotTitle": {
+    "description": "Title of the dialog for editing a dance program slot."
+  },
+  "programsEditNoteTitle": "Edit note",
+  "@programsEditNoteTitle": {
+    "description": "Title of the dialog for editing a free-text (note) program slot."
+  },
+  "programsCallerNoteLabel": "Caller note (optional)",
+  "@programsCallerNoteLabel": {
+    "description": "Text field label for an optional per-slot caller note on a dance slot."
+  },
+  "programsCallerNoteHint": "e.g. teach the hey first",
+  "@programsCallerNoteHint": {
+    "description": "Hint text for the optional caller-note field on a dance slot."
+  },
+  "programsGuestCallerLabel": "Guest caller (optional)",
+  "@programsGuestCallerLabel": {
+    "description": "Text field label for an optional guest caller on a program slot."
+  },
+  "programsPlannedMinutesLabel": "Planned minutes (optional)",
+  "@programsPlannedMinutesLabel": {
+    "description": "Text field label for the optional planned minutes on a program slot."
+  },
+  "programsAlternateDanceTitle": "Alternate dance",
+  "@programsAlternateDanceTitle": {
+    "description": "Checkbox label marking a program slot as an alternate dance."
+  },
+  "programsAlternateDanceSubtitle": "Renders indented under the slot above it.",
+  "@programsAlternateDanceSubtitle": {
+    "description": "Checkbox helper text explaining that an alternate slot is indented under the slot above."
+  },
+  "commonDone": "Done",
+  "@commonDone": {
+    "description": "Generic confirmation button label for finishing an edit dialog."
+  },
+  "programsMatrixSemanticLabel": "Programming matrix: {danceCount} dances by {moveCount} moves",
+  "@programsMatrixSemanticLabel": {
+    "description": "Container semantics label for the programming matrix, announcing its size (dances by moves).",
+    "placeholders": {
+      "danceCount": { "type": "int", "example": "6" },
+      "moveCount": { "type": "int", "example": "9" }
+    }
+  },
+  "programsMatrixOmittedCaption": "{count, plural, =1{1 free-text slot} other{{count} free-text slots}} (breaks, notes) omitted — the matrix shows dances only.",
+  "@programsMatrixOmittedCaption": {
+    "description": "Caption noting free-text slots (breaks, notes) that are excluded from the dances-only matrix.",
+    "placeholders": {
+      "count": { "type": "int", "example": "2" }
+    }
+  },
+  "programsMatrixMoveHeaderSemantic": "Move: {label}",
+  "@programsMatrixMoveHeaderSemantic": {
+    "description": "Screen-reader label for a matrix column header identifying a move by name.",
+    "placeholders": {
+      "label": { "type": "String", "example": "partner swing" }
+    }
+  },
+  "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}",
+  "@programsMatrixRowHeaderSemantic": {
+    "description": "Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" },
+      "alt": { "type": "String", "example": "yes" },
+      "half": { "type": "String", "example": "first" }
+    }
+  },
+  "programsMatrixHalfShort": "{half, select, first{1st} other{2nd}}",
+  "@programsMatrixHalfShort": {
+    "description": "Short program-half badge label (1st or 2nd half).",
+    "placeholders": {
+      "half": { "type": "String", "example": "first" }
+    }
+  },
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}",
+  "@programsMatrixCellSemantic": {
+    "description": "Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use is the move's program debut and/or the dance's opening figure.",
+    "placeholders": {
+      "dance": { "type": "String", "example": "Chorus Jig" },
+      "move": { "type": "String", "example": "partner swing" },
+      "present": { "type": "String", "example": "yes" },
+      "debut": { "type": "String", "example": "yes" },
+      "first": { "type": "String", "example": "no" }
+    }
+  },
+  "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (alternate dance, first half)} second{{title} (alternate dance, second half)} other{{title} (alternate dance)}}} other{{half, select, first{{title} (first half)} second{{title} (second half)} other{{title}}}}}",
+  "@programsMatrixChipQualifiedTitle": {
+    "description": "Dance name with its alternate-dance and program-half qualifiers, used by the compact matrix dance chip's screen-reader label.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" },
+      "alt": { "type": "String", "example": "no" },
+      "half": { "type": "String", "example": "first" }
+    }
+  },
+  "programsMatrixMoveUsedInSemantic": "Move: {label}, used in {count} of {total} dances",
+  "@programsMatrixMoveUsedInSemantic": {
+    "description": "Screen-reader label for a compact-matrix move header, stating how many of the program's dances use the move.",
+    "placeholders": {
+      "label": { "type": "String", "example": "partner swing" },
+      "count": { "type": "int", "example": "2" },
+      "total": { "type": "int", "example": "4" }
+    }
+  },
+  "programsMatrixNOfTotal": "{count} of {total}",
+  "@programsMatrixNOfTotal": {
+    "description": "Compact count shown next to a move in the compact matrix (uses / total dances).",
+    "placeholders": {
+      "count": { "type": "int", "example": "2" },
+      "total": { "type": "int", "example": "4" }
+    }
+  },
+  "programsMatrixNoComparableMoves": "None of these dances have structured figures yet, so there are no moves to compare.",
+  "@programsMatrixNoComparableMoves": {
+    "description": "Compact matrix message when the program's dances carry no comparable structured moves."
+  },
+  "programsMatrixRepeatedMovesHeader": "Repeated moves",
+  "@programsMatrixRepeatedMovesHeader": {
+    "description": "Section header in the compact matrix for moves shared by two or more dances."
+  },
+  "programsMatrixRepeatedMovesSubtitle": "Moves shared across two or more dances, most-repeated first.",
+  "@programsMatrixRepeatedMovesSubtitle": {
+    "description": "Subtitle under the compact matrix 'Repeated moves' section header."
+  },
+  "programsMatrixNoRepeatsNote": "No moves repeat across these dances — every move below is used by a single dance.",
+  "@programsMatrixNoRepeatsNote": {
+    "description": "Compact matrix note shown when no move is shared across dances."
+  },
+  "programsMatrixUsedOnceHeader": "Used once",
+  "@programsMatrixUsedOnceHeader": {
+    "description": "Section header in the compact matrix for moves used by exactly one dance."
+  },
+  "programsMatrixLegendIntroduced": "Introduced here",
+  "@programsMatrixLegendIntroduced": {
+    "description": "Matrix legend label for the star marker: the move's first appearance in program order."
+  },
+  "programsMatrixLegendFirstFigure": "Dance's first figure",
+  "@programsMatrixLegendFirstFigure": {
+    "description": "Matrix legend label for the flag marker: the move a dance opens with."
+  },
+  "programsMatrixLegendPresent": "Present",
+  "@programsMatrixLegendPresent": {
+    "description": "Matrix legend label for the check marker: the dance uses the move."
+  },
+  "programsMatrixEmptyTitle": "No structured figures yet",
+  "@programsMatrixEmptyTitle": {
+    "description": "Title of the matrix empty state shown when no dance has structured figures."
+  },
+  "programsMatrixEmptyBody": "The matrix fills in automatically as the program’s dances gain structured figures.",
+  "@programsMatrixEmptyBody": {
+    "description": "Body of the matrix empty state explaining the matrix populates as dances gain structured figures."
+  },
+  "performTitle": "Perform",
+  "@performTitle": {
+    "description": "App bar title for the single-dance Perform (large-print performance) view."
+  },
+  "performExitTooltip": "Exit performance view",
+  "@performExitTooltip": {
+    "description": "Tooltip on the button that closes the Perform view and returns to the previous screen."
+  },
+  "performExitTitle": "Exit Perform?",
+  "@performExitTitle": {
+    "description": "Title of the confirmation dialog shown before leaving the Perform view, so a stray tap or system back does not drop the caller out mid-program."
+  },
+  "performExitBody": "Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.",
+  "@performExitBody": {
+    "description": "Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry."
+  },
+  "performExitCancel": "Keep performing",
+  "@performExitCancel": {
+    "description": "Button that dismisses the exit-confirmation dialog and stays in the Perform view."
+  },
+  "performExitConfirm": "Exit",
+  "@performExitConfirm": {
+    "description": "Button that confirms leaving the Perform view from the exit-confirmation dialog."
+  },
+  "performTapTempo": "Tap tempo",
+  "@performTapTempo": {
+    "description": "Label for the tap-tempo metronome, used both as the toolbar tooltip and the metronome sheet heading."
+  },
+  "performBpmReadout": "{bpm} BPM",
+  "@performBpmReadout": {
+    "description": "Numeric tempo readout in the tap-tempo metronome (beats per minute, abbreviated).",
+    "placeholders": {
+      "bpm": { "type": "int", "example": "120" }
+    }
+  },
+  "performTapToSetTempo": "Tap to set tempo",
+  "@performTapToSetTempo": {
+    "description": "Metronome readout and tap-target label shown before any tempo has been set."
+  },
+  "performBpmSemantic": "{bpm} beats per minute",
+  "@performBpmSemantic": {
+    "description": "Spoken (screen-reader) form of the current tempo in the tap-tempo metronome.",
+    "placeholders": {
+      "bpm": { "type": "int", "example": "120" }
+    }
+  },
+  "performNoTempoSemantic": "No tempo set yet. Tap the target to set a tempo.",
+  "@performNoTempoSemantic": {
+    "description": "Screen-reader description of the tap-tempo readout before any tempo is set."
+  },
+  "performRecordBeatHint": "record a beat",
+  "@performRecordBeatHint": {
+    "description": "Accessibility tap hint for the tap-tempo target (what happens on tap)."
+  },
+  "performTapRefineHint": "Keep tapping to refine · Reset to start over",
+  "@performTapRefineHint": {
+    "description": "Helper text under the tap-tempo readout once a tempo is set."
+  },
+  "performTapTwiceHint": "Tap at least twice in time with the beat",
+  "@performTapTwiceHint": {
+    "description": "Helper text under the tap-tempo target before enough taps are recorded."
+  },
+  "performResetTempo": "Reset",
+  "@performResetTempo": {
+    "description": "Button that clears the tapped tempo in the tap-tempo metronome."
+  },
+  "performUntitledSlot": "Untitled slot",
+  "@performUntitledSlot": {
+    "description": "Fallback label for a program slot with no dance and no text."
+  },
+  "performMarkedPerformedAnnounce": "Marked {label} performed",
+  "@performMarkedPerformedAnnounce": {
+    "description": "Accessibility announcement after marking the current slot performed in the adjust sheet.",
+    "placeholders": {
+      "label": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "performClearedPerformedAnnounce": "Cleared performed mark",
+  "@performClearedPerformedAnnounce": {
+    "description": "Accessibility announcement after clearing the current slot's performed mark in the adjust sheet."
+  },
+  "performMovedToPosition": "Moved {label} to position {position}",
+  "@performMovedToPosition": {
+    "description": "Accessibility announcement after reordering a slot in the adjust sheet.",
+    "placeholders": {
+      "label": { "type": "String", "example": "Chorus Jig" },
+      "position": { "type": "int", "example": "3" }
+    }
+  },
+  "performDanceFallback": "dance",
+  "@performDanceFallback": {
+    "description": "Generic fallback word for an inserted dance whose title is unavailable, used in an announcement."
+  },
+  "performInsertedAnnounce": "Inserted {title}",
+  "@performInsertedAnnounce": {
+    "description": "Accessibility announcement after inserting a dance into the program from the adjust sheet.",
+    "placeholders": {
+      "title": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "performAddedNoteAnnounce": "Added note",
+  "@performAddedNoteAnnounce": {
+    "description": "Accessibility announcement after adding an ad-hoc note/break in the adjust sheet."
+  },
+  "performInsertADance": "Insert a dance",
+  "@performInsertADance": {
+    "description": "Heading of the search picker sheet for inserting a dance during Perform mode."
+  },
+  "performAdjustProgram": "Adjust program",
+  "@performAdjustProgram": {
+    "description": "Heading of the Perform-mode adjust sheet."
+  },
+  "performCurrentSlotSection": "Current slot",
+  "@performCurrentSlotSection": {
+    "description": "Section title in the adjust sheet for the currently-performing slot."
+  },
+  "performPerformedTapToClear": "Performed — tap to clear",
+  "@performPerformedTapToClear": {
+    "description": "Toggle button label shown when the current slot is already marked performed."
+  },
+  "performReorderSection": "Reorder remaining slots",
+  "@performReorderSection": {
+    "description": "Section title in the adjust sheet for reordering the not-yet-performed slots."
+  },
+  "performNoLaterSlots": "No later slots to reorder.",
+  "@performNoLaterSlots": {
+    "description": "Empty state in the adjust sheet when there are fewer than two remaining slots to reorder."
+  },
+  "performInsertDanceFromSearch": "Insert dance from search",
+  "@performInsertDanceFromSearch": {
+    "description": "Button that opens the search picker to insert a dance in the adjust sheet."
+  },
+  "performAdHocNoteLabel": "Ad-hoc note / break",
+  "@performAdHocNoteLabel": {
+    "description": "Text field label for an ad-hoc note or break added during Perform mode."
+  },
+  "performAdHocNoteHint": "e.g. Waltz, announcements",
+  "@performAdHocNoteHint": {
+    "description": "Hint text for the ad-hoc note / break field in the adjust sheet."
+  },
+  "performAddNote": "Add note",
+  "@performAddNote": {
+    "description": "Button that adds the typed ad-hoc note/break as a new slot."
+  },
+  "performAlternatesCount": "{count, plural, =1{1 alternate} other{{count} alternates}}",
+  "@performAlternatesCount": {
+    "description": "Count of alternate dances under a slot, shown as a reorder-row subtitle.",
+    "placeholders": {
+      "count": { "type": "int", "example": "2" }
+    }
+  },
+  "performMoveLabelUp": "Move \"{label}\" up",
+  "@performMoveLabelUp": {
+    "description": "Tooltip for the button that moves a program slot up in the adjust sheet reorder list.",
+    "placeholders": {
+      "label": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "performMoveLabelDown": "Move \"{label}\" down",
+  "@performMoveLabelDown": {
+    "description": "Tooltip for the button that moves a program slot down in the adjust sheet reorder list.",
+    "placeholders": {
+      "label": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "performSlotPosition": "Slot {current} of {total}",
+  "@performSlotPosition": {
+    "description": "Position label/announcement for the current program slot during performance.",
+    "placeholders": {
+      "current": { "type": "int", "example": "2" },
+      "total": { "type": "int", "example": "8" }
+    }
+  },
+  "performShowingSlot": "Showing {label}",
+  "@performShowingSlot": {
+    "description": "Screen-reader announcement when swapping to show a different alternate slot.",
+    "placeholders": {
+      "label": { "type": "String", "example": "Chorus Jig" }
+    }
+  },
+  "performAdjustmentUndone": "Adjustment undone",
+  "@performAdjustmentUndone": {
+    "description": "Screen-reader announcement after undoing a live program adjustment."
+  },
+  "performProgramAdjustedSnack": "Program adjusted.",
+  "@performProgramAdjustedSnack": {
+    "description": "Snackbar message shown after applying a live program adjustment."
+  },
+  "performProgramAdjustedAnnounce": "Program adjusted",
+  "@performProgramAdjustedAnnounce": {
+    "description": "Screen-reader announcement after applying a live program adjustment."
+  },
+  "performNoSlots": "This program has no slots.",
+  "@performNoSlots": {
+    "description": "Empty-state body shown when a program opened in perform mode has no slots."
+  },
+  "performJumpToSlot": "Jump to slot",
+  "@performJumpToSlot": {
+    "description": "Tooltip for the button that opens the jump-to-slot list in perform mode."
+  },
+  "performShowAlternate": "Show alternate",
+  "@performShowAlternate": {
+    "description": "Tooltip for the button that swaps in an alternate dance for the current slot."
+  },
+  "performPreviousSlot": "Previous slot",
+  "@performPreviousSlot": {
+    "description": "Tooltip for the button that navigates to the previous program slot."
+  },
+  "performNextSlot": "Next slot",
+  "@performNextSlot": {
+    "description": "Tooltip for the button that navigates to the next program slot."
+  },
+  "performResumeTimers": "Resume timers",
+  "@performResumeTimers": {
+    "description": "Tooltip for the button that resumes the paused performance timers."
+  },
+  "performPauseTimers": "Pause timers",
+  "@performPauseTimers": {
+    "description": "Tooltip for the button that pauses the running performance timers."
+  },
+  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
+  "@performTimingSemantic": {
+    "description": "Screen-reader label for the perform-mode timing line: elapsed program time, elapsed slot time, and optional planned length, over-plan cue, and paused state.",
+    "placeholders": {
+      "programTime": { "type": "String", "example": "12:34" },
+      "slotTime": { "type": "String", "example": "3:05" },
+      "hasPlanned": { "type": "String", "example": "yes" },
+      "planned": { "type": "int", "example": "8" },
+      "over": { "type": "String", "example": "no" },
+      "paused": { "type": "String", "example": "no" }
+    }
+  },
+  "performPlannedMin": "planned {planned} min",
+  "@performPlannedMin": {
+    "description": "Visible short label for a slot's planned length in minutes on the perform-mode timing line.",
+    "placeholders": {
+      "planned": { "type": "int", "example": "8" }
+    }
+  },
+  "performOverSuffix": " over",
+  "@performOverSuffix": {
+    "description": "Visible suffix (with a leading space) shown after the planned-minutes label when the current slot has run over its planned length."
+  },
+  "performCallingNotes": "Calling notes",
+  "@performCallingNotes": {
+    "description": "Section title above a dance's calling notes on the perform-mode card."
+  },
+  "performNoFigures": "No figures yet.",
+  "@performNoFigures": {
+    "description": "Empty-state text shown on the perform-mode card when a dance has no figures."
+  },
+  "performDecreaseTextSize": "Decrease text size",
+  "@performDecreaseTextSize": {
+    "description": "Tooltip for the button that decreases the perform-mode card text size."
+  },
+  "performIncreaseTextSize": "Increase text size",
+  "@performIncreaseTextSize": {
+    "description": "Tooltip for the button that increases the perform-mode card text size."
+  },
+  "performShowCanonicalTerms": "Show canonical terms",
+  "@performShowCanonicalTerms": {
+    "description": "Accessible name/tooltip for the perform-mode toggle that shows canonical (non-dialect) figure terms."
+  },
+  "performAutoSizeOnTooltip": "Auto-size on — tap for manual text size",
+  "@performAutoSizeOnTooltip": {
+    "description": "Tooltip for the perform-mode auto-size toggle when auto-size is currently on."
+  },
+  "performAutoSizeOffTooltip": "Auto-size off — tap to fit text to screen",
+  "@performAutoSizeOffTooltip": {
+    "description": "Tooltip for the perform-mode auto-size toggle when auto-size is currently off."
+  },
+  "performStageThemeOnTooltip": "Stage theme on — tap to use app theme",
+  "@performStageThemeOnTooltip": {
+    "description": "Tooltip for the perform-mode stage-theme toggle when the dark-stage theme is currently on."
+  },
+  "performStageThemeOffTooltip": "Stage theme off — tap for dark stage",
+  "@performStageThemeOffTooltip": {
+    "description": "Tooltip for the perform-mode stage-theme toggle when the dark-stage theme is currently off."
+  },
+  "performProgression": "Progression",
+  "@performProgression": {
+    "description": "Tooltip on the progression marker icon shown beside a progressing figure on the perform-mode card."
+  },
+  "performFigureSemantic": "{main}{importGap, select, yes{, {importGapText}} other{}}{progression, select, yes{, progression} other{}}, {beats, plural, =1{1 beat} other{{beats} beats}}{hasNote, select, yes{, note: {note}} other{}}",
+  "@performFigureSemantic": {
+    "description": "Screen-reader label for one figure row on the perform-mode card: the figure text, an optional import-gap note, an optional progression marker, the beat count, and an optional caller note.",
+    "placeholders": {
+      "main": { "type": "String", "example": "partners swing" },
+      "importGap": { "type": "String", "example": "no" },
+      "importGapText": { "type": "String", "example": "Custom figure from import" },
+      "progression": { "type": "String", "example": "no" },
+      "beats": { "type": "int", "example": "16" },
+      "hasNote": { "type": "String", "example": "no" },
+      "note": { "type": "String", "example": "balance before the swing" }
+    }
+  },
+  "programsSelectTitle": "Select a program",
+  "@programsSelectTitle": {"description": "Title of the empty-state shown in the program editor pane when no program is selected (split-pane layout)."},
+  "programsSelectBody": "Choose a program from the list, or create a new one.",
+  "@programsSelectBody": {"description": "Body text of the empty-state shown in the program editor pane when no program is selected."}
 }

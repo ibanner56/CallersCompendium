@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../utils/confirm_delete.dart';
 import '../widgets/program_list_tile.dart';
@@ -33,6 +34,18 @@ enum ProgramSort {
     ProgramSort.recentlyUpdated => SortDirection.descending,
   };
 }
+
+/// Localized label for a [ProgramSort] option shown in the Programs list sort
+/// menu. Mirrors the L2 `collection_query_labels.dart` pattern so the display
+/// text is translatable without baking a locale into the enum — whose English
+/// [ProgramSort.label] field is still used by the (L5) Settings default-sort
+/// picker.
+String programSortLabel(AppLocalizations l10n, ProgramSort sort) =>
+    switch (sort) {
+      ProgramSort.title => l10n.programsSortTitle,
+      ProgramSort.recentlyUpdated => l10n.programsSortRecentlyUpdated,
+      ProgramSort.eventDate => l10n.programsSortEventDate,
+    };
 
 /// Programs list (`docs/design/ux.md` §4): non-deleted programs with title,
 /// event date, venue, slot count and a status chip (icon+text). Sort by title /
@@ -210,13 +223,14 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   Future<void> _softDelete(Program program) async {
     await _repos.programs.softDelete(program.id, at: DateTime.now().toUtc());
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     setState(() => _programs?.removeWhere((p) => p.id == program.id));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         key: const ValueKey('program-deleted-snackbar'),
-        content: Text('"${program.title}" deleted.'),
+        content: Text(l10n.programsDeletedSnack(program.title)),
         action: SnackBarAction(
-          label: 'Undo',
+          label: l10n.commonUndo,
           onPressed: () async {
             await _repos.programs.restore(
               program.id,
@@ -244,17 +258,20 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         key: const ValueKey('program-duplicated-snackbar'),
-        content: Text('Duplicated as "${copy.title}".'),
+        content: Text(
+          AppLocalizations.of(context).programsDuplicatedSnack(copy.title),
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final openSearch = AppShellSearchScope.of(context)?.openSearch;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Programs'),
+        title: Text(l10n.programsTitle),
         actions: [
           // Phone-only: search lives in the app bar (the bottom-right FAB slot
           // is reserved for the "New program" FAB). On wide layouts the nav
@@ -262,7 +279,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           if (openSearch != null)
             IconButton(
               key: const ValueKey('programs-search'),
-              tooltip: 'Search (Ctrl/Cmd-K)',
+              tooltip: l10n.collectionSearchTooltip,
               icon: const Icon(Icons.search),
               onPressed: openSearch,
             ),
@@ -298,13 +315,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             ),
             IconButton(
               key: const ValueKey('programs-recently-deleted'),
-              tooltip: 'Recently deleted',
+              tooltip: l10n.collectionRecentlyDeletedTooltip,
               icon: const Icon(Icons.restore_from_trash_outlined),
               onPressed: _openRecentlyDeleted,
             ),
             PopupMenuButton<ProgramSort>(
               key: const ValueKey('programs-sort'),
-              tooltip: 'Sort by (${_sort.label})',
+              tooltip: l10n.programsSortByTooltip(
+                programSortLabel(l10n, _sort),
+              ),
               initialValue: _sort,
               icon: const Icon(Icons.sort),
               onSelected: (value) => setState(() {
@@ -313,14 +332,17 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               }),
               itemBuilder: (context) => [
                 for (final option in ProgramSort.values)
-                  PopupMenuItem(value: option, child: Text(option.label)),
+                  PopupMenuItem(
+                    value: option,
+                    child: Text(programSortLabel(l10n, option)),
+                  ),
               ],
             ),
             IconButton(
               key: const ValueKey('programs-sort-direction'),
               tooltip: _sortDir == SortDirection.ascending
-                  ? 'Ascending (tap for descending)'
-                  : 'Descending (tap for ascending)',
+                  ? l10n.collectionSortAscendingTooltip
+                  : l10n.collectionSortDescendingTooltip,
               icon: Icon(
                 _sortDir == SortDirection.ascending
                     ? Icons.arrow_upward
@@ -343,12 +365,13 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               heroTag: 'new-program',
               onPressed: _openNewProgram,
               icon: const Icon(Icons.add),
-              label: const Text('New program'),
+              label: Text(l10n.programsNewProgram),
             ),
     );
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     if (_loadError != null) {
       return Center(
         child: Column(
@@ -356,7 +379,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           children: [
             const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 8),
-            const Text('Could not load your programs.'),
+            Text(l10n.programsListLoadError),
             const SizedBox(height: 8),
             FilledButton(
               onPressed: () {
@@ -366,7 +389,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 });
                 _load();
               },
-              child: const Text('Retry'),
+              child: Text(l10n.commonRetry),
             ),
           ],
         ),
@@ -393,21 +416,17 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'No programs yet',
+                l10n.programsEmptyTitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Build set lists for your events here. Create your first '
-                'program to get started.',
-                textAlign: TextAlign.center,
-              ),
+              Text(l10n.programsListEmptyBody, textAlign: TextAlign.center),
               const SizedBox(height: 16),
               FilledButton.icon(
                 key: const ValueKey('empty-new-program'),
                 onPressed: _openNewProgram,
                 icon: const Icon(Icons.add),
-                label: const Text('New program'),
+                label: Text(l10n.programsNewProgram),
               ),
             ],
           ),
@@ -425,7 +444,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             child: Semantics(
               liveRegion: true,
               child: Text(
-                '${sorted.length} ${sorted.length == 1 ? 'program' : 'programs'}',
+                l10n.programsCount(sorted.length),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -459,7 +478,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                         context,
                       ).colorScheme.onErrorContainer,
                       icon: Icons.delete_outline,
-                      label: 'Delete',
+                      label: l10n.commonDelete,
                     ),
                   ],
                 ),

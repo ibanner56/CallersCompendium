@@ -259,5 +259,300 @@ void main() {
       final tagIds = (await repos.tags.listAll()).map((t) => t.id).toSet();
       expect(tagIds, containsAll(<String>['keep', 't1']));
     });
+
+    test(
+      'replace aborts and preserves live data when an entity fails to write',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        // Live data that must survive a failed replace restore.
+        await repos.tags.upsert(Tag(id: 'live-tag', name: 'Live'));
+        await repos.dances.create(
+          Dance(
+            id: 'live-dance',
+            title: 'Live Dance',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+
+        // An archive whose dance cannot be written: duplicate authorIds
+        // violate the dance_authors primary key (danceId, choreographerId) on
+        // the second row — an immediate failure the per-entity guard catches.
+        final badArchive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          choreographers: [Choreographer(id: 'c1', name: 'Alice')],
+          tags: [Tag(id: 'archive-tag', name: 'FromArchive')],
+          dances: [
+            Dance(
+              id: 'archive-dance',
+              title: 'Archive Dance',
+              authorIds: const ['c1', 'c1'],
+              createdAt: DateTime.utc(2026, 1, 2),
+              updatedAt: DateTime.utc(2026, 1, 2),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(repos).restore(badArchive);
+        expect(result.hasErrors, isTrue);
+
+        // The whole replace rolled back — the clear was undone — so live data
+        // is intact and none of the archive's rows leaked in.
+        final tags = (await repos.tags.listAll()).map((t) => t.id).toSet();
+        expect(tags, contains('live-tag'));
+        expect(tags, isNot(contains('archive-tag')));
+        final dances = (await repos.dances.listAll()).map((d) => d.id).toSet();
+        expect(dances, contains('live-dance'));
+        expect(dances, isNot(contains('archive-dance')));
+      },
+    );
+
+    test('replace aborts and preserves live data when a slot references a '
+        'missing dance (commit-time FK failure)', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+
+      await repos.dances.create(
+        Dance(
+          id: 'live-dance',
+          title: 'Live Dance',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+
+      // A program slot points at a dance that is in neither the archive nor
+      // the (about-to-be-cleared) database: the deferred FK fails at commit.
+      final badArchive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Orphaned',
+            slots: [ProgramSlot(id: 'sl1', position: 0, danceId: 'ghost')],
+            createdAt: DateTime.utc(2026, 4, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        ],
+      );
+
+      final result = await ArchiveRestorer(repos).restore(badArchive);
+      expect(result.hasErrors, isTrue);
+
+      final dances = (await repos.dances.listAll()).map((d) => d.id).toSet();
+      expect(dances, contains('live-dance'));
+      final programs = await repos.programs.listAll();
+      expect(programs, isEmpty);
+    });
+
+    test(
+      'merge stays partial-failure tolerant (records, does not abort)',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        await repos.tags.upsert(Tag(id: 'keep', name: 'keep-me'));
+
+        // A dance with duplicate authorIds fails to write, but a good tag in the
+        // same archive must still land — merge does not abort on per-entity
+        // failure the way replace does.
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          choreographers: [Choreographer(id: 'c1', name: 'Alice')],
+          tags: [Tag(id: 't1', name: 'chestnut')],
+          dances: [
+            Dance(
+              id: 'bad',
+              title: 'Bad',
+              authorIds: const ['c1', 'c1'],
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isTrue);
+
+        final tagIds = (await repos.tags.listAll()).map((t) => t.id).toSet();
+        expect(tagIds, containsAll(<String>['keep', 't1']));
+      },
+    );
+  });
+
+  group('venue restore', () {
+    Program programWithVenue(String? venueId) => Program(
+      id: 'p1',
+      title: 'Spring Fling',
+      venueId: venueId,
+      slots: const [],
+      createdAt: DateTime.utc(2026, 4, 1),
+      updatedAt: DateTime.utc(2026, 4, 20),
+    );
+
+    test(
+      'replace materializes venues and resolves a program.venueId',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          programs: [programWithVenue('v1')],
+          venues: [
+            Venue(id: 'v1', name: 'Guiding Star Grange', city: 'Greenfield'),
+          ],
+        );
+
+        final result = await ArchiveRestorer(repos).restore(archive);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        // The venue landed and the program's link resolves (venues load first).
+        final venue = await repos.venues.getById('v1');
+        expect(venue, isNotNull);
+        expect(venue!.city, 'Greenfield');
+        final program = await repos.programs.getById('p1');
+        expect(program!.venueId, 'v1');
+      },
+    );
+
+    test('export -> restore round-trips venues and the venueId link', () async {
+      final sourceDb = openTestDatabase();
+      addTearDown(sourceDb.close);
+      final sourceRepos = CompendiumRepositories(sourceDb, contraTaxonomy);
+      await sourceRepos.venues.upsert(
+        Venue(id: 'v1', name: 'Guiding Star Grange', contact1Email: 'p@x.com'),
+      );
+      await sourceRepos.programs.create(programWithVenue('v1'));
+
+      final archive = await ArchiveExporter(
+        sourceRepos,
+      ).export(exportedAt: DateTime.utc(2026, 7, 15));
+      final json = encodeArchive(archive);
+
+      final targetDb = openTestDatabase();
+      addTearDown(targetDb.close);
+      final targetRepos = CompendiumRepositories(targetDb, contraTaxonomy);
+      final decoded = decodeArchive(json);
+      expect(decoded.hasErrors, isFalse, reason: decoded.errors.join('\n'));
+      await ArchiveRestorer(targetRepos).restore(decoded.archive);
+
+      final reexport = await ArchiveExporter(
+        targetRepos,
+      ).export(exportedAt: DateTime.utc(2026, 7, 15));
+      expect(encodeArchive(reexport), json);
+
+      expect(
+        (await targetRepos.venues.getById('v1'))!.contact1Email,
+        'p@x.com',
+      );
+      expect((await targetRepos.programs.getById('p1'))!.venueId, 'v1');
+    });
+
+    test(
+      'a dangling venueId (venue absent everywhere) is nulled, not persisted',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        // The program references 'ghost', which is in neither the archive nor db.
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          programs: [programWithVenue('ghost')],
+        );
+
+        final result = await ArchiveRestorer(repos).restore(archive);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        final program = await repos.programs.getById('p1');
+        expect(program, isNotNull);
+        // The dangling reference is cleared rather than left silently orphaned.
+        expect(program!.venueId, isNull);
+      },
+    );
+
+    test(
+      'a venueId resolvable only in the target db is preserved on merge',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        // The venue exists in the target database but not in the incoming bundle.
+        await repos.venues.upsert(Venue(id: 'v1', name: 'Existing Hall'));
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          programs: [programWithVenue('v1')],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        // The link survives because the referenced venue resolves against the db.
+        expect((await repos.programs.getById('p1'))!.venueId, 'v1');
+      },
+    );
+
+    test(
+      'resolves every venueId from one preloaded set (no N+1 on restore)',
+      () async {
+        final counter = VenueSelectCounter();
+        final db = openCountingTestDatabase(counter);
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        Program p(String id, String? venueId) => Program(
+          id: id,
+          title: 'P $id',
+          venueId: venueId,
+          slots: const [],
+          createdAt: DateTime.utc(2026, 4, 1),
+          updatedAt: DateTime.utc(2026, 4, 20),
+        );
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          venues: [
+            Venue(id: 'v1', name: 'Grange A'),
+            Venue(id: 'v2', name: 'Grange B'),
+          ],
+          // Two venues shared across several programs, one venue-less program and
+          // one dangling ref — the whole phase must resolve from one snapshot.
+          programs: [
+            p('p1', 'v1'),
+            p('p2', 'v2'),
+            p('p3', 'v1'),
+            p('p4', null),
+            p('p5', 'ghost'),
+          ],
+        );
+
+        counter.reset();
+        final result = await ArchiveRestorer(repos).restore(archive);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        // Exactly one venue SELECT (the preload) for the whole programs phase —
+        // not two per venue-linked program (a resolve-or-null read here plus a
+        // write-time guard read inside each program insert).
+        expect(counter.count, 1);
+
+        // The single snapshot still resolves / nulls links correctly.
+        expect((await repos.programs.getById('p1'))!.venueId, 'v1');
+        expect((await repos.programs.getById('p2'))!.venueId, 'v2');
+        expect((await repos.programs.getById('p4'))!.venueId, isNull);
+        expect((await repos.programs.getById('p5'))!.venueId, isNull);
+      },
+    );
   });
 }
