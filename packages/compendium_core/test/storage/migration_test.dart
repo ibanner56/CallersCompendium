@@ -1620,6 +1620,47 @@ void main() {
 
       await db.close();
     });
+
+    test('creates the programs.venue_id lookup index', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final indexes = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type='index' "
+            "AND tbl_name='programs'",
+          )
+          .get();
+      final names = indexes.map((r) => r.read<String>('name')).toSet();
+      expect(names, contains('programs_venue_id'));
+
+      await db.close();
+    });
+  });
+
+  test('a fresh database has the programs.venue_id lookup index', () async {
+    final dir = await Directory.systemTemp.createTemp(
+      'compendium_core_venidx_',
+    );
+    addTearDown(() => dir.delete(recursive: true));
+    final dbPath = p.join(dir.path, 'test.sqlite');
+
+    // onCreate builds every table; assert the raw venue lookup index is among
+    // them so fresh installs match a migrated database.
+    final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+    await db.quickCheck();
+
+    final indexes = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type='index' "
+          "AND tbl_name='programs'",
+        )
+        .get();
+    final names = indexes.map((r) => r.read<String>('name')).toSet();
+    expect(names, contains('programs_venue_id'));
+
+    await db.close();
   });
 
   test(

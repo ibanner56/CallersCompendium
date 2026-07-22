@@ -81,8 +81,10 @@ class VenueRepository {
   Future<void> delete(String id) => _db.transaction(() async {
     // A venue is explicitly reusable across many programs, so read only a
     // scalar `COUNT(id)` for the guard rather than materializing every
-    // referencing `ProgramRow` (all columns) just to count it — the cost stays
-    // flat regardless of how large a popular venue's referencing history grows.
+    // referencing `ProgramRow` (all columns) just to count it. The
+    // `programs_venue_id` index (see `venueLookupIndexSql`) backs this WHERE so
+    // the count restricts to matching references instead of scanning every
+    // program row, keeping the guard cheap as a popular venue's history grows.
     final referencingCount = _db.programs.id.count();
     final count =
         await (_db.selectOnly(_db.programs)

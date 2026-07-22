@@ -37,6 +37,20 @@ const List<String> searchIndexSql = [
       'ON dance_figures(move, section)',
 ];
 
+/// The v13 lookup index over `programs.venue_id`.
+///
+/// `VenueRepository.delete`'s guard counts the programs still referencing a
+/// venue (`SELECT COUNT(id) FROM programs WHERE venue_id = ?`). Because a
+/// venue is explicitly reusable across many programs, without this index that
+/// COUNT would full-scan the whole `programs` table on every guarded delete
+/// (O(total programs)); the index lets SQLite restrict the scan to just the
+/// matching references. Declared raw (like [searchIndexSql]) rather than as a
+/// drift-managed index, and applied in both `onCreate` and the `from < 13`
+/// upgrade step so fresh and migrated databases get it identically.
+const List<String> venueLookupIndexSql = [
+  'CREATE INDEX IF NOT EXISTS programs_venue_id ON programs(venue_id)',
+];
+
 /// Settings key marking that a schema migration touched the derived figure
 /// index and the `dance_figures` rows must be rebuilt from `figures_json`.
 ///
@@ -157,8 +171,10 @@ const int kCompendiumSchemaVersion = 13;
 ///   non-destructively. `venue_id` is a deliberately un-constrained soft
 ///   reference (no FK) — referential integrity is enforced at the app layer by
 ///   `VenueRepository.delete`'s guard — so this migration adds NO FK and no
-///   rebuild marker. Venues do NOT feed the derived `dance_fts`/`dance_figures`
-///   indexes, so NO derived rebuild is required.
+///   rebuild marker. It DOES add one plain lookup index, `programs_venue_id`
+///   (see [venueLookupIndexSql]), so that guard's reference-count query stays
+///   cheap instead of full-scanning `programs`. Venues do NOT feed the derived
+///   `dance_fts`/`dance_figures` indexes, so NO derived rebuild is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -204,6 +220,9 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       await m.createAll();
       await customStatement(createDanceFtsSql);
       for (final sql in searchIndexSql) {
+        await customStatement(sql);
+      }
+      for (final sql in venueLookupIndexSql) {
         await customStatement(sql);
       }
     },
@@ -368,9 +387,15 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // free-text `venue` label (the two coexist non-destructively). `venues`
         // does NOT feed the derived `dance_fts`/`dance_figures` indexes, and no
         // data is back-filled, so — unlike the v9 step — NO derived rebuild is
-        // required and no rebuild marker is written.
+        // required and no rebuild marker is written. The `programs_venue_id`
+        // lookup index backs `VenueRepository.delete`'s reference-count guard
+        // (see [venueLookupIndexSql]); it is created here for upgraders and in
+        // `onCreate` for fresh databases.
         await m.createTable(venues);
         await m.addColumn(programs, programs.venueId);
+        for (final sql in venueLookupIndexSql) {
+          await customStatement(sql);
+        }
       }
     },
     beforeOpen: (details) async {
