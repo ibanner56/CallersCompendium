@@ -13,6 +13,18 @@ framework and a first slice of strings have landed; the remaining UI strings are
 extracted into the ARB incrementally. Follow the conventions here so those PRs
 stay consistent.
 
+**Extraction status (not yet complete).** Layers 1–5 have landed: the framework,
+shared cross-cutting vocabulary (facet domain-value labels), the import-gap
+badge, the `(copy)` title suffix, the small global/shared chrome, and the **full
+Settings surface**. The final layer (**L6**) localizes the remaining
+feature-specific surfaces — the dance editor (`dance_editor/`), its detail
+screen and editor dialogs, the figure editors, and a few secondary screens
+(custom fields, dialect editor, theme editor, recently-deleted, ContraDB import,
+user guide) — plus the large chrome widgets `collection_picker`,
+`command_palette`, and `update_banner`. Those files are parked in the guard
+allow-list (see [Guarding against hardcoded strings](#guarding-against-hardcoded-strings));
+L6 removes each as it localizes it and flips this note to "complete".
+
 ## How it's wired
 
 - **`app/pubspec.yaml`** declares `flutter_localizations` (SDK) and sets
@@ -124,6 +136,69 @@ MaterialApp(
   home: ...,
 );
 ```
+
+## Localizing enum labels defined in the Flutter-free core (ADR-001)
+
+The `packages/compendium_core` package must **not** import Flutter or
+`AppLocalizations` (ADR-001, CI-enforced). So an enum defined in core (e.g.
+`DanceLevel`, `DanceStatus`, `Formation`, `Progression`, `DanceForm`,
+`FormationShape`) can't carry its own localized display string. Instead, add an
+**app-side helper** that maps the enum to a localized string:
+
+```dart
+// app/lib/src/search/facet_labels.dart
+String danceLevelLabel(AppLocalizations l10n, DanceLevel level) =>
+    switch (level) {
+      DanceLevel.beginner => l10n.commonDanceLevelBeginner,
+      DanceLevel.intermediate => l10n.commonDanceLevelIntermediate,
+      DanceLevel.advanced => l10n.commonDanceLevelAdvanced,
+    };
+```
+
+Call it from widgets: `Text(danceLevelLabel(l10n, dance.level))`. This is the
+same pattern used by the earlier layers — `collection_query_labels.dart` (L2),
+`program_status_labels.dart` (L3), `online_search_labels.dart` (L4).
+
+**Exports stay English.** Exported documents (plain-text / PDF builders) are
+deliberately *not* localized yet (a pending product decision — see the deferrals
+below), so they must keep emitting English regardless of the UI locale. Feed the
+export builders from a separate **English `.label` extension** on the core enum,
+kept app-side so core stays Flutter-free:
+
+```dart
+// app/lib/src/models/dance_list_entry.dart
+extension DanceLevelExportLabel on DanceLevel {
+  String get label => switch (this) { /* fixed English strings */ };
+}
+```
+
+So UI call sites route through the **localized** helper; export call sites route
+through the **English `.label`** extension. Never call `AppLocalizations` from an
+export builder, and never add either helper inside `compendium_core`.
+
+## Guarding against hardcoded strings
+
+A ratchet test — `app/test/l10n/no_hardcoded_ui_strings_test.dart` — runs inside
+the ordinary `flutter test` gate (no extra CI step; it mirrors the `dart:io`
+file-walking precedent of `test/data/migration_guard_test.dart`). It walks
+`lib/src/**.dart` and fails if a **string literal** is passed to a user-facing
+constructor/argument (`Text('…')`, `tooltip:`, `labelText:`, `hintText:`,
+`helperText:`, `errorText:`, `semanticLabel:`, `message:`, `hint:`, `helpText:`).
+Prose in a localized app must come from `l10n.*`, so any such literal is a leak.
+Pure interpolations, numbers, and punctuation (`'$count'`, `'• '`, `'—'`) are
+ignored.
+
+- **Allow-list.** Files not yet localized live in
+  `app/test/l10n/hardcoded_ui_strings_allowlist.dart`, split into **L6-deferred
+  UI** (removed as L6 localizes them) and **permanent deferrals** (data/service
+  curated messages awaiting a typed-error refactor, and the English export-body
+  builders). The guard also fails if a listed file no longer exists or no longer
+  has any flagged literal, so the manifest can't rot, and it asserts that no
+  fully-localized L5 target file is on the list.
+- **Escape hatch.** For a literal that is intentionally *not* translatable (a
+  brand/proper noun, a single-glyph font specimen, a notation token), append
+  `// i18n-ignore` to the literal's line. Keep the line ≤ 80 chars so
+  `dart format` doesn't wrap the comment onto the next line.
 
 ## Contributing a translation
 
