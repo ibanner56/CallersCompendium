@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../data/decimal_turns_scope.dart';
+import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
@@ -96,7 +97,7 @@ class PerformCard extends StatelessWidget {
             ),
             if (dance.callingNotes.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.lg),
-              _SectionTitle('Calling notes'),
+              _SectionTitle(AppLocalizations.of(context).performCallingNotes),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 renderer.renderFreeText(dance.callingNotes, dialect),
@@ -301,18 +302,19 @@ class PerformSizeControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
           key: const ValueKey('decrease-text-size'),
-          tooltip: 'Decrease text size',
+          tooltip: l10n.performDecreaseTextSize,
           icon: const Icon(Icons.text_decrease),
           onPressed: canDecrease ? onDecrease : null,
         ),
         IconButton(
           key: const ValueKey('increase-text-size'),
-          tooltip: 'Increase text size',
+          tooltip: l10n.performIncreaseTextSize,
           icon: const Icon(Icons.text_increase),
           onPressed: onIncrease,
         ),
@@ -353,7 +355,7 @@ class PerformDialectToggle extends StatelessWidget {
         toggled: canonical,
         child: IconButton(
           key: const ValueKey('perform-dialect-toggle'),
-          tooltip: 'Show canonical terms',
+          tooltip: AppLocalizations.of(context).performShowCanonicalTerms,
           isSelected: canonical,
           icon: const Icon(Icons.groups_outlined),
           selectedIcon: const Icon(Icons.groups),
@@ -409,9 +411,10 @@ class PerformAutoSizeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final tooltip = autoSizeOn
-        ? 'Auto-size on — tap for manual text size'
-        : 'Auto-size off — tap to fit text to screen';
+        ? l10n.performAutoSizeOnTooltip
+        : l10n.performAutoSizeOffTooltip;
     return MergeSemantics(
       child: Semantics(
         toggled: autoSizeOn,
@@ -445,9 +448,10 @@ class PerformStageToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final tooltip = stageOn
-        ? 'Stage theme on — tap to use app theme'
-        : 'Stage theme off — tap for dark stage';
+        ? l10n.performStageThemeOnTooltip
+        : l10n.performStageThemeOffTooltip;
     // MergeSemantics + Semantics(toggled:) fold the on/off STATE into the
     // IconButton's own node, so AT announces one control that carries the
     // button role, name (tooltip), tap action, and current toggle state —
@@ -617,7 +621,7 @@ class _Figures extends StatelessWidget {
     final theme = Theme.of(context);
     if (figures.isEmpty) {
       return Text(
-        'No figures yet.',
+        AppLocalizations.of(context).performNoFigures,
         style: theme.textTheme.headlineSmall?.merge(AppTypography.performBody),
       );
     }
@@ -728,7 +732,8 @@ class _FigureRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
+    final l10n = AppLocalizations.of(context);
+    final beatsLabel = l10n.danceFigureBeats(beats);
     // Emphasis is a purely visual cue: announce the underlying words with the
     // markup delimiters stripped so a screen reader never voices stray `*`/`_`.
     // For a custom line, use the already delimiter-stripped + dialect-
@@ -739,13 +744,18 @@ class _FigureRow extends StatelessWidget {
     final mainSemantics = mainSpans != null
         ? mainSpans!.map((s) => s.text).join()
         : stripInlineEmphasis(verboseText);
-    final semanticsLabel = [
+    // Modelled as ONE ICU message (never fragment concatenation) so translators
+    // control ordering. The import-gap message text stays hardcoded (owned by a
+    // later layer) by flowing through a placeholder rather than living in the ARB.
+    final semanticsLabel = l10n.performFigureSemantic(
       mainSemantics,
-      if (isImportGap) importGapMessage,
-      if (progression) 'progression',
-      beatsLabel,
-      if (noteText.isNotEmpty) 'note: ${stripInlineEmphasis(noteText)}',
-    ].join(', ');
+      isImportGap ? 'yes' : 'no',
+      isImportGap ? importGapMessage : '',
+      progression ? 'yes' : 'no',
+      beats,
+      noteText.isNotEmpty ? 'yes' : 'no',
+      noteText.isNotEmpty ? stripInlineEmphasis(noteText) : '',
+    );
     final textStyle = theme.textTheme.headlineSmall?.merge(
       AppTypography.performBody,
     );
@@ -768,7 +778,7 @@ class _FigureRow extends StatelessWidget {
               width: 32,
               child: progression
                   ? Tooltip(
-                      message: 'Progression',
+                      message: l10n.performProgression,
                       child: Icon(
                         progressionIcon,
                         size: MediaQuery.textScalerOf(

@@ -7,6 +7,7 @@ import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 /// The Programs list sort-direction toggle (issue #349). Verifies the default
 /// (ascending) matches the historical order and that flipping reverses it —
@@ -42,7 +43,11 @@ void main() {
     await tester.pumpWidget(
       RepositoriesScope(
         repositories: repos,
-        child: const MaterialApp(home: ProgramsListScreen()),
+        child: const MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: ProgramsListScreen(),
+        ),
       ),
     );
     await tester.pumpAndSettle();

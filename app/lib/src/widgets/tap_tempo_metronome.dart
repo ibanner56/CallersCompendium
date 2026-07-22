@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// A self-contained, opt-in **tap-tempo visual metronome** for Perform mode
 /// (issue #366, PM-scoped slice). The caller taps out the beat on a large
 /// target; we derive the tempo (BPM) from a rolling average of recent tap
@@ -162,15 +164,18 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final bpm = _bpm;
     final hasTempo = bpm != null;
 
-    final readout = hasTempo ? '$bpm BPM' : 'Tap to set tempo';
+    final readout = hasTempo
+        ? l10n.performBpmReadout(bpm)
+        : l10n.performTapToSetTempo;
     final readoutSemantics = hasTempo
-        ? '$bpm beats per minute'
-        : 'No tempo set yet. Tap the target to set a tempo.';
+        ? l10n.performBpmSemantic(bpm)
+        : l10n.performNoTempoSemantic;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
@@ -181,16 +186,16 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
             children: [
               Icon(Icons.av_timer, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
-              Text('Tap tempo', style: theme.textTheme.titleLarge),
+              Text(l10n.performTapTempo, style: theme.textTheme.titleLarge),
             ],
           ),
           const SizedBox(height: 20),
           // Large, labelled tap target with the pulsing visual inside.
           Semantics(
             button: true,
-            label: 'Tap to set tempo',
-            value: hasTempo ? '$bpm beats per minute' : null,
-            onTapHint: 'record a beat',
+            label: l10n.performTapToSetTempo,
+            value: hasTempo ? l10n.performBpmSemantic(bpm) : null,
+            onTapHint: l10n.performRecordBeatHint,
             child: _TapTarget(
               key: const ValueKey('tap-tempo-target'),
               controller: _pulse,
@@ -214,9 +219,7 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
           ),
           const SizedBox(height: 4),
           Text(
-            hasTempo
-                ? 'Keep tapping to refine · Reset to start over'
-                : 'Tap at least twice in time with the beat',
+            hasTempo ? l10n.performTapRefineHint : l10n.performTapTwiceHint,
             style: theme.textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),
@@ -227,7 +230,7 @@ class _TapTempoMetronomeState extends State<TapTempoMetronome>
                 ? null
                 : _reset,
             icon: const Icon(Icons.restart_alt),
-            label: const Text('Reset'),
+            label: Text(l10n.performResetTempo),
           ),
         ],
       ),

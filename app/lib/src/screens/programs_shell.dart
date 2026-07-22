@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
 import 'programs_list_screen.dart';
@@ -121,6 +122,7 @@ class _EmptyEditorPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: Center(
         child: Column(
@@ -133,14 +135,14 @@ class _EmptyEditorPane extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Select a program',
+              l10n.programsSelectTitle,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Choose a program from the list, or create a new one.',
+              l10n.programsSelectBody,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.outlineVariant,
