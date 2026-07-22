@@ -2330,5 +2330,22 @@ void main() {
         'figure-add',
       );
     });
+
+    testWidgets('a structured draft carrying a stray importGap origin does '
+        'NOT show the parser-gap badge in the editor', (tester) async {
+      // Defensive: a tampered/garbage autosave draft that pairs a real move
+      // with an importGap origin must not surface the #398 marker (the badge is
+      // gated on the custom move, matching figure_table / perform_card).
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          move: 'swing',
+          params: const {'beats': 8, 'who': 'neighbors'},
+          customOrigin: CustomOrigin.importGap,
+        ),
+      ];
+      await _pump(tester, drafts, freeTextEntry: true);
+
+      expect(find.byType(ImportGapBadge), findsNothing);
+    });
   });
 }

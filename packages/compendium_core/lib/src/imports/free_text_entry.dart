@@ -9,6 +9,16 @@ import 'figure_parser.dart';
 /// (≤ 9999) comfortably covers any real contra figure while staying safe.
 const int _maxInlineBeatDigits = 4;
 
+/// Upper bound on the length of a single free-text entry line we will feed
+/// through the parser. A real figure line — even a `;`-compound — is at most a
+/// few dozen characters; anything beyond this is treated as malformed/hostile
+/// input and yields nothing rather than driving unbounded recognition work.
+/// This mirrors the OWASP "bounded input" posture of the rest of the import
+/// path (see `maxReparseTextLength`): even though the text is typed locally we
+/// treat it as untrusted, and the guard is enforced in core (defense in depth)
+/// rather than relying on any UI-side field limit.
+const int maxFreeTextEntryLength = 2000;
+
 /// A leading bare beat count: `16 balance and swing`. The digits must be
 /// followed by whitespace AND a non-empty remainder, so a fraction/positional
 /// token glued to the digits (`1/2 hey`, `1s cross`) is NOT mistaken for a
@@ -76,6 +86,11 @@ _BeatSplit _splitInlineBeats(String line) {
 /// - a **leading** `16 …` (a bare integer + space), or
 /// - a **trailing** `… (16)` (a parenthesised integer at the end).
 ///
+/// Only ONE inline form is honoured per line: a trailing `(N)` is checked
+/// first and wins, so a line that redundantly supplies both (`16 … (8)`) keeps
+/// the leftover leading digits in its text (and typically degrades to a
+/// verbatim custom) rather than guessing which count the caller meant.
+///
 /// When the line states no inline count the beats argument is left at 0, which
 /// [parseFigureLine] treats as "unspecified": a matched structured figure then
 /// derives its move/param default beats on read via [Taxonomy.effectiveParams]
@@ -83,13 +98,16 @@ _BeatSplit _splitInlineBeats(String line) {
 /// custom.
 ///
 /// Returns an empty list when the line is empty after trimming/scrubbing
-/// (nothing to insert). Matched lines yield structured taxonomy figures;
+/// (nothing to insert) or when it exceeds [maxFreeTextEntryLength] (treated as
+/// malformed/hostile input). Matched lines yield structured taxonomy figures;
 /// unrecognised lines yield [customMove] figures tagged
 /// [CustomOrigin.importGap] (via [parseFigureLine]) so they surface the #398
 /// parser-gap marker and remain eligible for the reparse-customs upgrade.
 List<Figure> parseFreeTextFigureEntry(String input, {Taxonomy? taxonomy}) {
   final trimmed = input.trim();
-  if (trimmed.isEmpty) return const [];
+  if (trimmed.isEmpty || trimmed.length > maxFreeTextEntryLength) {
+    return const [];
+  }
   final split = _splitInlineBeats(trimmed);
   return parseFigureLines(split.text, beats: split.beats, taxonomy: taxonomy);
 }

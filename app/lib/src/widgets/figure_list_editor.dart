@@ -615,6 +615,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Focus(
+        // A key-handler wrapper only (Escape to cancel); it must not become a
+        // tab stop of its own around the field.
+        canRequestFocus: false,
+        skipTraversal: true,
         onKeyEvent: (node, event) {
           if (event is KeyDownEvent &&
               event.logicalKey == LogicalKeyboardKey.escape) {
@@ -633,6 +637,17 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 focusNode: _freeTextFocusNode,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _submitFreeText(),
+                maxLength: maxFreeTextEntryLength,
+                maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                // A figure line is short; the cap is a defensive bound, not a
+                // budget to show off — suppress the character counter.
+                buildCounter:
+                    (
+                      _, {
+                      required int currentLength,
+                      required bool isFocused,
+                      int? maxLength,
+                    }) => null,
                 decoration: const InputDecoration(
                   isDense: true,
                   border: OutlineInputBorder(),
@@ -1046,10 +1061,15 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final noteDiscouraged =
         hasNote && canonicalize(note, widget.dialect).discouraged.isNotEmpty;
     final beatsLabel = '${draft.beats} ${draft.beats == 1 ? 'beat' : 'beats'}';
-    // Parser-gap custom (#398/#419): a custom figure the parser could not map,
-    // whether from import or a locally-typed free-text line. Surfaces the same
-    // inline marker as the read-only figure table and stays reparse-eligible.
-    final isImportGap = draft.customOrigin == CustomOrigin.importGap;
+    // Parser-gap custom (#398/#419): a *custom* figure the parser could not
+    // map, whether from import or a locally-typed free-text line. Guarded on
+    // the custom move (like figure_table.dart / perform_card.dart) so a
+    // tampered draft that pairs a real move with an importGap origin can't
+    // surface the marker. Surfaces the same inline marker as the read-only
+    // figure table and stays reparse-eligible.
+    final isImportGap =
+        draft.move == customMove &&
+        draft.customOrigin == CustomOrigin.importGap;
     final labelText = (widget.showLabel && widget.label != null)
         ? widget.label!
         : '';

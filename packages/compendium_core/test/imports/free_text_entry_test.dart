@@ -139,6 +139,43 @@ void main() {
         expect(f.params['text'], contains('0 Neighbor swing'));
       },
     );
+
+    test('only one inline form is honoured: a trailing "(N)" wins and the '
+        'leftover leading digits stay in the text', () {
+      final f = parseFreeTextFigureEntry('16 Neighbor swing (8)').single;
+      // Trailing (8) is peeled first; the leading "16 " remains, so the line no
+      // longer matches and degrades to a verbatim custom carrying the 8 beats.
+      expect(f.params['beats'], 8);
+      expect(f.isCustom, isTrue);
+      expect(f.params['text'], contains('16 Neighbor swing'));
+    });
+  });
+
+  group('parseFreeTextFigureEntry — bounded input (OWASP)', () {
+    test('a line exactly at the length bound is still processed', () {
+      // A non-trimmable payload exactly at the bound is not dropped: it flows
+      // to the parser and becomes a (verbatim custom) figure, not nothing.
+      final atBound = 'a' * maxFreeTextEntryLength;
+      final fs = parseFreeTextFigureEntry(atBound);
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+    });
+
+    test('a line past the length bound yields nothing (never throws)', () {
+      final huge = 'a' * (maxFreeTextEntryLength + 1);
+      expect(parseFreeTextFigureEntry(huge), isEmpty);
+    });
+
+    test(
+      'length is checked after trimming, so whitespace padding is ignored',
+      () {
+        final padded = '  Neighbor swing  '.padRight(
+          maxFreeTextEntryLength + 50,
+          ' ',
+        );
+        expect(parseFreeTextFigureEntry(padded).single.move, 'swing');
+      },
+    );
   });
 
   group('parseFreeTextFigureEntry — no inline beats → taxonomy default', () {
