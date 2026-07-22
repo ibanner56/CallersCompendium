@@ -868,6 +868,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               _CallingHistoryRow(
                 key: ValueKey('calling-history-${record.slotId}'),
                 record: record,
+                venueLabel: detail.venueLabelsByProgramId[record.programId],
                 onTap: () => _openProgram(record.programId),
               ),
           if (detail.halfCallingStats.hasAny) ...[
@@ -1107,9 +1108,21 @@ class _LinkRow extends StatelessWidget {
 /// opens the program. Mirrors the row-as-button a11y pattern used by [_LinkRow]
 /// and the set-list rows in `programs_shell.dart`.
 class _CallingHistoryRow extends StatelessWidget {
-  const _CallingHistoryRow({super.key, required this.record, this.onTap});
+  const _CallingHistoryRow({
+    super.key,
+    required this.record,
+    this.venueLabel,
+    this.onTap,
+  });
 
   final DanceCallingRecord record;
+
+  /// The venue label to display, already resolved by [DanceDetailData.load]
+  /// (linked [Venue] display name when the program's `venueId` resolves,
+  /// otherwise the free-text `venue`). Null falls back to the record's own
+  /// free-text `venue`, so this row still renders correctly without it.
+  final String? venueLabel;
+
   final VoidCallback? onTap;
 
   @override
@@ -1122,7 +1135,7 @@ class _CallingHistoryRow extends StatelessWidget {
     // its last-updated time, so a date always shows. These are stored UTC
     // values rendered directly (matching the other date labels on this screen).
     final date = localizations.formatMediumDate(record.effectiveDate);
-    final venue = record.venue?.trim();
+    final venue = (venueLabel ?? record.venue)?.trim();
     final subtitleParts = <String>[
       date,
       if (venue != null && venue.isNotEmpty) venue,

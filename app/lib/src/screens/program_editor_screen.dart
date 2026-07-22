@@ -11,12 +11,14 @@ import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
+import '../data/venue_entity_mode_scope.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
 import '../widgets/collection_picker.dart';
+import '../widgets/venue_picker.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
@@ -99,6 +101,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _saving = false;
   bool _dirty = false;
 
+  /// The program's linked venue id (enriched venue mode). Kept independently
+  /// from [_venueController] (free-text simple mode) so flipping the venue
+  /// entity mode is lossless — neither field clears the other.
+  String? _venueId;
+
+  /// The resolved [Venue] for [_venueId], loaded so the simple-mode read-only
+  /// fallback can show its name. `null` when no venue is linked.
+  Venue? _linkedVenue;
+
   Dialect _dialect = Dialect.larksRobins;
 
   /// Always-on search enrichment for the embedded [CollectionPicker], built
@@ -171,6 +182,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _callerController.text = program.caller ?? '';
         _levelController.text = program.dancerLevel ?? '';
         _notesController.text = program.notes;
+        // Resolve the linked venue (if any) up front so the simple-mode
+        // read-only fallback can show its name without an async gap.
+        if (program.venueId != null) {
+          _linkedVenue = await _repos.venues.getById(program.venueId!);
+        }
       } else if (widget.isNew) {
         // ROADMAP G.3: prefill a new program's caller/band from saved defaults.
         // Only seeds a still-blank field, never overrides; a settings read
@@ -181,6 +197,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _data = data;
         _existing = program;
         _eventDate = program?.eventDate;
+        _venueId = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
         _slots = program?.slots.toList() ?? const [];
@@ -240,6 +257,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   void _markDirty() {
     if (!_dirty) setState(() => _dirty = true);
+  }
+
+  /// Handles a change from the enriched-mode [VenuePicker]: records the new
+  /// linked venue id (or `null` to unlink), marks the editor dirty, and
+  /// refreshes [_linkedVenue] so the simple-mode read-only fallback stays in
+  /// sync if the user flips the toggle back. Never touches [_venueController],
+  /// keeping the free-text value intact (lossless).
+  Future<void> _onVenueLinkChanged(String? id) async {
+    setState(() {
+      _venueId = id;
+      _dirty = true;
+      if (id == null) _linkedVenue = null;
+    });
+    if (id == null) return;
+    final venue = await _repos.venues.getById(id);
+    if (!mounted) return;
+    setState(() => _linkedVenue = venue);
   }
 
   /// Renumbers positions contiguously (0..n-1) in list order.
@@ -462,12 +496,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final base =
           _existing ??
           Program(id: 'draft', title: title, createdAt: now, updatedAt: now);
+      // Only the ACTIVE venue mode mutates its field; the inactive field rides
+      // through untouched so flipping the toggle is lossless (see _save).
+      final enriched = VenueEntityModeScope.of(context);
+      final venueText = nn(_venueController);
       return base.copyWith(
         title: title,
         eventDate: _eventDate,
         clearEventDate: _eventDate == null,
-        venue: nn(_venueController),
-        clearVenue: nn(_venueController) == null,
+        venue: enriched ? null : venueText,
+        clearVenue: enriched ? false : venueText == null,
+        venueId: enriched ? _venueId : null,
+        clearVenueId: enriched ? _venueId == null : false,
         band: nn(_bandController),
         clearBand: nn(_bandController) == null,
         caller: nn(_callerController),
@@ -496,6 +536,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final level = _levelController.text.trim();
     final notes = _notesController.text.trim();
     final slots = _renumber(_slots);
+    // The toggle is entry-mode only; both venue columns persist independently.
+    // CREATE writes both live values (each defaults to empty/null in the mode
+    // that isn't shown). UPDATE mutates ONLY the active mode's field so the
+    // inactive value survives a flip untouched (lossless guarantee).
+    final enriched = VenueEntityModeScope.of(context);
 
     try {
       final String id;
@@ -507,6 +552,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             title: title,
             eventDate: _eventDate,
             venue: venue.isEmpty ? null : venue,
+            venueId: _venueId,
             band: band.isEmpty ? null : band,
             caller: caller.isEmpty ? null : caller,
             dancerLevel: level.isEmpty ? null : level,
@@ -524,8 +570,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           title: title,
           eventDate: _eventDate,
           clearEventDate: _eventDate == null,
-          venue: venue.isEmpty ? null : venue,
-          clearVenue: venue.isEmpty,
+          venue: enriched ? null : (venue.isEmpty ? null : venue),
+          clearVenue: enriched ? false : venue.isEmpty,
+          venueId: enriched ? _venueId : null,
+          clearVenueId: enriched ? _venueId == null : false,
           band: band.isEmpty ? null : band,
           clearBand: band.isEmpty,
           caller: caller.isEmpty ? null : caller,
@@ -1033,6 +1081,94 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
+  /// Builds the venue editor for the active venue entity mode.
+  ///
+  /// SIMPLE (default): the free-text venue field, unchanged. If the program is
+  /// also linked to a saved venue (`venueId`), a read-only hint shows the
+  /// linked venue name so the link isn't silently hidden — the free text above
+  /// is what this mode edits and persists (the link rides through untouched).
+  ///
+  /// ENRICHED: a [VenuePicker] that selects/creates a saved venue. If the
+  /// program has legacy free-text but no link yet, that text is shown with an
+  /// invitation to link a venue below; the typed text is preserved.
+  Widget _buildVenueField(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final enriched = VenueEntityModeScope.of(context);
+    if (!enriched) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            key: const ValueKey('program-venue'),
+            controller: _venueController,
+            textInputAction: TextInputAction.next,
+            onChanged: (_) => _markDirty(),
+            decoration: InputDecoration(
+              labelText: l10n.programsVenueLabel,
+              hintText: l10n.programsVenueHint,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          if (_venueId != null)
+            Padding(
+              key: const ValueKey('program-venue-linked-hint'),
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.link, size: 16, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Also linked to saved venue: '
+                      '${_linkedVenue?.displayName ?? 'a saved venue'}. Turn '
+                      'on reusable venues in Settings to view or change it.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
+    }
+    final legacyText = _venueController.text.trim();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (legacyText.isNotEmpty && _venueId == null)
+          Padding(
+            key: const ValueKey('program-venue-legacy-text'),
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Previously entered venue: “$legacyText”. Link a saved '
+                    'venue below to use reusable details — your typed venue is '
+                    'kept.',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Text('Venue', style: theme.textTheme.labelLarge),
+        const SizedBox(height: 4),
+        VenuePicker(
+          key: const ValueKey('program-venue-picker'),
+          selectedVenueId: _venueId,
+          onChanged: _onVenueLinkChanged,
+        ),
+      ],
+    );
+  }
+
   Widget _buildMetadataSection() {
     final l10n = AppLocalizations.of(context);
     final dateLabel = _eventDate == null
@@ -1094,17 +1230,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ),
         ),
         const SizedBox(height: 16),
-        TextFormField(
-          key: const ValueKey('program-venue'),
-          controller: _venueController,
-          textInputAction: TextInputAction.next,
-          onChanged: (_) => _markDirty(),
-          decoration: InputDecoration(
-            labelText: l10n.programsVenueLabel,
-            hintText: l10n.programsVenueHint,
-            border: const OutlineInputBorder(),
-          ),
-        ),
+        _buildVenueField(l10n),
         const SizedBox(height: 16),
         TextFormField(
           key: const ValueKey('program-band'),
