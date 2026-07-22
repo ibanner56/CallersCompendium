@@ -37,6 +37,15 @@ const Set<String> hardcodedUiStringAllowlist = <String>{
   'src/screens/contradb_program_import_screen.dart',
   'src/screens/custom_fields_screen.dart',
   'src/screens/dialect_editor_screen.dart',
+  // Settings general (data-management) section: Library/Performance/
+  // Calling-history/Accessibility toggles, Deleted-items, Import, and the full
+  // Backup/Restore flow. NOTE for L6: the Backup/Restore snackbars carry the
+  // CWE-209 catch-and-log requirement (clean localized message + debugPrint the
+  // raw error) — do not interpolate caught exceptions into UI text.
+  'src/screens/settings/general_section.dart',
+  // Formation-colours screen: L5 landed its formationShapeLabel helper-swap;
+  // its own screen prose is deferred to L6.
+  'src/screens/formation_colors_screen.dart',
   'src/screens/recently_deleted_screen.dart',
   'src/screens/reparse_custom_figures_screen.dart',
   'src/screens/theme_editor_screen.dart',

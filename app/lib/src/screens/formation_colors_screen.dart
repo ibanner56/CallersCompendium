@@ -48,12 +48,11 @@ class FormationColorsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final highContrast =
         (AppThemeScope.maybeOf(context)?.isHighContrast ?? false) ||
         MediaQuery.highContrastOf(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settingsFormationColoursTitle)),
+      appBar: AppBar(title: const Text('Formation colours')),
       body: AnimatedBuilder(
         animation: controller,
         builder: (context, _) {
@@ -67,11 +66,15 @@ class FormationColorsScreen extends StatelessWidget {
                   0,
                 ),
                 child: Text(
-                  l10n.settingsFormationColoursIntro,
+                  'Give a formation its own colour to highlight its label on '
+                  'dance cards, dance detail, and the Perform header. Only the '
+                  'formations you customise are highlighted; the rest show '
+                  'their label as usual. The formation is always shown as text '
+                  'too, so labels stay readable without colour.',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
-              SectionHeader(title: l10n.settingsFormationColoursListHeader),
+              SectionHeader(title: 'Formations'),
               for (final shape in FormationShape.values)
                 _FormationColorTile(
                   shape: shape,
@@ -126,16 +129,12 @@ class _FormationColorTile extends StatelessWidget {
                 child: Text(label),
               ),
             ),
-      subtitle: Text(
-        overridden
-            ? l10n.settingsFormationColoursCustom
-            : l10n.settingsFormationColoursFamilyDefault,
-      ),
+      subtitle: Text(overridden ? 'Custom colour' : 'Family default'),
       trailing: overridden
           ? IconButton(
               key: ValueKey('formation-color-reset-${shape.name}'),
               icon: const Icon(Icons.settings_backup_restore),
-              tooltip: l10n.settingsFormationColoursResetTooltip(label),
+              tooltip: 'Reset $label to the family default',
               onPressed: onReset,
             )
           : const Icon(Icons.edit_outlined),

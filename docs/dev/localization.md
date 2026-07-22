@@ -15,12 +15,14 @@ stay consistent.
 
 **Extraction status (not yet complete).** Layers 1–5 have landed: the framework,
 shared cross-cutting vocabulary (facet domain-value labels), the import-gap
-badge, the `(copy)` title suffix, the small global/shared chrome, and the **full
-Settings surface**. The final layer (**L6**) localizes the remaining
+badge, the `(copy)` title suffix, the small global/shared chrome, and most of
+the **Settings surface** (the defaults, general-appearance, dialect, updates, and
+about sections). The final layer (**L6**) localizes the remaining
 feature-specific surfaces — the dance editor (`dance_editor/`), its detail
-screen and editor dialogs, the figure editors, and a few secondary screens
-(custom fields, dialect editor, theme editor, recently-deleted, ContraDB import,
-user guide) — plus the large chrome widgets `collection_picker`,
+screen and editor dialogs, the figure editors, the Settings general
+(data-management) section and the formation-colours screen, and a few secondary
+screens (custom fields, dialect editor, theme editor, recently-deleted, ContraDB
+import, user guide) — plus the large chrome widgets `collection_picker`,
 `command_palette`, and `update_banner`. Those files are parked in the guard
 allow-list (see [Guarding against hardcoded strings](#guarding-against-hardcoded-strings));
 L6 removes each as it localizes it and flips this note to "complete".

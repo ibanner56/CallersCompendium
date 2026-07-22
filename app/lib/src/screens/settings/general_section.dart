@@ -1,7 +1,6 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
-import '../../../l10n/app_localizations.dart';
 import 'settings_keys.dart';
 import '../../data/backup_controller_scope.dart';
 import '../../data/backup_io.dart';
@@ -201,7 +200,6 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// save/share dialog, this is a clean no-op: no snackbar, no stamped time.
   Future<void> _onExportBackup() async {
     final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final saver = widget.backupSaver ?? saveBackupToFile;
     try {
@@ -216,13 +214,11 @@ class _GeneralSectionState extends State<GeneralSection> {
         _backupPrefsRequested = true;
         _lastBackupAt = now.toUtc();
       });
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.settingsGeneralBackupExported)),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Backup exported.')));
     } on Exception catch (e, st) {
       debugPrint('Backup export failed: $e\n$st');
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.settingsGeneralBackupExportFailed)),
+        const SnackBar(content: Text("Couldn't export a backup.")),
       );
     }
   }
@@ -232,7 +228,6 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// without a relaunch.
   Future<void> _onRestoreBackup() async {
     final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final picker = widget.backupPicker ?? pickBackupFile;
     final onRestored = BackupControllerScope.maybeOf(context)?.onRestored;
@@ -252,8 +247,11 @@ class _GeneralSectionState extends State<GeneralSection> {
         // that would have dropped entities must never look like a clean
         // success, and must not be mistaken for an unreadable file.
         final message = outcome.incompleteCore
-            ? l10n.settingsGeneralRestoreIncomplete
-            : l10n.settingsGeneralRestoreInvalid;
+            ? 'This backup contains items this version of the app '
+                  "can't read (it may be from a newer version), so the "
+                  'restore was cancelled. Your data is unchanged.'
+            : "Couldn't restore: the file isn't a valid backup. "
+                  'Your data is unchanged.';
         messenger.showSnackBar(SnackBar(content: Text(message)));
         return;
       }
@@ -263,17 +261,16 @@ class _GeneralSectionState extends State<GeneralSection> {
         SnackBar(
           content: Text(
             outcome.hasErrors
-                ? l10n.settingsGeneralRestoredWithProblems(
-                    outcome.errors.length,
-                  )
-                : l10n.settingsGeneralRestored,
+                ? 'Backup restored with ${outcome.errors.length} '
+                      'problem(s) skipped.'
+                : 'Backup restored.',
           ),
         ),
       );
     } on Exception catch (e, st) {
       debugPrint('Backup restore failed: $e\n$st');
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.settingsGeneralRestoreFailed)),
+        const SnackBar(content: Text("Couldn't restore the backup.")),
       );
     }
   }
@@ -456,73 +453,98 @@ class _GeneralView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     return ListView(
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
-        SectionHeader(title: l10n.settingsGeneralLibraryHeader),
+        SectionHeader(title: 'Library'),
         SwitchListTile(
           key: const ValueKey('general-sort-ignore-articles'),
           value: sortIgnoreArticles,
           onChanged: onSortIgnoreArticlesChanged,
-          title: Text(l10n.settingsGeneralIgnoreArticlesTitle),
-          subtitle: Text(l10n.settingsGeneralIgnoreArticlesSubtitle),
+          title: const Text('Ignore leading articles when sorting'),
+          subtitle: const Text(
+            'When on, the dance list alphabetizes titles ignoring a leading '
+            '“the”, “a”, or “an” — so “The Nice Combination” files under N. '
+            'Turn off to sort by the literal title.',
+          ),
           isThreeLine: true,
         ),
-        SectionHeader(title: l10n.settingsGeneralPerformanceHeader),
+        SectionHeader(title: 'Performance'),
         SwitchListTile(
           key: const ValueKey('settings-auto-size-perform'),
-          title: Text(l10n.settingsGeneralAutoSizeTitle),
-          subtitle: Text(l10n.settingsGeneralAutoSizeSubtitle),
+          title: const Text('Auto-size Perform cards'),
+          subtitle: const Text(
+            'Scale each card so the full dance or slot fits the screen without '
+            'scrolling. Turn off to set the size yourself with A- / A+.',
+          ),
           value: autoSizePerform,
           onChanged: onAutoSizeChanged,
         ),
-        SectionHeader(title: l10n.settingsGeneralCallingHistoryHeader),
+        SectionHeader(title: 'Calling history'),
         SwitchListTile(
           key: const ValueKey('general-require-performed-for-history'),
           value: requirePerformedForHistory,
           onChanged: onRequirePerformedForHistoryChanged,
-          title: Text(l10n.settingsGeneralRequirePerformedTitle),
-          subtitle: Text(l10n.settingsGeneralRequirePerformedSubtitle),
+          title: const Text('Require “mark performed” for calling history'),
+          subtitle: const Text(
+            'When on, a dance’s calling history lists only programs whose slot '
+            'for that dance was marked performed. When off, a program appears '
+            'as soon as it contains the dance.',
+          ),
           isThreeLine: true,
         ),
-        SectionHeader(title: l10n.settingsGeneralAccessibilityHeader),
+        SectionHeader(title: 'Accessibility'),
         SwitchListTile(
           key: const ValueKey('general-reduce-motion'),
           value: reduceMotion,
           onChanged: onReduceMotionChanged,
-          title: Text(l10n.settingsGeneralReduceMotionTitle),
-          subtitle: Text(l10n.settingsGeneralReduceMotionSubtitle),
+          title: const Text('Reduce motion'),
+          subtitle: const Text(
+            'Dampen or skip non-essential animations, such as animated '
+            'scrolling when moving between search results or figures.',
+          ),
           isThreeLine: true,
         ),
         SwitchListTile(
           key: const ValueKey('general-verbose-figures'),
           value: verboseFigureRendering,
           onChanged: onVerboseFigureRenderingChanged,
-          title: Text(l10n.settingsGeneralVerboseFiguresTitle),
-          subtitle: Text(l10n.settingsGeneralVerboseFiguresSubtitle),
+          title: const Text('Always show verbose figure text'),
+          subtitle: const Text(
+            'Show the full spoken-style figure wording on screen in the dance '
+            'view, not only to screen readers. Turn off for the terse notation.',
+          ),
           isThreeLine: true,
         ),
         SwitchListTile(
           key: const ValueKey('general-decimal-turns'),
           value: decimalTurns,
           onChanged: onDecimalTurnsChanged,
-          title: Text(l10n.settingsGeneralDecimalTurnsTitle),
-          subtitle: Text(l10n.settingsGeneralDecimalTurnsSubtitle),
+          title: const Text('Show turns as decimals'),
+          subtitle: const Text(
+            'Show turn and rotation amounts as decimals (0.75) instead of '
+            'fractions (¾). Screen-reader wording is unaffected.',
+          ),
           isThreeLine: true,
         ),
         SwitchListTile(
           key: const ValueKey('general-confirm-before-delete'),
           value: confirmBeforeDelete,
           onChanged: onConfirmBeforeDeleteChanged,
-          title: Text(l10n.settingsGeneralConfirmDeleteTitle),
-          subtitle: Text(l10n.settingsGeneralConfirmDeleteSubtitle),
+          title: const Text('Confirm before delete'),
+          subtitle: const Text(
+            'Ask for confirmation before deleting a dance or program. Deletes '
+            'can still be undone; this just adds an explicit prompt first.',
+          ),
           isThreeLine: true,
         ),
-        SectionHeader(title: l10n.settingsGeneralDeletedItemsHeader),
+        SectionHeader(title: 'Deleted items'),
         ListTile(
-          title: Text(l10n.settingsGeneralRetentionTitle),
-          subtitle: Text(l10n.settingsGeneralRetentionSubtitle),
+          title: const Text('Keep deleted dances for'),
+          subtitle: const Text(
+            'Deleted dances are kept for this long before being permanently '
+            'removed on app launch. Never keeps them until you purge manually.',
+          ),
           isThreeLine: true,
           trailing: DropdownButton<int>(
             key: const ValueKey('general-soft-delete-retention'),
@@ -532,41 +554,46 @@ class _GeneralView extends StatelessWidget {
             },
             items: [
               for (final days in kSoftDeleteRetentionDayOptions)
-                DropdownMenuItem(
-                  value: days,
-                  child: Text(l10n.settingsGeneralRetentionDays(days)),
-                ),
-              DropdownMenuItem(
+                DropdownMenuItem(value: days, child: Text('$days days')),
+              const DropdownMenuItem(
                 value: kSoftDeleteRetentionNever,
-                child: Text(l10n.settingsGeneralRetentionNever),
+                child: Text('Never'),
               ),
             ],
           ),
         ),
-        SectionHeader(title: l10n.settingsGeneralImportHeader),
+        SectionHeader(title: 'Import'),
         ListTile(
-          title: Text(l10n.settingsGeneralImportDancesTitle),
-          subtitle: Text(l10n.settingsGeneralImportDancesSubtitle),
+          title: const Text('Import dances'),
+          subtitle: const Text(
+            "Bring dances into your collection from a Caller's Compendium JSON "
+            'file. You review every dance and confirm before anything is added.',
+          ),
           isThreeLine: true,
           trailing: OutlinedButton.icon(
             key: const ValueKey('import-dances-button'),
             onPressed: onImportDances,
             icon: const Icon(Icons.file_download_outlined),
-            label: Text(l10n.settingsGeneralImportButton),
+            label: const Text('Import…'),
           ),
         ),
         ListTile(
-          title: Text(l10n.settingsGeneralReparseTitle),
-          subtitle: Text(l10n.settingsGeneralReparseSubtitle),
+          title: const Text('Re-check custom figures'),
+          subtitle: const Text(
+            'Re-parse imported dances whose figures were kept as custom only '
+            'because they could not be recognised at import time. Improved '
+            'parsing upgrades them in place — your tags, ratings, and notes '
+            'are preserved. You preview and confirm before anything changes.',
+          ),
           isThreeLine: true,
           trailing: OutlinedButton.icon(
             key: const ValueKey('reparse-custom-figures-button'),
             onPressed: onReparseCustomFigures,
             icon: const Icon(Icons.auto_fix_high_outlined),
-            label: Text(l10n.settingsGeneralReparseButton),
+            label: const Text('Re-check…'),
           ),
         ),
-        SectionHeader(title: l10n.settingsGeneralBackupHeader),
+        SectionHeader(title: 'Backup & restore'),
         ..._buildBackupSection(context),
       ],
     );
@@ -576,44 +603,47 @@ class _GeneralView extends StatelessWidget {
   /// JSON file, restore from one (destructive replace, behind a confirm), a
   /// reminder cadence, and a "Last backup" line with a gentle overdue hint.
   List<Widget> _buildBackupSection(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final overdue = isBackupOverdue(
       cadence: backupCadence,
       lastBackupAt: lastBackupAt,
       now: DateTime.now(),
     );
     final lastBackupLabel = lastBackupAt == null
-        ? l10n.settingsGeneralLastBackupNever
-        : l10n.settingsGeneralLastBackupDate(
-            MaterialLocalizations.of(
-              context,
-            ).formatMediumDate(lastBackupAt!.toLocal()),
-          );
+        ? 'Last backup: never'
+        : 'Last backup: '
+              '${MaterialLocalizations.of(context).formatMediumDate(lastBackupAt!.toLocal())}';
     return [
       ListTile(
-        title: Text(l10n.settingsGeneralExportTitle),
-        subtitle: Text(l10n.settingsGeneralExportSubtitle),
+        title: const Text('Export a backup'),
+        subtitle: const Text(
+          'Save your entire collection, programs, custom fields, dialects, '
+          'themes, and settings to a single JSON file you can keep safe or '
+          'move to another device.',
+        ),
         isThreeLine: true,
         trailing: FilledButton.tonalIcon(
           key: const ValueKey('backup-export-button'),
           onPressed: onExportBackup,
           icon: const Icon(Icons.file_upload_outlined),
-          label: Text(l10n.settingsGeneralExportButton),
+          label: const Text('Export'),
         ),
       ),
       ListTile(
-        title: Text(l10n.settingsGeneralRestoreTitle),
-        subtitle: Text(l10n.settingsGeneralRestoreSubtitle),
+        title: const Text('Restore from a backup'),
+        subtitle: const Text(
+          'Replace everything currently in the app with the contents of a '
+          'backup file. This cannot be undone.',
+        ),
         isThreeLine: true,
         trailing: OutlinedButton.icon(
           key: const ValueKey('backup-restore-button'),
           onPressed: onRestoreBackup,
           icon: const Icon(Icons.file_download_outlined),
-          label: Text(l10n.settingsGeneralRestoreButton),
+          label: const Text('Restore'),
         ),
       ),
       ListTile(
-        title: Text(l10n.settingsGeneralReminderTitle),
+        title: const Text('Backup reminder'),
         subtitle: Text(lastBackupLabel),
         trailing: DropdownButton<BackupReminderCadence>(
           key: const ValueKey('backup-reminder-cadence'),
@@ -621,18 +651,18 @@ class _GeneralView extends StatelessWidget {
           onChanged: (value) {
             if (value != null) onBackupCadenceChanged(value);
           },
-          items: [
+          items: const [
             DropdownMenuItem(
               value: BackupReminderCadence.off,
-              child: Text(l10n.settingsGeneralReminderOff),
+              child: Text('Off'),
             ),
             DropdownMenuItem(
               value: BackupReminderCadence.weekly,
-              child: Text(l10n.settingsGeneralReminderWeekly),
+              child: Text('Weekly'),
             ),
             DropdownMenuItem(
               value: BackupReminderCadence.monthly,
-              child: Text(l10n.settingsGeneralReminderMonthly),
+              child: Text('Monthly'),
             ),
           ],
         ),
@@ -656,7 +686,8 @@ class _GeneralView extends StatelessWidget {
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
-                  l10n.settingsGeneralBackupOverdue,
+                  "It's been a while since your last backup — consider "
+                  'exporting one now.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -709,24 +740,27 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final hasContent = _controller.text.trim().isNotEmpty;
     return AlertDialog(
       key: const ValueKey('restore-backup-dialog'),
-      title: Text(l10n.settingsGeneralRestoreTitle),
+      title: const Text('Restore from a backup'),
       content: SizedBox(
         width: 420,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.settingsGeneralRestoreDialogWarning),
+            const Text(
+              'Restoring replaces everything currently in the app — your '
+              'collection, programs, dialects, themes, and settings — with the '
+              "backup's contents. This cannot be undone.",
+            ),
             const SizedBox(height: AppSpacing.md),
             OutlinedButton.icon(
               key: const ValueKey('restore-choose-file'),
               onPressed: _picking ? null : _chooseFile,
               icon: const Icon(Icons.folder_open_outlined),
-              label: Text(l10n.settingsGeneralRestoreChooseFile),
+              label: const Text('Choose file…'),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextField(
@@ -735,9 +769,9 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
               minLines: 3,
               maxLines: 6,
               onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: l10n.settingsGeneralRestorePasteLabel,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Or paste backup JSON',
               ),
             ),
           ],
@@ -747,14 +781,14 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
         TextButton(
           key: const ValueKey('restore-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           key: const ValueKey('restore-confirm'),
           onPressed: hasContent
               ? () => Navigator.of(context).pop(_controller.text)
               : null,
-          child: Text(l10n.settingsGeneralRestoreConfirm),
+          child: const Text('Replace all data'),
         ),
       ],
     );

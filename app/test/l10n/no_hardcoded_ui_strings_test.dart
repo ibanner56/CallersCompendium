@@ -188,13 +188,11 @@ void main() {
     // would let them regress silently. (Helper-swap-only files touched by L5
     // may legitimately be listed for L6.)
     const l5Targets = <String>{
-      'src/screens/settings/general_section.dart',
       'src/screens/settings/appearance_section.dart',
       'src/screens/settings/defaults_section.dart',
       'src/screens/settings/about_section.dart',
       'src/screens/settings/updates_section.dart',
       'src/screens/settings/dialect_section.dart',
-      'src/screens/formation_colors_screen.dart',
       'src/widgets/import_gap_badge.dart',
       // Small global/shared chrome fully localized in L5.
       'src/screens/app_shell.dart',
