@@ -91,6 +91,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonDuplicate => 'Duplicate';
 
   @override
+  String commonDuplicateTitleSuffix(String title) {
+    return '$title (copy)';
+  }
+
+  @override
   String get commonYes => 'Yes';
 
   @override

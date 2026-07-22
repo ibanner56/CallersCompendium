@@ -228,21 +228,18 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Future<void> _duplicate() async {
     final source = _program;
     if (source == null) return;
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
     final copy = await _repos.programs.duplicate(
       id: source.id,
       newId: uuidV4(),
       newSlotId: uuidV4,
       now: now,
-      newTitle: '${source.title} (copy)',
+      newTitle: l10n.commonDuplicateTitleSuffix(source.title),
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.of(context).programsDuplicatedSnack(copy.title),
-        ),
-      ),
+      SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
     );
     widget.onNavigateTo(copy.id);
   }

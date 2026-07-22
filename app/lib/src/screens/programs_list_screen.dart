@@ -244,13 +244,14 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   }
 
   Future<void> _duplicateFromList(Program program) async {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
     final copy = await _repos.programs.duplicate(
       id: program.id,
       newId: uuidV4(),
       newSlotId: uuidV4,
       now: now,
-      newTitle: '${program.title} (copy)',
+      newTitle: l10n.commonDuplicateTitleSuffix(program.title),
     );
     if (!mounted) return;
     await _load();
@@ -258,9 +259,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         key: const ValueKey('program-duplicated-snackbar'),
-        content: Text(
-          AppLocalizations.of(context).programsDuplicatedSnack(copy.title),
-        ),
+        content: Text(l10n.programsDuplicatedSnack(copy.title)),
       ),
     );
   }

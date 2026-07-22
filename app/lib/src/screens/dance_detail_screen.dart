@@ -250,15 +250,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// [Navigator.pushReplacement]; in embedded split-pane mode, calls
   /// [widget.onNavigateTo] so the parent shell updates the selected id.
   Future<void> _duplicate() async {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now().toUtc();
     final copy = await _repos.dances.duplicate(
       id: widget.danceId!,
       newId: uuidV4(),
       now: now,
     );
-    // Append " (copy)" so the duplicate is visually distinct in the list.
+    // Append the localized " (copy)" suffix so the duplicate is visually
+    // distinct in the list. This wording is persisted into the copy's title.
     await _repos.dances.update(
-      copy.copyWith(title: '${copy.title} (copy)', updatedAt: now),
+      copy.copyWith(
+        title: l10n.commonDuplicateTitleSuffix(copy.title),
+        updatedAt: now,
+      ),
     );
     if (!mounted) return;
     if (widget.onNavigateTo != null) {

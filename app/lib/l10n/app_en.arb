@@ -120,6 +120,16 @@
   "@commonDuplicate": {
     "description": "Row action that makes a copy of an item."
   },
+  "commonDuplicateTitleSuffix": "{title} (copy)",
+  "@commonDuplicateTitleSuffix": {
+    "description": "Title given to a duplicated item: the original title followed by a ' (copy)' marker so the copy is visually distinct. {title} is untrusted user-entered text, rendered as plain text. Note: this resolves at duplicate-time and is persisted into user data, so the copy keeps the creation-locale wording thereafter.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
   "commonYes": "Yes",
   "@commonYes": {
     "description": "Affirmative choice for a yes/no filter chip."

@@ -250,6 +250,12 @@ abstract class AppLocalizations {
   /// **'Duplicate'**
   String get commonDuplicate;
 
+  /// Title given to a duplicated item: the original title followed by a ' (copy)' marker so the copy is visually distinct. {title} is untrusted user-entered text, rendered as plain text. Note: this resolves at duplicate-time and is persisted into user data, so the copy keeps the creation-locale wording thereafter.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} (copy)'**
+  String commonDuplicateTitleSuffix(String title);
+
   /// Affirmative choice for a yes/no filter chip.
   ///
   /// In en, this message translates to:
