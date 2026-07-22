@@ -807,6 +807,165 @@ void main() {
     });
   });
 
+  group('orphan reference GC after purge (#462)', () {
+    late PublishedSourceRepository sources;
+
+    setUp(() {
+      sources = PublishedSourceRepository(db);
+    });
+
+    test('purging the only dance crediting a choreographer / citing a source '
+        'GCs those now-orphaned rows', () async {
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Solo Author'));
+      await sources.upsert(PublishedSource(id: 's1', title: 'Solo Source'));
+      await dances.create(
+        sampleDance(
+          id: 'only',
+          authorIds: const ['c1'],
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+          deletedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+
+      final purged = await dances.purgeDeleted(now: DateTime.utc(2026, 4, 1));
+
+      expect(purged, 1);
+      expect(await choreographers.getById('c1'), isNull);
+      expect(await sources.getById('s1'), isNull);
+    });
+
+    test('a choreographer / source still referenced by a surviving dance is '
+        'retained', () async {
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Shared'));
+      await sources.upsert(PublishedSource(id: 's1', title: 'Shared Source'));
+      await dances.create(
+        sampleDance(
+          id: 'doomed',
+          authorIds: const ['c1'],
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+          deletedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      // A live dance keeps citing the same choreographer + source.
+      await dances.create(
+        sampleDance(
+          id: 'survivor',
+          authorIds: const ['c1'],
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+        ),
+      );
+
+      final purged = await dances.purgeDeleted(now: DateTime.utc(2026, 4, 1));
+
+      expect(purged, 1);
+      expect(await choreographers.getById('c1'), isNotNull);
+      expect(await sources.getById('s1'), isNotNull);
+    });
+
+    test('a choreographer / source referenced only by a soft-deleted-but-'
+        'retained dance is NOT GCd', () async {
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Held'));
+      await sources.upsert(PublishedSource(id: 's1', title: 'Held Source'));
+      await dances.create(
+        sampleDance(
+          id: 'doomed',
+          authorIds: const ['c1'],
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+          deletedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      // Soft-deleted recently — survives this purge, and its join rows persist,
+      // so the shared choreographer/source must be kept.
+      await dances.create(
+        sampleDance(
+          id: 'retained',
+          authorIds: const ['c1'],
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+          deletedAt: DateTime.utc(2026, 3, 25),
+        ),
+      );
+
+      final purged = await dances.purgeDeleted(now: DateTime.utc(2026, 4, 1));
+
+      expect(purged, 1);
+      expect(await dances.getById('retained', includeDeleted: true), isNotNull);
+      expect(await choreographers.getById('c1'), isNotNull);
+      expect(await sources.getById('s1'), isNotNull);
+    });
+
+    test(
+      'an unreferenced row this purge did not touch is left alone',
+      () async {
+        // A reusable choreographer/source that no purged dance referenced must
+        // not be swept just because it happens to be unreferenced.
+        await choreographers.upsert(
+          Choreographer(id: 'keep', name: 'Traditional'),
+        );
+        await sources.upsert(
+          PublishedSource(id: 'keep-src', title: 'Reusable'),
+        );
+        await choreographers.upsert(Choreographer(id: 'c1', name: 'Purged'));
+        await dances.create(
+          sampleDance(
+            id: 'only',
+            authorIds: const ['c1'],
+            deletedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+
+        final purged = await dances.purgeDeleted(now: DateTime.utc(2026, 4, 1));
+
+        expect(purged, 1);
+        expect(await choreographers.getById('c1'), isNull);
+        // Untouched reusable rows remain.
+        expect(await choreographers.getById('keep'), isNotNull);
+        expect(await sources.getById('keep-src'), isNotNull);
+      },
+    );
+
+    test('hardDelete also GCs now-orphaned reference rows', () async {
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Solo Author'));
+      await sources.upsert(PublishedSource(id: 's1', title: 'Solo Source'));
+      await choreographers.upsert(Choreographer(id: 'c2', name: 'Shared'));
+      await dances.create(
+        sampleDance(
+          id: 'doomed',
+          authorIds: const ['c1', 'c2'],
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+        ),
+      );
+      // Survivor keeps c2 alive; c1 + s1 become orphans after hardDelete.
+      await dances.create(sampleDance(id: 'survivor', authorIds: const ['c2']));
+
+      await dances.hardDelete(const ['doomed']);
+
+      expect(await dances.getById('doomed', includeDeleted: true), isNull);
+      expect(await choreographers.getById('c1'), isNull);
+      expect(await sources.getById('s1'), isNull);
+      expect(await choreographers.getById('c2'), isNotNull);
+    });
+
+    test('hardDelete with gcOrphanedRefs: false leaves now-orphaned rows '
+        '(import-undo rollback contract)', () async {
+      await choreographers.upsert(Choreographer(id: 'c1', name: 'Solo Author'));
+      await sources.upsert(PublishedSource(id: 's1', title: 'Solo Source'));
+      await dances.create(
+        sampleDance(
+          id: 'only',
+          authorIds: const ['c1'],
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+        ),
+      );
+
+      await dances.hardDelete(const ['only'], gcOrphanedRefs: false);
+
+      expect(await dances.getById('only', includeDeleted: true), isNull);
+      // The reference rows survive the delete so a rollback can restore state.
+      expect(await choreographers.getById('c1'), isNotNull);
+      expect(await sources.getById('s1'), isNotNull);
+    });
+  });
+
   group('duplicate', () {
     test('creates an independent copy with fresh identity', () async {
       final dance = sampleDance();
