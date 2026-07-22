@@ -11,96 +11,143 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-07-20
+## [0.1.0] - 2026-07-22
 
 Flutter build: `0.1.0+1`.
 
-This section covers the `0.1.0` line. **`v0.1.0-beta.3`** (this pre-release) builds
-on **`v0.1.0-beta.2`** with a broad round of caller-facing features — new Perform
-and analysis tools, richer ContraDB and browser-share importing, and a batch of
-quality-of-life refinements to browsing, editing, and sharing. The changes **since
-beta.2** are grouped first; the standing feature overview and install notes follow.
+This section covers the `0.1.0` line. **`v0.1.0-beta.4`** (this pre-release) builds
+on **`v0.1.0-beta.3`** with the project's biggest round of hardening yet — a broad
+data-safety and update-integrity pass — alongside genuinely new capabilities:
+**venues as a first-class entity**, **free-text figure entry** with your own
+shorthands, **encrypted backups**, **crash diagnostics**, and the groundwork for
+**localization**. The changes **since beta.3** are grouped first; the standing
+feature overview and install notes follow.
 
 ### Added
 
-- **Tap-tempo visual metronome in Perform.** Tap out the beat on a large target and
-  Perform shows a steady visual pulse and BPM you can follow or hold up to a band.
-  It is opt-in per session, audio-free, and nothing is stored.
-- **First/second-half calling stats for a dance.** The dance detail screen now shows
-  how often a dance has been called in the first vs. second half of a program,
-  including how many times it opened a first half or closed the evening — aggregated
-  across every program that includes it.
-- **First/second-half markers for programs.** A matrix dance now carries an
-  accessible badge showing whether it falls in the first or second half of the set,
-  derived from the program's first "Break" slot — no schema change, no retyping.
-- **"Called ×N" count on the dance card.** Each dance in the Collection now shows how
-  many times you've called it, matching the calling-history rule you've chosen in
-  Settings (all occurrences, or performed-only).
-- **Ascending/descending sort toggle.** Both the Collection and Programs lists gain an
-  up/down direction toggle beside the sort menu — so, for example, Programs ▸ Event
-  date can now show the most recent first. Each sort keeps its previous default, so
-  nothing changes until you flip it.
-- **Import ContraDB programs shared from your browser.** Share a `contradb.com`
-  program link from Safari (iOS) or your browser (Android) and Caller's Compendium
-  opens the import screen pre-filled and fetching, ready for you to review before
-  committing.
-- **Rotation-gated figures from The Caller's Box import with structure.** TCB
-  "gate"-style rotation figures are now modeled as a first-class figure — who turns,
-  which direction, how far, over how many beats, and the resulting facing — instead of
-  being flattened into unstructured text.
-- **User-editable per-formation label colours.** Give each formation its own highlight
-  colour (e.g. Becket CW yellow, Becket CCW pink) from Appearance ▸ Formation colours;
-  the tint appears on dance cards, dance detail, and the Perform header, with an
-  automatically readable (WCAG-AA) text colour.
-- **Opt-in decimal turn display.** A new display preference renders turn amounts as
-  decimals (`0.75`, `1.5`) instead of fraction glyphs (`¾`, `1½`). Default stays
-  fractions; the spoken/screen-reader wording is unaffected.
-- **Inline emphasis for your own figure text.** In your figure notes and custom-figure
-  text you can now mark words bold (`*word*`) or underlined (`_word_`); Perform renders
-  the emphasis so you can stress the words you'll say. Use `\` to type a literal `*` or
-  `_`. The markup is display-only — it changes no stored, searched, or exported text.
+- **Venues are now a first-class entity.** Create a reusable venue once — hall or
+  grange name, address, contact, schedule, and notes — and attach it to any program
+  from the program editor's venue picker, or manage the whole list from a dedicated
+  Venues screen. Programs that carry a venue print and share with its details filled
+  in. The feature is **opt-in** behind a Settings toggle; with it off, programs keep
+  their existing free-text venue label exactly as before.
+- **Free-text figure entry (opt-in).** With the new Settings toggle on, you can type a
+  figure as plain text (including `;`-separated compounds) and Caller's Compendium
+  parses it into a structured, editable figure on the spot. Anything it can't map is
+  kept as a clearly flagged custom that you can re-check later — nothing is dropped.
+- **Your own figure shorthands.** Define personal shorthands (e.g. `pt` → *pass
+  through*) that expand — one shorthand can even stand in for several figures — as you
+  use free-text entry, so common phrases go in fast.
+- **Optional passphrase-encrypted backup export.** Alongside the plain-text backup you
+  can now export an encrypted backup protected by a passphrase, for extra safety when
+  a backup leaves your device. The default JSON export is unchanged and stays readable.
+- **Crash diagnostics.** Unexpected errors are now caught and written to a local,
+  rotating crash log you can view, export, and clear from **Settings ▸ Diagnostics**.
+  Exports scrub your dance content, file paths, and contact details by default; there
+  is nothing sent anywhere and no telemetry.
+- **Parser-gap customs are flagged, and re-checkable.** Figures that came in as custom
+  only because an importer couldn't yet recognise them are now marked distinctly from
+  the customs you wrote yourself, and a Settings action can re-parse them against the
+  current recognisers as coverage improves.
+- **More batch editing in multi-select.** Collection multi-select now sets or clears a
+  dance **level**, and batch-edits **rating**, **tunes**, and **custom fields** across
+  the selection.
+- **Tap a tag to filter.** Tapping a tag chip on a dance jumps to the Collection
+  filtered to that tag.
+- **Signed, integrity-checked updates.** When you opt in to update checks, the app now
+  verifies a cryptographically **signed update manifest** (Ed25519, with the public key
+  pinned in the app), only accepts artifacts from an **allowlist of GitHub-owned
+  hosts**, and gates launch on that verification.
+- **Localization groundwork.** Every user-facing string across the app — Collection,
+  dance editor, Programs, Perform, import, search, share, export, settings, and the
+  shared chrome — has been externalized, and a **language selector** plus locale-aware
+  regional formatting have landed. This lays the foundation for community translations;
+  the interface ships in English for beta.4.
 
 ### Changed
 
-- **Swiping a list row now reveals a Delete button instead of deleting.** On the
-  Collection and Programs lists, a swipe left uncovers a Delete button and *tapping it*
-  is the confirmation — a stray swipe can no longer delete a row on its own. Delete
-  still routes through the same soft-delete and Undo snackbar.
-- **The author filter is now a searchable multi-select.** The Collection's Author facet
-  replaces its long list of per-author chips with a type-to-filter picker: search a
-  name, add it as a removable chip, and combine several — much tidier as your
-  collection of choreographers grows.
-- **Smarter ContraDB program import.** Importing a ContraDB program now fills the
-  caller from the program's contributor (falling back to your default caller) and
-  best-effort detects the event date from the program title, shown with edit/clear
-  controls and a "detected from title" hint so a wrong guess is easy to correct.
-- **Swipe down to dismiss the keyboard.** Dragging down over the dance editor, program
-  editor, Collection search, and Settings text fields now dismisses the on-screen
-  keyboard on phones and tablets, matching the platform-native gesture.
+- **Received shares go through the review screen.** Files and program bundles that
+  arrive via a share intent now open the same import review/consent screen that shared
+  links already used, so nothing is committed without your say-so.
+- **Bulk re-import defaults to keep-local.** Re-importing a set that overlaps your
+  collection now defaults to keeping your local copies and shows an overwrite count
+  before you commit, so a re-import can't silently clobber your edits.
+- **The program editor autosaves.** Your set list is saved as a draft while you build
+  it, so an app or OS interruption mid-edit no longer loses your work.
+- **Perform mode is steadier and safer to leave.** Leaving Perform now confirms before
+  it drops your place and clock (and restores them on re-entry), the top bar collapses
+  its extra actions into an overflow on narrow phones, and per-second rebuild churn,
+  auto-size flashes, and a dropped wake-lock on resume are fixed.
+- **Undo snackbars are transient and out of the way.** Undo prompts now auto-dismiss on
+  a sensible timer and float above the bottom controls instead of covering them.
+  (Screen-reader users still get the persistent, dismissible behavior the OS expects.)
+- **Reduce Motion follows your OS setting.** The app now honors the system Reduce
+  Motion preference by default; the in-app toggle still overrides it.
+- **Exports keep your on-screen figure detail.** Printed and shared dance cards now use
+  the same fuller rendering you see on screen, so balances, enders, hey length, and
+  hall direction are no longer dropped from exports.
 
 ### Fixed
 
-- **Sharing a program on macOS no longer fails.** A program-with-dances share could
-  fail on macOS with a generic "Couldn't share this program"; the bundle is now
-  written correctly before it is handed to the share sheet.
-- **AirDrop'd shares reliably open in Caller's Compendium.** Shared bundles now use a
-  dedicated `.ccshare` type that macOS and iOS route back to the app for import,
-  instead of silently saving the file with nothing offered to import.
-- **The User Guide header no longer slides under the status bar.** On iPhone/iPad the
-  in-app User Guide now reserves the top safe-area inset, so its header sits below the
-  status bar and Dynamic Island like every other screen.
-- **Collapsed filter sections stay collapsed.** Collapsing a section in the Collection
-  filter panel and then applying a filter no longer re-expands it.
-- **Imported program dances now count in calling history.** Marking an imported program
-  as performed now stamps each of its dance slots, so those dances correctly appear in
-  each dance's calling history and half-stats (previously they could be missed).
+- **Deleting a dance, venue, or related-dance link can no longer corrupt your data.** A
+  cluster of purge-time bugs — where permanently removing the target of a link or a
+  dance-only program slot could later make the whole Programs or Collection list fail
+  to load — has been fixed and locked down with integrity tests and fuzz coverage.
+- **iOS "Share via browser" imports now work.** Sharing a link into the app from
+  Safari now reliably wakes the app and drains the shared item on foreground, instead
+  of flashing a sheet and doing nothing.
+- **Trashed dances no longer appear in search.** Soft-deleted dances are now excluded
+  from full-text search results, matching the filtered browse list.
+- **Assumed figure subjects are marked, not invented.** When an import omits who does a
+  figure, the app now attaches a non-authoritative "assumed" marker instead of silently
+  presenting a guessed subject as fact.
+- **Orphaned records are cleaned up.** Purging a dance now garbage-collects the
+  choreographer and source rows it leaves behind.
+- **The tag input clears after you add a tag** in the dance editor.
+
+### Security & data safety
+
+This release puts a deliberate pass over the ways your data could be lost, corrupted,
+or tampered with:
+
+- **Fail-closed migration snapshot.** If the automatic pre-upgrade backup can't be
+  written, the app now stops and asks before proceeding, rather than silently upgrading
+  without a safety net.
+- **Atomic backups and all-or-nothing restore.** Backups are written to a temporary
+  file and swapped into place, so an interrupted write can't corrupt your last good
+  backup; a replace-mode restore now fully succeeds or leaves your data untouched.
+- **Single-instance desktop guard.** Running a second copy on desktop no longer risks a
+  database-lock race.
+- **Hardened imports.** Imported text is sanitized against control, bidirectional, and
+  look-alike character spoofing; import files are size-capped and `.USR` structure is
+  bounded; and titles are sanitized before they become PDF print-job names.
+- **Safer release builds.** Android release builds now fail loudly if the signing key
+  is missing (instead of quietly debug-signing), and the Windows installer's toolchain
+  is pinned and checksum-verified.
+
+### Accessibility
+
+- **Perform accessibility preferences persist** across sessions.
+- **Dialect substitution fields have programmatic labels** for screen readers.
+- **The theme editor's low-contrast warning is announced** as a live region.
+
+### Performance
+
+- **Faster large collections.** Collection hydration is batched to remove an
+  N+1 query pattern, author and last-called sorts are scoped to the current result set,
+  and the derived-index rebuild runs in batches with progress instead of appearing to
+  hang.
 
 ### Data / Migrations
 
-- **No database schema change since beta.2.** The database schema stays at version 12,
-  so upgrading from beta.2 touches none of your stored data — every change above is
-  display- or behavior-only. (Upgrading *directly from beta.1* still runs the one-time,
-  automatic, lossless ocean-wave migration described in the beta.2 notes.)
+- **Schema advances from version 12 to 14 — automatically and losslessly.** Two
+  additive steps run on first launch: a performance-only index (no data touched), and
+  the new **venues** table plus a nullable `venue_id` link on programs. Existing
+  programs keep their free-text venue label untouched, nothing is back-filled, and no
+  content is rewritten. **Upgrading from beta.2 or beta.3 is a normal in-place
+  install** — no reinstall and no manual data steps. (Upgrading *directly from beta.1*
+  still runs the one-time ocean-wave migration described in the beta.2 notes, and needs
+  the Android reinstall below.)
 
 ### Known issues
 
@@ -108,22 +155,25 @@ beta.2** are grouped first; the standing feature overview and install notes foll
   unified the Android application identifier with Apple
   (`org.callerscompendium.compendiumApp`), so a beta.1 sideload cannot upgrade in
   place. **Export a backup (Settings ▸ General ▸ Export a backup), uninstall the old
-  app, install this build, then restore.** Upgrading from **beta.2 to beta.3 is a
-  normal in-place install** — no reinstall and no data steps needed.
-- **In-app update checks remain minimal for beta.** Automatic checks and the beta
-  channel are off by default and opt-in in Settings; watch the GitHub Releases page
-  for new betas.
+  app, install this build, then restore.**
+- **In-app update checks remain opt-in.** Automatic checks and the beta channel are off
+  by default and enabled in Settings; when on, updates are now signature-verified (see
+  Security & data safety). Either way, you can always watch the GitHub Releases page for
+  new betas.
 - **Windows and Linux desktop builds are still unsigned** (see Platforms & install).
 
 ### What you can do today
 
 - **Build your Collection.** Create, edit, and tag dances, organize them your way,
   and soft-delete/restore anything (with a 30-day Recently Deleted safety net).
-- **Plan Programs.** Assemble a set with event date, venue, ordered slots, and
-  alternates; track program status; duplicate a program to reuse a good set.
+- **Plan Programs.** Assemble a set with event date, a reusable venue, ordered slots,
+  and alternates; track program status; duplicate a program to reuse a good set.
 - **Perform.** Open a program — or a single dance — in a large-print, auto-sizing
   Perform view built for reading across a dim hall, mark dances as you call them, and
   tap out the tempo on a built-in visual metronome.
+- **Enter figures your way.** Build figures with the structured editor, or turn on
+  free-text entry to type them (with your own shorthands) and have them parsed into
+  structured, editable figures.
 - **Import your existing library.** Bring dances in from a JSON backup, The Caller's
   Box, ContraDB, and Caller's Companion (`.USR`); import **programs** from Caller's
   Companion (`.USR`) and now from **ContraDB** as well. Every import is reviewable and
@@ -133,7 +183,8 @@ beta.2** are grouped first; the standing feature overview and install notes foll
 - **Search the way you talk.** Dialect-aware search and filtering understands the
   terminology you use, whichever tradition you call in.
 - **Keep your data yours.** Export a full backup to a single human-readable JSON file
-  and restore it on another machine — no account, no cloud, no telemetry.
+  (or a passphrase-encrypted one) and restore it on another machine — no account, no
+  cloud, no telemetry.
 
 ### Platforms & install
 
@@ -165,7 +216,7 @@ source is safe. Before a large import — or any upgrade — you can export a ba
 
 Please tell us what breaks or feels wrong:
 <https://github.com/ibanner56/CallersCompendium/issues>. Include your platform, the
-version (`0.1.0-beta.3`), and the steps you took. For import problems, a small
+version (`0.1.0-beta.4`), and the steps you took. For import problems, a small
 sanitized sample of the file you were importing helps enormously.
 
 ### License

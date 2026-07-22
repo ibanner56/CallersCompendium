@@ -602,7 +602,7 @@ taxonomy are unchanged.
 ## Phase 7 — Release
 
 - [ ] 7.1 Packaging/signing for all platforms; update channel
-  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run) and **macOS release builds are now signed with a Developer ID and notarized**, but **Windows and Linux** desktop builds still ship **unsigned** (deferred signing wave). GitHub Pages is now enabled, so the per-channel update manifests are hosted and served (and a public landing page ships from `site/`). The **first public beta is well underway** — `v0.1.0-beta.1` (desktop + Android), `v0.1.0-beta.2`, and the current `v0.1.0-beta.3` are published on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases); each build ships signed + notarized macOS and signed Android artifacts alongside unsigned Windows/Linux, with iPhone/iPad delivered to TestFlight testers (see the CHANGELOG, including the one-time Android reinstall note for the unified application id).
+  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run) and **macOS release builds are now signed with a Developer ID and notarized**, but **Windows and Linux** desktop builds still ship **unsigned** (deferred signing wave). GitHub Pages is now enabled, so the per-channel update manifests are hosted and served (and a public landing page ships from `site/`); as of beta.4 the in-app update path also **verifies a signed (Ed25519) update manifest, restricts artifacts to a GitHub-owned host allowlist, and gates launch on that verification**. The **first public beta is well underway** — `v0.1.0-beta.1` (desktop + Android), `v0.1.0-beta.2`, `v0.1.0-beta.3`, and the current `v0.1.0-beta.4` are published on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases); each build ships signed + notarized macOS and signed Android artifacts alongside unsigned Windows/Linux, with iPhone/iPad delivered to TestFlight testers (see the CHANGELOG, including the one-time Android reinstall note for the unified application id).
   - **Delivered**
     - Reusable CI (`_checks.yml` via `workflow_call`) with a thin `ci.yml` caller (#228).
     - Release pipeline `release.yml` (#230): a `v*` tag reuses the checks gate, then a build matrix produces a **draft** GitHub Release of **unsigned** desktop artifacts — Linux x64 (AppImage + tar.gz), macOS universal (dmg + zip), Windows x64 (installer + zip) — under deterministic `CallersCompendium-<ver>-<platform>-<arch>.<ext>` names, plus a `SHA256SUMS` manifest, keyless SLSA build-provenance + artifact attestation, and the per-channel `stable.json` / `beta.json` update manifests. Least-privilege (global `contents: read`; only the publish job elevates), canonical-repo + tag guards, SHA-pinned actions.
@@ -649,15 +649,18 @@ taxonomy are unchanged.
   over our structured model (see #401): a user shorthand maps to a fully-configured
   taxonomy *figure* (move + params) rather than expansion *text* — beats become a
   figure param and the gender-free alternate is produced by the existing dialect
-  system, so there are no per-snippet text/beats/alternate fields. Tracked as #404
-  (shorthand→figure mappings), which builds on #403 (free-text figure entry mode)
-  and #398 (parser-gap flagging); sequencing #398 → #403 → #404. Post-beta.3. The
-  *structured* analogue already shipped as DD.3 (per-move figure-entry defaults).
+  system, so there are no per-snippet text/beats/alternate fields. Tracked as #420
+  (shorthand→figure mappings), which built on #419 (free-text figure entry mode)
+  and #398 (parser-gap flagging); sequencing #398 → #419 → #420, **all delivered in
+  beta.4**. The *structured* analogue already shipped as DD.3 (per-move figure-entry
+  defaults).
 - **UI localization / multi-language** — the i18n **framework has landed** (see
   G.8): `flutter_localizations` + `gen-l10n`, an app-language selector, and
-  **English as the source locale**. What remains is incremental: extracting the
-  rest of the ~900 UI strings into `app_en.arb` (phased PRs) and welcoming
-  **community-contributed** `app_<locale>.arb` translations, which require no code
+  **English as the source locale**. The **full sweep of UI strings across every
+  screen** (Collection, dance editor, Programs, Perform, import/search/share/export,
+  settings, and the shared chrome) has now been extracted into `app_en.arb`. What
+  remains is welcoming **community-contributed** `app_<locale>.arb` translations,
+  which require no code
   change to appear. See [docs/dev/localization.md](dev/localization.md).
 
 ### Plugin system (user-installable extensions)

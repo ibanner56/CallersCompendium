@@ -24,11 +24,13 @@ Squares) callers — on desktop, tablet, and phone.
 
 - **Collection** — catalog dance transcriptions with structured, searchable
   figures; search by title, author, type, formation, level, figures (even
-  "chain then swing in B2"), and your own custom fields. _(built)_
+  "chain then swing in B2"), and your own custom fields. Enter figures with the
+  structured editor, or turn on free-text entry to type them — with your own
+  shorthands — and have them parsed into structured, editable figures. _(built)_
 - **Programs** — create, edit, duplicate, and print/email set lists for events,
-  with alternate dances, free-text slots, and a programming matrix computed from
-  the choreography itself. Build a program from a plain-text title list or
-  straight from a ContraDB event, and share a program together with all the
+  with alternate dances, free-text slots, reusable venues, and a programming matrix
+  computed from the choreography itself. Build a program from a plain-text title
+  list or straight from a ContraDB event, and share a program together with all the
   dances it uses — or open one you've been sent (AirDrop, "Open with", or a share
   intent) to import the whole program and its dances in one step. _(built)_
 - **Performance mode** — a large-print, high-contrast, stage-ready calling
