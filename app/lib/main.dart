@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show exit, stderr;
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
 import 'src/data/seed_service.dart';
 import 'src/data/set_list_color_coding_scope.dart';
+import 'src/data/single_instance_guard.dart';
 import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
@@ -65,9 +67,28 @@ Future<void> main() async {
   // Wrap the whole app in a guarded zone so uncaught *async* errors are
   // captured too (sync framework/engine errors go through the handlers
   // installed by [installGlobalErrorHandlers]).
-  runGuarded(() {
+  runGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     installGlobalErrorHandlers(crashReporter);
+    // #441: On desktop, refuse a second instance BEFORE constructing [AppData]
+    // (which opens the on-device database) so two processes can't race the
+    // migration / derived-rebuild marker and trip `database is locked`. The
+    // guard takes an OS advisory lock in the app's private support directory;
+    // if another live instance already holds it, this launch exits before any
+    // database connection is opened. Crash-safe: the OS releases the advisory
+    // lock when the holder dies, so a crashed prior instance never bricks a
+    // relaunch. No-op off desktop (mobile owns single-instance; web has no
+    // `dart:io`) and in the headless test harness, which never runs `main`.
+    if (DesktopSingleInstance.isSupportedPlatform) {
+      final result = await DesktopSingleInstance().acquire();
+      if (result == SingleInstanceResult.alreadyRunning) {
+        stderr.writeln(
+          "Caller's Compendium is already running; focus the existing window. "
+          'Exiting this second launch to protect the database.',
+        );
+        exit(0);
+      }
+    }
     // Register the bundled font license texts (OFL) so Flutter's
     // showLicensePage — reachable from Settings ▸ About ▸ View licenses —
     // includes them.
