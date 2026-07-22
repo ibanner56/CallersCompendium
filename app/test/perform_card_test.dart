@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 final _renderer = FigureRenderer(contraTaxonomy);
 final _now = DateTime.utc(2026, 1, 1);
@@ -35,6 +36,9 @@ Future<FormationColorsController> _controllerWith(Color? override) async {
 Future<void> _pump(WidgetTester tester, FormationColorsController c) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+
       home: Scaffold(
         body: FormationColorsScope(
           controller: c,

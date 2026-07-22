@@ -8,6 +8,7 @@ import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -35,6 +36,9 @@ Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+
       builder: (context, child) =>
           RepositoriesScope(repositories: repos, child: child!),
       home: const ProgramsListScreen(),

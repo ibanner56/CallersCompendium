@@ -1,6 +1,7 @@
 import 'package:compendium_app/src/widgets/tap_tempo_metronome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/l10n_harness.dart';
 
 /// Pumps a [TapTempoMetronome] whose clock returns whatever [now] currently
 /// points at, so tests can advance time deterministically between taps.
@@ -11,6 +12,9 @@ Future<void> _pumpMetronome(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+
       // Override disableAnimations *inside* MaterialApp's own MediaQuery
       // (via builder) — wrapping MediaQuery outside MaterialApp doesn't work
       // because WidgetsApp installs a fresh MediaQuery.fromView that would

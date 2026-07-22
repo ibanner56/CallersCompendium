@@ -8,6 +8,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/programs_shell.dart';
 
 import 'support/test_repositories.dart';
+import 'support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 
@@ -38,6 +39,9 @@ Future<void> _pumpWide(
   });
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
         child: ActiveDialectScope(

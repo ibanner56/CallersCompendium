@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../search/collection_data.dart';
+import '../../l10n/app_localizations.dart';
 import '../widgets/collection_picker.dart';
 
 /// The non-destructive in-event "adjust" sheet for Performance mode
@@ -116,14 +117,14 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     return count;
   }
 
-  String _label(ProgramSlot slot) {
+  String _label(AppLocalizations l10n, ProgramSlot slot) {
     if (slot.danceId != null) {
       final dance = widget.data.dancesById[slot.danceId];
       if (dance != null) return dance.title;
     }
     final text = slot.text?.trim();
     if (text != null && text.isNotEmpty) return text;
-    return 'Untitled slot';
+    return l10n.performUntitledSlot;
   }
 
   void _announce(String message) {
@@ -154,10 +155,11 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       _changed = true;
     });
     final nowPerformed = edited?.performedAt != null;
+    final l10n = AppLocalizations.of(context);
     _announce(
       nowPerformed
-          ? 'Marked ${_label(edited!)} performed'
-          : 'Cleared performed mark',
+          ? l10n.performMarkedPerformedAnnounce(_label(l10n, edited!))
+          : l10n.performClearedPerformedAnnounce,
     );
   }
 
@@ -174,14 +176,19 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       );
       _changed = true;
     });
+    final l10n = AppLocalizations.of(context);
     _announce(
-      'Moved ${_label(item.primary)} to position ${start + toMovableIndex + 1}',
+      l10n.performMovedToPosition(
+        _label(l10n, item.primary),
+        start + toMovableIndex + 1,
+      ),
     );
   }
 
   void _onReorder(int oldIndex, int newIndex) => _moveGroup(oldIndex, newIndex);
 
   void _insertDance(String danceId) {
+    final l10n = AppLocalizations.of(context);
     final flat = [..._flatten(_working.grouped)];
     final at = _afterCurrentFlatIndex();
     flat.insert(at, ProgramSlot(id: uuidV4(), position: at, danceId: danceId));
@@ -189,11 +196,13 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       _working = _withSlots(flat);
       _changed = true;
     });
-    final title = widget.data.dancesById[danceId]?.title ?? 'dance';
-    _announce('Inserted $title');
+    final title =
+        widget.data.dancesById[danceId]?.title ?? l10n.performDanceFallback;
+    _announce(l10n.performInsertedAnnounce(title));
   }
 
   void _addNote() {
+    final l10n = AppLocalizations.of(context);
     final text = _noteController.text.trim();
     if (text.isEmpty) return;
     final flat = [..._flatten(_working.grouped)];
@@ -204,7 +213,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       _changed = true;
       _noteController.clear();
     });
-    _announce('Added note');
+    _announce(l10n.performAddedNoteAnnounce);
   }
 
   Future<void> _openInsertPicker() async {
@@ -227,7 +236,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Insert a dance',
+                      AppLocalizations.of(sheetContext).performInsertADance,
                       style: Theme.of(sheetContext).textTheme.titleMedium,
                     ),
                   ),
@@ -292,20 +301,24 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   }
 
   Widget _buildHeader(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
       child: Row(
         children: [
           Semantics(
             header: true,
-            child: Text('Adjust program', style: theme.textTheme.titleLarge),
+            child: Text(
+              l10n.performAdjustProgram,
+              style: theme.textTheme.titleLarge,
+            ),
           ),
           const Spacer(),
           FilledButton(
             key: const ValueKey('adjust-done'),
             onPressed: () =>
                 Navigator.of(context).pop(_changed ? _working : null),
-            child: const Text('Done'),
+            child: Text(l10n.commonDone),
           ),
         ],
       ),
@@ -326,6 +339,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   );
 
   Widget _buildCurrentSlotSection(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     final current = _working.slots.firstWhere(
       (s) => s.id == widget.currentSlotId,
       orElse: () => _working.slots.first,
@@ -334,8 +348,8 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildSectionTitle(theme, 'Current slot'),
-        Text(_label(current), style: theme.textTheme.bodyLarge),
+        _buildSectionTitle(theme, l10n.performCurrentSlotSection),
+        Text(_label(l10n, current), style: theme.textTheme.bodyLarge),
         const SizedBox(height: 8),
         // A single semantics node carrying button role + name + the current
         // performed STATE, so AT knows whether the slot is already marked
@@ -350,7 +364,9 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
                 performed ? Icons.check_circle : Icons.check_circle_outline,
               ),
               label: Text(
-                performed ? 'Performed — tap to clear' : 'Mark performed',
+                performed
+                    ? l10n.performPerformedTapToClear
+                    : l10n.programsMarkPerformedMenu,
               ),
             ),
           ),
@@ -360,6 +376,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   }
 
   Widget _buildReorderSection(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     final groups = _working.grouped;
     final start = _movableStart;
     final movable = groups.sublist(start);
@@ -367,10 +384,10 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildSectionTitle(theme, 'Reorder remaining slots'),
+        _buildSectionTitle(theme, l10n.performReorderSection),
         if (movable.length < 2)
           Text(
-            'No later slots to reorder.',
+            l10n.performNoLaterSlots,
             key: const ValueKey('adjust-reorder-empty'),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -395,7 +412,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
                   index: index,
                   absolutePosition: absolute,
                   total: movable.length,
-                  label: _label(group.primary),
+                  label: _label(l10n, group.primary),
                   alternates: group.alternates.length,
                   onMoveUp: index > 0
                       ? () => _moveGroup(index, index - 1)
@@ -412,15 +429,16 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   }
 
   Widget _buildInsertSection(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildSectionTitle(theme, 'Add to program'),
+        _buildSectionTitle(theme, l10n.commonAddToProgram),
         OutlinedButton.icon(
           key: const ValueKey('adjust-insert-dance'),
           onPressed: _openInsertPicker,
           icon: const Icon(Icons.library_music_outlined),
-          label: const Text('Insert dance from search'),
+          label: Text(l10n.performInsertDanceFromSearch),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -428,10 +446,10 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
           controller: _noteController,
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _addNote(),
-          decoration: const InputDecoration(
-            labelText: 'Ad-hoc note / break',
-            hintText: 'e.g. Waltz, announcements',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.performAdHocNoteLabel,
+            hintText: l10n.performAdHocNoteHint,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 8),
@@ -441,7 +459,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
             key: const ValueKey('adjust-add-note'),
             onPressed: _addNote,
             icon: const Icon(Icons.notes_outlined),
-            label: const Text('Add note'),
+            label: Text(l10n.performAddNote),
           ),
         ),
       ],
@@ -475,8 +493,9 @@ class _ReorderRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final subtitle = alternates > 0
-        ? '$alternates alternate${alternates == 1 ? '' : 's'}'
+        ? l10n.performAlternatesCount(alternates)
         : null;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 4),
@@ -488,13 +507,13 @@ class _ReorderRow extends StatelessWidget {
         children: [
           IconButton(
             key: ValueKey('adjust-move-up-$index'),
-            tooltip: 'Move "$label" up',
+            tooltip: l10n.performMoveLabelUp(label),
             icon: const Icon(Icons.keyboard_arrow_up),
             onPressed: onMoveUp,
           ),
           IconButton(
             key: ValueKey('adjust-move-down-$index'),
-            tooltip: 'Move "$label" down',
+            tooltip: l10n.performMoveLabelDown(label),
             icon: const Icon(Icons.keyboard_arrow_down),
             onPressed: onMoveDown,
           ),

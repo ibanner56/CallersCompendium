@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/screens/perform_card.dart';
+import '../support/l10n_harness.dart';
 
 /// UX review 6.3 / 6.8: the Perform "Show canonical terms" toggle uses the
 /// app's Dialect glyph family (`Icons.groups`), following the outlined-idle /
@@ -11,6 +12,9 @@ void main() {
   Future<void> pump(WidgetTester tester, {required bool canonical}) {
     return tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+
         home: Scaffold(
           appBar: AppBar(
             actions: [

@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
@@ -230,9 +231,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       newTitle: '${source.title} (copy)',
     );
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Duplicated as "${copy.title}".')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context).programsDuplicatedSnack(copy.title),
+        ),
+      ),
+    );
     widget.onNavigateTo(copy.id);
   }
 
@@ -244,11 +249,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (!mounted) return;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('"${source.title}" deleted.'),
+        content: Text(l10n.programsDeletedSnack(source.title)),
         action: SnackBarAction(
-          label: 'Undo',
+          label: l10n.commonUndo,
           onPressed: () =>
               _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
         ),
@@ -289,8 +295,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: widget.showAppBar ? AppBar(title: const Text('Program')) : null,
+      appBar: widget.showAppBar
+          ? AppBar(title: Text(l10n.programsSummaryTitle))
+          : null,
       body: _buildBody(),
       floatingActionButton: (_program != null)
           ? FloatingActionButton.extended(
@@ -298,24 +307,25 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               heroTag: 'open-builder',
               onPressed: widget.onOpenBuilder,
               icon: const Icon(Icons.edit_note),
-              label: const Text('Edit program'),
+              label: Text(l10n.programsEditProgram),
             )
           : null,
     );
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(semanticsLabel: 'Loading program'),
+      return Center(
+        child: CircularProgressIndicator(semanticsLabel: l10n.programsLoading),
       );
     }
     final program = _program;
     if (_error != null || program == null) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text('This program is no longer available.'),
+          padding: const EdgeInsets.all(24),
+          child: Text(l10n.programsSummaryUnavailable),
         ),
       );
     }
@@ -348,19 +358,19 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             if (program.slots.any((s) => s.danceId != null))
               IconButton(
                 key: const ValueKey('mark-all-performed'),
-                tooltip: 'Mark all performed',
+                tooltip: l10n.programsMarkAllPerformedTooltip,
                 icon: const Icon(Icons.done_all),
                 onPressed: _markAllPerformed,
               ),
             IconButton(
               key: const ValueKey('summary-duplicate'),
-              tooltip: 'Duplicate',
+              tooltip: l10n.commonDuplicate,
               icon: const Icon(Icons.copy_all_outlined),
               onPressed: _duplicate,
             ),
             IconButton(
               key: const ValueKey('summary-delete'),
-              tooltip: 'Delete',
+              tooltip: l10n.commonDelete,
               icon: const Icon(Icons.delete_outline),
               onPressed: _delete,
             ),
@@ -377,19 +387,31 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         if (program.venue != null)
           _summaryRow(Icons.place_outlined, program.venue!),
         if (program.band != null)
-          _summaryRow(Icons.music_note_outlined, 'Band: ${program.band}'),
+          _summaryRow(
+            Icons.music_note_outlined,
+            l10n.programsSummaryBand(program.band!),
+          ),
         if (program.caller != null)
-          _summaryRow(Icons.campaign_outlined, 'Caller: ${program.caller}'),
+          _summaryRow(
+            Icons.campaign_outlined,
+            l10n.programsSummaryCaller(program.caller!),
+          ),
         if (program.dancerLevel != null)
-          _summaryRow(Icons.groups_outlined, 'Level: ${program.dancerLevel}'),
+          _summaryRow(
+            Icons.groups_outlined,
+            l10n.programsSummaryLevel(program.dancerLevel!),
+          ),
         if (program.notes.trim().isNotEmpty) ...[
           const SizedBox(height: 16),
-          Text('Notes', style: theme.textTheme.titleSmall),
+          Text(l10n.programsNotesLabel, style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           Text(program.notes),
         ],
         const SizedBox(height: 24),
-        Text('Set list ($slotCount)', style: theme.textTheme.titleSmall),
+        Text(
+          l10n.programsSetListHeader(slotCount),
+          style: theme.textTheme.titleSmall,
+        ),
         const SizedBox(height: 8),
         ..._buildSetList(program),
         const SizedBox(height: 80),
@@ -404,12 +426,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// guard — never a dead button. The disabled state is exposed to assistive
   /// technology via the button's own disabled semantics, not colour alone.
   Widget _buildPerformAction(Program program) {
+    final l10n = AppLocalizations.of(context);
     final canPerform = program.slots.isNotEmpty && _collectionData != null;
     return IconButton(
       key: const ValueKey('summary-perform'),
       tooltip: canPerform
-          ? 'Perform this program'
-          : 'Add at least one slot to perform this program',
+          ? l10n.programsPerformTooltip
+          : l10n.programsPerformDisabledTooltip,
       icon: const Icon(Icons.slideshow),
       onPressed: canPerform ? _performProgram : null,
     );
@@ -423,18 +446,19 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// absent-and-tappable) with an explanatory tooltip when the program has no
   /// slots or the reference data has not loaded yet.
   Widget _buildProminentPerform(Program program) {
+    final l10n = AppLocalizations.of(context);
     final canPerform = program.slots.isNotEmpty && _collectionData != null;
     return Tooltip(
       message: canPerform
-          ? 'Perform this program'
-          : 'Add at least one slot to perform this program',
+          ? l10n.programsPerformTooltip
+          : l10n.programsPerformDisabledTooltip,
       child: SizedBox(
         width: double.infinity,
         child: FilledButton.icon(
           key: const ValueKey('summary-perform'),
           onPressed: canPerform ? _performProgram : null,
           icon: const Icon(Icons.slideshow),
-          label: const Text('Perform this program'),
+          label: Text(l10n.programsPerformTooltip),
         ),
       ),
     );
@@ -462,7 +486,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     await _repos.programs.update(updated);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Marked all dances performed.')),
+      SnackBar(
+        content: Text(AppLocalizations.of(context).programsMarkedAllPerformed),
+      ),
     );
     _load();
     // On the wide split-pane, refresh the coexisting list too (this bumps
@@ -481,7 +507,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Text(
-            'No slots yet — open the builder to add dances.',
+            AppLocalizations.of(context).programsSummaryEmptySetList,
             key: const ValueKey('summary-set-list-empty'),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -508,6 +534,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     required String? ordinalLabel,
     bool indented = false,
   }) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final danceId = slot.danceId;
     // Colour-code accent (issue #270): a *redundant* cue paired with the
@@ -535,8 +562,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // slot types when present. Trimmed for display, matching the builder UI.
     final extras = <String>[
       if (slot.guestCaller != null && slot.guestCaller!.trim().isNotEmpty)
-        'Guest: ${slot.guestCaller!.trim()}',
-      if (slot.plannedMinutes != null) '${slot.plannedMinutes} min',
+        l10n.programsSummaryGuest(slot.guestCaller!.trim()),
+      if (slot.plannedMinutes != null)
+        l10n.programsPlannedMinutes(slot.plannedMinutes!),
     ];
 
     final altBadge = slot.isAlt
@@ -550,7 +578,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               ),
               const SizedBox(width: 2),
               Text(
-                'Alt',
+                l10n.programsAltBadge,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.tertiary,
                   fontWeight: FontWeight.bold,
@@ -586,7 +614,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
                   children: [
                     ?altBadge,
                     Text(
-                      'Dance unavailable',
+                      l10n.programsDanceUnavailable,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
@@ -606,7 +634,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         // A dance slot may also carry a per-slot caller note (per ProgramSlot
         // docs); surface it like the builder UI does.
         if (slot.text != null && slot.text!.trim().isNotEmpty)
-          'Note: ${slot.text!.trim()}',
+          l10n.programsSummaryNote(slot.text!.trim()),
         ...extras,
       ];
       final secondary = secondaryParts.join(' · ');
@@ -622,9 +650,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // Expose the formation as text to AT so the row is fully readable without
       // colour (ux.md §4): the accent is never the sole carrier of type/form.
       final semanticsLabel = [
-        slot.isAlt ? 'Alternate: $title' : title,
+        slot.isAlt ? l10n.programsSummaryAlternateSemantic(title) : title,
         if (dance != null) formationLabel(dance.formation),
-        if (performed) 'Performed',
+        if (performed) l10n.programsPerformed,
       ].join('. ');
 
       return Padding(

@@ -1,23 +1,29 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_theme_extension.dart';
+import 'program_status_labels.dart';
 
 /// Icon + text label for a [ProgramStatus]. Pairs an icon with text so status
 /// is never conveyed by color alone (`docs/research/accessibility-baseline.md`,
 /// `docs/design/ux.md` cross-cutting rule).
 ({IconData icon, String label}) programStatusPresentation(
   ProgramStatus status,
+  AppLocalizations l10n,
 ) => switch (status) {
-  ProgramStatus.draft => (icon: Icons.edit_note_outlined, label: 'Draft'),
+  ProgramStatus.draft => (
+    icon: Icons.edit_note_outlined,
+    label: programStatusLabel(l10n, status),
+  ),
   ProgramStatus.finalized => (
     icon: Icons.check_circle_outline,
-    label: 'Finalized',
+    label: programStatusLabel(l10n, status),
   ),
   ProgramStatus.performed => (
     icon: Icons.event_available_outlined,
-    label: 'Performed',
+    label: programStatusLabel(l10n, status),
   ),
 };
 
@@ -111,7 +117,7 @@ class ProgramStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final p = programStatusPresentation(status);
+    final p = programStatusPresentation(status, AppLocalizations.of(context));
     return StatusChip(
       icon: p.icon,
       label: p.label,

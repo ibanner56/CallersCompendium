@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/app_theme_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -77,7 +78,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     widget.onReorder(cutIndex, finalPos);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      'Slot moved.',
+      AppLocalizations.of(context).programsSlotMoved,
       TextDirection.ltr,
     );
   }
@@ -108,14 +109,16 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     return ordinal;
   }
 
-  String _slotTitle(ProgramSlot slot) {
+  String _slotTitle(AppLocalizations l10n, ProgramSlot slot) {
     final danceId = slot.danceId;
     if (danceId != null) {
       final title = widget.danceTitles(danceId);
-      return title ?? '(deleted dance)';
+      return title ?? l10n.programsDeletedDanceFallback;
     }
     final text = slot.text;
-    return (text == null || text.trim().isEmpty) ? 'Note' : text;
+    return (text == null || text.trim().isEmpty)
+        ? l10n.programsSlotNoteFallback
+        : text;
   }
 
   /// Resolves a slot's dance formation, or null for free-text slots and
@@ -127,6 +130,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final slots = widget.slots;
     // Guard: a cut slot removed externally.
     if (_cutSlotId != null && !slots.any((s) => s.id == _cutSlotId)) {
@@ -134,18 +138,18 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     }
 
     if (slots.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 32),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
         child: Center(
-          key: ValueKey('slots-empty'),
-          child: Text('No slots yet. Add a dance or a note to get started.'),
+          key: const ValueKey('slots-empty'),
+          child: Text(l10n.programsSlotEditorEmpty),
         ),
       );
     }
 
     final cutName = _cutSlotId == null
         ? null
-        : _slotTitle(slots.firstWhere((s) => s.id == _cutSlotId));
+        : _slotTitle(l10n, slots.firstWhere((s) => s.id == _cutSlotId));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -161,14 +165,12 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   const Icon(Icons.content_cut, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      '"${cutName ?? '—'}" is cut — tap Paste to place it.',
-                    ),
+                    child: Text(l10n.programsSlotCutBanner(cutName ?? '—')),
                   ),
                   TextButton(
                     key: const ValueKey('slot-cut-cancel'),
                     onPressed: _cancelCut,
-                    child: const Text('Cancel'),
+                    child: Text(l10n.commonCancel),
                   ),
                 ],
               ),
@@ -186,7 +188,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   key: ValueKey('slot-${slots[i].id}'),
                   index: i,
                   slot: slots[i],
-                  title: _slotTitle(slots[i]),
+                  title: _slotTitle(l10n, slots[i]),
                   formation: _slotFormation(slots[i]),
                   ordinal: _ordinalAtIndex(i),
                   isDanceSlot: slots[i].danceId != null,
@@ -211,7 +213,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
             children: [
               _PasteButton(
                 key: const ValueKey('slot-paste-top'),
-                semanticsLabel: 'Paste before first slot',
+                semanticsLabel: l10n.programsPasteBeforeFirst,
                 onPaste: () => _paste(0),
               ),
               for (var i = 0; i < slots.length; i++) ...[
@@ -219,7 +221,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   key: ValueKey('slot-${slots[i].id}'),
                   index: i,
                   slot: slots[i],
-                  title: _slotTitle(slots[i]),
+                  title: _slotTitle(l10n, slots[i]),
                   formation: _slotFormation(slots[i]),
                   ordinal: _ordinalAtIndex(i),
                   isDanceSlot: slots[i].danceId != null,
@@ -242,7 +244,9 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                 if (slots[i].id != _cutSlotId)
                   _PasteButton(
                     key: ValueKey('slot-paste-after-${slots[i].id}'),
-                    semanticsLabel: 'Paste after ${_slotTitle(slots[i])}',
+                    semanticsLabel: l10n.programsPasteAfter(
+                      _slotTitle(l10n, slots[i]),
+                    ),
                     onPaste: () => _paste(i + 1),
                   ),
               ],
@@ -256,7 +260,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     widget.onReorder(i, i - 1);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      'Slot moved up.',
+      AppLocalizations.of(context).programsSlotMovedUp,
       TextDirection.ltr,
     );
   }
@@ -267,23 +271,25 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     widget.onReorder(i, i + 1);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      'Slot moved down.',
+      AppLocalizations.of(context).programsSlotMovedDown,
       TextDirection.ltr,
     );
   }
 
   void _toggleAlt(int i) {
     final slot = widget.slots[i];
+    final l10n = AppLocalizations.of(context);
     widget.onSlotChanged(i, slot.copyWith(isAlt: !slot.isAlt));
     SemanticsService.sendAnnouncement(
       View.of(context),
-      slot.isAlt ? 'Marked as primary.' : 'Marked as alternate.',
+      slot.isAlt ? l10n.programsMarkedPrimary : l10n.programsMarkedAlternate,
       TextDirection.ltr,
     );
   }
 
   void _togglePerformed(int i) {
     final slot = widget.slots[i];
+    final l10n = AppLocalizations.of(context);
     if (slot.performedAt == null) {
       widget.onSlotChanged(
         i,
@@ -291,7 +297,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       );
       SemanticsService.sendAnnouncement(
         View.of(context),
-        'Marked performed.',
+        l10n.programsMarkedPerformed,
         TextDirection.ltr,
       );
     } else {
@@ -310,18 +316,19 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       );
       SemanticsService.sendAnnouncement(
         View.of(context),
-        'Performed mark cleared.',
+        l10n.programsPerformedCleared,
         TextDirection.ltr,
       );
     }
   }
 
   void _remove(int i) {
-    final name = _slotTitle(widget.slots[i]);
+    final l10n = AppLocalizations.of(context);
+    final name = _slotTitle(l10n, widget.slots[i]);
     widget.onRemove(i);
     SemanticsService.sendAnnouncement(
       View.of(context),
-      'Removed $name.',
+      l10n.programsRemovedSlot(name),
       TextDirection.ltr,
     );
   }
@@ -386,6 +393,7 @@ class _SlotTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final performed = slot.performedAt != null;
 
     // Redundant formation-family accent (issue #270): only for dance slots with
@@ -402,10 +410,12 @@ class _SlotTile extends StatelessWidget {
     final subtitleParts = <String>[
       if (formation != null) formationLabel(formation!),
       if (isDanceSlot && (slot.text?.trim().isNotEmpty ?? false))
-        'Note: ${slot.text!.trim()}',
+        l10n.programsSummaryNote(slot.text!.trim()),
       if (!isDanceSlot && (slot.text?.trim().isNotEmpty ?? false)) '',
-      if (slot.guestCaller != null) 'Guest: ${slot.guestCaller}',
-      if (slot.plannedMinutes != null) '${slot.plannedMinutes} min',
+      if (slot.guestCaller != null)
+        l10n.programsSummaryGuest(slot.guestCaller!),
+      if (slot.plannedMinutes != null)
+        l10n.programsPlannedMinutes(slot.plannedMinutes!),
     ]..removeWhere((s) => s.isEmpty);
 
     return Opacity(
@@ -441,7 +451,7 @@ class _SlotTile extends StatelessWidget {
                     child: SizedBox(
                       width: 24,
                       child: Text(
-                        ordinal != null ? '$ordinal' : 'ALT',
+                        ordinal != null ? '$ordinal' : l10n.programsAltOrdinal,
                         key: ValueKey('slot-$index-ordinal'),
                         textAlign: TextAlign.center,
                         style:
@@ -461,7 +471,7 @@ class _SlotTile extends StatelessWidget {
                     ReorderableDragStartListener(
                       index: index,
                       child: Semantics(
-                        label: 'Drag to reorder $title',
+                        label: l10n.programsDragToReorder(title),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 4),
                           child: Icon(Icons.drag_handle),
@@ -498,7 +508,7 @@ class _SlotTile extends StatelessWidget {
                               ),
                               const SizedBox(width: 2),
                               Text(
-                                'Alt',
+                                l10n.programsAltBadge,
                                 key: ValueKey('slot-${slot.id}-alt-badge'),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: theme.colorScheme.tertiary,
@@ -521,7 +531,7 @@ class _SlotTile extends StatelessWidget {
                                 Icons.check_circle_outline,
                                 size: 16,
                                 color: theme.colorScheme.primary,
-                                semanticLabel: 'Performed',
+                                semanticLabel: l10n.programsPerformed,
                               ),
                             ],
                           ],
@@ -538,28 +548,28 @@ class _SlotTile extends StatelessWidget {
                   ),
                   IconButton(
                     key: ValueKey('slot-$index-move-up'),
-                    tooltip: 'Move $title up',
+                    tooltip: l10n.programsMoveSlotUp(title),
                     icon: const Icon(Icons.arrow_upward, size: 18),
                     visualDensity: VisualDensity.compact,
                     onPressed: onMoveUp,
                   ),
                   IconButton(
                     key: ValueKey('slot-$index-move-down'),
-                    tooltip: 'Move $title down',
+                    tooltip: l10n.programsMoveSlotDown(title),
                     icon: const Icon(Icons.arrow_downward, size: 18),
                     visualDensity: VisualDensity.compact,
                     onPressed: onMoveDown,
                   ),
                   IconButton(
                     key: ValueKey('slot-$index-cut'),
-                    tooltip: 'Cut $title',
+                    tooltip: l10n.programsCutSlot(title),
                     icon: const Icon(Icons.content_cut, size: 18),
                     visualDensity: VisualDensity.compact,
                     onPressed: onCut,
                   ),
                   PopupMenuButton<String>(
                     key: ValueKey('slot-$index-menu'),
-                    tooltip: 'More actions for $title',
+                    tooltip: l10n.programsMoreActionsForSlot(title),
                     onSelected: (value) {
                       switch (value) {
                         case 'edit':
@@ -573,11 +583,11 @@ class _SlotTile extends StatelessWidget {
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'edit',
                         child: ListTile(
-                          leading: Icon(Icons.edit_outlined),
-                          title: Text('Edit slot'),
+                          leading: const Icon(Icons.edit_outlined),
+                          title: Text(l10n.programsEditSlotMenu),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
@@ -586,7 +596,9 @@ class _SlotTile extends StatelessWidget {
                         child: ListTile(
                           leading: const Icon(Icons.alt_route),
                           title: Text(
-                            slot.isAlt ? 'Make primary' : 'Mark as alternate',
+                            slot.isAlt
+                                ? l10n.programsMakePrimaryMenu
+                                : l10n.programsMarkAlternateMenu,
                           ),
                           contentPadding: EdgeInsets.zero,
                         ),
@@ -596,16 +608,18 @@ class _SlotTile extends StatelessWidget {
                         child: ListTile(
                           leading: const Icon(Icons.check_circle_outline),
                           title: Text(
-                            performed ? 'Clear performed' : 'Mark performed',
+                            performed
+                                ? l10n.programsClearPerformedMenu
+                                : l10n.programsMarkPerformedMenu,
                           ),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'remove',
                         child: ListTile(
-                          leading: Icon(Icons.delete_outline),
-                          title: Text('Remove slot'),
+                          leading: const Icon(Icons.delete_outline),
+                          title: Text(l10n.programsRemoveSlotMenu),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
@@ -634,6 +648,7 @@ class _PasteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Semantics(
       label: semanticsLabel,
       button: true,
@@ -642,7 +657,7 @@ class _PasteButton extends StatelessWidget {
         child: TextButton.icon(
           onPressed: onPaste,
           icon: const Icon(Icons.content_paste, size: 16),
-          label: const Text('Paste here'),
+          label: Text(l10n.programsPasteHere),
         ),
       ),
     );
@@ -685,6 +700,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   }
 
   void _save() {
+    final l10n = AppLocalizations.of(context);
     final noteText = _note.text.trim();
     final guestText = _guest.text.trim();
     final minutesText = _minutes.text.trim();
@@ -692,7 +708,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     // A free-text slot must keep some text (its danceId is null); a dance slot
     // may clear its optional caller note entirely.
     if (!_isDanceSlot && noteText.isEmpty) {
-      setState(() => _noteError = 'Enter some text for this slot.');
+      setState(() => _noteError = l10n.programsSlotTextRequiredError);
       return;
     }
 
@@ -700,7 +716,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     if (minutesText.isNotEmpty) {
       final parsed = int.tryParse(minutesText);
       if (parsed == null || parsed < 0) {
-        setState(() => _minutesError = 'Enter a whole number ≥ 0.');
+        setState(() => _minutesError = l10n.programsWholeNumberError);
         return;
       }
       minutes = parsed;
@@ -721,8 +737,13 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: Text(_isDanceSlot ? 'Edit dance slot' : 'Edit note'),
+      title: Text(
+        _isDanceSlot
+            ? l10n.programsEditDanceSlotTitle
+            : l10n.programsEditNoteTitle,
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -736,10 +757,12 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
                 if (_noteError != null) setState(() => _noteError = null);
               },
               decoration: InputDecoration(
-                labelText: _isDanceSlot ? 'Caller note (optional)' : 'Text',
+                labelText: _isDanceSlot
+                    ? l10n.programsCallerNoteLabel
+                    : l10n.programsFreeTextLabel,
                 hintText: _isDanceSlot
-                    ? 'e.g. teach the hey first'
-                    : 'e.g. Break, waltz, announcement',
+                    ? l10n.programsCallerNoteHint
+                    : l10n.programsFreeTextHint,
                 errorText: _noteError,
                 border: const OutlineInputBorder(),
               ),
@@ -748,9 +771,9 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
             TextField(
               key: const ValueKey('slot-edit-guest'),
               controller: _guest,
-              decoration: const InputDecoration(
-                labelText: 'Guest caller (optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.programsGuestCallerLabel,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -762,7 +785,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
                 if (_minutesError != null) setState(() => _minutesError = null);
               },
               decoration: InputDecoration(
-                labelText: 'Planned minutes (optional)',
+                labelText: l10n.programsPlannedMinutesLabel,
                 errorText: _minutesError,
                 border: const OutlineInputBorder(),
               ),
@@ -773,8 +796,8 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
               contentPadding: EdgeInsets.zero,
               value: _isAlt,
               onChanged: (v) => setState(() => _isAlt = v ?? false),
-              title: const Text('Alternate dance'),
-              subtitle: const Text('Renders indented under the slot above it.'),
+              title: Text(l10n.programsAlternateDanceTitle),
+              subtitle: Text(l10n.programsAlternateDanceSubtitle),
             ),
           ],
         ),
@@ -783,12 +806,12 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
         TextButton(
           key: const ValueKey('slot-edit-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('slot-edit-save'),
           onPressed: _save,
-          child: const Text('Done'),
+          child: Text(l10n.commonDone),
         ),
       ],
     );
