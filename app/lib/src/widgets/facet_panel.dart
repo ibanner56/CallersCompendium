@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../models/dance_list_entry.dart' show formationShapeLabel;
 import '../search/collection_query.dart';
 import '../search/facet_labels.dart';
@@ -58,6 +59,7 @@ class FacetPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final sections = <Widget>[];
 
     void toggle<T>(Set<T> set, T value, bool selected) {
@@ -69,7 +71,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-form'),
-          label: 'Type',
+          label: l10n.collectionFacetType,
           sectionId: 'form',
           activeCount: facets.forms.length,
           chips: [
@@ -90,7 +92,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-formation'),
-          label: 'Formation',
+          label: l10n.collectionFacetFormation,
           sectionId: 'formation',
           activeCount: facets.formations.length,
           chips: [
@@ -111,7 +113,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-progression'),
-          label: 'Progression',
+          label: l10n.commonProgression,
           sectionId: 'progression',
           activeCount: facets.progressions.length,
           chips: [
@@ -132,7 +134,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-status'),
-          label: 'Status',
+          label: l10n.collectionFacetStatus,
           sectionId: 'status',
           activeCount: facets.statuses.length,
           chips: [
@@ -153,7 +155,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-level'),
-          label: 'Level',
+          label: l10n.collectionFacetLevel,
           sectionId: 'level',
           activeCount: facets.levels.length,
           chips: [
@@ -174,13 +176,13 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-mixed-level'),
-          label: 'Mixed level',
+          label: l10n.commonMixedLevel,
           sectionId: 'mixed-level',
           activeCount: facets.mixedLevel == true ? 1 : 0,
           chips: [
             _chip(
               key: 'mixed-level-yes',
-              label: 'Mixed level',
+              label: l10n.commonMixedLevel,
               icon: Icons.swap_vert,
               selected: facets.mixedLevel == true,
               onSelected: (sel) {
@@ -197,14 +199,14 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-min-rating'),
-          label: 'Minimum rating',
+          label: l10n.collectionFacetMinRating,
           sectionId: 'min-rating',
           activeCount: facets.minRating != null ? 1 : 0,
           chips: [
             for (var min = 1; min <= 5; min++)
               _chip(
                 key: 'min-rating-$min',
-                label: '≥$min★',
+                label: l10n.collectionFacetMinRatingChip(min),
                 icon: Icons.star,
                 selected: facets.minRating == min,
                 // Single-valued floor: selecting sets it, tapping the current
@@ -237,7 +239,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-tags'),
-          label: 'Tags',
+          label: l10n.collectionFacetTags,
           sectionId: 'tags',
           activeCount: facets.tagIds.length,
           chips: [
@@ -258,7 +260,7 @@ class FacetPanel extends StatelessWidget {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-source'),
-          label: 'Source',
+          label: l10n.collectionFacetSource,
           sectionId: 'source',
           activeCount: facets.sourceIds.length,
           chips: [
@@ -315,7 +317,7 @@ class FacetPanel extends StatelessWidget {
           chips: [
             _chip(
               key: 'cf-${def.id}-yes',
-              label: 'Yes',
+              label: l10n.commonYes,
               icon: Icons.check,
               selected: current == true,
               onSelected: (s) {
@@ -327,7 +329,7 @@ class FacetPanel extends StatelessWidget {
             ),
             _chip(
               key: 'cf-${def.id}-no',
-              label: 'No',
+              label: l10n.commonNo,
               icon: Icons.close,
               selected: current == false,
               onSelected: (s) {
@@ -365,9 +367,9 @@ class FacetPanel extends StatelessWidget {
     }
 
     if (sections.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: Text('No filters available for this collection yet.'),
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(l10n.collectionFacetNone),
       );
     }
 
@@ -388,7 +390,7 @@ class FacetPanel extends StatelessWidget {
               child: TextButton.icon(
                 key: const ValueKey('clear-filters'),
                 icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
-                label: const Text('Clear filters'),
+                label: Text(l10n.collectionFacetClear),
                 onPressed: () {
                   facets.clear();
                   onChanged();
@@ -564,10 +566,11 @@ class _AuthorFacetState extends State<_AuthorFacet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final authorsById = {for (final a in widget.authors) a.id: a.name};
     final selectedIds = widget.facets.authorIds;
     return _FacetExpansion(
-      label: 'Author',
+      label: l10n.collectionFacetAuthor,
       sectionId: 'author',
       activeCount: selectedIds.length,
       child: Column(
@@ -585,10 +588,12 @@ class _AuthorFacetState extends State<_AuthorFacet> {
                       key: ValueKey('author-facet-chip-$id'),
                       avatar: const Icon(Icons.person_outline, size: 18),
                       label: Text(authorsById[id] ?? id),
-                      tooltip: 'Remove ${authorsById[id] ?? id}',
+                      tooltip: l10n.collectionFacetRemoveAuthor(
+                        authorsById[id] ?? id,
+                      ),
                       deleteIcon: const Icon(Icons.close, size: 18),
-                      deleteButtonTooltipMessage:
-                          'Remove ${authorsById[id] ?? id}',
+                      deleteButtonTooltipMessage: l10n
+                          .collectionFacetRemoveAuthor(authorsById[id] ?? id),
                       onDeleted: () => _remove(id),
                     ),
                 ],
@@ -616,9 +621,9 @@ class _AuthorFacetState extends State<_AuthorFacet> {
                 key: const ValueKey('author-facet-search'),
                 controller: controller,
                 focusNode: focusNode,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search, size: 18),
-                  hintText: 'Search authors…',
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  hintText: l10n.collectionFacetAuthorSearchHint,
                   isDense: true,
                 ),
                 onSubmitted: (_) => onSubmit(),
@@ -719,6 +724,7 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final active =
         widget.facets.textValues[widget.def.id]?.isEffective ?? false;
     return _FacetExpansion(
@@ -733,7 +739,7 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
             children: [
               FilterChip(
                 key: ValueKey('cf-text-${widget.def.id}-contains'),
-                label: const Text('contains'),
+                label: Text(l10n.collectionFacetOpContains),
                 selected: _op == CustomFieldOp.contains,
                 onSelected: (_) {
                   setState(() => _op = CustomFieldOp.contains);
@@ -742,7 +748,7 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
               ),
               FilterChip(
                 key: ValueKey('cf-text-${widget.def.id}-equals'),
-                label: const Text('equals'),
+                label: Text(l10n.collectionFacetOpEquals),
                 selected: _op == CustomFieldOp.equals,
                 onSelected: (_) {
                   setState(() => _op = CustomFieldOp.equals);
@@ -756,7 +762,7 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
             key: ValueKey('cf-text-${widget.def.id}-input'),
             controller: _controller,
             decoration: InputDecoration(
-              hintText: 'Filter by ${widget.def.label}…',
+              hintText: l10n.collectionFacetTextHint(widget.def.label),
               isDense: true,
               border: const OutlineInputBorder(),
               suffixIcon: _controller.text.isNotEmpty
@@ -804,11 +810,19 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
   CustomFieldOp _op = CustomFieldOp.eq;
 
   static const _ops = [
-    (op: CustomFieldOp.eq, label: '='),
-    (op: CustomFieldOp.lt, label: '<'),
-    (op: CustomFieldOp.gt, label: '>'),
-    (op: CustomFieldOp.between, label: 'between'),
+    CustomFieldOp.eq,
+    CustomFieldOp.lt,
+    CustomFieldOp.gt,
+    CustomFieldOp.between,
   ];
+
+  String _opLabel(AppLocalizations l10n, CustomFieldOp op) => switch (op) {
+    CustomFieldOp.eq => l10n.collectionFacetNumOpEq,
+    CustomFieldOp.lt => l10n.collectionFacetNumOpLt,
+    CustomFieldOp.gt => l10n.collectionFacetNumOpGt,
+    CustomFieldOp.between => l10n.collectionFacetNumOpBetween,
+    _ => op.name,
+  };
 
   @override
   void initState() {
@@ -869,6 +883,7 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final active =
         widget.facets.numberValues[widget.def.id]?.isEffective ?? false;
     return _FacetExpansion(
@@ -881,13 +896,13 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
           Wrap(
             spacing: 8,
             children: [
-              for (final entry in _ops)
+              for (final op in _ops)
                 FilterChip(
-                  key: ValueKey('cf-num-${widget.def.id}-${entry.op.name}'),
-                  label: Text(entry.label),
-                  selected: _op == entry.op,
+                  key: ValueKey('cf-num-${widget.def.id}-${op.name}'),
+                  label: Text(_opLabel(l10n, op)),
+                  selected: _op == op,
                   onSelected: (_) {
-                    setState(() => _op = entry.op);
+                    setState(() => _op = op);
                     _commit();
                   },
                 ),
@@ -905,7 +920,9 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
                     signed: true,
                   ),
                   decoration: InputDecoration(
-                    hintText: _op == CustomFieldOp.between ? 'From' : 'Value',
+                    hintText: _op == CustomFieldOp.between
+                        ? l10n.collectionFacetNumFrom
+                        : l10n.collectionFacetNumValue,
                     isDense: true,
                     border: const OutlineInputBorder(),
                   ),
@@ -928,10 +945,10 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
                       decimal: true,
                       signed: true,
                     ),
-                    decoration: const InputDecoration(
-                      hintText: 'To',
+                    decoration: InputDecoration(
+                      hintText: l10n.collectionFacetNumTo,
                       isDense: true,
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (_) {
                       _commit();

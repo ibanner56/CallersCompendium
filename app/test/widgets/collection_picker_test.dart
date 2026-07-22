@@ -9,6 +9,7 @@ import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 Dance _dance({
   required String id,
@@ -58,6 +59,8 @@ Future<void> _pumpPicker(
   final data = await CollectionData.load(repos);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: RepositoriesScope(
           repositories: repos,

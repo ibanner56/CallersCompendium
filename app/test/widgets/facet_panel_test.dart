@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/facet_panel.dart';
+import '../support/l10n_harness.dart';
 
 Future<void> _pump(
   WidgetTester tester,
@@ -20,6 +21,8 @@ Future<void> _pump(
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       home: Scaffold(
         body: StatefulBuilder(
           builder: (context, setState) => SingleChildScrollView(

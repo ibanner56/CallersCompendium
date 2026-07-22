@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
@@ -429,6 +430,7 @@ class _EmptyDetailPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: Center(
         child: Column(
@@ -440,14 +442,14 @@ class _EmptyDetailPane extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Select a dance',
+              l10n.collectionSplitEmptyTitle,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Choose a dance from the list to view its details.',
+              l10n.collectionSplitEmptySubtitle,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 // Body text must clear the 4.5:1 WCAG AA threshold, so it uses

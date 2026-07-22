@@ -8,6 +8,7 @@ import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 /// The Collection list sort-direction toggle (issue #349): the default matches
 /// the historical order and flipping the toggle reverses it.
@@ -35,7 +36,11 @@ void main() {
         repositories: repos,
         child: ActiveDialectScope(
           notifier: ValueNotifier<Dialect>(Dialect.larksRobins),
-          child: const MaterialApp(home: DanceListScreen()),
+          child: MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: DanceListScreen(),
+          ),
         ),
       ),
     );

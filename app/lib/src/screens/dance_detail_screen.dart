@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/dialect_library_scope.dart';
@@ -284,8 +285,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// snackbar is enqueued. In split-pane mode, this ensures the snackbar
   /// appears in the detail pane rather than being lost on unmount.
   Future<void> _delete() async {
-    final title = (await _future)?.dance.title ?? 'Dance';
+    final resolvedTitle = (await _future)?.dance.title;
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final title = resolvedTitle ?? l10n.danceScreenTitle;
     // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
     if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
     if (!mounted) return;
@@ -301,9 +304,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     messenger.showSnackBar(
       SnackBar(
         key: const ValueKey('deleted-snackbar'),
-        content: Text('"$title" deleted.'),
+        content: Text(l10n.commonDeletedSnack(title)),
         action: SnackBarAction(
-          label: 'Undo',
+          label: l10n.commonUndo,
           onPressed: () async {
             await _repos.dances.restore(
               widget.danceId!,
@@ -367,27 +370,30 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       );
 
   /// Wide layout: the full one-tap action row.
-  Widget _fullActions(BuildContext context, DanceDetailData detail) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      const DialectQuickSwitch(),
-      _performButton(detail),
-      _exportMenu(context, detail),
-      IconButton(
-        key: const ValueKey('duplicate-dance'),
-        tooltip: 'Duplicate dance',
-        icon: const Icon(Icons.copy_all_outlined),
-        onPressed: _duplicate,
-      ),
-      _addToProgramButton(detail),
-      IconButton(
-        key: const ValueKey('delete-dance'),
-        tooltip: 'Delete dance',
-        icon: const Icon(Icons.delete_outline),
-        onPressed: _delete,
-      ),
-    ],
-  );
+  Widget _fullActions(BuildContext context, DanceDetailData detail) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const DialectQuickSwitch(),
+        _performButton(detail),
+        _exportMenu(context, detail),
+        IconButton(
+          key: const ValueKey('duplicate-dance'),
+          tooltip: l10n.danceDuplicateTooltip,
+          icon: const Icon(Icons.copy_all_outlined),
+          onPressed: _duplicate,
+        ),
+        _addToProgramButton(detail),
+        IconButton(
+          key: const ValueKey('delete-dance'),
+          tooltip: l10n.danceDeleteTooltip,
+          icon: const Icon(Icons.delete_outline),
+          onPressed: _delete,
+        ),
+      ],
+    );
+  }
 
   /// Narrow layout: primary actions stay as icon buttons; the rest collapse
   /// into the overflow menu.
@@ -408,6 +414,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// the wide layout. Nothing is a nested popup, so activating any row performs
   /// its action rather than dismissing the menu.
   Widget _overflowMenu(BuildContext context, DanceDetailData detail) {
+    final l10n = AppLocalizations.of(context);
     final controller = DialectLibraryScope.maybeOf(context);
     final activeDialectName = controller == null
         ? null
@@ -425,7 +432,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
     return PopupMenuButton<void>(
       key: const ValueKey('dance-actions-overflow'),
-      tooltip: 'More actions',
+      tooltip: l10n.danceMoreActions,
       icon: const Icon(Icons.more_vert),
       itemBuilder: (context) => [
         if (controller != null) ...[
@@ -469,18 +476,18 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         PopupMenuItem<void>(
           key: const ValueKey('duplicate-dance'),
           onTap: _duplicate,
-          child: const ListTile(
-            leading: Icon(Icons.copy_all_outlined),
-            title: Text('Duplicate dance'),
+          child: ListTile(
+            leading: const Icon(Icons.copy_all_outlined),
+            title: Text(l10n.danceDuplicateTooltip),
             contentPadding: EdgeInsets.zero,
           ),
         ),
         PopupMenuItem<void>(
           key: const ValueKey('delete-dance'),
           onTap: _delete,
-          child: const ListTile(
-            leading: Icon(Icons.delete_outline),
-            title: Text('Delete dance'),
+          child: ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: Text(l10n.danceDeleteTooltip),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -537,6 +544,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     // Wrap the whole screen (AppBar + body + FAB) so the colour tint covers the
     // dance's entire view, consistent with the Perform screens. The title comes
     // from the same cached [_future]; until it resolves the tint is a no-op.
@@ -552,7 +560,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   DanceDetailScreen.compactActionsBreakpoint;
               return Scaffold(
                 appBar: AppBar(
-                  title: const Text('Dance'),
+                  title: Text(l10n.danceScreenTitle),
                   actions: [
                     if (!_isPreview)
                       FutureBuilder<DanceDetailData?>(
@@ -577,7 +585,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     }
                     final detail = snapshot.data;
                     if (detail == null) {
-                      return const Center(child: Text('Dance not found.'));
+                      return Center(child: Text(l10n.danceNotFound));
                     }
                     return _buildBody(detail);
                   },
@@ -606,7 +614,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                       heroTag: 'edit-dance',
                       onPressed: _openEditor,
                       icon: const Icon(Icons.edit_note),
-                      label: const Text('Edit'),
+                      label: Text(l10n.danceEditFab),
                     );
                   },
                 ),
@@ -619,6 +627,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   }
 
   Widget _buildBody(DanceDetailData detail) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final dance = detail.dance;
     final activeDialect = ActiveDialectScope.of(context);
@@ -721,7 +730,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                         key: ValueKey('tag-filter-chip-${tag.id}'),
                         avatar: const Icon(Icons.label_outline, size: 16),
                         label: Text(tag.name),
-                        tooltip: 'Show dances tagged “${tag.name}”',
+                        tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
                         onPressed: () => filter.filterByTag(tag.id),
                       )
                     else
@@ -737,7 +746,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         const SizedBox(height: AppSpacing.lg),
         Row(
           children: [
-            Text('Figures', style: theme.textTheme.titleMedium),
+            Text(l10n.danceSectionFigures, style: theme.textTheme.titleMedium),
             const Spacer(),
             if (!isCanonicalDialect)
               _DialectToggle(
@@ -757,7 +766,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ),
         if (dance.callingNotes.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text('Calling notes', style: theme.textTheme.titleMedium),
+          Text(
+            l10n.danceSectionCallingNotes,
+            style: theme.textTheme.titleMedium,
+          ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
             text: _renderer.renderFreeText(dance.callingNotes, dialect),
@@ -768,20 +780,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         if (dance.tunes.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text('Tunes', style: theme.textTheme.titleMedium),
+          Text(l10n.danceSectionTunes, style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.xxs),
           Text(dance.tunes.join(', ')),
         ],
         if (dance.links.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text('Links', style: theme.textTheme.titleMedium),
+          Text(l10n.danceSectionLinks, style: theme.textTheme.titleMedium),
           for (final link in dance.links)
             _LinkRow(
               key: ValueKey('link-row-${link.id}'),
               link: link,
               relatedDanceTitle: link.kind == LinkKind.relatedDance
                   ? (detail.relatedDanceTitles[link.targetDanceId ?? ''] ??
-                        '(missing dance)')
+                        l10n.danceMissingRelated)
                   : null,
               onTap:
                   link.kind == LinkKind.relatedDance &&
@@ -798,7 +810,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         if (dance.sourceCitations.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text('Published sources', style: theme.textTheme.titleMedium),
+          Text(
+            l10n.danceSectionPublishedSources,
+            style: theme.textTheme.titleMedium,
+          ),
           for (final citation in dance.sourceCitations)
             _SourceCitationRow(
               key: ValueKey('source-citation-${citation.sourceId}'),
@@ -808,7 +823,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ],
         if (detail.customFields.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text('Custom fields', style: theme.textTheme.titleMedium),
+          Text(
+            l10n.danceSectionCustomFields,
+            style: theme.textTheme.titleMedium,
+          ),
           const SizedBox(height: AppSpacing.xxs),
           for (final field in detail.customFields)
             Padding(
@@ -821,7 +839,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         // not-yet-imported online preview.
         if (!_isPreview) ...[
           const SizedBox(height: AppSpacing.lg),
-          Text('Calling history', style: theme.textTheme.titleMedium),
+          Text(
+            l10n.danceSectionCallingHistory,
+            style: theme.textTheme.titleMedium,
+          ),
           const SizedBox(height: AppSpacing.xxs),
           if (detail.callingHistory.isEmpty)
             Padding(
@@ -829,7 +850,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               // intentional: 2px optical inset, below the 4px AppSpacing grid
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text(
-                'Not yet included in any program.',
+                l10n.danceCallingHistoryEmpty,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -875,13 +896,14 @@ class _DialectToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Semantics(
-      label: 'Show canonical terms',
+      label: l10n.danceShowCanonicalTerms,
       toggled: canonical,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Canonical'),
+          Text(l10n.danceCanonicalToggleLabel),
           Switch(
             key: const ValueKey('dialect-toggle'),
             value: canonical,
@@ -941,10 +963,11 @@ class _ProvenanceLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final license = provenance.license;
     final text = [
-      'via ${_sourceLabel(provenance.source)}',
+      l10n.danceProvenanceVia(_sourceLabel(l10n, provenance.source)),
       if (license != null && license.isNotEmpty) license,
     ].join(' · ');
     return Row(
@@ -963,13 +986,14 @@ class _ProvenanceLine extends StatelessWidget {
     );
   }
 
-  static String _sourceLabel(ProvenanceSource source) => switch (source) {
-    ProvenanceSource.callersbox => "The Caller's Box",
-    ProvenanceSource.contradb => 'ContraDB',
-    ProvenanceSource.callersCompanion => "Caller's Companion",
-    ProvenanceSource.manual => 'manual entry',
-    ProvenanceSource.json => 'JSON import',
-  };
+  static String _sourceLabel(AppLocalizations l10n, ProvenanceSource source) =>
+      switch (source) {
+        ProvenanceSource.callersbox => "The Caller's Box",
+        ProvenanceSource.contradb => 'ContraDB',
+        ProvenanceSource.callersCompanion => "Caller's Companion",
+        ProvenanceSource.manual => l10n.danceProvenanceSourceManual,
+        ProvenanceSource.json => l10n.danceProvenanceSourceJson,
+      };
 }
 
 class _LinkRow extends StatelessWidget {
@@ -991,6 +1015,7 @@ class _LinkRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final label = link.label?.trim();
     final String display;
     if (label != null && label.isNotEmpty) {
@@ -1016,10 +1041,10 @@ class _LinkRow extends StatelessWidget {
 
     if (externalUrl != null) {
       final kindNoun = switch (link.kind) {
-        LinkKind.video => 'video',
-        LinkKind.source => 'source link',
-        LinkKind.relatedDance => 'link',
-        LinkKind.other => 'link',
+        LinkKind.video => l10n.danceLinkKindVideo,
+        LinkKind.source => l10n.danceLinkKindSource,
+        LinkKind.relatedDance => l10n.danceLinkKindLink,
+        LinkKind.other => l10n.danceLinkKindLink,
       };
       // MergeSemantics + Semantics(button:) collapses the row into a single
       // focusable button node whose label conveys that it leaves the app; the
@@ -1027,7 +1052,7 @@ class _LinkRow extends StatelessWidget {
       return MergeSemantics(
         child: Semantics(
           button: true,
-          label: 'Open $kindNoun: $display',
+          label: l10n.danceOpenLinkSemantic(kindNoun, display),
           child: InkWell(
             onTap: () => launchExternalUrl(context, externalUrl),
             child: ExcludeSemantics(
@@ -1082,6 +1107,7 @@ class _CallingHistoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final localizations = MaterialLocalizations.of(context);
     // Programs appear as soon as they include the dance, so `performedAt` is
@@ -1099,8 +1125,10 @@ class _CallingHistoryRow extends StatelessWidget {
     return MergeSemantics(
       child: Semantics(
         button: true,
-        label:
-            'Open program: ${record.programTitle}, ${subtitleParts.join(', ')}',
+        label: l10n.danceOpenProgramSemantic(
+          record.programTitle,
+          subtitleParts.join(', '),
+        ),
         child: InkWell(
           onTap: onTap,
           child: ExcludeSemantics(
@@ -1151,30 +1179,27 @@ class _HalfStatsSummary extends StatelessWidget {
 
   /// Builds the human phrasing shared by the visible text and the semantics
   /// label, so they never drift apart.
-  String _describe() {
-    String times(int n) => n == 1 ? '1 time' : '$n times';
+  String _describe(AppLocalizations l10n) {
     final parts = <String>[
-      'Called ${times(stats.firstHalfCount)} in the first half',
-      '${times(stats.secondHalfCount)} in the second half',
+      l10n.danceHalfStatsFirstHalf(stats.firstHalfCount),
+      l10n.danceHalfStatsSecondHalf(stats.secondHalfCount),
     ];
     if (stats.openedFirstHalfCount > 0) {
-      parts.add('opened the first half ${times(stats.openedFirstHalfCount)}');
+      parts.add(l10n.danceHalfStatsOpened(stats.openedFirstHalfCount));
     }
     if (stats.closedSecondHalfCount > 0) {
-      parts.add(
-        'closed the evening (last dance of the second half) '
-        '${times(stats.closedSecondHalfCount)}',
-      );
+      parts.add(l10n.danceHalfStatsClosed(stats.closedSecondHalfCount));
     }
     return '${parts.join('; ')}.';
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final description = _describe();
+    final description = _describe(l10n);
     return Semantics(
-      label: 'Half breakdown: $description',
+      label: l10n.danceHalfStatsSemanticLabel(description),
       container: true,
       child: ExcludeSemantics(
         child: Padding(
@@ -1218,8 +1243,9 @@ class _SourceCitationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final title = source?.title ?? '(unknown source)';
+    final title = source?.title ?? l10n.danceSourceUnknown;
 
     final bibParts = <String>[
       if (source?.author != null) source!.author!,
@@ -1228,8 +1254,8 @@ class _SourceCitationRow extends StatelessWidget {
     final bib = bibParts.isEmpty ? null : bibParts.join(', ');
 
     final locParts = <String>[
-      if (citation.page != null) 'p. ${citation.page}',
-      if (citation.number != null) 'no. ${citation.number}',
+      if (citation.page != null) l10n.danceSourcePage(citation.page!),
+      if (citation.number != null) l10n.danceSourceNumber(citation.number!),
     ];
     final loc = locParts.isEmpty ? null : locParts.join(', ');
     final url = source?.url;
@@ -1297,7 +1323,7 @@ class _SourceCitationRow extends StatelessWidget {
       return MergeSemantics(
         child: Semantics(
           button: true,
-          label: 'Open source link: $title',
+          label: l10n.danceOpenSourceLinkSemantic(title),
           child: InkWell(
             onTap: () => launchExternalUrl(context, launchableUrl),
             child: ExcludeSemantics(child: row),
@@ -1306,7 +1332,12 @@ class _SourceCitationRow extends StatelessWidget {
       );
     }
 
-    final semanticLabel = ['Source: $title', ?bib, ?loc, ?url].join(', ');
+    final semanticLabel = [
+      l10n.danceSourceSemanticPrefix(title),
+      ?bib,
+      ?loc,
+      ?url,
+    ].join(', ');
     return Semantics(label: semanticLabel, excludeSemantics: true, child: row);
   }
 }
@@ -1335,6 +1366,7 @@ class _CrossReferenceText extends StatelessWidget {
     }
 
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final linkStyle = (style ?? const TextStyle()).copyWith(
       color: theme.colorScheme.primary,
       decoration: TextDecoration.underline,
@@ -1352,7 +1384,7 @@ class _CrossReferenceText extends StatelessWidget {
         child: MergeSemantics(
           child: Semantics(
             link: true,
-            label: 'Open dance: $matchedText',
+            label: l10n.danceOpenDanceCrossRefSemantic(matchedText),
             child: InkWell(
               onTap: () => onOpenDance(danceId),
               child: ExcludeSemantics(

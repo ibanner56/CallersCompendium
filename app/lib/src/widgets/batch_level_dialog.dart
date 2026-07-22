@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
 
 /// The level chosen in the batch-level dialog: either a concrete [DanceLevel]
@@ -52,9 +53,10 @@ class _BatchLevelDialogState extends State<_BatchLevelDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
       key: const ValueKey('batch-level-dialog'),
-      title: const Text('Set level'),
+      title: Text(l10n.collectionSetLevel),
       content: SizedBox(
         width: 360,
         child: RadioGroup<Object>(
@@ -81,7 +83,7 @@ class _BatchLevelDialogState extends State<_BatchLevelDialog> {
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
                 value: _LevelSelection.unspecified,
-                title: const Text('Unspecified (clear)'),
+                title: Text(l10n.collectionBatchLevelUnspecified),
               ),
             ],
           ),
@@ -91,7 +93,7 @@ class _BatchLevelDialogState extends State<_BatchLevelDialog> {
         TextButton(
           key: const ValueKey('batch-level-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('batch-level-confirm'),
@@ -105,7 +107,7 @@ class _BatchLevelDialogState extends State<_BatchLevelDialog> {
                         : const BatchLevelChoice(clear: true),
                   );
                 },
-          child: const Text('Set'),
+          child: Text(l10n.collectionBatchLevelConfirm),
         ),
       ],
     );
