@@ -410,7 +410,9 @@ class DanceRepository {
   /// [retention] (default 30 days). Cascades to child rows (authors, tags,
   /// links, custom values, provenance, derived figures) via FK; any
   /// `program_slots.dance_id` pointing at a purged dance is set to `NULL`
-  /// (the slot's `text`, if any, survives as a tombstone caption).
+  /// (the slot's `text`, if any, survives as a tombstone caption). Reusable
+  /// `choreographers` / `published_sources` rows left unreferenced by the purge
+  /// are garbage-collected in the same transaction (#462).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
@@ -428,10 +430,14 @@ class DanceRepository {
         _db.dances,
       )..where((t) => t.deletedAt.isSmallerOrEqualValue(cutoff))).get();
       if (toPurge.isEmpty) return 0;
+      final ids = [for (final r in toPurge) r.id];
+      // Snapshot the orphan-ref candidates from the SAME in-txn snapshot,
+      // before _cleanupDanglingReferences / the DELETE cascade the purged
+      // dances' dance_authors / dance_sources join rows away (#462).
+      final orphanCandidates = await _referencedRefIds(ids);
       await _cleanupDanglingReferences([
         for (final r in toPurge) (id: r.id, title: r.title),
       ]);
-      final ids = [for (final r in toPurge) r.id];
       for (final id in ids) {
         await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
           id,
@@ -446,6 +452,7 @@ class DanceRepository {
           _db.dances,
         )..where((t) => t.id.isIn(chunk))).go();
       }
+      await _garbageCollectOrphanedRefs(orphanCandidates);
       return deleted;
     });
   }
@@ -487,6 +494,74 @@ class DanceRepository {
     }
   }
 
+  /// Snapshots the reusable reference rows — `choreographers` (via
+  /// `dance_authors`) and `published_sources` (via `dance_sources`) — cited by
+  /// [danceIds] **before** those dances are hard-deleted, so
+  /// [_garbageCollectOrphanedRefs] knows exactly which rows might have just
+  /// lost their last citation. Scoping to this snapshot keeps the sweep precise:
+  /// pre-existing unreferenced rows (e.g. reusable "Traditional"/"Unknown"
+  /// choreographers) that this purge did not touch are never candidates for
+  /// removal. Called inside the delete transaction of [purgeDeleted] /
+  /// [hardDelete] before the `DELETE FROM dances` cascades the join rows away.
+  Future<({Set<String> choreographerIds, Set<String> sourceIds})>
+  _referencedRefIds(List<String> danceIds) async {
+    final choreographerIds = <String>{};
+    final sourceIds = <String>{};
+    if (danceIds.isEmpty) {
+      return (choreographerIds: choreographerIds, sourceIds: sourceIds);
+    }
+    for (final chunk in _chunkIds(danceIds)) {
+      final authors = await (_db.select(
+        _db.danceAuthors,
+      )..where((t) => t.danceId.isIn(chunk))).get();
+      for (final r in authors) {
+        choreographerIds.add(r.choreographerId);
+      }
+      final sources = await (_db.select(
+        _db.danceSources,
+      )..where((t) => t.danceId.isIn(chunk))).get();
+      for (final r in sources) {
+        sourceIds.add(r.sourceId);
+      }
+    }
+    return (choreographerIds: choreographerIds, sourceIds: sourceIds);
+  }
+
+  /// Garbage-collects the reusable reference rows in [candidates] (gathered by
+  /// [_referencedRefIds]) that, **after** the owning dances were hard-deleted
+  /// and their `dance_authors` / `dance_sources` join rows cascaded away, are
+  /// now referenced by ZERO remaining dances (#462). Runs inside the same
+  /// delete transaction as [purgeDeleted] / [hardDelete], after the
+  /// `DELETE FROM dances`.
+  ///
+  /// A row is kept if any surviving dance still cites it — including a
+  /// soft-deleted-but-retained dance, whose join rows persist until its own
+  /// purge — because the `NOT IN (SELECT …)` guard tests the live join tables.
+  /// This mirrors (and never weakens) the delete-guards in
+  /// `ChoreographerRepository` / `PublishedSourceRepository`, which refuse to
+  /// remove a still-referenced row; here the last reference is already gone, so
+  /// the removal is safe hygiene rather than silent data loss.
+  Future<void> _garbageCollectOrphanedRefs(
+    ({Set<String> choreographerIds, Set<String> sourceIds}) candidates,
+  ) async {
+    for (final chunk in _chunkIds(candidates.choreographerIds.toList())) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      await _db.customStatement(
+        'DELETE FROM choreographers WHERE id IN ($placeholders) AND id NOT IN '
+        '(SELECT choreographer_id FROM dance_authors)',
+        [...chunk],
+      );
+    }
+    for (final chunk in _chunkIds(candidates.sourceIds.toList())) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      await _db.customStatement(
+        'DELETE FROM published_sources WHERE id IN ($placeholders) AND id NOT '
+        'IN (SELECT source_id FROM dance_sources)',
+        [...chunk],
+      );
+    }
+  }
+
   /// Immediately and permanently removes the dances identified by [ids]
   /// (bypassing the soft-delete/retention path). Cascades to child rows
   /// (authors, tags, links, custom values, provenance, derived figures) via
@@ -495,15 +570,26 @@ class DanceRepository {
   /// set to `NULL` (the slot's `text`, if any, survives as a tombstone
   /// caption). Unknown ids are ignored. Runs in a single transaction.
   ///
+  /// When [gcOrphanedRefs] is `true` (the default), reusable `choreographers` /
+  /// `published_sources` rows this delete leaves referenced by ZERO remaining
+  /// dances are garbage-collected in the same transaction (#462). The
+  /// import-session **undo** path passes `false`: undo is a faithful rollback
+  /// to the pre-import state, so it must leave pre-existing reference rows in
+  /// place and do its own targeted cleanup of only the rows that import
+  /// *created* (see `ImportPipeline.undo`).
+  ///
   /// Intended for reverting a just-committed import batch (import-session
   /// undo); ordinary user deletes should go through [softDelete].
-  Future<void> hardDelete(Iterable<String> ids) {
+  Future<void> hardDelete(Iterable<String> ids, {bool gcOrphanedRefs = true}) {
     final list = ids.toList();
     if (list.isEmpty) return Future.value();
     return _db.transaction(() async {
       final rows = await (_db.select(
         _db.dances,
       )..where((t) => t.id.isIn(list))).get();
+      final orphanCandidates = gcOrphanedRefs
+          ? await _referencedRefIds([for (final r in rows) r.id])
+          : null;
       await _cleanupDanglingReferences([
         for (final r in rows) (id: r.id, title: r.title),
       ]);
@@ -513,6 +599,9 @@ class DanceRepository {
         ]);
       }
       await (_db.delete(_db.dances)..where((t) => t.id.isIn(list))).go();
+      if (orphanCandidates != null) {
+        await _garbageCollectOrphanedRefs(orphanCandidates);
+      }
     });
   }
 

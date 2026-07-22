@@ -531,7 +531,11 @@ class ImportPipeline {
   /// choreographers are never touched. Idempotent — a second call is a no-op.
   Future<void> undo(ImportSession session) async {
     if (session.isUndone) return;
-    await _dances.hardDelete(session.insertedDanceIds);
+    // Opt out of hardDelete's orphan-ref GC (#462): undo is a faithful rollback
+    // to the pre-import state, so pre-existing choreographers/sources must be
+    // left untouched. We instead remove only the rows this import *created*,
+    // below, respecting the repository's referenced-guard.
+    await _dances.hardDelete(session.insertedDanceIds, gcOrphanedRefs: false);
     for (final prior in session.updatedDancePriorStates) {
       await _dances.update(prior);
     }
