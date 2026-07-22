@@ -363,12 +363,213 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PerformProgramScreen), findsOneWidget);
 
+    // Exit is guarded (#434): the close control asks to confirm first.
     await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
     await tester.pumpAndSettle();
 
     expect(find.byType(PerformProgramScreen), findsNothing);
     expect(find.byType(ProgramEditorScreen), findsOneWidget);
   });
+
+  testWidgets('a stray single tap on the exit control does not leave Perform', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Editor Dance'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
+    await repos.programs.create(
+      _program([
+        _slot(id: 's1', position: 0, danceId: 'd1'),
+        _slot(id: 's2', position: 1, danceId: 'd2'),
+      ]),
+    );
+    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(notifier.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
+        home: const ProgramEditorScreen(programId: 'p1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+    // A single tap surfaces the confirmation instead of dropping out.
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+    // Choosing "Keep performing" dismisses the guard and stays in Perform.
+    await tester.tap(find.byKey(const ValueKey('perform-exit-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsNothing);
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+  });
+
+  testWidgets('re-entry resumes at the last slot with the clock preserved', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
+    await repos.dances.create(_dance(id: 'd3', title: 'Third Dance'));
+    await repos.programs.create(
+      _program([
+        _slot(id: 's1', position: 0, danceId: 'd1'),
+        _slot(id: 's2', position: 1, danceId: 'd2'),
+        _slot(id: 's3', position: 2, danceId: 'd3'),
+      ]),
+    );
+    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(notifier.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
+        home: const ProgramEditorScreen(programId: 'p1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+    // Advance to slot 2 and let the program clock run.
+    await tester.tap(find.byKey(const ValueKey('perform-next')));
+    await tester.pump();
+    expect(_textOf(tester, 'perform-position'), 'Slot 2 of 3');
+    await tester.pump(const Duration(seconds: 7));
+    final clockBefore = _seconds(_textOf(tester, 'perform-clock'));
+    expect(clockBefore, greaterThanOrEqualTo(7));
+
+    // Guarded exit back to the editor.
+    await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsNothing);
+
+    // Re-enter: back at slot 2 with the clock preserved, not reset to slot 1.
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+    expect(_textOf(tester, 'perform-position'), 'Slot 2 of 3');
+    expect(
+      _seconds(_textOf(tester, 'perform-clock')),
+      greaterThanOrEqualTo(clockBefore),
+    );
+  });
+
+  testWidgets(
+    're-entry preserves the per-slot timer and a paused (frozen) session',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Second Dance'));
+      await repos.programs.create(
+        _program([
+          _slot(id: 's1', position: 0, danceId: 'd1'),
+          _slot(id: 's2', position: 1, danceId: 'd2'),
+        ]),
+      );
+      final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(notifier.dispose);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
+          home: const ProgramEditorScreen(programId: 'p1'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+
+      // Move to slot 2 so the resumed group is not the default slot 1, accrue
+      // per-slot time, then pause so the whole session is frozen on exit.
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pump();
+      expect(_textOf(tester, 'perform-position'), 'Slot 2 of 2');
+      await tester.pump(const Duration(seconds: 6));
+      await tester.tap(find.byKey(const ValueKey('perform-timer-pause')));
+      await tester.pump();
+
+      final slotBefore = _textOf(tester, 'perform-slot-elapsed');
+      final clockBefore = _textOf(tester, 'perform-clock');
+      expect(_seconds(slotBefore), greaterThanOrEqualTo(6));
+      // Paused reflected in the toggle state before we leave.
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('perform-timer-pause')),
+            )
+            .isSelected,
+        isTrue,
+      );
+
+      // Guarded exit and re-entry.
+      await tester.tap(find.byKey(const ValueKey('perform-program-exit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+
+      // The per-slot timer resumes where it was (slotStartSeconds preserved),
+      // not reset to 0:00, and the session is still paused.
+      expect(_textOf(tester, 'perform-position'), 'Slot 2 of 2');
+      expect(_textOf(tester, 'perform-slot-elapsed'), slotBefore);
+      expect(_textOf(tester, 'perform-clock'), clockBefore);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byKey(const ValueKey('perform-timer-pause')),
+            )
+            .isSelected,
+        isTrue,
+      );
+
+      // Still frozen after re-entry: advancing time changes nothing.
+      await tester.pump(const Duration(seconds: 5));
+      expect(_textOf(tester, 'perform-slot-elapsed'), slotBefore);
+      expect(_textOf(tester, 'perform-clock'), clockBefore);
+    },
+  );
 
   testWidgets('the perform-program affordance is hidden for an empty program', (
     tester,

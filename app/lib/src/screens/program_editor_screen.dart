@@ -99,6 +99,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _saving = false;
   bool _dirty = false;
 
+  /// In-memory Perform resume state (issue #434). Perform is pushed *on top* of
+  /// this editor, so this field survives that navigation: on exit the Perform
+  /// view hands back its live position + clock here, and the next launch threads
+  /// it back in so re-entry resumes at the current slot with the clock intact
+  /// instead of resetting to slot 1. Purely a UI concern, so it lives here
+  /// rather than in the persisted program (ADR-001 keeps the domain Flutter-free).
+  PerformResumeState? _performResume;
+
   Dialect _dialect = Dialect.larksRobins;
 
   /// Always-on search enrichment for the embedded [CollectionPicker], built
@@ -291,6 +299,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           program: program,
           data: data,
           renderer: _performRenderer,
+          // Resume where the caller left off (issue #434): thread the last
+          // position + clock back in, and capture the new one on exit. The
+          // screen clamps a now-out-of-range group after edits.
+          initialGroup: _performResume?.groupIndex ?? 0,
+          initialElapsedSeconds: _performResume?.elapsedSeconds ?? 0,
+          initialSlotStartSeconds: _performResume?.slotStartSeconds ?? 0,
+          initialPaused: _performResume?.paused ?? false,
+          onExit: (state) => _performResume = state,
           // In-event adjustments (`docs/design/ux.md` §5) fold back into the
           // builder's working slots. For an already-saved program this is the
           // real live-gig path (a tablet routed through the builder is the

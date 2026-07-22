@@ -1779,6 +1779,22 @@
   "@performExitTooltip": {
     "description": "Tooltip on the button that closes the Perform view and returns to the previous screen."
   },
+  "performExitTitle": "Exit Perform?",
+  "@performExitTitle": {
+    "description": "Title of the confirmation dialog shown before leaving the Perform view, so a stray tap or system back does not drop the caller out mid-program."
+  },
+  "performExitBody": "Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.",
+  "@performExitBody": {
+    "description": "Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry."
+  },
+  "performExitCancel": "Keep performing",
+  "@performExitCancel": {
+    "description": "Button that dismisses the exit-confirmation dialog and stays in the Perform view."
+  },
+  "performExitConfirm": "Exit",
+  "@performExitConfirm": {
+    "description": "Button that confirms leaving the Perform view from the exit-confirmation dialog."
+  },
   "performTapTempo": "Tap tempo",
   "@performTapTempo": {
     "description": "Label for the tap-tempo metronome, used both as the toolbar tooltip and the metronome sheet heading."

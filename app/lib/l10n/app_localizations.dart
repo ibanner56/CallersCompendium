@@ -2154,6 +2154,30 @@ abstract class AppLocalizations {
   /// **'Exit performance view'**
   String get performExitTooltip;
 
+  /// Title of the confirmation dialog shown before leaving the Perform view, so a stray tap or system back does not drop the caller out mid-program.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit Perform?'**
+  String get performExitTitle;
+
+  /// Body text of the exit-confirmation dialog, reassuring the caller that their slot position and elapsed clock are preserved on re-entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.'**
+  String get performExitBody;
+
+  /// Button that dismisses the exit-confirmation dialog and stays in the Perform view.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep performing'**
+  String get performExitCancel;
+
+  /// Button that confirms leaving the Perform view from the exit-confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit'**
+  String get performExitConfirm;
+
   /// Label for the tap-tempo metronome, used both as the toolbar tooltip and the metronome sheet heading.
   ///
   /// In en, this message translates to:
