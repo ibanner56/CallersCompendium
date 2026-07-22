@@ -16,6 +16,7 @@ final _now = DateTime.utc(2026, 1, 1);
 
 Program _program({
   String title = 'Friday Contra',
+  String? venueId,
   List<ProgramSlot> slots = const [],
   bool hideAlternates = false,
 }) => Program(
@@ -23,6 +24,7 @@ Program _program({
   title: title,
   eventDate: DateTime.utc(2026, 3, 9),
   venue: 'Town Hall',
+  venueId: venueId,
   band: 'The Ripplers',
   caller: 'Isaac',
   dancerLevel: 'All',
@@ -31,6 +33,27 @@ Program _program({
   hideAlternates: hideAlternates,
   createdAt: _now,
   updatedAt: _now,
+);
+
+/// A fully-populated linked venue used to prove export-side resolution and the
+/// richer PDF venue block.
+final _venue = Venue(
+  id: 'v1',
+  name: 'Grange Hall',
+  address1: '123 Main St',
+  address2: 'Room 2',
+  city: 'Montpelier',
+  stateProv: 'VT',
+  country: 'USA',
+  postalCode: '05602',
+  plus4: '1234',
+  website: 'https://grange.example',
+  sponsor: 'Capital City Grange',
+  genericSchedule: '2nd Saturdays',
+  price: '\$12',
+  contact1Name: 'Pat Caller',
+  contact1Phone: '555-0100',
+  contact1Email: 'pat@example.com',
 );
 
 String? _titles(String id) =>
@@ -63,14 +86,24 @@ final _dances = <String, Dance>{
 
 Dance? _danceFor(String id) => _dances[id];
 
-Future<void> _pumpMenu(WidgetTester tester, Program program) async {
+Future<void> _pumpMenu(
+  WidgetTester tester,
+  Program program, {
+  Map<String, Venue> venuesById = const {},
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       home: Scaffold(
         appBar: AppBar(
-          actions: [ProgramExportMenu(program: program, titleFor: _titles)],
+          actions: [
+            ProgramExportMenu(
+              program: program,
+              titleFor: _titles,
+              venuesById: venuesById,
+            ),
+          ],
         ),
       ),
     ),
@@ -136,6 +169,73 @@ void main() {
       expect(clipboardText, contains('Friday Contra'));
       expect(clipboardText, contains('1. Rory O\'More'));
       expect(find.text('Set list copied to clipboard.'), findsOneWidget);
+    });
+
+    testWidgets('Copy set list resolves a linked venue name over free text', (
+      tester,
+    ) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await _pumpMenu(
+        tester,
+        _program(venueId: 'v1'),
+        venuesById: {'v1': _venue},
+      );
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy set list'));
+      await tester.pumpAndSettle();
+
+      expect(clipboardText, isNotNull);
+      expect(clipboardText, contains(_venue.displayName));
+      expect(clipboardText, isNot(contains('Town Hall')));
+    });
+
+    testWidgets('Copy set list falls back to free text when link unresolved', (
+      tester,
+    ) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      // venueId set but not present in the loaded map → free text wins.
+      await _pumpMenu(tester, _program(venueId: 'v1'));
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy set list'));
+      await tester.pumpAndSettle();
+
+      expect(clipboardText, contains('Town Hall'));
     });
 
     testWidgets('Copy set list omits ALTs when hideAlternates is set', (
@@ -436,6 +536,57 @@ void main() {
         titleFor: _titles,
       );
       expect(bytes, isNotEmpty);
+    });
+
+    testWidgets('renders a linked venue without throwing', (tester) async {
+      final bytes = await buildProgramPdf(
+        _program(
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+        titleFor: _titles,
+        venuesById: {'v1': _venue},
+      );
+      expect(bytes, isNotEmpty);
+      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    });
+
+    testWidgets('renders a linked venue with only a name (no detail fields)', (
+      tester,
+    ) async {
+      final bytes = await buildProgramPdf(
+        _program(venueId: 'v2'),
+        titleFor: _titles,
+        venuesById: {'v2': Venue(id: 'v2', name: 'Bare Hall')},
+      );
+      expect(bytes, isNotEmpty);
+      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    });
+  });
+
+  group('venueLocalityLine', () {
+    test('joins city/state with a comma and the postal with a space', () {
+      expect(venueLocalityLine(_venue), 'Montpelier, VT 05602-1234');
+    });
+
+    test('drops the state and postal when only a city is present', () {
+      expect(
+        venueLocalityLine(Venue(id: 'v', name: 'X', city: 'Montpelier')),
+        'Montpelier',
+      );
+    });
+
+    test('formats a bare ZIP with no +4', () {
+      expect(
+        venueLocalityLine(
+          Venue(id: 'v', name: 'X', city: 'Montpelier', postalCode: '05602'),
+        ),
+        'Montpelier 05602',
+      );
+    });
+
+    test('is empty when no locality parts are present', () {
+      expect(venueLocalityLine(Venue(id: 'v', name: 'X')), isEmpty);
     });
 
     testWidgets('exports a program whose dance was purged, without corruption '

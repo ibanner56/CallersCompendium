@@ -104,6 +104,16 @@ A single position in a [program](#program) — usually one [dance](#dance), but 
 can also hold free text (a break, an announcement) or carry an [alt](#alt) as a
 backup choice.
 
+## Venue
+
+Where a [program](#program) is held. A venue can be a simple free-text label, or
+a reusable **venue record** — a saved entity, like a [dance](#dance) or
+choreographer, that many programs can share. A venue record holds a name,
+address, contacts, schedule, sponsor, website, and price, edited in one place.
+Turn on **Use reusable venue records** in [Settings](./settings.md#venues) to
+link programs to saved venues; the free-text label and any linked record coexist
+losslessly.
+
 ## Where to go next
 
 - [Getting started](./getting-started.md) — a first tour of the app.

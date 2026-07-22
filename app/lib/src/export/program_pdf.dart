@@ -1,9 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+
+import '../data/venue_label.dart';
 
 /// Loads the bundled Unicode font (Roboto, SIL OFL-1.1) used for PDF export.
 ///
@@ -34,11 +37,18 @@ Future<pw.ThemeData> loadProgramPdfTheme() async {
 /// - [titleFor] resolves a slot's dance id to a title (same contract as the
 ///   text renderer); [unknownDanceLabel] is used when it returns null.
 /// - [formatDate] formats the event date; defaults to ISO `yyyy-MM-dd`.
+/// - [venuesById] maps venue ids to the loaded [Venue] records. When the
+///   program links a resolvable venue ([Program.venueId]), its
+///   [Venue.displayName] wins in the header date·venue line and a richer venue
+///   block (address, contacts, sponsor/website, schedule/price) is rendered
+///   below the metadata; otherwise the free-text [Program.venue] is used and no
+///   block is drawn. Defaults to empty, preserving the pre-venue-entity output.
 /// - [theme] supplies the Unicode font; when omitted it is loaded from the
 ///   bundled asset via [loadProgramPdfTheme].
 Future<Uint8List> buildProgramPdf(
   Program program, {
   required String? Function(String danceId) titleFor,
+  Map<String, Venue> venuesById = const {},
   String Function(DateTime date)? formatDate,
   String unknownDanceLabel = 'Untitled dance',
   pw.ThemeData? theme,
@@ -47,8 +57,12 @@ Future<Uint8List> buildProgramPdf(
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: program.title, theme: resolvedTheme);
 
+  final linkedVenue = program.venueId != null
+      ? venuesById[program.venueId!]
+      : null;
+
   final metaLines = <String>[
-    _dateVenue(program, fmtDate),
+    _dateVenue(program, fmtDate, venuesById),
     if (_has(program.band)) 'Band: ${program.band!.trim()}',
     if (_has(program.caller)) 'Caller: ${program.caller!.trim()}',
     if (_has(program.dancerLevel)) 'Level: ${program.dancerLevel!.trim()}',
@@ -67,6 +81,7 @@ Future<Uint8List> buildProgramPdf(
         ),
         for (final line in metaLines)
           pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
+        if (linkedVenue != null) ..._venueBlock(linkedVenue),
         if (program.outputGrouped.isNotEmpty) pw.SizedBox(height: 12),
         ..._slotWidgets(program, titleFor, unknownDanceLabel),
         if (_has(program.notes)) ...[
@@ -121,13 +136,95 @@ List<pw.Widget> _slotWidgets(
   return widgets;
 }
 
-String _dateVenue(Program program, String Function(DateTime) fmtDate) {
+String _dateVenue(
+  Program program,
+  String Function(DateTime) fmtDate,
+  Map<String, Venue> venuesById,
+) {
   final parts = <String>[
     if (program.eventDate != null) fmtDate(program.eventDate!),
-    if (_has(program.venue)) program.venue!.trim(),
+    ?resolveVenueLabel(program, venuesById),
   ];
   return parts.join(' · ');
 }
+
+/// Renders the richer venue detail block shown when a program links a
+/// resolvable [Venue]. Each line/field is emitted only when present (relying on
+/// the model's trim/empty→null normalization) so an unset field never shows a
+/// placeholder. Values are drawn as plain PDF text — no markup interpolation —
+/// so stored venue text can't inject layout.
+List<pw.Widget> _venueBlock(Venue venue) {
+  final cityLine = venueLocalityLine(venue);
+
+  final detail = <String>[
+    if (_has(venue.eventName)) venue.eventName!,
+    if (_has(venue.time)) 'Time: ${venue.time}',
+    if (_has(venue.genericSchedule)) 'Schedule: ${venue.genericSchedule}',
+    if (_has(venue.price)) 'Price: ${venue.price}',
+    if (_has(venue.sponsor)) 'Sponsor: ${venue.sponsor}',
+    if (_has(venue.website)) venue.website!,
+  ];
+
+  final address = <String>[
+    if (_has(venue.address1)) venue.address1!,
+    if (_has(venue.address2)) venue.address2!,
+    if (cityLine.isNotEmpty) cityLine,
+    if (_has(venue.country)) venue.country!,
+  ];
+
+  final contacts = <String>[
+    _contactLine(venue.contact1Name, venue.contact1Phone, venue.contact1Email),
+    _contactLine(venue.contact2Name, venue.contact2Phone, venue.contact2Email),
+  ].where((l) => l.isNotEmpty).toList();
+
+  final lines = [...address, ...detail, ...contacts];
+  if (lines.isEmpty) return const [];
+
+  return [
+    pw.SizedBox(height: 8),
+    pw.Text(
+      'Venue',
+      style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
+    ),
+    pw.SizedBox(height: 2),
+    for (final line in lines)
+      pw.Text(line, style: const pw.TextStyle(fontSize: 11)),
+  ];
+}
+
+/// Joins a US-style ZIP and its +4 add-on ("12345-6789"); returns the bare ZIP
+/// when there is no add-on, or `null` when neither is set.
+String? _postal(String? postalCode, String? plus4) {
+  final zip = postalCode?.trim();
+  final add = plus4?.trim();
+  if (zip == null || zip.isEmpty) return null;
+  return (add == null || add.isEmpty) ? zip : '$zip-$add';
+}
+
+/// Formats a venue's locality line as "City, ST 05602-1234": the city and
+/// state/province are comma-joined, and the postal code follows separated by a
+/// SPACE (US convention), never a comma. Any absent part is dropped, so a
+/// city-only venue is just "City" and a postal-only one is just the ZIP.
+/// Returns an empty string when none of the parts are present.
+@visibleForTesting
+String venueLocalityLine(Venue venue) {
+  final cityState = [
+    venue.city,
+    venue.stateProv,
+  ].whereType<String>().where((s) => s.isNotEmpty).join(', ');
+  return [
+    if (cityState.isNotEmpty) cityState,
+    ?_postal(venue.postalCode, venue.plus4),
+  ].join(' ');
+}
+
+/// Renders one contact as "name · phone · email", skipping empty parts; empty
+/// when the contact has no fields at all.
+String _contactLine(String? name, String? phone, String? email) => [
+  if (_has(name)) name!.trim(),
+  if (_has(phone)) phone!.trim(),
+  if (_has(email)) email!.trim(),
+].join(' · ');
 
 /// Mirrors the plain-text slot-line format so the PDF and the emailable text
 /// stay in lockstep.

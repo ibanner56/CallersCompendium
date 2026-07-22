@@ -35,10 +35,16 @@ CREATE INDEX dance_figures_move ON dance_figures(move);
 CREATE VIRTUAL TABLE dance_fts USING fts5(     -- derived; canonical text only
   title, authors, hook, notes, figures_text, custom_values, content='');
 
-programs(id PK, title, event_date, venue, notes, status,
-         created_at, updated_at, deleted_at)
+programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
+         created_at, updated_at, deleted_at)   -- venue_id → venues.id (v14)
 program_slots(id PK, program_id FK, position, dance_id NULL, text,
               is_alt, performed_at)
+
+venues(id PK, name, address1, address2, city, state_prov, country,
+       postal_code, plus4, website, sponsor, event_name, time,
+       generic_schedule, price, notes,
+       contact1_name, contact1_phone, contact1_email,
+       contact2_name, contact2_phone, contact2_email)  -- reusable venue (v14)
 
 custom_field_defs(id PK, key UNIQUE, label, type, choices_json,
                   show_in_list, searchable)

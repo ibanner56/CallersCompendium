@@ -81,11 +81,24 @@ weakness while never losing information.
 `id, name (unique), website?, notes?`. Merge tool needed eventually (imports
 create near-duplicates: "Gene Hubert" vs "Hubert, Gene").
 
+### Venue
+`id, name, address1?, address2?, city?, stateProv?, country?, postalCode?,
+plus4?, website?, sponsor?, eventName?, time?, genericSchedule?, price?, notes?,
+contact1{Name,Phone,Email}?, contact2{Name,Phone,Email}?` (schema v14). A
+first-class reusable entity faithful to CC's `Venue` table (minus its FileMaker
+plumbing); many programs reference one venue by `Program.venueId`. CC's stored
+`VenueDisplay_c` is reimplemented as a computed `displayName` (name + address1 +
+city + stateProv + country), never persisted. A program's free-text
+`Program.venue` label persists **independently** of `venueId`, so the two venue
+modes coexist non-destructively: the display/export layer prefers a resolvable
+`venueId`, falling back to the free text. A settings toggle governs the editor's
+entry mode only (free-text field vs. picker); it never rewrites either column.
+
 ### Program & ProgramSlot
 | Program | ProgramSlot |
 |---|---|
 | id, title | id, programId, position |
-| eventDate?, venue?, notes | danceId? (nullable → free-text slot: break, waltz, announcement) |
+| eventDate?, venue?, venueId?, notes | danceId? (nullable → free-text slot: break, waltz, announcement) |
 | band?, caller?, dancerLevel? | text? (used when danceId null, or per-slot caller note) |
 | status: draft/final/performed | isAlt: bool (alternate dance, decided at event time) |
 | createdAt/updatedAt/deletedAt | guestCaller?, plannedMinutes? (structured, not folded into `text`) |
@@ -97,6 +110,10 @@ a first-class dance-level enum is separate (ROADMAP 4b.1) and a different
 concept. Per-slot, `guestCaller` names a caller other than the host and
 `plannedMinutes` is the planned length (CC `SetItem.Time`), kept structured
 rather than buried in the free-text `text` note (`plannedMinutes >= 0`).
+
+`venueId` (schema v14) optionally links a program to a reusable [Venue](#venue)
+alongside the free-text `venue` label; the two persist independently (see Venue
+above) so switching venue-entry modes is lossless.
 
 Duplicate-program = deep copy of slots. The programming matrix is a **view**
 computed from structured figures (no manual "elements" checklist — the fix for
@@ -175,12 +192,16 @@ flag) toward CC `Author`; privacy-aware, all optional.
 
 **Program / ProgramSlot** — added:
 - `Program`: `band`, `caller`, `dancerLevel` alongside `eventDate`/`venue`/
-  `notes`; optional `timeStart` / running length.
+  `notes`; optional `timeStart` / running length; `venueId` linking to a
+  reusable [Venue](#venue) (schema v14).
 - `ProgramSlot`: structured `caller` (guest) and planned `time`/`length`,
   rather than folding them into the free-text `text` note.
 
-**New entities (Later milestones — not yet built)** — `Venue` (reusable,
-addressed) instead of the current free-text `Program.venue` string;
-`GlossaryTerm` (term/definition/source). A decision is still open on
-user-defined quick-entry **snippets** (CC "Insert Call" buttons) given our
-taxonomy type-ahead already covers entry speed.
+**Venue** (shipped, schema v14) — a reusable, addressed venue entity (see
+[Venue](#venue) above) replacing reliance on the free-text `Program.venue`
+string, while keeping that free text as a coexisting fallback.
+
+**New entities (Later milestones — not yet built)** — `GlossaryTerm`
+(term/definition/source). A decision is still open on user-defined quick-entry
+**snippets** (CC "Insert Call" buttons) given our taxonomy type-ahead already
+covers entry speed.

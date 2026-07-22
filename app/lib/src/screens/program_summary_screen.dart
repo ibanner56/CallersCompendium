@@ -378,6 +378,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             ProgramExportMenu(
               program: program,
               titleFor: (id) => _danceTitles[id],
+              venuesById: _venuesById,
               danceFor: (id) => _dances[id],
               choreographerFor: (id) => _collectionData?.choreographersById[id],
             ),
