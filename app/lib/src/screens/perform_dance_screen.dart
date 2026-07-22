@@ -115,6 +115,19 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _buildContent(
+        context,
+        // Collapse the AppBar's secondary actions into an overflow menu on
+        // narrow widths (issue #433). LayoutBuilder reflects the actual
+        // laid-out width even where MediaQuery does not (e.g. setSurfaceSize
+        // in widget tests).
+        wide: constraints.maxWidth >= kPerformActionsCollapseWidth,
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, {required bool wide}) {
     final l10n = AppLocalizations.of(context);
     final activeDialect = ActiveDialectScope.of(context);
     final isCanonicalDialect = activeDialect == Dialect.canonical;
@@ -135,37 +148,84 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text(l10n.performTitle),
-            actions: [
-              const DialectQuickSwitch(),
-              IconButton(
-                key: const ValueKey('perform-metronome'),
-                tooltip: l10n.performTapTempo,
-                icon: const Icon(Icons.av_timer),
-                onPressed: _openMetronomeSheet,
-              ),
-              PerformSizeControls(
-                canDecrease: canDecrease,
-                onDecrease: _decreaseTextSize,
-                onIncrease: _increaseTextSize,
-              ),
-              PerformAutoSizeToggle(
-                autoSizeOn: _autoSize,
-                onChanged: (value) => setState(() {
-                  _autoSizeUserSet = true;
-                  _autoSize = value;
-                }),
-              ),
-              if (!isCanonicalDialect)
-                PerformDialectToggle(
-                  canonical: _canonicalView,
-                  onChanged: (value) => setState(() => _canonicalView = value),
+            // Responsive AppBar actions (issue #433): full set inline on
+            // tablets/large windows; secondary controls collapse into a "More
+            // actions" overflow on narrow phones so the toolbar can't overflow.
+            // The stage-mode toggle and per-gig dialect quick-switch stay inline.
+            actions: buildPerformAppBarActions(
+              wide: wide,
+              leadingPrimary: const DialectQuickSwitch(),
+              secondaryInline: [
+                IconButton(
+                  key: const ValueKey('perform-metronome'),
+                  tooltip: l10n.performTapTempo,
+                  icon: const Icon(Icons.av_timer),
+                  onPressed: _openMetronomeSheet,
                 ),
-              PerformStageToggle(
+                PerformSizeControls(
+                  canDecrease: canDecrease,
+                  onDecrease: _decreaseTextSize,
+                  onIncrease: _increaseTextSize,
+                ),
+                PerformAutoSizeToggle(
+                  autoSizeOn: _autoSize,
+                  onChanged: (value) => setState(() {
+                    _autoSizeUserSet = true;
+                    _autoSize = value;
+                  }),
+                ),
+                if (!isCanonicalDialect)
+                  PerformDialectToggle(
+                    canonical: _canonicalView,
+                    onChanged: (value) =>
+                        setState(() => _canonicalView = value),
+                  ),
+              ],
+              overflowActions: [
+                PerformMenuAction(
+                  menuKey: const ValueKey('perform-metronome-menu'),
+                  icon: Icons.av_timer,
+                  label: l10n.performTapTempo,
+                  onSelected: _openMetronomeSheet,
+                ),
+                PerformMenuAction(
+                  menuKey: const ValueKey('decrease-text-size-menu'),
+                  icon: Icons.text_decrease,
+                  label: l10n.performDecreaseTextSize,
+                  onSelected: _decreaseTextSize,
+                  enabled: canDecrease,
+                ),
+                PerformMenuAction(
+                  menuKey: const ValueKey('increase-text-size-menu'),
+                  icon: Icons.text_increase,
+                  label: l10n.performIncreaseTextSize,
+                  onSelected: _increaseTextSize,
+                ),
+                PerformMenuAction(
+                  menuKey: const ValueKey('perform-autosize-toggle-menu'),
+                  icon: Icons.fit_screen,
+                  label: l10n.performAutoSizeMenuLabel,
+                  toggledOn: _autoSize,
+                  onSelected: () => setState(() {
+                    _autoSizeUserSet = true;
+                    _autoSize = !_autoSize;
+                  }),
+                ),
+                if (!isCanonicalDialect)
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-dialect-toggle-menu'),
+                    icon: Icons.groups,
+                    label: l10n.performShowCanonicalTerms,
+                    toggledOn: _canonicalView,
+                    onSelected: () =>
+                        setState(() => _canonicalView = !_canonicalView),
+                  ),
+              ],
+              trailingPrimary: PerformStageToggle(
                 stageOn: _stageMode,
                 onChanged: (value) => setState(() => _stageMode = value),
               ),
-              const SizedBox(width: 8),
-            ],
+            ),
           ),
           body: SafeArea(
             child: PerformCard(

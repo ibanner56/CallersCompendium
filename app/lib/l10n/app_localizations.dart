@@ -2479,6 +2479,18 @@ abstract class AppLocalizations {
   /// **'Show canonical terms'**
   String get performShowCanonicalTerms;
 
+  /// Tooltip/accessible name for the perform-mode AppBar overflow menu button that reveals the secondary actions collapsed on narrow screens (issue #433).
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get performMoreActions;
+
+  /// Label for the perform-mode auto-size toggle when it appears as an item inside the AppBar overflow menu on narrow screens (issue #433).
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-size text to screen'**
+  String get performAutoSizeMenuLabel;
+
   /// Tooltip for the perform-mode auto-size toggle when auto-size is currently on.
   ///
   /// In en, this message translates to:

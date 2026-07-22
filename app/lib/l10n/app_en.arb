@@ -2034,6 +2034,14 @@
   "@performShowCanonicalTerms": {
     "description": "Accessible name/tooltip for the perform-mode toggle that shows canonical (non-dialect) figure terms."
   },
+  "performMoreActions": "More actions",
+  "@performMoreActions": {
+    "description": "Tooltip/accessible name for the perform-mode AppBar overflow menu button that reveals the secondary actions collapsed on narrow screens (issue #433)."
+  },
+  "performAutoSizeMenuLabel": "Auto-size text to screen",
+  "@performAutoSizeMenuLabel": {
+    "description": "Label for the perform-mode auto-size toggle when it appears as an item inside the AppBar overflow menu on narrow screens (issue #433)."
+  },
   "performAutoSizeOnTooltip": "Auto-size on — tap for manual text size",
   "@performAutoSizeOnTooltip": {
     "description": "Tooltip for the perform-mode auto-size toggle when auto-size is currently on."

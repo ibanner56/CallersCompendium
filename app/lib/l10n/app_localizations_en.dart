@@ -1364,6 +1364,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get performExitTooltip => 'Exit performance view';
 
   @override
+  String get performExitTitle => 'Exit Perform?';
+
+  @override
+  String get performExitBody =>
+      'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.';
+
+  @override
+  String get performExitCancel => 'Keep performing';
+
+  @override
+  String get performExitConfirm => 'Exit';
+
+  @override
   String get performTapTempo => 'Tap tempo';
 
   @override
@@ -1566,6 +1579,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get performShowCanonicalTerms => 'Show canonical terms';
+
+  @override
+  String get performMoreActions => 'More actions';
+
+  @override
+  String get performAutoSizeMenuLabel => 'Auto-size text to screen';
 
   @override
   String get performAutoSizeOnTooltip =>
