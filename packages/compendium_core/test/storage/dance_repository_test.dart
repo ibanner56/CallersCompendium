@@ -652,6 +652,65 @@ void main() {
         expect(program.slots.single.text, 'The Old Dance');
       },
     );
+
+    test('purging the TARGET of a relatedDance link does not corrupt the owner '
+        'dance load (#466)', () async {
+      // Owner dance A links to target dance B via a relatedDance link. B is
+      // soft-deleted and purged. A pre-fix purge SET NULL the link's
+      // target_dance_id, leaving (relatedDance, targetDanceId=null) — which
+      // DanceLink rejects — so loading ANY dance threw. The purge now deletes
+      // the now-meaningless orphan link instead.
+      await dances.create(
+        sampleDance(id: 'b', title: 'Target', deletedAt: DateTime.utc(2026)),
+      );
+      await dances.create(
+        sampleDance(
+          id: 'a',
+          title: 'Owner',
+          links: [
+            DanceLink(
+              id: 'l1',
+              kind: LinkKind.relatedDance,
+              targetDanceId: 'b',
+            ),
+          ],
+        ),
+      );
+
+      final purged = await dances.purgeDeleted(now: DateTime.utc(2026, 4, 1));
+      expect(purged, 1);
+
+      // getById(A) must not throw; its orphaned relatedDance link is gone.
+      final owner = await dances.getById('a');
+      expect(owner, isNotNull);
+      expect(owner!.links, isEmpty);
+
+      // listAll hydrates every dance's links in one loop — the path a single
+      // corrupt link historically took down — so it must also succeed.
+      final all = await dances.listAll();
+      expect(all.map((d) => d.id), ['a']);
+      expect(all.single.links, isEmpty);
+    });
+
+    test('loading tolerates a legacy orphaned relatedDance link rather than '
+        'throwing (#466 belt-and-suspenders)', () async {
+      // Simulate a link left corrupt by a build that predates the fix: a
+      // relatedDance link whose target_dance_id is NULL. The mapper must skip
+      // it so it cannot block loading its owner dance.
+      await dances.create(sampleDance(id: 'a', title: 'Owner'));
+      await db.customStatement(
+        'INSERT INTO dance_links (id, dance_id, kind, target_dance_id) '
+        'VALUES (?, ?, ?, NULL)',
+        ['l-bad', 'a', LinkKind.relatedDance.name],
+      );
+
+      final owner = await dances.getById('a');
+      expect(owner, isNotNull);
+      expect(owner!.links, isEmpty);
+
+      final all = await dances.listAll();
+      expect(all.single.links, isEmpty);
+    });
   });
 
   group('duplicate', () {

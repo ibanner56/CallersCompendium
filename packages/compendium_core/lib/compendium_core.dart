@@ -66,6 +66,7 @@ export 'src/storage/database.dart'
     show
         CompendiumDatabase,
         derivedRebuildRequiredKey,
+        purgeCorruptionRepairDoneKey,
         kCompendiumSchemaVersion;
 export 'src/storage/repositories/choreographer_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
