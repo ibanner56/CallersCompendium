@@ -195,7 +195,12 @@ void main() {
         // Primary + alt collapse into one navigable group, so `hasAlternates`
         // is true and the swap control is part of the action set.
         program: _program([
-          _slot(id: 's1', position: 0, danceId: 'd1'),
+          // s1 (the current slot) carries a non-null planned length so the
+          // timing readout renders its LONGER "planned N min" form — the widest
+          // content the FittedBox scale-down is there to protect at 360–430px.
+          // Without it the readout is short and the scale-down path (and thus
+          // this regression guard) would never be exercised (issue #433).
+          _slot(id: 's1', position: 0, danceId: 'd1', plannedMinutes: 45),
           _slot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
         ]),
         surfaceSize: size,
@@ -232,6 +237,12 @@ void main() {
 
           // No RenderFlex overflow (or any other exception) during layout.
           expect(tester.takeException(), isNull);
+
+          // The current slot renders the longer "planned N min" readout that the
+          // FittedBox scale-down protects; assert it's actually present so this
+          // setup can't silently regress to the short readout and let a future
+          // overflow slip through unnoticed.
+          expect(find.byKey(const ValueKey('perform-planned')), findsOneWidget);
 
           // Primary actions stay inline and reachable.
           expect(

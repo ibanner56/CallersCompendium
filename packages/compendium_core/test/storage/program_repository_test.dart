@@ -98,6 +98,109 @@ void main() {
       expect(loaded.slots.single.text, 'played anyway');
     });
 
+    test('a DANCE-ONLY slot survives its dance being hard-purged as a title '
+        'tombstone (#429)', () async {
+      // The regression that #429 exposed and #459 masked: a slot with a
+      // dance but NO text. A pre-fix purge nulled its dance_id, leaving
+      // (danceId, text) = (null, null) — which ProgramSlot rejects — so
+      // loading ANY program threw. The purge now tombstones the slot's text
+      // with the dance's title so it stays valid.
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Doomed Dance',
+          deletedAt: DateTime.utc(2026, 1, 1),
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+
+      await dances.purgeDeleted(now: DateTime.utc(2026, 4, 1));
+
+      // getById must not throw; the slot survives with the title as caption.
+      final loaded = await repo.getById('p1');
+      expect(loaded, isNotNull);
+      expect(loaded!.slots.single.danceId, isNull);
+      expect(loaded.slots.single.text, 'Doomed Dance');
+
+      // listAll builds every program's slots in one loop, so it is the path
+      // a single corrupt row historically took down. It must also succeed.
+      final all = await repo.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.slots.single.text, 'Doomed Dance');
+    });
+
+    test('a purged-dance program exports to plaintext without corruption '
+        '(#459 export coverage)', () async {
+      // #459 asked for export coverage of the purge case. The fix keeps the
+      // throwing ProgramSlot invariant, so a purged dance-only slot becomes a
+      // valid title tombstone (danceId null, text = former title). Re-exporting
+      // the affected program must therefore render that caption as an ordinary
+      // text slot and never throw — even though the dance itself is now gone
+      // (so `titleFor` returns null for it).
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Doomed Dance',
+          deletedAt: DateTime.utc(2026, 1, 1),
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, text: 'Waltz break'),
+          ],
+        ),
+      );
+
+      await dances.purgeDeleted(now: DateTime.utc(2026, 4, 1));
+
+      final loaded = await repo.getById('p1');
+      expect(loaded, isNotNull);
+
+      // The dance is purged, so a real exporter's title lookup misses it.
+      final text = programToPlainText(loaded!, titleFor: (_) => null);
+
+      // The program header and the surviving text slot render as usual, and the
+      // tombstoned slot renders its preserved caption rather than being dropped
+      // or degrading to the unknown-dance placeholder.
+      expect(text, contains('Spring Dance 2026'));
+      expect(text, contains('Doomed Dance'));
+      expect(text, contains('Waltz break'));
+      expect(text, isNot(contains('Untitled dance')));
+    });
+
+    test('loading tolerates a legacy (null,null) corrupt slot rather than '
+        'throwing (#429 belt-and-suspenders)', () async {
+      // Simulate a row left corrupt by a build that predates the tombstone
+      // fix. The mapper must skip it so it cannot block loading the program.
+      await repo.create(
+        sampleProgram(
+          slots: [ProgramSlot(id: 's-ok', position: 0, text: 'Waltz')],
+        ),
+      );
+      await db.customStatement(
+        'INSERT INTO program_slots (id, program_id, position, dance_id, '
+        'text, is_alt) VALUES (?, ?, ?, NULL, NULL, 0)',
+        ['s-bad', 'p1', 1],
+      );
+
+      final loaded = await repo.getById('p1');
+      expect(loaded, isNotNull);
+      expect(loaded!.slots.map((s) => s.id), ['s-ok']);
+
+      final all = await repo.listAll();
+      expect(all.single.slots.map((s) => s.id), ['s-ok']);
+    });
+
     test('returns null for a missing id', () async {
       expect(await repo.getById('nope'), isNull);
     });
@@ -1284,6 +1387,65 @@ void main() {
         performedOnly: true,
       );
       expect(stats.firstHalfCount, 1);
+    });
+  });
+
+  group('venueId write-time integrity', () {
+    late VenueRepository venues;
+
+    setUp(() => venues = VenueRepository(db));
+
+    test(
+      'accepts a program whose venueId references an existing venue',
+      () async {
+        await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
+        final program = sampleProgram().copyWith(venueId: 'v1');
+
+        await repo.create(program);
+        expect((await repo.getById('p1'))!.venueId, 'v1');
+      },
+    );
+
+    test('rejects a program whose venueId references no venue', () async {
+      final program = sampleProgram().copyWith(venueId: 'ghost');
+
+      await expectLater(
+        repo.create(program),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('ghost'),
+          ),
+        ),
+      );
+      // The rejected write left nothing behind (the transaction rolled back).
+      expect(await repo.getById('p1'), isNull);
+    });
+
+    test(
+      'rejects an update that repoints venueId at a missing venue',
+      () async {
+        await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
+        await repo.create(sampleProgram().copyWith(venueId: 'v1'));
+
+        final stored = await repo.getById('p1');
+        await expectLater(
+          repo.update(stored!.copyWith(venueId: 'gone')),
+          throwsA(isA<StateError>()),
+        );
+        // The original link is intact — the failed update rolled back.
+        expect((await repo.getById('p1'))!.venueId, 'v1');
+      },
+    );
+
+    test('allows clearing venueId back to null', () async {
+      await venues.upsert(Venue(id: 'v1', name: 'Guiding Star Grange'));
+      await repo.create(sampleProgram().copyWith(venueId: 'v1'));
+
+      final stored = await repo.getById('p1');
+      await repo.update(stored!.copyWith(clearVenueId: true));
+      expect((await repo.getById('p1'))!.venueId, isNull);
     });
   });
 }

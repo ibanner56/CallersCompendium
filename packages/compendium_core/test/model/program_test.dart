@@ -276,6 +276,7 @@ void main() {
         band: 'The Fiddleheads',
         caller: 'Alice',
         dancerLevel: 'beginner',
+        venueId: 'grange-hall',
         slots: [
           ProgramSlot(
             id: 's1',
@@ -297,6 +298,9 @@ void main() {
       expect(copy.band, 'The Fiddleheads');
       expect(copy.caller, 'Alice');
       expect(copy.dancerLevel, 'beginner');
+      // The app-local venue link rides through to the duplicate (the copy is a
+      // clone of the same event, so it keeps the same venue).
+      expect(copy.venueId, 'grange-hall');
       expect(copy.slots.single.guestCaller, 'Bob');
       expect(copy.slots.single.plannedMinutes, 12);
       // performedAt still resets per existing behavior.
@@ -555,6 +559,27 @@ void main() {
         fallback: DateTime.utc(2026, 7, 20),
       );
       expect(stamped.slots.map((s) => s.performedAt), [eventDate, eventDate]);
+    });
+
+    test('preserves venueId on the stamped copy', () {
+      final eventDate = DateTime.utc(2026, 3, 15);
+      final p = Program(
+        id: 'p1',
+        title: 'Spring Dance',
+        eventDate: eventDate,
+        venueId: 'grange-hall',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        createdAt: now,
+        updatedAt: now,
+      );
+      final stamped = p.stampDanceSlotsPerformed(
+        fallback: DateTime.utc(2026, 7, 20),
+      );
+      // Stamping rebuilds via copyWith, so the app-local venue link must ride
+      // through unchanged — guards a future refactor to a direct Program(...)
+      // construction that could forget venueId.
+      expect(stamped.venueId, 'grange-hall');
+      expect(stamped.slots.single.performedAt, eventDate);
     });
 
     test('uses fallback when the program has no eventDate', () {

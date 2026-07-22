@@ -731,4 +731,915 @@ class AppLocalizationsEn extends AppLocalizations {
   String danceOpenDanceCrossRefSemantic(String title) {
     return 'Open dance: $title';
   }
+
+  @override
+  String get commonAddToProgram => 'Add to program';
+
+  @override
+  String get programsEmptyTitle => 'No programs yet';
+
+  @override
+  String get programsAddToProgramEmptyBody =>
+      'Create a program to start building a set list.';
+
+  @override
+  String get programsCreateWithDance => 'Create a new program with this dance';
+
+  @override
+  String programsAddDanceToProgramSemantic(
+    String danceTitle,
+    String programTitle,
+    String details,
+  ) {
+    return 'Add \"$danceTitle\" to $programTitle, $details';
+  }
+
+  @override
+  String programsAddedToProgramSnack(String danceTitle, String programTitle) {
+    return 'Added \"$danceTitle\" to $programTitle.';
+  }
+
+  @override
+  String get programsNewProgram => 'New program';
+
+  @override
+  String programsCreatedProgramSnack(String programTitle, String danceTitle) {
+    return 'Created \"$programTitle\" with \"$danceTitle\".';
+  }
+
+  @override
+  String get dancePerformTooltip => 'Perform this dance';
+
+  @override
+  String get commonSwitchDialectTooltip => 'Switch dialect';
+
+  @override
+  String get programsStatusDraft => 'Draft';
+
+  @override
+  String get programsStatusFinalized => 'Finalized';
+
+  @override
+  String get programsStatusPerformed => 'Performed';
+
+  @override
+  String get programsNoLongerExists => 'This program no longer exists.';
+
+  @override
+  String get programsFallbackTitle => 'Program';
+
+  @override
+  String get programsUntitledDanceFallback => 'dance';
+
+  @override
+  String programsAddedDanceSnack(String title) {
+    return 'Added \"$title\".';
+  }
+
+  @override
+  String programsAddedDanceAnnounce(String title) {
+    return 'Added $title to program.';
+  }
+
+  @override
+  String get programsAddedNoteAnnounce => 'Added note to program.';
+
+  @override
+  String get programsAddedBreakAnnounce => 'Added break to program.';
+
+  @override
+  String get programsMarkedAllPerformed => 'Marked all dances performed.';
+
+  @override
+  String programsSavedSnack(String title) {
+    return '\"$title\" saved.';
+  }
+
+  @override
+  String get programsSaveError => 'Could not save the program.';
+
+  @override
+  String programsDuplicatedSnack(String title) {
+    return 'Duplicated as \"$title\".';
+  }
+
+  @override
+  String programsDeletedSnack(String title) {
+    return '\"$title\" deleted.';
+  }
+
+  @override
+  String get programsDiscardTitle => 'Discard changes?';
+
+  @override
+  String get programsDiscardBody => 'You have unsaved changes to this program.';
+
+  @override
+  String get programsKeepEditing => 'Keep editing';
+
+  @override
+  String get programsDiscard => 'Discard';
+
+  @override
+  String get programsBuildProgram => 'Build program';
+
+  @override
+  String get programsBuildTab => 'Build';
+
+  @override
+  String get programsMatrixTab => 'Matrix';
+
+  @override
+  String get programsPerformTooltip => 'Perform this program';
+
+  @override
+  String get programsMarkAllPerformedTooltip => 'Mark all performed';
+
+  @override
+  String get programsSaveDirty => 'Save *';
+
+  @override
+  String get commonSave => 'Save';
+
+  @override
+  String get programsLoading => 'Loading program';
+
+  @override
+  String get programsLoadError => 'Could not load the program.';
+
+  @override
+  String get programsDeletedDanceFallback => '(deleted dance)';
+
+  @override
+  String get programsSlotsLabel => 'Slots';
+
+  @override
+  String get programsAddDanceButton => 'Add dance';
+
+  @override
+  String get programsAddNoteBreakButton => 'Add note / break';
+
+  @override
+  String get programsInsertBreakButton => 'Insert break';
+
+  @override
+  String get programsAddADanceSheetTitle => 'Add a dance';
+
+  @override
+  String get commonClose => 'Close';
+
+  @override
+  String get programsNoDateSet => 'No date set';
+
+  @override
+  String get programsTitleLabel => 'Title';
+
+  @override
+  String get programsTitleHint => 'e.g. Friday Night Contra';
+
+  @override
+  String get programsTitleRequired => 'A title is required.';
+
+  @override
+  String get programsEventDateLabel => 'Event date';
+
+  @override
+  String get programsSetDate => 'Set date';
+
+  @override
+  String get programsChangeDate => 'Change';
+
+  @override
+  String get programsClearEventDate => 'Clear event date';
+
+  @override
+  String get programsVenueLabel => 'Venue';
+
+  @override
+  String get programsVenueHint => 'e.g. Grange Hall';
+
+  @override
+  String get programsBandLabel => 'Band';
+
+  @override
+  String get programsBandHint => 'e.g. The Fiddleheads';
+
+  @override
+  String get programsCallerLabel => 'Caller';
+
+  @override
+  String get programsCallerHint => 'Host caller for the event';
+
+  @override
+  String get programsDancerLevelLabel => 'Dancer level';
+
+  @override
+  String get programsDancerLevelHint => 'e.g. All welcome, Experienced';
+
+  @override
+  String get programsNotesLabel => 'Notes';
+
+  @override
+  String get programsStatusFieldLabel => 'Status';
+
+  @override
+  String get programsHideAlternatesTitle => 'Hide alternates in set list';
+
+  @override
+  String get programsHideAlternatesSubtitle =>
+      'Omits ALT slots from the summary, PDF, and exported set list. The builder still shows every slot.';
+
+  @override
+  String programsWarningCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count warnings',
+      one: '1 warning',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsAddNoteBreakDialogTitle => 'Add note or break';
+
+  @override
+  String get programsFreeTextLabel => 'Text';
+
+  @override
+  String get programsFreeTextHint => 'e.g. Break, waltz, announcement';
+
+  @override
+  String get commonAdd => 'Add';
+
+  @override
+  String get programsTitle => 'Programs';
+
+  @override
+  String get programsSortTitle => 'Title';
+
+  @override
+  String get programsSortRecentlyUpdated => 'Recently updated';
+
+  @override
+  String get programsSortEventDate => 'Event date';
+
+  @override
+  String programsSortByTooltip(String label) {
+    return 'Sort by ($label)';
+  }
+
+  @override
+  String get programsListLoadError => 'Could not load your programs.';
+
+  @override
+  String get programsListEmptyBody =>
+      'Build set lists for your events here. Create your first program to get started.';
+
+  @override
+  String programsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programs',
+      one: '1 program',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsSummaryTitle => 'Program';
+
+  @override
+  String get programsEditProgram => 'Edit program';
+
+  @override
+  String get programsSummaryUnavailable =>
+      'This program is no longer available.';
+
+  @override
+  String get programsPerformDisabledTooltip =>
+      'Add at least one slot to perform this program';
+
+  @override
+  String programsSummaryBand(String band) {
+    return 'Band: $band';
+  }
+
+  @override
+  String programsSummaryCaller(String caller) {
+    return 'Caller: $caller';
+  }
+
+  @override
+  String programsSummaryLevel(String level) {
+    return 'Level: $level';
+  }
+
+  @override
+  String programsSetListHeader(int count) {
+    return 'Set list ($count)';
+  }
+
+  @override
+  String get programsSummaryEmptySetList =>
+      'No slots yet — open the builder to add dances.';
+
+  @override
+  String programsSummaryGuest(String caller) {
+    return 'Guest: $caller';
+  }
+
+  @override
+  String programsPlannedMinutes(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get programsAltBadge => 'Alt';
+
+  @override
+  String get programsDanceUnavailable => 'Dance unavailable';
+
+  @override
+  String programsSummaryNote(String note) {
+    return 'Note: $note';
+  }
+
+  @override
+  String programsSummaryAlternateSemantic(String title) {
+    return 'Alternate: $title';
+  }
+
+  @override
+  String get programsPerformed => 'Performed';
+
+  @override
+  String programsSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count slots',
+      one: '1 slot',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsSlotNoteFallback => 'Note';
+
+  @override
+  String get programsSlotEditorEmpty =>
+      'No slots yet. Add a dance or a note to get started.';
+
+  @override
+  String get programsSlotMoved => 'Slot moved.';
+
+  @override
+  String get programsSlotMovedUp => 'Slot moved up.';
+
+  @override
+  String get programsSlotMovedDown => 'Slot moved down.';
+
+  @override
+  String programsSlotCutBanner(String name) {
+    return '\"$name\" is cut — tap Paste to place it.';
+  }
+
+  @override
+  String get programsPasteBeforeFirst => 'Paste before first slot';
+
+  @override
+  String programsPasteAfter(String title) {
+    return 'Paste after $title';
+  }
+
+  @override
+  String get programsPasteHere => 'Paste here';
+
+  @override
+  String get programsMarkedPrimary => 'Marked as primary.';
+
+  @override
+  String get programsMarkedAlternate => 'Marked as alternate.';
+
+  @override
+  String get programsMarkedPerformed => 'Marked performed.';
+
+  @override
+  String get programsPerformedCleared => 'Performed mark cleared.';
+
+  @override
+  String programsRemovedSlot(String name) {
+    return 'Removed $name.';
+  }
+
+  @override
+  String get programsAltOrdinal => 'ALT';
+
+  @override
+  String programsDragToReorder(String title) {
+    return 'Drag to reorder $title';
+  }
+
+  @override
+  String programsMoveSlotUp(String title) {
+    return 'Move $title up';
+  }
+
+  @override
+  String programsMoveSlotDown(String title) {
+    return 'Move $title down';
+  }
+
+  @override
+  String programsCutSlot(String title) {
+    return 'Cut $title';
+  }
+
+  @override
+  String programsMoreActionsForSlot(String title) {
+    return 'More actions for $title';
+  }
+
+  @override
+  String get programsEditSlotMenu => 'Edit slot';
+
+  @override
+  String get programsMakePrimaryMenu => 'Make primary';
+
+  @override
+  String get programsMarkAlternateMenu => 'Mark as alternate';
+
+  @override
+  String get programsClearPerformedMenu => 'Clear performed';
+
+  @override
+  String get programsMarkPerformedMenu => 'Mark performed';
+
+  @override
+  String get programsRemoveSlotMenu => 'Remove slot';
+
+  @override
+  String get programsSlotTextRequiredError => 'Enter some text for this slot.';
+
+  @override
+  String get programsWholeNumberError => 'Enter a whole number ≥ 0.';
+
+  @override
+  String get programsEditDanceSlotTitle => 'Edit dance slot';
+
+  @override
+  String get programsEditNoteTitle => 'Edit note';
+
+  @override
+  String get programsCallerNoteLabel => 'Caller note (optional)';
+
+  @override
+  String get programsCallerNoteHint => 'e.g. teach the hey first';
+
+  @override
+  String get programsGuestCallerLabel => 'Guest caller (optional)';
+
+  @override
+  String get programsPlannedMinutesLabel => 'Planned minutes (optional)';
+
+  @override
+  String get programsAlternateDanceTitle => 'Alternate dance';
+
+  @override
+  String get programsAlternateDanceSubtitle =>
+      'Renders indented under the slot above it.';
+
+  @override
+  String get commonDone => 'Done';
+
+  @override
+  String programsMatrixSemanticLabel(int danceCount, int moveCount) {
+    return 'Programming matrix: $danceCount dances by $moveCount moves';
+  }
+
+  @override
+  String programsMatrixOmittedCaption(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count free-text slots',
+      one: '1 free-text slot',
+    );
+    return '$_temp0 (breaks, notes) omitted — the matrix shows dances only.';
+  }
+
+  @override
+  String programsMatrixMoveHeaderSemantic(String label) {
+    return 'Move: $label';
+  }
+
+  @override
+  String programsMatrixRowHeaderSemantic(
+    String title,
+    String alt,
+    String half,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(half, {
+      'first': 'Alternate dance: $title, first half',
+      'second': 'Alternate dance: $title, second half',
+      'other': 'Alternate dance: $title',
+    });
+    String _temp1 = intl.Intl.selectLogic(half, {
+      'first': 'Dance: $title, first half',
+      'second': 'Dance: $title, second half',
+      'other': 'Dance: $title',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
+  String programsMatrixHalfShort(String half) {
+    String _temp0 = intl.Intl.selectLogic(half, {
+      'first': '1st',
+      'other': '2nd',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String programsMatrixCellSemantic(
+    String dance,
+    String move,
+    String present,
+    String debut,
+    String first,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(debut, {
+      'yes': ', introduced here',
+      'other': '',
+    });
+    String _temp1 = intl.Intl.selectLogic(first, {
+      'yes': ', dance\'s first figure',
+      'other': '',
+    });
+    String _temp2 = intl.Intl.selectLogic(present, {
+      'no': 'not present',
+      'other': 'present$_temp0$_temp1',
+    });
+    return '$dance, $move: $_temp2';
+  }
+
+  @override
+  String programsMatrixChipQualifiedTitle(
+    String title,
+    String alt,
+    String half,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(half, {
+      'first': '$title (alternate dance, first half)',
+      'second': '$title (alternate dance, second half)',
+      'other': '$title (alternate dance)',
+    });
+    String _temp1 = intl.Intl.selectLogic(half, {
+      'first': '$title (first half)',
+      'second': '$title (second half)',
+      'other': '$title',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
+  String programsMatrixMoveUsedInSemantic(String label, int count, int total) {
+    return 'Move: $label, used in $count of $total dances';
+  }
+
+  @override
+  String programsMatrixNOfTotal(int count, int total) {
+    return '$count of $total';
+  }
+
+  @override
+  String get programsMatrixNoComparableMoves =>
+      'None of these dances have structured figures yet, so there are no moves to compare.';
+
+  @override
+  String get programsMatrixRepeatedMovesHeader => 'Repeated moves';
+
+  @override
+  String get programsMatrixRepeatedMovesSubtitle =>
+      'Moves shared across two or more dances, most-repeated first.';
+
+  @override
+  String get programsMatrixNoRepeatsNote =>
+      'No moves repeat across these dances — every move below is used by a single dance.';
+
+  @override
+  String get programsMatrixUsedOnceHeader => 'Used once';
+
+  @override
+  String get programsMatrixLegendIntroduced => 'Introduced here';
+
+  @override
+  String get programsMatrixLegendFirstFigure => 'Dance\'s first figure';
+
+  @override
+  String get programsMatrixLegendPresent => 'Present';
+
+  @override
+  String get programsMatrixEmptyTitle => 'No structured figures yet';
+
+  @override
+  String get programsMatrixEmptyBody =>
+      'The matrix fills in automatically as the program’s dances gain structured figures.';
+
+  @override
+  String get performTitle => 'Perform';
+
+  @override
+  String get performExitTooltip => 'Exit performance view';
+
+  @override
+  String get performExitTitle => 'Exit Perform?';
+
+  @override
+  String get performExitBody =>
+      'Leave the performance view? Your place and the running clock are kept, so you can resume where you left off.';
+
+  @override
+  String get performExitCancel => 'Keep performing';
+
+  @override
+  String get performExitConfirm => 'Exit';
+
+  @override
+  String get performTapTempo => 'Tap tempo';
+
+  @override
+  String performBpmReadout(int bpm) {
+    return '$bpm BPM';
+  }
+
+  @override
+  String get performTapToSetTempo => 'Tap to set tempo';
+
+  @override
+  String performBpmSemantic(int bpm) {
+    return '$bpm beats per minute';
+  }
+
+  @override
+  String get performNoTempoSemantic =>
+      'No tempo set yet. Tap the target to set a tempo.';
+
+  @override
+  String get performRecordBeatHint => 'record a beat';
+
+  @override
+  String get performTapRefineHint =>
+      'Keep tapping to refine · Reset to start over';
+
+  @override
+  String get performTapTwiceHint => 'Tap at least twice in time with the beat';
+
+  @override
+  String get performResetTempo => 'Reset';
+
+  @override
+  String get performUntitledSlot => 'Untitled slot';
+
+  @override
+  String performMarkedPerformedAnnounce(String label) {
+    return 'Marked $label performed';
+  }
+
+  @override
+  String get performClearedPerformedAnnounce => 'Cleared performed mark';
+
+  @override
+  String performMovedToPosition(String label, int position) {
+    return 'Moved $label to position $position';
+  }
+
+  @override
+  String get performDanceFallback => 'dance';
+
+  @override
+  String performInsertedAnnounce(String title) {
+    return 'Inserted $title';
+  }
+
+  @override
+  String get performAddedNoteAnnounce => 'Added note';
+
+  @override
+  String get performInsertADance => 'Insert a dance';
+
+  @override
+  String get performAdjustProgram => 'Adjust program';
+
+  @override
+  String get performCurrentSlotSection => 'Current slot';
+
+  @override
+  String get performPerformedTapToClear => 'Performed — tap to clear';
+
+  @override
+  String get performReorderSection => 'Reorder remaining slots';
+
+  @override
+  String get performNoLaterSlots => 'No later slots to reorder.';
+
+  @override
+  String get performInsertDanceFromSearch => 'Insert dance from search';
+
+  @override
+  String get performAdHocNoteLabel => 'Ad-hoc note / break';
+
+  @override
+  String get performAdHocNoteHint => 'e.g. Waltz, announcements';
+
+  @override
+  String get performAddNote => 'Add note';
+
+  @override
+  String performAlternatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count alternates',
+      one: '1 alternate',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String performMoveLabelUp(String label) {
+    return 'Move \"$label\" up';
+  }
+
+  @override
+  String performMoveLabelDown(String label) {
+    return 'Move \"$label\" down';
+  }
+
+  @override
+  String performSlotPosition(int current, int total) {
+    return 'Slot $current of $total';
+  }
+
+  @override
+  String performShowingSlot(String label) {
+    return 'Showing $label';
+  }
+
+  @override
+  String get performAdjustmentUndone => 'Adjustment undone';
+
+  @override
+  String get performProgramAdjustedSnack => 'Program adjusted.';
+
+  @override
+  String get performProgramAdjustedAnnounce => 'Program adjusted';
+
+  @override
+  String get performNoSlots => 'This program has no slots.';
+
+  @override
+  String get performJumpToSlot => 'Jump to slot';
+
+  @override
+  String get performShowAlternate => 'Show alternate';
+
+  @override
+  String get performPreviousSlot => 'Previous slot';
+
+  @override
+  String get performNextSlot => 'Next slot';
+
+  @override
+  String get performResumeTimers => 'Resume timers';
+
+  @override
+  String get performPauseTimers => 'Pause timers';
+
+  @override
+  String performTimingSemantic(
+    String programTime,
+    String slotTime,
+    String hasPlanned,
+    int planned,
+    String over,
+    String paused,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      planned,
+      locale: localeName,
+      other: '$planned minutes',
+      one: '1 minute',
+    );
+    String _temp1 = intl.Intl.selectLogic(hasPlanned, {
+      'yes': ', planned $_temp0',
+      'other': '',
+    });
+    String _temp2 = intl.Intl.selectLogic(over, {
+      'yes': ', over planned',
+      'other': '',
+    });
+    String _temp3 = intl.Intl.selectLogic(paused, {
+      'yes': ', paused',
+      'other': '',
+    });
+    return 'Program time $programTime, slot time $slotTime$_temp1$_temp2$_temp3';
+  }
+
+  @override
+  String performPlannedMin(int planned) {
+    return 'planned $planned min';
+  }
+
+  @override
+  String get performOverSuffix => ' over';
+
+  @override
+  String get performCallingNotes => 'Calling notes';
+
+  @override
+  String get performNoFigures => 'No figures yet.';
+
+  @override
+  String get performDecreaseTextSize => 'Decrease text size';
+
+  @override
+  String get performIncreaseTextSize => 'Increase text size';
+
+  @override
+  String get performShowCanonicalTerms => 'Show canonical terms';
+
+  @override
+  String get performMoreActions => 'More actions';
+
+  @override
+  String get performAutoSizeMenuLabel => 'Auto-size text to screen';
+
+  @override
+  String get performAutoSizeOnTooltip =>
+      'Auto-size on — tap for manual text size';
+
+  @override
+  String get performAutoSizeOffTooltip =>
+      'Auto-size off — tap to fit text to screen';
+
+  @override
+  String get performStageThemeOnTooltip =>
+      'Stage theme on — tap to use app theme';
+
+  @override
+  String get performStageThemeOffTooltip =>
+      'Stage theme off — tap for dark stage';
+
+  @override
+  String get performProgression => 'Progression';
+
+  @override
+  String performFigureSemantic(
+    String main,
+    String importGap,
+    String importGapText,
+    String progression,
+    int beats,
+    String hasNote,
+    String note,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(importGap, {
+      'yes': ', $importGapText',
+      'other': '',
+    });
+    String _temp1 = intl.Intl.selectLogic(progression, {
+      'yes': ', progression',
+      'other': '',
+    });
+    String _temp2 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    String _temp3 = intl.Intl.selectLogic(hasNote, {
+      'yes': ', note: $note',
+      'other': '',
+    });
+    return '$main$_temp0$_temp1, $_temp2$_temp3';
+  }
+
+  @override
+  String get programsSelectTitle => 'Select a program';
+
+  @override
+  String get programsSelectBody =>
+      'Choose a program from the list, or create a new one.';
 }

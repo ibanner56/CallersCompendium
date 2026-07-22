@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:printing/printing.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
@@ -14,6 +15,7 @@ import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
+import '../utils/safe_name.dart';
 import '../widgets/collection_picker.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
@@ -34,6 +36,12 @@ import '../widgets/program_status_chip.dart';
 /// shows an inline persistent picker pane; narrow opens the picker in a modal
 /// bottom sheet.
 ///
+/// Language-neutral sentinel stored in [_ProgramEditorScreenState._loadError]
+/// when the requested program no longer exists. Kept locale-independent (rather
+/// than a resolved string) so the message re-localizes if the app language is
+/// switched live while this retained editor is off-screen.
+enum _ProgramLoadError { missing }
+
 /// [programId] null ⇒ create a new program; otherwise edit that program.
 class ProgramEditorScreen extends StatefulWidget {
   const ProgramEditorScreen({
@@ -157,7 +165,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           if (!mounted) return;
           setState(() {
             _data = data;
-            _loadError = 'This program no longer exists.';
+            _loadError = _ProgramLoadError.missing;
             _loaded = true;
           });
           return;
@@ -263,7 +271,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// current (possibly unsaved) edits. Falls back to a placeholder title for a
   /// brand-new, still-untitled program so performing always works when slots
   /// exist. Returns null when there is nothing to perform.
-  Program? get _programToPerform {
+  Program? _programToPerform(AppLocalizations l10n) {
     if (_slots.isEmpty) return null;
     final draft = _draftProgram;
     if (draft != null) return draft;
@@ -271,7 +279,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     try {
       return Program(
         id: _existing?.id ?? 'draft',
-        title: 'Program',
+        title: l10n.programsFallbackTitle,
         slots: _renumber(_slots),
         createdAt: now,
         updatedAt: now,
@@ -283,7 +291,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   void _performProgram() {
     final data = _data;
-    final program = _programToPerform;
+    final program = _programToPerform(AppLocalizations.of(context));
     if (data == null || program == null) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -353,13 +361,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ]);
       _dirty = true;
     });
-    final title = _titleForDance(danceId) ?? 'dance';
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Added "$title".')));
+    final l10n = AppLocalizations.of(context);
+    final title = _titleForDance(danceId) ?? l10n.programsUntitledDanceFallback;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.programsAddedDanceSnack(title))),
+    );
     SemanticsService.sendAnnouncement(
       View.of(context),
-      'Added $title to program.',
+      l10n.programsAddedDanceAnnounce(title),
       TextDirection.ltr,
     );
   }
@@ -379,7 +388,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     });
     SemanticsService.sendAnnouncement(
       View.of(context),
-      'Added note to program.',
+      AppLocalizations.of(context).programsAddedNoteAnnounce,
       TextDirection.ltr,
     );
   }
@@ -398,7 +407,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     });
     SemanticsService.sendAnnouncement(
       View.of(context),
-      'Added break to program.',
+      AppLocalizations.of(context).programsAddedBreakAnnounce,
       TextDirection.ltr,
     );
   }
@@ -432,6 +441,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Future<void> _markAllPerformed() async {
     final now = DateTime.now().toUtc();
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _slots = [
         for (final s in _slots)
@@ -443,12 +453,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     });
     SemanticsService.sendAnnouncement(
       View.of(context),
-      'Marked all dances performed.',
+      l10n.programsMarkedAllPerformed,
       TextDirection.ltr,
     );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Marked all dances performed.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.programsMarkedAllPerformed)));
   }
 
   // --- Persistence ----------------------------------------------------------
@@ -492,6 +502,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    final l10n = AppLocalizations.of(context);
     setState(() => _saving = true);
     final now = DateTime.now().toUtc();
     final title = _titleController.text.trim();
@@ -554,7 +565,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       });
       final messenger = ScaffoldMessenger.of(context);
       if (widget.isEmbedded) {
-        messenger.showSnackBar(SnackBar(content: Text('"$title" saved.')));
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.programsSavedSnack(title))),
+        );
         widget.onSaved?.call(id);
       } else {
         Navigator.of(context).pop(id);
@@ -562,9 +575,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not save the program.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
     }
   }
 
@@ -582,7 +595,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
-      SnackBar(content: Text('Duplicated as "${copy.title}".')),
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context).programsDuplicatedSnack(copy.title),
+        ),
+      ),
     );
     if (widget.isEmbedded) {
       widget.onNavigateTo?.call(copy.id);
@@ -604,12 +621,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (!mounted) return;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       SnackBar(
-        content: Text('"$title" deleted.'),
+        content: Text(l10n.programsDeletedSnack(title)),
         action: SnackBarAction(
-          label: 'Undo',
+          label: l10n.commonUndo,
           onPressed: () =>
               _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
         ),
@@ -626,21 +644,22 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Future<bool> _confirmDiscard() async {
     if (!_dirty) return true;
+    final l10n = AppLocalizations.of(context);
     final discard = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Discard changes?'),
-        content: const Text('You have unsaved changes to this program.'),
+        title: Text(l10n.programsDiscardTitle),
+        content: Text(l10n.programsDiscardBody),
         actions: [
           TextButton(
             key: const ValueKey('discard-cancel'),
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep editing'),
+            child: Text(l10n.programsKeepEditing),
           ),
           FilledButton(
             key: const ValueKey('discard-confirm'),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Discard'),
+            child: Text(l10n.programsDiscard),
           ),
         ],
       ),
@@ -650,6 +669,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopScope<Object?>(
       canPop: !_dirty,
       onPopInvokedWithResult: (didPop, result) async {
@@ -660,19 +680,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.isNew ? 'New program' : 'Build program'),
+          title: Text(
+            widget.isNew ? l10n.programsNewProgram : l10n.programsBuildProgram,
+          ),
           bottom: TabBar(
             controller: _tabController,
-            tabs: const [
+            tabs: [
               Tab(
-                key: ValueKey('program-build-tab'),
-                icon: Icon(Icons.list_alt_outlined),
-                text: 'Build',
+                key: const ValueKey('program-build-tab'),
+                icon: const Icon(Icons.list_alt_outlined),
+                text: l10n.programsBuildTab,
               ),
               Tab(
-                key: ValueKey('program-matrix-tab'),
-                icon: Icon(Icons.grid_on_outlined),
-                text: 'Matrix',
+                key: const ValueKey('program-matrix-tab'),
+                icon: const Icon(Icons.grid_on_outlined),
+                text: l10n.programsMatrixTab,
               ),
             ],
           ),
@@ -683,7 +705,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 _slots.isNotEmpty)
               IconButton(
                 key: const ValueKey('perform-program'),
-                tooltip: 'Perform this program',
+                tooltip: l10n.programsPerformTooltip,
                 icon: const Icon(Icons.slideshow),
                 onPressed: _performProgram,
               ),
@@ -698,19 +720,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               if (_slots.any((s) => s.danceId != null))
                 IconButton(
                   key: const ValueKey('mark-all-performed'),
-                  tooltip: 'Mark all performed',
+                  tooltip: l10n.programsMarkAllPerformedTooltip,
                   icon: const Icon(Icons.done_all),
                   onPressed: _markAllPerformed,
                 ),
               IconButton(
                 key: const ValueKey('duplicate-program'),
-                tooltip: 'Duplicate',
+                tooltip: l10n.commonDuplicate,
                 icon: const Icon(Icons.copy_all_outlined),
                 onPressed: _duplicate,
               ),
               IconButton(
                 key: const ValueKey('delete-program'),
-                tooltip: 'Delete',
+                tooltip: l10n.commonDelete,
                 icon: const Icon(Icons.delete_outline),
                 onPressed: _delete,
               ),
@@ -728,7 +750,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 heroTag: 'save-program',
                 onPressed: _saving ? null : _save,
                 icon: const Icon(Icons.save_outlined),
-                label: Text(_dirty ? 'Save *' : 'Save'),
+                label: Text(_dirty ? l10n.programsSaveDirty : l10n.commonSave),
               )
             : null,
       ),
@@ -736,9 +758,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     if (!_loaded) {
-      return const Center(
-        child: CircularProgressIndicator(semanticsLabel: 'Loading program'),
+      return Center(
+        child: CircularProgressIndicator(semanticsLabel: l10n.programsLoading),
       );
     }
     if (_loadError != null) {
@@ -746,9 +769,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            _loadError is String
-                ? _loadError! as String
-                : 'Could not load the program.',
+            _loadError == _ProgramLoadError.missing
+                ? l10n.programsNoLongerExists
+                : l10n.programsLoadError,
             textAlign: TextAlign.center,
           ),
         ),
@@ -784,9 +807,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Widget _buildMatrixTab() {
+    final l10n = AppLocalizations.of(context);
     if (!_loaded) {
-      return const Center(
-        child: CircularProgressIndicator(semanticsLabel: 'Loading program'),
+      return Center(
+        child: CircularProgressIndicator(semanticsLabel: l10n.programsLoading),
       );
     }
     if (_loadError != null) {
@@ -794,9 +818,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            _loadError is String
-                ? _loadError! as String
-                : 'Could not load the program.',
+            _loadError == _ProgramLoadError.missing
+                ? l10n.programsNoLongerExists
+                : l10n.programsLoadError,
             textAlign: TextAlign.center,
           ),
         ),
@@ -828,7 +852,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           data.dancesById[danceId] ??
           Dance(
             id: danceId,
-            title: '(deleted dance)',
+            title: l10n.programsDeletedDanceFallback,
             createdAt: now,
             updatedAt: now,
           );
@@ -889,7 +913,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final title = _titleController.text.trim();
     final venue = _venueController.text.trim();
     await Printing.layoutPdf(
-      name: title.isEmpty ? 'Programming matrix' : title,
+      name: sanitizeExportName(title, fallback: 'Programming matrix'),
       onLayout: (format) => buildProgramMatrixPdf(
         matrix,
         taxonomy: taxonomy,
@@ -904,6 +928,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Widget _buildEditorColumn({required bool twoPane}) {
+    final l10n = AppLocalizations.of(context);
     final draft = _draftProgram;
     final warnings = draft?.validate() ?? const <ValidationIssue>[];
 
@@ -921,7 +946,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ],
           Row(
             children: [
-              Text('Slots', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l10n.programsSlotsLabel,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const Spacer(),
               Text(
                 '${_slots.length}',
@@ -939,19 +967,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   key: const ValueKey('add-dance-slot'),
                   onPressed: _openPickerSheet,
                   icon: const Icon(Icons.library_music_outlined),
-                  label: const Text('Add dance'),
+                  label: Text(l10n.programsAddDanceButton),
                 ),
               OutlinedButton.icon(
                 key: const ValueKey('add-free-text-slot'),
                 onPressed: _addFreeTextSlot,
                 icon: const Icon(Icons.notes_outlined),
-                label: const Text('Add note / break'),
+                label: Text(l10n.programsAddNoteBreakButton),
               ),
               OutlinedButton.icon(
                 key: const ValueKey('insert-break-slot'),
                 onPressed: _insertBreakSlot,
                 icon: const Icon(Icons.free_breakfast_outlined),
-                label: const Text('Insert break'),
+                label: Text(l10n.programsInsertBreakButton),
               ),
             ],
           ),
@@ -973,6 +1001,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _openPickerSheet() async {
     final data = _data;
     if (data == null) return;
+    final l10n = AppLocalizations.of(context);
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -989,13 +1018,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   children: [
                     const SizedBox(width: 16),
                     Text(
-                      'Add a dance',
+                      l10n.programsAddADanceSheetTitle,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const Spacer(),
                     IconButton(
                       key: const ValueKey('picker-sheet-close'),
-                      tooltip: 'Close',
+                      tooltip: l10n.commonClose,
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.of(sheetContext).pop(),
                     ),
@@ -1021,8 +1050,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Widget _buildMetadataSection() {
+    final l10n = AppLocalizations.of(context);
     final dateLabel = _eventDate == null
-        ? 'No date set'
+        ? l10n.programsNoDateSet
         : formatEventDate(
             _eventDate!,
             DateFormatScope.of(context),
@@ -1038,20 +1068,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           autofocus: widget.isNew,
           textInputAction: TextInputAction.next,
           onChanged: (_) => _markDirty(),
-          decoration: const InputDecoration(
-            labelText: 'Title',
-            hintText: 'e.g. Friday Night Contra',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.programsTitleLabel,
+            hintText: l10n.programsTitleHint,
+            border: const OutlineInputBorder(),
           ),
           validator: (value) => (value == null || value.trim().isEmpty)
-              ? 'A title is required.'
+              ? l10n.programsTitleRequired
               : null,
         ),
         const SizedBox(height: 16),
         InputDecorator(
-          decoration: const InputDecoration(
-            labelText: 'Event date',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.programsEventDateLabel,
+            border: const OutlineInputBorder(),
           ),
           child: Row(
             children: [
@@ -1060,12 +1090,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 key: const ValueKey('pick-event-date'),
                 onPressed: _pickEventDate,
                 icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                label: Text(_eventDate == null ? 'Set date' : 'Change'),
+                label: Text(
+                  _eventDate == null
+                      ? l10n.programsSetDate
+                      : l10n.programsChangeDate,
+                ),
               ),
               if (_eventDate != null)
                 IconButton(
                   key: const ValueKey('clear-event-date'),
-                  tooltip: 'Clear event date',
+                  tooltip: l10n.programsClearEventDate,
                   icon: const Icon(Icons.clear),
                   onPressed: () => setState(() {
                     _eventDate = null;
@@ -1081,10 +1115,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           controller: _venueController,
           textInputAction: TextInputAction.next,
           onChanged: (_) => _markDirty(),
-          decoration: const InputDecoration(
-            labelText: 'Venue',
-            hintText: 'e.g. Grange Hall',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.programsVenueLabel,
+            hintText: l10n.programsVenueHint,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
@@ -1093,10 +1127,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           controller: _bandController,
           textInputAction: TextInputAction.next,
           onChanged: (_) => _markDirty(),
-          decoration: const InputDecoration(
-            labelText: 'Band',
-            hintText: 'e.g. The Fiddleheads',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.programsBandLabel,
+            hintText: l10n.programsBandHint,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
@@ -1105,10 +1139,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           controller: _callerController,
           textInputAction: TextInputAction.next,
           onChanged: (_) => _markDirty(),
-          decoration: const InputDecoration(
-            labelText: 'Caller',
-            hintText: 'Host caller for the event',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.programsCallerLabel,
+            hintText: l10n.programsCallerHint,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
@@ -1117,10 +1151,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           controller: _levelController,
           textInputAction: TextInputAction.next,
           onChanged: (_) => _markDirty(),
-          decoration: const InputDecoration(
-            labelText: 'Dancer level',
-            hintText: 'e.g. All welcome, Experienced',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.programsDancerLevelLabel,
+            hintText: l10n.programsDancerLevelHint,
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
@@ -1130,19 +1164,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           minLines: 3,
           maxLines: 6,
           onChanged: (_) => _markDirty(),
-          decoration: const InputDecoration(
-            labelText: 'Notes',
+          decoration: InputDecoration(
+            labelText: l10n.programsNotesLabel,
             alignLabelWithHint: true,
-            border: OutlineInputBorder(),
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<ProgramStatus>(
           key: const ValueKey('program-status'),
           initialValue: _status,
-          decoration: const InputDecoration(
-            labelText: 'Status',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.programsStatusFieldLabel,
+            border: const OutlineInputBorder(),
           ),
           items: [
             for (final status in ProgramStatus.values)
@@ -1151,9 +1185,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(programStatusPresentation(status).icon, size: 18),
+                    Icon(
+                      programStatusPresentation(status, l10n).icon,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
-                    Text(programStatusPresentation(status).label),
+                    Text(programStatusPresentation(status, l10n).label),
                   ],
                 ),
               ),
@@ -1171,11 +1208,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         SwitchListTile(
           key: const ValueKey('program-hide-alternates'),
           contentPadding: EdgeInsets.zero,
-          title: const Text('Hide alternates in set list'),
-          subtitle: const Text(
-            'Omits ALT slots from the summary, PDF, and exported set list. '
-            'The builder still shows every slot.',
-          ),
+          title: Text(l10n.programsHideAlternatesTitle),
+          subtitle: Text(l10n.programsHideAlternatesSubtitle),
           value: _hideAlternates,
           onChanged: (value) {
             setState(() {
@@ -1220,6 +1254,7 @@ class _ProgramWarningsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Card(
       key: const ValueKey('program-warnings-card'),
@@ -1238,9 +1273,7 @@ class _ProgramWarningsCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  warnings.length == 1
-                      ? '1 warning'
-                      : '${warnings.length} warnings',
+                  l10n.programsWarningCount(warnings.length),
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: theme.colorScheme.onTertiaryContainer,
                   ),
@@ -1289,28 +1322,29 @@ class _FreeTextSlotDialogState extends State<_FreeTextSlotDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Add note or break'),
+      title: Text(l10n.programsAddNoteBreakDialogTitle),
       content: TextField(
         key: const ValueKey('free-text-slot-input'),
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(
-          labelText: 'Text',
-          hintText: 'e.g. Break, waltz, announcement',
-          border: OutlineInputBorder(),
+        decoration: InputDecoration(
+          labelText: l10n.programsFreeTextLabel,
+          hintText: l10n.programsFreeTextHint,
+          border: const OutlineInputBorder(),
         ),
         onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('free-text-slot-add'),
           onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: const Text('Add'),
+          child: Text(l10n.commonAdd),
         ),
       ],
     );

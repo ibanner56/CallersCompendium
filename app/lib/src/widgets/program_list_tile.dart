@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
 import '../data/regional_formats.dart';
 import 'program_status_chip.dart';
@@ -31,6 +32,7 @@ class ProgramListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final slotCount = program.slots.length;
     final eventDate = program.eventDate;
@@ -46,7 +48,7 @@ class ProgramListTile extends StatelessWidget {
     final subtitleParts = <String>[
       ?dateLabel,
       if (venue != null && venue.isNotEmpty) venue,
-      '$slotCount ${slotCount == 1 ? 'slot' : 'slots'}',
+      l10n.programsSlotCount(slotCount),
     ];
 
     return ListTile(
@@ -64,7 +66,7 @@ class ProgramListTile extends StatelessWidget {
         ),
       ),
       isThreeLine: true,
-      trailing: _buildTrailing(),
+      trailing: _buildTrailing(l10n),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
@@ -73,12 +75,12 @@ class ProgramListTile extends StatelessWidget {
   /// Trailing content: the row action overflow (⋮) menu when any action
   /// callback is wired, followed by the drill-in chevron; the chevron alone
   /// when no actions are provided.
-  Widget _buildTrailing() {
+  Widget _buildTrailing(AppLocalizations l10n) {
     final hasActions = onDelete != null || onDuplicate != null;
     if (!hasActions) return const Icon(Icons.chevron_right);
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [_actionsMenu(), const Icon(Icons.chevron_right)],
+      children: [_actionsMenu(l10n), const Icon(Icons.chevron_right)],
     );
   }
 
@@ -86,10 +88,10 @@ class ProgramListTile extends StatelessWidget {
   /// row actions without a swipe. Each item is a first-class [PopupMenuItem]
   /// with an icon+text [ListTile] so its label is announced by assistive tech;
   /// the button itself is labelled by its [PopupMenuButton.tooltip].
-  Widget _actionsMenu() {
+  Widget _actionsMenu(AppLocalizations l10n) {
     return PopupMenuButton<_ProgramRowAction>(
       key: ValueKey('program-actions-${program.id}'),
-      tooltip: 'Actions for ${program.title}',
+      tooltip: l10n.collectionRowActionsSemantic(program.title),
       icon: const Icon(Icons.more_vert),
       onSelected: (action) {
         switch (action) {
@@ -101,23 +103,23 @@ class ProgramListTile extends StatelessWidget {
       },
       itemBuilder: (context) => [
         if (onDuplicate != null)
-          const PopupMenuItem<_ProgramRowAction>(
-            key: ValueKey('program-action-duplicate'),
+          PopupMenuItem<_ProgramRowAction>(
+            key: const ValueKey('program-action-duplicate'),
             value: _ProgramRowAction.duplicate,
             child: ListTile(
-              leading: Icon(Icons.copy_all_outlined),
-              title: Text('Duplicate'),
+              leading: const Icon(Icons.copy_all_outlined),
+              title: Text(l10n.commonDuplicate),
               contentPadding: EdgeInsets.zero,
             ),
           ),
         if (onDelete != null) ...[
           if (onDuplicate != null) const PopupMenuDivider(),
-          const PopupMenuItem<_ProgramRowAction>(
-            key: ValueKey('program-action-delete'),
+          PopupMenuItem<_ProgramRowAction>(
+            key: const ValueKey('program-action-delete'),
             value: _ProgramRowAction.delete,
             child: ListTile(
-              leading: Icon(Icons.delete_outline),
-              title: Text('Delete'),
+              leading: const Icon(Icons.delete_outline),
+              title: Text(l10n.commonDelete),
               contentPadding: EdgeInsets.zero,
             ),
           ),

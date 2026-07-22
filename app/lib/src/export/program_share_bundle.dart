@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../utils/safe_name.dart';
 import 'share_sanitization.dart';
 
 /// Builds a self-contained "share this program + its dances" bundle (ROADMAP
@@ -42,6 +43,24 @@ import 'share_sanitization.dart';
 ///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
+///
+/// Venue gathering is deliberately **not** done here yet: a program's
+/// `venueId` (schema v14) rides along inside the embedded [program], but the
+/// referenced [Venue] record is not gathered into `CompendiumArchive.venues`.
+/// The core receive path handles this safely — `CompendiumArchiveImporter`
+/// nulls a `venueId` that resolves to no bundled venue — so a shared program
+/// simply arrives without its venue link for now. Populating `venueId` in the
+/// editor UI (PR B) and gathering the referenced venue here (mirroring the
+/// dance/choreographer gathering above, minding the same privacy sanitization
+/// for venue contact fields) is deferred to the display/export PR (C).
+// TODO(PR C, issue #456): gather the program's referenced Venue into
+// CompendiumArchive.venues so a shared program carries its venue record, once
+// venueId is UI-populated (PR B) and a venue resolver is wired here.
+// TODO(follow-up, issue #456): venues have no provenance/dedupe key, so
+// re-importing the same bundle duplicates venue records (see
+// CompendiumArchiveImporter.commit). Accepted for PR A (additive-import model);
+// add a dedupe/provenance primitive in a later PR so shared/re-imported
+// bundles match existing venues instead of inserting duplicates.
 String buildProgramShareBundle(
   Program program, {
   required Dance? Function(String danceId) danceFor,
@@ -100,7 +119,7 @@ const String programShareBundleExtension = 'ccshare';
 /// A filesystem-safe file name for a program share bundle. See the library-level
 /// notes above for the extension rationale.
 String programShareBundleFileName(String title) {
-  final sanitized = title.trim().replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  final sanitized = replaceUnsafeNameChars(title.trim());
   // Fall back when the title has no alphanumeric content (empty, all
   // whitespace, or only illegal/punctuation characters) so the file always has
   // a meaningful, path-safe name.

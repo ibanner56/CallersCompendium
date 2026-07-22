@@ -108,6 +108,7 @@ class CompendiumApp extends StatefulWidget {
     this.incomingFileChannel,
     this.incomingFileReader,
     this.incomingUrlFetcher,
+    this.nowOverride,
   });
 
   /// The already-opened database + repositories facade. Injected from [main]
@@ -161,6 +162,14 @@ class CompendiumApp extends StatefulWidget {
   /// without real network in widget tests. Defaults to `null` in production,
   /// where the screen uses its own network-backed `fetchImportUrl`.
   final UrlFetcher? incomingUrlFetcher;
+
+  /// Test-only override for the wall clock used by the startup soft-delete
+  /// sweep (see [_bootstrap]). Defaults to `null`, i.e. `DateTime.now()` in
+  /// production; widget tests inject a fixed instant so the retention-window
+  /// purge assertions don't depend on real wall-clock timing (issue #459
+  /// de-flake). It only affects the sweep's `now`; it does not touch the
+  /// single-snapshot purge design in [DanceRepository.purgeDeleted].
+  final DateTime Function()? nowOverride;
 
   @override
   State<CompendiumApp> createState() => _CompendiumAppState();
@@ -430,7 +439,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
       // cutoff. Both honor the retention promise shown in their Recently-Deleted
       // screens ("Auto-deleted in N days"); previously only dances were purged,
       // so soft-deleted programs accumulated forever (Stage 1.2).
-      final now = DateTime.now().toUtc();
+      final now = (widget.nowOverride ?? () => DateTime.now().toUtc())();
       await _appData.repositories.dances.purgeDeleted(
         now: now,
         retention: retention,

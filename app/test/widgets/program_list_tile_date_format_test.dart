@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/date_format_scope.dart';
 import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
+import '../support/l10n_harness.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
 final _eventDate = DateTime.utc(2026, 7, 15);
@@ -24,6 +25,9 @@ Future<void> _pumpTile(WidgetTester tester, DateFormatPref pref) async {
   addTearDown(notifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+
       home: DateFormatScope(
         notifier: notifier,
         child: Scaffold(body: ProgramListTile(program: _program(_eventDate))),

@@ -8,6 +8,7 @@ import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/widgets/dialect_quick_switch.dart';
 
 import '../support/test_repositories.dart';
+import '../support/l10n_harness.dart';
 
 /// Renders the active dialect's name through [ActiveDialectScope] — the live
 /// path every screen uses — so the test can assert the switch propagates.
@@ -44,6 +45,9 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+
           home: DialectLibraryScope(
             controller: controller,
             child: ActiveDialectScope(
@@ -116,6 +120,9 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+
           home: DialectLibraryScope(
             controller: controller,
             child: ActiveDialectScope(

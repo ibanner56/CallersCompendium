@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/active_dialect_scope.dart';
 import '../data/repositories_scope.dart';
+import '../../l10n/app_localizations.dart';
 import '../widgets/colour_dance_theme.dart';
 import '../widgets/dialect_quick_switch.dart';
 import '../widgets/tap_tempo_metronome.dart';
@@ -127,6 +128,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   }
 
   Widget _buildContent(BuildContext context, {required bool wide}) {
+    final l10n = AppLocalizations.of(context);
     final activeDialect = ActiveDialectScope.of(context);
     final isCanonicalDialect = activeDialect == Dialect.canonical;
     final dialect = _canonicalView ? Dialect.canonical : activeDialect;
@@ -141,11 +143,11 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
           appBar: AppBar(
             leading: IconButton(
               key: const ValueKey('exit-perform'),
-              tooltip: 'Exit performance view',
+              tooltip: l10n.performExitTooltip,
               icon: const Icon(Icons.close),
               onPressed: () => Navigator.of(context).pop(),
             ),
-            title: const Text('Perform'),
+            title: Text(l10n.performTitle),
             // Responsive AppBar actions (issue #433): full set inline on
             // tablets/large windows; secondary controls collapse into a "More
             // actions" overflow on narrow phones so the toolbar can't overflow.
@@ -156,7 +158,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
               secondaryInline: [
                 IconButton(
                   key: const ValueKey('perform-metronome'),
-                  tooltip: 'Tap tempo',
+                  tooltip: l10n.performTapTempo,
                   icon: const Icon(Icons.av_timer),
                   onPressed: _openMetronomeSheet,
                 ),
@@ -183,26 +185,26 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                 PerformMenuAction(
                   menuKey: const ValueKey('perform-metronome-menu'),
                   icon: Icons.av_timer,
-                  label: 'Tap tempo',
+                  label: l10n.performTapTempo,
                   onSelected: _openMetronomeSheet,
                 ),
                 PerformMenuAction(
                   menuKey: const ValueKey('decrease-text-size-menu'),
                   icon: Icons.text_decrease,
-                  label: 'Decrease text size',
+                  label: l10n.performDecreaseTextSize,
                   onSelected: _decreaseTextSize,
                   enabled: canDecrease,
                 ),
                 PerformMenuAction(
                   menuKey: const ValueKey('increase-text-size-menu'),
                   icon: Icons.text_increase,
-                  label: 'Increase text size',
+                  label: l10n.performIncreaseTextSize,
                   onSelected: _increaseTextSize,
                 ),
                 PerformMenuAction(
                   menuKey: const ValueKey('perform-autosize-toggle-menu'),
                   icon: Icons.fit_screen,
-                  label: 'Auto-size text to screen',
+                  label: l10n.performAutoSizeMenuLabel,
                   toggledOn: _autoSize,
                   onSelected: () => setState(() {
                     _autoSizeUserSet = true;
@@ -213,7 +215,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                   PerformMenuAction(
                     menuKey: const ValueKey('perform-dialect-toggle-menu'),
                     icon: Icons.groups,
-                    label: 'Show canonical terms',
+                    label: l10n.performShowCanonicalTerms,
                     toggledOn: _canonicalView,
                     onSelected: () =>
                         setState(() => _canonicalView = !_canonicalView),

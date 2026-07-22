@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../data/decimal_turns_scope.dart';
+import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
@@ -102,7 +103,7 @@ class PerformCard extends StatelessWidget {
             ),
             if (dance.callingNotes.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.lg),
-              _SectionTitle('Calling notes'),
+              _SectionTitle(AppLocalizations.of(context).performCallingNotes),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 renderer.renderFreeText(dance.callingNotes, dialect),
@@ -203,31 +204,44 @@ class PerformTextCard extends StatelessWidget {
 /// `minScale` (the "grow-in" flash) on the return visit. A parent-owned cache
 /// survives the switch, so revisiting a slot reuses its remembered scale.
 ///
-/// A converged scale depends on the available height, so the cache is only
-/// valid for one viewport: every entry is dropped when the viewport size
-/// changes (orientation / window resize).
+/// A converged scale depends on the available height, which in turn depends on
+/// both the viewport size *and* the system/accessibility text scale (the
+/// in-view fit is composed on top of `MediaQuery.textScaler` via
+/// [_effectiveScaler]). The cache is therefore only valid for one
+/// (viewport, systemTextScale) context: every entry is dropped when either the
+/// viewport size (orientation / window resize) or the OS text size changes, so
+/// a stale converged scale can never survive an enlargement and overflow.
 class PerformFitScaleCache {
   final Map<Object?, double> _scales = <Object?, double>{};
   Size? _viewport;
+  double? _systemTextScale;
 
-  void _syncViewport(Size viewport) {
-    if (_viewport != viewport) {
+  void _syncContext(Size viewport, double systemTextScale) {
+    if (_viewport != viewport || _systemTextScale != systemTextScale) {
       _scales.clear();
       _viewport = viewport;
+      _systemTextScale = systemTextScale;
     }
   }
 
-  /// The remembered scale for [token] at [viewport], or null if none is cached.
-  /// A [viewport] that differs from the cached one first clears the cache (a
-  /// stale fit no longer holds), then returns null.
-  double? scaleFor(Object? token, Size viewport) {
-    _syncViewport(viewport);
+  /// The remembered scale for [token] in the given
+  /// ([viewport], [systemTextScale]) context, or null if none is cached. A
+  /// context that differs from the cached one first clears the cache (a stale
+  /// fit no longer holds), then returns null.
+  double? scaleFor(Object? token, Size viewport, double systemTextScale) {
+    _syncContext(viewport, systemTextScale);
     return _scales[token];
   }
 
-  /// Records the converged [scale] for [token] at [viewport].
-  void remember(Object? token, Size viewport, double scale) {
-    _syncViewport(viewport);
+  /// Records the converged [scale] for [token] in the given
+  /// ([viewport], [systemTextScale]) context.
+  void remember(
+    Object? token,
+    Size viewport,
+    double systemTextScale,
+    double scale,
+  ) {
+    _syncContext(viewport, systemTextScale);
     _scales[token] = scale;
   }
 }
@@ -246,12 +260,14 @@ class PerformFitScaleCache {
 /// The first fit for a given [resetToken] must measure across a few frames, so
 /// it grows in from [minScale]. To avoid that visible "grow-in" flash *every*
 /// time the caller pages back to a slot they have already seen, the converged
-/// scale is cached per [resetToken] (for the current viewport) in a
-/// [PerformFitScaleCache]. Revisiting a token starts at its remembered scale and
-/// skips the search. Pass [scaleCache] from a parent that outlives the
-/// dance-vs-free-text card-type switch so the cache survives it; when omitted an
-/// internal cache is used (fine for callers that never swap card types, such as
-/// the single-dance view).
+/// scale is cached per [resetToken] (for the current viewport and system text
+/// scale) in a [PerformFitScaleCache]. Revisiting a token starts at its
+/// remembered scale and skips the search. The cache is invalidated when the
+/// viewport size or the OS/accessibility text scale changes, so an enlargement
+/// re-measures rather than reusing a now-too-large scale. Pass [scaleCache] from
+/// a parent that outlives the dance-vs-free-text card-type switch so the cache
+/// survives it; when omitted an internal cache is used (fine for callers that
+/// never swap card types, such as the single-dance view).
 class _FitToHeight extends StatefulWidget {
   const _FitToHeight({
     required this.minScale,
@@ -292,14 +308,16 @@ class _FitToHeightState extends State<_FitToHeight> {
   late double _scale = widget.minScale;
 
   Size? _lastViewport;
+  double? _lastSystemTextScale;
   Object? _lastToken;
   bool _converged = false;
 
-  /// Prepares the search for [token] at [viewport]: if a converged scale for it
-  /// is cached (same viewport), reuse it directly and skip the search — no flash
-  /// — else restart the binary search from [minScale].
-  void _beginToken(Object? token, Size viewport) {
-    final cached = _cache.scaleFor(token, viewport);
+  /// Prepares the search for [token] in the ([viewport], [systemTextScale])
+  /// context: if a converged scale for it is cached (same context), reuse it
+  /// directly and skip the search — no flash — else restart the binary search
+  /// from [minScale].
+  void _beginToken(Object? token, Size viewport, double systemTextScale) {
+    final cached = _cache.scaleFor(token, viewport, systemTextScale);
     if (cached != null) {
       _lo = cached;
       _hi = widget.maxScale;
@@ -317,7 +335,7 @@ class _FitToHeightState extends State<_FitToHeight> {
     _converged = false;
   }
 
-  void _measureAndStep(Size viewport) {
+  void _measureAndStep(Size viewport, double systemTextScale) {
     if (!mounted || _converged) return;
     final box = _contentKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
@@ -335,7 +353,7 @@ class _FitToHeightState extends State<_FitToHeight> {
       // visit to this slot skips the search.
       final settled = _lo.clamp(widget.minScale, widget.maxScale);
       _converged = true;
-      _cache.remember(widget.resetToken, viewport, settled);
+      _cache.remember(widget.resetToken, viewport, systemTextScale, settled);
       if ((settled - _scale).abs() > _scaleEpsilon / 2) {
         setState(() => _scale = settled);
       }
@@ -348,20 +366,28 @@ class _FitToHeightState extends State<_FitToHeight> {
 
   @override
   Widget build(BuildContext context) {
+    // Reading the system text scale here registers this element as a
+    // MediaQuery dependent, so an OS/accessibility text-size change rebuilds
+    // us. Because the in-view fit is composed on top of this scale, a change
+    // must invalidate the cached converged scale and re-measure — otherwise an
+    // enlargement would keep a stale (too-large) scale and overflow.
+    final systemTextScale = MediaQuery.textScalerOf(context).scale(1);
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
-        if (_lastViewport != viewport) {
+        if (_lastViewport != viewport ||
+            _lastSystemTextScale != systemTextScale) {
           _lastViewport = viewport;
+          _lastSystemTextScale = systemTextScale;
           _lastToken = widget.resetToken;
-          _beginToken(widget.resetToken, viewport);
+          _beginToken(widget.resetToken, viewport, systemTextScale);
         } else if (_lastToken != widget.resetToken) {
           _lastToken = widget.resetToken;
-          _beginToken(widget.resetToken, viewport);
+          _beginToken(widget.resetToken, viewport, systemTextScale);
         }
         if (viewport.height.isFinite) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _measureAndStep(viewport);
+            _measureAndStep(viewport, systemTextScale);
           });
         }
         return SingleChildScrollView(
@@ -391,18 +417,19 @@ class PerformSizeControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
           key: const ValueKey('decrease-text-size'),
-          tooltip: 'Decrease text size',
+          tooltip: l10n.performDecreaseTextSize,
           icon: const Icon(Icons.text_decrease),
           onPressed: canDecrease ? onDecrease : null,
         ),
         IconButton(
           key: const ValueKey('increase-text-size'),
-          tooltip: 'Increase text size',
+          tooltip: l10n.performIncreaseTextSize,
           icon: const Icon(Icons.text_increase),
           onPressed: onIncrease,
         ),
@@ -443,7 +470,7 @@ class PerformDialectToggle extends StatelessWidget {
         toggled: canonical,
         child: IconButton(
           key: const ValueKey('perform-dialect-toggle'),
-          tooltip: 'Show canonical terms',
+          tooltip: AppLocalizations.of(context).performShowCanonicalTerms,
           isSelected: canonical,
           icon: const Icon(Icons.groups_outlined),
           selectedIcon: const Icon(Icons.groups),
@@ -499,9 +526,10 @@ class PerformAutoSizeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final tooltip = autoSizeOn
-        ? 'Auto-size on — tap for manual text size'
-        : 'Auto-size off — tap to fit text to screen';
+        ? l10n.performAutoSizeOnTooltip
+        : l10n.performAutoSizeOffTooltip;
     return MergeSemantics(
       child: Semantics(
         toggled: autoSizeOn,
@@ -535,9 +563,10 @@ class PerformStageToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final tooltip = stageOn
-        ? 'Stage theme on — tap to use app theme'
-        : 'Stage theme off — tap for dark stage';
+        ? l10n.performStageThemeOnTooltip
+        : l10n.performStageThemeOffTooltip;
     // MergeSemantics + Semantics(toggled:) fold the on/off STATE into the
     // IconButton's own node, so AT announces one control that carries the
     // button role, name (tooltip), tap action, and current toggle state —
@@ -606,7 +635,7 @@ class PerformOverflowMenu extends StatelessWidget {
     return PopupMenuButton<VoidCallback>(
       key: const ValueKey('perform-overflow-menu'),
       icon: const Icon(Icons.more_vert),
-      tooltip: 'More actions',
+      tooltip: AppLocalizations.of(context).performMoreActions,
       // onSelected fires after the menu has closed, so actions that open a
       // sheet (e.g. adjust/jump/tap-tempo) don't fight the menu's own pop.
       onSelected: (action) => action(),
@@ -816,7 +845,7 @@ class _Figures extends StatelessWidget {
     final theme = Theme.of(context);
     if (figures.isEmpty) {
       return Text(
-        'No figures yet.',
+        AppLocalizations.of(context).performNoFigures,
         style: theme.textTheme.headlineSmall?.merge(AppTypography.performBody),
       );
     }
@@ -927,7 +956,8 @@ class _FigureRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
+    final l10n = AppLocalizations.of(context);
+    final beatsLabel = l10n.danceFigureBeats(beats);
     // Emphasis is a purely visual cue: announce the underlying words with the
     // markup delimiters stripped so a screen reader never voices stray `*`/`_`.
     // For a custom line, use the already delimiter-stripped + dialect-
@@ -938,13 +968,18 @@ class _FigureRow extends StatelessWidget {
     final mainSemantics = mainSpans != null
         ? mainSpans!.map((s) => s.text).join()
         : stripInlineEmphasis(verboseText);
-    final semanticsLabel = [
+    // Modelled as ONE ICU message (never fragment concatenation) so translators
+    // control ordering. The import-gap message text stays hardcoded (owned by a
+    // later layer) by flowing through a placeholder rather than living in the ARB.
+    final semanticsLabel = l10n.performFigureSemantic(
       mainSemantics,
-      if (isImportGap) importGapMessage,
-      if (progression) 'progression',
-      beatsLabel,
-      if (noteText.isNotEmpty) 'note: ${stripInlineEmphasis(noteText)}',
-    ].join(', ');
+      isImportGap ? 'yes' : 'no',
+      isImportGap ? importGapMessage : '',
+      progression ? 'yes' : 'no',
+      beats,
+      noteText.isNotEmpty ? 'yes' : 'no',
+      noteText.isNotEmpty ? stripInlineEmphasis(noteText) : '',
+    );
     final textStyle = theme.textTheme.headlineSmall?.merge(
       AppTypography.performBody,
     );
@@ -967,7 +1002,7 @@ class _FigureRow extends StatelessWidget {
               width: 32,
               child: progression
                   ? Tooltip(
-                      message: 'Progression',
+                      message: l10n.performProgression,
                       child: Icon(
                         progressionIcon,
                         size: MediaQuery.textScalerOf(
