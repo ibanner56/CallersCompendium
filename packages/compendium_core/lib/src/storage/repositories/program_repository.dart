@@ -28,6 +28,7 @@ class DanceCallingRecord {
     this.performedAt,
     this.eventDate,
     this.venue,
+    this.venueId,
   });
 
   /// The slot that references the dance. Unique per record — used as a stable
@@ -50,8 +51,14 @@ class DanceCallingRecord {
   /// The program's scheduled event date, if any. UTC.
   final DateTime? eventDate;
 
-  /// The program's venue, if any.
+  /// The program's venue free text, if any.
   final String? venue;
+
+  /// The program's linked venue id (soft reference into `venues`), if any.
+  /// Carried alongside the free-text [venue] so a caller can resolve the linked
+  /// [Venue]'s display name against a preloaded venue map WITHOUT a per-program
+  /// fetch — the app layer decides which to show per the venue-entity mode.
+  final String? venueId;
 
   /// The date used for ordering and display: the actual performance time when
   /// set, else the program's scheduled event date, else its last-updated time.
@@ -67,7 +74,8 @@ class DanceCallingRecord {
       other.programUpdatedAt == programUpdatedAt &&
       other.performedAt == performedAt &&
       other.eventDate == eventDate &&
-      other.venue == venue;
+      other.venue == venue &&
+      other.venueId == venueId;
 
   @override
   int get hashCode => Object.hash(
@@ -78,6 +86,7 @@ class DanceCallingRecord {
     performedAt,
     eventDate,
     venue,
+    venueId,
   );
 }
 
@@ -476,6 +485,7 @@ class ProgramRepository {
           'SELECT program_slots.id AS slot_id, programs.id AS program_id, '
           'programs.title AS program_title, '
           'programs.event_date AS event_date, programs.venue AS venue, '
+          'programs.venue_id AS venue_id, '
           'programs.updated_at AS updated_at, '
           'program_slots.performed_at AS performed_at '
           'FROM program_slots '
@@ -499,6 +509,7 @@ class ProgramRepository {
           performedAt: asUtcOrNull(row.read<DateTime?>('performed_at')),
           eventDate: asUtcOrNull(row.read<DateTime?>('event_date')),
           venue: row.read<String?>('venue'),
+          venueId: row.read<String?>('venue_id'),
         ),
     ];
   }

@@ -1119,9 +1119,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Also linked to saved venue: '
-                      '${_linkedVenue?.displayName ?? 'a saved venue'}. Turn '
-                      'on reusable venues in Settings to view or change it.',
+                      l10n.programsVenueLinkedHint(
+                        _linkedVenue?.displayName ??
+                            l10n.programsVenueLinkedHintFallbackName,
+                      ),
                       style: theme.textTheme.bodySmall,
                     ),
                   ),
@@ -1149,16 +1150,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Previously entered venue: “$legacyText”. Link a saved '
-                    'venue below to use reusable details — your typed venue is '
-                    'kept.',
+                    l10n.programsVenueLegacyTextHint(legacyText),
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
               ],
             ),
           ),
-        Text('Venue', style: theme.textTheme.labelLarge),
+        Text(l10n.programsVenueLabel, style: theme.textTheme.labelLarge),
         const SizedBox(height: 4),
         VenuePicker(
           key: const ValueKey('program-venue-picker'),
