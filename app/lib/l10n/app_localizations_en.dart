@@ -2434,32 +2434,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportMatrixPdfFilename => 'Programming matrix';
 
   @override
-  String get shareVenueContactTitle => 'Include venue contact details?';
+  String get exportVenueContactTitle =>
+      'Include venue contact details in this export?';
 
   @override
-  String get shareVenueContactBody =>
-      'These are personal contact details for the venue. They\'re left out of what you share unless you choose to include them.';
+  String get exportVenueContactBody =>
+      'These are personal contact details for the venue. They\'re left out of this export unless you choose to include them.';
 
   @override
-  String get shareVenueContactIncludeAction => 'Share';
+  String get exportVenueContactConfirm => 'Continue';
 
   @override
-  String get shareVenueContact1Name => 'Contact 1 name';
+  String get exportVenueContact1Name => 'Contact 1 name';
 
   @override
-  String get shareVenueContact1Phone => 'Contact 1 phone';
+  String get exportVenueContact1Phone => 'Contact 1 phone';
 
   @override
-  String get shareVenueContact1Email => 'Contact 1 email';
+  String get exportVenueContact1Email => 'Contact 1 email';
 
   @override
-  String get shareVenueContact2Name => 'Contact 2 name';
+  String get exportVenueContact2Name => 'Contact 2 name';
 
   @override
-  String get shareVenueContact2Phone => 'Contact 2 phone';
+  String get exportVenueContact2Phone => 'Contact 2 phone';
 
   @override
-  String get shareVenueContact2Email => 'Contact 2 email';
+  String get exportVenueContact2Email => 'Contact 2 email';
 
   @override
   String get onlineSearchToggleTitle => 'Online search';

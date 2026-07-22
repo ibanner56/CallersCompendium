@@ -160,29 +160,37 @@ class ProgramExportMenu extends StatelessWidget {
   /// import the program itself. This send-side action ships first, so a
   /// recipient on a build without the receive side gets the dances now and the
   /// program once PR 2 lands.
+  /// Resolves the linked venue's contact-PII consent before an export flow.
+  ///
+  /// Returns the empty set (**proceed, no prompt**) when the program links no
+  /// venue, or the venue has no populated contact fields — there is no contact
+  /// PII to leak. Otherwise it shows the shared [VenueContactShareDialog] (rows
+  /// unchecked by default) and returns the user's affirmative selection. A
+  /// `null` result means the user cancelled/dismissed and the caller MUST
+  /// **abort** the export (nothing shared or written). Shared by the
+  /// share-bundle and PDF-export paths so both gate PII identically.
+  Future<Set<VenueContactField>?> _venueContactConsent(
+    BuildContext context,
+  ) async {
+    final venueId = program.venueId;
+    final linkedVenue = venueId == null ? null : venuesById[venueId];
+    if (linkedVenue == null ||
+        populatedVenueContactFields(linkedVenue).isEmpty) {
+      return const <VenueContactField>{};
+    }
+    return VenueContactShareDialog.show(context, venue: linkedVenue);
+  }
+
   Future<void> _shareBundle(BuildContext context, Rect? origin) async {
     final resolveDance = danceFor;
     if (resolveDance == null) return;
 
     // Gather the linked venue's contact-PII consent before building the bundle.
-    // Contact fields are omit-by-default; the venue is resolved from the same
-    // `venuesById` the display/PDF paths use. Only when the linked venue exists
-    // AND has at least one populated contact field do we prompt — the user's
-    // affirmative selections become the include set. A cancelled/dismissed
-    // dialog aborts the share entirely (nothing leaves the device).
-    final venueId = program.venueId;
-    final linkedVenue = venueId == null ? null : venuesById[venueId];
-    var includeVenueContact = const <VenueContactField>{};
-    if (linkedVenue != null &&
-        populatedVenueContactFields(linkedVenue).isNotEmpty) {
-      final selected = await VenueContactShareDialog.show(
-        context,
-        venue: linkedVenue,
-      );
-      // null => cancelled or dismissed => abort the share.
-      if (selected == null) return;
-      includeVenueContact = selected;
-    }
+    // Contact fields are omit-by-default; a cancelled/dismissed dialog aborts
+    // the share entirely (nothing leaves the device).
+    final includeVenueContact = await _venueContactConsent(context);
+    if (includeVenueContact == null) return;
+    if (!context.mounted) return;
 
     final json = buildProgramShareBundle(
       program,
@@ -216,13 +224,30 @@ class ProgramExportMenu extends StatelessWidget {
 
   Future<void> _exportPdf(BuildContext context) async {
     final localizations = MaterialLocalizations.of(context);
+
+    // Gate the venue's contact PII behind the same consent dialog the share
+    // path uses. Contact fields are omit-by-default; a cancelled/dismissed
+    // dialog aborts the export (no PDF is generated).
+    final includeVenueContact = await _venueContactConsent(context);
+    if (includeVenueContact == null) return;
+    if (!context.mounted) return;
+
+    // Feed the PDF builder a venue already run through the single
+    // `sanitizeVenueForShare` primitive, so un-consented contact fields are
+    // physically absent — the renderer never needs its own redaction.
+    final venuesForPdf = venuesWithSanitizedContact(
+      venuesById,
+      program.venueId,
+      include: includeVenueContact,
+    );
+
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     await layoutPdf(
       name: sanitizeExportName(program.title, fallback: 'program'),
       onLayout: (format) => buildProgramPdf(
         program,
         titleFor: titleFor,
-        venuesById: venuesById,
+        venuesById: venuesForPdf,
         formatDate: localizations.formatMediumDate,
       ),
     );

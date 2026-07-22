@@ -142,6 +142,33 @@ Widget _shareBundleMenu(
   ),
 );
 
+/// Builds a PDF-capable [ProgramExportMenu] whose print/save call is captured
+/// via [onExport] (instead of hitting the OS print dialog), so a test can assert
+/// whether a PDF would actually be generated. The real [buildProgramPdf] is not
+/// invoked — gating is what these tests verify; the *content* of the sanitized
+/// venue fed to the builder is asserted at the unit level over
+/// `venuesWithSanitizedContact` / `sanitizeVenueForShare`.
+Widget _pdfMenu(
+  Program program,
+  Map<String, Venue> venuesById,
+  void Function() onExport,
+) => MaterialApp(
+  localizationsDelegates: testLocalizationsDelegates,
+  supportedLocales: testSupportedLocales,
+  home: Scaffold(
+    appBar: AppBar(
+      actions: [
+        ProgramExportMenu(
+          program: program,
+          titleFor: _titles,
+          venuesById: venuesById,
+          pdfLayouter: ({required name, required onLayout}) async => onExport(),
+        ),
+      ],
+    ),
+  ),
+);
+
 void main() {
   group('ProgramExportMenu', () {
     testWidgets('is present and labeled in an app bar', (tester) async {
@@ -782,6 +809,157 @@ void main() {
         File(captured!.files!.single.path).readAsStringSync(),
       ).archive;
       expect(archive.venues, isEmpty);
+    });
+
+    testWidgets(
+      'PDF export: venue with contacts shows the consent dialog and gates it',
+      (tester) async {
+        var exports = 0;
+        await tester.pumpWidget(
+          _pdfMenu(_program(venueId: 'v1'), {'v1': _venue}, () => exports++),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+
+        // The consent dialog gates the export — no PDF is generated yet, and it
+        // offers only the venue's populated contact fields (contact 1).
+        expect(
+          find.byKey(const ValueKey('venue-contact-share-dialog')),
+          findsOneWidget,
+        );
+        expect(find.text('Contact 1 name'), findsOneWidget);
+        expect(find.text('Contact 2 name'), findsNothing);
+        expect(exports, 0);
+
+        // Confirm without checking anything -> export proceeds (with a venue
+        // whose contacts are all cleared; see the unit tests for the redaction).
+        await tester.tap(
+          find.byKey(const ValueKey('venue-contact-share-confirm')),
+        );
+        await tester.pumpAndSettle();
+        expect(exports, 1);
+      },
+    );
+
+    testWidgets('PDF export: opting a field in still proceeds', (tester) async {
+      var exports = 0;
+      await tester.pumpWidget(
+        _pdfMenu(_program(venueId: 'v1'), {'v1': _venue}, () => exports++),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('venue-contact-contact1Email')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('venue-contact-share-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(exports, 1);
+    });
+
+    testWidgets('PDF export: Cancel aborts (no PDF generated)', (tester) async {
+      var exports = 0;
+      await tester.pumpWidget(
+        _pdfMenu(_program(venueId: 'v1'), {'v1': _venue}, () => exports++),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('venue-contact-share-dialog')),
+        findsNothing,
+      );
+      expect(exports, 0, reason: 'Cancel aborts the PDF export');
+    });
+
+    testWidgets('PDF export: dismissing aborts (no PDF generated)', (
+      tester,
+    ) async {
+      var exports = 0;
+      await tester.pumpWidget(
+        _pdfMenu(_program(venueId: 'v1'), {'v1': _venue}, () => exports++),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('venue-contact-share-dialog')),
+        findsOneWidget,
+      );
+
+      // Tap the barrier (outside the dialog) to dismiss it.
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('venue-contact-share-dialog')),
+        findsNothing,
+      );
+      expect(exports, 0, reason: 'dismiss aborts like Cancel');
+    });
+
+    testWidgets(
+      'PDF export: venue without contacts skips the dialog and exports',
+      (tester) async {
+        var exports = 0;
+        await tester.pumpWidget(
+          _pdfMenu(_program(venueId: 'v2'), {
+            'v2': Venue(id: 'v2', name: 'Bare Hall', city: 'Montpelier'),
+          }, () => exports++),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('venue-contact-share-dialog')),
+          findsNothing,
+        );
+        expect(exports, 1);
+      },
+    );
+
+    testWidgets('PDF export: no venueId skips the dialog and exports', (
+      tester,
+    ) async {
+      var exports = 0;
+      await tester.pumpWidget(_pdfMenu(_program(), const {}, () => exports++));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('venue-contact-share-dialog')),
+        findsNothing,
+      );
+      expect(exports, 1);
     });
   });
 

@@ -3847,59 +3847,59 @@ abstract class AppLocalizations {
   /// **'Programming matrix'**
   String get exportMatrixPdfFilename;
 
-  /// Title of the pre-share consent dialog that asks whether to include a venue's personal contact fields in a shared program bundle.
+  /// Title of the pre-export consent dialog that asks whether to include a venue's personal contact fields when sharing a program bundle or exporting a program PDF.
   ///
   /// In en, this message translates to:
-  /// **'Include venue contact details?'**
-  String get shareVenueContactTitle;
+  /// **'Include venue contact details in this export?'**
+  String get exportVenueContactTitle;
 
-  /// Body text of the venue contact-sharing consent dialog, explaining that contact fields are omitted by default.
+  /// Body text of the venue contact consent dialog, explaining that contact fields are omitted by default from both shares and PDF exports.
   ///
   /// In en, this message translates to:
-  /// **'These are personal contact details for the venue. They\'re left out of what you share unless you choose to include them.'**
-  String get shareVenueContactBody;
+  /// **'These are personal contact details for the venue. They\'re left out of this export unless you choose to include them.'**
+  String get exportVenueContactBody;
 
-  /// Confirm button on the venue contact-sharing consent dialog; proceeds with the share, including only the checked contact fields.
+  /// Confirm button on the venue contact consent dialog; proceeds with the share or PDF export, including only the checked contact fields.
   ///
   /// In en, this message translates to:
-  /// **'Share'**
-  String get shareVenueContactIncludeAction;
+  /// **'Continue'**
+  String get exportVenueContactConfirm;
 
-  /// Checkbox label for the primary venue contact's name in the share consent dialog.
+  /// Checkbox label for the primary venue contact's name in the export consent dialog.
   ///
   /// In en, this message translates to:
   /// **'Contact 1 name'**
-  String get shareVenueContact1Name;
+  String get exportVenueContact1Name;
 
-  /// Checkbox label for the primary venue contact's phone number in the share consent dialog.
+  /// Checkbox label for the primary venue contact's phone number in the export consent dialog.
   ///
   /// In en, this message translates to:
   /// **'Contact 1 phone'**
-  String get shareVenueContact1Phone;
+  String get exportVenueContact1Phone;
 
-  /// Checkbox label for the primary venue contact's email in the share consent dialog.
+  /// Checkbox label for the primary venue contact's email in the export consent dialog.
   ///
   /// In en, this message translates to:
   /// **'Contact 1 email'**
-  String get shareVenueContact1Email;
+  String get exportVenueContact1Email;
 
-  /// Checkbox label for the secondary venue contact's name in the share consent dialog.
+  /// Checkbox label for the secondary venue contact's name in the export consent dialog.
   ///
   /// In en, this message translates to:
   /// **'Contact 2 name'**
-  String get shareVenueContact2Name;
+  String get exportVenueContact2Name;
 
-  /// Checkbox label for the secondary venue contact's phone number in the share consent dialog.
+  /// Checkbox label for the secondary venue contact's phone number in the export consent dialog.
   ///
   /// In en, this message translates to:
   /// **'Contact 2 phone'**
-  String get shareVenueContact2Phone;
+  String get exportVenueContact2Phone;
 
-  /// Checkbox label for the secondary venue contact's email in the share consent dialog.
+  /// Checkbox label for the secondary venue contact's email in the export consent dialog.
   ///
   /// In en, this message translates to:
   /// **'Contact 2 email'**
-  String get shareVenueContact2Email;
+  String get exportVenueContact2Email;
 
   /// Title of the switch that turns online dance search on/off in the collection screen.
   ///

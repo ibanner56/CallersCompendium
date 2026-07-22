@@ -73,3 +73,27 @@ Venue sanitizeVenueForShare(
   clearContact2Phone: !include.contains(VenueContactField.contact2Phone),
   clearContact2Email: !include.contains(VenueContactField.contact2Email),
 );
+
+/// Returns a shallow copy of [venuesById] with the entry for [venueId] (when
+/// present) replaced by its [sanitizeVenueForShare] form for the [include] set;
+/// every other entry is preserved. A `null` [venueId], or one that is not in
+/// the map, returns [venuesById] unchanged.
+///
+/// This is the funnel the **PDF export** path uses to hand its renderer a venue
+/// whose contact PII is *physically absent* unless the user opted in. Both the
+/// share-bundle and the PDF paths therefore redact through the single
+/// [sanitizeVenueForShare] primitive — the PDF renderer never needs (and must
+/// not grow) its own parallel redaction; it simply draws whatever survives.
+Map<String, Venue> venuesWithSanitizedContact(
+  Map<String, Venue> venuesById,
+  String? venueId, {
+  Set<VenueContactField> include = const {},
+}) {
+  if (venueId == null) return venuesById;
+  final venue = venuesById[venueId];
+  if (venue == null) return venuesById;
+  return {
+    ...venuesById,
+    venueId: sanitizeVenueForShare(venue, include: include),
+  };
+}

@@ -15,22 +15,25 @@ const List<VenueContactField> _orderedContactFields = [
   VenueContactField.contact2Email,
 ];
 
-/// A pre-share consent dialog that lets the user opt specific venue
-/// contact-person PII fields into a shared program bundle (issue #515).
+/// A pre-export consent dialog that lets the user opt specific venue
+/// contact-person PII fields into a shared program bundle **or** an exported
+/// program PDF (issue #515).
 ///
 /// Share/export is a privacy boundary: a venue's contact people are personal
 /// details that are OMIT-BY-DEFAULT. This dialog lists only the contact fields
 /// actually populated on the venue, each as an initially **unchecked**
 /// (opt-out-by-default) checkbox, and returns the set the user affirmatively
-/// checked.
+/// checked. The same dialog serves every export flow, so its copy is worded
+/// generically ("this export") rather than naming a single flow.
 ///
 /// Result contract (consumed by the program export menu):
 /// * `null` — the user cancelled **or** dismissed the dialog (tapped outside /
-///   back). The caller MUST abort the share entirely; nothing is shared. This
-///   dismiss==cancel behavior was an explicit product decision (issue #515).
+///   back). The caller MUST abort the export entirely; nothing is shared or
+///   written. This dismiss==cancel behavior was an explicit product decision
+///   (issue #515).
 /// * a (possibly empty) set — the user pressed the confirm button. The caller
 ///   proceeds, including exactly the returned fields and clearing the rest; an
-///   empty set means "share the venue with all six contact fields cleared".
+///   empty set means "export the venue with all six contact fields cleared".
 class VenueContactShareDialog extends StatefulWidget {
   const VenueContactShareDialog({super.key, required this.fields});
 
@@ -69,13 +72,13 @@ class _VenueContactShareDialogState extends State<VenueContactShareDialog> {
     final l10n = AppLocalizations.of(context);
     return AlertDialog(
       key: const ValueKey('venue-contact-share-dialog'),
-      title: Text(l10n.shareVenueContactTitle),
+      title: Text(l10n.exportVenueContactTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.shareVenueContactBody),
+            Text(l10n.exportVenueContactBody),
             const SizedBox(height: 8),
             for (final field in widget.fields)
               CheckboxListTile(
@@ -105,7 +108,7 @@ class _VenueContactShareDialogState extends State<VenueContactShareDialog> {
         FilledButton(
           key: const ValueKey('venue-contact-share-confirm'),
           onPressed: () => Navigator.of(context).pop({..._checked}),
-          child: Text(l10n.shareVenueContactIncludeAction),
+          child: Text(l10n.exportVenueContactConfirm),
         ),
       ],
     );
@@ -113,11 +116,11 @@ class _VenueContactShareDialogState extends State<VenueContactShareDialog> {
 
   String _label(AppLocalizations l10n, VenueContactField field) =>
       switch (field) {
-        VenueContactField.contact1Name => l10n.shareVenueContact1Name,
-        VenueContactField.contact1Phone => l10n.shareVenueContact1Phone,
-        VenueContactField.contact1Email => l10n.shareVenueContact1Email,
-        VenueContactField.contact2Name => l10n.shareVenueContact2Name,
-        VenueContactField.contact2Phone => l10n.shareVenueContact2Phone,
-        VenueContactField.contact2Email => l10n.shareVenueContact2Email,
+        VenueContactField.contact1Name => l10n.exportVenueContact1Name,
+        VenueContactField.contact1Phone => l10n.exportVenueContact1Phone,
+        VenueContactField.contact1Email => l10n.exportVenueContact1Email,
+        VenueContactField.contact2Name => l10n.exportVenueContact2Name,
+        VenueContactField.contact2Phone => l10n.exportVenueContact2Phone,
+        VenueContactField.contact2Email => l10n.exportVenueContact2Email,
       };
 }

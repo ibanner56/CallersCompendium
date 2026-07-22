@@ -160,4 +160,66 @@ void main() {
       expect(populatedVenueContactFields(sanitized), isEmpty);
     });
   });
+
+  group('venuesWithSanitizedContact', () {
+    test(
+      'replaces the linked venue with a contact-redacted copy by default',
+      () {
+        final result = venuesWithSanitizedContact({'v1': fullVenue()}, 'v1');
+
+        final v = result['v1']!;
+        // Descriptive fields survive; every contact field is cleared.
+        expect(v.name, 'Town Hall');
+        expect(v.address1, '10 Main St');
+        expect(v.website, 'https://townhall.example');
+        expect(populatedVenueContactFields(v), isEmpty);
+      },
+    );
+
+    test('honors include: only listed contact fields survive', () {
+      final result = venuesWithSanitizedContact(
+        {'v1': fullVenue()},
+        'v1',
+        include: {VenueContactField.contact1Email},
+      );
+
+      final v = result['v1']!;
+      expect(v.contact1Email, 'alex@example.com');
+      expect(v.contact1Name, isNull);
+      expect(v.contact1Phone, isNull);
+      expect(v.contact2Name, isNull);
+      expect(v.contact2Phone, isNull);
+      expect(v.contact2Email, isNull);
+    });
+
+    test('leaves other venues in the map untouched', () {
+      final other = Venue(
+        id: 'v2',
+        name: 'Other Hall',
+        contact1Email: 'x@example.com',
+      );
+      final result = venuesWithSanitizedContact({
+        'v1': fullVenue(),
+        'v2': other,
+      }, 'v1');
+
+      expect(identical(result['v2'], other), isTrue);
+      expect(populatedVenueContactFields(result['v1']!), isEmpty);
+    });
+
+    test('returns the map unchanged for a null venueId', () {
+      final map = {'v1': fullVenue()};
+
+      expect(identical(venuesWithSanitizedContact(map, null), map), isTrue);
+    });
+
+    test('returns the map unchanged when the venueId is absent', () {
+      final map = {'v1': fullVenue()};
+
+      expect(
+        identical(venuesWithSanitizedContact(map, 'missing'), map),
+        isTrue,
+      );
+    });
+  });
 }
