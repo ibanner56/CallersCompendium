@@ -382,7 +382,7 @@ class _ThemePreviewCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
-        'A',
+        'A', // i18n-ignore: single-glyph font specimen, not translatable
         style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );
@@ -680,7 +680,7 @@ class _CustomThemeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(5),
       ),
       child: Text(
-        'A',
+        'A', // i18n-ignore: single-glyph font specimen, not translatable
         style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );

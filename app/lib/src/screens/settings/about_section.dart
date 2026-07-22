@@ -86,21 +86,21 @@ class _AboutView extends StatelessWidget {
         ListTile(
           dense: true,
           leading: const Icon(Icons.font_download_outlined),
-          title: const Text('Fraunces'),
+          title: const Text('Fraunces'), // i18n-ignore (font name)
           subtitle: Text(l10n.settingsAboutFontFrauncesSubtitle),
           isThreeLine: true,
         ),
         ListTile(
           dense: true,
           leading: const Icon(Icons.font_download_outlined),
-          title: const Text('Atkinson Hyperlegible'),
+          title: const Text('Atkinson Hyperlegible'), // i18n-ignore (font name)
           subtitle: Text(l10n.settingsAboutFontAtkinsonSubtitle),
           isThreeLine: true,
         ),
         ListTile(
           dense: true,
           leading: const Icon(Icons.font_download_outlined),
-          title: const Text('Roboto'),
+          title: const Text('Roboto'), // i18n-ignore (font name)
           subtitle: Text(l10n.settingsAboutFontRobotoSubtitle),
           isThreeLine: true,
         ),
