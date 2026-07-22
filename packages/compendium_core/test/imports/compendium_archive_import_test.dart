@@ -753,45 +753,51 @@ void main() {
       expect(linked.city, 'Greenfield');
     });
 
-    test('does not overwrite an existing venue that shares the bundle id', () async {
-      // A venue the receiver already holds under the same id the (untrusted)
-      // bundle reuses must survive untouched — the import inserts a fresh copy.
-      await venues.upsert(
-        Venue(id: 'orig-v1', name: 'Receiver Hall', city: 'Local'),
-      );
-      final archive = bundleWithVenue(
-        programVenueId: 'orig-v1',
-        venues: [Venue(id: 'orig-v1', name: 'Bundle Grange')],
-      );
-      await run(archive);
+    test(
+      'does not overwrite an existing venue that shares the bundle id',
+      () async {
+        // A venue the receiver already holds under the same id the (untrusted)
+        // bundle reuses must survive untouched — the import inserts a fresh copy.
+        await venues.upsert(
+          Venue(id: 'orig-v1', name: 'Receiver Hall', city: 'Local'),
+        );
+        final archive = bundleWithVenue(
+          programVenueId: 'orig-v1',
+          venues: [Venue(id: 'orig-v1', name: 'Bundle Grange')],
+        );
+        await run(archive);
 
-      final existing = await venues.getById('orig-v1');
-      expect(existing?.name, 'Receiver Hall');
-      // A distinct new venue was inserted for the bundle's record.
-      expect(
-        (await venues.listAll()).map((v) => v.name),
-        containsAll(<String>['Receiver Hall', 'Bundle Grange']),
-      );
-    });
+        final existing = await venues.getById('orig-v1');
+        expect(existing?.name, 'Receiver Hall');
+        // A distinct new venue was inserted for the bundle's record.
+        expect(
+          (await venues.listAll()).map((v) => v.name),
+          containsAll(<String>['Receiver Hall', 'Bundle Grange']),
+        );
+      },
+    );
 
-    test('nulls a program venueId absent from the bundle (dangling ref)', () async {
-      final archive = bundleWithVenue(
-        programVenueId: 'orig-missing',
-        venues: [Venue(id: 'orig-v2', name: 'Town Hall')],
-      );
-      final result = await run(archive);
+    test(
+      'nulls a program venueId absent from the bundle (dangling ref)',
+      () async {
+        final archive = bundleWithVenue(
+          programVenueId: 'orig-missing',
+          venues: [Venue(id: 'orig-v2', name: 'Town Hall')],
+        );
+        final result = await run(archive);
 
-      final program = (await programs.listAll()).single;
-      // OWASP: an unresolvable reference is nulled, never persisted dangling.
-      expect(program.venueId, isNull);
-      // The drop is surfaced as a non-fatal issue, not silently swallowed.
-      expect(
-        result.programIssues.map((i) => i.code),
-        contains('archive_program_unresolved_venue'),
-      );
-      // The unrelated bundled venue still landed.
-      expect((await venues.listAll()).map((v) => v.name), ['Town Hall']);
-    });
+        final program = (await programs.listAll()).single;
+        // OWASP: an unresolvable reference is nulled, never persisted dangling.
+        expect(program.venueId, isNull);
+        // The drop is surfaced as a non-fatal issue, not silently swallowed.
+        expect(
+          result.programIssues.map((i) => i.code),
+          contains('archive_program_unresolved_venue'),
+        );
+        // The unrelated bundled venue still landed.
+        expect((await venues.listAll()).map((v) => v.name), ['Town Hall']);
+      },
+    );
 
     test('a legacy bundle with no venues imports cleanly', () async {
       final result = await run(bundleWithVenue());
@@ -909,6 +915,61 @@ void main() {
         venuesAfter.map((v) => v.id),
         contains(programsAfter.single.venueId),
       );
+    });
+
+    test('validates venueIds against the minted set (no per-program venue '
+        'SELECT)', () async {
+      final counter = VenueSelectCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final countingPrograms = ProgramRepository(countingDb);
+      final countingVenues = VenueRepository(countingDb);
+      final countingImporter = CompendiumArchiveImporter(
+        ImportPipeline(
+          DanceRepository(countingDb, contraTaxonomy),
+          ChoreographerRepository(countingDb),
+        ),
+        countingPrograms,
+        countingVenues,
+      );
+
+      Program p(String id, String venueId) => Program(
+        id: id,
+        title: 'P $id',
+        venueId: venueId,
+        status: ProgramStatus.draft,
+        slots: [ProgramSlot(id: '$id-s0', position: 0, danceId: 'orig-d1')],
+        createdAt: DateTime.utc(2026, 4, 1),
+        updatedAt: DateTime.utc(2026, 4, 1),
+      );
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [_dance('orig-d1', 'Simplicity Swing')],
+        programs: [
+          p('orig-p1', 'orig-v1'),
+          p('orig-p2', 'orig-v2'),
+          p('orig-p3', 'orig-v1'),
+        ],
+        venues: [
+          Venue(id: 'orig-v1', name: 'Grange A'),
+          Venue(id: 'orig-v2', name: 'Grange B'),
+        ],
+      );
+
+      counter.reset();
+      await countingImporter.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('slot'),
+      );
+
+      // Built programs only reference freshly-minted venues, so the write phase
+      // validates each `venueId` against the in-memory minted set — issuing no
+      // per-program venue existence SELECT.
+      expect(counter.count, 0);
+      expect(await countingPrograms.listAll(), hasLength(3));
     });
   });
 }

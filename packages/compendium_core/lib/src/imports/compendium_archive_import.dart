@@ -370,6 +370,13 @@ class CompendiumArchiveImporter {
         now: now,
       );
 
+      // Every non-null `venueId` on a built program is one of the venues just
+      // minted above (buildArchivePrograms remaps against `venueIdByOriginalId`
+      // and nulls anything else), so this preloaded set lets the repository
+      // validate each write against memory instead of an N+1 of per-program
+      // venue SELECTs. Safe: this commit only inserts venues, never deletes one.
+      final knownVenueIds = insertedVenueIds.toSet();
+
       for (final program in built.programs) {
         final externalId = program.provenance?.externalId;
         final hasExternalId = externalId != null && externalId.isNotEmpty;
@@ -380,7 +387,7 @@ class CompendiumArchiveImporter {
             ? null
             : await _programs.getById(mappedId, includeDeleted: true);
         if (mappedId == null || existing == null) {
-          await _programs.create(program);
+          await _programs.create(program, knownVenueIds: knownVenueIds);
           insertedIds.add(program.id);
           insertedIdSet.add(program.id);
           if (hasExternalId) resolvedByExternalId[externalId] = program.id;
@@ -399,7 +406,7 @@ class CompendiumArchiveImporter {
               priorCapturedFor.add(mappedId)) {
             priorStates.add(existing);
           }
-          await _programs.update(target);
+          await _programs.update(target, knownVenueIds: knownVenueIds);
           persisted[mappedId] = target;
         }
       }

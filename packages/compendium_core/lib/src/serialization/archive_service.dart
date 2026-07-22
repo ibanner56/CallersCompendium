@@ -129,26 +129,37 @@ class ArchiveRestorer {
         await _repos.venues.upsert(v);
       });
     }
+    // Load the set of known venue ids **once** for the whole programs phase:
+    // both the dangling-ref resolve-or-null below and the repository's
+    // write-time integrity guard validate against this single snapshot, so
+    // restoring N venue-linked programs issues one venue query instead of 2·N
+    // (a per-program existence read here plus another inside each write).
+    // Sound because restore only inserts venues (above) and never deletes one
+    // mid-batch, so the snapshot cannot go stale under us.
+    final knownVenueIds = await _repos.venues.listAllIds();
     for (final p in archive.programs) {
       await _guard('program', p.id, errors, () async {
-        await _repos.programs.create(await _withResolvedVenue(p));
+        await _repos.programs.create(
+          _withResolvedVenue(p, knownVenueIds),
+          knownVenueIds: knownVenueIds,
+        );
       });
     }
   }
 
   /// Guards against a **dangling** `venueId` from an untrusted bundle: if the
-  /// program references a venue that resolves in neither the just-loaded
-  /// archive nor the existing dataset, the link is cleared before the program
-  /// is written. `venueId` is a soft reference (no DB foreign key), so a
-  /// dangling value would not fail at commit — but leaving one silently in
-  /// place is exactly what the OWASP-aligned import contract forbids, so it is
-  /// nulled rather than persisted as an unresolvable reference. A resolvable
-  /// (or already-null) `venueId` is left untouched.
-  Future<Program> _withResolvedVenue(Program p) async {
+  /// program references a venue absent from [knownVenueIds] (the venues present
+  /// after the archive's own venues were loaded, plus any pre-existing ones),
+  /// the link is cleared before the program is written. `venueId` is a soft
+  /// reference (no DB foreign key), so a dangling value would not fail at
+  /// commit — but leaving one silently in place is exactly what the
+  /// OWASP-aligned import contract forbids, so it is nulled rather than
+  /// persisted as an unresolvable reference. A resolvable (or already-null)
+  /// `venueId` is left untouched.
+  Program _withResolvedVenue(Program p, Set<String> knownVenueIds) {
     final venueId = p.venueId;
     if (venueId == null) return p;
-    final exists = await _repos.venues.getById(venueId) != null;
-    return exists ? p : p.copyWith(clearVenueId: true);
+    return knownVenueIds.contains(venueId) ? p : p.copyWith(clearVenueId: true);
   }
 
   /// Removes every user-content row (and its derived indexes) so a

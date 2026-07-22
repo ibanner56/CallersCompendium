@@ -271,29 +271,32 @@ void main() {
       updatedAt: DateTime.utc(2026, 4, 20),
     );
 
-    test('replace materializes venues and resolves a program.venueId', () async {
-      final db = openTestDatabase();
-      addTearDown(db.close);
-      final repos = CompendiumRepositories(db, contraTaxonomy);
+    test(
+      'replace materializes venues and resolves a program.venueId',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
 
-      final archive = CompendiumArchive(
-        exportedAt: DateTime.utc(2026, 7, 15),
-        programs: [programWithVenue('v1')],
-        venues: [
-          Venue(id: 'v1', name: 'Guiding Star Grange', city: 'Greenfield'),
-        ],
-      );
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          programs: [programWithVenue('v1')],
+          venues: [
+            Venue(id: 'v1', name: 'Guiding Star Grange', city: 'Greenfield'),
+          ],
+        );
 
-      final result = await ArchiveRestorer(repos).restore(archive);
-      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        final result = await ArchiveRestorer(repos).restore(archive);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
 
-      // The venue landed and the program's link resolves (venues load first).
-      final venue = await repos.venues.getById('v1');
-      expect(venue, isNotNull);
-      expect(venue!.city, 'Greenfield');
-      final program = await repos.programs.getById('p1');
-      expect(program!.venueId, 'v1');
-    });
+        // The venue landed and the program's link resolves (venues load first).
+        final venue = await repos.venues.getById('v1');
+        expect(venue, isNotNull);
+        expect(venue!.city, 'Greenfield');
+        final program = await repos.programs.getById('p1');
+        expect(program!.venueId, 'v1');
+      },
+    );
 
     test('export -> restore round-trips venues and the venueId link', () async {
       final sourceDb = openTestDatabase();
@@ -321,52 +324,109 @@ void main() {
       ).export(exportedAt: DateTime.utc(2026, 7, 15));
       expect(encodeArchive(reexport), json);
 
-      expect((await targetRepos.venues.getById('v1'))!.contact1Email, 'p@x.com');
+      expect(
+        (await targetRepos.venues.getById('v1'))!.contact1Email,
+        'p@x.com',
+      );
       expect((await targetRepos.programs.getById('p1'))!.venueId, 'v1');
     });
 
-    test('a dangling venueId (venue absent everywhere) is nulled, not persisted',
-        () async {
-      final db = openTestDatabase();
-      addTearDown(db.close);
-      final repos = CompendiumRepositories(db, contraTaxonomy);
+    test(
+      'a dangling venueId (venue absent everywhere) is nulled, not persisted',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
 
-      // The program references 'ghost', which is in neither the archive nor db.
-      final archive = CompendiumArchive(
-        exportedAt: DateTime.utc(2026, 7, 15),
-        programs: [programWithVenue('ghost')],
-      );
+        // The program references 'ghost', which is in neither the archive nor db.
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          programs: [programWithVenue('ghost')],
+        );
 
-      final result = await ArchiveRestorer(repos).restore(archive);
-      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        final result = await ArchiveRestorer(repos).restore(archive);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
 
-      final program = await repos.programs.getById('p1');
-      expect(program, isNotNull);
-      // The dangling reference is cleared rather than left silently orphaned.
-      expect(program!.venueId, isNull);
-    });
+        final program = await repos.programs.getById('p1');
+        expect(program, isNotNull);
+        // The dangling reference is cleared rather than left silently orphaned.
+        expect(program!.venueId, isNull);
+      },
+    );
 
-    test('a venueId resolvable only in the target db is preserved on merge',
-        () async {
-      final db = openTestDatabase();
-      addTearDown(db.close);
-      final repos = CompendiumRepositories(db, contraTaxonomy);
+    test(
+      'a venueId resolvable only in the target db is preserved on merge',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
 
-      // The venue exists in the target database but not in the incoming bundle.
-      await repos.venues.upsert(Venue(id: 'v1', name: 'Existing Hall'));
+        // The venue exists in the target database but not in the incoming bundle.
+        await repos.venues.upsert(Venue(id: 'v1', name: 'Existing Hall'));
 
-      final archive = CompendiumArchive(
-        exportedAt: DateTime.utc(2026, 7, 15),
-        programs: [programWithVenue('v1')],
-      );
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          programs: [programWithVenue('v1')],
+        );
 
-      final result = await ArchiveRestorer(
-        repos,
-      ).restore(archive, mode: RestoreMode.merge);
-      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
 
-      // The link survives because the referenced venue resolves against the db.
-      expect((await repos.programs.getById('p1'))!.venueId, 'v1');
-    });
+        // The link survives because the referenced venue resolves against the db.
+        expect((await repos.programs.getById('p1'))!.venueId, 'v1');
+      },
+    );
+
+    test(
+      'resolves every venueId from one preloaded set (no N+1 on restore)',
+      () async {
+        final counter = VenueSelectCounter();
+        final db = openCountingTestDatabase(counter);
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        Program p(String id, String? venueId) => Program(
+          id: id,
+          title: 'P $id',
+          venueId: venueId,
+          slots: const [],
+          createdAt: DateTime.utc(2026, 4, 1),
+          updatedAt: DateTime.utc(2026, 4, 20),
+        );
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          venues: [
+            Venue(id: 'v1', name: 'Grange A'),
+            Venue(id: 'v2', name: 'Grange B'),
+          ],
+          // Two venues shared across several programs, one venue-less program and
+          // one dangling ref — the whole phase must resolve from one snapshot.
+          programs: [
+            p('p1', 'v1'),
+            p('p2', 'v2'),
+            p('p3', 'v1'),
+            p('p4', null),
+            p('p5', 'ghost'),
+          ],
+        );
+
+        counter.reset();
+        final result = await ArchiveRestorer(repos).restore(archive);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        // Exactly one venue SELECT (the preload) for the whole programs phase —
+        // not two per venue-linked program (a resolve-or-null read here plus a
+        // write-time guard read inside each program insert).
+        expect(counter.count, 1);
+
+        // The single snapshot still resolves / nulls links correctly.
+        expect((await repos.programs.getById('p1'))!.venueId, 'v1');
+        expect((await repos.programs.getById('p2'))!.venueId, 'v2');
+        expect((await repos.programs.getById('p4'))!.venueId, isNull);
+        expect((await repos.programs.getById('p5'))!.venueId, isNull);
+      },
+    );
   });
 }

@@ -57,6 +57,17 @@ class VenueRepository {
     return rows.map(_toModel).toList();
   }
 
+  /// Loads just the set of existing venue ids in a **single** query (only the
+  /// `id` column is read — no full-model mapping). This is the batch-safe input
+  /// for bulk writers (archive restore/import) that must validate many
+  /// programs' `venueId` against existing venues without an N+1 of per-program
+  /// existence SELECTs — see [ProgramRepository.create]'s `knownVenueIds`.
+  Future<Set<String>> listAllIds() async {
+    final query = _db.selectOnly(_db.venues)..addColumns([_db.venues.id]);
+    final rows = await query.get();
+    return {for (final r in rows) r.read(_db.venues.id)!};
+  }
+
   /// Deletes the venue [id], guarding — **atomically** — against deleting a
   /// venue any program still links to. The "is any program referencing this
   /// venue?" check and the delete run inside a single transaction so no program
