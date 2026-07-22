@@ -869,5 +869,46 @@ void main() {
       expect(result.insertedVenueCount, 1);
       expect((await programs.listAll()).single.venueId, all.single.id);
     });
+
+    test('re-import currently duplicates venues (accepted, tracked #456)', () async {
+      // Cross-import venue dedupe is deliberately deferred (issue #456): venues
+      // carry no provenance key, so a fresh venue is minted on each import while
+      // the program dedupes by provenance and is repointed to the newest venue.
+      // This pins the accepted PR A additive behavior; it will change when #456
+      // adds a dedupe/provenance key.
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [Venue(id: 'orig-v1', name: 'Guiding Star Grange')],
+      );
+      await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('first'),
+        newSlotId: sequentialIds('firstslot'),
+      );
+      final result2 = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now.add(const Duration(days: 1)),
+        newId: sequentialIds('second'),
+        newSlotId: sequentialIds('secondslot'),
+      );
+
+      // The program deduped by provenance (updated in place, not re-inserted)...
+      final programsAfter = await programs.listAll();
+      expect(programsAfter, hasLength(1));
+      expect(result2.insertedProgramCount, 0);
+      expect(result2.updatedProgramCount, 1);
+      // ...but venues accumulate — the known cross-import limitation (#456).
+      final venuesAfter = await venues.listAll();
+      expect(venuesAfter, hasLength(2));
+      // The surviving program links to one of the (most-recently minted) venues.
+      expect(programsAfter.single.venueId, isNotNull);
+      expect(
+        venuesAfter.map((v) => v.id),
+        contains(programsAfter.single.venueId),
+      );
+    });
   });
 }
