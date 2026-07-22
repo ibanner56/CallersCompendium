@@ -152,6 +152,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   Future<void> _chooseFile() async {
     final picker = widget.picker ?? pickImportFile;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _picking = true);
     try {
       final text = await picker();
@@ -161,6 +162,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // provenance so this import is recorded as file/paste (uri == null).
       _sourceUri = null;
       setState(() {});
+    } on ImportFileTooLargeException catch (e) {
+      // Untrusted input rejected before it was read into memory — tell the user
+      // plainly (accessible SnackBar) and leave the input untouched.
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-file-too-large'),
+          content: Text(e.message),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _picking = false);
     }
@@ -173,11 +183,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Future<void> _chooseUsrFile() async {
     final picker = widget.bytePicker ?? _selected.bytePicker;
     if (picker == null) return;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _picking = true);
     try {
       final bytes = await picker();
       if (!mounted || bytes == null) return;
       setState(() => _payloadBytes = bytes);
+    } on ImportFileTooLargeException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-file-too-large'),
+          content: Text(e.message),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _picking = false);
     }

@@ -120,6 +120,37 @@ Future<void> _pumpForEdit(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('an oversized text import file is rejected with a friendly '
+      'SnackBar', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final repos = openTestRepositories();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RepositoriesScope(
+          repositories: repos,
+          child: ImportReviewScreen(
+            sources: [
+              ImportSource(
+                label: 'test JSON',
+                adapterFactory: GenericJsonAdapter.new,
+              ),
+            ],
+            picker: () async =>
+                throw const ImportFileTooLargeException(30 * 1024 * 1024),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('import-choose-file')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('import-file-too-large')), findsOneWidget);
+    expect(find.text('That file is too large to import.'), findsOneWidget);
+  });
+
   testWidgets('renders a new-dance row and commits it into the collection', (
     tester,
   ) async {
@@ -1084,6 +1115,33 @@ void main() {
       expect(find.byKey(const ValueKey('import-url-field')), findsNothing);
       expect(find.byKey(const ValueKey('import-paste-field')), findsNothing);
       expect(find.byKey(const ValueKey('import-choose-file')), findsNothing);
+    });
+
+    testWidgets('an oversized .USR is rejected with a friendly SnackBar and '
+        'nothing is loaded', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(
+        tester,
+        repos,
+        payload: 'unused',
+        sources: sourcesFor(
+          () async => throw const ImportFileTooLargeException(30 * 1024 * 1024),
+        ),
+        bytePicker: () async =>
+            throw const ImportFileTooLargeException(30 * 1024 * 1024),
+      );
+
+      await selectUsr(tester);
+      await tester.tap(find.byKey(const ValueKey('import-choose-usr-file')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('import-file-too-large')),
+        findsOneWidget,
+      );
+      expect(find.text('That file is too large to import.'), findsOneWidget);
+      // The oversized file was refused before reading, so no payload loaded.
+      expect(find.byKey(const ValueKey('import-usr-chosen')), findsNothing);
     });
 
     testWidgets('planning lists the .USR dances for review', (tester) async {

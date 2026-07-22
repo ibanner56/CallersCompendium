@@ -123,10 +123,15 @@ const String ccUsrSourceVersion = 'cc-usr-1';
 
 /// Reads a Caller's Companion `.USR` file's bytes into a [CcUsrArchive].
 ///
-/// Only a non-FileMaker/unsupported container throws ([FmpFormatException]);
-/// everything else degrades to partial results + [CcUsrArchive.warnings].
-CcUsrArchive readCcUsrArchive(Uint8List bytes) {
-  final db = readFmp12(bytes);
+/// A non-FileMaker/unsupported container throws ([FmpFormatException]), and an
+/// over-structured container throws ([FmpResourceLimitException], a fail-closed
+/// DoS guard bounded by [limits]); everything else degrades to partial results +
+/// [CcUsrArchive.warnings].
+CcUsrArchive readCcUsrArchive(
+  Uint8List bytes, {
+  FmpReadLimits limits = const FmpReadLimits(),
+}) {
+  final db = readFmp12(bytes, limits: limits);
   return extractCcUsrArchive(db);
 }
 
