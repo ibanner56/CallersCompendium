@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:compendium_app/src/data/backup_io.dart';
@@ -90,6 +91,75 @@ void main() {
       );
 
       expect(await readBackupFile(file, maxBytes: 1024), contents);
+    });
+  });
+
+  group('writeStringAtomically (atomic backup write)', () {
+    late Directory dir;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('backup_io_atomic_test');
+    });
+
+    tearDown(() async {
+      if (await dir.exists()) await dir.delete(recursive: true);
+    });
+
+    test('an interrupted write leaves the previous good backup intact and '
+        'leaves no .tmp litter', () async {
+      final target = File('${dir.path}/backup.json');
+      await target.writeAsString('GOOD');
+
+      // Simulate a crash/disk-full *after* the temp file is written but before
+      // the rename — the moment a naive in-place overwrite would already have
+      // clobbered the previous good backup.
+      await expectLater(
+        writeStringAtomically(
+          target.path,
+          'NEW-BUT-DOOMED',
+          debugSimulateFailure: () async =>
+              throw const FileSystemException('simulated write failure'),
+        ),
+        throwsA(isA<FileSystemException>()),
+      );
+
+      // The prior good backup is untouched...
+      expect(await target.readAsString(), 'GOOD');
+      // ...and no `.tmp` sibling was left behind.
+      expect(await File('${target.path}.tmp').exists(), isFalse);
+    });
+
+    test(
+      'atomically replaces an existing file with the new contents',
+      () async {
+        final target = File('${dir.path}/backup.json');
+        await target.writeAsString('OLD');
+
+        await writeStringAtomically(target.path, 'NEW');
+
+        expect(await target.readAsString(), 'NEW');
+        expect(await File('${target.path}.tmp').exists(), isFalse);
+      },
+    );
+
+    test('creates the target when it does not already exist', () async {
+      final target = File('${dir.path}/fresh-backup.json');
+      expect(await target.exists(), isFalse);
+
+      await writeStringAtomically(target.path, 'HELLO');
+
+      expect(await target.readAsString(), 'HELLO');
+      expect(await File('${target.path}.tmp').exists(), isFalse);
+    });
+
+    test('round-trips: a file written atomically reads back via '
+        'readBackupFile', () async {
+      const contents = '{"backupVersion":1,"core":{"dances":[]}}';
+      final target = File('${dir.path}/roundtrip.json');
+
+      await writeStringAtomically(target.path, contents);
+
+      expect(await readBackupFile(XFile(target.path)), contents);
     });
   });
 }
