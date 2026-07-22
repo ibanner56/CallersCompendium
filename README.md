@@ -69,11 +69,14 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
 Are you a caller? We're running a beta program and would love your feedback. The
 [Beta guide](docs/beta/beta-guide.md) explains how to join, what to try, and how
 to send feedback — all voluntary, all through GitHub, with no telemetry and
-nothing collected automatically. File a report from the
+nothing collected automatically. Ready to jump in? Use the
+[**Join the beta**](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml)
+form, browse downloads on the
+[project site](https://ibanner56.github.io/CallersCompendium/), or file a report
+from the
 [issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose) —
-the **Bug report** and **Feature request** forms are always there, with the
-**General feedback** and **Beta check-in** forms joining them as the beta program
-rolls out — or start a conversation in
+the **Bug report**, **Feature request**, **General feedback**, **Beta check-in**,
+and **Import source problem** forms are all live there — or start a conversation in
 [Discussions](https://github.com/ibanner56/CallersCompendium/discussions).
 
 ## Supporting
