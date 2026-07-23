@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/soft_delete_retention.dart';
 import 'package:compendium_app/src/screens/recently_deleted_screen.dart';
 
+import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
@@ -31,6 +32,8 @@ Future<void> _pumpScreen(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (context, child) =>
           RepositoriesScope(repositories: repos, child: child!),
       home: RecentlyDeletedScreen.dances(),

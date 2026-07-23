@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../editor/figure_draft.dart';
 import '../widgets/figure_list_editor.dart';
@@ -68,33 +69,26 @@ class _ShorthandMappingEditorScreenState
   /// Validates the token + figures and returns the edited mapping, or surfaces
   /// an inline error and keeps the editor open.
   void _save() {
+    final l10n = AppLocalizations.of(context);
     final token = _tokenController.text.trim();
     if (token.isEmpty) {
-      setState(() => _error = 'Enter a shorthand token.');
+      setState(() => _error = l10n.shorthandEditorErrorEmpty);
       return;
     }
     if (token.length > maxShorthandTokenLength) {
       setState(
-        () => _error =
-            'Shorthand is too long (max $maxShorthandTokenLength characters).',
+        () =>
+            _error = l10n.shorthandEditorErrorTooLong(maxShorthandTokenLength),
       );
       return;
     }
     if (widget.existingTokens.contains(normalizeShorthandToken(token))) {
-      setState(
-        () => _error =
-            'Another shorthand already uses "$token" '
-            '(shorthands are matched case-insensitively).',
-      );
+      setState(() => _error = l10n.shorthandEditorErrorDuplicate(token));
       return;
     }
     final figures = _figures();
     if (figures.isEmpty) {
-      setState(
-        () => _error =
-            'Add at least one figure for this shorthand to expand '
-            'to.',
-      );
+      setState(() => _error = l10n.shorthandEditorErrorNoFigures);
       return;
     }
     Navigator.of(context).pop(ShorthandMapping(token: token, figures: figures));
@@ -136,15 +130,18 @@ class _ShorthandMappingEditorScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isNew = widget.initial == null;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isNew ? 'New shorthand' : 'Edit shorthand'),
+        title: Text(
+          isNew ? l10n.shorthandEditorTitleNew : l10n.shorthandEditorTitleEdit,
+        ),
         actions: [
           TextButton(
             key: const ValueKey('shorthand-editor-save'),
             onPressed: _save,
-            child: const Text('Save'),
+            child: Text(l10n.commonSave),
           ),
         ],
       ),
@@ -170,19 +167,17 @@ class _ShorthandMappingEditorScreenState
               onChanged: (_) {
                 if (_error != null) setState(() => _error = null);
               },
-              decoration: const InputDecoration(
-                labelText: 'Shorthand',
-                helperText:
-                    'Type this exact line during free-text entry to insert '
-                    'the figures below. Matched case-insensitively.',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.shorthandEditorTokenLabel,
+                helperText: l10n.shorthandEditorTokenHelper,
+                border: const OutlineInputBorder(),
               ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(
-              'Expands to',
+              l10n.shorthandEditorExpandsTo,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: theme.colorScheme.primary,
               ),
@@ -191,8 +186,7 @@ class _ShorthandMappingEditorScreenState
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             child: Text(
-              'The figure(s) this shorthand inserts, in order. Built exactly '
-              'like a normal figure, so parameters and validation are the same.',
+              l10n.shorthandEditorExpandsToHelp,
               style: theme.textTheme.bodySmall,
             ),
           ),

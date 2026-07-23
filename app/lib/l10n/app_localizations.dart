@@ -6143,6 +6143,906 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{{formatted} turn} other{{formatted} turns}}'**
   String danceEditorTurnCount(num count, String formatted);
+
+  /// Generic 'Back' affordance shared across screens.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get commonBack;
+
+  /// Generic 'Remove' affordance shared across screens.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get commonRemove;
+
+  /// Update banner status while the installer is downloading (no percentage yet).
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {appName} {version}…'**
+  String updateBannerDownloading(String appName, String version);
+
+  /// Update banner status while downloading, with completion percentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {appName} {version}… {pct}%'**
+  String updateBannerDownloadingPct(String appName, String version, int pct);
+
+  /// Update banner status while the downloaded installer is being sha256-verified.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying {appName} {version}…'**
+  String updateBannerVerifying(String appName, String version);
+
+  /// Update banner status while handing the verified installer off to the OS.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the installer…'**
+  String get updateBannerPreparingInstaller;
+
+  /// Update banner status after a successful download+verify when the installer was revealed in the OS file manager.
+  ///
+  /// In en, this message translates to:
+  /// **'{appName} {version} downloaded and verified — we revealed the installer in your file manager. Run it to finish updating.'**
+  String updateBannerCompletedRevealed(String appName, String version);
+
+  /// Update banner status after a successful download when the installer was not auto-revealed.
+  ///
+  /// In en, this message translates to:
+  /// **'{appName} {version} downloaded — follow the installer to finish updating.'**
+  String updateBannerCompletedManual(String appName, String version);
+
+  /// Fallback update-banner error shown when the assisted download fails and no specific message is available.
+  ///
+  /// In en, this message translates to:
+  /// **'The update could not be downloaded.'**
+  String get updateBannerDownloadFailed;
+
+  /// Update banner message when a newer version is available (idle/cancelled state).
+  ///
+  /// In en, this message translates to:
+  /// **'A newer version of {appName} ({version}) is available.'**
+  String updateBannerAvailable(String appName, String version);
+
+  /// Update banner action that opens the release notes web page.
+  ///
+  /// In en, this message translates to:
+  /// **'View release'**
+  String get updateBannerViewRelease;
+
+  /// Update banner action that dismisses the banner for this version.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get updateBannerDismiss;
+
+  /// Update banner action that starts the assisted download-and-install flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Download & install'**
+  String get updateBannerDownloadInstall;
+
+  /// Screen-reader barrier label for the global command-palette dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Global search'**
+  String get commandPaletteBarrierLabel;
+
+  /// Placeholder hint in the command-palette search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search dances and programs…'**
+  String get commandPaletteSearchHint;
+
+  /// Subtitle shown under a program result in the command palette.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get commandPaletteProgramSubtitle;
+
+  /// Command-palette empty state before the user has typed a query.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to search yet.'**
+  String get commandPaletteEmptyInitial;
+
+  /// Command-palette empty state when a query matches nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'No matches for that search.'**
+  String get commandPaletteNoMatches;
+
+  /// Command-palette group header for dance results.
+  ///
+  /// In en, this message translates to:
+  /// **'Dances'**
+  String get commandPaletteGroupDances;
+
+  /// Command-palette group header for program results.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs'**
+  String get commandPaletteGroupPrograms;
+
+  /// Label for the search field in the collection picker (adding a dance to a program).
+  ///
+  /// In en, this message translates to:
+  /// **'Find a dance to add'**
+  String get collectionPickerSearchLabel;
+
+  /// Collection-picker Filters section header; shows the number of active filters when any are set.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Filters} other{Filters ({count} active)}}'**
+  String collectionPickerFilters(int count);
+
+  /// Collection-picker By-phrase section header; shows the number of active phrase conditions when any are set.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{By phrase} other{By phrase ({count} active)}}'**
+  String collectionPickerByPhrase(int count);
+
+  /// Collection-picker advanced-search section header.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get collectionPickerAdvanced;
+
+  /// Collection-picker toggle enabling the advanced structured query builder.
+  ///
+  /// In en, this message translates to:
+  /// **'Use advanced query'**
+  String get collectionPickerUseAdvancedQuery;
+
+  /// Helper text describing the advanced query builder in the collection picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Combine figures and sequences with all / any / none groups.'**
+  String get collectionPickerAdvancedQueryHelp;
+
+  /// Screen-reader label for the button that adds a dance to the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Add {title} to program'**
+  String collectionPickerAddSemantic(String title);
+
+  /// Tooltip for the button that adds a dance to the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Add {title}'**
+  String collectionPickerAddTooltip(String title);
+
+  /// App-bar title for the user-guide hub.
+  ///
+  /// In en, this message translates to:
+  /// **'User guide'**
+  String get userGuideTitle;
+
+  /// Snackbar shown when the user taps an internal guide link whose target guide does not exist yet. {label} is the linked guide's title.
+  ///
+  /// In en, this message translates to:
+  /// **'The \"{label}\" guide isn\'t available yet.'**
+  String userGuideMissing(String label);
+
+  /// Message shown when the bundled user-guide content fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'The user guide could not be loaded.'**
+  String get userGuideLoadError;
+
+  /// Action that opens the user guide on the web when local content is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the guide online'**
+  String get userGuideOpenOnline;
+
+  /// App-bar title for the figure-shorthand mappings manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure shorthands'**
+  String get shorthandMappingsTitle;
+
+  /// Intro paragraph explaining what figure shorthands do.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorthands let you type a short token during free-text entry and have it expand to one or more figures you have set up here.'**
+  String get shorthandMappingsIntro;
+
+  /// Button that creates a new figure-shorthand mapping.
+  ///
+  /// In en, this message translates to:
+  /// **'New shorthand'**
+  String get shorthandMappingsNew;
+
+  /// Empty state when the user has no figure-shorthand mappings.
+  ///
+  /// In en, this message translates to:
+  /// **'No shorthands yet.'**
+  String get shorthandMappingsEmpty;
+
+  /// Title of the confirm-delete dialog for a figure-shorthand mapping.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete shorthand?'**
+  String get shorthandMappingsDeleteTitle;
+
+  /// Body of the confirm-delete dialog; {token} is the user's shorthand token, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'“{token}” will be permanently removed.'**
+  String shorthandMappingsDeleteBody(String token);
+
+  /// Tooltip for the per-row overflow menu in the shorthand manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorthand actions'**
+  String get shorthandMappingsActionsTooltip;
+
+  /// App-bar title when creating a new figure-shorthand mapping.
+  ///
+  /// In en, this message translates to:
+  /// **'New shorthand'**
+  String get shorthandEditorTitleNew;
+
+  /// App-bar title when editing an existing figure-shorthand mapping.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit shorthand'**
+  String get shorthandEditorTitleEdit;
+
+  /// Label for the shorthand-token text field.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorthand'**
+  String get shorthandEditorTokenLabel;
+
+  /// Helper text under the shorthand-token field.
+  ///
+  /// In en, this message translates to:
+  /// **'Type this exact line during free-text entry to insert the figures below. Matched case-insensitively.'**
+  String get shorthandEditorTokenHelper;
+
+  /// Section header for the figures a shorthand expands to.
+  ///
+  /// In en, this message translates to:
+  /// **'Expands to'**
+  String get shorthandEditorExpandsTo;
+
+  /// Helper text under the 'Expands to' section header.
+  ///
+  /// In en, this message translates to:
+  /// **'The figure(s) this shorthand inserts, in order. Built exactly like a normal figure, so parameters and validation are the same.'**
+  String get shorthandEditorExpandsToHelp;
+
+  /// Validation error when the shorthand token is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a shorthand token.'**
+  String get shorthandEditorErrorEmpty;
+
+  /// Validation error when the shorthand token exceeds the maximum length.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorthand is too long (max {max} characters).'**
+  String shorthandEditorErrorTooLong(int max);
+
+  /// Validation error when the shorthand token duplicates an existing one; {token} is the user's token, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Another shorthand already uses \"{token}\" (shorthands are matched case-insensitively).'**
+  String shorthandEditorErrorDuplicate(String token);
+
+  /// Validation error when no target figures have been added to a shorthand.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one figure for this shorthand to expand to.'**
+  String get shorthandEditorErrorNoFigures;
+
+  /// App-bar title for the theme editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit theme'**
+  String get themeEditorTitle;
+
+  /// Label for the theme-name text field.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme name'**
+  String get themeEditorNameLabel;
+
+  /// Status shown when every checked colour pair meets WCAG AA contrast.
+  ///
+  /// In en, this message translates to:
+  /// **'All checked pairs pass WCAG AA contrast.'**
+  String get themeEditorContrastAllPass;
+
+  /// Warning shown when one or more colour pairs fall below WCAG AA contrast.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.} other{{count} contrast pairs below WCAG AA. You can still save, but some text may be hard to read.}}'**
+  String themeEditorContrastFailing(int count);
+
+  /// Contrast-ratio chip when the pair passes WCAG AA; {ratio} is the formatted ratio.
+  ///
+  /// In en, this message translates to:
+  /// **'{ratio}:1 AA'**
+  String themeEditorRatioPass(String ratio);
+
+  /// Contrast-ratio chip when the pair fails WCAG AA; {ratio} is the formatted ratio.
+  ///
+  /// In en, this message translates to:
+  /// **'{ratio}:1 fail'**
+  String themeEditorRatioFail(String ratio);
+
+  /// Heading of the live theme-preview card ('Aa' is a font specimen).
+  ///
+  /// In en, this message translates to:
+  /// **'Aa Preview'**
+  String get themeEditorPreviewHeading;
+
+  /// Sample body-text line in the theme preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Body text sample'**
+  String get themeEditorBodySample;
+
+  /// Label for the primary colour swatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary'**
+  String get themeEditorSwatchPrimary;
+
+  /// Label for the secondary colour swatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Secondary'**
+  String get themeEditorSwatchSecondary;
+
+  /// Label for the tertiary colour swatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Tertiary'**
+  String get themeEditorSwatchTertiary;
+
+  /// Label for the error colour swatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get themeEditorSwatchError;
+
+  /// Title of the confirm dialog before re-parsing custom figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade custom figures?'**
+  String get reparseConfirmTitle;
+
+  /// Body of the confirm dialog before upgrading custom figures.
+  ///
+  /// In en, this message translates to:
+  /// **'This will re-parse {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.'**
+  String reparseConfirmBody(int figureCount, int danceCount);
+
+  /// Confirm-dialog action that performs the custom-figure upgrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade'**
+  String get reparseConfirmUpgrade;
+
+  /// Snackbar shown when the custom-figure upgrade fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not upgrade figures. Please try again.'**
+  String get reparseFailed;
+
+  /// Snackbar shown when an upgrade run changed nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to upgrade.'**
+  String get reparseNothingUpgradedSnack;
+
+  /// Snackbar confirming how many dances had custom figures upgraded.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgraded custom figures in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.'**
+  String reparseUpgradedSnack(int danceCount);
+
+  /// App-bar title for the re-check custom figures screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-check custom figures'**
+  String get reparseScreenTitle;
+
+  /// Intro paragraph on the re-check custom figures screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Improved figure parsing can upgrade {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Review below, then confirm — nothing changes until you do, and all your tags, ratings, and notes are preserved.'**
+  String reparseIntro(int figureCount, int danceCount);
+
+  /// Per-dance preview label showing how many figures would be upgraded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 figure} other{{count} figures}} to upgrade'**
+  String reparsePreviewCount(int count);
+
+  /// Primary button that upgrades custom figures across the affected dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade {danceCount, plural, =1{1 dance} other{{danceCount} dances}}'**
+  String reparseUpgradeButton(int danceCount);
+
+  /// Title of the empty state when no custom figures can be upgraded.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to upgrade'**
+  String get reparseEmptyTitle;
+
+  /// Body of the empty state when no custom figures can be upgraded.
+  ///
+  /// In en, this message translates to:
+  /// **'None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure parsing.'**
+  String get reparseEmptyBody;
+
+  /// Title of the error state when scanning for upgradable figures fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check your figures'**
+  String get reparseErrorTitle;
+
+  /// Body of the error state when scanning for upgradable figures fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong while scanning your collection. Nothing was changed. You can try again.'**
+  String get reparseErrorBody;
+
+  /// Title of the confirm-delete dialog for a custom field.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete custom field'**
+  String get customFieldsDeleteTitle;
+
+  /// Body of the confirm-delete dialog; {label} is the field's display label, rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{label}\"? This cannot be undone.'**
+  String customFieldsDeleteBody(String label);
+
+  /// Snackbar when deleting a custom field still set on dances (count known). The raw exception is logged (debugPrint), never shown, so storage internals can't leak to the UI (CWE-209). {label} is plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t delete \"{label}\": still used by {count, plural, =1{1 dance} other{{count} dances}}. Remove the value from all dances first.'**
+  String customFieldsDeleteInUse(String label, int count);
+
+  /// Snackbar when deleting a custom field still set on dances but the exact count is unknown. The raw exception is logged (debugPrint), never shown (CWE-209). {label} is plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t delete \"{label}\": still used by some dances. Remove the value from all dances first.'**
+  String customFieldsDeleteInUseUnknown(String label);
+
+  /// App-bar title for the custom-fields manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom fields'**
+  String get customFieldsTitle;
+
+  /// Button that creates a new custom field.
+  ///
+  /// In en, this message translates to:
+  /// **'New field'**
+  String get customFieldsNewField;
+
+  /// Error shown when the custom-field definitions fail to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load custom fields.'**
+  String get customFieldsLoadError;
+
+  /// Empty state when no custom fields are defined.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom fields yet.\nTap + to define one.'**
+  String get customFieldsEmpty;
+
+  /// Subtitle chip indicating a custom field is shown in the dance list.
+  ///
+  /// In en, this message translates to:
+  /// **'In list'**
+  String get customFieldsFlagInList;
+
+  /// Label/chip indicating a custom field is exposed as a search filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Searchable'**
+  String get customFieldsSearchable;
+
+  /// Custom-field type: free text.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get customFieldsTypeText;
+
+  /// Custom-field type: number.
+  ///
+  /// In en, this message translates to:
+  /// **'Number'**
+  String get customFieldsTypeNumber;
+
+  /// Custom-field type: yes/no boolean.
+  ///
+  /// In en, this message translates to:
+  /// **'Boolean'**
+  String get customFieldsTypeBoolean;
+
+  /// Custom-field type: single choice from a list.
+  ///
+  /// In en, this message translates to:
+  /// **'Choice'**
+  String get customFieldsTypeChoice;
+
+  /// Validation error when a choice-type field has no choices defined.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one choice'**
+  String get customFieldsValidatorMinChoice;
+
+  /// Inline error when removing a choice value that is still set on a dance; {value} is plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t remove \"{value}\": it\'s set on at least one dance.'**
+  String customFieldsRemoveValueError(String value);
+
+  /// Editor title when creating a new custom field.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom field'**
+  String get customFieldsEditorNewTitle;
+
+  /// Editor title when editing an existing custom field.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit custom field'**
+  String get customFieldsEditorEditTitle;
+
+  /// Label for the custom-field display-label input (required).
+  ///
+  /// In en, this message translates to:
+  /// **'Label *'**
+  String get customFieldsLabelLabel;
+
+  /// Validation error when the custom-field label is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Label is required'**
+  String get customFieldsLabelRequired;
+
+  /// Label for the custom-field machine-key input (required).
+  ///
+  /// In en, this message translates to:
+  /// **'Key *'**
+  String get customFieldsKeyLabel;
+
+  /// Helper text describing the machine-key format.
+  ///
+  /// In en, this message translates to:
+  /// **'Stable machine key (letters, digits, underscores; must start with a letter or underscore)'**
+  String get customFieldsKeyHelper;
+
+  /// Helper text when the machine key can't be edited because the field is in use.
+  ///
+  /// In en, this message translates to:
+  /// **'Key is locked — field is in use on dances'**
+  String get customFieldsKeyLocked;
+
+  /// Validation error when the machine key is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Key is required'**
+  String get customFieldsKeyRequired;
+
+  /// Validation error when the machine key has invalid characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Key must start with a letter or underscore and contain only letters, digits, and underscores'**
+  String get customFieldsKeyInvalid;
+
+  /// Label for the custom-field type picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get customFieldsTypeFieldLabel;
+
+  /// Helper text when the field type can't be changed because values exist.
+  ///
+  /// In en, this message translates to:
+  /// **'Type is locked — field has values on dances'**
+  String get customFieldsTypeLocked;
+
+  /// Toggle title: show this field's value in the dance list tile.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in list'**
+  String get customFieldsShowInList;
+
+  /// Subtitle for the 'Show in list' toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Display this field value in the dance list tile'**
+  String get customFieldsShowInListSubtitle;
+
+  /// Subtitle for the 'Searchable' toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Expose this field as a filter in the search panel'**
+  String get customFieldsSearchableSubtitle;
+
+  /// Section label for the list of choices on a choice-type field (required).
+  ///
+  /// In en, this message translates to:
+  /// **'Choices *'**
+  String get customFieldsChoicesLabel;
+
+  /// Tooltip/message for a choice value that is in use and can't be removed.
+  ///
+  /// In en, this message translates to:
+  /// **'In use — cannot remove'**
+  String get customFieldsChoiceInUseTooltip;
+
+  /// Placeholder for the input that adds a new choice value.
+  ///
+  /// In en, this message translates to:
+  /// **'New choice…'**
+  String get customFieldsNewChoiceHint;
+
+  /// Tooltip for the button that adds a new choice value.
+  ///
+  /// In en, this message translates to:
+  /// **'Add choice'**
+  String get customFieldsAddChoiceTooltip;
+
+  /// App-bar title for the dialect editor; {name} is the dialect name, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit {name}'**
+  String dialectEditorTitle(String name);
+
+  /// Dialect editor section header: role terms.
+  ///
+  /// In en, this message translates to:
+  /// **'Role terms'**
+  String get dialectEditorSectionRoleTerms;
+
+  /// Dialect editor section header: move substitutions.
+  ///
+  /// In en, this message translates to:
+  /// **'Move substitutions'**
+  String get dialectEditorSectionMoveSubs;
+
+  /// Dialect editor section header: dancer substitutions.
+  ///
+  /// In en, this message translates to:
+  /// **'Dancer substitutions'**
+  String get dialectEditorSectionDancerSubs;
+
+  /// Dialect editor section header: discouraged terms.
+  ///
+  /// In en, this message translates to:
+  /// **'Discouraged terms'**
+  String get dialectEditorSectionDiscouraged;
+
+  /// Dialect editor section header: live preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get dialectEditorSectionPreview;
+
+  /// Label for the first dance role in the dialect editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Role 1'**
+  String get dialectEditorRole1;
+
+  /// Label for the second dance role in the dialect editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Role 2'**
+  String get dialectEditorRole2;
+
+  /// Helper text for the role-terms section of the dialect editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave a role blank to use the canonical term. Plural is derived when omitted.'**
+  String get dialectEditorRolesHelp;
+
+  /// Label for the singular form of a role term.
+  ///
+  /// In en, this message translates to:
+  /// **'Singular'**
+  String get dialectEditorSingular;
+
+  /// Label for the plural form of a role term.
+  ///
+  /// In en, this message translates to:
+  /// **'Plural'**
+  String get dialectEditorPlural;
+
+  /// Collapsed header/empty state for the move-substitutions section.
+  ///
+  /// In en, this message translates to:
+  /// **'Add move substitutions'**
+  String get dialectEditorMoveSubsAdd;
+
+  /// Header showing how many move substitutions are defined.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 move substitution} other{{count} move substitutions}}'**
+  String dialectEditorMoveSubsCount(int count);
+
+  /// Hint for a move-substitution input; %S is a literal handedness token the user types.
+  ///
+  /// In en, this message translates to:
+  /// **'substitution (use %S for handedness)'**
+  String get dialectEditorMoveSubHint;
+
+  /// Placeholder for the dropdown that adds a move to substitute.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a move…'**
+  String get dialectEditorAddMove;
+
+  /// Collapsed header/empty state for the dancer-substitutions section.
+  ///
+  /// In en, this message translates to:
+  /// **'Add dancer substitutions'**
+  String get dialectEditorDancerSubsAdd;
+
+  /// Header showing how many dancer substitutions are defined.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dancer substitution} other{{count} dancer substitutions}}'**
+  String dialectEditorDancerSubsCount(int count);
+
+  /// Hint for a dancer-substitution input.
+  ///
+  /// In en, this message translates to:
+  /// **'substitution'**
+  String get dialectEditorDancerSubHint;
+
+  /// Placeholder for the dropdown that adds a dancer term to substitute.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dancer term…'**
+  String get dialectEditorAddDancerTerm;
+
+  /// Helper text for the discouraged-terms section.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms the entry editor flags (struck through) — never blocked.'**
+  String get dialectEditorDiscouragedHelp;
+
+  /// Empty state for the discouraged-terms section.
+  ///
+  /// In en, this message translates to:
+  /// **'No discouraged terms.'**
+  String get dialectEditorDiscouragedEmpty;
+
+  /// Label for the input that adds a discouraged term.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a term'**
+  String get dialectEditorAddTermLabel;
+
+  /// Tooltip for the button that adds a discouraged term.
+  ///
+  /// In en, this message translates to:
+  /// **'Add term'**
+  String get dialectEditorAddTermTooltip;
+
+  /// Button that restores the default discouraged-terms list.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get dialectEditorRestoreDefaults;
+
+  /// Helper text for the dialect live-preview section.
+  ///
+  /// In en, this message translates to:
+  /// **'Sample figures rendered with this dialect. Updates as you edit.'**
+  String get dialectEditorPreviewHelp;
+
+  /// App-bar title for the recently-deleted (trash) screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently Deleted'**
+  String get recentlyDeletedTitle;
+
+  /// Title of the confirm permanent-delete dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently?'**
+  String get recentlyDeletedDeleteTitle;
+
+  /// Body of the confirm permanent-delete dialog; {title} is the item title, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" will be deleted immediately and cannot be recovered.'**
+  String recentlyDeletedDeleteBody(String title);
+
+  /// Action/tooltip that permanently deletes a recently-deleted item.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete permanently'**
+  String get recentlyDeletedDeleteConfirm;
+
+  /// Snackbar confirming a permanent delete; {title} is the item title, plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" permanently deleted.'**
+  String recentlyDeletedDeletedSnack(String title);
+
+  /// Tooltip for the button that restores a recently-deleted item.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get recentlyDeletedRestoreTooltip;
+
+  /// Sublabel when an item is kept until manually deleted (no retention window).
+  ///
+  /// In en, this message translates to:
+  /// **'Kept until you delete it'**
+  String get recentlyDeletedPurgeKept;
+
+  /// Sublabel counting down days until an item is auto-purged.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-deleted in {days, plural, =1{1 day} other{{days} days}}'**
+  String recentlyDeletedPurgeCountdown(int days);
+
+  /// Sublabel when an item is past its retention window and scheduled for purge.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled for deletion'**
+  String get recentlyDeletedPurgeScheduled;
+
+  /// Loading label for the recently-deleted dances screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading recently deleted dances'**
+  String get recentlyDeletedLoadingDances;
+
+  /// Loading label for the recently-deleted programs screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading recently deleted programs'**
+  String get recentlyDeletedLoadingPrograms;
+
+  /// Empty state for recently-deleted dances when there is no retention window.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in the trash. Deleted dances are kept here until you remove them.'**
+  String get recentlyDeletedEmptyDancesKept;
+
+  /// Empty state for recently-deleted dances with a retention window of {days} days.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in the trash. Deleted dances appear here for {days} days before being removed.'**
+  String recentlyDeletedEmptyDancesRetention(int days);
+
+  /// Empty state for recently-deleted programs with a retention window of {days} days.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing in the trash. Deleted programs appear here for {days} days before being removed.'**
+  String recentlyDeletedEmptyProgramsRetention(int days);
+
+  /// Snackbar confirming a dance was restored; {title} is plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" restored to your collection.'**
+  String recentlyDeletedRestoredDance(String title);
+
+  /// Snackbar confirming a program was restored; {title} is plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" restored.'**
+  String recentlyDeletedRestoredProgram(String title);
 }
 
 class _AppLocalizationsDelegate

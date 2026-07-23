@@ -3950,4 +3950,632 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get commonBack => 'Back';
+
+  @override
+  String get commonRemove => 'Remove';
+
+  @override
+  String updateBannerDownloading(String appName, String version) {
+    return 'Downloading $appName $version…';
+  }
+
+  @override
+  String updateBannerDownloadingPct(String appName, String version, int pct) {
+    return 'Downloading $appName $version… $pct%';
+  }
+
+  @override
+  String updateBannerVerifying(String appName, String version) {
+    return 'Verifying $appName $version…';
+  }
+
+  @override
+  String get updateBannerPreparingInstaller => 'Preparing the installer…';
+
+  @override
+  String updateBannerCompletedRevealed(String appName, String version) {
+    return '$appName $version downloaded and verified — we revealed the installer in your file manager. Run it to finish updating.';
+  }
+
+  @override
+  String updateBannerCompletedManual(String appName, String version) {
+    return '$appName $version downloaded — follow the installer to finish updating.';
+  }
+
+  @override
+  String get updateBannerDownloadFailed =>
+      'The update could not be downloaded.';
+
+  @override
+  String updateBannerAvailable(String appName, String version) {
+    return 'A newer version of $appName ($version) is available.';
+  }
+
+  @override
+  String get updateBannerViewRelease => 'View release';
+
+  @override
+  String get updateBannerDismiss => 'Dismiss';
+
+  @override
+  String get updateBannerDownloadInstall => 'Download & install';
+
+  @override
+  String get commandPaletteBarrierLabel => 'Global search';
+
+  @override
+  String get commandPaletteSearchHint => 'Search dances and programs…';
+
+  @override
+  String get commandPaletteProgramSubtitle => 'Program';
+
+  @override
+  String get commandPaletteEmptyInitial => 'Nothing to search yet.';
+
+  @override
+  String get commandPaletteNoMatches => 'No matches for that search.';
+
+  @override
+  String get commandPaletteGroupDances => 'Dances';
+
+  @override
+  String get commandPaletteGroupPrograms => 'Programs';
+
+  @override
+  String get collectionPickerSearchLabel => 'Find a dance to add';
+
+  @override
+  String collectionPickerFilters(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Filters ($count active)',
+      zero: 'Filters',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String collectionPickerByPhrase(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'By phrase ($count active)',
+      zero: 'By phrase',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get collectionPickerAdvanced => 'Advanced';
+
+  @override
+  String get collectionPickerUseAdvancedQuery => 'Use advanced query';
+
+  @override
+  String get collectionPickerAdvancedQueryHelp =>
+      'Combine figures and sequences with all / any / none groups.';
+
+  @override
+  String collectionPickerAddSemantic(String title) {
+    return 'Add $title to program';
+  }
+
+  @override
+  String collectionPickerAddTooltip(String title) {
+    return 'Add $title';
+  }
+
+  @override
+  String get userGuideTitle => 'User guide';
+
+  @override
+  String userGuideMissing(String label) {
+    return 'The \"$label\" guide isn\'t available yet.';
+  }
+
+  @override
+  String get userGuideLoadError => 'The user guide could not be loaded.';
+
+  @override
+  String get userGuideOpenOnline => 'Open the guide online';
+
+  @override
+  String get shorthandMappingsTitle => 'Figure shorthands';
+
+  @override
+  String get shorthandMappingsIntro =>
+      'Shorthands let you type a short token during free-text entry and have it expand to one or more figures you have set up here.';
+
+  @override
+  String get shorthandMappingsNew => 'New shorthand';
+
+  @override
+  String get shorthandMappingsEmpty => 'No shorthands yet.';
+
+  @override
+  String get shorthandMappingsDeleteTitle => 'Delete shorthand?';
+
+  @override
+  String shorthandMappingsDeleteBody(String token) {
+    return '“$token” will be permanently removed.';
+  }
+
+  @override
+  String get shorthandMappingsActionsTooltip => 'Shorthand actions';
+
+  @override
+  String get shorthandEditorTitleNew => 'New shorthand';
+
+  @override
+  String get shorthandEditorTitleEdit => 'Edit shorthand';
+
+  @override
+  String get shorthandEditorTokenLabel => 'Shorthand';
+
+  @override
+  String get shorthandEditorTokenHelper =>
+      'Type this exact line during free-text entry to insert the figures below. Matched case-insensitively.';
+
+  @override
+  String get shorthandEditorExpandsTo => 'Expands to';
+
+  @override
+  String get shorthandEditorExpandsToHelp =>
+      'The figure(s) this shorthand inserts, in order. Built exactly like a normal figure, so parameters and validation are the same.';
+
+  @override
+  String get shorthandEditorErrorEmpty => 'Enter a shorthand token.';
+
+  @override
+  String shorthandEditorErrorTooLong(int max) {
+    return 'Shorthand is too long (max $max characters).';
+  }
+
+  @override
+  String shorthandEditorErrorDuplicate(String token) {
+    return 'Another shorthand already uses \"$token\" (shorthands are matched case-insensitively).';
+  }
+
+  @override
+  String get shorthandEditorErrorNoFigures =>
+      'Add at least one figure for this shorthand to expand to.';
+
+  @override
+  String get themeEditorTitle => 'Edit theme';
+
+  @override
+  String get themeEditorNameLabel => 'Theme name';
+
+  @override
+  String get themeEditorContrastAllPass =>
+      'All checked pairs pass WCAG AA contrast.';
+
+  @override
+  String themeEditorContrastFailing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count contrast pairs below WCAG AA. You can still save, but some text may be hard to read.',
+      one:
+          '1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String themeEditorRatioPass(String ratio) {
+    return '$ratio:1 AA';
+  }
+
+  @override
+  String themeEditorRatioFail(String ratio) {
+    return '$ratio:1 fail';
+  }
+
+  @override
+  String get themeEditorPreviewHeading => 'Aa Preview';
+
+  @override
+  String get themeEditorBodySample => 'Body text sample';
+
+  @override
+  String get themeEditorSwatchPrimary => 'Primary';
+
+  @override
+  String get themeEditorSwatchSecondary => 'Secondary';
+
+  @override
+  String get themeEditorSwatchTertiary => 'Tertiary';
+
+  @override
+  String get themeEditorSwatchError => 'Error';
+
+  @override
+  String get reparseConfirmTitle => 'Upgrade custom figures?';
+
+  @override
+  String reparseConfirmBody(int figureCount, int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      figureCount,
+      locale: localeName,
+      other: '$figureCount figures',
+      one: '1 figure',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount dances',
+      one: '1 dance',
+    );
+    return 'This will re-parse $_temp0 in $_temp1. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.';
+  }
+
+  @override
+  String get reparseConfirmUpgrade => 'Upgrade';
+
+  @override
+  String get reparseFailed => 'Could not upgrade figures. Please try again.';
+
+  @override
+  String get reparseNothingUpgradedSnack => 'Nothing to upgrade.';
+
+  @override
+  String reparseUpgradedSnack(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount dances',
+      one: '1 dance',
+    );
+    return 'Upgraded custom figures in $_temp0.';
+  }
+
+  @override
+  String get reparseScreenTitle => 'Re-check custom figures';
+
+  @override
+  String reparseIntro(int figureCount, int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      figureCount,
+      locale: localeName,
+      other: '$figureCount figures',
+      one: '1 figure',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount dances',
+      one: '1 dance',
+    );
+    return 'Improved figure parsing can upgrade $_temp0 in $_temp1. Review below, then confirm — nothing changes until you do, and all your tags, ratings, and notes are preserved.';
+  }
+
+  @override
+  String reparsePreviewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures',
+      one: '1 figure',
+    );
+    return '$_temp0 to upgrade';
+  }
+
+  @override
+  String reparseUpgradeButton(int danceCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      danceCount,
+      locale: localeName,
+      other: '$danceCount dances',
+      one: '1 dance',
+    );
+    return 'Upgrade $_temp0';
+  }
+
+  @override
+  String get reparseEmptyTitle => 'Nothing to upgrade';
+
+  @override
+  String get reparseEmptyBody =>
+      'None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure parsing.';
+
+  @override
+  String get reparseErrorTitle => 'Could not check your figures';
+
+  @override
+  String get reparseErrorBody =>
+      'Something went wrong while scanning your collection. Nothing was changed. You can try again.';
+
+  @override
+  String get customFieldsDeleteTitle => 'Delete custom field';
+
+  @override
+  String customFieldsDeleteBody(String label) {
+    return 'Delete \"$label\"? This cannot be undone.';
+  }
+
+  @override
+  String customFieldsDeleteInUse(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances',
+      one: '1 dance',
+    );
+    return 'Can\'t delete \"$label\": still used by $_temp0. Remove the value from all dances first.';
+  }
+
+  @override
+  String customFieldsDeleteInUseUnknown(String label) {
+    return 'Can\'t delete \"$label\": still used by some dances. Remove the value from all dances first.';
+  }
+
+  @override
+  String get customFieldsTitle => 'Custom fields';
+
+  @override
+  String get customFieldsNewField => 'New field';
+
+  @override
+  String get customFieldsLoadError => 'Could not load custom fields.';
+
+  @override
+  String get customFieldsEmpty => 'No custom fields yet.\nTap + to define one.';
+
+  @override
+  String get customFieldsFlagInList => 'In list';
+
+  @override
+  String get customFieldsSearchable => 'Searchable';
+
+  @override
+  String get customFieldsTypeText => 'Text';
+
+  @override
+  String get customFieldsTypeNumber => 'Number';
+
+  @override
+  String get customFieldsTypeBoolean => 'Boolean';
+
+  @override
+  String get customFieldsTypeChoice => 'Choice';
+
+  @override
+  String get customFieldsValidatorMinChoice => 'Add at least one choice';
+
+  @override
+  String customFieldsRemoveValueError(String value) {
+    return 'Can\'t remove \"$value\": it\'s set on at least one dance.';
+  }
+
+  @override
+  String get customFieldsEditorNewTitle => 'New custom field';
+
+  @override
+  String get customFieldsEditorEditTitle => 'Edit custom field';
+
+  @override
+  String get customFieldsLabelLabel => 'Label *';
+
+  @override
+  String get customFieldsLabelRequired => 'Label is required';
+
+  @override
+  String get customFieldsKeyLabel => 'Key *';
+
+  @override
+  String get customFieldsKeyHelper =>
+      'Stable machine key (letters, digits, underscores; must start with a letter or underscore)';
+
+  @override
+  String get customFieldsKeyLocked =>
+      'Key is locked — field is in use on dances';
+
+  @override
+  String get customFieldsKeyRequired => 'Key is required';
+
+  @override
+  String get customFieldsKeyInvalid =>
+      'Key must start with a letter or underscore and contain only letters, digits, and underscores';
+
+  @override
+  String get customFieldsTypeFieldLabel => 'Type';
+
+  @override
+  String get customFieldsTypeLocked =>
+      'Type is locked — field has values on dances';
+
+  @override
+  String get customFieldsShowInList => 'Show in list';
+
+  @override
+  String get customFieldsShowInListSubtitle =>
+      'Display this field value in the dance list tile';
+
+  @override
+  String get customFieldsSearchableSubtitle =>
+      'Expose this field as a filter in the search panel';
+
+  @override
+  String get customFieldsChoicesLabel => 'Choices *';
+
+  @override
+  String get customFieldsChoiceInUseTooltip => 'In use — cannot remove';
+
+  @override
+  String get customFieldsNewChoiceHint => 'New choice…';
+
+  @override
+  String get customFieldsAddChoiceTooltip => 'Add choice';
+
+  @override
+  String dialectEditorTitle(String name) {
+    return 'Edit $name';
+  }
+
+  @override
+  String get dialectEditorSectionRoleTerms => 'Role terms';
+
+  @override
+  String get dialectEditorSectionMoveSubs => 'Move substitutions';
+
+  @override
+  String get dialectEditorSectionDancerSubs => 'Dancer substitutions';
+
+  @override
+  String get dialectEditorSectionDiscouraged => 'Discouraged terms';
+
+  @override
+  String get dialectEditorSectionPreview => 'Preview';
+
+  @override
+  String get dialectEditorRole1 => 'Role 1';
+
+  @override
+  String get dialectEditorRole2 => 'Role 2';
+
+  @override
+  String get dialectEditorRolesHelp =>
+      'Leave a role blank to use the canonical term. Plural is derived when omitted.';
+
+  @override
+  String get dialectEditorSingular => 'Singular';
+
+  @override
+  String get dialectEditorPlural => 'Plural';
+
+  @override
+  String get dialectEditorMoveSubsAdd => 'Add move substitutions';
+
+  @override
+  String dialectEditorMoveSubsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count move substitutions',
+      one: '1 move substitution',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorMoveSubHint => 'substitution (use %S for handedness)';
+
+  @override
+  String get dialectEditorAddMove => 'Add a move…';
+
+  @override
+  String get dialectEditorDancerSubsAdd => 'Add dancer substitutions';
+
+  @override
+  String dialectEditorDancerSubsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dancer substitutions',
+      one: '1 dancer substitution',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorDancerSubHint => 'substitution';
+
+  @override
+  String get dialectEditorAddDancerTerm => 'Add a dancer term…';
+
+  @override
+  String get dialectEditorDiscouragedHelp =>
+      'Terms the entry editor flags (struck through) — never blocked.';
+
+  @override
+  String get dialectEditorDiscouragedEmpty => 'No discouraged terms.';
+
+  @override
+  String get dialectEditorAddTermLabel => 'Add a term';
+
+  @override
+  String get dialectEditorAddTermTooltip => 'Add term';
+
+  @override
+  String get dialectEditorRestoreDefaults => 'Restore defaults';
+
+  @override
+  String get dialectEditorPreviewHelp =>
+      'Sample figures rendered with this dialect. Updates as you edit.';
+
+  @override
+  String get recentlyDeletedTitle => 'Recently Deleted';
+
+  @override
+  String get recentlyDeletedDeleteTitle => 'Delete permanently?';
+
+  @override
+  String recentlyDeletedDeleteBody(String title) {
+    return '\"$title\" will be deleted immediately and cannot be recovered.';
+  }
+
+  @override
+  String get recentlyDeletedDeleteConfirm => 'Delete permanently';
+
+  @override
+  String recentlyDeletedDeletedSnack(String title) {
+    return '\"$title\" permanently deleted.';
+  }
+
+  @override
+  String get recentlyDeletedRestoreTooltip => 'Restore';
+
+  @override
+  String get recentlyDeletedPurgeKept => 'Kept until you delete it';
+
+  @override
+  String recentlyDeletedPurgeCountdown(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return 'Auto-deleted in $_temp0';
+  }
+
+  @override
+  String get recentlyDeletedPurgeScheduled => 'Scheduled for deletion';
+
+  @override
+  String get recentlyDeletedLoadingDances => 'Loading recently deleted dances';
+
+  @override
+  String get recentlyDeletedLoadingPrograms =>
+      'Loading recently deleted programs';
+
+  @override
+  String get recentlyDeletedEmptyDancesKept =>
+      'Nothing in the trash. Deleted dances are kept here until you remove them.';
+
+  @override
+  String recentlyDeletedEmptyDancesRetention(int days) {
+    return 'Nothing in the trash. Deleted dances appear here for $days days before being removed.';
+  }
+
+  @override
+  String recentlyDeletedEmptyProgramsRetention(int days) {
+    return 'Nothing in the trash. Deleted programs appear here for $days days before being removed.';
+  }
+
+  @override
+  String recentlyDeletedRestoredDance(String title) {
+    return '\"$title\" restored to your collection.';
+  }
+
+  @override
+  String recentlyDeletedRestoredProgram(String title) {
+    return '\"$title\" restored.';
+  }
 }

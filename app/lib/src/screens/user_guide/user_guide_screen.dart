@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../utils/launch_external_url.dart';
 import 'user_guide_doc_view.dart';
@@ -81,19 +82,24 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
-            SnackBar(content: Text('The "$label" guide isn\'t available yet.')),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).userGuideMissing(label),
+              ),
+            ),
           );
       case GuideExternalLink(:final url):
         launchExternalUrl(context, url);
     }
   }
 
-  String get _title => _current == kUserGuideHomeDoc
-      ? 'User guide'
+  String _titleFor(AppLocalizations l10n) => _current == kUserGuideHomeDoc
+      ? l10n.userGuideTitle
       : UserGuideDocs.labelForDoc(_current);
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopScope(
       // While the active guide has in-panel history, intercept back so the
       // first "back" returns to the previous guide. An offscreen (kept-alive)
@@ -123,7 +129,7 @@ class _UserGuideScreenState extends State<UserGuideScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _GuideHeader(
-              title: _title,
+              title: _titleFor(l10n),
               onBack: _canGoBackInPanel ? _handleBack : null,
             ),
             Expanded(
@@ -210,7 +216,7 @@ class _GuideHeader extends StatelessWidget {
                   IconButton(
                     key: const ValueKey('user-guide-back'),
                     icon: const Icon(Icons.arrow_back),
-                    tooltip: 'Back',
+                    tooltip: AppLocalizations.of(context).commonBack,
                     onPressed: onBack,
                   )
                 else
@@ -257,7 +263,7 @@ class _UnavailableState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'The user guide could not be loaded.',
+              AppLocalizations.of(context).userGuideLoadError,
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium,
             ),
@@ -266,7 +272,7 @@ class _UnavailableState extends StatelessWidget {
               key: const ValueKey('user-guide-open-online'),
               onPressed: onOpenOnline,
               icon: const Icon(Icons.open_in_new),
-              label: const Text('Open the guide online'),
+              label: Text(AppLocalizations.of(context).userGuideOpenOnline),
             ),
           ],
         ),

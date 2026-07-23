@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
@@ -197,6 +198,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   @override
   Widget build(BuildContext context) {
     final data = widget.data;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -208,12 +210,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
             onChanged: _onFtsChanged,
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              labelText: 'Find a dance to add',
-              hintText: 'Search titles, authors, figures, notes…',
+              labelText: l10n.collectionPickerSearchLabel,
+              hintText: l10n.collectionSearchFieldHint,
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _hasActiveQuery
                   ? IconButton(
-                      tooltip: 'Clear search and filters',
+                      tooltip: l10n.collectionClearSearchTooltip,
                       icon: const Icon(Icons.clear),
                       onPressed: _clearAll,
                     )
@@ -244,13 +246,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   Widget _buildFiltersPanel(CollectionData data) {
+    final l10n = AppLocalizations.of(context);
     final activeCount = _activeFacetCount();
     return ExpansionTile(
       key: const ValueKey('picker-filters-panel'),
       leading: const Icon(Icons.filter_alt_outlined),
-      title: Text(
-        activeCount == 0 ? 'Filters' : 'Filters ($activeCount active)',
-      ),
+      title: Text(l10n.collectionPickerFilters(activeCount)),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       children: [
         FacetPanel(
@@ -276,13 +277,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   Widget _buildByPhrasePanel(CollectionData data) {
+    final l10n = AppLocalizations.of(context);
     final activeCount = _byPhraseActiveCount();
     return ExpansionTile(
       key: const ValueKey('picker-by-phrase-panel'),
       leading: const Icon(Icons.grid_view_outlined),
-      title: Text(
-        activeCount == 0 ? 'By phrase' : 'By phrase ($activeCount active)',
-      ),
+      title: Text(l10n.collectionPickerByPhrase(activeCount)),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       children: [
         ByPhrasePanel(
@@ -307,19 +307,18 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   Widget _buildAdvancedPanel(CollectionData data) {
+    final l10n = AppLocalizations.of(context);
     return ExpansionTile(
       key: const ValueKey('picker-advanced-panel'),
       leading: const Icon(Icons.account_tree_outlined),
-      title: const Text('Advanced'),
+      title: Text(l10n.collectionPickerAdvanced),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       children: [
         SwitchListTile(
           key: const ValueKey('picker-advanced-enable'),
           contentPadding: EdgeInsets.zero,
-          title: const Text('Use advanced query'),
-          subtitle: const Text(
-            'Combine figures and sequences with all / any / none groups.',
-          ),
+          title: Text(l10n.collectionPickerUseAdvancedQuery),
+          subtitle: Text(l10n.collectionPickerAdvancedQueryHelp),
           value: _advancedEnabled,
           onChanged: (value) {
             setState(() => _advancedEnabled = value);
@@ -338,6 +337,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   Widget _buildResultCount() {
+    final l10n = AppLocalizations.of(context);
     final count = _results.length;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -349,7 +349,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
             Semantics(
               liveRegion: true,
               child: Text(
-                '$count ${count == 1 ? 'dance' : 'dances'}',
+                l10n.collectionDanceCount(count),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -368,21 +368,20 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   Widget _buildResultsSliver() {
+    final l10n = AppLocalizations.of(context);
     if (_searchError != null) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(
-            child: Text('Something went wrong running the search.'),
-          ),
+          padding: const EdgeInsets.all(24),
+          child: Center(child: Text(l10n.collectionSearchError)),
         ),
       );
     }
     if (_results.isEmpty) {
-      return const SliverToBoxAdapter(
+      return SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(child: Text('No dances match your search.')),
+          padding: const EdgeInsets.all(24),
+          child: Center(child: Text(l10n.collectionNoResults)),
         ),
       );
     }
@@ -394,7 +393,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         // affordance (announced via the builder's live region on add).
         return Semantics(
           button: true,
-          label: 'Add ${entry.dance.title} to program',
+          label: l10n.collectionPickerAddSemantic(entry.dance.title),
           child: Stack(
             children: [
               DanceListTile(
@@ -407,7 +406,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                 right: 8,
                 child: IconButton(
                   key: ValueKey('picker-add-${entry.dance.id}'),
-                  tooltip: 'Add ${entry.dance.title}',
+                  tooltip: l10n.collectionPickerAddTooltip(entry.dance.title),
                   icon: const Icon(Icons.add_circle_outline),
                   onPressed: () => widget.onAddDance(entry.dance.id),
                 ),

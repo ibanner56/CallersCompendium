@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/shorthand_mappings_controller.dart';
 import '../data/shorthand_mappings_scope.dart';
@@ -20,15 +21,15 @@ class ShorthandMappingsScreen extends StatelessWidget {
     final dialect = ActiveDialectScope.of(context);
     final renderer = FigureRenderer(contraTaxonomy);
     final mappings = controller.mappings;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Figure shorthands')),
+      appBar: AppBar(title: Text(l10n.shorthandMappingsTitle)),
       body: ListView(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
-              'Shorthands let you type a short token during free-text entry and '
-              'have it expand to one or more figures you have set up here.',
+              l10n.shorthandMappingsIntro,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
@@ -40,17 +41,17 @@ class ShorthandMappingsScreen extends StatelessWidget {
                 key: const ValueKey('new-shorthand'),
                 onPressed: () => _createNew(context, controller),
                 icon: const Icon(Icons.add),
-                label: const Text('New shorthand'),
+                label: Text(l10n.shorthandMappingsNew),
               ),
             ),
           ),
           const SizedBox(height: 8),
           if (mappings.isEmpty)
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Text(
-                key: ValueKey('shorthand-empty'),
-                'No shorthands yet.',
+                l10n.shorthandMappingsEmpty,
+                key: const ValueKey('shorthand-empty'),
               ),
             )
           else
@@ -124,19 +125,20 @@ class ShorthandMappingsScreen extends StatelessWidget {
     final mappings = controller.mappings;
     if (index < 0 || index >= mappings.length) return;
     final token = mappings[index].token;
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete shorthand?'),
-        content: Text('“$token” will be permanently removed.'),
+        title: Text(l10n.shorthandMappingsDeleteTitle),
+        content: Text(l10n.shorthandMappingsDeleteBody(token)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
+            child: Text(l10n.commonDelete),
           ),
         ],
       ),
@@ -163,13 +165,14 @@ class _ShorthandRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       title: Text(mapping.token),
       subtitle: summary.isEmpty ? null : Text(summary),
       onTap: onEdit,
       trailing: PopupMenuButton<String>(
         key: ValueKey('shorthand-menu-${mapping.normalizedToken}'),
-        tooltip: 'Shorthand actions',
+        tooltip: l10n.shorthandMappingsActionsTooltip,
         onSelected: (value) {
           switch (value) {
             case 'edit':
@@ -178,9 +181,9 @@ class _ShorthandRow extends StatelessWidget {
               onDelete();
           }
         },
-        itemBuilder: (_) => const [
-          PopupMenuItem(value: 'edit', child: Text('Edit')),
-          PopupMenuItem(value: 'delete', child: Text('Delete')),
+        itemBuilder: (_) => [
+          PopupMenuItem(value: 'edit', child: Text(l10n.commonEdit)),
+          PopupMenuItem(value: 'delete', child: Text(l10n.commonDelete)),
         ],
       ),
     );

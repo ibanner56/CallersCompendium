@@ -41,7 +41,11 @@ Future<void> _pumpScreen(
   await tester.pumpWidget(
     RepositoriesScope(
       repositories: repos,
-      child: const MaterialApp(home: ReparseCustomFiguresScreen()),
+      child: const MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: ReparseCustomFiguresScreen(),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -202,6 +206,8 @@ void main() {
       RepositoriesScope(
         repositories: repos,
         child: MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: ReparseCustomFiguresScreen(
             previewLoader: (r) async {
               attempt++;
@@ -241,6 +247,8 @@ void main() {
       RepositoriesScope(
         repositories: repos,
         child: MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
           home: ReparseCustomFiguresScreen(
             applier: (r, ids) async => throw StateError('write failed'),
           ),
@@ -290,6 +298,8 @@ void main() {
         child: RepositoriesScope(
           repositories: repos,
           child: MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
             home: ReparseCustomFiguresScreen(applier: (r, ids) => gate.future),
           ),
         ),

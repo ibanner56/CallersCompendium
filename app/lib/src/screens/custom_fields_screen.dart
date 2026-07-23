@@ -1,7 +1,20 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
+
+/// Localized label for a [CustomFieldType]. Mirrors the app-side enum-label
+/// helper pattern (see `search/facet_labels.dart`): the enum lives in the
+/// Flutter-free `compendium_core` package (ADR-001) so it cannot carry an
+/// `AppLocalizations`-aware label itself.
+String customFieldTypeLabel(AppLocalizations l10n, CustomFieldType type) =>
+    switch (type) {
+      CustomFieldType.text => l10n.customFieldsTypeText,
+      CustomFieldType.number => l10n.customFieldsTypeNumber,
+      CustomFieldType.boolean => l10n.customFieldsTypeBoolean,
+      CustomFieldType.choice => l10n.customFieldsTypeChoice,
+    };
 
 /// Manages the user-defined custom field schema (`docs/design/ux.md` §4).
 ///
@@ -89,16 +102,17 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
   }
 
   Future<void> _delete(CustomFieldDef def) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete custom field'),
-        content: Text('Delete "${def.label}"? This cannot be undone.'),
+        title: Text(l10n.customFieldsDeleteTitle),
+        content: Text(l10n.customFieldsDeleteBody(def.label)),
         actions: [
           TextButton(
             key: const ValueKey('delete-cancel'),
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             key: const ValueKey('delete-confirm'),
@@ -106,7 +120,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(ctx).colorScheme.error,
             ),
-            child: const Text('Delete'),
+            child: Text(l10n.commonDelete),
           ),
         ],
       ),
@@ -116,26 +130,24 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
     try {
       await _repos.customFieldDefs.delete(def.id);
       await _load();
-    } on StateError catch (e) {
+    } on StateError catch (e, st) {
       if (!mounted) return;
-      // The repo throws StateError when values still exist on dances.
-      // Extract the dance count from the error message and pluralize correctly.
-      final msg = e.message;
-      final countMatch = RegExp(r'(\d+) dance').firstMatch(msg);
-      final String countLabel;
+      // The repo throws StateError when values still exist on dances. Log the
+      // raw error for diagnostics only (CWE-209: never surface it in the UI);
+      // extract the dance count from the message to pluralize the clean message.
+      debugPrint('custom field delete blocked: $e\n$st');
+      final countMatch = RegExp(r'(\d+) dance').firstMatch(e.message);
+      final String message;
       if (countMatch != null) {
         final n = int.tryParse(countMatch.group(1)!) ?? 0;
-        countLabel = n == 1 ? '1 dance' : '$n dances';
+        message = l10n.customFieldsDeleteInUse(def.label, n);
       } else {
-        countLabel = 'some dances';
+        message = l10n.customFieldsDeleteInUseUnknown(def.label);
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           key: const ValueKey('delete-in-use-snackbar'),
-          content: Text(
-            'Can\'t delete "${def.label}": still used by $countLabel. '
-            'Remove the value from all dances first.',
-          ),
+          content: Text(message),
         ),
       );
     }
@@ -143,20 +155,22 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Custom fields')),
+      appBar: AppBar(title: Text(l10n.customFieldsTitle)),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton.extended(
         key: const ValueKey('add-field'),
         heroTag: 'add-field',
         onPressed: () => _openForm(),
         icon: const Icon(Icons.add),
-        label: const Text('New field'),
+        label: Text(l10n.customFieldsNewField),
       ),
     );
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -167,21 +181,18 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
           children: [
             const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 8),
-            const Text('Could not load custom fields.'),
+            Text(l10n.customFieldsLoadError),
             const SizedBox(height: 8),
-            FilledButton(onPressed: _load, child: const Text('Retry')),
+            FilledButton(onPressed: _load, child: Text(l10n.commonRetry)),
           ],
         ),
       );
     }
     if (_defs.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'No custom fields yet.\nTap + to define one.',
-            textAlign: TextAlign.center,
-          ),
+          padding: const EdgeInsets.all(24),
+          child: Text(l10n.customFieldsEmpty, textAlign: TextAlign.center),
         ),
       );
     }
@@ -218,10 +229,14 @@ class _FieldTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final flags = <String>[];
-    if (def.showInList) flags.add('In list');
-    if (def.searchable) flags.add('Searchable');
-    final subtitle = [_typeLabel(def.type), ...flags].join(' · ');
+    if (def.showInList) flags.add(l10n.customFieldsFlagInList);
+    if (def.searchable) flags.add(l10n.customFieldsSearchable);
+    final subtitle = [
+      customFieldTypeLabel(l10n, def.type),
+      ...flags,
+    ].join(' · ');
 
     return ListTile(
       key: ValueKey('field-tile-${def.id}'),
@@ -232,13 +247,13 @@ class _FieldTile extends StatelessWidget {
         children: [
           IconButton(
             key: ValueKey('edit-field-${def.id}'),
-            tooltip: 'Edit',
+            tooltip: l10n.commonEdit,
             icon: const Icon(Icons.edit_outlined),
             onPressed: onEdit,
           ),
           IconButton(
             key: ValueKey('delete-field-${def.id}'),
-            tooltip: 'Delete',
+            tooltip: l10n.commonDelete,
             icon: const Icon(Icons.delete_outline),
             onPressed: onDelete,
           ),
@@ -246,13 +261,6 @@ class _FieldTile extends StatelessWidget {
       ),
     );
   }
-
-  String _typeLabel(CustomFieldType type) => switch (type) {
-    CustomFieldType.text => 'Text',
-    CustomFieldType.number => 'Number',
-    CustomFieldType.boolean => 'Boolean',
-    CustomFieldType.choice => 'Choice',
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -317,10 +325,11 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
   bool get _keyEditable => _isNew || !widget.inUse;
 
   void _save() {
+    final l10n = AppLocalizations.of(context);
     // Validate choices list before calling form.validate (it's not a FormField).
     setState(() {
       _choicesError = (_type == CustomFieldType.choice && _choices.isEmpty)
-          ? 'Add at least one choice'
+          ? l10n.customFieldsValidatorMinChoice
           : null;
     });
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -363,7 +372,7 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
         SnackBar(
           key: const ValueKey('choice-in-use-snackbar'),
           content: Text(
-            'Can\'t remove "$value": it\'s set on at least one dance.',
+            AppLocalizations.of(context).customFieldsRemoveValueError(value),
           ),
         ),
       );
@@ -374,6 +383,7 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final insets = MediaQuery.viewInsetsOf(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + insets.bottom),
@@ -385,19 +395,21 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                _isNew ? 'New custom field' : 'Edit custom field',
+                _isNew
+                    ? l10n.customFieldsEditorNewTitle
+                    : l10n.customFieldsEditorEditTitle,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 key: const ValueKey('cf-label'),
                 controller: _labelController,
-                decoration: const InputDecoration(
-                  labelText: 'Label *',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.customFieldsLabelLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Label is required'
+                    ? l10n.customFieldsLabelRequired
                     : null,
               ),
               const SizedBox(height: 12),
@@ -406,19 +418,17 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
                 controller: _keyController,
                 enabled: _keyEditable,
                 decoration: InputDecoration(
-                  labelText: 'Key *',
+                  labelText: l10n.customFieldsKeyLabel,
                   helperText: _keyEditable
-                      ? 'Stable machine key (letters, digits, underscores; '
-                            'must start with a letter or underscore)'
-                      : 'Key is locked — field is in use on dances',
+                      ? l10n.customFieldsKeyHelper
+                      : l10n.customFieldsKeyLocked,
                   border: const OutlineInputBorder(),
                 ),
                 validator: (v) {
                   final trimmed = v?.trim() ?? '';
-                  if (trimmed.isEmpty) return 'Key is required';
+                  if (trimmed.isEmpty) return l10n.customFieldsKeyRequired;
                   if (!RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$').hasMatch(trimmed)) {
-                    return 'Key must start with a letter or underscore and '
-                        'contain only letters, digits, and underscores';
+                    return l10n.customFieldsKeyInvalid;
                   }
                   return null;
                 },
@@ -428,15 +438,18 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
                 key: const ValueKey('cf-type'),
                 initialValue: _type,
                 decoration: InputDecoration(
-                  labelText: 'Type',
+                  labelText: l10n.customFieldsTypeFieldLabel,
                   border: const OutlineInputBorder(),
                   helperText: _typeEditable
                       ? null
-                      : 'Type is locked — field has values on dances',
+                      : l10n.customFieldsTypeLocked,
                 ),
                 items: [
                   for (final t in CustomFieldType.values)
-                    DropdownMenuItem(value: t, child: Text(_typeLabel(t))),
+                    DropdownMenuItem(
+                      value: t,
+                      child: Text(customFieldTypeLabel(l10n, t)),
+                    ),
                 ],
                 onChanged: _typeEditable
                     ? (v) {
@@ -464,20 +477,16 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
               SwitchListTile(
                 key: const ValueKey('cf-show-in-list'),
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Show in list'),
-                subtitle: const Text(
-                  'Display this field value in the dance list tile',
-                ),
+                title: Text(l10n.customFieldsShowInList),
+                subtitle: Text(l10n.customFieldsShowInListSubtitle),
                 value: _showInList,
                 onChanged: (v) => setState(() => _showInList = v),
               ),
               SwitchListTile(
                 key: const ValueKey('cf-searchable'),
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Searchable'),
-                subtitle: const Text(
-                  'Expose this field as a filter in the search panel',
-                ),
+                title: Text(l10n.customFieldsSearchable),
+                subtitle: Text(l10n.customFieldsSearchableSubtitle),
                 value: _searchable,
                 onChanged: (v) => setState(() => _searchable = v),
               ),
@@ -488,13 +497,13 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
                   TextButton(
                     key: const ValueKey('cf-form-cancel'),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                    child: Text(l10n.commonCancel),
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
                     key: const ValueKey('cf-form-save'),
                     onPressed: _save,
-                    child: const Text('Save'),
+                    child: Text(l10n.commonSave),
                   ),
                 ],
               ),
@@ -504,13 +513,6 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
       ),
     );
   }
-
-  String _typeLabel(CustomFieldType type) => switch (type) {
-    CustomFieldType.text => 'Text',
-    CustomFieldType.number => 'Number',
-    CustomFieldType.boolean => 'Boolean',
-    CustomFieldType.choice => 'Choice',
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -549,10 +551,14 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Choices *', style: Theme.of(context).textTheme.labelLarge),
+        Text(
+          l10n.customFieldsChoicesLabel,
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
         if (widget.error != null)
           Padding(
             padding: const EdgeInsets.only(top: 4),
@@ -591,7 +597,7 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
                   children: [
                     if (inUse)
                       Tooltip(
-                        message: 'In use — cannot remove',
+                        message: l10n.customFieldsChoiceInUseTooltip,
                         child: Icon(
                           Icons.lock_outline,
                           size: 16,
@@ -602,7 +608,9 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
                       key: ValueKey('remove-choice-$choice'),
                       icon: const Icon(Icons.remove_circle_outline),
                       onPressed: () => widget.onRemove(choice),
-                      tooltip: inUse ? 'In use — cannot remove' : 'Remove',
+                      tooltip: inUse
+                          ? l10n.customFieldsChoiceInUseTooltip
+                          : l10n.commonRemove,
                     ),
                   ],
                 ),
@@ -615,10 +623,10 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
               child: TextField(
                 key: const ValueKey('choice-input'),
                 controller: _controller,
-                decoration: const InputDecoration(
-                  hintText: 'New choice…',
+                decoration: InputDecoration(
+                  hintText: l10n.customFieldsNewChoiceHint,
                   isDense: true,
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                 ),
                 onSubmitted: (value) {
                   widget.onAdd(value);
@@ -634,7 +642,7 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
                 _controller.clear();
               },
               icon: const Icon(Icons.add),
-              tooltip: 'Add choice',
+              tooltip: l10n.customFieldsAddChoiceTooltip,
             ),
           ],
         ),

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/screens/dialect_editor_screen.dart';
 
+import '../support/l10n_harness.dart';
+
 void main() {
   Finder validationError() =>
       find.byKey(const ValueKey('dialect-validation-error'));
@@ -24,7 +26,11 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(home: DialectEditorScreen(initial: Dialect.canonical)),
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(initial: Dialect.canonical),
+      ),
     );
 
     // No issues before any edit.
@@ -49,7 +55,11 @@ void main() {
 
   testWidgets('a valid edit clears live validation issues', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(home: DialectEditorScreen(initial: Dialect.canonical)),
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(initial: Dialect.canonical),
+      ),
     );
 
     await tester.enterText(
@@ -74,7 +84,11 @@ void main() {
 
   testWidgets('the preview reflects role-term edits live', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(home: DialectEditorScreen(initial: Dialect.canonical)),
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(initial: Dialect.canonical),
+      ),
     );
 
     await tester.enterText(
@@ -109,6 +123,8 @@ void main() {
     var didPop = false;
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -166,7 +182,11 @@ void main() {
         },
       );
       await tester.pumpWidget(
-        MaterialApp(home: DialectEditorScreen(initial: dialect)),
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: DialectEditorScreen(initial: dialect),
+        ),
       );
 
       // Reveal both collapsed substitution editors.

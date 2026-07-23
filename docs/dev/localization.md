@@ -17,15 +17,19 @@ stay consistent.
 shared cross-cutting vocabulary (facet domain-value labels), the import-gap
 badge, the `(copy)` title suffix, the small global/shared chrome, and most of
 the **Settings surface** (the defaults, general-appearance, dialect, updates, and
-about sections). The final layer (**L6**) localizes the remaining
-feature-specific surfaces — the dance editor (`dance_editor/`), its detail
-screen and editor dialogs, the figure editors, the Settings general
-(data-management) section and the formation-colours screen, and a few secondary
-screens (custom fields, dialect editor, theme editor, recently-deleted, ContraDB
-import, user guide) — plus the large chrome widgets `collection_picker`,
-`command_palette`, and `update_banner`. Those files are parked in the guard
-allow-list (see [Guarding against hardcoded strings](#guarding-against-hardcoded-strings));
-L6 removes each as it localizes it and flips this note to "complete".
+about sections). Layer 6 is landing incrementally: the secondary screens and
+global chrome — custom fields, dialect editor, theme editor, recently-deleted,
+ContraDB import, user guide, figure-shorthand mappings (list + editor),
+reparse-custom-figures, and the large chrome widgets `collection_picker`,
+`command_palette`, and `update_banner` — are now localized and off the guard
+allow-list. The remaining L6 work localizes the last feature-specific surfaces —
+the dance editor (`dance_editor/`), its detail screen and editor dialogs, the
+figure editors, the Settings general (data-management) section and the
+formation-colours screen, and the venue-management surfaces (`venue_*`). Those
+files stay parked in the guard allow-list (see
+[Guarding against hardcoded strings](#guarding-against-hardcoded-strings)); each
+comes off as its sub-PR localizes it, and this note flips to "complete" only when
+the allow-list holds nothing but the permanent (by-design English) deferrals.
 
 ## How it's wired
 

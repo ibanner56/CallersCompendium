@@ -34,9 +34,10 @@ class CommandResult {
 /// (`docs/design/ux-modernization.md` §6). The palette itself only *selects*;
 /// the caller performs navigation so it can also switch the active section.
 Future<CommandResult?> showCommandPalette(BuildContext context) {
+  final l10n = AppLocalizations.of(context);
   return showDialog<CommandResult>(
     context: context,
-    barrierLabel: 'Global search',
+    barrierLabel: l10n.commandPaletteBarrierLabel,
     builder: (_) => const CommandPalette(),
   );
 }
@@ -104,7 +105,7 @@ class _CommandPaletteState extends State<CommandPalette> {
           kind: CommandResultKind.program,
           id: p.id,
           title: p.title,
-          subtitle: 'Program',
+          subtitle: l10n.commandPaletteProgramSubtitle,
           icon: Icons.event_note_outlined,
         ),
     ];
@@ -199,6 +200,7 @@ class _CommandPaletteState extends State<CommandPalette> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Dialog(
       key: const ValueKey('command-palette'),
       alignment: Alignment.topCenter,
@@ -218,20 +220,20 @@ class _CommandPaletteState extends State<CommandPalette> {
                 onChanged: _onQueryChanged,
                 onSubmitted: (_) => _activateHighlighted(),
                 textInputAction: TextInputAction.go,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'Search dances and programs…',
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: l10n.commandPaletteSearchHint,
                 ),
               ),
             ),
-            Flexible(child: _buildBody(theme)),
+            Flexible(child: _buildBody(theme, l10n)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBody(ThemeData theme) {
+  Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
     if (_loading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
@@ -245,8 +247,8 @@ class _CommandPaletteState extends State<CommandPalette> {
         child: Center(
           child: Text(
             _all.isEmpty
-                ? 'Nothing to search yet.'
-                : 'No matches for that search.',
+                ? l10n.commandPaletteEmptyInitial
+                : l10n.commandPaletteNoMatches,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -292,7 +294,10 @@ class _GroupHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final label = kind == CommandResultKind.dance ? 'Dances' : 'Programs';
+    final l10n = AppLocalizations.of(context);
+    final label = kind == CommandResultKind.dance
+        ? l10n.commandPaletteGroupDances
+        : l10n.commandPaletteGroupPrograms;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Text(

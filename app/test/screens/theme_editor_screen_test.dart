@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/screens/theme_editor_screen.dart';
 
+import '../support/l10n_harness.dart';
+
 /// A [CustomTheme] whose `Text on primary` pair is deliberately unreadable:
 /// white text on a white primary resolves to a 1:1 ratio, well below WCAG AA.
 CustomTheme _failingTheme() => CustomTheme(
@@ -32,7 +34,11 @@ void main() {
       'a failing-contrast pair surfaces the warning inside a live region',
       (tester) async {
         await tester.pumpWidget(
-          MaterialApp(home: ThemeEditorScreen(initial: _failingTheme())),
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: ThemeEditorScreen(initial: _failingTheme()),
+          ),
         );
         await tester.pumpAndSettle();
 
@@ -53,7 +59,11 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MaterialApp(home: ThemeEditorScreen(initial: _passingTheme())),
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: ThemeEditorScreen(initial: _passingTheme()),
+        ),
       );
       await tester.pumpAndSettle();
 

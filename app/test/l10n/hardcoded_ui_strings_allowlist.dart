@@ -24,27 +24,8 @@ library;
 /// Files the guard skips. Paths are POSIX, relative to `app/lib/`.
 const Set<String> hardcodedUiStringAllowlist = <String>{
   // ---- L6-deferred UI (feature-specific editor & secondary surfaces) ----
-  // Secondary / feature screens.
-  'src/screens/contradb_program_import_screen.dart',
-  'src/screens/custom_fields_screen.dart',
-  'src/screens/dialect_editor_screen.dart',
-  // Figure-shorthand mappings feature (#420) merged from main AFTER the L6
-  // partition was drafted. Deferred to a later L6 sub-PR (secondary screens)
-  // to keep the dance-editor sub-PR coherent and under the key ceiling; the
-  // Defaults-section entry point ('Figure shorthands' tile) IS localized.
-  'src/screens/shorthand_mapping_editor_screen.dart',
-  'src/screens/shorthand_mappings_screen.dart',
-  'src/screens/recently_deleted_screen.dart',
-  'src/screens/reparse_custom_figures_screen.dart',
-  'src/screens/theme_editor_screen.dart',
-  'src/screens/user_guide/user_guide_screen.dart',
-  // Large global-chrome widgets: L5 landed their facet helper-swaps; their own
-  // prose is deferred to L6 (coordinator split).
-  'src/update/update_banner.dart',
-  'src/widgets/collection_picker.dart',
-  'src/widgets/command_palette.dart',
   // Venue management feature surfaces merged from main AFTER the L5 partition
-  // was fixed — deferred to L6 with the other feature-specific screens.
+  // was fixed — deferred to a sibling L6 sub-PR with the settings surfaces.
   'src/screens/venue_editor_sheet.dart',
   'src/screens/venue_manager_screen.dart',
   'src/widgets/venue_picker.dart',
