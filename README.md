@@ -1,7 +1,7 @@
 # Caller's Compendium
 
 [![CI](https://github.com/ibanner56/CallersCompendium/actions/workflows/ci.yml/badge.svg)](https://github.com/ibanner56/CallersCompendium/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/ibanner56/CallersCompendium?include_prereleases&sort=semver)](https://github.com/ibanner56/CallersCompendium/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/ibanner56/CallersCompendium?include_prereleases&sort=semver)](https://github.com/ibanner56/CallersCompendium/releases)
 [![License: AGPL-3.0](https://img.shields.io/github/license/ibanner56/CallersCompendium)](LICENSE)
 [![Made with Flutter](https://img.shields.io/badge/Made%20with-Flutter-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 ![Platforms](https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows%20%7C%20Android%20%7C%20iOS-lightgrey)
