@@ -125,7 +125,7 @@ GitHub. Tell us your device, the version, and what you were doing.
   ```
 - **Feedback email:** compendium@contra.dance
 - **Marketing URL:** https://ibanner56.github.io/CallersCompendium/
-- **Privacy Policy URL:** *(the published privacy-policy page)*
+- **Privacy Policy URL:** https://ibanner56.github.io/CallersCompendium/privacy/
 - **What to test:** Collection search, building a Program and viewing the matrix,
   Perform mode at a real dance, switching Dialect, and importing from a source.
 
