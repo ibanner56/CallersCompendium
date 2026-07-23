@@ -16,7 +16,7 @@ import io
 import json
 import sys
 import tempfile
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -33,6 +33,14 @@ def _run(argv: list[str]) -> tuple[int, str]:
     with redirect_stdout(buf):
         code = a.main(argv)
     return code, buf.getvalue()
+
+
+def _run_full(argv: list[str]) -> tuple[int, str, str]:
+    """Invoke the CLI, capturing stdout and stderr; return (code, out, err)."""
+    out, err = io.StringIO(), io.StringIO()
+    with redirect_stdout(out), redirect_stderr(err):
+        code = a.main(argv)
+    return code, out.getvalue(), err.getvalue()
 
 
 def _write(path: Path, obj: dict) -> None:
@@ -284,6 +292,55 @@ def _apply_cases() -> None:
         de = json.loads((arb / "app_de.arb").read_text("utf-8"))
         assert de["@greeting"] == {"description": "keep"}
 
+        # A stale message key already in the locale file (since removed from the
+        # template) is pruned on the next apply, with an explicit warning — the
+        # input map only rejects *new* unknown keys, so this path must not be
+        # silent. See arb_translate._reorder.
+        _write(
+            arb / "app_it.arb",
+            {"@@locale": "it", "greeting": "Ciao", "staleKey": "obsolete"},
+        )
+        upd = arb / "upd.json"
+        _write(upd, {"appTitle": "Caller's Compendium"})
+        code, _, err = _run_full(
+            ["--arb-dir", str(arb), "apply", "--locale", "it", "--input", str(upd)]
+        )
+        assert code == 0, err
+        it = json.loads((arb / "app_it.arb").read_text("utf-8"))
+        assert "staleKey" not in it
+        assert "::warning::" in err and "staleKey" in err
+
+
+# ---------------------------------------------------------------------------
+# glossary loading (robustness / clean failure)
+# ---------------------------------------------------------------------------
+def _glossary_cases() -> None:
+    with tempfile.TemporaryDirectory() as d:
+        arb = Path(d)
+        _write(arb / "app_en.arb", _template())
+
+        # A missing glossary is tolerated with an empty shape.
+        assert a.load_glossary(arb / "nope.json") == {"doNotTranslate": [], "terms": {}}
+
+        # Malformed JSON yields a clean ::error:: + exit 2, never a traceback.
+        bad = arb / "bad_glossary.json"
+        bad.write_text("{ not json", encoding="utf-8")
+        code, _, err = _run_full(
+            ["--arb-dir", str(arb), "extract", "--locale", "fr", "--glossary", str(bad)]
+        )
+        assert code == 2, err
+        assert "::error::" in err
+
+        # A wrong-shape glossary (terms is not an object) is rejected the same way,
+        # so glossary_hints can never trip over a non-dict.
+        shape = arb / "shape_glossary.json"
+        _write(shape, {"terms": ["not", "a", "map"]})
+        code, _, err = _run_full(
+            ["--arb-dir", str(arb), "extract", "--locale", "fr", "--glossary", str(shape)]
+        )
+        assert code == 2, err
+        assert "::error::" in err
+
 
 # ---------------------------------------------------------------------------
 # validate
@@ -398,6 +455,7 @@ def main() -> int:
     _model_cases()
     _extract_cases()
     _apply_cases()
+    _glossary_cases()
     _validate_cases()
     _real_template_cases()
     print("OK: all arb_translate tests passed")

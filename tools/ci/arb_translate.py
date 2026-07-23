@@ -254,11 +254,24 @@ def declared_placeholders(data: dict, key: str) -> dict:
 # extract
 # ---------------------------------------------------------------------------
 def load_glossary(path: Path):
+    """Load the domain glossary, raising :class:`ArbError` on any trouble so a
+    malformed file yields a clean ``::error::`` + exit code, not a traceback."""
     if not path.exists():
         return {"doNotTranslate": [], "terms": {}}
-    data = json.loads(path.read_text(encoding="utf-8"))
-    data.setdefault("doNotTranslate", [])
-    data.setdefault("terms", {})
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise ArbError(f"cannot read glossary {path}: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise ArbError(f"glossary {path} is not valid JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ArbError(f"glossary {path} must be a JSON object")
+    dnt = data.setdefault("doNotTranslate", [])
+    terms = data.setdefault("terms", {})
+    if not isinstance(dnt, list):
+        raise ArbError(f"glossary {path}: 'doNotTranslate' must be a list")
+    if not isinstance(terms, dict):
+        raise ArbError(f"glossary {path}: 'terms' must be a JSON object")
     return data
 
 
@@ -378,12 +391,22 @@ def _reorder(result: dict, template: dict, locale: str) -> dict:
     """Deterministic output: ``@@locale`` first, then message keys in *template*
     order (only those present), each followed by its ``@key`` block if the file
     already carried one (preserving a human copy-the-template file's metadata).
-    Any other pre-existing globals are kept up front; unknown keys are dropped
-    (apply already rejected them, so this cannot silently lose real data)."""
+    Other pre-existing ``@@`` globals are kept up front. Message keys absent from
+    the template are pruned here: ``apply`` rejects unknown keys in the *input
+    map*, but a stale key already sitting in the locale file (e.g. one since
+    removed from the template) would otherwise survive — so it is dropped and a
+    warning is emitted, keeping the removal explicit rather than silent."""
     ordered: dict = {}
     ordered["@@locale"] = locale
     for gk in [k for k in result if k.startswith("@@") and k != "@@locale"]:
         ordered[gk] = result[gk]
+    template_keys = set(message_keys(template))
+    dropped = [k for k in message_keys(result) if k not in template_keys]
+    if dropped:
+        _warn(
+            "dropping %d key(s) not present in the template: %s"
+            % (len(dropped), ", ".join(sorted(dropped)[:10]))
+        )
     for key in message_keys(template):
         if key in result:
             ordered[key] = result[key]
@@ -573,6 +596,10 @@ def cmd_validate(args) -> int:
 # ---------------------------------------------------------------------------
 def _err(msg: str) -> None:
     print(f"::error::{msg}", file=sys.stderr)
+
+
+def _warn(msg: str) -> None:
+    print(f"::warning::{msg}", file=sys.stderr)
 
 
 def build_parser() -> argparse.ArgumentParser:

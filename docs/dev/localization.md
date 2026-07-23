@@ -247,10 +247,11 @@ You do **not** need to write code to translate the app.
 ## Tooling: assisted translation & validation
 
 Two `tools/ci` helpers speed up translating the app and keep contributed
-translations safe. Both are pure-stdlib Python (no network, no third-party
-dependencies) and treat a translated ARB as **untrusted input** — community
-pull requests and the online import/sharing features — validating it in line
-with OWASP guidance.
+translations safe: a pure-stdlib Python CLI (`arb_translate.py`) and a JSON
+glossary (`i18n_glossary.json`) it reads. The CLI has no network access and no
+third-party dependencies, and it treats a translated ARB as **untrusted
+input** — community pull requests and the online import/sharing features —
+validating it in line with OWASP guidance.
 
 ### `tools/ci/arb_translate.py`
 
