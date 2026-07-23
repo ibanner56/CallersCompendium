@@ -1,0 +1,94 @@
+{
+  "$schema-note": "Consumed by tools/ci/arb_translate.py `extract`. `doNotTranslate` lists proper nouns/brands/acronyms that must be copied verbatim into every locale. `terms` maps dance-domain jargon to a short note pinning the *intended* meaning, so an assisted translation (or a human) renders the dance sense rather than an everyday homograph (e.g. `caller` is the person who prompts the dance, not a telephone caller). This is guidance, not a hard gate; keep it small and high-signal.",
+  "doNotTranslate": [
+    "Caller's Compendium",
+    "ContraDB",
+    "GitHub",
+    "AGPL-3.0",
+    "GNU Affero General Public License",
+    "SIL Open Font License",
+    "Becket",
+    "Sicilian",
+    "ECD"
+  ],
+  "terms": {
+    "caller": {
+      "note": "The person who teaches and prompts a social dance in real time. NOT a telephone caller. Many languages keep the English 'caller' as a loanword in the folk-dance community — prefer the established local term only if one genuinely exists."
+    },
+    "call": {
+      "note": "The spoken prompt a caller gives dancers (verb: to call a dance). Dance-instruction sense, not a phone call."
+    },
+    "set": {
+      "note": "The formation of dancers on the floor (e.g. a longways set), or the act of 'setting' as a step. NOT a collection, a settings screen, or 'to set a value'."
+    },
+    "figure": {
+      "note": "A named dance movement/pattern (e.g. swing, allemande, hey). NOT a number, illustration, or 'to figure out'."
+    },
+    "formation": {
+      "note": "How dancers are arranged before dancing (duple improper, Becket, Sicilian circle, longways, etc.). A structural dance term."
+    },
+    "progression": {
+      "note": "How couples move to a new position each time through the dance so they meet new neighbors. A contra/longways structural term, not general 'progress'."
+    },
+    "proper": {
+      "note": "A formation state where dancers are on their standard side (opposite of 'improper'). Dance-technical term, not 'correct/appropriate'."
+    },
+    "improper": {
+      "note": "A common contra formation where certain dancers have crossed to the opposite side. Dance-technical term — NOT 'inappropriate'."
+    },
+    "indecent": {
+      "note": "A specific duple formation name (a variant of proper/improper). Dance jargon — do NOT render as 'obscene'."
+    },
+    "hey": {
+      "note": "A weaving figure where dancers pass in a set pattern (a 'hey for four'). A dance figure, not the interjection 'hey'."
+    },
+    "allemande": {
+      "note": "A turn where dancers grasp arms/hands and rotate. Keep as 'allemande' unless a well-established local dance term exists."
+    },
+    "balance": {
+      "note": "A dance figure: step and balance toward/away from a partner. The step sense, not financial/equilibrium 'balance'."
+    },
+    "swing": {
+      "note": "A buoyant rotating figure danced with a partner. The dance figure, not a playground swing or musical swing."
+    },
+    "promenade": {
+      "note": "A figure where a couple travels together in a hold. Dance sense."
+    },
+    "neighbor": {
+      "note": "The dancer(s) you dance with besides your partner, changing as the dance progresses. Dance-role term."
+    },
+    "partner": {
+      "note": "Your primary dance partner for the whole dance. Dance-role term."
+    },
+    "square": {
+      "note": "A dance form / formation for four couples in a square. When it labels the dance form, it is a proper form name."
+    },
+    "contra": {
+      "note": "A folk dance form danced in long lines of couples. Keep as 'contra'."
+    },
+    "mixer": {
+      "note": "A dance in which you change partners over the course of the dance. Dance sense, not a kitchen mixer or audio mixer."
+    },
+    "program": {
+      "note": "In this app: a caller's curated, ordered list of dances for an event/evening. NOT a computer program/application. This is a core app noun."
+    },
+    "collection": {
+      "note": "In this app: the user's personal library of saved dances. App noun."
+    },
+    "dialect": {
+      "note": "In this app: the configurable mapping from canonical move names to the words a particular caller/community uses. App feature name — see the dialect system."
+    },
+    "shorthand": {
+      "note": "In this app: a caller's abbreviated notation for a figure. App noun."
+    },
+    "duple": {
+      "note": "A minor set of two couples (duple minor). Dance structural term."
+    },
+    "triple": {
+      "note": "A minor set of three couples (triple minor). Dance structural term."
+    },
+    "longways": {
+      "note": "A formation of couples in two long facing lines. Dance formation name."
+    }
+  }
+}

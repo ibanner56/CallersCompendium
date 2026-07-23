@@ -226,6 +226,12 @@ You do **not** need to write code to translate the app.
    fvm dart format .
    ```
    Commit your new ARB together with the regenerated `app_localizations*.dart`.
+   Before committing, sanity-check the file with the validator CI also runs:
+   ```bash
+   python3 tools/ci/arb_translate.py validate --locale <locale>
+   ```
+   It flags missing/renamed placeholders, mismatched plural arguments, a wrong
+   `@@locale`, and unsafe content before the change ever reaches a build.
 5. **iOS only:** add your locale to `app/ios/Runner/Info.plist` under a
    `CFBundleLocalizations` array, using the **hyphenated BCP-47 tag** (e.g.
    `<string>fr</string>`, `<string>pt-BR</string>`, `<string>zh-Hant</string>`) —
@@ -237,6 +243,59 @@ You do **not** need to write code to translate the app.
    region ▸ App language**, shown by its native name, with no code change. If the
    endonym doesn't yet have an entry in `nativeLanguageName` it falls back to the
    locale tag; add your language there for a nicer label.
+
+## Tooling: assisted translation & validation
+
+Two `tools/ci` helpers speed up translating the app and keep contributed
+translations safe. Both are pure-stdlib Python (no network, no third-party
+dependencies) and treat a translated ARB as **untrusted input** — community
+pull requests and the online import/sharing features — validating it in line
+with OWASP guidance.
+
+### `tools/ci/arb_translate.py`
+
+A model-agnostic pipeline with three subcommands:
+
+- `extract --locale <code>` — prints the keys still missing (or blank) in
+  `app_<code>.arb` as a JSON batch. Each entry carries the English source, its
+  `description`, its declared placeholders, and any matched **glossary** hints
+  (`tools/ci/i18n_glossary.json`). This is the payload a translator — human or
+  model — works from.
+- `apply --locale <code> --input <map.json>` — merges a `{key: value}` map into
+  `app_<code>.arb`, writing **values only** in template key order, refusing any
+  key not in the template and any non-string value. It never invents keys or
+  `@key` metadata.
+- `validate --locale <code>` / `validate --all` — gates a translation against
+  `app_en.arb`: keys must be a subset of the template; every message must keep
+  the **same ICU arguments/placeholders** as the source (locale-specific plural
+  categories such as `zero`/`few`/`many` are allowed, but a dropped, added, or
+  renamed placeholder — or a plural→plain change — fails); `@@locale` must match
+  the filename; any `@key` block that is present must equal the template's; and
+  each value passes a content-safety scan (no C0/C1 control characters, no
+  bidirectional-override characters — the Trojan-Source vectors — and no
+  `javascript:`/`vbscript:`/`data:text/html` URIs). Non-fatal warnings cover
+  HTML-looking tags, non-NFC text, and unusually long expansions.
+
+CI runs `validate --all` (and the tool's own `test_arb_translate.py`) in
+[`_checks.yml`](../../.github/workflows/_checks.yml) before the Flutter build,
+so a malformed or unsafe translation fails the PR.
+
+### The `arb-translate` Copilot extension
+
+`.github/extensions/arb-translate/` wires the pipeline into the Copilot CLI so
+the session model can do the actual translating — no third-party translation
+API or extra key required. It exposes `arb_translate_plan` (→ `extract`),
+`arb_translate_apply` (→ `apply`, then `validate`), and `arb_translate_validate`.
+The model is instructed to preserve every placeholder, honor the glossary, and
+emit plain text only. After a successful apply, regenerate and commit exactly as
+in [Contributing a translation](#contributing-a-translation) (`fvm flutter
+gen-l10n`, then `fvm dart format .`).
+
+The glossary (`tools/ci/i18n_glossary.json`) pins the meaning of dance jargon
+(`caller`, `set`, `figure`, `program`, `proper`/`improper`, …) and lists proper
+nouns to copy verbatim (`Caller's Compendium`, `ContraDB`, license names).
+Extend it as new domain terms enter the UI — it improves both assisted and
+human translations.
 
 ## Known limitation: system date pickers
 
