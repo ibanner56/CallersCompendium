@@ -3607,7 +3607,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorHookLabel => 'Haak';
 
   @override
-  String get danceEditorHookHint => 'Één zin “warom deze dans callen”';
+  String get danceEditorHookHint => 'Één zin “waarom deze dans callen”';
 
   @override
   String get danceEditorMoreDetailsTitle => 'Meer details';
