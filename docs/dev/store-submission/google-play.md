@@ -75,11 +75,16 @@ work we have not done before.
 Play requires an `.aab`, not the `.apk` we ship today. The signing keystore we
 already use for the release APK works as the **Play upload key**.
 
-- [ ] **[New]** Build a release bundle: `flutter build appbundle --release`
-  (requires `app/android/key.properties` with the real upload keystore, exactly as
-  the APK build does — see [`../releasing.md`](../releasing.md#android-signed-apk)).
-  Consider adding an `.aab` leg to the release workflow so Play uploads are
-  reproducible from a tag, mirroring the existing APK leg.
+- [x] **[Automated]** The release workflow now builds a signed `.aab` on every
+  `v*` tag (mirroring the APK leg) and uploads it as the **`android-aab`**
+  workflow artifact — download it from the release run and upload that file to
+  Play. It's built + signed with the same upload keystore, but is intentionally
+  kept out of `SHA256SUMS` / the channel manifest / the GitHub Release (it's a
+  store-upload input, not a sideload download). To build one locally instead:
+  `flutter build appbundle --release` (requires `app/android/key.properties` with
+  the real upload keystore, exactly as the APK build does — see
+  [`../releasing.md`](../releasing.md#android-signed-apk)); the output is
+  `app/build/app/outputs/bundle/release/app-release.aab`.
 - [ ] **[Gate]** Enrol in **Play App Signing** (the default): you upload an `.aab`
   signed with your **upload key**; Google manages the real **app signing key**.
   Register the existing upload keystore's certificate as the upload key.
@@ -211,7 +216,7 @@ flowchart LR
 | Console | Google Play Console — <https://play.google.com/console> |
 | Package name | `org.callerscompendium.compendiumApp` (permanent) |
 | Account | Personal recommended; $25 one-time; ID-verified |
-| Upload format | **`.aab`** via `flutter build appbundle --release` (not the sideload APK) |
+| Upload format | **`.aab`** — built by CI each `v*` tag as the `android-aab` artifact (or `flutter build appbundle --release` locally); not the sideload APK |
 | Signing | Play App Signing; existing upload keystore = upload key |
 | Open beta = | **Open testing** track — but only **after** the closed-testing gate |
 | Closed-testing gate | **12+ testers, 14 continuous days** (new personal accounts) |

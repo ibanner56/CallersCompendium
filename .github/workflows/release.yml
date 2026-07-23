@@ -1014,6 +1014,30 @@ jobs:
           mkdir -p dist
           cp "$apk" "dist/CallersCompendium-${VERSION}-android-universal.apk"
 
+      # --- Android: signed App Bundle (.aab) for Google Play ----------------
+      # Play requires an .aab (Play App Signing then re-signs it with the
+      # Google-held app signing key). It is built + signed with the SAME upload
+      # keystore as the APK (key.properties was reconstructed above), so no new
+      # secrets are needed. It is staged OUTSIDE dist/ (into aab/) and uploaded
+      # as its own `android-aab` workflow artifact, so — exactly like the iOS
+      # `ios-ipa` — it never lands in SHA256SUMS, the channel manifest, the SLSA
+      # subject glob, or the public GitHub Release. The .aab is a store-upload
+      # input for the maintainer, not a sideloadable end-user download.
+      - name: Build Android App Bundle (signed .aab)
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        working-directory: app
+        run: flutter build appbundle --release
+
+      - name: Package Android (signed .aab)
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        run: |
+          set -euo pipefail
+          # `flutter build appbundle --release` emits the release bundle here.
+          aab="app/build/app/outputs/bundle/release/app-release.aab"
+          mkdir -p aab
+          cp "$aab" "aab/CallersCompendium-${VERSION}.aab"
+          ls -l aab
+
       - name: List packaged artifacts
         run: ls -l dist
 
@@ -1029,6 +1053,20 @@ jobs:
           # empty dist/ (no dist-android/dist-ios artifact is uploaded, step still
           # passes).
           if-no-files-found: ${{ (matrix.platform == 'android' || matrix.platform == 'ios') && 'ignore' || 'error' }}
+          retention-days: 7
+
+      # Keep the signed .aab as its own workflow artifact for the Play upload.
+      # Like the iOS `ios-ipa` artifact, it is deliberately NOT staged into dist/,
+      # so it never enters SHA256SUMS, the channel manifest, the SLSA subject
+      # glob, or the GitHub Release. Download it from the run and upload it to the
+      # Play Console (see docs/dev/store-submission/google-play.md).
+      - name: Upload Android .aab artifact
+        if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-aab
+          path: aab/CallersCompendium-*.aab
+          if-no-files-found: error
           retention-days: 7
 
   # Draft-release publish. ONLY this job gets write scopes, and it runs ONLY for
