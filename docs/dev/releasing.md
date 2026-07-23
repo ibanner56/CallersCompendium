@@ -585,6 +585,14 @@ the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.
 > `dist/` — so it flows into `SHA256SUMS`, the channel manifest, provenance, and
 > the draft release exactly like the desktop binaries.
 >
+> The same android leg also builds a **signed `.aab`** (`flutter build appbundle
+> --release`) for Google Play and uploads it as the standalone **`android-aab`**
+> workflow artifact. Unlike the APK it is deliberately **not** staged into
+> `dist/`, so — like the iOS `.ipa` — it stays out of `SHA256SUMS`, the channel
+> manifest, provenance subjects, and the draft release; it is a Play-upload input
+> the maintainer downloads from the run and uploads to the Play Console (see
+> [store-submission/google-play.md](store-submission/google-play.md)).
+>
 > The signing **config** now **fails loudly** instead of falling back to debug
 > signing: when `app/android/key.properties` is absent (contributors, `flutter
 > build apk --release` without a keystore) any attempt to actually assemble the
