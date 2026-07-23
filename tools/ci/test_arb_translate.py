@@ -28,9 +28,15 @@ import arb_translate as a  # noqa: E402
 # helpers
 # ---------------------------------------------------------------------------
 def _run(argv: list[str]) -> tuple[int, str]:
-    """Invoke the CLI, capturing stdout; return (exit_code, stdout)."""
-    buf = io.StringIO()
-    with redirect_stdout(buf):
+    """Invoke the CLI, capturing stdout; return (exit_code, stdout).
+
+    stderr is also captured (and discarded) so the CLI's ``::error::`` /
+    ``::warning::`` workflow commands from negative-path cases don't leak into
+    the CI annotation stream when this test file runs under GitHub Actions.
+    Tests that need to assert on stderr use ``_run_full`` instead.
+    """
+    buf, _stderr = io.StringIO(), io.StringIO()
+    with redirect_stdout(buf), redirect_stderr(_stderr):
         code = a.main(argv)
     return code, buf.getvalue()
 
