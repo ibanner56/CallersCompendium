@@ -24,7 +24,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get navGuide => 'Guide';
 
   @override
-  String get navGuideTooltip => 'Guide d\'utilisation';
+  String get navGuideTooltip => 'Guide d’utilisation';
 
   @override
   String get navSearch => 'Recherche';
@@ -39,7 +39,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get appBootstrapRebuildingIndex =>
-      'Reconstruction de l\'index de recherche';
+      'Reconstruction de l’index de recherche';
 
   @override
   String appBootstrapRebuildingIndexProgress(int percent) {

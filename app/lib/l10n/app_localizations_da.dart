@@ -504,7 +504,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'Foretrukne parameterværdier der anvendes, når du indsætter en bevægelse under dansinputet. Disse tilsidesætter bevægelsens indbyggede standarder; du kan stadig ændre enhver parameter på figuren bagefter. Ikke-angivne bevægelser og parametre bruger de indbyggede standarder.';
 
   @override
-  String get settingsDefaultsAddMoveButton => 'Tilføj bevægelsestandard';
+  String get settingsDefaultsAddMoveButton => 'Tilføj bevægelsesstandard';
 
   @override
   String get settingsDefaultsRemoveMoveTooltip => 'Fjern';
@@ -802,7 +802,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get backupNoRecoveryWarning =>
-      'Vi kan ikke gendanne denne adgangssætning. Hvis du mister den, kan denne sikkerhedskopi aldrig åbnes.';
+      'Vi kan ikke gendanne denne adgangssætning. Hvis du mister den, kan denne sikkerhedskopi aldrig åbnes – der er ingen nulstilling og ingen gendannelse. Opbevar den et sikkert sted.';
 
   @override
   String get backupEncryptAndExportAction => 'Kryptér og eksportér';
@@ -823,7 +823,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get diagnosticsScrubbedExportUnavailable =>
-      'Kunne ikke forberede en sikker (renset) eksport, så intet blev gemt. Prøv venligst igen.';
+      'Kunne ikke forberede en sikker (renset) eksport, så intet blev gemt. Prøv venligst igen, eller brug fuld detalje med overlæg.';
 
   @override
   String get diagnosticsLogExported => 'Diagnostiklog eksporteret.';
@@ -853,7 +853,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get diagnosticsIntro =>
-      'Når noget går galt, registrerer appen en teknisk note til en lokal log på denne enhed.';
+      'Når noget går galt, registrerer appen en teknisk note til en lokal log på denne enhed for at hjælpe med at diagnosticere problemet. Det sendes aldrig nogen steder – der er ingen telemetri. Du kan eksportere det for at vedhæfte til en fejlrapport eller rydde det til enhver tid.';
 
   @override
   String get diagnosticsRecentEntriesHeader => 'Seneste poster';
@@ -880,7 +880,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get diagnosticsFullDetailSubtitle =>
-      'Fra som standard. Når fra fjerner eksporten dit indhold, filstier, e-mails og andre personoplysninger.';
+      'Fra som standard. Når fra fjerner eksporten dit indhold, filstier, e-mails og telefonnumre.';
 
   @override
   String get diagnosticsExportShareLogTitle => 'Eksportér / del log';
@@ -905,7 +905,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get crashFallbackBody =>
-      'Denne del af appen stødte på en uventet fejl og kom sig. Detaljerne blev gemt til en lokal log.';
+      'Denne del af appen stødte på en uventet fejl og kom sig. Detaljerne blev gemt til en lokal diagnostiklog (Indstillinger ▸ Diagnostik), der aldrig forlader din enhed.';
 
   @override
   String get crashFallbackCopied => 'Kopieret';
@@ -3843,7 +3843,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
-      'Disse detaljer deles på tværs af alle danse krediteret til denne forfatter. E-mail og placering er private og inkluderes ikke i eksporter.';
+      'Disse detaljer deles på tværs af alle danse krediteret til denne forfatter. E-mail og placering er private – gemmes kun på denne enhed og deles eller eksporteres aldrig.';
 
   @override
   String get danceEditorNameRequiredLabel => 'Navn *';
@@ -4047,7 +4047,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
-    return 'Ukendt bevægelse „$move“ – ikke i denne versions taksonomi. Vist som skrivebeskyttet, så dens data er bevaret.';
+    return 'Ukendt bevægelse „$move“ – ikke i denne versions taksonomi. Vist som skrivebeskyttet, så dens data er bevaret; den kan redigeres normalt igen, hvis bevægelsen kendes. Du kan stadig omarrangere eller slette den.';
   }
 
   @override
@@ -4076,7 +4076,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorLingoStylingHelper =>
-      'Bevægelses navne prikket·understreget, rolleudtryk understreget, frarådte termer gennemstreget';
+      'Bevægelsesnavne prikket·understreget, rolleudtryk understreget, frarådte termer gennemstreget';
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
@@ -4137,7 +4137,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String updateBannerCompletedRevealed(String appName, String version) {
-    return '$appName $version hentet og verificeret – vi viste installationsprogrammet i din filhåndtering.';
+    return '$appName $version hentet og verificeret – vi viste installationsprogrammet i din filhåndtering. Kør det for at fuldføre opdateringen.';
   }
 
   @override
@@ -4648,7 +4648,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get dialectEditorDancerSubHint => 'erstatning';
 
   @override
-  String get dialectEditorAddDancerTerm => 'Tilføj en dansertterm…';
+  String get dialectEditorAddDancerTerm => 'Tilføj en danserterm…';
 
   @override
   String get dialectEditorDiscouragedHelp =>

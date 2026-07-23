@@ -447,7 +447,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsFreeTextEntrySubtitle =>
-      'Wenn aktiviert, können Sie beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen. Die Zeile wird in Figuren geparst; Nicht-Erkanntes wird als benutzerdefinierte Figur gespeichert, die Sie später korrigieren können. Das Bearbeiten einer bestehenden Figur verwendet immer den vollständigen Editor.';
+      'Wenn aktiviert, können Sie beim Hinzufügen einer neuen Figur diese als eine Zeile eingeben (z. B. „neighbor balance & swing“) statt sie Feld für Feld aufzubauen. Die Zeile wird in Figuren geparst; Nichterkanntes wird als benutzerdefinierte Figur gespeichert, die Sie später korrigieren können. Das Bearbeiten einer bestehenden Figur verwendet immer den vollständigen Editor.';
 
   @override
   String get settingsDefaultsFigureShorthandsTitle => 'Figur-Abkürzungen';
@@ -3258,7 +3258,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorCallersBoxMissingId =>
-      'Dieser Caller\'s Box-URL fehlt eine Tanz-ID (…dance.php?id=N).';
+      'Diese Caller\'s Box-URL fehlt eine Tanz-ID (…dance.php?id=N).';
 
   @override
   String get importErrorCallersBoxEmptySearch =>
@@ -3304,7 +3304,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorContraDbMissingDanceId =>
-      'Dieser ContraDB-URL fehlt eine Tanz-ID (…/dances/N).';
+      'Diese ContraDB-URL fehlt eine Tanz-ID (…/dances/N).';
 
   @override
   String get importErrorContraDbEmptyProgramInput =>
@@ -3316,7 +3316,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorContraDbMissingProgramId =>
-      'Dieser ContraDB-URL fehlt eine Programm-ID (…/programs/N).';
+      'Diese ContraDB-URL fehlt eine Programm-ID (…/programs/N).';
 
   @override
   String get importErrorContraDbInvalidProgramLink =>
@@ -4831,7 +4831,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String venueManagerDeleteBlocked(String name) {
-    return '„$name“ kann nicht gelöscht werden, solange es noch mit einem Programm verknüpft ist. Ändern oder entfernen Sie zuerst den Veranstaltungsort bei diesen Programmen.';
+    return '„$name“ kann nicht gelöscht werden, solange er noch mit einem Programm verknüpft ist. Ändern oder entfernen Sie zuerst den Veranstaltungsort bei diesen Programmen.';
   }
 
   @override

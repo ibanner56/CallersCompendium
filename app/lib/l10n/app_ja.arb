@@ -904,7 +904,7 @@
   "danceEditorMoreDetailsTitle": "詳細情報",
   "danceEditorStatusLabel": "ステータス",
   "danceEditorMixedLevelSubtitle": "難易度の幅が広い",
-  "danceEditorComposedLabel": "作曲年",
+  "danceEditorComposedLabel": "振付年",
   "danceEditorComposedHelper": "ダンスが作られた日時（年、または月/日を追加）",
   "danceEditorRevisedLabel": "改訂年",
   "danceEditorRevisedHelper": "作者が最後に改訂した日時",

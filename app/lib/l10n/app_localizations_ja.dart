@@ -3476,7 +3476,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMixedLevelSubtitle => '難易度の幅が広い';
 
   @override
-  String get danceEditorComposedLabel => '作曲年';
+  String get danceEditorComposedLabel => '振付年';
 
   @override
   String get danceEditorComposedHelper => 'ダンスが作られた日時（年、または月/日を追加）';
