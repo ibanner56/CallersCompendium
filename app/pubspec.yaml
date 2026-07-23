@@ -47,12 +47,6 @@ dependencies:
   window_manager: ^0.5.2
   file_selector: ^1.1.0
   http: ^1.2.2
-  # `@visibleForTesting` for the analyzer-enforced test-only seam on
-  # `UrlFetchException` (see src/data/import_io.dart). Already resolved
-  # transitively; promoted to a direct dependency because lib code imports it
-  # directly, and pinned to the version already in the lock so the resolve is a
-  # no-op.
-  meta: ^1.18.0
   # In-app User Guide: render the bundled Markdown guides (headings, lists,
   # tables, fenced code, links). `flutter_markdown_plus` is the maintained
   # successor to the discontinued `flutter_markdown` and exposes the
