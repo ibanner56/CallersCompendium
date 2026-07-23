@@ -46,8 +46,12 @@ class _CrashFallbackState extends State<CrashFallback> {
     final l10n =
         Localizations.of<AppLocalizations>(context, AppLocalizations) ??
         lookupAppLocalizations(const Locale('en'));
+    // Honour the ambient text direction so localized copy renders correctly in
+    // RTL locales; fall back to LTR only when this card is shown without a
+    // Directionality ancestor (e.g. a very early root-level crash).
+    final textDirection = Directionality.maybeOf(context) ?? TextDirection.ltr;
     return Directionality(
-      textDirection: TextDirection.ltr,
+      textDirection: textDirection,
       child: Material(
         color: const Color(0xFFF7F2EC),
         child: Center(
