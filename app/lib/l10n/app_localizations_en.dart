@@ -4529,7 +4529,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get recentlyDeletedRestoreTooltip => 'Restore';
+  String get recentlyDeletedRestore => 'Restore';
 
   @override
   String get recentlyDeletedPurgeKept => 'Kept until you delete it';

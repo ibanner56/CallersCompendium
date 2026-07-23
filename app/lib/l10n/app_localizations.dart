@@ -6978,11 +6978,11 @@ abstract class AppLocalizations {
   /// **'\"{title}\" permanently deleted.'**
   String recentlyDeletedDeletedSnack(String title);
 
-  /// Tooltip for the button that restores a recently-deleted item.
+  /// Label for the button that restores a recently-deleted item.
   ///
   /// In en, this message translates to:
   /// **'Restore'**
-  String get recentlyDeletedRestoreTooltip;
+  String get recentlyDeletedRestore;
 
   /// Sublabel when an item is kept until manually deleted (no retention window).
   ///

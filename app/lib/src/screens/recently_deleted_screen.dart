@@ -388,7 +388,7 @@ class _DeletedItemTile extends StatelessWidget {
           TextButton(
             key: ValueKey('restore-$id'),
             onPressed: onRestore,
-            child: Text(l10n.recentlyDeletedRestoreTooltip),
+            child: Text(l10n.recentlyDeletedRestore),
           ),
           IconButton(
             key: ValueKey('permanent-delete-$id'),

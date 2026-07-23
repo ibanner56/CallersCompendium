@@ -22,14 +22,13 @@ global chrome — custom fields, dialect editor, theme editor, recently-deleted,
 ContraDB import, user guide, figure-shorthand mappings (list + editor),
 reparse-custom-figures, and the large chrome widgets `collection_picker`,
 `command_palette`, and `update_banner` — are now localized and off the guard
-allow-list. The remaining L6 work localizes the last feature-specific surfaces —
-the dance editor (`dance_editor/`), its detail screen and editor dialogs, the
-figure editors, the Settings general (data-management) section and the
-formation-colours screen, and the venue-management surfaces (`venue_*`). Those
-files stay parked in the guard allow-list (see
-[Guarding against hardcoded strings](#guarding-against-hardcoded-strings)); each
-comes off as its sub-PR localizes it, and this note flips to "complete" only when
-the allow-list holds nothing but the permanent (by-design English) deferrals.
+allow-list. The only feature surface still parked in the guard allow-list is the
+venue-management trio (`venue_manager_screen`, `venue_editor_sheet`,
+`venue_picker`), which a sibling PR localizes; everything else remaining on the
+list is a **permanent** deferral (the data/service-layer curated messages and
+the export PDF body builders — by-design English; see below). This note flips to
+"complete" once the venue surfaces land and the allow-list holds nothing but
+those permanent deferrals.
 
 ## How it's wired
 
