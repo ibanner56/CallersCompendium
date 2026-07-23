@@ -5425,5 +5425,223 @@
         "type": "String"
       }
     }
+  },
+  "venueNew": "New venue",
+  "@venueNew": {
+    "description": "Label for creating a new venue: the venue manager's add button and the venue editor sheet's title in create mode."
+  },
+  "venueLoadError": "Could not load venues.",
+  "@venueLoadError": {
+    "description": "Error shown when the reusable venue records fail to load (venue manager and venue picker)."
+  },
+  "venueManagerTitle": "Venues",
+  "@venueManagerTitle": {
+    "description": "App bar title of the venue manager screen (Settings ▸ Venues)."
+  },
+  "venueManagerSearchHint": "Search venues…",
+  "@venueManagerSearchHint": {
+    "description": "Hint text for the venue manager's search field."
+  },
+  "venueManagerClearSearchTooltip": "Clear search",
+  "@venueManagerClearSearchTooltip": {
+    "description": "Tooltip for the button that clears the venue manager's search field."
+  },
+  "venueManagerEmpty": "No venues yet. Add one with the button below, or from a program when reusable venues are turned on.",
+  "@venueManagerEmpty": {
+    "description": "Empty state for the venue manager when no venues exist yet."
+  },
+  "venueManagerNoMatches": "No venues match your search.",
+  "@venueManagerNoMatches": {
+    "description": "Shown in the venue manager when a search yields no matching venues."
+  },
+  "venueManagerDeleteTitle": "Delete venue?",
+  "@venueManagerDeleteTitle": {
+    "description": "Title of the confirmation dialog for permanently deleting a venue."
+  },
+  "venueManagerDeleteBody": "Permanently delete “{name}”? This can’t be undone.",
+  "@venueManagerDeleteBody": {
+    "description": "Body of the delete-venue confirmation dialog; {name} is the venue's name (plain text, may be user-entered or imported).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Grange Hall"
+      }
+    }
+  },
+  "venueManagerDeletedSnack": "Deleted “{name}”",
+  "@venueManagerDeletedSnack": {
+    "description": "Snackbar confirming a venue was deleted; {name} is the venue's name (plain text).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Grange Hall"
+      }
+    }
+  },
+  "venueManagerDeleteBlocked": "Can’t delete “{name}” while it’s still linked to a program. Change or remove its venue on those programs first.",
+  "@venueManagerDeleteBlocked": {
+    "description": "Snackbar shown when a venue can't be deleted because a program still links to it; {name} is the venue's name (plain text).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Grange Hall"
+      }
+    }
+  },
+  "venueManagerDeleteTooltip": "Delete {name}",
+  "@venueManagerDeleteTooltip": {
+    "description": "Tooltip for the delete button on a venue row; {name} is the venue's name (plain text).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Grange Hall"
+      }
+    }
+  },
+  "venueEditTitle": "Edit venue",
+  "@venueEditTitle": {
+    "description": "Title of the venue editor sheet when editing an existing venue."
+  },
+  "venueEditorSharedNote": "A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.",
+  "@venueEditorSharedNote": {
+    "description": "Explanatory note at the top of the venue editor sheet: a venue record is shared across programs."
+  },
+  "venueEditorNameLabel": "Name *",
+  "@venueEditorNameLabel": {
+    "description": "Required venue name field label; the asterisk marks the field as required."
+  },
+  "venueEditorNameRequired": "Name is required",
+  "@venueEditorNameRequired": {
+    "description": "Validation error shown when the venue name field is blank."
+  },
+  "venueEditorWebsiteLabel": "Website",
+  "@venueEditorWebsiteLabel": {
+    "description": "Venue website field label."
+  },
+  "venueEditorSponsorLabel": "Sponsor / hosting organization",
+  "@venueEditorSponsorLabel": {
+    "description": "Venue sponsor / hosting-organization field label."
+  },
+  "venueEditorAddressSection": "Address",
+  "@venueEditorAddressSection": {
+    "description": "Section heading for the venue's address fields in the editor."
+  },
+  "venueEditorAddress1Label": "Address line 1",
+  "@venueEditorAddress1Label": {
+    "description": "Venue address line 1 field label."
+  },
+  "venueEditorAddress2Label": "Address line 2",
+  "@venueEditorAddress2Label": {
+    "description": "Venue address line 2 field label."
+  },
+  "venueEditorCityLabel": "City",
+  "@venueEditorCityLabel": {
+    "description": "Venue city field label."
+  },
+  "venueEditorStateLabel": "State / province",
+  "@venueEditorStateLabel": {
+    "description": "Venue state or province field label."
+  },
+  "venueEditorCountryLabel": "Country",
+  "@venueEditorCountryLabel": {
+    "description": "Venue country field label."
+  },
+  "venueEditorPostalLabel": "Postal / ZIP code",
+  "@venueEditorPostalLabel": {
+    "description": "Venue postal / ZIP code field label."
+  },
+  "venueEditorPlus4Label": "ZIP+4",
+  "@venueEditorPlus4Label": {
+    "description": "Venue ZIP+4 (US postal add-on) field label."
+  },
+  "venueEditorScheduleSection": "Schedule",
+  "@venueEditorScheduleSection": {
+    "description": "Section heading for the venue's schedule fields in the editor."
+  },
+  "venueEditorEventNameLabel": "Event name",
+  "@venueEditorEventNameLabel": {
+    "description": "Venue event-name field label."
+  },
+  "venueEditorTimeLabel": "Time",
+  "@venueEditorTimeLabel": {
+    "description": "Venue time field label."
+  },
+  "venueEditorScheduleLabel": "Schedule (e.g. “2nd Saturdays”)",
+  "@venueEditorScheduleLabel": {
+    "description": "Venue generic-schedule field label, with an example of a recurring schedule."
+  },
+  "venueEditorPriceLabel": "Price",
+  "@venueEditorPriceLabel": {
+    "description": "Venue price field label."
+  },
+  "venueEditorContactsSection": "Contacts",
+  "@venueEditorContactsSection": {
+    "description": "Section heading for the venue's contact fields in the editor."
+  },
+  "venueEditorContact1NameLabel": "Contact 1 name",
+  "@venueEditorContact1NameLabel": {
+    "description": "Venue first-contact name field label."
+  },
+  "venueEditorContact1PhoneLabel": "Contact 1 phone",
+  "@venueEditorContact1PhoneLabel": {
+    "description": "Venue first-contact phone field label."
+  },
+  "venueEditorContact1EmailLabel": "Contact 1 email",
+  "@venueEditorContact1EmailLabel": {
+    "description": "Venue first-contact email field label."
+  },
+  "venueEditorContact2NameLabel": "Contact 2 name",
+  "@venueEditorContact2NameLabel": {
+    "description": "Venue second-contact name field label."
+  },
+  "venueEditorContact2PhoneLabel": "Contact 2 phone",
+  "@venueEditorContact2PhoneLabel": {
+    "description": "Venue second-contact phone field label."
+  },
+  "venueEditorContact2EmailLabel": "Contact 2 email",
+  "@venueEditorContact2EmailLabel": {
+    "description": "Venue second-contact email field label."
+  },
+  "venueEditorNotesSection": "Notes",
+  "@venueEditorNotesSection": {
+    "description": "Section heading and field label for the venue's free-form notes in the editor."
+  },
+  "venuePickerLoading": "Loading venues…",
+  "@venuePickerLoading": {
+    "description": "Loading indicator text while the venue picker fetches venues."
+  },
+  "venuePickerUnlinkTooltip": "Unlink venue",
+  "@venuePickerUnlinkTooltip": {
+    "description": "Tooltip for the button that unlinks the currently selected venue from a program."
+  },
+  "venuePickerUnresolvedTitle": "Linked venue not found",
+  "@venuePickerUnresolvedTitle": {
+    "description": "Title shown in the venue picker when a program's linked venue id no longer resolves."
+  },
+  "venuePickerUnresolvedSubtitle": "It may have been deleted.",
+  "@venuePickerUnresolvedSubtitle": {
+    "description": "Subtitle explaining that a program's linked venue could not be found."
+  },
+  "venuePickerClearLinkTooltip": "Clear link",
+  "@venuePickerClearLinkTooltip": {
+    "description": "Tooltip for the button that clears an unresolved venue link from a program."
+  },
+  "venuePickerSearchHint": "Search or add a venue…",
+  "@venuePickerSearchHint": {
+    "description": "Hint text for the venue picker's search field when no venue is linked."
+  },
+  "venuePickerChangeHint": "Change venue…",
+  "@venuePickerChangeHint": {
+    "description": "Hint text for the venue picker's search field when a venue is already linked."
+  },
+  "venuePickerCreateOption": "Add new venue “{name}”",
+  "@venuePickerCreateOption": {
+    "description": "Inline-create option in the venue picker; {name} is the text the user typed (plain text).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Grange Hall"
+      }
+    }
   }
 }

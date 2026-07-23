@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../screens/venue_editor_sheet.dart';
 
@@ -60,7 +62,10 @@ class _VenuePickerState extends State<VenuePicker> {
         _venues = venues;
         _loading = false;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Could not load venues: $error\n$stackTrace');
+      }
       if (!mounted) return;
       setState(() {
         _error = error;
@@ -94,18 +99,19 @@ class _VenuePickerState extends State<VenuePicker> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 12),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            SizedBox(
+            const SizedBox(
               width: 16,
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            SizedBox(width: 12),
-            Text('Loading venues…'),
+            const SizedBox(width: 12),
+            Text(l10n.venuePickerLoading),
           ],
         ),
       );
@@ -115,8 +121,8 @@ class _VenuePickerState extends State<VenuePicker> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
-            const Expanded(child: Text('Could not load venues.')),
-            TextButton(onPressed: _load, child: const Text('Retry')),
+            Expanded(child: Text(l10n.venueLoadError)),
+            TextButton(onPressed: _load, child: Text(l10n.commonRetry)),
           ],
         ),
       );
@@ -139,7 +145,7 @@ class _VenuePickerState extends State<VenuePicker> {
                   : Text(selected.displayName),
               trailing: IconButton(
                 key: const ValueKey('venue-picker-clear'),
-                tooltip: 'Unlink venue',
+                tooltip: l10n.venuePickerUnlinkTooltip,
                 icon: const Icon(Icons.clear),
                 onPressed: () => widget.onChanged(null),
               ),
@@ -153,10 +159,10 @@ class _VenuePickerState extends State<VenuePicker> {
             margin: EdgeInsets.zero,
             child: ListTile(
               leading: Icon(Icons.help_outline, color: theme.colorScheme.error),
-              title: const Text('Linked venue not found'),
-              subtitle: const Text('It may have been deleted.'),
+              title: Text(l10n.venuePickerUnresolvedTitle),
+              subtitle: Text(l10n.venuePickerUnresolvedSubtitle),
               trailing: IconButton(
-                tooltip: 'Clear link',
+                tooltip: l10n.venuePickerClearLinkTooltip,
                 icon: const Icon(Icons.clear),
                 onPressed: () => widget.onChanged(null),
               ),
@@ -168,7 +174,9 @@ class _VenuePickerState extends State<VenuePicker> {
           excludeId: widget.selectedVenueId,
           onSelect: widget.onChanged,
           onCreate: _createNew,
-          hint: selected == null ? 'Search or add a venue…' : 'Change venue…',
+          hint: selected == null
+              ? l10n.venuePickerSearchHint
+              : l10n.venuePickerChangeHint,
         ),
       ],
     );
@@ -207,6 +215,7 @@ class _VenueAutocompleteState extends State<_VenueAutocomplete> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Autocomplete<_VenueChoice>(
       key: const ValueKey('venue-picker-autocomplete'),
       textEditingController: _controller,
@@ -287,7 +296,7 @@ class _VenueAutocompleteState extends State<_VenueAutocomplete> {
                       ),
                       title: Text(
                         choice.isCreate
-                            ? 'Add new venue “${choice.name}”'
+                            ? l10n.venuePickerCreateOption(choice.name)
                             : choice.venue!.displayName,
                       ),
                       onTap: () => onSelected(choice),

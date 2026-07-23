@@ -8,27 +8,56 @@ generated, type-safe `AppLocalizations` API. Translations into other languages
 are **community-driven** and require no code change to appear (see
 [Contributing a translation](#contributing-a-translation)).
 
-This document is the contract for the phased string-extraction work: the
-framework and a first slice of strings have landed; the remaining UI strings are
-extracted into the ARB incrementally. Follow the conventions here so those PRs
-stay consistent.
+This document is the contract for the string-extraction work: the framework and
+every user-facing UI string have landed, and new strings are added to the ARB as
+features land. Follow the conventions here so the app stays consistent.
 
-**Extraction status (not yet complete).** Layers 1–5 have landed: the framework,
-shared cross-cutting vocabulary (facet domain-value labels), the import-gap
-badge, the `(copy)` title suffix, the small global/shared chrome, and most of
-the **Settings surface** (the defaults, general-appearance, dialect, updates, and
-about sections). Layer 6 is landing incrementally: the secondary screens and
-global chrome — custom fields, dialect editor, theme editor, recently-deleted,
-ContraDB import, user guide, figure-shorthand mappings (list + editor),
-reparse-custom-figures, and the large chrome widgets `collection_picker`,
-`command_palette`, and `update_banner` — are now localized and off the guard
-allow-list. The only feature surface still parked in the guard allow-list is the
-venue-management trio (`venue_manager_screen`, `venue_editor_sheet`,
-`venue_picker`), which a sibling PR localizes; everything else remaining on the
-list is a **permanent** deferral (the data/service-layer curated messages and
-the export PDF body builders — by-design English; see below). This note flips to
-"complete" once the venue surfaces land and the allow-list holds nothing but
-those permanent deferrals.
+**Extraction status: complete.** Every user-facing UI surface now sources its
+prose from `AppLocalizations`. The phased extraction (layers 1–6) is finished:
+the framework, shared cross-cutting vocabulary (facet domain-value labels), the
+import-gap badge, the `(copy)` title suffix, global/shared chrome, the full
+**Settings surface**, all secondary screens and editors (custom fields, dialect
+editor, theme editor, recently-deleted, ContraDB import, user guide,
+figure-shorthand mappings, reparse-custom-figures), the large chrome widgets
+(`collection_picker`, `command_palette`, `update_banner`), and the
+**venue-management trio** (`venue_manager_screen`, `venue_editor_sheet`,
+`venue_picker`) are all localized. New user-facing strings go straight into the
+ARB — the guard (see [below](#guarding-against-hardcoded-strings)) keeps it that
+way.
+
+The only remaining hardcoded English is **intentional and permanent**, in two
+buckets:
+
+- **Guard-enforced allow-list (still flagged, English by design).** These six
+  files stay on `hardcoded_ui_strings_allowlist.dart` because they still contain
+  guard-flagged literals we deliberately keep in English:
+  - Data/service-layer curated messages awaiting a typed-error refactor:
+    `data/backup_document.dart`, `data/callersbox_online.dart`,
+    `data/contradb_online.dart`. These are free-form strings with no error-code
+    discriminator; localizing them cleanly needs a typed-error refactor first
+    (tracked separately).
+  - Export-document (PDF) body builders, pending a product decision on whether
+    exports follow the UI language: `export/dance_pdf.dart`,
+    `export/program_matrix_pdf.dart`, `export/program_pdf.dart` (see
+    **Exports stay English** below).
+- **English by design but not guard-flagged (documented only, NOT allow-listed).**
+  A file can only be allow-listed if the guard actually flags a literal in it —
+  the guard fails on an allow-listed file that has nothing to flag. These
+  surfaces route their English through constructs the guard does not scan, so
+  they are documented here but must stay **off** the allow-list:
+  - `data/import_io.dart` — `UrlFetchException` / `ImportFileTooLargeException`
+    message getters and `ImportSource.label`. These are `String get message =>`
+    getters and thrown-exception arguments, not UI-widget arguments, so the
+    guard never sees them. They await the same typed-error refactor as the
+    service messages above.
+  - The diagnostics-log export body `_buildExportText` in
+    `diagnostics_section.dart` — it assembles an exported text blob (like the PDF
+    builders), not a UI-widget argument, so it is English by design for the same
+    reason exports are.
+
+Translations into other languages remain community-driven and require no code
+change to appear; adding a locale is purely additive (see
+[Contributing a translation](#contributing-a-translation)).
 
 ## How it's wired
 
@@ -165,8 +194,11 @@ same pattern used by the earlier layers — `collection_query_labels.dart` (L2),
 `program_status_labels.dart` (L3), `online_search_labels.dart` (L4).
 
 **Exports stay English.** Exported documents (plain-text / PDF builders) are
-deliberately *not* localized yet (a pending product decision — see the deferrals
-below), so they must keep emitting English regardless of the UI locale. Feed the
+deliberately *not* localized (a pending product decision), so they must keep
+emitting English regardless of the UI locale. This covers the PDF body builders
+(`dance_pdf`, `program_matrix_pdf`, `program_pdf`) **and** the diagnostics-log
+export body (`_buildExportText` in `diagnostics_section.dart`) — a support
+artifact that stays English so it reads the same for every maintainer. Feed the
 export builders from a separate **English `.label` extension** on the core enum,
 kept app-side so core stays Flutter-free:
 
@@ -193,13 +225,16 @@ Prose in a localized app must come from `l10n.*`, so any such literal is a leak.
 Pure interpolations, numbers, and punctuation (`'$count'`, `'• '`, `'—'`) are
 ignored.
 
-- **Allow-list.** Files not yet localized live in
-  `app/test/l10n/hardcoded_ui_strings_allowlist.dart`, split into **L6-deferred
-  UI** (removed as L6 localizes them) and **permanent deferrals** (data/service
-  curated messages awaiting a typed-error refactor, and the English export-body
-  builders). The guard also fails if a listed file no longer exists or no longer
-  has any flagged literal, so the manifest can't rot, and it asserts that no
-  fully-localized L5 target file is on the list.
+- **Allow-list.** The few files that intentionally keep English literals live in
+  `app/test/l10n/hardcoded_ui_strings_allowlist.dart`. With extraction complete
+  the "deferred UI" bucket is gone; only **permanent deferrals** remain — the
+  data/service curated messages awaiting a typed-error refactor and the English
+  export-body builders (see the two buckets under **Extraction status** above).
+  The guard also fails if a listed file no longer exists **or no longer has any
+  flagged literal**, so the manifest can't rot and a file can't be parked on it
+  once it's clean. That last rule is why the English-by-design surfaces the guard
+  doesn't scan (`import_io` messages / `ImportSource.label`, the diagnostics-log
+  export body) are documented above but deliberately kept **off** the list.
 - **Escape hatch.** For a literal that is intentionally *not* translatable (a
   brand/proper noun, a single-glyph font specimen, a notation token), append
   `// i18n-ignore` to the literal's line. Keep the line ≤ 80 chars so
