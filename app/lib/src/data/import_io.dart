@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:http/http.dart' as http;
+import 'package:meta/meta.dart';
 
 import '../search/collection_query.dart' show ByPhraseSelections;
 
@@ -251,6 +252,19 @@ class UrlFetchException implements Exception {
             timeoutSeconds != null,
         'timeoutSeconds is required for a timeout reason',
       );
+
+  /// Test-only seam that skips the field invariants enforced by the default
+  /// constructor's asserts. It exists solely so tests can build the
+  /// otherwise-unrepresentable "missing dynamic field" state (e.g. an
+  /// [UrlFetchFailureReason.httpStatus] with a null [statusCode]) and verify
+  /// that the presentation mapper degrades to a generic message in release
+  /// builds — where the asserts are stripped — instead of rendering "HTTP 0".
+  @visibleForTesting
+  const UrlFetchException.withoutInvariants(
+    this.reason, {
+    this.statusCode,
+    this.timeoutSeconds,
+  });
 
   /// What went wrong.
   final UrlFetchFailureReason reason;

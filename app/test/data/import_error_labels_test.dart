@@ -160,6 +160,57 @@ void main() {
         expect(message, isNot(contains('://')));
       }
     });
+
+    test(
+      'the constructor asserts a dynamic-field reason carries its field',
+      () {
+        // An HTTP-status reason with no status code, or a timeout reason with
+        // no seconds, is a wiring bug the constructor rejects in debug/test
+        // builds (asserts on) so it can never reach the mapper as "HTTP 0".
+        for (final reason in _statusReasons) {
+          expect(
+            () => UrlFetchException(reason),
+            throwsA(isA<AssertionError>()),
+            reason: '$reason must require a statusCode',
+          );
+        }
+        for (final reason in _timeoutReasons) {
+          expect(
+            () => UrlFetchException(reason),
+            throwsA(isA<AssertionError>()),
+            reason: '$reason must require timeoutSeconds',
+          );
+        }
+      },
+    );
+
+    test(
+      'a missing dynamic field degrades to a generic message (release-safe)',
+      () {
+        // In a release build the asserts above are stripped, so the mapper must
+        // still degrade gracefully rather than render "HTTP 0" / "after 0s".
+        // The test-only `withoutInvariants` seam builds that state.
+        final fallbacks = <UrlFetchFailureReason, String>{
+          UrlFetchFailureReason.httpStatus: l10n.importErrorUnreachable,
+          UrlFetchFailureReason.timeout: l10n.importErrorUnreachable,
+          UrlFetchFailureReason.searchTimeout: l10n.importErrorUnreachable,
+          UrlFetchFailureReason.callersBoxHttpStatus:
+              l10n.importErrorCallersBoxUnreachable,
+          UrlFetchFailureReason.contraDbHttpStatus:
+              l10n.importErrorContraDbUnreachable,
+        };
+        fallbacks.forEach((reason, expected) {
+          final message = importErrorMessage(
+            l10n,
+            UrlFetchException.withoutInvariants(reason),
+          );
+          expect(message, expected, reason: '$reason should degrade generic');
+          expect(message, isNot(contains('0')));
+          expect(message, isNot(contains('HTTP 0')));
+          expect(message, isNot(contains('after 0')));
+        });
+      },
+    );
   });
 
   group('importFileTooLargeMessage', () {
