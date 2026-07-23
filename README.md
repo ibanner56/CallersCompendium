@@ -116,7 +116,11 @@ This project draws on prior work from:
 
 ## License
 
-[AGPL-3.0](LICENSE)
+[AGPL-3.0](LICENSE), with an [additional permission](LICENSE-EXCEPTION.md) that
+allows Caller's Compendium to be distributed through managed application
+marketplaces (Apple's App Store, Google Play, and comparable stores) under those
+stores' required terms — while the source stays fully AGPL-3.0 and every user
+keeps their rights to it.
 
 [^1]: Barriers tending to, y'know, get in the way and keep people out of things, rather than welcoming and supporting them.
 [^2]: But we don't necessarily promise to do anything about it.
