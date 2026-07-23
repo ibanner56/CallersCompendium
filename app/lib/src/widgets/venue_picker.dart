@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -62,7 +63,9 @@ class _VenuePickerState extends State<VenuePicker> {
         _loading = false;
       });
     } catch (error, stackTrace) {
-      debugPrint('Could not load venues: $error\n$stackTrace');
+      if (kDebugMode) {
+        debugPrint('Could not load venues: $error\n$stackTrace');
+      }
       if (!mounted) return;
       setState(() {
         _error = error;
