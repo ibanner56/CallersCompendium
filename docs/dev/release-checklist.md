@@ -69,6 +69,15 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  expected URL.
 - [ ] The update manifest points at the artifacts this tag will publish
  (URLs + versions + checksums line up).
+- [ ] **Update manifest is SIGNED (Gate — first enforced at beta.4).** The client
+ now fail-closes on an unsigned/mis-signed manifest, so the `UPDATE_SIGNING_KEY`
+ secret (Ed25519 private key, PEM) MUST be provisioned before tagging — its public
+ half must match the pinned `kUpdateManifestPublicKey`. On the tag's release run,
+ confirm the `Sign the channel manifest` step ran (not the `::notice::` skip) and a
+ `<channel>.json.sig` is published to gh-pages next to the manifest. Then verify a
+ real client accepts the signed update end-to-end (beta.4 is the first signed
+ release, so this is the first live verification). See
+ [releasing.md → Signing the update manifest](releasing.md#signing-the-update-manifest-ed25519-issue-431).
 - [ ] In-app update check resolves against the manifest (or is knowingly disabled
  for beta — record which).
 - [ ] **Landing page aligned:** the `site/` editorial copy (status list, feature

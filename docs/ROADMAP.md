@@ -431,19 +431,25 @@ defaults) live in the **Defaults** pane section below.
   and confirm-before-delete (an explicit confirm dialog instead of the
   undo-snackbar delete pattern). Persisted via `SettingsRepository`.
 
-- [x] G.8 **Localization & regional formats** — the i18n **framework has landed**
-  (PR 1 of a phased extraction). The app now wires `flutter_localizations` +
-  `flutter gen-l10n` with **English as the source locale** (`app/lib/l10n/app_en.arb`),
-  a live **app-language selector**, and regional-format preferences — a
-  **date format** (which controls how program event dates render) plus a
-  **first day of week** preference — all persisted via `SettingsRepository` and
-  validated on load (OWASP: a
-  corrupted/unknown stored value falls back safely, never crashing). Translations
-  are **community-driven**: dropping an `app_<locale>.arb` into `lib/l10n/` makes a
-  language appear in the selector with no code change (see
-  [docs/dev/localization.md](dev/localization.md)). Remaining UI strings are
-  extracted into the ARB incrementally in follow-up PRs ("UI localization /
-  multi-language" under Later milestones). NOTE: Flutter's `showDatePicker` derives
+- [x] G.8 **Localization & regional formats** — **shipped, and the app is now
+  multilingual.** The i18n stack (`flutter_localizations` + `flutter gen-l10n`, English
+  as the source locale in `app/lib/l10n/app_en.arb`) is wired app-wide, UI-string
+  extraction is **complete** across every screen (phased layers 1–6 all landed), and
+  **five translations now ship**: **German, French, Japanese, Danish, and Dutch**
+  (`app_de/fr/ja/nl/da.arb`), selectable via the live **app-language selector** (or
+  "System default"). Regional-format preferences — a **date format** (which controls how
+  program event dates render) plus a **first day of week** preference — are persisted via
+  `SettingsRepository` and validated on load (OWASP: a corrupted/unknown stored value
+  falls back safely, never crashing). Adding a language is still as simple as dropping an
+  `app_<locale>.arb` into `lib/l10n/` (see [docs/dev/localization.md](dev/localization.md));
+  assisted ARB-translation tooling + a validation gate now support that pipeline (#523).
+  Two surfaces stay English by design for now — a small set of core service-layer
+  messages (#528) and exported-document body text (#529, pending a product decision on
+  whether exports follow the UI language). NOTE: Flutter's `showDatePicker` derives
+  its first day of week from the locale and can't be overridden per-call, and the
+  app draws no week/month grid of its own yet, so the first-day-of-week preference
+  has no consumer today. Its plumbing (pref/`FirstDayOfWeekScope`/storage, validated
+  on load) still ships for a future consumer, but the Settings control is presented
   its first day of week from the locale and can't be overridden per-call, and the
   app draws no week/month grid of its own yet, so the first-day-of-week preference
   has no consumer today. Its plumbing (pref/`FirstDayOfWeekScope`/storage, validated
@@ -592,17 +598,17 @@ taxonomy are unchanged.
     carries the program *and* every dance it references, handed to the OS share
     sheet (AirDrop on Apple platforms, share intent elsewhere). The app is also a
     **share target** — opening a received bundle (AirDrop / "Open with" / share
-    intent) launches the app, imports the program and its dances through the
-    shared import/commit pipeline (identity-first dedupe, untrusted-input
-    validation) and auto-opens the program without stopping at the step-by-step
-    review queue. Platform intake wiring:
+    intent) launches the app and routes the program and its dances through the
+    same **import review/consent screen** as other imports (identity-first dedupe,
+    untrusted-input validation), so nothing is committed without your say-so
+    (#432). Platform intake wiring:
     iOS declares `LSSupportsOpeningDocumentsInPlace` for the share-import type
     (#372); macOS routes incoming files through a native bridge (#361/#377).
 
 ## Phase 7 — Release
 
 - [ ] 7.1 Packaging/signing for all platforms; update channel
-  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run) and **macOS release builds are now signed with a Developer ID and notarized**, but **Windows and Linux** desktop builds still ship **unsigned** (deferred signing wave). GitHub Pages is now enabled, so the per-channel update manifests are hosted and served (and a public landing page ships from `site/`). The **first public beta is well underway** — `v0.1.0-beta.1` (desktop + Android), `v0.1.0-beta.2`, and the current `v0.1.0-beta.3` are published on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases); each build ships signed + notarized macOS and signed Android artifacts alongside unsigned Windows/Linux, with iPhone/iPad delivered to TestFlight testers (see the CHANGELOG, including the one-time Android reinstall note for the unified application id).
+  - Architecture — [ADR-002](adr/002-distribution-and-update-channels.md); release runbook — [releasing.md](dev/releasing.md). Box stays open: **Android release APKs are now signed** (upload keystore + four CI secrets configured, validated end-to-end on a release run) and **macOS release builds are now signed with a Developer ID and notarized**, but **Windows and Linux** desktop builds still ship **unsigned** (deferred signing wave). GitHub Pages is now enabled, so the per-channel update manifests are hosted and served (and a public landing page ships from `site/`); as of beta.4 the in-app update path also **verifies a signed (Ed25519) update manifest, restricts artifacts to a GitHub-owned host allowlist, and gates launch on that verification**. The **first public beta is well underway** — `v0.1.0-beta.1` (desktop + Android), `v0.1.0-beta.2`, `v0.1.0-beta.3`, and the current `v0.1.0-beta.4` are published on the [Releases page](https://github.com/ibanner56/CallersCompendium/releases); each build ships signed + notarized macOS and signed Android artifacts alongside unsigned Windows/Linux, with iPhone/iPad delivered to TestFlight testers (see the CHANGELOG, including the one-time Android reinstall note for the unified application id).
   - **Delivered**
     - Reusable CI (`_checks.yml` via `workflow_call`) with a thin `ci.yml` caller (#228).
     - Release pipeline `release.yml` (#230): a `v*` tag reuses the checks gate, then a build matrix produces a **draft** GitHub Release of **unsigned** desktop artifacts — Linux x64 (AppImage + tar.gz), macOS universal (dmg + zip), Windows x64 (installer + zip) — under deterministic `CallersCompendium-<ver>-<platform>-<arch>.<ext>` names, plus a `SHA256SUMS` manifest, keyless SLSA build-provenance + artifact attestation, and the per-channel `stable.json` / `beta.json` update manifests. Least-privilege (global `contents: read`; only the publish job elevates), canonical-repo + tag guards, SHA-pinned actions.
@@ -619,7 +625,7 @@ taxonomy are unchanged.
     - Document Android upload-keystore custody (owner, secure backup, rotation policy) — the key is generated and wired into CI, so this is governance, not a build blocker (see [ADR-002](adr/002-distribution-and-update-channels.md) §6).
   - **Deferred** (later signing wave — needs paid developer accounts / a decision; see [ADR-002](adr/002-distribution-and-update-channels.md) §6)
     - Windows Authenticode/Store (MSIX) signing — Windows and Linux desktop currently ship UNSIGNED, so users bypass OS trust prompts manually. (macOS is now signed + notarized and iOS is distributed via TestFlight — see **Delivered** above.)
-    - Optional store distribution (Google Play, F-Droid, Flathub). For Linux, the post-beta channel evaluation is decided in [ADR-003](adr/003-linux-native-distribution-channel.md): **Flathub-first** (auto-update + desktop integration + trusted-publisher signing, no self-run infra), with Snap/Launchpad PPA secondary and a self-hosted apt repo only on clear demand.
+    - Store distribution (Google Play, F-Droid, Flathub). **Google Play submission is now in preparation:** a release-workflow leg builds and stages a **signed Android App Bundle (`.aab`)** for Play (#535), a store-distribution **license exception** to the AGPL was added so managed marketplaces are permitted (#534), and **App Store & Google Play submission guides** plus listing copy, a privacy policy, and a contact address landed under [docs/dev/store-submission/](dev/store-submission/) (#532, #534). Actual store listing/publication is still pending. For Linux, the post-beta channel evaluation is decided in [ADR-003](adr/003-linux-native-distribution-channel.md): **Flathub-first** (auto-update + desktop integration + trusted-publisher signing, no self-run infra), with Snap/Launchpad PPA secondary and a self-hosted apt repo only on clear demand.
     - Reconcile the bundle-id mismatch — **done**: all platforms now unify on the Apple form `org.callerscompendium.compendiumApp` (Android `applicationId`/namespace + Linux `APPLICATION_ID` updated to match; Apple was already the target and is the source of truth, since Apple bundle IDs disallow underscores).
 - [ ] 7.2 User documentation
   - **Delivered** — the [user-guide hub](user/README.md) + [style guide](user/style-guide.md), and the guides: Getting Started, Dialect (flagship), Imports & migration, Backup & portability, Collection & search, Programs & matrix, Perform mode, Accessibility, Settings, FAQ & troubleshooting, and Glossary; plus an offline **in-app User Guide** (#233). (#219/#222/#223/#224/#229/#233/#239/#240/#243)
@@ -649,16 +655,20 @@ taxonomy are unchanged.
   over our structured model (see #401): a user shorthand maps to a fully-configured
   taxonomy *figure* (move + params) rather than expansion *text* — beats become a
   figure param and the gender-free alternate is produced by the existing dialect
-  system, so there are no per-snippet text/beats/alternate fields. Tracked as #404
-  (shorthand→figure mappings), which builds on #403 (free-text figure entry mode)
-  and #398 (parser-gap flagging); sequencing #398 → #403 → #404. Post-beta.3. The
-  *structured* analogue already shipped as DD.3 (per-move figure-entry defaults).
-- **UI localization / multi-language** — the i18n **framework has landed** (see
-  G.8): `flutter_localizations` + `gen-l10n`, an app-language selector, and
-  **English as the source locale**. What remains is incremental: extracting the
-  rest of the ~900 UI strings into `app_en.arb` (phased PRs) and welcoming
-  **community-contributed** `app_<locale>.arb` translations, which require no code
-  change to appear. See [docs/dev/localization.md](dev/localization.md).
+  system, so there are no per-snippet text/beats/alternate fields. Tracked as #420
+  (shorthand→figure mappings), which built on #419 (free-text figure entry mode)
+  and #398 (parser-gap flagging); sequencing #398 → #419 → #420, **all delivered in
+  beta.4**. The *structured* analogue already shipped as DD.3 (per-move figure-entry
+  defaults).
+- **UI localization / multi-language** — **shipped (see G.8).** The i18n stack is wired
+  app-wide, UI-string extraction is complete across every screen, and the app now ships
+  in **six languages** — English (source) plus **German, French, Japanese, Danish, and
+  Dutch** — selectable live. What remains here is additive: welcoming further
+  **community-contributed** `app_<locale>.arb` translations (assisted tooling + a
+  validation gate now support that, #523), and two surfaces still English by design — a
+  small set of core service-layer messages (#528) and exported-document body text (#529,
+  pending a product decision on whether exports follow the UI language). See
+  [docs/dev/localization.md](dev/localization.md).
 
 ### Plugin system (user-installable extensions)
 
