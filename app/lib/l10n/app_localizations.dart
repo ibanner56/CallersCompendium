@@ -992,6 +992,636 @@ abstract class AppLocalizations {
   /// **'Reset {label} to the family default'**
   String settingsFormationColoursResetTooltip(String label);
 
+  /// General settings section header for collection-library preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Library'**
+  String get settingsGeneralLibraryHeader;
+
+  /// Title of the General settings toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore leading articles when sorting'**
+  String get settingsGeneralSortIgnoreArticlesTitle;
+
+  /// Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, the dance list alphabetizes titles ignoring a leading “the”, “a”, or “an” — so “The Nice Combination” files under N. Turn off to sort by the literal title.'**
+  String get settingsGeneralSortIgnoreArticlesSubtitle;
+
+  /// General settings section header for venue-related preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Venues'**
+  String get settingsGeneralVenuesHeader;
+
+  /// Title of the General settings toggle that enables reusable venue records for programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Use reusable venue records'**
+  String get settingsGeneralVenueEntityModeTitle;
+
+  /// Subtitle explaining what reusable venue records do and that switching modes preserves existing venue data.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program’s venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.'**
+  String get settingsGeneralVenueEntityModeSubtitle;
+
+  /// Title of the General settings row that opens the reusable venue manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage venues'**
+  String get settingsGeneralManageVenuesTitle;
+
+  /// Subtitle for the row that opens the reusable venue manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse, edit, and delete your reusable venue records.'**
+  String get settingsGeneralManageVenuesSubtitle;
+
+  /// General settings section header for performance-mode display preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Performance'**
+  String get settingsGeneralPerformanceHeader;
+
+  /// Title of the General settings toggle that automatically sizes Perform screen cards.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-size Perform cards'**
+  String get settingsGeneralAutoSizePerformTitle;
+
+  /// Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.'**
+  String get settingsGeneralAutoSizePerformSubtitle;
+
+  /// General settings section header for calling-history preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling history'**
+  String get settingsGeneralCallingHistoryHeader;
+
+  /// Title of the General settings toggle that limits dance calling history to program slots marked performed.
+  ///
+  /// In en, this message translates to:
+  /// **'Require “mark performed” for calling history'**
+  String get settingsGeneralRequirePerformedForHistoryTitle;
+
+  /// Subtitle explaining the require-mark-performed calling history toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
+  String get settingsGeneralRequirePerformedForHistorySubtitle;
+
+  /// General settings section header for accessibility preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Accessibility'**
+  String get settingsGeneralAccessibilityHeader;
+
+  /// Title of the General settings toggle that reduces non-essential animation.
+  ///
+  /// In en, this message translates to:
+  /// **'Reduce motion'**
+  String get settingsGeneralReduceMotionTitle;
+
+  /// Subtitle explaining the reduce-motion toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dampen or skip non-essential animations, such as animated scrolling when moving between search results or figures.'**
+  String get settingsGeneralReduceMotionSubtitle;
+
+  /// Title of the General settings toggle that shows full spoken-style figure wording visually.
+  ///
+  /// In en, this message translates to:
+  /// **'Always show verbose figure text'**
+  String get settingsGeneralVerboseFiguresTitle;
+
+  /// Subtitle explaining the verbose figure text toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the full spoken-style figure wording on screen in the dance view, not only to screen readers. Turn off for the terse notation.'**
+  String get settingsGeneralVerboseFiguresSubtitle;
+
+  /// Title of the General settings toggle that renders turn amounts as decimals.
+  ///
+  /// In en, this message translates to:
+  /// **'Show turns as decimals'**
+  String get settingsGeneralDecimalTurnsTitle;
+
+  /// Subtitle explaining the decimal turns toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show turn and rotation amounts as decimals (0.75) instead of fractions (¾). Screen-reader wording is unaffected.'**
+  String get settingsGeneralDecimalTurnsSubtitle;
+
+  /// Title of the General settings toggle that asks before deleting a dance or program.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm before delete'**
+  String get settingsGeneralConfirmBeforeDeleteTitle;
+
+  /// Subtitle explaining the confirm-before-delete toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.'**
+  String get settingsGeneralConfirmBeforeDeleteSubtitle;
+
+  /// General settings section header for deleted-item retention preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted items'**
+  String get settingsGeneralDeletedItemsHeader;
+
+  /// Title of the General settings row that controls how long deleted dances are retained.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep deleted dances for'**
+  String get settingsGeneralSoftDeleteRetentionTitle;
+
+  /// Subtitle explaining the deleted-dance retention duration setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted dances are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.'**
+  String get settingsGeneralSoftDeleteRetentionSubtitle;
+
+  /// Deleted-dance retention dropdown option showing a fixed number of days. Keep 'days' literal for every value to preserve the current English UI.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days'**
+  String settingsGeneralSoftDeleteRetentionDays(int days);
+
+  /// Deleted-dance retention dropdown option meaning never automatically purge deleted dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get settingsGeneralSoftDeleteRetentionNever;
+
+  /// General settings section header for import actions.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get settingsGeneralImportHeader;
+
+  /// Subtitle for the Import dances row in General settings. 'Caller's Compendium JSON' is the app's backup/import format name.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring dances into your collection from a Caller\'s Compendium JSON file. You review every dance and confirm before anything is added.'**
+  String get settingsGeneralImportDancesSubtitle;
+
+  /// Button label that opens the import-dances flow from General settings; the ellipsis indicates more choices follow.
+  ///
+  /// In en, this message translates to:
+  /// **'Import…'**
+  String get settingsGeneralImportEllipsisAction;
+
+  /// Title of the General settings row that re-parses imported custom-only figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-check custom figures'**
+  String get settingsGeneralReparseCustomFiguresTitle;
+
+  /// Subtitle explaining the re-check custom figures action.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-parse imported dances whose figures were kept as custom only because they could not be recognised at import time. Improved parsing upgrades them in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.'**
+  String get settingsGeneralReparseCustomFiguresSubtitle;
+
+  /// Button label that opens the re-check custom figures flow; the ellipsis indicates more review follows.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-check…'**
+  String get settingsGeneralReparseCustomFiguresAction;
+
+  /// General settings section header for backup and restore actions.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup & restore'**
+  String get settingsGeneralBackupRestoreHeader;
+
+  /// Modal progress message shown while a backup export is being encrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypting backup…'**
+  String get backupEncryptingProgress;
+
+  /// Snackbar confirming an encrypted backup was exported.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted backup exported.'**
+  String get backupEncryptedExported;
+
+  /// Snackbar confirming an unencrypted backup was exported.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup exported.'**
+  String get backupExported;
+
+  /// Snackbar shown when backup export fails. The raw exception is logged separately, not shown in the UI.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t export a backup.'**
+  String get backupExportFailed;
+
+  /// Modal progress message shown while an encrypted backup is being decrypted before restore.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrypting backup…'**
+  String get backupDecryptingProgress;
+
+  /// Snackbar shown when decrypting an encrypted backup fails unexpectedly. The restore does not run, so existing data is unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t decrypt the backup. Your data is unchanged.'**
+  String get backupDecryptFailed;
+
+  /// Snackbar shown when a valid backup contains data too new for this app version, so restore is refused without changing local data.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.'**
+  String get backupRestoreIncompatibleVersion;
+
+  /// Snackbar shown when the selected restore file is not a valid backup. Existing data is unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t restore: the file isn\'t a valid backup. Your data is unchanged.'**
+  String get backupRestoreInvalidFile;
+
+  /// Snackbar shown after a backup restore succeeds but skips one or more non-fatal problems. Keep the literal 'problem(s)' wording to preserve the current English UI.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup restored with {count} problem(s) skipped.'**
+  String backupRestoreSkippedProblems(int count);
+
+  /// Snackbar confirming a backup restore completed without skipped problems.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup restored.'**
+  String get backupRestored;
+
+  /// Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t restore the backup.'**
+  String get backupRestoreFailed;
+
+  /// Title of the backup export row and export-options dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Export a backup'**
+  String get backupExportTitle;
+
+  /// Subtitle for the General settings row that exports a complete app backup.
+  ///
+  /// In en, this message translates to:
+  /// **'Save your entire collection, programs, custom fields, dialects, themes, and settings to a single JSON file you can keep safe or move to another device.'**
+  String get backupExportSubtitle;
+
+  /// Button label that starts exporting a backup. Distinct from exportTooltip, which is a tooltip elsewhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get backupExportAction;
+
+  /// Title of the backup restore row and restore dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from a backup'**
+  String get backupRestoreTitle;
+
+  /// Subtitle for the General settings row that restores from a backup file.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace everything currently in the app with the contents of a backup file. This cannot be undone.'**
+  String get backupRestoreSubtitle;
+
+  /// Button label that starts the restore-from-backup flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get backupRestoreAction;
+
+  /// Title of the General settings row that chooses a backup reminder cadence.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup reminder'**
+  String get backupReminderTitle;
+
+  /// Subtitle for the backup reminder row when no successful backup has been recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Last backup: never'**
+  String get backupLastBackupNever;
+
+  /// Subtitle for the backup reminder row showing the localized date of the last successful backup.
+  ///
+  /// In en, this message translates to:
+  /// **'Last backup: {date}'**
+  String backupLastBackupDate(String date);
+
+  /// Backup reminder cadence option meaning no reminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get backupReminderOff;
+
+  /// Backup reminder cadence option meaning once per week.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get backupReminderWeekly;
+
+  /// Backup reminder cadence option meaning once per month.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get backupReminderMonthly;
+
+  /// Gentle hint shown under the backup reminder row when the selected cadence says a backup is overdue.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s been a while since your last backup — consider exporting one now.'**
+  String get backupOverdueHint;
+
+  /// Warning text in the restore-from-backup dialog explaining that restore destructively replaces current app data.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This cannot be undone.'**
+  String get backupRestoreDialogBody;
+
+  /// Button label in the restore-from-backup dialog that opens a file chooser.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose file…'**
+  String get backupChooseFileAction;
+
+  /// Text field label in the restore-from-backup dialog for pasting raw backup JSON.
+  ///
+  /// In en, this message translates to:
+  /// **'Or paste backup JSON'**
+  String get backupPasteJsonLabel;
+
+  /// Destructive confirmation button in the restore-from-backup dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace all data'**
+  String get backupReplaceAllDataAction;
+
+  /// Introductory text in the export-backup dialog explaining what the backup contains.
+  ///
+  /// In en, this message translates to:
+  /// **'This saves everything in the app — your collection, programs, dialects, themes, and settings — to a file you can keep or move to another device.'**
+  String get backupExportDialogBody;
+
+  /// Title of the export-backup dialog toggle that encrypts the backup with a passphrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypt this backup with a passphrase'**
+  String get backupEncryptToggleTitle;
+
+  /// Subtitle explaining the encrypted-backup toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Protects the file so only someone with the passphrase can open it.'**
+  String get backupEncryptToggleSubtitle;
+
+  /// Text field label for backup encryption/decryption passphrase entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrase'**
+  String get backupPassphraseLabel;
+
+  /// Text field label for confirming the export-backup encryption passphrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm passphrase'**
+  String get backupConfirmPassphraseLabel;
+
+  /// Validation error shown when the backup encryption passphrase and confirmation differ.
+  ///
+  /// In en, this message translates to:
+  /// **'Passphrases don\'t match'**
+  String get backupPassphrasesDontMatch;
+
+  /// Passphrase strength label shown next to the strength meter in the export-backup dialog. The level token comes from the local strength estimator.
+  ///
+  /// In en, this message translates to:
+  /// **'{level, select, weak{Strength: Weak} fair{Strength: Fair} strong{Strength: Strong} other{}}'**
+  String backupPassphraseStrength(String level);
+
+  /// Tooltip on the passphrase visibility button when the passphrase is currently hidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Show passphrase'**
+  String get backupShowPassphrase;
+
+  /// Tooltip on the passphrase visibility button when the passphrase is currently visible.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide passphrase'**
+  String get backupHidePassphrase;
+
+  /// Warning in the export-backup dialog that encrypted backup passphrases cannot be recovered.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t recover this passphrase. If you lose it, this backup can never be opened — there is no reset and no recovery. Store it somewhere safe.'**
+  String get backupNoRecoveryWarning;
+
+  /// Confirm button label in the export-backup dialog when encryption is enabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypt & export'**
+  String get backupEncryptAndExportAction;
+
+  /// Title of the dialog that asks for the passphrase of an encrypted backup before restore.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter passphrase'**
+  String get backupEnterPassphraseTitle;
+
+  /// Body text in the encrypted-backup passphrase prompt before restore.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup is encrypted. Enter its passphrase to unlock and restore it.'**
+  String get backupEnterPassphraseBody;
+
+  /// Confirm button label in the encrypted-backup passphrase prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock & restore'**
+  String get backupUnlockAndRestoreAction;
+
+  /// Snackbar shown when the user tries to export diagnostics but the local diagnostics log is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No diagnostics to export.'**
+  String get diagnosticsNoDiagnosticsToExport;
+
+  /// Snackbar shown when a scrubbed diagnostics export cannot safely gather redaction terms, so no file is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t prepare a safe (scrubbed) export, so nothing was saved. Please try again, or use full detail deliberately.'**
+  String get diagnosticsScrubbedExportUnavailable;
+
+  /// Snackbar confirming the diagnostics log was exported.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics log exported.'**
+  String get diagnosticsLogExported;
+
+  /// Snackbar shown when the diagnostics export/share flow is cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Export cancelled.'**
+  String get diagnosticsExportCancelled;
+
+  /// Snackbar shown when diagnostics log export fails. Details are not shown in the UI.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t export the diagnostics log.'**
+  String get diagnosticsExportFailed;
+
+  /// Title of the confirmation dialog for clearing the local diagnostics log.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear diagnostics log?'**
+  String get diagnosticsClearLogTitle;
+
+  /// Body of the confirmation dialog for clearing the local diagnostics log.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes the local crash log from this device. This cannot be undone.'**
+  String get diagnosticsClearLogBody;
+
+  /// Button label that confirms clearing the local diagnostics log.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get diagnosticsClearAction;
+
+  /// Snackbar confirming the diagnostics log was cleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics log cleared.'**
+  String get diagnosticsLogCleared;
+
+  /// Settings section header for diagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get diagnosticsHeader;
+
+  /// Introductory paragraph explaining the local diagnostics log and that it is never sent automatically.
+  ///
+  /// In en, this message translates to:
+  /// **'When something goes wrong, the app records a technical note to a local log on this device to help diagnose the problem. It is never sent anywhere — there is no telemetry. You can export it to attach to a bug report, or clear it at any time.'**
+  String get diagnosticsIntro;
+
+  /// Section header above the recent diagnostics log entries list.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent entries'**
+  String get diagnosticsRecentEntriesHeader;
+
+  /// Title shown when the app cannot read the local diagnostics log.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read the diagnostics log'**
+  String get diagnosticsReadFailedTitle;
+
+  /// Subtitle shown when the app cannot read the local diagnostics log.
+  ///
+  /// In en, this message translates to:
+  /// **'The local log may be inaccessible on this device. You can still try to export or clear it.'**
+  String get diagnosticsReadFailedSubtitle;
+
+  /// Title shown when the local diagnostics log has no records.
+  ///
+  /// In en, this message translates to:
+  /// **'No errors recorded'**
+  String get diagnosticsEmptyTitle;
+
+  /// Subtitle shown when the local diagnostics log has no records.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has been captured on this device.'**
+  String get diagnosticsEmptySubtitle;
+
+  /// Section header above diagnostics export controls.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get diagnosticsExportHeader;
+
+  /// Title of the diagnostics export toggle that includes full unredacted detail.
+  ///
+  /// In en, this message translates to:
+  /// **'Include full detail (may contain your content)'**
+  String get diagnosticsFullDetailTitle;
+
+  /// Subtitle explaining the default scrubbed diagnostics export mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. When off, the export removes your content, file paths, emails, and phone numbers.'**
+  String get diagnosticsFullDetailSubtitle;
+
+  /// Title of the row that exports or shares the diagnostics log.
+  ///
+  /// In en, this message translates to:
+  /// **'Export / share log'**
+  String get diagnosticsExportShareLogTitle;
+
+  /// Subtitle for the diagnostics export row when full-detail export is enabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares the full, unredacted log.'**
+  String get diagnosticsExportShareFullSubtitle;
+
+  /// Subtitle for the diagnostics export row when scrubbed export is enabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares a scrubbed copy safe to attach to a bug report.'**
+  String get diagnosticsExportShareScrubbedSubtitle;
+
+  /// Title of the row that clears the local diagnostics log.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear log'**
+  String get diagnosticsClearLogRowTitle;
+
+  /// Subtitle for the row that clears the local diagnostics log.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the local crash log from this device.'**
+  String get diagnosticsClearLogRowSubtitle;
+
+  /// Title shown in the friendly crash fallback widget when a subtree fails to build.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong here'**
+  String get crashFallbackTitle;
+
+  /// Body text in the friendly crash fallback widget explaining that details were saved locally only.
+  ///
+  /// In en, this message translates to:
+  /// **'This part of the app hit an unexpected error and recovered. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.'**
+  String get crashFallbackBody;
+
+  /// Button label in the crash fallback widget after copying error details to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get crashFallbackCopied;
+
+  /// Button label in the crash fallback widget for copying error details to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy details'**
+  String get crashFallbackCopyDetails;
+
   /// Generic dialog dismiss button that discards the pending action.
   ///
   /// In en, this message translates to:

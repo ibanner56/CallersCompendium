@@ -539,6 +539,376 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsGeneralLibraryHeader => 'Library';
+
+  @override
+  String get settingsGeneralSortIgnoreArticlesTitle =>
+      'Ignore leading articles when sorting';
+
+  @override
+  String get settingsGeneralSortIgnoreArticlesSubtitle =>
+      'When on, the dance list alphabetizes titles ignoring a leading “the”, “a”, or “an” — so “The Nice Combination” files under N. Turn off to sort by the literal title.';
+
+  @override
+  String get settingsGeneralVenuesHeader => 'Venues';
+
+  @override
+  String get settingsGeneralVenueEntityModeTitle =>
+      'Use reusable venue records';
+
+  @override
+  String get settingsGeneralVenueEntityModeSubtitle =>
+      'Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program’s venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.';
+
+  @override
+  String get settingsGeneralManageVenuesTitle => 'Manage venues';
+
+  @override
+  String get settingsGeneralManageVenuesSubtitle =>
+      'Browse, edit, and delete your reusable venue records.';
+
+  @override
+  String get settingsGeneralPerformanceHeader => 'Performance';
+
+  @override
+  String get settingsGeneralAutoSizePerformTitle => 'Auto-size Perform cards';
+
+  @override
+  String get settingsGeneralAutoSizePerformSubtitle =>
+      'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.';
+
+  @override
+  String get settingsGeneralCallingHistoryHeader => 'Calling history';
+
+  @override
+  String get settingsGeneralRequirePerformedForHistoryTitle =>
+      'Require “mark performed” for calling history';
+
+  @override
+  String get settingsGeneralRequirePerformedForHistorySubtitle =>
+      'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.';
+
+  @override
+  String get settingsGeneralAccessibilityHeader => 'Accessibility';
+
+  @override
+  String get settingsGeneralReduceMotionTitle => 'Reduce motion';
+
+  @override
+  String get settingsGeneralReduceMotionSubtitle =>
+      'Dampen or skip non-essential animations, such as animated scrolling when moving between search results or figures.';
+
+  @override
+  String get settingsGeneralVerboseFiguresTitle =>
+      'Always show verbose figure text';
+
+  @override
+  String get settingsGeneralVerboseFiguresSubtitle =>
+      'Show the full spoken-style figure wording on screen in the dance view, not only to screen readers. Turn off for the terse notation.';
+
+  @override
+  String get settingsGeneralDecimalTurnsTitle => 'Show turns as decimals';
+
+  @override
+  String get settingsGeneralDecimalTurnsSubtitle =>
+      'Show turn and rotation amounts as decimals (0.75) instead of fractions (¾). Screen-reader wording is unaffected.';
+
+  @override
+  String get settingsGeneralConfirmBeforeDeleteTitle => 'Confirm before delete';
+
+  @override
+  String get settingsGeneralConfirmBeforeDeleteSubtitle =>
+      'Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.';
+
+  @override
+  String get settingsGeneralDeletedItemsHeader => 'Deleted items';
+
+  @override
+  String get settingsGeneralSoftDeleteRetentionTitle =>
+      'Keep deleted dances for';
+
+  @override
+  String get settingsGeneralSoftDeleteRetentionSubtitle =>
+      'Deleted dances are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.';
+
+  @override
+  String settingsGeneralSoftDeleteRetentionDays(int days) {
+    return '$days days';
+  }
+
+  @override
+  String get settingsGeneralSoftDeleteRetentionNever => 'Never';
+
+  @override
+  String get settingsGeneralImportHeader => 'Import';
+
+  @override
+  String get settingsGeneralImportDancesSubtitle =>
+      'Bring dances into your collection from a Caller\'s Compendium JSON file. You review every dance and confirm before anything is added.';
+
+  @override
+  String get settingsGeneralImportEllipsisAction => 'Import…';
+
+  @override
+  String get settingsGeneralReparseCustomFiguresTitle =>
+      'Re-check custom figures';
+
+  @override
+  String get settingsGeneralReparseCustomFiguresSubtitle =>
+      'Re-parse imported dances whose figures were kept as custom only because they could not be recognised at import time. Improved parsing upgrades them in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.';
+
+  @override
+  String get settingsGeneralReparseCustomFiguresAction => 'Re-check…';
+
+  @override
+  String get settingsGeneralBackupRestoreHeader => 'Backup & restore';
+
+  @override
+  String get backupEncryptingProgress => 'Encrypting backup…';
+
+  @override
+  String get backupEncryptedExported => 'Encrypted backup exported.';
+
+  @override
+  String get backupExported => 'Backup exported.';
+
+  @override
+  String get backupExportFailed => 'Couldn\'t export a backup.';
+
+  @override
+  String get backupDecryptingProgress => 'Decrypting backup…';
+
+  @override
+  String get backupDecryptFailed =>
+      'Couldn\'t decrypt the backup. Your data is unchanged.';
+
+  @override
+  String get backupRestoreIncompatibleVersion =>
+      'This backup contains items this version of the app can\'t read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.';
+
+  @override
+  String get backupRestoreInvalidFile =>
+      'Couldn\'t restore: the file isn\'t a valid backup. Your data is unchanged.';
+
+  @override
+  String backupRestoreSkippedProblems(int count) {
+    return 'Backup restored with $count problem(s) skipped.';
+  }
+
+  @override
+  String get backupRestored => 'Backup restored.';
+
+  @override
+  String get backupRestoreFailed => 'Couldn\'t restore the backup.';
+
+  @override
+  String get backupExportTitle => 'Export a backup';
+
+  @override
+  String get backupExportSubtitle =>
+      'Save your entire collection, programs, custom fields, dialects, themes, and settings to a single JSON file you can keep safe or move to another device.';
+
+  @override
+  String get backupExportAction => 'Export';
+
+  @override
+  String get backupRestoreTitle => 'Restore from a backup';
+
+  @override
+  String get backupRestoreSubtitle =>
+      'Replace everything currently in the app with the contents of a backup file. This cannot be undone.';
+
+  @override
+  String get backupRestoreAction => 'Restore';
+
+  @override
+  String get backupReminderTitle => 'Backup reminder';
+
+  @override
+  String get backupLastBackupNever => 'Last backup: never';
+
+  @override
+  String backupLastBackupDate(String date) {
+    return 'Last backup: $date';
+  }
+
+  @override
+  String get backupReminderOff => 'Off';
+
+  @override
+  String get backupReminderWeekly => 'Weekly';
+
+  @override
+  String get backupReminderMonthly => 'Monthly';
+
+  @override
+  String get backupOverdueHint =>
+      'It\'s been a while since your last backup — consider exporting one now.';
+
+  @override
+  String get backupRestoreDialogBody =>
+      'Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup\'s contents. This cannot be undone.';
+
+  @override
+  String get backupChooseFileAction => 'Choose file…';
+
+  @override
+  String get backupPasteJsonLabel => 'Or paste backup JSON';
+
+  @override
+  String get backupReplaceAllDataAction => 'Replace all data';
+
+  @override
+  String get backupExportDialogBody =>
+      'This saves everything in the app — your collection, programs, dialects, themes, and settings — to a file you can keep or move to another device.';
+
+  @override
+  String get backupEncryptToggleTitle =>
+      'Encrypt this backup with a passphrase';
+
+  @override
+  String get backupEncryptToggleSubtitle =>
+      'Protects the file so only someone with the passphrase can open it.';
+
+  @override
+  String get backupPassphraseLabel => 'Passphrase';
+
+  @override
+  String get backupConfirmPassphraseLabel => 'Confirm passphrase';
+
+  @override
+  String get backupPassphrasesDontMatch => 'Passphrases don\'t match';
+
+  @override
+  String backupPassphraseStrength(String level) {
+    String _temp0 = intl.Intl.selectLogic(level, {
+      'weak': 'Strength: Weak',
+      'fair': 'Strength: Fair',
+      'strong': 'Strength: Strong',
+      'other': '',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String get backupShowPassphrase => 'Show passphrase';
+
+  @override
+  String get backupHidePassphrase => 'Hide passphrase';
+
+  @override
+  String get backupNoRecoveryWarning =>
+      'We can\'t recover this passphrase. If you lose it, this backup can never be opened — there is no reset and no recovery. Store it somewhere safe.';
+
+  @override
+  String get backupEncryptAndExportAction => 'Encrypt & export';
+
+  @override
+  String get backupEnterPassphraseTitle => 'Enter passphrase';
+
+  @override
+  String get backupEnterPassphraseBody =>
+      'This backup is encrypted. Enter its passphrase to unlock and restore it.';
+
+  @override
+  String get backupUnlockAndRestoreAction => 'Unlock & restore';
+
+  @override
+  String get diagnosticsNoDiagnosticsToExport => 'No diagnostics to export.';
+
+  @override
+  String get diagnosticsScrubbedExportUnavailable =>
+      'Couldn\'t prepare a safe (scrubbed) export, so nothing was saved. Please try again, or use full detail deliberately.';
+
+  @override
+  String get diagnosticsLogExported => 'Diagnostics log exported.';
+
+  @override
+  String get diagnosticsExportCancelled => 'Export cancelled.';
+
+  @override
+  String get diagnosticsExportFailed => 'Couldn\'t export the diagnostics log.';
+
+  @override
+  String get diagnosticsClearLogTitle => 'Clear diagnostics log?';
+
+  @override
+  String get diagnosticsClearLogBody =>
+      'This permanently deletes the local crash log from this device. This cannot be undone.';
+
+  @override
+  String get diagnosticsClearAction => 'Clear';
+
+  @override
+  String get diagnosticsLogCleared => 'Diagnostics log cleared.';
+
+  @override
+  String get diagnosticsHeader => 'Diagnostics';
+
+  @override
+  String get diagnosticsIntro =>
+      'When something goes wrong, the app records a technical note to a local log on this device to help diagnose the problem. It is never sent anywhere — there is no telemetry. You can export it to attach to a bug report, or clear it at any time.';
+
+  @override
+  String get diagnosticsRecentEntriesHeader => 'Recent entries';
+
+  @override
+  String get diagnosticsReadFailedTitle => 'Couldn\'t read the diagnostics log';
+
+  @override
+  String get diagnosticsReadFailedSubtitle =>
+      'The local log may be inaccessible on this device. You can still try to export or clear it.';
+
+  @override
+  String get diagnosticsEmptyTitle => 'No errors recorded';
+
+  @override
+  String get diagnosticsEmptySubtitle =>
+      'Nothing has been captured on this device.';
+
+  @override
+  String get diagnosticsExportHeader => 'Export';
+
+  @override
+  String get diagnosticsFullDetailTitle =>
+      'Include full detail (may contain your content)';
+
+  @override
+  String get diagnosticsFullDetailSubtitle =>
+      'Off by default. When off, the export removes your content, file paths, emails, and phone numbers.';
+
+  @override
+  String get diagnosticsExportShareLogTitle => 'Export / share log';
+
+  @override
+  String get diagnosticsExportShareFullSubtitle =>
+      'Shares the full, unredacted log.';
+
+  @override
+  String get diagnosticsExportShareScrubbedSubtitle =>
+      'Shares a scrubbed copy safe to attach to a bug report.';
+
+  @override
+  String get diagnosticsClearLogRowTitle => 'Clear log';
+
+  @override
+  String get diagnosticsClearLogRowSubtitle =>
+      'Delete the local crash log from this device.';
+
+  @override
+  String get crashFallbackTitle => 'Something went wrong here';
+
+  @override
+  String get crashFallbackBody =>
+      'This part of the app hit an unexpected error and recovered. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.';
+
+  @override
+  String get crashFallbackCopied => 'Copied';
+
+  @override
+  String get crashFallbackCopyDetails => 'Copy details';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override

@@ -717,6 +717,455 @@
   },
 
 
+  "settingsGeneralLibraryHeader": "Library",
+  "@settingsGeneralLibraryHeader": {
+    "description": "General settings section header for collection-library preferences."
+  },
+  "settingsGeneralSortIgnoreArticlesTitle": "Ignore leading articles when sorting",
+  "@settingsGeneralSortIgnoreArticlesTitle": {
+    "description": "Title of the General settings toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'."
+  },
+  "settingsGeneralSortIgnoreArticlesSubtitle": "When on, the dance list alphabetizes titles ignoring a leading “the”, “a”, or “an” — so “The Nice Combination” files under N. Turn off to sort by the literal title.",
+  "@settingsGeneralSortIgnoreArticlesSubtitle": {
+    "description": "Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text."
+  },
+  "settingsGeneralVenuesHeader": "Venues",
+  "@settingsGeneralVenuesHeader": {
+    "description": "General settings section header for venue-related preferences."
+  },
+  "settingsGeneralVenueEntityModeTitle": "Use reusable venue records",
+  "@settingsGeneralVenueEntityModeTitle": {
+    "description": "Title of the General settings toggle that enables reusable venue records for programs."
+  },
+  "settingsGeneralVenueEntityModeSubtitle": "Turn venues into reusable records with address, contacts, and schedule that many programs can share and you edit in one place. When off, a program’s venue is a simple free-text field. Switching is lossless — your typed venue and any linked record are both kept.",
+  "@settingsGeneralVenueEntityModeSubtitle": {
+    "description": "Subtitle explaining what reusable venue records do and that switching modes preserves existing venue data."
+  },
+  "settingsGeneralManageVenuesTitle": "Manage venues",
+  "@settingsGeneralManageVenuesTitle": {
+    "description": "Title of the General settings row that opens the reusable venue manager."
+  },
+  "settingsGeneralManageVenuesSubtitle": "Browse, edit, and delete your reusable venue records.",
+  "@settingsGeneralManageVenuesSubtitle": {
+    "description": "Subtitle for the row that opens the reusable venue manager."
+  },
+  "settingsGeneralPerformanceHeader": "Performance",
+  "@settingsGeneralPerformanceHeader": {
+    "description": "General settings section header for performance-mode display preferences."
+  },
+  "settingsGeneralAutoSizePerformTitle": "Auto-size Perform cards",
+  "@settingsGeneralAutoSizePerformTitle": {
+    "description": "Title of the General settings toggle that automatically sizes Perform screen cards."
+  },
+  "settingsGeneralAutoSizePerformSubtitle": "Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.",
+  "@settingsGeneralAutoSizePerformSubtitle": {
+    "description": "Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls."
+  },
+  "settingsGeneralCallingHistoryHeader": "Calling history",
+  "@settingsGeneralCallingHistoryHeader": {
+    "description": "General settings section header for calling-history preferences."
+  },
+  "settingsGeneralRequirePerformedForHistoryTitle": "Require “mark performed” for calling history",
+  "@settingsGeneralRequirePerformedForHistoryTitle": {
+    "description": "Title of the General settings toggle that limits dance calling history to program slots marked performed."
+  },
+  "settingsGeneralRequirePerformedForHistorySubtitle": "When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.",
+  "@settingsGeneralRequirePerformedForHistorySubtitle": {
+    "description": "Subtitle explaining the require-mark-performed calling history toggle."
+  },
+  "settingsGeneralAccessibilityHeader": "Accessibility",
+  "@settingsGeneralAccessibilityHeader": {
+    "description": "General settings section header for accessibility preferences."
+  },
+  "settingsGeneralReduceMotionTitle": "Reduce motion",
+  "@settingsGeneralReduceMotionTitle": {
+    "description": "Title of the General settings toggle that reduces non-essential animation."
+  },
+  "settingsGeneralReduceMotionSubtitle": "Dampen or skip non-essential animations, such as animated scrolling when moving between search results or figures.",
+  "@settingsGeneralReduceMotionSubtitle": {
+    "description": "Subtitle explaining the reduce-motion toggle."
+  },
+  "settingsGeneralVerboseFiguresTitle": "Always show verbose figure text",
+  "@settingsGeneralVerboseFiguresTitle": {
+    "description": "Title of the General settings toggle that shows full spoken-style figure wording visually."
+  },
+  "settingsGeneralVerboseFiguresSubtitle": "Show the full spoken-style figure wording on screen in the dance view, not only to screen readers. Turn off for the terse notation.",
+  "@settingsGeneralVerboseFiguresSubtitle": {
+    "description": "Subtitle explaining the verbose figure text toggle."
+  },
+  "settingsGeneralDecimalTurnsTitle": "Show turns as decimals",
+  "@settingsGeneralDecimalTurnsTitle": {
+    "description": "Title of the General settings toggle that renders turn amounts as decimals."
+  },
+  "settingsGeneralDecimalTurnsSubtitle": "Show turn and rotation amounts as decimals (0.75) instead of fractions (¾). Screen-reader wording is unaffected.",
+  "@settingsGeneralDecimalTurnsSubtitle": {
+    "description": "Subtitle explaining the decimal turns toggle."
+  },
+  "settingsGeneralConfirmBeforeDeleteTitle": "Confirm before delete",
+  "@settingsGeneralConfirmBeforeDeleteTitle": {
+    "description": "Title of the General settings toggle that asks before deleting a dance or program."
+  },
+  "settingsGeneralConfirmBeforeDeleteSubtitle": "Ask for confirmation before deleting a dance or program. Deletes can still be undone; this just adds an explicit prompt first.",
+  "@settingsGeneralConfirmBeforeDeleteSubtitle": {
+    "description": "Subtitle explaining the confirm-before-delete toggle."
+  },
+  "settingsGeneralDeletedItemsHeader": "Deleted items",
+  "@settingsGeneralDeletedItemsHeader": {
+    "description": "General settings section header for deleted-item retention preferences."
+  },
+  "settingsGeneralSoftDeleteRetentionTitle": "Keep deleted dances for",
+  "@settingsGeneralSoftDeleteRetentionTitle": {
+    "description": "Title of the General settings row that controls how long deleted dances are retained."
+  },
+  "settingsGeneralSoftDeleteRetentionSubtitle": "Deleted dances are kept for this long before being permanently removed on app launch. Never keeps them until you purge manually.",
+  "@settingsGeneralSoftDeleteRetentionSubtitle": {
+    "description": "Subtitle explaining the deleted-dance retention duration setting."
+  },
+  "settingsGeneralSoftDeleteRetentionDays": "{days} days",
+  "@settingsGeneralSoftDeleteRetentionDays": {
+    "description": "Deleted-dance retention dropdown option showing a fixed number of days. Keep 'days' literal for every value to preserve the current English UI.",
+    "placeholders": {
+      "days": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+  "settingsGeneralSoftDeleteRetentionNever": "Never",
+  "@settingsGeneralSoftDeleteRetentionNever": {
+    "description": "Deleted-dance retention dropdown option meaning never automatically purge deleted dances."
+  },
+  "settingsGeneralImportHeader": "Import",
+  "@settingsGeneralImportHeader": {
+    "description": "General settings section header for import actions."
+  },
+  "settingsGeneralImportDancesSubtitle": "Bring dances into your collection from a Caller's Compendium JSON file. You review every dance and confirm before anything is added.",
+  "@settingsGeneralImportDancesSubtitle": {
+    "description": "Subtitle for the Import dances row in General settings. 'Caller's Compendium JSON' is the app's backup/import format name."
+  },
+  "settingsGeneralImportEllipsisAction": "Import…",
+  "@settingsGeneralImportEllipsisAction": {
+    "description": "Button label that opens the import-dances flow from General settings; the ellipsis indicates more choices follow."
+  },
+  "settingsGeneralReparseCustomFiguresTitle": "Re-check custom figures",
+  "@settingsGeneralReparseCustomFiguresTitle": {
+    "description": "Title of the General settings row that re-parses imported custom-only figures."
+  },
+  "settingsGeneralReparseCustomFiguresSubtitle": "Re-parse imported dances whose figures were kept as custom only because they could not be recognised at import time. Improved parsing upgrades them in place — your tags, ratings, and notes are preserved. You preview and confirm before anything changes.",
+  "@settingsGeneralReparseCustomFiguresSubtitle": {
+    "description": "Subtitle explaining the re-check custom figures action."
+  },
+  "settingsGeneralReparseCustomFiguresAction": "Re-check…",
+  "@settingsGeneralReparseCustomFiguresAction": {
+    "description": "Button label that opens the re-check custom figures flow; the ellipsis indicates more review follows."
+  },
+  "settingsGeneralBackupRestoreHeader": "Backup & restore",
+  "@settingsGeneralBackupRestoreHeader": {
+    "description": "General settings section header for backup and restore actions."
+  },
+
+  "backupEncryptingProgress": "Encrypting backup…",
+  "@backupEncryptingProgress": {
+    "description": "Modal progress message shown while a backup export is being encrypted."
+  },
+  "backupEncryptedExported": "Encrypted backup exported.",
+  "@backupEncryptedExported": {
+    "description": "Snackbar confirming an encrypted backup was exported."
+  },
+  "backupExported": "Backup exported.",
+  "@backupExported": {
+    "description": "Snackbar confirming an unencrypted backup was exported."
+  },
+  "backupExportFailed": "Couldn't export a backup.",
+  "@backupExportFailed": {
+    "description": "Snackbar shown when backup export fails. The raw exception is logged separately, not shown in the UI."
+  },
+  "backupDecryptingProgress": "Decrypting backup…",
+  "@backupDecryptingProgress": {
+    "description": "Modal progress message shown while an encrypted backup is being decrypted before restore."
+  },
+  "backupDecryptFailed": "Couldn't decrypt the backup. Your data is unchanged.",
+  "@backupDecryptFailed": {
+    "description": "Snackbar shown when decrypting an encrypted backup fails unexpectedly. The restore does not run, so existing data is unchanged."
+  },
+  "backupRestoreIncompatibleVersion": "This backup contains items this version of the app can't read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.",
+  "@backupRestoreIncompatibleVersion": {
+    "description": "Snackbar shown when a valid backup contains data too new for this app version, so restore is refused without changing local data."
+  },
+  "backupRestoreInvalidFile": "Couldn't restore: the file isn't a valid backup. Your data is unchanged.",
+  "@backupRestoreInvalidFile": {
+    "description": "Snackbar shown when the selected restore file is not a valid backup. Existing data is unchanged."
+  },
+  "backupRestoreSkippedProblems": "Backup restored with {count} problem(s) skipped.",
+  "@backupRestoreSkippedProblems": {
+    "description": "Snackbar shown after a backup restore succeeds but skips one or more non-fatal problems. Keep the literal 'problem(s)' wording to preserve the current English UI.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "backupRestored": "Backup restored.",
+  "@backupRestored": {
+    "description": "Snackbar confirming a backup restore completed without skipped problems."
+  },
+  "backupRestoreFailed": "Couldn't restore the backup.",
+  "@backupRestoreFailed": {
+    "description": "Snackbar shown when backup restore fails unexpectedly. The raw exception is logged separately, not shown in the UI."
+  },
+  "backupExportTitle": "Export a backup",
+  "@backupExportTitle": {
+    "description": "Title of the backup export row and export-options dialog."
+  },
+  "backupExportSubtitle": "Save your entire collection, programs, custom fields, dialects, themes, and settings to a single JSON file you can keep safe or move to another device.",
+  "@backupExportSubtitle": {
+    "description": "Subtitle for the General settings row that exports a complete app backup."
+  },
+  "backupExportAction": "Export",
+  "@backupExportAction": {
+    "description": "Button label that starts exporting a backup. Distinct from exportTooltip, which is a tooltip elsewhere."
+  },
+  "backupRestoreTitle": "Restore from a backup",
+  "@backupRestoreTitle": {
+    "description": "Title of the backup restore row and restore dialog."
+  },
+  "backupRestoreSubtitle": "Replace everything currently in the app with the contents of a backup file. This cannot be undone.",
+  "@backupRestoreSubtitle": {
+    "description": "Subtitle for the General settings row that restores from a backup file."
+  },
+  "backupRestoreAction": "Restore",
+  "@backupRestoreAction": {
+    "description": "Button label that starts the restore-from-backup flow."
+  },
+  "backupReminderTitle": "Backup reminder",
+  "@backupReminderTitle": {
+    "description": "Title of the General settings row that chooses a backup reminder cadence."
+  },
+  "backupLastBackupNever": "Last backup: never",
+  "@backupLastBackupNever": {
+    "description": "Subtitle for the backup reminder row when no successful backup has been recorded."
+  },
+  "backupLastBackupDate": "Last backup: {date}",
+  "@backupLastBackupDate": {
+    "description": "Subtitle for the backup reminder row showing the localized date of the last successful backup.",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Jul 15, 2026"
+      }
+    }
+  },
+  "backupReminderOff": "Off",
+  "@backupReminderOff": {
+    "description": "Backup reminder cadence option meaning no reminder."
+  },
+  "backupReminderWeekly": "Weekly",
+  "@backupReminderWeekly": {
+    "description": "Backup reminder cadence option meaning once per week."
+  },
+  "backupReminderMonthly": "Monthly",
+  "@backupReminderMonthly": {
+    "description": "Backup reminder cadence option meaning once per month."
+  },
+  "backupOverdueHint": "It's been a while since your last backup — consider exporting one now.",
+  "@backupOverdueHint": {
+    "description": "Gentle hint shown under the backup reminder row when the selected cadence says a backup is overdue."
+  },
+  "backupRestoreDialogBody": "Restoring replaces everything currently in the app — your collection, programs, dialects, themes, and settings — with the backup's contents. This cannot be undone.",
+  "@backupRestoreDialogBody": {
+    "description": "Warning text in the restore-from-backup dialog explaining that restore destructively replaces current app data."
+  },
+  "backupChooseFileAction": "Choose file…",
+  "@backupChooseFileAction": {
+    "description": "Button label in the restore-from-backup dialog that opens a file chooser."
+  },
+  "backupPasteJsonLabel": "Or paste backup JSON",
+  "@backupPasteJsonLabel": {
+    "description": "Text field label in the restore-from-backup dialog for pasting raw backup JSON."
+  },
+  "backupReplaceAllDataAction": "Replace all data",
+  "@backupReplaceAllDataAction": {
+    "description": "Destructive confirmation button in the restore-from-backup dialog."
+  },
+  "backupExportDialogBody": "This saves everything in the app — your collection, programs, dialects, themes, and settings — to a file you can keep or move to another device.",
+  "@backupExportDialogBody": {
+    "description": "Introductory text in the export-backup dialog explaining what the backup contains."
+  },
+  "backupEncryptToggleTitle": "Encrypt this backup with a passphrase",
+  "@backupEncryptToggleTitle": {
+    "description": "Title of the export-backup dialog toggle that encrypts the backup with a passphrase."
+  },
+  "backupEncryptToggleSubtitle": "Protects the file so only someone with the passphrase can open it.",
+  "@backupEncryptToggleSubtitle": {
+    "description": "Subtitle explaining the encrypted-backup toggle."
+  },
+  "backupPassphraseLabel": "Passphrase",
+  "@backupPassphraseLabel": {
+    "description": "Text field label for backup encryption/decryption passphrase entry."
+  },
+  "backupConfirmPassphraseLabel": "Confirm passphrase",
+  "@backupConfirmPassphraseLabel": {
+    "description": "Text field label for confirming the export-backup encryption passphrase."
+  },
+  "backupPassphrasesDontMatch": "Passphrases don't match",
+  "@backupPassphrasesDontMatch": {
+    "description": "Validation error shown when the backup encryption passphrase and confirmation differ."
+  },
+  "backupPassphraseStrength": "{level, select, weak{Strength: Weak} fair{Strength: Fair} strong{Strength: Strong} other{}}",
+  "@backupPassphraseStrength": {
+    "description": "Passphrase strength label shown next to the strength meter in the export-backup dialog. The level token comes from the local strength estimator.",
+    "placeholders": {
+      "level": {
+        "type": "String",
+        "example": "weak"
+      }
+    }
+  },
+  "backupShowPassphrase": "Show passphrase",
+  "@backupShowPassphrase": {
+    "description": "Tooltip on the passphrase visibility button when the passphrase is currently hidden."
+  },
+  "backupHidePassphrase": "Hide passphrase",
+  "@backupHidePassphrase": {
+    "description": "Tooltip on the passphrase visibility button when the passphrase is currently visible."
+  },
+  "backupNoRecoveryWarning": "We can't recover this passphrase. If you lose it, this backup can never be opened — there is no reset and no recovery. Store it somewhere safe.",
+  "@backupNoRecoveryWarning": {
+    "description": "Warning in the export-backup dialog that encrypted backup passphrases cannot be recovered."
+  },
+  "backupEncryptAndExportAction": "Encrypt & export",
+  "@backupEncryptAndExportAction": {
+    "description": "Confirm button label in the export-backup dialog when encryption is enabled."
+  },
+  "backupEnterPassphraseTitle": "Enter passphrase",
+  "@backupEnterPassphraseTitle": {
+    "description": "Title of the dialog that asks for the passphrase of an encrypted backup before restore."
+  },
+  "backupEnterPassphraseBody": "This backup is encrypted. Enter its passphrase to unlock and restore it.",
+  "@backupEnterPassphraseBody": {
+    "description": "Body text in the encrypted-backup passphrase prompt before restore."
+  },
+  "backupUnlockAndRestoreAction": "Unlock & restore",
+  "@backupUnlockAndRestoreAction": {
+    "description": "Confirm button label in the encrypted-backup passphrase prompt."
+  },
+
+  "diagnosticsNoDiagnosticsToExport": "No diagnostics to export.",
+  "@diagnosticsNoDiagnosticsToExport": {
+    "description": "Snackbar shown when the user tries to export diagnostics but the local diagnostics log is empty."
+  },
+  "diagnosticsScrubbedExportUnavailable": "Couldn't prepare a safe (scrubbed) export, so nothing was saved. Please try again, or use full detail deliberately.",
+  "@diagnosticsScrubbedExportUnavailable": {
+    "description": "Snackbar shown when a scrubbed diagnostics export cannot safely gather redaction terms, so no file is saved."
+  },
+  "diagnosticsLogExported": "Diagnostics log exported.",
+  "@diagnosticsLogExported": {
+    "description": "Snackbar confirming the diagnostics log was exported."
+  },
+  "diagnosticsExportCancelled": "Export cancelled.",
+  "@diagnosticsExportCancelled": {
+    "description": "Snackbar shown when the diagnostics export/share flow is cancelled."
+  },
+  "diagnosticsExportFailed": "Couldn't export the diagnostics log.",
+  "@diagnosticsExportFailed": {
+    "description": "Snackbar shown when diagnostics log export fails. Details are not shown in the UI."
+  },
+  "diagnosticsClearLogTitle": "Clear diagnostics log?",
+  "@diagnosticsClearLogTitle": {
+    "description": "Title of the confirmation dialog for clearing the local diagnostics log."
+  },
+  "diagnosticsClearLogBody": "This permanently deletes the local crash log from this device. This cannot be undone.",
+  "@diagnosticsClearLogBody": {
+    "description": "Body of the confirmation dialog for clearing the local diagnostics log."
+  },
+  "diagnosticsClearAction": "Clear",
+  "@diagnosticsClearAction": {
+    "description": "Button label that confirms clearing the local diagnostics log."
+  },
+  "diagnosticsLogCleared": "Diagnostics log cleared.",
+  "@diagnosticsLogCleared": {
+    "description": "Snackbar confirming the diagnostics log was cleared."
+  },
+  "diagnosticsHeader": "Diagnostics",
+  "@diagnosticsHeader": {
+    "description": "Settings section header for diagnostics."
+  },
+  "diagnosticsIntro": "When something goes wrong, the app records a technical note to a local log on this device to help diagnose the problem. It is never sent anywhere — there is no telemetry. You can export it to attach to a bug report, or clear it at any time.",
+  "@diagnosticsIntro": {
+    "description": "Introductory paragraph explaining the local diagnostics log and that it is never sent automatically."
+  },
+  "diagnosticsRecentEntriesHeader": "Recent entries",
+  "@diagnosticsRecentEntriesHeader": {
+    "description": "Section header above the recent diagnostics log entries list."
+  },
+  "diagnosticsReadFailedTitle": "Couldn't read the diagnostics log",
+  "@diagnosticsReadFailedTitle": {
+    "description": "Title shown when the app cannot read the local diagnostics log."
+  },
+  "diagnosticsReadFailedSubtitle": "The local log may be inaccessible on this device. You can still try to export or clear it.",
+  "@diagnosticsReadFailedSubtitle": {
+    "description": "Subtitle shown when the app cannot read the local diagnostics log."
+  },
+  "diagnosticsEmptyTitle": "No errors recorded",
+  "@diagnosticsEmptyTitle": {
+    "description": "Title shown when the local diagnostics log has no records."
+  },
+  "diagnosticsEmptySubtitle": "Nothing has been captured on this device.",
+  "@diagnosticsEmptySubtitle": {
+    "description": "Subtitle shown when the local diagnostics log has no records."
+  },
+  "diagnosticsExportHeader": "Export",
+  "@diagnosticsExportHeader": {
+    "description": "Section header above diagnostics export controls."
+  },
+  "diagnosticsFullDetailTitle": "Include full detail (may contain your content)",
+  "@diagnosticsFullDetailTitle": {
+    "description": "Title of the diagnostics export toggle that includes full unredacted detail."
+  },
+  "diagnosticsFullDetailSubtitle": "Off by default. When off, the export removes your content, file paths, emails, and phone numbers.",
+  "@diagnosticsFullDetailSubtitle": {
+    "description": "Subtitle explaining the default scrubbed diagnostics export mode."
+  },
+  "diagnosticsExportShareLogTitle": "Export / share log",
+  "@diagnosticsExportShareLogTitle": {
+    "description": "Title of the row that exports or shares the diagnostics log."
+  },
+  "diagnosticsExportShareFullSubtitle": "Shares the full, unredacted log.",
+  "@diagnosticsExportShareFullSubtitle": {
+    "description": "Subtitle for the diagnostics export row when full-detail export is enabled."
+  },
+  "diagnosticsExportShareScrubbedSubtitle": "Shares a scrubbed copy safe to attach to a bug report.",
+  "@diagnosticsExportShareScrubbedSubtitle": {
+    "description": "Subtitle for the diagnostics export row when scrubbed export is enabled."
+  },
+  "diagnosticsClearLogRowTitle": "Clear log",
+  "@diagnosticsClearLogRowTitle": {
+    "description": "Title of the row that clears the local diagnostics log."
+  },
+  "diagnosticsClearLogRowSubtitle": "Delete the local crash log from this device.",
+  "@diagnosticsClearLogRowSubtitle": {
+    "description": "Subtitle for the row that clears the local diagnostics log."
+  },
+
+  "crashFallbackTitle": "Something went wrong here",
+  "@crashFallbackTitle": {
+    "description": "Title shown in the friendly crash fallback widget when a subtree fails to build."
+  },
+  "crashFallbackBody": "This part of the app hit an unexpected error and recovered. The details were saved to a local diagnostics log (Settings ▸ Diagnostics) that never leaves your device.",
+  "@crashFallbackBody": {
+    "description": "Body text in the friendly crash fallback widget explaining that details were saved locally only."
+  },
+  "crashFallbackCopied": "Copied",
+  "@crashFallbackCopied": {
+    "description": "Button label in the crash fallback widget after copying error details to the clipboard."
+  },
+  "crashFallbackCopyDetails": "Copy details",
+  "@crashFallbackCopyDetails": {
+    "description": "Button label in the crash fallback widget for copying error details to the clipboard."
+  },
+
+
 
   "commonCancel": "Cancel",
   "@commonCancel": {

@@ -3,6 +3,8 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+
+import '../../../l10n/app_localizations.dart';
 import 'settings_keys.dart';
 import '../../data/backup_controller_scope.dart';
 import '../../data/backup_crypto.dart';
@@ -226,6 +228,7 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// dialog, this is a clean no-op: no snackbar, no stamped time.
   Future<void> _onExportBackup() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final saver = widget.backupSaver ?? saveBackupToFile;
     final encryptor = widget.backupEncryptor ?? encryptBackupOffThread;
@@ -248,7 +251,7 @@ class _GeneralSectionState extends State<GeneralSection> {
         if (!mounted) return;
         payload = await _runWithProgress(
           () => encryptor(json, passphrase),
-          message: 'Encrypting backup…',
+          message: l10n.backupEncryptingProgress,
         );
         fileName = _encryptedBackupFileName(now);
       }
@@ -264,15 +267,13 @@ class _GeneralSectionState extends State<GeneralSection> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            choice.encrypt ? 'Encrypted backup exported.' : 'Backup exported.',
+            choice.encrypt ? l10n.backupEncryptedExported : l10n.backupExported,
           ),
         ),
       );
     } on Exception catch (e, st) {
       debugPrint('Backup export failed: $e\n$st');
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Couldn't export a backup.")),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
     }
   }
 
@@ -286,6 +287,7 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// non-destructive error and the restore never runs — zero entities written.
   Future<void> _onRestoreBackup() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final picker = widget.backupPicker ?? pickBackupFile;
     final decryptor = widget.backupDecryptor ?? decryptBackupOffThread;
@@ -308,7 +310,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       try {
         json = await _runWithProgress(
           () => decryptor(raw, passphrase),
-          message: 'Decrypting backup…',
+          message: l10n.backupDecryptingProgress,
         );
       } on BackupDecryptException catch (e) {
         // Fail closed: the restore never runs, so live data is untouched.
@@ -319,11 +321,7 @@ class _GeneralSectionState extends State<GeneralSection> {
         debugPrint('Backup decrypt failed: $e\n$st');
         if (!mounted) return;
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Couldn't decrypt the backup. Your data is unchanged.",
-            ),
-          ),
+          SnackBar(content: Text(l10n.backupDecryptFailed)),
         );
         return;
       }
@@ -338,11 +336,8 @@ class _GeneralSectionState extends State<GeneralSection> {
         // that would have dropped entities must never look like a clean
         // success, and must not be mistaken for an unreadable file.
         final message = outcome.incompleteCore
-            ? 'This backup contains items this version of the app '
-                  "can't read (it may be from a newer version), so the "
-                  'restore was cancelled. Your data is unchanged.'
-            : "Couldn't restore: the file isn't a valid backup. "
-                  'Your data is unchanged.';
+            ? l10n.backupRestoreIncompatibleVersion
+            : l10n.backupRestoreInvalidFile;
         messenger.showSnackBar(SnackBar(content: Text(message)));
         return;
       }
@@ -352,17 +347,14 @@ class _GeneralSectionState extends State<GeneralSection> {
         SnackBar(
           content: Text(
             outcome.hasErrors
-                ? 'Backup restored with ${outcome.errors.length} '
-                      'problem(s) skipped.'
-                : 'Backup restored.',
+                ? l10n.backupRestoreSkippedProblems(outcome.errors.length)
+                : l10n.backupRestored,
           ),
         ),
       );
     } on Exception catch (e, st) {
       debugPrint('Backup restore failed: $e\n$st');
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Couldn't restore the backup.")),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
     }
   }
 
@@ -596,122 +588,92 @@ class _GeneralView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
-        SectionHeader(title: 'Library'),
+        SectionHeader(title: l10n.settingsGeneralLibraryHeader),
         SwitchListTile(
           key: const ValueKey('general-sort-ignore-articles'),
           value: sortIgnoreArticles,
           onChanged: onSortIgnoreArticlesChanged,
-          title: const Text('Ignore leading articles when sorting'),
-          subtitle: const Text(
-            'When on, the dance list alphabetizes titles ignoring a leading '
-            '“the”, “a”, or “an” — so “The Nice Combination” files under N. '
-            'Turn off to sort by the literal title.',
-          ),
+          title: Text(l10n.settingsGeneralSortIgnoreArticlesTitle),
+          subtitle: Text(l10n.settingsGeneralSortIgnoreArticlesSubtitle),
           isThreeLine: true,
         ),
-        SectionHeader(title: 'Venues'),
+        SectionHeader(title: l10n.settingsGeneralVenuesHeader),
         SwitchListTile(
           key: const ValueKey('general-venue-entity-mode'),
           value: venueEntityMode,
           onChanged: onVenueEntityModeChanged,
-          title: const Text('Use reusable venue records'),
-          subtitle: const Text(
-            'Turn venues into reusable records with address, contacts, and '
-            'schedule that many programs can share and you edit in one place. '
-            'When off, a program’s venue is a simple free-text field. Switching '
-            'is lossless — your typed venue and any linked record are both kept.',
-          ),
+          title: Text(l10n.settingsGeneralVenueEntityModeTitle),
+          subtitle: Text(l10n.settingsGeneralVenueEntityModeSubtitle),
           isThreeLine: true,
         ),
         ListTile(
           key: const ValueKey('general-manage-venues'),
           leading: const Icon(Icons.place_outlined),
-          title: const Text('Manage venues'),
-          subtitle: const Text(
-            'Browse, edit, and delete your reusable venue records.',
-          ),
+          title: Text(l10n.settingsGeneralManageVenuesTitle),
+          subtitle: Text(l10n.settingsGeneralManageVenuesSubtitle),
           trailing: const Icon(Icons.chevron_right),
           onTap: onManageVenues,
         ),
-        SectionHeader(title: 'Performance'),
+        SectionHeader(title: l10n.settingsGeneralPerformanceHeader),
         SwitchListTile(
           key: const ValueKey('settings-auto-size-perform'),
-          title: const Text('Auto-size Perform cards'),
-          subtitle: const Text(
-            'Scale each card so the full dance or slot fits the screen without '
-            'scrolling. Turn off to set the size yourself with A- / A+.',
-          ),
+          title: Text(l10n.settingsGeneralAutoSizePerformTitle),
+          subtitle: Text(l10n.settingsGeneralAutoSizePerformSubtitle),
           value: autoSizePerform,
           onChanged: onAutoSizeChanged,
         ),
-        SectionHeader(title: 'Calling history'),
+        SectionHeader(title: l10n.settingsGeneralCallingHistoryHeader),
         SwitchListTile(
           key: const ValueKey('general-require-performed-for-history'),
           value: requirePerformedForHistory,
           onChanged: onRequirePerformedForHistoryChanged,
-          title: const Text('Require “mark performed” for calling history'),
-          subtitle: const Text(
-            'When on, a dance’s calling history lists only programs whose slot '
-            'for that dance was marked performed. When off, a program appears '
-            'as soon as it contains the dance.',
+          title: Text(l10n.settingsGeneralRequirePerformedForHistoryTitle),
+          subtitle: Text(
+            l10n.settingsGeneralRequirePerformedForHistorySubtitle,
           ),
           isThreeLine: true,
         ),
-        SectionHeader(title: 'Accessibility'),
+        SectionHeader(title: l10n.settingsGeneralAccessibilityHeader),
         SwitchListTile(
           key: const ValueKey('general-reduce-motion'),
           value: reduceMotion,
           onChanged: onReduceMotionChanged,
-          title: const Text('Reduce motion'),
-          subtitle: const Text(
-            'Dampen or skip non-essential animations, such as animated '
-            'scrolling when moving between search results or figures.',
-          ),
+          title: Text(l10n.settingsGeneralReduceMotionTitle),
+          subtitle: Text(l10n.settingsGeneralReduceMotionSubtitle),
           isThreeLine: true,
         ),
         SwitchListTile(
           key: const ValueKey('general-verbose-figures'),
           value: verboseFigureRendering,
           onChanged: onVerboseFigureRenderingChanged,
-          title: const Text('Always show verbose figure text'),
-          subtitle: const Text(
-            'Show the full spoken-style figure wording on screen in the dance '
-            'view, not only to screen readers. Turn off for the terse notation.',
-          ),
+          title: Text(l10n.settingsGeneralVerboseFiguresTitle),
+          subtitle: Text(l10n.settingsGeneralVerboseFiguresSubtitle),
           isThreeLine: true,
         ),
         SwitchListTile(
           key: const ValueKey('general-decimal-turns'),
           value: decimalTurns,
           onChanged: onDecimalTurnsChanged,
-          title: const Text('Show turns as decimals'),
-          subtitle: const Text(
-            'Show turn and rotation amounts as decimals (0.75) instead of '
-            'fractions (¾). Screen-reader wording is unaffected.',
-          ),
+          title: Text(l10n.settingsGeneralDecimalTurnsTitle),
+          subtitle: Text(l10n.settingsGeneralDecimalTurnsSubtitle),
           isThreeLine: true,
         ),
         SwitchListTile(
           key: const ValueKey('general-confirm-before-delete'),
           value: confirmBeforeDelete,
           onChanged: onConfirmBeforeDeleteChanged,
-          title: const Text('Confirm before delete'),
-          subtitle: const Text(
-            'Ask for confirmation before deleting a dance or program. Deletes '
-            'can still be undone; this just adds an explicit prompt first.',
-          ),
+          title: Text(l10n.settingsGeneralConfirmBeforeDeleteTitle),
+          subtitle: Text(l10n.settingsGeneralConfirmBeforeDeleteSubtitle),
           isThreeLine: true,
         ),
-        SectionHeader(title: 'Deleted items'),
+        SectionHeader(title: l10n.settingsGeneralDeletedItemsHeader),
         ListTile(
-          title: const Text('Keep deleted dances for'),
-          subtitle: const Text(
-            'Deleted dances are kept for this long before being permanently '
-            'removed on app launch. Never keeps them until you purge manually.',
-          ),
+          title: Text(l10n.settingsGeneralSoftDeleteRetentionTitle),
+          subtitle: Text(l10n.settingsGeneralSoftDeleteRetentionSubtitle),
           isThreeLine: true,
           trailing: DropdownButton<int>(
             key: const ValueKey('general-soft-delete-retention'),
@@ -721,46 +683,43 @@ class _GeneralView extends StatelessWidget {
             },
             items: [
               for (final days in kSoftDeleteRetentionDayOptions)
-                DropdownMenuItem(value: days, child: Text('$days days')),
-              const DropdownMenuItem(
+                DropdownMenuItem(
+                  value: days,
+                  child: Text(
+                    l10n.settingsGeneralSoftDeleteRetentionDays(days),
+                  ),
+                ),
+              DropdownMenuItem(
                 value: kSoftDeleteRetentionNever,
-                child: Text('Never'),
+                child: Text(l10n.settingsGeneralSoftDeleteRetentionNever),
               ),
             ],
           ),
         ),
-        SectionHeader(title: 'Import'),
+        SectionHeader(title: l10n.settingsGeneralImportHeader),
         ListTile(
-          title: const Text('Import dances'),
-          subtitle: const Text(
-            "Bring dances into your collection from a Caller's Compendium JSON "
-            'file. You review every dance and confirm before anything is added.',
-          ),
+          title: Text(l10n.importDances),
+          subtitle: Text(l10n.settingsGeneralImportDancesSubtitle),
           isThreeLine: true,
           trailing: OutlinedButton.icon(
             key: const ValueKey('import-dances-button'),
             onPressed: onImportDances,
             icon: const Icon(Icons.file_download_outlined),
-            label: const Text('Import…'),
+            label: Text(l10n.settingsGeneralImportEllipsisAction),
           ),
         ),
         ListTile(
-          title: const Text('Re-check custom figures'),
-          subtitle: const Text(
-            'Re-parse imported dances whose figures were kept as custom only '
-            'because they could not be recognised at import time. Improved '
-            'parsing upgrades them in place — your tags, ratings, and notes '
-            'are preserved. You preview and confirm before anything changes.',
-          ),
+          title: Text(l10n.settingsGeneralReparseCustomFiguresTitle),
+          subtitle: Text(l10n.settingsGeneralReparseCustomFiguresSubtitle),
           isThreeLine: true,
           trailing: OutlinedButton.icon(
             key: const ValueKey('reparse-custom-figures-button'),
             onPressed: onReparseCustomFigures,
             icon: const Icon(Icons.auto_fix_high_outlined),
-            label: const Text('Re-check…'),
+            label: Text(l10n.settingsGeneralReparseCustomFiguresAction),
           ),
         ),
-        SectionHeader(title: 'Backup & restore'),
+        SectionHeader(title: l10n.settingsGeneralBackupRestoreHeader),
         ..._buildBackupSection(context),
       ],
     );
@@ -770,47 +729,44 @@ class _GeneralView extends StatelessWidget {
   /// JSON file, restore from one (destructive replace, behind a confirm), a
   /// reminder cadence, and a "Last backup" line with a gentle overdue hint.
   List<Widget> _buildBackupSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final overdue = isBackupOverdue(
       cadence: backupCadence,
       lastBackupAt: lastBackupAt,
       now: DateTime.now(),
     );
     final lastBackupLabel = lastBackupAt == null
-        ? 'Last backup: never'
-        : 'Last backup: '
-              '${MaterialLocalizations.of(context).formatMediumDate(lastBackupAt!.toLocal())}';
+        ? l10n.backupLastBackupNever
+        : l10n.backupLastBackupDate(
+            MaterialLocalizations.of(
+              context,
+            ).formatMediumDate(lastBackupAt!.toLocal()),
+          );
     return [
       ListTile(
-        title: const Text('Export a backup'),
-        subtitle: const Text(
-          'Save your entire collection, programs, custom fields, dialects, '
-          'themes, and settings to a single JSON file you can keep safe or '
-          'move to another device.',
-        ),
+        title: Text(l10n.backupExportTitle),
+        subtitle: Text(l10n.backupExportSubtitle),
         isThreeLine: true,
         trailing: FilledButton.tonalIcon(
           key: const ValueKey('backup-export-button'),
           onPressed: onExportBackup,
           icon: const Icon(Icons.file_upload_outlined),
-          label: const Text('Export'),
+          label: Text(l10n.backupExportAction),
         ),
       ),
       ListTile(
-        title: const Text('Restore from a backup'),
-        subtitle: const Text(
-          'Replace everything currently in the app with the contents of a '
-          'backup file. This cannot be undone.',
-        ),
+        title: Text(l10n.backupRestoreTitle),
+        subtitle: Text(l10n.backupRestoreSubtitle),
         isThreeLine: true,
         trailing: OutlinedButton.icon(
           key: const ValueKey('backup-restore-button'),
           onPressed: onRestoreBackup,
           icon: const Icon(Icons.file_download_outlined),
-          label: const Text('Restore'),
+          label: Text(l10n.backupRestoreAction),
         ),
       ),
       ListTile(
-        title: const Text('Backup reminder'),
+        title: Text(l10n.backupReminderTitle),
         subtitle: Text(lastBackupLabel),
         trailing: DropdownButton<BackupReminderCadence>(
           key: const ValueKey('backup-reminder-cadence'),
@@ -818,18 +774,18 @@ class _GeneralView extends StatelessWidget {
           onChanged: (value) {
             if (value != null) onBackupCadenceChanged(value);
           },
-          items: const [
+          items: [
             DropdownMenuItem(
               value: BackupReminderCadence.off,
-              child: Text('Off'),
+              child: Text(l10n.backupReminderOff),
             ),
             DropdownMenuItem(
               value: BackupReminderCadence.weekly,
-              child: Text('Weekly'),
+              child: Text(l10n.backupReminderWeekly),
             ),
             DropdownMenuItem(
               value: BackupReminderCadence.monthly,
-              child: Text('Monthly'),
+              child: Text(l10n.backupReminderMonthly),
             ),
           ],
         ),
@@ -853,8 +809,7 @@ class _GeneralView extends StatelessWidget {
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
-                  "It's been a while since your last backup — consider "
-                  'exporting one now.',
+                  l10n.backupOverdueHint,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -907,27 +862,24 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hasContent = _controller.text.trim().isNotEmpty;
     return AlertDialog(
       key: const ValueKey('restore-backup-dialog'),
-      title: const Text('Restore from a backup'),
+      title: Text(l10n.backupRestoreTitle),
       content: SizedBox(
         width: 420,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Restoring replaces everything currently in the app — your '
-              'collection, programs, dialects, themes, and settings — with the '
-              "backup's contents. This cannot be undone.",
-            ),
+            Text(l10n.backupRestoreDialogBody),
             const SizedBox(height: AppSpacing.md),
             OutlinedButton.icon(
               key: const ValueKey('restore-choose-file'),
               onPressed: _picking ? null : _chooseFile,
               icon: const Icon(Icons.folder_open_outlined),
-              label: const Text('Choose file…'),
+              label: Text(l10n.backupChooseFileAction),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextField(
@@ -936,9 +888,9 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
               minLines: 3,
               maxLines: 6,
               onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Or paste backup JSON',
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: l10n.backupPasteJsonLabel,
               ),
             ),
           ],
@@ -948,14 +900,14 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
         TextButton(
           key: const ValueKey('restore-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('restore-confirm'),
           onPressed: hasContent
               ? () => Navigator.of(context).pop(_controller.text)
               : null,
-          child: const Text('Replace all data'),
+          child: Text(l10n.backupReplaceAllDataAction),
         ),
       ],
     );
@@ -973,8 +925,8 @@ class _ExportChoice {
 
 /// Coarse, advisory passphrase-strength label (issue #461). Purely a UX hint —
 /// export is never blocked on strength, only on a non-empty, matching confirm.
-({String label, double fraction}) _passphraseStrength(String value) {
-  if (value.isEmpty) return (label: '', fraction: 0);
+({String level, double fraction}) _passphraseStrength(String value) {
+  if (value.isEmpty) return (level: '', fraction: 0);
   var score = 0;
   if (value.length >= 8) score++;
   if (value.length >= 12) score++;
@@ -987,9 +939,9 @@ class _ExportChoice {
   ].where((r) => r.hasMatch(value)).length;
   if (classes >= 2) score++;
   if (classes >= 3) score++;
-  if (score <= 1) return (label: 'Weak', fraction: 0.25);
-  if (score <= 3) return (label: 'Fair', fraction: 0.6);
-  return (label: 'Strong', fraction: 1);
+  if (score <= 1) return (level: 'weak', fraction: 0.25);
+  if (score <= 3) return (level: 'fair', fraction: 0.6);
+  return (level: 'strong', fraction: 1);
 }
 
 /// Export-options dialog (issue #461): plain JSON by default, with an opt-in to
@@ -1035,6 +987,7 @@ class _EncryptExportDialogState extends State<_EncryptExportDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final passphrasesDiffer =
         _encrypt &&
         _confirm.text.isNotEmpty &&
@@ -1042,7 +995,7 @@ class _EncryptExportDialogState extends State<_EncryptExportDialog> {
     final strength = _passphraseStrength(_passphrase.text);
     return AlertDialog(
       key: const ValueKey('export-backup-dialog'),
-      title: const Text('Export a backup'),
+      title: Text(l10n.backupExportTitle),
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
@@ -1050,22 +1003,15 @@ class _EncryptExportDialogState extends State<_EncryptExportDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'This saves everything in the app — your collection, programs, '
-                'dialects, themes, and settings — to a file you can keep or '
-                'move to another device.',
-              ),
+              Text(l10n.backupExportDialogBody),
               const SizedBox(height: AppSpacing.sm),
               SwitchListTile(
                 key: const ValueKey('export-encrypt-toggle'),
                 contentPadding: EdgeInsets.zero,
                 value: _encrypt,
                 onChanged: (v) => setState(() => _encrypt = v),
-                title: const Text('Encrypt this backup with a passphrase'),
-                subtitle: const Text(
-                  'Protects the file so only someone with the passphrase can '
-                  'open it.',
-                ),
+                title: Text(l10n.backupEncryptToggleTitle),
+                subtitle: Text(l10n.backupEncryptToggleSubtitle),
               ),
               if (_encrypt) ...[
                 const SizedBox(height: AppSpacing.sm),
@@ -1077,7 +1023,7 @@ class _EncryptExportDialogState extends State<_EncryptExportDialog> {
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
-                    labelText: 'Passphrase',
+                    labelText: l10n.backupPassphraseLabel,
                     suffixIcon: IconButton(
                       key: const ValueKey('export-passphrase-visibility'),
                       icon: Icon(
@@ -1085,7 +1031,9 @@ class _EncryptExportDialogState extends State<_EncryptExportDialog> {
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
                       ),
-                      tooltip: _obscure ? 'Show passphrase' : 'Hide passphrase',
+                      tooltip: _obscure
+                          ? l10n.backupShowPassphrase
+                          : l10n.backupHidePassphrase,
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                   ),
@@ -1099,13 +1047,13 @@ class _EncryptExportDialogState extends State<_EncryptExportDialog> {
                   onSubmitted: (_) => _submit(),
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
-                    labelText: 'Confirm passphrase',
+                    labelText: l10n.backupConfirmPassphraseLabel,
                     errorText: passphrasesDiffer
-                        ? "Passphrases don't match"
+                        ? l10n.backupPassphrasesDontMatch
                         : null,
                   ),
                 ),
-                if (strength.label.isNotEmpty) ...[
+                if (strength.level.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: [
@@ -1117,7 +1065,7 @@ class _EncryptExportDialogState extends State<_EncryptExportDialog> {
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Text(
-                        'Strength: ${strength.label}',
+                        l10n.backupPassphraseStrength(strength.level),
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -1141,9 +1089,7 @@ class _EncryptExportDialogState extends State<_EncryptExportDialog> {
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          "We can't recover this passphrase. If you lose it, "
-                          'this backup can never be opened — there is no reset '
-                          'and no recovery. Store it somewhere safe.',
+                          l10n.backupNoRecoveryWarning,
                           style: TextStyle(
                             color: theme.colorScheme.onErrorContainer,
                           ),
@@ -1161,12 +1107,16 @@ class _EncryptExportDialogState extends State<_EncryptExportDialog> {
         TextButton(
           key: const ValueKey('export-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('export-confirm'),
           onPressed: _canExport ? _submit : null,
-          child: Text(_encrypt ? 'Encrypt & export' : 'Export'),
+          child: Text(
+            _encrypt
+                ? l10n.backupEncryptAndExportAction
+                : l10n.backupExportAction,
+          ),
         ),
       ],
     );
@@ -1200,20 +1150,18 @@ class _PassphrasePromptDialogState extends State<_PassphrasePromptDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hasContent = _controller.text.isNotEmpty;
     return AlertDialog(
       key: const ValueKey('decrypt-passphrase-dialog'),
-      title: const Text('Enter passphrase'),
+      title: Text(l10n.backupEnterPassphraseTitle),
       content: SizedBox(
         width: 420,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'This backup is encrypted. Enter its passphrase to unlock and '
-              'restore it.',
-            ),
+            Text(l10n.backupEnterPassphraseBody),
             const SizedBox(height: AppSpacing.md),
             TextField(
               key: const ValueKey('decrypt-passphrase-field'),
@@ -1224,7 +1172,7 @@ class _PassphrasePromptDialogState extends State<_PassphrasePromptDialog> {
               onSubmitted: (_) => _submit(),
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
-                labelText: 'Passphrase',
+                labelText: l10n.backupPassphraseLabel,
                 suffixIcon: IconButton(
                   key: const ValueKey('decrypt-passphrase-visibility'),
                   icon: Icon(
@@ -1232,7 +1180,9 @@ class _PassphrasePromptDialogState extends State<_PassphrasePromptDialog> {
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
                   ),
-                  tooltip: _obscure ? 'Show passphrase' : 'Hide passphrase',
+                  tooltip: _obscure
+                      ? l10n.backupShowPassphrase
+                      : l10n.backupHidePassphrase,
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
@@ -1244,12 +1194,12 @@ class _PassphrasePromptDialogState extends State<_PassphrasePromptDialog> {
         TextButton(
           key: const ValueKey('decrypt-cancel'),
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           key: const ValueKey('decrypt-confirm'),
           onPressed: hasContent ? _submit : null,
-          child: const Text('Unlock & restore'),
+          child: Text(l10n.backupUnlockAndRestoreAction),
         ),
       ],
     );
