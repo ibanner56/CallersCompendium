@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/custom_fields_screen.dart';
 
+import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
 // ---------------------------------------------------------------------------
@@ -20,6 +21,8 @@ Future<void> _pumpScreen(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
       builder: (_, child) =>
           RepositoriesScope(repositories: repos, child: child!),
       home: const CustomFieldsScreen(),

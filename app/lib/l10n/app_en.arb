@@ -4615,5 +4615,815 @@
         "example": "1.5"
       }
     }
+  },
+  "commonBack": "Back",
+  "@commonBack": {
+    "description": "Generic 'Back' affordance shared across screens."
+  },
+  "commonRemove": "Remove",
+  "@commonRemove": {
+    "description": "Generic 'Remove' affordance shared across screens."
+  },
+  "updateBannerDownloading": "Downloading {appName} {version}…",
+  "@updateBannerDownloading": {
+    "description": "Update banner status while the installer is downloading (no percentage yet).",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateBannerDownloadingPct": "Downloading {appName} {version}… {pct}%",
+  "@updateBannerDownloadingPct": {
+    "description": "Update banner status while downloading, with completion percentage.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "updateBannerVerifying": "Verifying {appName} {version}…",
+  "@updateBannerVerifying": {
+    "description": "Update banner status while the downloaded installer is being sha256-verified.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateBannerPreparingInstaller": "Preparing the installer…",
+  "@updateBannerPreparingInstaller": {
+    "description": "Update banner status while handing the verified installer off to the OS."
+  },
+  "updateBannerCompletedRevealed": "{appName} {version} downloaded and verified — we revealed the installer in your file manager. Run it to finish updating.",
+  "@updateBannerCompletedRevealed": {
+    "description": "Update banner status after a successful download+verify when the installer was revealed in the OS file manager.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateBannerCompletedManual": "{appName} {version} downloaded — follow the installer to finish updating.",
+  "@updateBannerCompletedManual": {
+    "description": "Update banner status after a successful download when the installer was not auto-revealed.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateBannerDownloadFailed": "The update could not be downloaded.",
+  "@updateBannerDownloadFailed": {
+    "description": "Fallback update-banner error shown when the assisted download fails and no specific message is available."
+  },
+  "updateBannerAvailable": "A newer version of {appName} ({version}) is available.",
+  "@updateBannerAvailable": {
+    "description": "Update banner message when a newer version is available (idle/cancelled state).",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateBannerViewRelease": "View release",
+  "@updateBannerViewRelease": {
+    "description": "Update banner action that opens the release notes web page."
+  },
+  "updateBannerDismiss": "Dismiss",
+  "@updateBannerDismiss": {
+    "description": "Update banner action that dismisses the banner for this version."
+  },
+  "updateBannerDownloadInstall": "Download & install",
+  "@updateBannerDownloadInstall": {
+    "description": "Update banner action that starts the assisted download-and-install flow."
+  },
+  "commandPaletteBarrierLabel": "Global search",
+  "@commandPaletteBarrierLabel": {
+    "description": "Screen-reader barrier label for the global command-palette dialog."
+  },
+  "commandPaletteSearchHint": "Search dances and programs…",
+  "@commandPaletteSearchHint": {
+    "description": "Placeholder hint in the command-palette search field."
+  },
+  "commandPaletteProgramSubtitle": "Program",
+  "@commandPaletteProgramSubtitle": {
+    "description": "Subtitle shown under a program result in the command palette."
+  },
+  "commandPaletteEmptyInitial": "Nothing to search yet.",
+  "@commandPaletteEmptyInitial": {
+    "description": "Command-palette empty state before the user has typed a query."
+  },
+  "commandPaletteNoMatches": "No matches for that search.",
+  "@commandPaletteNoMatches": {
+    "description": "Command-palette empty state when a query matches nothing."
+  },
+  "commandPaletteGroupDances": "Dances",
+  "@commandPaletteGroupDances": {
+    "description": "Command-palette group header for dance results."
+  },
+  "commandPaletteGroupPrograms": "Programs",
+  "@commandPaletteGroupPrograms": {
+    "description": "Command-palette group header for program results."
+  },
+  "collectionPickerSearchLabel": "Find a dance to add",
+  "@collectionPickerSearchLabel": {
+    "description": "Label for the search field in the collection picker (adding a dance to a program)."
+  },
+  "collectionPickerFilters": "{count, plural, =0{Filters} other{Filters ({count} active)}}",
+  "@collectionPickerFilters": {
+    "description": "Collection-picker Filters section header; shows the number of active filters when any are set.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionPickerByPhrase": "{count, plural, =0{By phrase} other{By phrase ({count} active)}}",
+  "@collectionPickerByPhrase": {
+    "description": "Collection-picker By-phrase section header; shows the number of active phrase conditions when any are set.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "collectionPickerAdvanced": "Advanced",
+  "@collectionPickerAdvanced": {
+    "description": "Collection-picker advanced-search section header."
+  },
+  "collectionPickerUseAdvancedQuery": "Use advanced query",
+  "@collectionPickerUseAdvancedQuery": {
+    "description": "Collection-picker toggle enabling the advanced structured query builder."
+  },
+  "collectionPickerAdvancedQueryHelp": "Combine figures and sequences with all / any / none groups.",
+  "@collectionPickerAdvancedQueryHelp": {
+    "description": "Helper text describing the advanced query builder in the collection picker."
+  },
+  "collectionPickerAddSemantic": "Add {title} to program",
+  "@collectionPickerAddSemantic": {
+    "description": "Screen-reader label for the button that adds a dance to the program.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "collectionPickerAddTooltip": "Add {title}",
+  "@collectionPickerAddTooltip": {
+    "description": "Tooltip for the button that adds a dance to the program.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "userGuideTitle": "User guide",
+  "@userGuideTitle": {
+    "description": "App-bar title for the user-guide hub."
+  },
+  "userGuideMissing": "The \"{label}\" guide isn't available yet.",
+  "@userGuideMissing": {
+    "description": "Snackbar shown when the user taps an internal guide link whose target guide does not exist yet. {label} is the linked guide's title.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "userGuideLoadError": "The user guide could not be loaded.",
+  "@userGuideLoadError": {
+    "description": "Message shown when the bundled user-guide content fails to load."
+  },
+  "userGuideOpenOnline": "Open the guide online",
+  "@userGuideOpenOnline": {
+    "description": "Action that opens the user guide on the web when local content is unavailable."
+  },
+  "shorthandMappingsTitle": "Figure shorthands",
+  "@shorthandMappingsTitle": {
+    "description": "App-bar title for the figure-shorthand mappings manager."
+  },
+  "shorthandMappingsIntro": "Shorthands let you type a short token during free-text entry and have it expand to one or more figures you have set up here.",
+  "@shorthandMappingsIntro": {
+    "description": "Intro paragraph explaining what figure shorthands do."
+  },
+  "shorthandMappingsNew": "New shorthand",
+  "@shorthandMappingsNew": {
+    "description": "Button that creates a new figure-shorthand mapping."
+  },
+  "shorthandMappingsEmpty": "No shorthands yet.",
+  "@shorthandMappingsEmpty": {
+    "description": "Empty state when the user has no figure-shorthand mappings."
+  },
+  "shorthandMappingsDeleteTitle": "Delete shorthand?",
+  "@shorthandMappingsDeleteTitle": {
+    "description": "Title of the confirm-delete dialog for a figure-shorthand mapping."
+  },
+  "shorthandMappingsDeleteBody": "“{token}” will be permanently removed.",
+  "@shorthandMappingsDeleteBody": {
+    "description": "Body of the confirm-delete dialog; {token} is the user's shorthand token, rendered as plain text.",
+    "placeholders": {
+      "token": {
+        "type": "String"
+      }
+    }
+  },
+  "shorthandMappingsActionsTooltip": "Shorthand actions",
+  "@shorthandMappingsActionsTooltip": {
+    "description": "Tooltip for the per-row overflow menu in the shorthand manager."
+  },
+  "shorthandEditorTitleNew": "New shorthand",
+  "@shorthandEditorTitleNew": {
+    "description": "App-bar title when creating a new figure-shorthand mapping."
+  },
+  "shorthandEditorTitleEdit": "Edit shorthand",
+  "@shorthandEditorTitleEdit": {
+    "description": "App-bar title when editing an existing figure-shorthand mapping."
+  },
+  "shorthandEditorTokenLabel": "Shorthand",
+  "@shorthandEditorTokenLabel": {
+    "description": "Label for the shorthand-token text field."
+  },
+  "shorthandEditorTokenHelper": "Type this exact line during free-text entry to insert the figures below. Matched case-insensitively.",
+  "@shorthandEditorTokenHelper": {
+    "description": "Helper text under the shorthand-token field."
+  },
+  "shorthandEditorExpandsTo": "Expands to",
+  "@shorthandEditorExpandsTo": {
+    "description": "Section header for the figures a shorthand expands to."
+  },
+  "shorthandEditorExpandsToHelp": "The figure(s) this shorthand inserts, in order. Built exactly like a normal figure, so parameters and validation are the same.",
+  "@shorthandEditorExpandsToHelp": {
+    "description": "Helper text under the 'Expands to' section header."
+  },
+  "shorthandEditorErrorEmpty": "Enter a shorthand token.",
+  "@shorthandEditorErrorEmpty": {
+    "description": "Validation error when the shorthand token is empty."
+  },
+  "shorthandEditorErrorTooLong": "Shorthand is too long (max {max} characters).",
+  "@shorthandEditorErrorTooLong": {
+    "description": "Validation error when the shorthand token exceeds the maximum length.",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "shorthandEditorErrorDuplicate": "Another shorthand already uses \"{token}\" (shorthands are matched case-insensitively).",
+  "@shorthandEditorErrorDuplicate": {
+    "description": "Validation error when the shorthand token duplicates an existing one; {token} is the user's token, rendered as plain text.",
+    "placeholders": {
+      "token": {
+        "type": "String"
+      }
+    }
+  },
+  "shorthandEditorErrorNoFigures": "Add at least one figure for this shorthand to expand to.",
+  "@shorthandEditorErrorNoFigures": {
+    "description": "Validation error when no target figures have been added to a shorthand."
+  },
+  "themeEditorTitle": "Edit theme",
+  "@themeEditorTitle": {
+    "description": "App-bar title for the theme editor."
+  },
+  "themeEditorNameLabel": "Theme name",
+  "@themeEditorNameLabel": {
+    "description": "Label for the theme-name text field."
+  },
+  "themeEditorContrastAllPass": "All checked pairs pass WCAG AA contrast.",
+  "@themeEditorContrastAllPass": {
+    "description": "Status shown when every checked colour pair meets WCAG AA contrast."
+  },
+  "themeEditorContrastFailing": "{count, plural, =1{1 contrast pair below WCAG AA. You can still save, but some text may be hard to read.} other{{count} contrast pairs below WCAG AA. You can still save, but some text may be hard to read.}}",
+  "@themeEditorContrastFailing": {
+    "description": "Warning shown when one or more colour pairs fall below WCAG AA contrast.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "themeEditorRatioPass": "{ratio}:1 AA",
+  "@themeEditorRatioPass": {
+    "description": "Contrast-ratio chip when the pair passes WCAG AA; {ratio} is the formatted ratio.",
+    "placeholders": {
+      "ratio": {
+        "type": "String"
+      }
+    }
+  },
+  "themeEditorRatioFail": "{ratio}:1 fail",
+  "@themeEditorRatioFail": {
+    "description": "Contrast-ratio chip when the pair fails WCAG AA; {ratio} is the formatted ratio.",
+    "placeholders": {
+      "ratio": {
+        "type": "String"
+      }
+    }
+  },
+  "themeEditorPreviewHeading": "Aa Preview",
+  "@themeEditorPreviewHeading": {
+    "description": "Heading of the live theme-preview card ('Aa' is a font specimen)."
+  },
+  "themeEditorBodySample": "Body text sample",
+  "@themeEditorBodySample": {
+    "description": "Sample body-text line in the theme preview."
+  },
+  "themeEditorSwatchPrimary": "Primary",
+  "@themeEditorSwatchPrimary": {
+    "description": "Label for the primary colour swatch."
+  },
+  "themeEditorSwatchSecondary": "Secondary",
+  "@themeEditorSwatchSecondary": {
+    "description": "Label for the secondary colour swatch."
+  },
+  "themeEditorSwatchTertiary": "Tertiary",
+  "@themeEditorSwatchTertiary": {
+    "description": "Label for the tertiary colour swatch."
+  },
+  "themeEditorSwatchError": "Error",
+  "@themeEditorSwatchError": {
+    "description": "Label for the error colour swatch."
+  },
+  "reparseConfirmTitle": "Upgrade custom figures?",
+  "@reparseConfirmTitle": {
+    "description": "Title of the confirm dialog before re-parsing custom figures."
+  },
+  "reparseConfirmBody": "This will re-parse {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Your tags, ratings, notes, and everything else on each dance are kept exactly as they are. This only replaces figures that now recognise a known move.",
+  "@reparseConfirmBody": {
+    "description": "Body of the confirm dialog before upgrading custom figures.",
+    "placeholders": {
+      "figureCount": {
+        "type": "int"
+      },
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "reparseConfirmUpgrade": "Upgrade",
+  "@reparseConfirmUpgrade": {
+    "description": "Confirm-dialog action that performs the custom-figure upgrade."
+  },
+  "reparseFailed": "Could not upgrade figures. Please try again.",
+  "@reparseFailed": {
+    "description": "Snackbar shown when the custom-figure upgrade fails."
+  },
+  "reparseNothingUpgradedSnack": "Nothing to upgrade.",
+  "@reparseNothingUpgradedSnack": {
+    "description": "Snackbar shown when an upgrade run changed nothing."
+  },
+  "reparseUpgradedSnack": "Upgraded custom figures in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}.",
+  "@reparseUpgradedSnack": {
+    "description": "Snackbar confirming how many dances had custom figures upgraded.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "reparseScreenTitle": "Re-check custom figures",
+  "@reparseScreenTitle": {
+    "description": "App-bar title for the re-check custom figures screen."
+  },
+  "reparseIntro": "Improved figure parsing can upgrade {figureCount, plural, =1{1 figure} other{{figureCount} figures}} in {danceCount, plural, =1{1 dance} other{{danceCount} dances}}. Review below, then confirm — nothing changes until you do, and all your tags, ratings, and notes are preserved.",
+  "@reparseIntro": {
+    "description": "Intro paragraph on the re-check custom figures screen.",
+    "placeholders": {
+      "figureCount": {
+        "type": "int"
+      },
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "reparsePreviewCount": "{count, plural, =1{1 figure} other{{count} figures}} to upgrade",
+  "@reparsePreviewCount": {
+    "description": "Per-dance preview label showing how many figures would be upgraded.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reparseUpgradeButton": "Upgrade {danceCount, plural, =1{1 dance} other{{danceCount} dances}}",
+  "@reparseUpgradeButton": {
+    "description": "Primary button that upgrades custom figures across the affected dances.",
+    "placeholders": {
+      "danceCount": {
+        "type": "int"
+      }
+    }
+  },
+  "reparseEmptyTitle": "Nothing to upgrade",
+  "@reparseEmptyTitle": {
+    "description": "Title of the empty state when no custom figures can be upgraded."
+  },
+  "reparseEmptyBody": "None of your custom figures from imports can be recognised as a known move right now. Check back after a future update improves figure parsing.",
+  "@reparseEmptyBody": {
+    "description": "Body of the empty state when no custom figures can be upgraded."
+  },
+  "reparseErrorTitle": "Could not check your figures",
+  "@reparseErrorTitle": {
+    "description": "Title of the error state when scanning for upgradable figures fails."
+  },
+  "reparseErrorBody": "Something went wrong while scanning your collection. Nothing was changed. You can try again.",
+  "@reparseErrorBody": {
+    "description": "Body of the error state when scanning for upgradable figures fails."
+  },
+  "customFieldsDeleteTitle": "Delete custom field",
+  "@customFieldsDeleteTitle": {
+    "description": "Title of the confirm-delete dialog for a custom field."
+  },
+  "customFieldsDeleteBody": "Delete \"{label}\"? This cannot be undone.",
+  "@customFieldsDeleteBody": {
+    "description": "Body of the confirm-delete dialog; {label} is the field's display label, rendered as plain text.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "customFieldsDeleteInUse": "Can't delete \"{label}\": still used by {count, plural, =1{1 dance} other{{count} dances}}. Remove the value from all dances first.",
+  "@customFieldsDeleteInUse": {
+    "description": "Snackbar when deleting a custom field still set on dances (count known). The raw exception is logged (debugPrint), never shown, so storage internals can't leak to the UI (CWE-209). {label} is plain text.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "customFieldsDeleteInUseUnknown": "Can't delete \"{label}\": still used by some dances. Remove the value from all dances first.",
+  "@customFieldsDeleteInUseUnknown": {
+    "description": "Snackbar when deleting a custom field still set on dances but the exact count is unknown. The raw exception is logged (debugPrint), never shown (CWE-209). {label} is plain text.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "customFieldsTitle": "Custom fields",
+  "@customFieldsTitle": {
+    "description": "App-bar title for the custom-fields manager."
+  },
+  "customFieldsNewField": "New field",
+  "@customFieldsNewField": {
+    "description": "Button that creates a new custom field."
+  },
+  "customFieldsLoadError": "Could not load custom fields.",
+  "@customFieldsLoadError": {
+    "description": "Error shown when the custom-field definitions fail to load."
+  },
+  "customFieldsEmpty": "No custom fields yet.\nTap + to define one.",
+  "@customFieldsEmpty": {
+    "description": "Empty state when no custom fields are defined."
+  },
+  "customFieldsFlagInList": "In list",
+  "@customFieldsFlagInList": {
+    "description": "Subtitle chip indicating a custom field is shown in the dance list."
+  },
+  "customFieldsSearchable": "Searchable",
+  "@customFieldsSearchable": {
+    "description": "Label/chip indicating a custom field is exposed as a search filter."
+  },
+  "customFieldsTypeText": "Text",
+  "@customFieldsTypeText": {
+    "description": "Custom-field type: free text."
+  },
+  "customFieldsTypeNumber": "Number",
+  "@customFieldsTypeNumber": {
+    "description": "Custom-field type: number."
+  },
+  "customFieldsTypeBoolean": "Boolean",
+  "@customFieldsTypeBoolean": {
+    "description": "Custom-field type: yes/no boolean."
+  },
+  "customFieldsTypeChoice": "Choice",
+  "@customFieldsTypeChoice": {
+    "description": "Custom-field type: single choice from a list."
+  },
+  "customFieldsValidatorMinChoice": "Add at least one choice",
+  "@customFieldsValidatorMinChoice": {
+    "description": "Validation error when a choice-type field has no choices defined."
+  },
+  "customFieldsRemoveValueError": "Can't remove \"{value}\": it's set on at least one dance.",
+  "@customFieldsRemoveValueError": {
+    "description": "Inline error when removing a choice value that is still set on a dance; {value} is plain text.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "customFieldsEditorNewTitle": "New custom field",
+  "@customFieldsEditorNewTitle": {
+    "description": "Editor title when creating a new custom field."
+  },
+  "customFieldsEditorEditTitle": "Edit custom field",
+  "@customFieldsEditorEditTitle": {
+    "description": "Editor title when editing an existing custom field."
+  },
+  "customFieldsLabelLabel": "Label *",
+  "@customFieldsLabelLabel": {
+    "description": "Label for the custom-field display-label input (required)."
+  },
+  "customFieldsLabelRequired": "Label is required",
+  "@customFieldsLabelRequired": {
+    "description": "Validation error when the custom-field label is empty."
+  },
+  "customFieldsKeyLabel": "Key *",
+  "@customFieldsKeyLabel": {
+    "description": "Label for the custom-field machine-key input (required)."
+  },
+  "customFieldsKeyHelper": "Stable machine key (letters, digits, underscores; must start with a letter or underscore)",
+  "@customFieldsKeyHelper": {
+    "description": "Helper text describing the machine-key format."
+  },
+  "customFieldsKeyLocked": "Key is locked — field is in use on dances",
+  "@customFieldsKeyLocked": {
+    "description": "Helper text when the machine key can't be edited because the field is in use."
+  },
+  "customFieldsKeyRequired": "Key is required",
+  "@customFieldsKeyRequired": {
+    "description": "Validation error when the machine key is empty."
+  },
+  "customFieldsKeyInvalid": "Key must start with a letter or underscore and contain only letters, digits, and underscores",
+  "@customFieldsKeyInvalid": {
+    "description": "Validation error when the machine key has invalid characters."
+  },
+  "customFieldsTypeFieldLabel": "Type",
+  "@customFieldsTypeFieldLabel": {
+    "description": "Label for the custom-field type picker."
+  },
+  "customFieldsTypeLocked": "Type is locked — field has values on dances",
+  "@customFieldsTypeLocked": {
+    "description": "Helper text when the field type can't be changed because values exist."
+  },
+  "customFieldsShowInList": "Show in list",
+  "@customFieldsShowInList": {
+    "description": "Toggle title: show this field's value in the dance list tile."
+  },
+  "customFieldsShowInListSubtitle": "Display this field value in the dance list tile",
+  "@customFieldsShowInListSubtitle": {
+    "description": "Subtitle for the 'Show in list' toggle."
+  },
+  "customFieldsSearchableSubtitle": "Expose this field as a filter in the search panel",
+  "@customFieldsSearchableSubtitle": {
+    "description": "Subtitle for the 'Searchable' toggle."
+  },
+  "customFieldsChoicesLabel": "Choices *",
+  "@customFieldsChoicesLabel": {
+    "description": "Section label for the list of choices on a choice-type field (required)."
+  },
+  "customFieldsChoiceInUseTooltip": "In use — cannot remove",
+  "@customFieldsChoiceInUseTooltip": {
+    "description": "Tooltip/message for a choice value that is in use and can't be removed."
+  },
+  "customFieldsNewChoiceHint": "New choice…",
+  "@customFieldsNewChoiceHint": {
+    "description": "Placeholder for the input that adds a new choice value."
+  },
+  "customFieldsAddChoiceTooltip": "Add choice",
+  "@customFieldsAddChoiceTooltip": {
+    "description": "Tooltip for the button that adds a new choice value."
+  },
+  "dialectEditorTitle": "Edit {name}",
+  "@dialectEditorTitle": {
+    "description": "App-bar title for the dialect editor; {name} is the dialect name, plain text.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "dialectEditorSectionRoleTerms": "Role terms",
+  "@dialectEditorSectionRoleTerms": {
+    "description": "Dialect editor section header: role terms."
+  },
+  "dialectEditorSectionMoveSubs": "Move substitutions",
+  "@dialectEditorSectionMoveSubs": {
+    "description": "Dialect editor section header: move substitutions."
+  },
+  "dialectEditorSectionDancerSubs": "Dancer substitutions",
+  "@dialectEditorSectionDancerSubs": {
+    "description": "Dialect editor section header: dancer substitutions."
+  },
+  "dialectEditorSectionDiscouraged": "Discouraged terms",
+  "@dialectEditorSectionDiscouraged": {
+    "description": "Dialect editor section header: discouraged terms."
+  },
+  "dialectEditorSectionPreview": "Preview",
+  "@dialectEditorSectionPreview": {
+    "description": "Dialect editor section header: live preview."
+  },
+  "dialectEditorRole1": "Role 1",
+  "@dialectEditorRole1": {
+    "description": "Label for the first dance role in the dialect editor."
+  },
+  "dialectEditorRole2": "Role 2",
+  "@dialectEditorRole2": {
+    "description": "Label for the second dance role in the dialect editor."
+  },
+  "dialectEditorRolesHelp": "Leave a role blank to use the canonical term. Plural is derived when omitted.",
+  "@dialectEditorRolesHelp": {
+    "description": "Helper text for the role-terms section of the dialect editor."
+  },
+  "dialectEditorSingular": "Singular",
+  "@dialectEditorSingular": {
+    "description": "Label for the singular form of a role term."
+  },
+  "dialectEditorPlural": "Plural",
+  "@dialectEditorPlural": {
+    "description": "Label for the plural form of a role term."
+  },
+  "dialectEditorMoveSubsAdd": "Add move substitutions",
+  "@dialectEditorMoveSubsAdd": {
+    "description": "Collapsed header/empty state for the move-substitutions section."
+  },
+  "dialectEditorMoveSubsCount": "{count, plural, =1{1 move substitution} other{{count} move substitutions}}",
+  "@dialectEditorMoveSubsCount": {
+    "description": "Header showing how many move substitutions are defined.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dialectEditorMoveSubHint": "substitution (use %S for handedness)",
+  "@dialectEditorMoveSubHint": {
+    "description": "Hint for a move-substitution input; %S is a literal handedness token the user types."
+  },
+  "dialectEditorAddMove": "Add a move…",
+  "@dialectEditorAddMove": {
+    "description": "Placeholder for the dropdown that adds a move to substitute."
+  },
+  "dialectEditorDancerSubsAdd": "Add dancer substitutions",
+  "@dialectEditorDancerSubsAdd": {
+    "description": "Collapsed header/empty state for the dancer-substitutions section."
+  },
+  "dialectEditorDancerSubsCount": "{count, plural, =1{1 dancer substitution} other{{count} dancer substitutions}}",
+  "@dialectEditorDancerSubsCount": {
+    "description": "Header showing how many dancer substitutions are defined.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dialectEditorDancerSubHint": "substitution",
+  "@dialectEditorDancerSubHint": {
+    "description": "Hint for a dancer-substitution input."
+  },
+  "dialectEditorAddDancerTerm": "Add a dancer term…",
+  "@dialectEditorAddDancerTerm": {
+    "description": "Placeholder for the dropdown that adds a dancer term to substitute."
+  },
+  "dialectEditorDiscouragedHelp": "Terms the entry editor flags (struck through) — never blocked.",
+  "@dialectEditorDiscouragedHelp": {
+    "description": "Helper text for the discouraged-terms section."
+  },
+  "dialectEditorDiscouragedEmpty": "No discouraged terms.",
+  "@dialectEditorDiscouragedEmpty": {
+    "description": "Empty state for the discouraged-terms section."
+  },
+  "dialectEditorAddTermLabel": "Add a term",
+  "@dialectEditorAddTermLabel": {
+    "description": "Label for the input that adds a discouraged term."
+  },
+  "dialectEditorAddTermTooltip": "Add term",
+  "@dialectEditorAddTermTooltip": {
+    "description": "Tooltip for the button that adds a discouraged term."
+  },
+  "dialectEditorRestoreDefaults": "Restore defaults",
+  "@dialectEditorRestoreDefaults": {
+    "description": "Button that restores the default discouraged-terms list."
+  },
+  "dialectEditorPreviewHelp": "Sample figures rendered with this dialect. Updates as you edit.",
+  "@dialectEditorPreviewHelp": {
+    "description": "Helper text for the dialect live-preview section."
+  },
+  "recentlyDeletedTitle": "Recently Deleted",
+  "@recentlyDeletedTitle": {
+    "description": "App-bar title for the recently-deleted (trash) screen."
+  },
+  "recentlyDeletedDeleteTitle": "Delete permanently?",
+  "@recentlyDeletedDeleteTitle": {
+    "description": "Title of the confirm permanent-delete dialog."
+  },
+  "recentlyDeletedDeleteBody": "\"{title}\" will be deleted immediately and cannot be recovered.",
+  "@recentlyDeletedDeleteBody": {
+    "description": "Body of the confirm permanent-delete dialog; {title} is the item title, plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "recentlyDeletedDeleteConfirm": "Delete permanently",
+  "@recentlyDeletedDeleteConfirm": {
+    "description": "Action/tooltip that permanently deletes a recently-deleted item."
+  },
+  "recentlyDeletedDeletedSnack": "\"{title}\" permanently deleted.",
+  "@recentlyDeletedDeletedSnack": {
+    "description": "Snackbar confirming a permanent delete; {title} is the item title, plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "recentlyDeletedRestore": "Restore",
+  "@recentlyDeletedRestore": {
+    "description": "Label for the button that restores a recently-deleted item."
+  },
+  "recentlyDeletedPurgeKept": "Kept until you delete it",
+  "@recentlyDeletedPurgeKept": {
+    "description": "Sublabel when an item is kept until manually deleted (no retention window)."
+  },
+  "recentlyDeletedPurgeCountdown": "Auto-deleted in {days, plural, =1{1 day} other{{days} days}}",
+  "@recentlyDeletedPurgeCountdown": {
+    "description": "Sublabel counting down days until an item is auto-purged.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "recentlyDeletedPurgeScheduled": "Scheduled for deletion",
+  "@recentlyDeletedPurgeScheduled": {
+    "description": "Sublabel when an item is past its retention window and scheduled for purge."
+  },
+  "recentlyDeletedLoadingDances": "Loading recently deleted dances",
+  "@recentlyDeletedLoadingDances": {
+    "description": "Loading label for the recently-deleted dances screen."
+  },
+  "recentlyDeletedLoadingPrograms": "Loading recently deleted programs",
+  "@recentlyDeletedLoadingPrograms": {
+    "description": "Loading label for the recently-deleted programs screen."
+  },
+  "recentlyDeletedEmptyDancesKept": "Nothing in the trash. Deleted dances are kept here until you remove them.",
+  "@recentlyDeletedEmptyDancesKept": {
+    "description": "Empty state for recently-deleted dances when there is no retention window."
+  },
+  "recentlyDeletedEmptyDancesRetention": "Nothing in the trash. Deleted dances appear here for {days} days before being removed.",
+  "@recentlyDeletedEmptyDancesRetention": {
+    "description": "Empty state for recently-deleted dances with a retention window of {days} days.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "recentlyDeletedEmptyProgramsRetention": "Nothing in the trash. Deleted programs appear here for {days} days before being removed.",
+  "@recentlyDeletedEmptyProgramsRetention": {
+    "description": "Empty state for recently-deleted programs with a retention window of {days} days.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "recentlyDeletedRestoredDance": "\"{title}\" restored to your collection.",
+  "@recentlyDeletedRestoredDance": {
+    "description": "Snackbar confirming a dance was restored; {title} is plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "recentlyDeletedRestoredProgram": "\"{title}\" restored.",
+  "@recentlyDeletedRestoredProgram": {
+    "description": "Snackbar confirming a program was restored; {title} is plain text.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
   }
 }

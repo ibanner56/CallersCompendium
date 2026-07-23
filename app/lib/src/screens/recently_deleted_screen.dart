@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../data/soft_delete_retention.dart';
 
@@ -24,10 +25,13 @@ class RecentlyDeletedConfig<T> {
     required this.titleOf,
     required this.deletedAtOf,
     required this.restoredMessage,
+    required this.loadingLabel,
+    this.emptyKept,
+    required this.emptyRetention,
   });
 
-  /// Lower-case plural entity noun ("dances" / "programs") used in the loading
-  /// semantics label and the empty-state copy.
+  /// Developer-only lower-case plural entity noun ("dances" / "programs") used
+  /// in the debug assert message below. Not user-facing (never localized).
   final String pluralNoun;
 
   /// Retention window shown on the first frame, before [loadRetention] (if any)
@@ -60,7 +64,18 @@ class RecentlyDeletedConfig<T> {
   final DateTime? Function(T item) deletedAtOf;
 
   /// Snackbar copy shown after a successful restore, given the item title.
-  final String Function(String title) restoredMessage;
+  final String Function(AppLocalizations l10n, String title) restoredMessage;
+
+  /// Accessibility label for the loading spinner (whole localized phrase).
+  final String Function(AppLocalizations l10n) loadingLabel;
+
+  /// Empty-state copy when auto-purge is off ("Never"). `null` for kinds whose
+  /// retention window is fixed and can never be "Never" (they always render
+  /// [emptyRetention]).
+  final String Function(AppLocalizations l10n)? emptyKept;
+
+  /// Empty-state copy given the configured retention window in days.
+  final String Function(AppLocalizations l10n, int days) emptyRetention;
 }
 
 /// Shows soft-deleted items with their purge-ETA and individual Restore and
@@ -153,25 +168,27 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
   Future<void> _restore(T item) async {
     await _config.restore(_repos, item);
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_config.restoredMessage(_config.titleOf(item)))),
+      SnackBar(
+        content: Text(_config.restoredMessage(l10n, _config.titleOf(item))),
+      ),
     );
     _reload();
   }
 
   Future<void> _permanentDelete(T item) async {
+    final l10n = AppLocalizations.of(context);
     final title = _config.titleOf(item);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete permanently?'),
-        content: Text(
-          '"$title" will be deleted immediately and cannot be recovered.',
-        ),
+        title: Text(l10n.recentlyDeletedDeleteTitle),
+        content: Text(l10n.recentlyDeletedDeleteBody(title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
             key: const ValueKey('confirm-permanent-delete'),
@@ -179,7 +196,7 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
               foregroundColor: Theme.of(ctx).colorScheme.error,
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete permanently'),
+            child: Text(l10n.recentlyDeletedDeleteConfirm),
           ),
         ],
       ),
@@ -187,24 +204,24 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
     if (confirmed != true || !mounted) return;
     await _config.permanentlyDelete(_repos, item);
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('"$title" permanently deleted.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.recentlyDeletedDeletedSnack(title))),
+    );
     _reload();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Recently Deleted')),
+      appBar: AppBar(title: Text(l10n.recentlyDeletedTitle)),
       body: FutureBuilder<List<T>>(
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return Center(
               child: CircularProgressIndicator(
-                semanticsLabel:
-                    'Loading recently deleted ${_config.pluralNoun}',
+                semanticsLabel: _config.loadingLabel(l10n),
               ),
             );
           }
@@ -217,11 +234,8 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
                 padding: const EdgeInsets.all(24),
                 child: Text(
                   retention == null
-                      ? 'Nothing in the trash. Deleted ${_config.pluralNoun} '
-                            'are kept here until you remove them.'
-                      : 'Nothing in the trash. Deleted ${_config.pluralNoun} '
-                            'appear here for ${retention.inDays} days before '
-                            'being removed.',
+                      ? _config.emptyKept!(l10n)
+                      : _config.emptyRetention(l10n, retention.inDays),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -283,7 +297,12 @@ final RecentlyDeletedConfig<Dance> danceRecentlyDeletedConfig =
       idOf: (dance) => dance.id,
       titleOf: (dance) => dance.title,
       deletedAtOf: (dance) => dance.deletedAt,
-      restoredMessage: (title) => '"$title" restored to your collection.',
+      restoredMessage: (l10n, title) =>
+          l10n.recentlyDeletedRestoredDance(title),
+      loadingLabel: (l10n) => l10n.recentlyDeletedLoadingDances,
+      emptyKept: (l10n) => l10n.recentlyDeletedEmptyDancesKept,
+      emptyRetention: (l10n, days) =>
+          l10n.recentlyDeletedEmptyDancesRetention(days),
     );
 
 /// Config for the programs "Recently Deleted" screen. Programs use a fixed
@@ -307,7 +326,11 @@ final RecentlyDeletedConfig<Program> programRecentlyDeletedConfig =
       idOf: (program) => program.id,
       titleOf: (program) => program.title,
       deletedAtOf: (program) => program.deletedAt,
-      restoredMessage: (title) => '"$title" restored.',
+      restoredMessage: (l10n, title) =>
+          l10n.recentlyDeletedRestoredProgram(title),
+      loadingLabel: (l10n) => l10n.recentlyDeletedLoadingPrograms,
+      emptyRetention: (l10n, days) =>
+          l10n.recentlyDeletedEmptyProgramsRetention(days),
     );
 
 class _DeletedItemTile extends StatelessWidget {
@@ -332,19 +355,20 @@ class _DeletedItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final retention = this.retention;
     final String purgeLabel;
     final bool urgent;
     if (retention == null) {
-      purgeLabel = 'Kept until you delete it';
+      purgeLabel = l10n.recentlyDeletedPurgeKept;
       urgent = false;
     } else {
       final purgeAt = deletedAt.add(retention);
       final daysLeft = purgeAt.difference(DateTime.now().toUtc()).inDays;
       purgeLabel = daysLeft > 0
-          ? 'Auto-deleted in $daysLeft ${daysLeft == 1 ? "day" : "days"}'
-          : 'Scheduled for deletion';
+          ? l10n.recentlyDeletedPurgeCountdown(daysLeft)
+          : l10n.recentlyDeletedPurgeScheduled;
       urgent = daysLeft <= 3;
     }
 
@@ -364,11 +388,11 @@ class _DeletedItemTile extends StatelessWidget {
           TextButton(
             key: ValueKey('restore-$id'),
             onPressed: onRestore,
-            child: const Text('Restore'),
+            child: Text(l10n.recentlyDeletedRestore),
           ),
           IconButton(
             key: ValueKey('permanent-delete-$id'),
-            tooltip: 'Delete permanently',
+            tooltip: l10n.recentlyDeletedDeleteConfirm,
             icon: Icon(
               Icons.delete_forever_outlined,
               color: theme.colorScheme.error,

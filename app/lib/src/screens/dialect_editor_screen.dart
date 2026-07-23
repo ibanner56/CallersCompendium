@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Full-screen term editor for a single named [Dialect] (`docs/design/ux.md`
 /// §6). Edits the pieces a dialect can set — role terms (gendered terms live
 /// here, not as presets), per-move substitutions (with the `%S` handedness
@@ -216,14 +218,15 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit ${widget.initial.name}'),
+        title: Text(l10n.dialectEditorTitle(widget.initial.name)),
         actions: [
           TextButton(
             key: const ValueKey('dialect-editor-save'),
             onPressed: _save,
-            child: const Text('Save'),
+            child: Text(l10n.commonSave),
           ),
         ],
       ),
@@ -238,7 +241,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
-          const _EditorHeader(title: 'Role terms'),
+          _EditorHeader(title: l10n.dialectEditorSectionRoleTerms),
           _RoleTermsEditor(
             role1Singular: _role1Singular,
             role1Plural: _role1Plural,
@@ -246,7 +249,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             role2Plural: _role2Plural,
             onChanged: _onEdited,
           ),
-          const _EditorHeader(title: 'Move substitutions'),
+          _EditorHeader(title: l10n.dialectEditorSectionMoveSubs),
           _MoveSubstitutionsEditor(
             controllers: _moveCtrls,
             expanded: _showMoves,
@@ -255,7 +258,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             onAdd: _addMoveSubstitution,
             onRemove: _removeMoveSubstitution,
           ),
-          const _EditorHeader(title: 'Dancer substitutions'),
+          _EditorHeader(title: l10n.dialectEditorSectionDancerSubs),
           _DancerSubstitutionsEditor(
             controllers: _dancerCtrls,
             expanded: _showDancers,
@@ -264,7 +267,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             onAdd: _addDancerSubstitution,
             onRemove: _removeDancerSubstitution,
           ),
-          const _EditorHeader(title: 'Discouraged terms'),
+          _EditorHeader(title: l10n.dialectEditorSectionDiscouraged),
           _DiscouragedTermsEditor(
             terms: _discouraged,
             input: _discouragedInput,
@@ -272,7 +275,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             onRemove: _removeDiscouraged,
             onRestoreDefaults: _restoreDiscouragedDefaults,
           ),
-          const _EditorHeader(title: 'Preview'),
+          _EditorHeader(title: l10n.dialectEditorSectionPreview),
           _DialectPreview(dialect: _working),
           const SizedBox(height: 24),
         ],
@@ -320,6 +323,7 @@ class _RoleTermsEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -327,7 +331,7 @@ class _RoleTermsEditor extends StatelessWidget {
         children: [
           _roleRow(
             context,
-            label: 'Role 1',
+            label: l10n.dialectEditorRole1,
             singularKey: 'dialect-role1-singular',
             pluralKey: 'dialect-role1-plural',
             singular: role1Singular,
@@ -336,7 +340,7 @@ class _RoleTermsEditor extends StatelessWidget {
           const SizedBox(height: 12),
           _roleRow(
             context,
-            label: 'Role 2',
+            label: l10n.dialectEditorRole2,
             singularKey: 'dialect-role2-singular',
             pluralKey: 'dialect-role2-plural',
             singular: role2Singular,
@@ -344,8 +348,7 @@ class _RoleTermsEditor extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Leave a role blank to use the canonical term. Plural is derived '
-            'when omitted.',
+            l10n.dialectEditorRolesHelp,
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
@@ -361,6 +364,7 @@ class _RoleTermsEditor extends StatelessWidget {
     required TextEditingController singular,
     required TextEditingController plural,
   }) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -375,7 +379,7 @@ class _RoleTermsEditor extends StatelessWidget {
           child: TextField(
             key: ValueKey(singularKey),
             controller: singular,
-            decoration: const InputDecoration(labelText: 'Singular'),
+            decoration: InputDecoration(labelText: l10n.dialectEditorSingular),
             onChanged: (_) => onChanged(),
           ),
         ),
@@ -384,7 +388,7 @@ class _RoleTermsEditor extends StatelessWidget {
           child: TextField(
             key: ValueKey(pluralKey),
             controller: plural,
-            decoration: const InputDecoration(labelText: 'Plural'),
+            decoration: InputDecoration(labelText: l10n.dialectEditorPlural),
             onChanged: (_) => onChanged(),
           ),
         ),
@@ -418,6 +422,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final overridden = controllers.keys.toList()
       ..sort(
         (a, b) =>
@@ -446,9 +451,8 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
               icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
               label: Text(
                 overridden.isEmpty
-                    ? 'Add move substitutions'
-                    : '${overridden.length} move substitution'
-                          '${overridden.length == 1 ? '' : 's'}',
+                    ? l10n.dialectEditorMoveSubsAdd
+                    : l10n.dialectEditorMoveSubsCount(overridden.length),
               ),
             ),
           ),
@@ -472,7 +476,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
                         controller: controllers[id],
                         decoration: InputDecoration(
                           labelText: _moveLabel(id),
-                          hintText: 'substitution (use %S for handedness)',
+                          hintText: l10n.dialectEditorMoveSubHint,
                         ),
                         onChanged: (_) => onEdited(),
                       ),
@@ -480,7 +484,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
                     IconButton(
                       key: ValueKey('dialect-move-delete-$id'),
                       icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Remove',
+                      tooltip: l10n.commonRemove,
                       onPressed: () => onRemove(id),
                     ),
                   ],
@@ -489,7 +493,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
             if (available.isNotEmpty)
               DropdownButton<String>(
                 key: const ValueKey('dialect-add-move'),
-                hint: const Text('Add a move…'),
+                hint: Text(l10n.dialectEditorAddMove),
                 value: null,
                 isExpanded: true,
                 items: [
@@ -547,6 +551,7 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final overridden = controllers.keys.toList()
       ..sort(
         (a, b) => _dancerLabel(
@@ -576,9 +581,8 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
               icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
               label: Text(
                 overridden.isEmpty
-                    ? 'Add dancer substitutions'
-                    : '${overridden.length} dancer substitution'
-                          '${overridden.length == 1 ? '' : 's'}',
+                    ? l10n.dialectEditorDancerSubsAdd
+                    : l10n.dialectEditorDancerSubsCount(overridden.length),
               ),
             ),
           ),
@@ -602,7 +606,7 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
                         controller: controllers[token],
                         decoration: InputDecoration(
                           labelText: _dancerLabel(token),
-                          hintText: 'substitution',
+                          hintText: l10n.dialectEditorDancerSubHint,
                         ),
                         onChanged: (_) => onEdited(),
                       ),
@@ -610,7 +614,7 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
                     IconButton(
                       key: ValueKey('dialect-dancer-delete-$token'),
                       icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Remove',
+                      tooltip: l10n.commonRemove,
                       onPressed: () => onRemove(token),
                     ),
                   ],
@@ -619,7 +623,7 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
             if (available.isNotEmpty)
               DropdownButton<String>(
                 key: const ValueKey('dialect-add-dancer'),
-                hint: const Text('Add a dancer term…'),
+                hint: Text(l10n.dialectEditorAddDancerTerm),
                 value: null,
                 isExpanded: true,
                 items: [
@@ -659,18 +663,19 @@ class _DiscouragedTermsEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Terms the entry editor flags (struck through) — never blocked.',
+            l10n.dialectEditorDiscouragedHelp,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 8),
           if (terms.isEmpty)
-            const Text('No discouraged terms.')
+            Text(l10n.dialectEditorDiscouragedEmpty)
           else
             Wrap(
               spacing: 8,
@@ -691,8 +696,8 @@ class _DiscouragedTermsEditor extends StatelessWidget {
                 child: TextField(
                   key: const ValueKey('dialect-discouraged-add'),
                   controller: input,
-                  decoration: const InputDecoration(
-                    labelText: 'Add a term',
+                  decoration: InputDecoration(
+                    labelText: l10n.dialectEditorAddTermLabel,
                     isDense: true,
                   ),
                   onSubmitted: (_) => onAdd(),
@@ -702,7 +707,7 @@ class _DiscouragedTermsEditor extends StatelessWidget {
               IconButton(
                 key: const ValueKey('dialect-discouraged-add-button'),
                 icon: const Icon(Icons.add),
-                tooltip: 'Add term',
+                tooltip: l10n.dialectEditorAddTermTooltip,
                 onPressed: onAdd,
               ),
             ],
@@ -712,7 +717,7 @@ class _DiscouragedTermsEditor extends StatelessWidget {
             child: TextButton(
               key: const ValueKey('dialect-discouraged-restore'),
               onPressed: onRestoreDefaults,
-              child: const Text('Restore defaults'),
+              child: Text(l10n.dialectEditorRestoreDefaults),
             ),
           ),
         ],
@@ -748,6 +753,7 @@ class _DialectPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final lines = <String>[
       for (final figure in _sampleFigures) _renderer.render(figure, dialect),
@@ -758,10 +764,7 @@ class _DialectPreview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Sample figures rendered with this dialect. Updates as you edit.',
-            style: theme.textTheme.bodySmall,
-          ),
+          Text(l10n.dialectEditorPreviewHelp, style: theme.textTheme.bodySmall),
           const SizedBox(height: 8),
           Card(
             child: Padding(

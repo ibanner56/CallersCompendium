@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/custom_theme.dart';
 import '../theme/wcag.dart';
 import '../widgets/color_edit_dialog.dart';
@@ -81,11 +82,12 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final failing = _failingPairs;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit theme'),
-        actions: [TextButton(onPressed: _save, child: const Text('Save'))],
+        title: Text(l10n.themeEditorTitle),
+        actions: [TextButton(onPressed: _save, child: Text(l10n.commonSave))],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -95,9 +97,9 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
           TextField(
             controller: _nameController,
             textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              labelText: 'Theme name',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.themeEditorNameLabel,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
@@ -114,7 +116,7 @@ class _ThemeEditorScreenState extends State<ThemeEditorScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'All checked pairs pass WCAG AA contrast.',
+                    l10n.themeEditorContrastAllPass,
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
@@ -141,6 +143,7 @@ class _AaWarningBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     // `liveRegion: true` makes assistive tech announce the warning when the
     // banner appears — and re-announce when the failing-pair count changes —
     // so AT users get the same heads-up sighted users do before an app-wide
@@ -164,8 +167,7 @@ class _AaWarningBanner extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '$failing contrast ${failing == 1 ? 'pair' : 'pairs'} below '
-                'WCAG AA. You can still save, but some text may be hard to read.',
+                l10n.themeEditorContrastFailing(failing),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onErrorContainer,
                 ),
@@ -243,7 +245,9 @@ class _ContrastBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final color = passes ? theme.colorScheme.primary : theme.colorScheme.error;
+    final ratioText = ratio.toStringAsFixed(1);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -262,7 +266,9 @@ class _ContrastBadge extends StatelessWidget {
             ),
           ),
           Text(
-            '${ratio.toStringAsFixed(1)}:1 ${passes ? 'AA' : 'fail'}',
+            passes
+                ? l10n.themeEditorRatioPass(ratioText)
+                : l10n.themeEditorRatioFail(ratioText),
             style: theme.textTheme.labelSmall?.copyWith(
               color: color,
               fontWeight: FontWeight.w600,
@@ -318,6 +324,7 @@ class _PreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: scheme.surface,
@@ -329,7 +336,7 @@ class _PreviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Aa Preview',
+            l10n.themeEditorPreviewHeading,
             style: TextStyle(
               color: scheme.onSurface,
               fontSize: 20,
@@ -338,7 +345,7 @@ class _PreviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Body text sample',
+            l10n.themeEditorBodySample,
             style: TextStyle(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
@@ -346,10 +353,26 @@ class _PreviewCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _swatch('Primary', scheme.primary, scheme.onPrimary),
-              _swatch('Secondary', scheme.secondary, scheme.onSecondary),
-              _swatch('Tertiary', scheme.tertiary, scheme.onTertiary),
-              _swatch('Error', scheme.error, scheme.onError),
+              _swatch(
+                l10n.themeEditorSwatchPrimary,
+                scheme.primary,
+                scheme.onPrimary,
+              ),
+              _swatch(
+                l10n.themeEditorSwatchSecondary,
+                scheme.secondary,
+                scheme.onSecondary,
+              ),
+              _swatch(
+                l10n.themeEditorSwatchTertiary,
+                scheme.tertiary,
+                scheme.onTertiary,
+              ),
+              _swatch(
+                l10n.themeEditorSwatchError,
+                scheme.error,
+                scheme.onError,
+              ),
             ],
           ),
         ],

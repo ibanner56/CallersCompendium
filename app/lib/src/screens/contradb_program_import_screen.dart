@@ -611,7 +611,7 @@ class _ContraDbProgramImportScreenState
         return ListTile(
           dense: true,
           title: Text(entry.name),
-          subtitle: Text('contradb.com/programs/${entry.id}'),
+          subtitle: Text('contradb.com/programs/${entry.id}'), // i18n-ignore
           trailing: const Icon(Icons.download_outlined, size: 18),
           onTap: _canFetch ? () => _selectResult(entry) : null,
         );

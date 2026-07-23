@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../app_metadata.dart';
 import '../utils/launch_external_url.dart';
 import 'artifact_handoff.dart';
@@ -41,6 +42,8 @@ class UpdateBanner extends StatelessWidget {
     UpdateAvailable update,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final version = update.version.toString();
     switch (controller.downloadStatus) {
       case AssistedDownloadStatus.downloading:
         final fraction = controller.downloadProgress?.fraction;
@@ -51,8 +54,8 @@ class UpdateBanner extends StatelessWidget {
           children: [
             Text(
               pct == null
-                  ? 'Downloading $kAppName ${update.version}…'
-                  : 'Downloading $kAppName ${update.version}… $pct%',
+                  ? l10n.updateBannerDownloading(kAppName, version)
+                  : l10n.updateBannerDownloadingPct(kAppName, version, pct),
             ),
             const SizedBox(height: 8),
             LinearProgressIndicator(
@@ -62,30 +65,25 @@ class UpdateBanner extends StatelessWidget {
           ],
         );
       case AssistedDownloadStatus.verifying:
-        return Text('Verifying $kAppName ${update.version}…');
+        return Text(l10n.updateBannerVerifying(kAppName, version));
       case AssistedDownloadStatus.handingOff:
-        return const Text('Preparing the installer…');
+        return Text(l10n.updateBannerPreparingInstaller);
       case AssistedDownloadStatus.completed:
         final revealed = controller.handoffResult == HandoffResult.revealed;
         return Text(
           revealed
-              ? '$kAppName ${update.version} downloaded and verified — we '
-                    'revealed the installer in your file manager. Run it to '
-                    'finish updating.'
-              : '$kAppName ${update.version} downloaded — follow the installer '
-                    'to finish updating.',
+              ? l10n.updateBannerCompletedRevealed(kAppName, version)
+              : l10n.updateBannerCompletedManual(kAppName, version),
         );
       case AssistedDownloadStatus.failed:
         return Text(
-          controller.downloadError ?? 'The update could not be downloaded.',
+          controller.downloadError ?? l10n.updateBannerDownloadFailed,
           key: const ValueKey('update-banner-error'),
           style: TextStyle(color: theme.colorScheme.error),
         );
       case AssistedDownloadStatus.idle:
       case AssistedDownloadStatus.cancelled:
-        return Text(
-          'A newer version of $kAppName (${update.version}) is available.',
-        );
+        return Text(l10n.updateBannerAvailable(kAppName, version));
     }
   }
 
@@ -94,10 +92,11 @@ class UpdateBanner extends StatelessWidget {
     UpdateController controller,
     UpdateAvailable update,
   ) {
+    final l10n = AppLocalizations.of(context);
     final viewButton = TextButton(
       key: const ValueKey('update-banner-view'),
       onPressed: () => launchExternalUrl(context, update.releaseNotesUrl),
-      child: const Text('View release'),
+      child: Text(l10n.updateBannerViewRelease),
     );
 
     if (controller.isDownloadInFlight) {
@@ -109,7 +108,7 @@ class UpdateBanner extends StatelessWidget {
           TextButton(
             key: const ValueKey('update-banner-cancel'),
             onPressed: () => UpdateScope.controllerOf(context).cancelDownload(),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
         viewButton,
       ];
@@ -119,7 +118,7 @@ class UpdateBanner extends StatelessWidget {
       key: const ValueKey('update-banner-dismiss'),
       onPressed: () =>
           UpdateScope.controllerOf(context).dismiss(update.version),
-      child: const Text('Dismiss'),
+      child: Text(l10n.updateBannerDismiss),
     );
 
     if (controller.canAssistDownload &&
@@ -131,7 +130,9 @@ class UpdateBanner extends StatelessWidget {
           key: const ValueKey('update-banner-download'),
           onPressed: () =>
               UpdateScope.controllerOf(context).startAssistedDownload(),
-          child: Text(retry ? 'Try again' : 'Download & install'),
+          child: Text(
+            retry ? l10n.commonTryAgain : l10n.updateBannerDownloadInstall,
+          ),
         ),
         viewButton,
       ];

@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/repositories_scope.dart';
 import '../theme/app_spacing.dart';
@@ -100,6 +101,7 @@ class _ReparseCustomFiguresScreenState
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final repos = RepositoriesScope.of(context);
+    final l10n = AppLocalizations.of(context);
     // Capture the refresh notifier BEFORE the await: if the user navigates Back
     // while the batch runs, this widget's context is defunct by the time the
     // write completes, so we must not read it (or bump via context) afterwards.
@@ -108,22 +110,17 @@ class _ReparseCustomFiguresScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Upgrade custom figures?'),
-        content: Text(
-          'This will re-parse ${_figuresLabel(_totalFigures)} in '
-          '${_dancesLabel(previews.length)}. Your tags, ratings, notes, and '
-          'everything else on each dance are kept exactly as they are. This '
-          'only replaces figures that now recognise a known move.',
-        ),
+        title: Text(l10n.reparseConfirmTitle),
+        content: Text(l10n.reparseConfirmBody(_totalFigures, previews.length)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             key: const ValueKey('reparse-confirm-apply'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Upgrade'),
+            child: Text(l10n.reparseConfirmUpgrade),
           ),
         ],
       ),
@@ -146,11 +143,7 @@ class _ReparseCustomFiguresScreenState
       // the batch is a single transaction (it rolls back as a whole).
       if (!mounted) return;
       setState(() => _applying = false);
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Could not upgrade figures. Please try again.'),
-        ),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.reparseFailed)));
       return;
     }
 
@@ -163,8 +156,8 @@ class _ReparseCustomFiguresScreenState
       SnackBar(
         content: Text(
           changed == 0
-              ? 'Nothing to upgrade.'
-              : 'Upgraded custom figures in ${_dancesLabel(changed)}.',
+              ? l10n.reparseNothingUpgradedSnack
+              : l10n.reparseUpgradedSnack(changed),
         ),
       ),
     );
@@ -177,7 +170,7 @@ class _ReparseCustomFiguresScreenState
     return Scaffold(
       appBar: AppBar(
         key: const ValueKey('reparse-customs-appbar'),
-        title: const Text('Re-check custom figures'),
+        title: Text(AppLocalizations.of(context).reparseScreenTitle),
       ),
       body: _buildBody(context),
     );
@@ -196,17 +189,14 @@ class _ReparseCustomFiguresScreenState
     }
 
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Text(
-            'Improved figure parsing can upgrade '
-            '${_figuresLabel(_totalFigures)} in '
-            '${_dancesLabel(previews.length)}. Review below, then confirm — '
-            'nothing changes until you do, and all your tags, ratings, and '
-            'notes are preserved.',
+            l10n.reparseIntro(_totalFigures, previews.length),
             style: theme.textTheme.bodyMedium,
           ),
         ),
@@ -221,9 +211,7 @@ class _ReparseCustomFiguresScreenState
                 key: ValueKey('reparse-dance-${preview.danceId}'),
                 leading: const Icon(Icons.auto_fix_high_outlined),
                 title: Text(preview.title),
-                subtitle: Text(
-                  '${_figuresLabel(preview.upgradeCount)} to upgrade',
-                ),
+                subtitle: Text(l10n.reparsePreviewCount(preview.upgradeCount)),
               );
             },
           ),
@@ -235,23 +223,20 @@ class _ReparseCustomFiguresScreenState
               key: const ValueKey('reparse-customs-apply-button'),
               onPressed: _applying ? null : _onApply,
               icon: const Icon(Icons.auto_fix_high),
-              label: Text('Upgrade ${_dancesLabel(previews.length)}'),
+              label: Text(l10n.reparseUpgradeButton(previews.length)),
             ),
           ),
         ),
       ],
     );
   }
-
-  static String _dancesLabel(int n) => n == 1 ? '1 dance' : '$n dances';
-
-  static String _figuresLabel(int n) => n == 1 ? '1 figure' : '$n figures';
 }
 
 class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Center(
       key: const ValueKey('reparse-customs-empty'),
       child: Padding(
@@ -266,15 +251,13 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Nothing to upgrade',
+              l10n.reparseEmptyTitle,
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'None of your custom figures from imports can be recognised as a '
-              'known move right now. Check back after a future update improves '
-              'figure parsing.',
+              l10n.reparseEmptyBody,
               style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
@@ -293,6 +276,7 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Center(
       key: const ValueKey('reparse-customs-error'),
       child: Padding(
@@ -303,14 +287,13 @@ class _ErrorState extends StatelessWidget {
             Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Could not check your figures',
+              l10n.reparseErrorTitle,
               style: theme.textTheme.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Something went wrong while scanning your collection. Nothing was '
-              'changed. You can try again.',
+              l10n.reparseErrorBody,
               style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
@@ -319,7 +302,7 @@ class _ErrorState extends StatelessWidget {
               key: const ValueKey('reparse-customs-retry-button'),
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Try again'),
+              label: Text(l10n.commonTryAgain),
             ),
           ],
         ),
