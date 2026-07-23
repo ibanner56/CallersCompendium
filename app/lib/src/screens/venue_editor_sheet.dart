@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// A modal bottom sheet for creating or editing a reusable [Venue].
 ///
 /// A venue is a **shared** record: the same row is referenced by every program
@@ -167,6 +169,7 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isNew = widget.initial == null;
     // Pad for the on-screen keyboard so the focused field stays visible.
     final viewInsets = MediaQuery.of(context).viewInsets.bottom;
@@ -185,7 +188,7 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      isNew ? 'New venue' : 'Edit venue',
+                      isNew ? l10n.venueNew : l10n.venueEditTitle,
                       style: theme.textTheme.titleLarge,
                     ),
                   ),
@@ -202,130 +205,128 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'A venue is shared across every program held here, so '
-                        'edits to its address, contacts, or schedule show up on '
-                        'all of them.',
+                        l10n.venueEditorSharedNote,
                         style: theme.textTheme.bodySmall,
                       ),
                       const SizedBox(height: 16),
                       _field(
                         keyName: 'venue-name-field',
                         controller: _name,
-                        label: 'Name *',
+                        label: l10n.venueEditorNameLabel,
                         autofocus: isNew,
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
-                            ? 'Name is required'
+                            ? l10n.venueEditorNameRequired
                             : null,
                       ),
                       _field(
                         keyName: 'venue-website-field',
                         controller: _website,
-                        label: 'Website',
+                        label: l10n.venueEditorWebsiteLabel,
                         keyboardType: TextInputType.url,
                       ),
                       _field(
                         keyName: 'venue-sponsor-field',
                         controller: _sponsor,
-                        label: 'Sponsor / hosting organization',
+                        label: l10n.venueEditorSponsorLabel,
                       ),
-                      _sectionLabel(theme, 'Address'),
+                      _sectionLabel(theme, l10n.venueEditorAddressSection),
                       _field(
                         keyName: 'venue-address1-field',
                         controller: _address1,
-                        label: 'Address line 1',
+                        label: l10n.venueEditorAddress1Label,
                       ),
                       _field(
                         keyName: 'venue-address2-field',
                         controller: _address2,
-                        label: 'Address line 2',
+                        label: l10n.venueEditorAddress2Label,
                       ),
                       _field(
                         keyName: 'venue-city-field',
                         controller: _city,
-                        label: 'City',
+                        label: l10n.venueEditorCityLabel,
                       ),
                       _field(
                         keyName: 'venue-state-field',
                         controller: _stateProv,
-                        label: 'State / province',
+                        label: l10n.venueEditorStateLabel,
                       ),
                       _field(
                         keyName: 'venue-country-field',
                         controller: _country,
-                        label: 'Country',
+                        label: l10n.venueEditorCountryLabel,
                       ),
                       _field(
                         keyName: 'venue-postal-field',
                         controller: _postalCode,
-                        label: 'Postal / ZIP code',
+                        label: l10n.venueEditorPostalLabel,
                       ),
                       _field(
                         keyName: 'venue-plus4-field',
                         controller: _plus4,
-                        label: 'ZIP+4',
+                        label: l10n.venueEditorPlus4Label,
                       ),
-                      _sectionLabel(theme, 'Schedule'),
+                      _sectionLabel(theme, l10n.venueEditorScheduleSection),
                       _field(
                         keyName: 'venue-event-name-field',
                         controller: _eventName,
-                        label: 'Event name',
+                        label: l10n.venueEditorEventNameLabel,
                       ),
                       _field(
                         keyName: 'venue-time-field',
                         controller: _time,
-                        label: 'Time',
+                        label: l10n.venueEditorTimeLabel,
                       ),
                       _field(
                         keyName: 'venue-schedule-field',
                         controller: _genericSchedule,
-                        label: 'Schedule (e.g. “2nd Saturdays”)',
+                        label: l10n.venueEditorScheduleLabel,
                       ),
                       _field(
                         keyName: 'venue-price-field',
                         controller: _price,
-                        label: 'Price',
+                        label: l10n.venueEditorPriceLabel,
                       ),
-                      _sectionLabel(theme, 'Contacts'),
+                      _sectionLabel(theme, l10n.venueEditorContactsSection),
                       _field(
                         keyName: 'venue-contact1-name-field',
                         controller: _contact1Name,
-                        label: 'Contact 1 name',
+                        label: l10n.venueEditorContact1NameLabel,
                       ),
                       _field(
                         keyName: 'venue-contact1-phone-field',
                         controller: _contact1Phone,
-                        label: 'Contact 1 phone',
+                        label: l10n.venueEditorContact1PhoneLabel,
                         keyboardType: TextInputType.phone,
                       ),
                       _field(
                         keyName: 'venue-contact1-email-field',
                         controller: _contact1Email,
-                        label: 'Contact 1 email',
+                        label: l10n.venueEditorContact1EmailLabel,
                         keyboardType: TextInputType.emailAddress,
                       ),
                       _field(
                         keyName: 'venue-contact2-name-field',
                         controller: _contact2Name,
-                        label: 'Contact 2 name',
+                        label: l10n.venueEditorContact2NameLabel,
                       ),
                       _field(
                         keyName: 'venue-contact2-phone-field',
                         controller: _contact2Phone,
-                        label: 'Contact 2 phone',
+                        label: l10n.venueEditorContact2PhoneLabel,
                         keyboardType: TextInputType.phone,
                       ),
                       _field(
                         keyName: 'venue-contact2-email-field',
                         controller: _contact2Email,
-                        label: 'Contact 2 email',
+                        label: l10n.venueEditorContact2EmailLabel,
                         keyboardType: TextInputType.emailAddress,
                       ),
-                      _sectionLabel(theme, 'Notes'),
+                      _sectionLabel(theme, l10n.venueEditorNotesSection),
                       _field(
                         keyName: 'venue-notes-field',
                         controller: _notes,
-                        label: 'Notes',
+                        label: l10n.venueEditorNotesSection,
                         minLines: 2,
                         maxLines: 5,
                       ),
@@ -343,13 +344,13 @@ class _VenueEditorSheetState extends State<VenueEditorSheet> {
                   TextButton(
                     key: const ValueKey('venue-editor-cancel'),
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                    child: Text(l10n.commonCancel),
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
                     key: const ValueKey('venue-editor-save'),
                     onPressed: _save,
-                    child: const Text('Save'),
+                    child: Text(l10n.commonSave),
                   ),
                 ],
               ),

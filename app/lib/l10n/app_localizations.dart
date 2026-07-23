@@ -7043,6 +7043,288 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{title}\" restored.'**
   String recentlyDeletedRestoredProgram(String title);
+
+  /// Label for creating a new venue: the venue manager's add button and the venue editor sheet's title in create mode.
+  ///
+  /// In en, this message translates to:
+  /// **'New venue'**
+  String get venueNew;
+
+  /// Error shown when the reusable venue records fail to load (venue manager and venue picker).
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load venues.'**
+  String get venueLoadError;
+
+  /// App bar title of the venue manager screen (Settings ▸ Venues).
+  ///
+  /// In en, this message translates to:
+  /// **'Venues'**
+  String get venueManagerTitle;
+
+  /// Hint text for the venue manager's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Search venues…'**
+  String get venueManagerSearchHint;
+
+  /// Tooltip for the button that clears the venue manager's search field.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get venueManagerClearSearchTooltip;
+
+  /// Empty state for the venue manager when no venues exist yet.
+  ///
+  /// In en, this message translates to:
+  /// **'No venues yet. Add one with the button below, or from a program when reusable venues are turned on.'**
+  String get venueManagerEmpty;
+
+  /// Shown in the venue manager when a search yields no matching venues.
+  ///
+  /// In en, this message translates to:
+  /// **'No venues match your search.'**
+  String get venueManagerNoMatches;
+
+  /// Title of the confirmation dialog for permanently deleting a venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete venue?'**
+  String get venueManagerDeleteTitle;
+
+  /// Body of the delete-venue confirmation dialog; {name} is the venue's name (plain text, may be user-entered or imported).
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete “{name}”? This can’t be undone.'**
+  String venueManagerDeleteBody(String name);
+
+  /// Snackbar confirming a venue was deleted; {name} is the venue's name (plain text).
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted “{name}”'**
+  String venueManagerDeletedSnack(String name);
+
+  /// Snackbar shown when a venue can't be deleted because a program still links to it; {name} is the venue's name (plain text).
+  ///
+  /// In en, this message translates to:
+  /// **'Can’t delete “{name}” while it’s still linked to a program. Change or remove its venue on those programs first.'**
+  String venueManagerDeleteBlocked(String name);
+
+  /// Tooltip for the delete button on a venue row; {name} is the venue's name (plain text).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}'**
+  String venueManagerDeleteTooltip(String name);
+
+  /// Title of the venue editor sheet when editing an existing venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit venue'**
+  String get venueEditTitle;
+
+  /// Explanatory note at the top of the venue editor sheet: a venue record is shared across programs.
+  ///
+  /// In en, this message translates to:
+  /// **'A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.'**
+  String get venueEditorSharedNote;
+
+  /// Required venue name field label; the asterisk marks the field as required.
+  ///
+  /// In en, this message translates to:
+  /// **'Name *'**
+  String get venueEditorNameLabel;
+
+  /// Validation error shown when the venue name field is blank.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required'**
+  String get venueEditorNameRequired;
+
+  /// Venue website field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get venueEditorWebsiteLabel;
+
+  /// Venue sponsor / hosting-organization field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Sponsor / hosting organization'**
+  String get venueEditorSponsorLabel;
+
+  /// Section heading for the venue's address fields in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get venueEditorAddressSection;
+
+  /// Venue address line 1 field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Address line 1'**
+  String get venueEditorAddress1Label;
+
+  /// Venue address line 2 field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Address line 2'**
+  String get venueEditorAddress2Label;
+
+  /// Venue city field label.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get venueEditorCityLabel;
+
+  /// Venue state or province field label.
+  ///
+  /// In en, this message translates to:
+  /// **'State / province'**
+  String get venueEditorStateLabel;
+
+  /// Venue country field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get venueEditorCountryLabel;
+
+  /// Venue postal / ZIP code field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Postal / ZIP code'**
+  String get venueEditorPostalLabel;
+
+  /// Venue ZIP+4 (US postal add-on) field label.
+  ///
+  /// In en, this message translates to:
+  /// **'ZIP+4'**
+  String get venueEditorPlus4Label;
+
+  /// Section heading for the venue's schedule fields in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get venueEditorScheduleSection;
+
+  /// Venue event-name field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Event name'**
+  String get venueEditorEventNameLabel;
+
+  /// Venue time field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get venueEditorTimeLabel;
+
+  /// Venue generic-schedule field label, with an example of a recurring schedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule (e.g. “2nd Saturdays”)'**
+  String get venueEditorScheduleLabel;
+
+  /// Venue price field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get venueEditorPriceLabel;
+
+  /// Section heading for the venue's contact fields in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts'**
+  String get venueEditorContactsSection;
+
+  /// Venue first-contact name field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 1 name'**
+  String get venueEditorContact1NameLabel;
+
+  /// Venue first-contact phone field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 1 phone'**
+  String get venueEditorContact1PhoneLabel;
+
+  /// Venue first-contact email field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 1 email'**
+  String get venueEditorContact1EmailLabel;
+
+  /// Venue second-contact name field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 2 name'**
+  String get venueEditorContact2NameLabel;
+
+  /// Venue second-contact phone field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 2 phone'**
+  String get venueEditorContact2PhoneLabel;
+
+  /// Venue second-contact email field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact 2 email'**
+  String get venueEditorContact2EmailLabel;
+
+  /// Section heading and field label for the venue's free-form notes in the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get venueEditorNotesSection;
+
+  /// Loading indicator text while the venue picker fetches venues.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading venues…'**
+  String get venuePickerLoading;
+
+  /// Tooltip for the button that unlinks the currently selected venue from a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink venue'**
+  String get venuePickerUnlinkTooltip;
+
+  /// Title shown in the venue picker when a program's linked venue id no longer resolves.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked venue not found'**
+  String get venuePickerUnresolvedTitle;
+
+  /// Subtitle explaining that a program's linked venue could not be found.
+  ///
+  /// In en, this message translates to:
+  /// **'It may have been deleted.'**
+  String get venuePickerUnresolvedSubtitle;
+
+  /// Tooltip for the button that clears an unresolved venue link from a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear link'**
+  String get venuePickerClearLinkTooltip;
+
+  /// Hint text for the venue picker's search field when no venue is linked.
+  ///
+  /// In en, this message translates to:
+  /// **'Search or add a venue…'**
+  String get venuePickerSearchHint;
+
+  /// Hint text for the venue picker's search field when a venue is already linked.
+  ///
+  /// In en, this message translates to:
+  /// **'Change venue…'**
+  String get venuePickerChangeHint;
+
+  /// Inline-create option in the venue picker; {name} is the text the user typed (plain text).
+  ///
+  /// In en, this message translates to:
+  /// **'Add new venue “{name}”'**
+  String venuePickerCreateOption(String name);
 }
 
 class _AppLocalizationsDelegate

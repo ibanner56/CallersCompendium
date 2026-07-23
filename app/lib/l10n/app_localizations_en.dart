@@ -4578,4 +4578,157 @@ class AppLocalizationsEn extends AppLocalizations {
   String recentlyDeletedRestoredProgram(String title) {
     return '\"$title\" restored.';
   }
+
+  @override
+  String get venueNew => 'New venue';
+
+  @override
+  String get venueLoadError => 'Could not load venues.';
+
+  @override
+  String get venueManagerTitle => 'Venues';
+
+  @override
+  String get venueManagerSearchHint => 'Search venues…';
+
+  @override
+  String get venueManagerClearSearchTooltip => 'Clear search';
+
+  @override
+  String get venueManagerEmpty =>
+      'No venues yet. Add one with the button below, or from a program when reusable venues are turned on.';
+
+  @override
+  String get venueManagerNoMatches => 'No venues match your search.';
+
+  @override
+  String get venueManagerDeleteTitle => 'Delete venue?';
+
+  @override
+  String venueManagerDeleteBody(String name) {
+    return 'Permanently delete “$name”? This can’t be undone.';
+  }
+
+  @override
+  String venueManagerDeletedSnack(String name) {
+    return 'Deleted “$name”';
+  }
+
+  @override
+  String venueManagerDeleteBlocked(String name) {
+    return 'Can’t delete “$name” while it’s still linked to a program. Change or remove its venue on those programs first.';
+  }
+
+  @override
+  String venueManagerDeleteTooltip(String name) {
+    return 'Delete $name';
+  }
+
+  @override
+  String get venueEditTitle => 'Edit venue';
+
+  @override
+  String get venueEditorSharedNote =>
+      'A venue is shared across every program held here, so edits to its address, contacts, or schedule show up on all of them.';
+
+  @override
+  String get venueEditorNameLabel => 'Name *';
+
+  @override
+  String get venueEditorNameRequired => 'Name is required';
+
+  @override
+  String get venueEditorWebsiteLabel => 'Website';
+
+  @override
+  String get venueEditorSponsorLabel => 'Sponsor / hosting organization';
+
+  @override
+  String get venueEditorAddressSection => 'Address';
+
+  @override
+  String get venueEditorAddress1Label => 'Address line 1';
+
+  @override
+  String get venueEditorAddress2Label => 'Address line 2';
+
+  @override
+  String get venueEditorCityLabel => 'City';
+
+  @override
+  String get venueEditorStateLabel => 'State / province';
+
+  @override
+  String get venueEditorCountryLabel => 'Country';
+
+  @override
+  String get venueEditorPostalLabel => 'Postal / ZIP code';
+
+  @override
+  String get venueEditorPlus4Label => 'ZIP+4';
+
+  @override
+  String get venueEditorScheduleSection => 'Schedule';
+
+  @override
+  String get venueEditorEventNameLabel => 'Event name';
+
+  @override
+  String get venueEditorTimeLabel => 'Time';
+
+  @override
+  String get venueEditorScheduleLabel => 'Schedule (e.g. “2nd Saturdays”)';
+
+  @override
+  String get venueEditorPriceLabel => 'Price';
+
+  @override
+  String get venueEditorContactsSection => 'Contacts';
+
+  @override
+  String get venueEditorContact1NameLabel => 'Contact 1 name';
+
+  @override
+  String get venueEditorContact1PhoneLabel => 'Contact 1 phone';
+
+  @override
+  String get venueEditorContact1EmailLabel => 'Contact 1 email';
+
+  @override
+  String get venueEditorContact2NameLabel => 'Contact 2 name';
+
+  @override
+  String get venueEditorContact2PhoneLabel => 'Contact 2 phone';
+
+  @override
+  String get venueEditorContact2EmailLabel => 'Contact 2 email';
+
+  @override
+  String get venueEditorNotesSection => 'Notes';
+
+  @override
+  String get venuePickerLoading => 'Loading venues…';
+
+  @override
+  String get venuePickerUnlinkTooltip => 'Unlink venue';
+
+  @override
+  String get venuePickerUnresolvedTitle => 'Linked venue not found';
+
+  @override
+  String get venuePickerUnresolvedSubtitle => 'It may have been deleted.';
+
+  @override
+  String get venuePickerClearLinkTooltip => 'Clear link';
+
+  @override
+  String get venuePickerSearchHint => 'Search or add a venue…';
+
+  @override
+  String get venuePickerChangeHint => 'Change venue…';
+
+  @override
+  String venuePickerCreateOption(String name) {
+    return 'Add new venue “$name”';
+  }
 }

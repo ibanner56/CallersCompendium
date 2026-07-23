@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import 'venue_editor_sheet.dart';
 
@@ -57,7 +58,8 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
         _venues = venues;
         _loading = false;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint('Could not load venues: $error\n$stackTrace');
       if (!mounted) return;
       setState(() {
         _error = error;
@@ -91,22 +93,21 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
   }
 
   Future<void> _confirmDelete(Venue venue) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete venue?'),
-        content: Text(
-          'Permanently delete “${venue.name}”? This can’t be undone.',
-        ),
+        title: Text(l10n.venueManagerDeleteTitle),
+        content: Text(l10n.venueManagerDeleteBody(venue.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           FilledButton(
             key: const ValueKey('venue-delete-confirm'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
+            child: Text(l10n.commonDelete),
           ),
         ],
       ),
@@ -117,13 +118,14 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
 
   Future<void> _delete(Venue venue) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     try {
       await _repos.venues.delete(venue.id);
       if (!mounted) return;
       await _load();
       if (!mounted) return;
       messenger.showSnackBar(
-        SnackBar(content: Text('Deleted “${venue.name}”')),
+        SnackBar(content: Text(l10n.venueManagerDeletedSnack(venue.name))),
       );
     } on StateError {
       // The delete guard fired: the venue is still linked to one or more
@@ -132,10 +134,7 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('venue-delete-blocked'),
-          content: Text(
-            'Can’t delete “${venue.name}” while it’s still linked to a '
-            'program. Change or remove its venue on those programs first.',
-          ),
+          content: Text(l10n.venueManagerDeleteBlocked(venue.name)),
         ),
       );
     }
@@ -143,13 +142,14 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Venues')),
+      appBar: AppBar(title: Text(l10n.venueManagerTitle)),
       floatingActionButton: FloatingActionButton.extended(
         key: const ValueKey('venue-manager-add'),
         onPressed: _create,
         icon: const Icon(Icons.add),
-        label: const Text('New venue'),
+        label: Text(l10n.venueNew),
       ),
       body: Column(
         children: [
@@ -161,14 +161,14 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
               onChanged: (value) => setState(() => _query = value),
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'Search venues…',
+                hintText: l10n.venueManagerSearchHint,
                 prefixIcon: const Icon(Icons.search),
                 border: const OutlineInputBorder(),
                 isDense: true,
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
-                        tooltip: 'Clear search',
+                        tooltip: l10n.venueManagerClearSearchTooltip,
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
@@ -185,6 +185,7 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -193,31 +194,27 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Could not load venues.'),
+            Text(l10n.venueLoadError),
             const SizedBox(height: 8),
-            TextButton(onPressed: _load, child: const Text('Retry')),
+            TextButton(onPressed: _load, child: Text(l10n.commonRetry)),
           ],
         ),
       );
     }
     if (_venues.isEmpty) {
-      return const Center(
-        key: ValueKey('venue-manager-empty'),
+      return Center(
+        key: const ValueKey('venue-manager-empty'),
         child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'No venues yet. Add one with the button below, or from a program '
-            'when reusable venues are turned on.',
-            textAlign: TextAlign.center,
-          ),
+          padding: const EdgeInsets.all(24),
+          child: Text(l10n.venueManagerEmpty, textAlign: TextAlign.center),
         ),
       );
     }
     final filtered = _filtered;
     if (filtered.isEmpty) {
-      return const Center(
-        key: ValueKey('venue-manager-no-matches'),
-        child: Text('No venues match your search.'),
+      return Center(
+        key: const ValueKey('venue-manager-no-matches'),
+        child: Text(l10n.venueManagerNoMatches),
       );
     }
     return ListView.builder(
@@ -234,7 +231,7 @@ class _VenueManagerScreenState extends State<VenueManagerScreen> {
           onTap: () => _edit(venue),
           trailing: IconButton(
             key: ValueKey('venue-manager-delete-${venue.id}'),
-            tooltip: 'Delete ${venue.name}',
+            tooltip: l10n.venueManagerDeleteTooltip(venue.name),
             icon: const Icon(Icons.delete_outline),
             onPressed: () => _confirmDelete(venue),
           ),
