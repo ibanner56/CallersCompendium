@@ -85,7 +85,7 @@ in more depth.
    need. **Heads-up: the signup issue is public**, so keep personal contact details
    out of it — if you want an iPhone/iPad **TestFlight** invite, email the Apple ID
    address it should go to privately to
-   [isaac@banner.is](mailto:isaac@banner.is) rather than posting it in the issue.
+   [compendium@contra.dance](mailto:compendium@contra.dance) rather than posting it in the issue.
    You can also just say hello in
    [GitHub Discussions](https://github.com/ibanner56/CallersCompendium/discussions)
    if you would rather start with a conversation.

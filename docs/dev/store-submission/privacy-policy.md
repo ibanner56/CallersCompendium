@@ -1,18 +1,21 @@
-# Privacy Policy (draft to publish)
+# Privacy Policy (mirror of the published page)
 
-> **This is a draft.** Publish it at a stable public URL (e.g. as a page on the
-> existing GitHub Pages site,
-> `https://ibanner56.github.io/CallersCompendium/privacy/`) and use that URL in
-> both App Store Connect and the Play Console. Both stores require a working
-> privacy-policy link before you can distribute — even for beta/testing tracks.
-> Fill in the bracketed date, keep the effective-date current, and review the
-> wording before publishing. This is not legal advice.
+> **Published.** The live, authoritative version of this policy is the page at
+> <https://ibanner56.github.io/CallersCompendium/privacy/>, served from
+> `site/privacy/index.html` (part of the existing GitHub Pages site) — that is
+> the copy the stores link to. Use that URL in both App Store Connect and the
+> Play Console; both stores require a working privacy-policy link before you can
+> distribute, even for beta/testing tracks. This markdown is a human-readable
+> mirror of that page for review and history. There is no build step that
+> generates one from the other, so **any policy change must be made to both
+> `site/privacy/index.html` and this file, keeping their wording and the
+> effective date in sync.** This is not legal advice.
 
 ---
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** [DATE]
+**Effective date:** July 22, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
@@ -108,5 +111,5 @@ notes.
 ### 10. Contact
 
 Questions about this policy or the app's privacy practices:
-**isaac@banner.is** — or open an issue at
+**compendium@contra.dance** — or open an issue at
 <https://github.com/ibanner56/CallersCompendium/issues>.

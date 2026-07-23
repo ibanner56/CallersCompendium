@@ -59,10 +59,10 @@ Keep this handy — every form asks some slice of it.
 | In-app purchases / subscriptions | **None** |
 | Ads | **None** |
 | Developer / seller | Isaac Banner (individual) |
-| Support email | isaac@banner.is |
+| Support email | compendium@contra.dance |
 | Support / marketing site | <https://ibanner56.github.io/CallersCompendium/> |
 | Source & issues | <https://github.com/ibanner56/CallersCompendium> |
-| Privacy policy URL | **To publish** — see [`privacy-policy.md`](privacy-policy.md) |
+| Privacy policy URL | <https://ibanner56.github.io/CallersCompendium/privacy/> (published — source in [`privacy-policy.md`](privacy-policy.md), page at `site/privacy/index.html`) |
 | License | AGPL-3.0 (source-available) |
 | Data collected | **None** (local-first, no telemetry, no accounts) |
 | Network use | User-initiated imports (Caller's Box, ContraDB, JSON) over HTTPS; opt-in update check (off by default) |
@@ -73,12 +73,12 @@ Keep this handy — every form asks some slice of it.
 
 These are the things needed **regardless** of store. Knock them out first.
 
-- [ ] **A publishable privacy policy at a stable public URL.** Both stores block
-  submission without one. We don't have a hosted policy yet — publish the draft
-  in [`privacy-policy.md`](privacy-policy.md) to the project site (e.g.
-  `https://ibanner56.github.io/CallersCompendium/privacy/`) and use that URL in
-  both consoles. The `site/` folder already publishes to GitHub Pages, so this is
-  a new static page in that site.
+- [x] **A publishable privacy policy at a stable public URL.** Both stores block
+  submission without one. **Published** at
+  <https://ibanner56.github.io/CallersCompendium/privacy/> (page lives at
+  `site/privacy/index.html`; content mirrors [`privacy-policy.md`](privacy-policy.md)).
+  Use that URL in both consoles. The `site/` folder publishes to GitHub Pages, so
+  the page ships automatically on the next Pages deploy.
 - [ ] **Final store listing text**, localized to at least English. Draft is in
   [`listing-copy.md`](listing-copy.md). If the app's new base-language set is
   ready, plan to add matching **localized listings** later (both stores let you

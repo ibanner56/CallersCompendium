@@ -109,7 +109,7 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
 **external testing**, which adds Beta App Review and unlocks a **public link**.
 
 - [ ] **[Gate]** In **ASC → TestFlight → Test Information**, fill the **beta app
-  description**, **feedback email** (isaac@banner.is), **marketing URL**, and
+  description**, **feedback email** (compendium@contra.dance), **marketing URL**, and
   **privacy policy URL**. This is required before any external testing.
 - [ ] **[Gate]** Provide **Beta App Review information**: what to test, how to
   reach every feature without an account, and demo steps. Reuse the review notes
