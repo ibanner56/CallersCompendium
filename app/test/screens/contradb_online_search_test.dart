@@ -218,7 +218,11 @@ void main() {
     await _pumpShell(
       tester,
       repos,
-      _contraDb(search: (_) async => throw const UrlFetchException('Offline.')),
+      _contraDb(
+        search: (_) async => throw const UrlFetchException(
+          UrlFetchFailureReason.contraDbUnreachable,
+        ),
+      ),
     );
     await _enableContraDb(tester);
     await _search(tester, 'rendezvous');

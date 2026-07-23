@@ -31,8 +31,11 @@ const int kMaxImportFileBytes = 25 * 1024 * 1024;
 
 /// Raised when a picked import file exceeds [kMaxImportFileBytes], so the
 /// oversized case is rejected *without* buffering the whole file into memory
-/// (the bounded read abandons the stream as soon as the cap is crossed). The
-/// [message] is safe to show directly to the user (it never echoes the path).
+/// (the bounded read abandons the stream as soon as the cap is crossed).
+///
+/// Carries only the typed [length] — no user prose. The presentation layer maps
+/// this to a localized message (see `importFileTooLargeMessage` in
+/// `import_error_labels.dart`); the data layer never bakes English in.
 class ImportFileTooLargeException implements Exception {
   const ImportFileTooLargeException(this.length);
 
@@ -40,11 +43,8 @@ class ImportFileTooLargeException implements Exception {
   /// the cap; kept for diagnostics/tests — never shown to the user).
   final int length;
 
-  /// User-facing text, matching the archive intake path's wording.
-  String get message => 'That file is too large to import.';
-
   @override
-  String toString() => message;
+  String toString() => 'ImportFileTooLargeException(length: $length)';
 }
 
 /// Reads [stream] fully into memory, but **fails closed** the instant more than
@@ -178,15 +178,98 @@ Future<Uint8List?> pickImportUsrFile() async {
 /// (CallersBox/ContraDB link) can reuse this seam without changing the queue.
 typedef UrlFetcher = Future<String> Function(String url);
 
-/// Raised by a [UrlFetcher] when a URL import cannot be fetched. The [message]
-/// is safe to show directly to the user.
+/// Why a [UrlFetcher] / URL builder / online-import step failed.
+///
+/// A discriminator carried by [UrlFetchException] so the data/service layer
+/// never bakes user prose into an exception. The presentation layer maps each
+/// reason to a localized message (see `importErrorMessage` in
+/// `import_error_labels.dart`). Reasons whose message embeds a dynamic value
+/// carry it as a typed field on the exception ([UrlFetchException.statusCode],
+/// [UrlFetchException.timeoutSeconds]) — never as pre-formatted text and never
+/// echoing a URL, path, or raw lower-layer/server error (OWASP; CWE-209).
+enum UrlFetchFailureReason {
+  // Generic URL import (fetchImportUrl / _guardFetchUri / _sendGuarded).
+  emptyUrl,
+  invalidUrl,
+  insecureScheme,
+  blockedHost,
+  tooManyRedirects,
+  responseTooLarge,
+  timeout,
+  unreachable,
+  httpStatus,
+  emptyResponse,
+  // The Caller's Box.
+  callersBoxEmptyInput,
+  callersBoxInvalidUrl,
+  callersBoxMissingId,
+  callersBoxEmptySearch,
+  callersBoxUnreachable,
+  callersBoxHttpStatus,
+  callersBoxEmptyPage,
+  callersBoxNoImportableDance,
+  callersBoxImportFailed,
+  // ContraDB.
+  contraDbEmptyTitle,
+  contraDbEmptyDanceInput,
+  contraDbInvalidDanceUrl,
+  contraDbMissingDanceId,
+  contraDbEmptyProgramInput,
+  contraDbInvalidProgramUrl,
+  contraDbMissingProgramId,
+  contraDbInvalidProgramLink,
+  contraDbUnreachable,
+  contraDbHttpStatus,
+  contraDbEmptyResponse,
+  contraDbNoImportableDance,
+  contraDbImportFailed,
+  // Shared by the Caller's Box + ContraDB search transports (identical wording).
+  searchTimeout,
+}
+
+/// Raised by a [UrlFetcher] (or a URL builder / online-import step) when a URL
+/// import cannot be completed.
+///
+/// Carries a typed [reason] discriminator plus any dynamic values as typed
+/// fields — never pre-formatted user prose, and never a URL, path, or raw
+/// lower-layer/server error (OWASP; CWE-209). The presentation layer maps
+/// [reason] (with [statusCode] / [timeoutSeconds]) to a localized message.
 class UrlFetchException implements Exception {
-  const UrlFetchException(this.message);
+  const UrlFetchException(this.reason, {this.statusCode, this.timeoutSeconds})
+    : assert(
+        // An HTTP-status reason must carry the status code it describes.
+        !(reason == UrlFetchFailureReason.httpStatus ||
+                reason == UrlFetchFailureReason.callersBoxHttpStatus ||
+                reason == UrlFetchFailureReason.contraDbHttpStatus) ||
+            statusCode != null,
+        'statusCode is required for an HTTP-status reason',
+      ),
+      assert(
+        // A timeout reason must carry the elapsed seconds it describes.
+        !(reason == UrlFetchFailureReason.timeout ||
+                reason == UrlFetchFailureReason.searchTimeout) ||
+            timeoutSeconds != null,
+        'timeoutSeconds is required for a timeout reason',
+      );
 
-  final String message;
+  /// What went wrong.
+  final UrlFetchFailureReason reason;
 
+  /// The HTTP status code, for [UrlFetchFailureReason.httpStatus] /
+  /// [UrlFetchFailureReason.callersBoxHttpStatus] /
+  /// [UrlFetchFailureReason.contraDbHttpStatus]; `null` otherwise.
+  final int? statusCode;
+
+  /// The elapsed timeout in whole seconds, for [UrlFetchFailureReason.timeout] /
+  /// [UrlFetchFailureReason.searchTimeout]; `null` otherwise.
+  final int? timeoutSeconds;
+
+  /// Debug-only, non-prose form (safe for logs — no user prose, no URL/path).
   @override
-  String toString() => message;
+  String toString() =>
+      'UrlFetchException(${reason.name}'
+      '${statusCode != null ? ', statusCode: $statusCode' : ''}'
+      '${timeoutSeconds != null ? ', timeoutSeconds: $timeoutSeconds' : ''})';
 }
 
 /// How long [fetchImportUrl] waits for a response before giving up.
@@ -334,12 +417,10 @@ bool _isBlockedIpv4(List<int> b) {
 /// `https` → `http` downgrade in a `30x` `Location`.
 Uri _guardFetchUri(Uri uri) {
   if (!uri.isScheme('https')) {
-    throw const UrlFetchException('Imports must use a secure https:// URL.');
+    throw const UrlFetchException(UrlFetchFailureReason.insecureScheme);
   }
   if (isBlockedImportHost(uri.host)) {
-    throw const UrlFetchException(
-      'That URL points to a network location that cannot be imported from.',
-    );
+    throw const UrlFetchException(UrlFetchFailureReason.blockedHost);
   }
   return uri.userInfo.isEmpty ? uri : uri.replace(userInfo: '');
 }
@@ -356,9 +437,7 @@ Uri _guardFetchUri(Uri uri) {
 Future<http.Response> _sendGuarded(String url, http.Client client) async {
   final parsed = Uri.tryParse(url.trim());
   if (parsed == null || !parsed.hasScheme) {
-    throw const UrlFetchException(
-      "That doesn't look like a valid http(s) URL.",
-    );
+    throw const UrlFetchException(UrlFetchFailureReason.invalidUrl);
   }
   var uri = _guardFetchUri(parsed);
   var redirects = 0;
@@ -371,7 +450,7 @@ Future<http.Response> _sendGuarded(String url, http.Client client) async {
       // Drain the redirect response before issuing the next hop.
       await streamed.stream.drain<void>();
       if (redirects >= importMaxRedirects) {
-        throw const UrlFetchException('That URL redirected too many times.');
+        throw const UrlFetchException(UrlFetchFailureReason.tooManyRedirects);
       }
       redirects++;
       // Re-validate the resolved target so a redirect can't reach a blocked
@@ -384,7 +463,7 @@ Future<http.Response> _sendGuarded(String url, http.Client client) async {
     final builder = BytesBuilder(copy: false);
     await for (final chunk in streamed.stream) {
       if (builder.length + chunk.length > importMaxResponseBytes) {
-        throw const UrlFetchException('That response was too large to import.');
+        throw const UrlFetchException(UrlFetchFailureReason.responseTooLarge);
       }
       builder.add(chunk);
     }
@@ -408,7 +487,7 @@ Future<http.Response> _sendGuarded(String url, http.Client client) async {
 Future<String> fetchImportUrl(String url, {http.Client? client}) async {
   final trimmed = url.trim();
   if (trimmed.isEmpty) {
-    throw const UrlFetchException('Enter a URL to import from.');
+    throw const UrlFetchException(UrlFetchFailureReason.emptyUrl);
   }
 
   final ownClient = client == null;
@@ -423,28 +502,26 @@ Future<String> fetchImportUrl(String url, {http.Client? client}) async {
     rethrow;
   } on TimeoutException {
     throw UrlFetchException(
-      'The request timed out after ${importFetchTimeout.inSeconds}s. Check the '
-      'URL and your connection, then try again.',
+      UrlFetchFailureReason.timeout,
+      timeoutSeconds: importFetchTimeout.inSeconds,
     );
   } on Object {
     // Never interpolate the error/URL here: it could leak the pasted URL or
     // embedded credentials into a user-facing message.
-    throw const UrlFetchException(
-      "Couldn't reach that URL. Check the URL and your connection, then try "
-      'again.',
-    );
+    throw const UrlFetchException(UrlFetchFailureReason.unreachable);
   } finally {
     if (ownClient) effectiveClient.close();
   }
 
   if (response.statusCode < 200 || response.statusCode >= 300) {
     throw UrlFetchException(
-      'The server responded with HTTP ${response.statusCode}.',
+      UrlFetchFailureReason.httpStatus,
+      statusCode: response.statusCode,
     );
   }
   final body = response.body;
   if (body.trim().isEmpty) {
-    throw const UrlFetchException('The URL returned an empty response.');
+    throw const UrlFetchException(UrlFetchFailureReason.emptyResponse);
   }
   return body;
 }
@@ -463,17 +540,34 @@ typedef ImportUrlBuilder = String Function(String input);
 /// Keeping the adapter choice and URL rewrite together (rather than sniffing a
 /// hostname) lets the user pick the source explicitly, which is the only way to
 /// route a **bare id** (e.g. `1`) — it has no host to auto-detect from.
+/// Which import source a given [ImportSource] is, so the presentation layer can
+/// render a localized label (see `importSourceLabel` in
+/// `import_error_labels.dart`) instead of baking English on the data object.
+enum ImportSourceKind {
+  /// A Caller's Compendium JSON share file (the default, generic source).
+  genericJson,
+
+  /// The Caller's Box online source.
+  callersBox,
+
+  /// The ContraDB online source.
+  contraDb,
+
+  /// A Caller's Companion `.USR` binary migration file.
+  callersCompanionUsr,
+}
+
 class ImportSource {
   const ImportSource({
-    required this.label,
+    required this.kind,
     required this.adapterFactory,
     this.urlBuilder,
     this.matchesUrl,
     this.bytePicker,
   });
 
-  /// Human-readable name, e.g. "Caller's Compendium JSON" or "The Caller's Box".
-  final String label;
+  /// Which source this is. Drives the localized label at the render site.
+  final ImportSourceKind kind;
 
   /// Builds a fresh [SourceAdapter] for each planning run (adapters may hold
   /// per-discovery state).
@@ -535,9 +629,7 @@ const String callersBoxPathPrefix = '/contradance/thecallersbox';
 String buildCallersBoxJsonUrl(String input) {
   final trimmed = input.trim();
   if (trimmed.isEmpty) {
-    throw const UrlFetchException(
-      "Enter a Caller's Box dance URL or id to import from.",
-    );
+    throw const UrlFetchException(UrlFetchFailureReason.callersBoxEmptyInput);
   }
 
   // Bare numeric id: build the canonical endpoint from scratch.
@@ -552,16 +644,12 @@ String buildCallersBoxJsonUrl(String input) {
   if (uri == null ||
       !uri.hasScheme ||
       (!uri.isScheme('http') && !uri.isScheme('https'))) {
-    throw const UrlFetchException(
-      "That doesn't look like a Caller's Box dance URL or a numeric id.",
-    );
+    throw const UrlFetchException(UrlFetchFailureReason.callersBoxInvalidUrl);
   }
 
   final id = uri.queryParameters['id'];
   if (id == null || id.trim().isEmpty) {
-    throw const UrlFetchException(
-      "That Caller's Box URL is missing a dance id (…dance.php?id=N).",
-    );
+    throw const UrlFetchException(UrlFetchFailureReason.callersBoxMissingId);
   }
 
   // Preserve the pasted host/path/other params; force format=JSON (overwrites
@@ -635,9 +723,7 @@ String buildCallersBoxSearchUrl(
   final trimmed = title.trim();
   final hasPhrases = phrases != null && !phrases.isEmpty;
   if (trimmed.isEmpty && !hasPhrases) {
-    throw const UrlFetchException(
-      "Enter a title or by-phrase figures to search The Caller's Box.",
-    );
+    throw const UrlFetchException(UrlFetchFailureReason.callersBoxEmptySearch);
   }
 
   final params = <String, String>{};
@@ -803,26 +889,25 @@ Future<String> fetchCallersBoxSearch(String url, {http.Client? client}) async {
     rethrow;
   } on TimeoutException {
     throw UrlFetchException(
-      'The search timed out after ${importFetchTimeout.inSeconds}s. Check your '
-      'connection, then try again.',
+      UrlFetchFailureReason.searchTimeout,
+      timeoutSeconds: importFetchTimeout.inSeconds,
     );
   } on Object {
     // Never interpolate the error/URL here (see fetchImportUrl).
-    throw const UrlFetchException(
-      "Couldn't reach The Caller's Box. Check your connection, then try again.",
-    );
+    throw const UrlFetchException(UrlFetchFailureReason.callersBoxUnreachable);
   } finally {
     if (ownClient) effectiveClient.close();
   }
 
   if (response.statusCode < 200 || response.statusCode >= 300) {
     throw UrlFetchException(
-      "The Caller's Box responded with HTTP ${response.statusCode}.",
+      UrlFetchFailureReason.callersBoxHttpStatus,
+      statusCode: response.statusCode,
     );
   }
   final body = decodeWindows1252(response.bodyBytes);
   if (body.trim().isEmpty) {
-    throw const UrlFetchException("The Caller's Box returned an empty page.");
+    throw const UrlFetchException(UrlFetchFailureReason.callersBoxEmptyPage);
   }
   return body;
 }
@@ -850,7 +935,7 @@ String buildContraDbUrl(String input) {
   final trimmed = input.trim();
   if (trimmed.isEmpty) {
     throw const UrlFetchException(
-      'Enter a ContraDB dance URL or id to import from.',
+      UrlFetchFailureReason.contraDbEmptyDanceInput,
     );
   }
 
@@ -864,15 +949,13 @@ String buildContraDbUrl(String input) {
       !uri.hasScheme ||
       (!uri.isScheme('http') && !uri.isScheme('https'))) {
     throw const UrlFetchException(
-      "That doesn't look like a ContraDB dance URL or a numeric id.",
+      UrlFetchFailureReason.contraDbInvalidDanceUrl,
     );
   }
 
   final match = RegExp(r'/dances/(\d+)').firstMatch(uri.path);
   if (match == null) {
-    throw const UrlFetchException(
-      'That ContraDB URL is missing a dance id (…/dances/N).',
-    );
+    throw const UrlFetchException(UrlFetchFailureReason.contraDbMissingDanceId);
   }
   final id = match.group(1)!;
   // Preserve the pasted scheme/host/port; canonicalize the path and drop any
@@ -898,7 +981,7 @@ String buildContraDbProgramUrl(String input) {
   final trimmed = input.trim();
   if (trimmed.isEmpty) {
     throw const UrlFetchException(
-      'Enter a ContraDB program URL or id to import from.',
+      UrlFetchFailureReason.contraDbEmptyProgramInput,
     );
   }
 
@@ -911,14 +994,14 @@ String buildContraDbProgramUrl(String input) {
       !uri.hasScheme ||
       (!uri.isScheme('http') && !uri.isScheme('https'))) {
     throw const UrlFetchException(
-      "That doesn't look like a ContraDB program URL or a numeric id.",
+      UrlFetchFailureReason.contraDbInvalidProgramUrl,
     );
   }
 
   final match = RegExp(r'/programs/(\d+)').firstMatch(uri.path);
   if (match == null) {
     throw const UrlFetchException(
-      'That ContraDB URL is missing a program id (…/programs/N).',
+      UrlFetchFailureReason.contraDbMissingProgramId,
     );
   }
   final id = match.group(1)!;
@@ -978,7 +1061,7 @@ const int kMaxSharedImportUrlLength = 2048;
 /// surface into the URL handed onward.
 String validateSharedContraDbProgramUrl(String shared) {
   const rejected = UrlFetchException(
-    "That doesn't look like a ContraDB program link.",
+    UrlFetchFailureReason.contraDbInvalidProgramLink,
   );
 
   final trimmed = shared.trim();
@@ -1061,7 +1144,7 @@ final RegExp _sharedHttpsUrlToken = RegExp(
 ///    SSRF guard applied at fetch time.
 String extractSharedContraDbProgramUrl(String rawShared) {
   const rejected = UrlFetchException(
-    "That doesn't look like a ContraDB program link.",
+    UrlFetchFailureReason.contraDbInvalidProgramLink,
   );
 
   final trimmed = rawShared.trim();
@@ -1124,7 +1207,7 @@ Future<http.Response> _sendContraDbSearch(
   final builder = BytesBuilder(copy: false);
   await for (final chunk in streamed.stream) {
     if (builder.length + chunk.length > importMaxResponseBytes) {
-      throw const UrlFetchException('That response was too large to import.');
+      throw const UrlFetchException(UrlFetchFailureReason.responseTooLarge);
     }
     builder.add(chunk);
   }
@@ -1167,27 +1250,26 @@ Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
     rethrow;
   } on TimeoutException {
     throw UrlFetchException(
-      'The search timed out after ${importFetchTimeout.inSeconds}s. Check your '
-      'connection, then try again.',
+      UrlFetchFailureReason.searchTimeout,
+      timeoutSeconds: importFetchTimeout.inSeconds,
     );
   } on Object {
     // Never interpolate the error here: keep ContraDB's failure message generic
     // and free of internal detail (matching the other guarded fetchers).
-    throw const UrlFetchException(
-      "Couldn't reach ContraDB. Check your connection, then try again.",
-    );
+    throw const UrlFetchException(UrlFetchFailureReason.contraDbUnreachable);
   } finally {
     if (ownClient) effectiveClient.close();
   }
 
   if (response.statusCode < 200 || response.statusCode >= 300) {
     throw UrlFetchException(
-      'ContraDB responded with HTTP ${response.statusCode}.',
+      UrlFetchFailureReason.contraDbHttpStatus,
+      statusCode: response.statusCode,
     );
   }
   final body = response.body;
   if (body.trim().isEmpty) {
-    throw const UrlFetchException('ContraDB returned an empty response.');
+    throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyResponse);
   }
   return body;
 }
@@ -1217,11 +1299,11 @@ const Set<String> _contraDbHosts = {'contradb.com', 'www.contradb.com'};
 /// injection is handled separately by each caller via [ImportReviewScreen].
 List<ImportSource> defaultImportSources() => [
   ImportSource(
-    label: "a Caller's Compendium JSON file",
+    kind: ImportSourceKind.genericJson,
     adapterFactory: GenericJsonAdapter.new,
   ),
   ImportSource(
-    label: "The Caller's Box",
+    kind: ImportSourceKind.callersBox,
     adapterFactory: CallersBoxAdapter.new,
     urlBuilder: buildCallersBoxJsonUrl,
     matchesUrl: (uri) =>
@@ -1230,13 +1312,13 @@ List<ImportSource> defaultImportSources() => [
             uri.path.toLowerCase().contains('/thecallersbox/')),
   ),
   ImportSource(
-    label: 'ContraDB',
+    kind: ImportSourceKind.contraDb,
     adapterFactory: ContraDbHtmlAdapter.new,
     urlBuilder: buildContraDbUrl,
     matchesUrl: (uri) => _contraDbHosts.contains(uri.host.toLowerCase()),
   ),
   ImportSource(
-    label: "a Caller's Companion .USR file",
+    kind: ImportSourceKind.callersCompanionUsr,
     adapterFactory: CallersCompanionUsrAdapter.new,
     bytePicker: pickImportUsrFile,
   ),

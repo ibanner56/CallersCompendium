@@ -226,12 +226,22 @@ void main() {
     await _pumpShell(
       tester,
       repos,
-      _online(search: (_) async => throw const UrlFetchException('Offline.')),
+      _online(
+        search: (_) async => throw const UrlFetchException(
+          UrlFetchFailureReason.callersBoxUnreachable,
+        ),
+      ),
     );
     await _enableOnline(tester);
     await _search(tester, 'Money Musk');
 
-    expect(find.text('Offline.'), findsOneWidget);
+    expect(
+      find.text(
+        "Couldn't reach The Caller's Box. Check your connection, then "
+        'try again.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('zero results shows the no-matches message', (tester) async {

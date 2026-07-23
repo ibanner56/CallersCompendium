@@ -4939,6 +4939,234 @@ abstract class AppLocalizations {
   /// **'Import dances from {source}.'**
   String importReviewDancesFromSource(String source);
 
+  /// Name of the generic Caller's Compendium JSON import source, shown in the import-source dropdown and in the 'Import from {source}.' heading.
+  ///
+  /// In en, this message translates to:
+  /// **'a Caller\'s Compendium JSON file'**
+  String get importSourceLabelGenericJson;
+
+  /// Name of The Caller's Box online import source (a proper noun), shown in the import-source dropdown and headings.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box'**
+  String get importSourceLabelCallersBox;
+
+  /// Name of the ContraDB online import source (a proper noun), shown in the import-source dropdown and headings.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB'**
+  String get importSourceLabelContraDb;
+
+  /// Name of the Caller's Companion .USR binary import source, shown in the import-source dropdown and headings.
+  ///
+  /// In en, this message translates to:
+  /// **'a Caller\'s Companion .USR file'**
+  String get importSourceLabelCallersCompanionUsr;
+
+  /// Error shown when a chosen import file exceeds the maximum allowed size.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to import.'**
+  String get importErrorFileTooLarge;
+
+  /// Error shown when an import URL does not use the https scheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Imports must use a secure https:// URL.'**
+  String get importErrorInsecureScheme;
+
+  /// Error shown when an import URL resolves to a blocked or private network location (SSRF guard). Never echoes the URL.
+  ///
+  /// In en, this message translates to:
+  /// **'That URL points to a network location that cannot be imported from.'**
+  String get importErrorBlockedHost;
+
+  /// Error shown when the entered import URL is not a valid http/https URL.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like a valid http(s) URL.'**
+  String get importErrorInvalidUrl;
+
+  /// Error shown when fetching an import URL exceeded the redirect limit.
+  ///
+  /// In en, this message translates to:
+  /// **'That URL redirected too many times.'**
+  String get importErrorTooManyRedirects;
+
+  /// Error shown when a fetched import response exceeded the maximum allowed size.
+  ///
+  /// In en, this message translates to:
+  /// **'That response was too large to import.'**
+  String get importErrorResponseTooLarge;
+
+  /// Error shown when the import URL field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a URL to import from.'**
+  String get importErrorEmptyUrl;
+
+  /// Error shown when fetching an import URL timed out.
+  ///
+  /// In en, this message translates to:
+  /// **'The request timed out after {seconds}s. Check the URL and your connection, then try again.'**
+  String importErrorTimeout(int seconds);
+
+  /// Error shown when an import URL could not be reached. Never echoes the URL.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach that URL. Check the URL and your connection, then try again.'**
+  String get importErrorUnreachable;
+
+  /// Error shown when an import URL returned a non-success HTTP status.
+  ///
+  /// In en, this message translates to:
+  /// **'The server responded with HTTP {status}.'**
+  String importErrorHttpStatus(int status);
+
+  /// Error shown when an import URL returned an empty body.
+  ///
+  /// In en, this message translates to:
+  /// **'The URL returned an empty response.'**
+  String get importErrorEmptyResponse;
+
+  /// Error shown when the Caller's Box dance URL/id field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a Caller\'s Box dance URL or id to import from.'**
+  String get importErrorCallersBoxEmptyInput;
+
+  /// Error shown when the Caller's Box input is neither a recognized dance URL nor a numeric id.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like a Caller\'s Box dance URL or a numeric id.'**
+  String get importErrorCallersBoxInvalidUrl;
+
+  /// Error shown when a Caller's Box URL has no dance id query parameter.
+  ///
+  /// In en, this message translates to:
+  /// **'That Caller\'s Box URL is missing a dance id (…dance.php?id=N).'**
+  String get importErrorCallersBoxMissingId;
+
+  /// Error shown when a Caller's Box search is attempted with no query.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a title or by-phrase figures to search The Caller\'s Box.'**
+  String get importErrorCallersBoxEmptySearch;
+
+  /// Error shown when an online search (Caller's Box or ContraDB) timed out.
+  ///
+  /// In en, this message translates to:
+  /// **'The search timed out after {seconds}s. Check your connection, then try again.'**
+  String importErrorSearchTimeout(int seconds);
+
+  /// Error shown when The Caller's Box could not be reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach The Caller\'s Box. Check your connection, then try again.'**
+  String get importErrorCallersBoxUnreachable;
+
+  /// Error shown when The Caller's Box returned a non-success HTTP status.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box responded with HTTP {status}.'**
+  String importErrorCallersBoxHttpStatus(int status);
+
+  /// Error shown when a Caller's Box search returned no page content.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box returned an empty page.'**
+  String get importErrorCallersBoxEmptyPage;
+
+  /// Error shown when a Caller's Box fetch parsed no importable dance. Generic by design; underlying parse detail is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box returned no importable dance.'**
+  String get importErrorCallersBoxNoDance;
+
+  /// Error shown when committing a Caller's Box dance failed. Generic by design; underlying error detail is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box dance couldn\'t be imported.'**
+  String get importErrorCallersBoxImportFailed;
+
+  /// Error shown when a ContraDB search is attempted with no title.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a title to search ContraDB.'**
+  String get importErrorContraDbEmptyTitle;
+
+  /// Error shown when the ContraDB dance URL/id field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a ContraDB dance URL or id to import from.'**
+  String get importErrorContraDbEmptyDanceInput;
+
+  /// Error shown when the ContraDB dance input is neither a recognized dance URL nor a numeric id.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like a ContraDB dance URL or a numeric id.'**
+  String get importErrorContraDbInvalidDanceUrl;
+
+  /// Error shown when a ContraDB dance URL has no dance id path segment.
+  ///
+  /// In en, this message translates to:
+  /// **'That ContraDB URL is missing a dance id (…/dances/N).'**
+  String get importErrorContraDbMissingDanceId;
+
+  /// Error shown when the ContraDB program URL/id field is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a ContraDB program URL or id to import from.'**
+  String get importErrorContraDbEmptyProgramInput;
+
+  /// Error shown when the ContraDB program input is neither a recognized program URL nor a numeric id.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like a ContraDB program URL or a numeric id.'**
+  String get importErrorContraDbInvalidProgramUrl;
+
+  /// Error shown when a ContraDB program URL has no program id path segment.
+  ///
+  /// In en, this message translates to:
+  /// **'That ContraDB URL is missing a program id (…/programs/N).'**
+  String get importErrorContraDbMissingProgramId;
+
+  /// Error shown when a shared link is not a valid ContraDB program link.
+  ///
+  /// In en, this message translates to:
+  /// **'That doesn\'t look like a ContraDB program link.'**
+  String get importErrorContraDbInvalidProgramLink;
+
+  /// Error shown when ContraDB could not be reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach ContraDB. Check your connection, then try again.'**
+  String get importErrorContraDbUnreachable;
+
+  /// Error shown when ContraDB returned a non-success HTTP status.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB responded with HTTP {status}.'**
+  String importErrorContraDbHttpStatus(int status);
+
+  /// Error shown when ContraDB returned an empty body.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB returned an empty response.'**
+  String get importErrorContraDbEmptyResponse;
+
+  /// Error shown when a ContraDB fetch parsed no importable dance. Generic by design; underlying parse detail is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'ContraDB returned no importable dance.'**
+  String get importErrorContraDbNoDance;
+
+  /// Error shown when committing a ContraDB dance failed. Generic by design; underlying error detail is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'The ContraDB dance couldn\'t be imported.'**
+  String get importErrorContraDbImportFailed;
+
   /// Explanatory text for the Caller's Companion .USR file import.
   ///
   /// In en, this message translates to:

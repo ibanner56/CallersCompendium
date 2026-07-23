@@ -25,17 +25,12 @@ figure-shorthand mappings, reparse-custom-figures), the large chrome widgets
 ARB — the guard (see [below](#guarding-against-hardcoded-strings)) keeps it that
 way.
 
-The only remaining hardcoded English is **intentional and permanent**, in two
-buckets:
+The only remaining hardcoded English is **intentional and permanent**, in one
+bucket:
 
-- **Guard-enforced allow-list (still flagged, English by design).** These six
+- **Guard-enforced allow-list (still flagged, English by design).** These three
   files stay on `hardcoded_ui_strings_allowlist.dart` because they still contain
   guard-flagged literals we deliberately keep in English:
-  - Data/service-layer curated messages awaiting a typed-error refactor:
-    `data/backup_document.dart`, `data/callersbox_online.dart`,
-    `data/contradb_online.dart`. These are free-form strings with no error-code
-    discriminator; localizing them cleanly needs a typed-error refactor first
-    (tracked separately).
   - Export-document (PDF) body builders, pending a product decision on whether
     exports follow the UI language: `export/dance_pdf.dart`,
     `export/program_matrix_pdf.dart`, `export/program_pdf.dart` (see
@@ -45,15 +40,30 @@ buckets:
   the guard fails on an allow-listed file that has nothing to flag. These
   surfaces route their English through constructs the guard does not scan, so
   they are documented here but must stay **off** the allow-list:
-  - `data/import_io.dart` — `UrlFetchException` / `ImportFileTooLargeException`
-    message getters and `ImportSource.label`. These are `String get message =>`
-    getters and thrown-exception arguments, not UI-widget arguments, so the
-    guard never sees them. They await the same typed-error refactor as the
-    service messages above.
   - The diagnostics-log export body `_buildExportText` in
     `diagnostics_section.dart` — it assembles an exported text blob (like the PDF
     builders), not a UI-widget argument, so it is English by design for the same
     reason exports are.
+
+**Resolved: service/import errors (was a fourth allow-list file group).** The
+data/service-layer curated error messages and import-source labels
+(`data/backup_document.dart`, `data/callersbox_online.dart`,
+`data/contradb_online.dart`, and the closely-related `data/import_io.dart`) were
+previously English-by-design pending a **typed-error refactor**. That refactor is
+now done: the Flutter-free data layer throws a typed discriminator
+(`UrlFetchFailureReason` on `UrlFetchException`, plus typed `statusCode` /
+`timeoutSeconds` fields) or an `ImportFileTooLargeException`, and identifies an
+import source by `ImportSourceKind` — never English prose. The presentation layer
+maps those to localized ARB strings via `data/import_error_labels.dart`
+(`importErrorMessage` / `importFileTooLargeMessage` / `importSourceLabel`, the
+same "lives under `data/` but imports `AppLocalizations`" pattern as
+`online_search_labels.dart`). Opaque lower-layer/server messages (ContraDB batch
+errors, `record.error?.message`) map to a **generic** localized string and are
+kept only for `kDebugMode` logging — never surfaced (CWE-209). The six
+`backup_document.dart` `ArchiveError(message:)` literals are internal diagnostics
+that are never shown, so they carry an inline `// i18n-ignore` and the file left
+the allow-list. As a result the allow-list shrank to just the three export-PDF
+builders above.
 
 Translations into other languages remain community-driven and require no code
 change to appear; adding a locale is purely additive (see
@@ -228,13 +238,14 @@ ignored.
 - **Allow-list.** The few files that intentionally keep English literals live in
   `app/test/l10n/hardcoded_ui_strings_allowlist.dart`. With extraction complete
   the "deferred UI" bucket is gone; only **permanent deferrals** remain — the
-  data/service curated messages awaiting a typed-error refactor and the English
-  export-body builders (see the two buckets under **Extraction status** above).
+  English export-body builders (see **Extraction status** above). The service /
+  import error messages that once sat here were localized via the typed-error
+  refactor and left the list.
   The guard also fails if a listed file no longer exists **or no longer has any
   flagged literal**, so the manifest can't rot and a file can't be parked on it
   once it's clean. That last rule is why the English-by-design surfaces the guard
-  doesn't scan (`import_io` messages / `ImportSource.label`, the diagnostics-log
-  export body) are documented above but deliberately kept **off** the list.
+  doesn't scan (the diagnostics-log export body) are documented above but
+  deliberately kept **off** the list.
 - **Escape hatch.** For a literal that is intentionally *not* translatable (a
   brand/proper noun, a single-glyph font specimen, a notation token), append
   `// i18n-ignore` to the literal's line. Keep the line ≤ 80 chars so

@@ -14,6 +14,7 @@ import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
@@ -602,6 +603,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       return;
     }
     final seq = ++_onlineSeq;
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _onlineSearching = true;
       _onlineError = null;
@@ -618,7 +620,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     } on UrlFetchException catch (error) {
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
-        _onlineError = error.message;
+        _onlineError = importErrorMessage(l10n, error);
         _onlineResults = const [];
         _onlineSearching = false;
       });
@@ -665,7 +667,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       preview = await _online.loadPreview(_repos, result);
     } on UrlFetchException catch (error) {
       if (mounted) navigator.pop();
-      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(importErrorMessage(l10n, error))),
+      );
       return;
     } catch (_) {
       if (mounted) navigator.pop();
@@ -739,7 +743,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       }
     } on UrlFetchException catch (error) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(importErrorMessage(l10n, error))),
+      );
     } catch (_) {
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(l10n.onlineImportError)));

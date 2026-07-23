@@ -295,8 +295,8 @@ void main() {
       () => fetchImportUrl(url, client: client),
       throwsA(
         isA<UrlFetchException>().having(
-          (e) => e.message,
-          'message',
+          (e) => e.toString(),
+          'toString',
           allOf(isNot(contains('169.254.169.254')), isNot(contains(url))),
         ),
       ),

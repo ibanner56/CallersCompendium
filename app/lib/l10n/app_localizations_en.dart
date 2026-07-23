@@ -3154,6 +3154,157 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get importSourceLabelGenericJson => 'a Caller\'s Compendium JSON file';
+
+  @override
+  String get importSourceLabelCallersBox => 'The Caller\'s Box';
+
+  @override
+  String get importSourceLabelContraDb => 'ContraDB';
+
+  @override
+  String get importSourceLabelCallersCompanionUsr =>
+      'a Caller\'s Companion .USR file';
+
+  @override
+  String get importErrorFileTooLarge => 'That file is too large to import.';
+
+  @override
+  String get importErrorInsecureScheme =>
+      'Imports must use a secure https:// URL.';
+
+  @override
+  String get importErrorBlockedHost =>
+      'That URL points to a network location that cannot be imported from.';
+
+  @override
+  String get importErrorInvalidUrl =>
+      'That doesn\'t look like a valid http(s) URL.';
+
+  @override
+  String get importErrorTooManyRedirects =>
+      'That URL redirected too many times.';
+
+  @override
+  String get importErrorResponseTooLarge =>
+      'That response was too large to import.';
+
+  @override
+  String get importErrorEmptyUrl => 'Enter a URL to import from.';
+
+  @override
+  String importErrorTimeout(int seconds) {
+    return 'The request timed out after ${seconds}s. Check the URL and your connection, then try again.';
+  }
+
+  @override
+  String get importErrorUnreachable =>
+      'Couldn\'t reach that URL. Check the URL and your connection, then try again.';
+
+  @override
+  String importErrorHttpStatus(int status) {
+    return 'The server responded with HTTP $status.';
+  }
+
+  @override
+  String get importErrorEmptyResponse => 'The URL returned an empty response.';
+
+  @override
+  String get importErrorCallersBoxEmptyInput =>
+      'Enter a Caller\'s Box dance URL or id to import from.';
+
+  @override
+  String get importErrorCallersBoxInvalidUrl =>
+      'That doesn\'t look like a Caller\'s Box dance URL or a numeric id.';
+
+  @override
+  String get importErrorCallersBoxMissingId =>
+      'That Caller\'s Box URL is missing a dance id (…dance.php?id=N).';
+
+  @override
+  String get importErrorCallersBoxEmptySearch =>
+      'Enter a title or by-phrase figures to search The Caller\'s Box.';
+
+  @override
+  String importErrorSearchTimeout(int seconds) {
+    return 'The search timed out after ${seconds}s. Check your connection, then try again.';
+  }
+
+  @override
+  String get importErrorCallersBoxUnreachable =>
+      'Couldn\'t reach The Caller\'s Box. Check your connection, then try again.';
+
+  @override
+  String importErrorCallersBoxHttpStatus(int status) {
+    return 'The Caller\'s Box responded with HTTP $status.';
+  }
+
+  @override
+  String get importErrorCallersBoxEmptyPage =>
+      'The Caller\'s Box returned an empty page.';
+
+  @override
+  String get importErrorCallersBoxNoDance =>
+      'The Caller\'s Box returned no importable dance.';
+
+  @override
+  String get importErrorCallersBoxImportFailed =>
+      'The Caller\'s Box dance couldn\'t be imported.';
+
+  @override
+  String get importErrorContraDbEmptyTitle =>
+      'Enter a title to search ContraDB.';
+
+  @override
+  String get importErrorContraDbEmptyDanceInput =>
+      'Enter a ContraDB dance URL or id to import from.';
+
+  @override
+  String get importErrorContraDbInvalidDanceUrl =>
+      'That doesn\'t look like a ContraDB dance URL or a numeric id.';
+
+  @override
+  String get importErrorContraDbMissingDanceId =>
+      'That ContraDB URL is missing a dance id (…/dances/N).';
+
+  @override
+  String get importErrorContraDbEmptyProgramInput =>
+      'Enter a ContraDB program URL or id to import from.';
+
+  @override
+  String get importErrorContraDbInvalidProgramUrl =>
+      'That doesn\'t look like a ContraDB program URL or a numeric id.';
+
+  @override
+  String get importErrorContraDbMissingProgramId =>
+      'That ContraDB URL is missing a program id (…/programs/N).';
+
+  @override
+  String get importErrorContraDbInvalidProgramLink =>
+      'That doesn\'t look like a ContraDB program link.';
+
+  @override
+  String get importErrorContraDbUnreachable =>
+      'Couldn\'t reach ContraDB. Check your connection, then try again.';
+
+  @override
+  String importErrorContraDbHttpStatus(int status) {
+    return 'ContraDB responded with HTTP $status.';
+  }
+
+  @override
+  String get importErrorContraDbEmptyResponse =>
+      'ContraDB returned an empty response.';
+
+  @override
+  String get importErrorContraDbNoDance =>
+      'ContraDB returned no importable dance.';
+
+  @override
+  String get importErrorContraDbImportFailed =>
+      'The ContraDB dance couldn\'t be imported.';
+
+  @override
   String get importReviewUsrSubtitle =>
       'Choose the Caller\'s Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.';
 

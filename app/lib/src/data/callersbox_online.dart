@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 
 import '../search/dance_detail_data.dart';
 import 'import_io.dart';
@@ -33,7 +34,7 @@ class CallersBoxOnline implements OnlineSearchService {
   /// Searches The Caller's Box by [OnlineSearchQuery.title] and/or by-phrase
   /// figure [OnlineSearchQuery.phrases] and returns the parsed result rows.
   /// Title and phrase criteria combine (TCB accepts both in one request). Throws
-  /// a [UrlFetchException] (message safe to show) on any fetch failure, or when
+  /// a typed [UrlFetchException] on any fetch failure, or when
   /// there is nothing to search.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
@@ -69,10 +70,14 @@ class CallersBoxOnline implements OnlineSearchService {
       ImportRequest(payload: payload, uri: jsonUrl),
     );
     if (batch.records.isEmpty) {
-      final reason = batch.errors.isNotEmpty
-          ? batch.errors.first.message
-          : "The Caller's Box returned no importable dance.";
-      throw UrlFetchException(reason);
+      // Never echo the lower-layer parse error into the UI (CWE-209); keep it
+      // for debug logging only and surface a generic localized reason.
+      if (kDebugMode && batch.errors.isNotEmpty) {
+        debugPrint("Caller's Box import parse failed: ${batch.errors.first}");
+      }
+      throw const UrlFetchException(
+        UrlFetchFailureReason.callersBoxNoImportableDance,
+      );
     }
 
     final plan = batch.records.first;
@@ -124,8 +129,13 @@ class CallersBoxOnline implements OnlineSearchService {
     // error instead of letting `firstWhere` throw an opaque StateError.
     final record = session.records.first;
     if (!record.succeeded || record.danceId == null) {
-      throw UrlFetchException(
-        record.error?.message ?? "The Caller's Box dance couldn't be imported.",
+      // Keep the raw commit error for debug logging only; the UI gets a generic
+      // localized message so no lower-layer detail leaks (CWE-209).
+      if (kDebugMode && record.error != null) {
+        debugPrint("Caller's Box import commit failed: ${record.error}");
+      }
+      throw const UrlFetchException(
+        UrlFetchFailureReason.callersBoxImportFailed,
       );
     }
     return OnlineImportResult(
