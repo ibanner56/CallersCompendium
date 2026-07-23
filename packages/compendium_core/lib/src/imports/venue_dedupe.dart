@@ -1,0 +1,141 @@
+import '../model/venue.dart';
+import '../util/text_sanitizer.dart';
+
+/// Separator between fingerprint fields. `\u0000` (NUL) is a C0 control, which
+/// [_normalizeField] strips from every field via [sanitizeImportedText] before
+/// joining — so it can never occur *inside* a field and unambiguously delimits
+/// them: a "Foo" / "Bar Baz" pairing can never collide with a "Foo Bar" / "Baz"
+/// pairing. The strip runs here (not only on the import path) so the invariant
+/// holds for **all** stored venues, including ones created/edited locally that
+/// never passed through the importer's sanitizer.
+const String _fieldSeparator = '\u0000';
+
+/// Normalizes one venue field for fingerprinting: strips control/bidi/invisible
+/// characters (via [sanitizeImportedText] — see below), then trims, lowercases
+/// and collapses internal whitespace runs to a single space. Empty/whitespace-
+/// only (or null) becomes `null` so an absent field never contributes noise.
+///
+/// The [sanitizeImportedText] pass is a **security invariant**, not cosmetic: a
+/// locally-created venue never goes through the import sanitizer, so without
+/// this an embedded NUL (the field separator) or other control character could
+/// shift field boundaries and make two distinct venues fingerprint-equal — a
+/// *false merge*. Stripping the same disallowed set the importer strips (C0/C1
+/// controls, DEL, bidi overrides, invisible format chars) keeps the separator
+/// guarantee true for every stored venue and also denies display-spoofing
+/// characters any influence over a match.
+///
+/// Deliberately conservative otherwise — it does NOT fold diacritics or strip
+/// punctuation (unlike `normalizeTitle` in `dedupe.dart`). A venue fingerprint
+/// must never produce a *false merge* (two distinct halls collapsing into one),
+/// so it tolerates *false splits* ("St." vs "Street", "Café" vs "Cafe") instead:
+/// splitting duplicates a row harmlessly; merging would repoint a program at the
+/// wrong venue.
+String? _normalizeField(String? value) {
+  if (value == null) return null;
+  final normalized = sanitizeImportedText(
+    value,
+  ).trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  return normalized.isEmpty ? null : normalized;
+}
+
+/// Computes a cross-import dedupe fingerprint for [venue] from its **descriptive**
+/// fields (`name` + `city` + `stateProv` + `address1`), or `null` when the venue
+/// is too weakly described to safely match on.
+///
+/// Used by [VenueFingerprintIndex] so re-importing a bundle matches a venue the
+/// receiver already holds instead of minting a duplicate (issue #456). Matching
+/// only ever repoints an incoming program's `venueId` at the existing venue — it
+/// never overwrites the existing record — so the fresh-mint guarantee (an
+/// untrusted bundle can't mutate a local venue) is preserved.
+///
+/// **Strong-key threshold:** returns a key only when `name` is present AND at
+/// least one locating field (`address1` or `city`) is present; otherwise `null`.
+/// A bare name is far too common across distinct halls ("Town Hall", "Grange")
+/// to dedupe on, so a weak venue is always fresh-minted, never merged.
+///
+/// **Contact/PII-independent:** deliberately excludes the redactable contact
+/// fields (`contact1/2*`), `notes`, `price`, `website`, `schedule`, etc. #515
+/// strips a shared venue's contact PII by default, so a fingerprint over those
+/// fields could never match a local venue — the key uses only fields that always
+/// travel with a shared venue.
+String? venueFingerprint(Venue venue) {
+  final name = _normalizeField(venue.name);
+  final city = _normalizeField(venue.city);
+  final stateProv = _normalizeField(venue.stateProv);
+  final address1 = _normalizeField(venue.address1);
+
+  if (name == null || (address1 == null && city == null)) return null;
+
+  return [
+    name,
+    city ?? '',
+    stateProv ?? '',
+    address1 ?? '',
+  ].join(_fieldSeparator);
+}
+
+/// An in-memory index that answers "does this incoming venue already exist?" by
+/// content fingerprint, mirroring `DedupeIndex`'s pure-and-testable philosophy
+/// (a snapshot with no I/O). The importer seeds it once from the existing venue
+/// collection, then folds in each venue it mints so two fingerprint-equal venues
+/// within a single bundle also collapse to one.
+///
+/// Ambiguity is tracked explicitly: if two *distinct* venue ids share a
+/// fingerprint, that fingerprint is poisoned and [matchFor] returns `null` for
+/// it — the importer then fresh-mints rather than guessing which existing venue
+/// to repoint to.
+class VenueFingerprintIndex {
+  VenueFingerprintIndex([Iterable<Venue> venues = const []]) {
+    for (final venue in venues) {
+      add(venue.id, venue);
+    }
+  }
+
+  final Map<String, String> _idByFingerprint = {};
+  final Map<String, String> _fingerprintById = {};
+  final Set<String> _ambiguousFingerprints = {};
+
+  /// Records [venue] under [venueId]. A weakly-described venue (null
+  /// fingerprint) is never a match target. If a second, *distinct* id is seen
+  /// for a fingerprint, that fingerprint becomes ambiguous and permanently stops
+  /// matching.
+  ///
+  /// Re-adding the same id with an *unchanged* fingerprint is a no-op. Re-adding
+  /// it with a *changed* fingerprint (the importer's "last-seen wins" collapse of
+  /// a repeated original venue id) retires the stale fingerprint first — so a
+  /// later venue matching the old content can never be repointed at this
+  /// now-changed record. A poisoned (ambiguous) fingerprint is left poisoned: two
+  /// distinct ids already collided on it, so it stays a fresh-mint (never
+  /// un-poisoned), consistent with the never-false-merge stance.
+  void add(String venueId, Venue venue) {
+    final fingerprint = venueFingerprint(venue);
+
+    final priorFingerprint = _fingerprintById[venueId];
+    if (priorFingerprint != null && priorFingerprint != fingerprint) {
+      if (_idByFingerprint[priorFingerprint] == venueId) {
+        _idByFingerprint.remove(priorFingerprint);
+      }
+      _fingerprintById.remove(venueId);
+    }
+
+    if (fingerprint == null) return;
+    if (_ambiguousFingerprints.contains(fingerprint)) return;
+
+    final existing = _idByFingerprint[fingerprint];
+    if (existing == null) {
+      _idByFingerprint[fingerprint] = venueId;
+      _fingerprintById[venueId] = fingerprint;
+    } else if (existing != venueId) {
+      _idByFingerprint.remove(fingerprint);
+      _ambiguousFingerprints.add(fingerprint);
+    }
+  }
+
+  /// The single existing venue id that [venue] deduplicates to, or `null` when
+  /// its key is weak, unmatched, or ambiguous (matches more than one venue).
+  String? matchFor(Venue venue) {
+    final fingerprint = venueFingerprint(venue);
+    if (fingerprint == null) return null;
+    return _idByFingerprint[fingerprint];
+  }
+}

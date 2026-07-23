@@ -876,15 +876,54 @@ void main() {
       expect((await programs.listAll()).single.venueId, all.single.id);
     });
 
-    test('re-import currently duplicates venues (accepted, tracked #456)', () async {
-      // Cross-import venue dedupe is deliberately deferred (issue #456): venues
-      // carry no provenance key, so a fresh venue is minted on each import while
-      // the program dedupes by provenance and is repointed to the newest venue.
-      // This pins the accepted PR A additive behavior; it will change when #456
-      // adds a dedupe/provenance key.
+    test('re-importing a strong-key venue dedupes — no duplicate (#456)', () async {
+      // Regression for #456: a strong-key venue (name + a locating field) is
+      // matched by content fingerprint on re-import, so the second import mints
+      // ZERO venues and repoints the (provenance-deduped) program at the venue
+      // already imported — no cross-import duplicate.
       final archive = bundleWithVenue(
         programVenueId: 'orig-v1',
-        venues: [Venue(id: 'orig-v1', name: 'Guiding Star Grange')],
+        venues: [
+          Venue(id: 'orig-v1', name: 'Guiding Star Grange', city: 'Greenfield'),
+        ],
+      );
+      final result1 = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('first'),
+        newSlotId: sequentialIds('firstslot'),
+      );
+      expect(result1.insertedVenueCount, 1);
+
+      final result2 = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now.add(const Duration(days: 1)),
+        newId: sequentialIds('second'),
+        newSlotId: sequentialIds('secondslot'),
+      );
+
+      // The program deduped by provenance (updated in place, not re-inserted)...
+      final programsAfter = await programs.listAll();
+      expect(programsAfter, hasLength(1));
+      expect(result2.insertedProgramCount, 0);
+      expect(result2.updatedProgramCount, 1);
+      // ...and the venue deduped by fingerprint: no new venue, one row total.
+      expect(result2.insertedVenueCount, 0);
+      final venuesAfter = await venues.listAll();
+      expect(venuesAfter, hasLength(1));
+      // The surviving program still links to that single existing venue.
+      expect(programsAfter.single.venueId, venuesAfter.single.id);
+    });
+
+    test('re-importing a weak-key (name-only) venue still duplicates', () async {
+      // A name-only venue is below the strong-key threshold ("Town Hall" is not
+      // distinctive enough to safely merge), so it is deliberately NOT deduped —
+      // each import fresh-mints, avoiding a false merge of two distinct halls.
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [Venue(id: 'orig-v1', name: 'Town Hall')],
       );
       await importer.import(
         encodeArchive(archive),
@@ -901,20 +940,217 @@ void main() {
         newSlotId: sequentialIds('secondslot'),
       );
 
-      // The program deduped by provenance (updated in place, not re-inserted)...
-      final programsAfter = await programs.listAll();
-      expect(programsAfter, hasLength(1));
-      expect(result2.insertedProgramCount, 0);
-      expect(result2.updatedProgramCount, 1);
-      // ...but venues accumulate — the known cross-import limitation (#456).
-      final venuesAfter = await venues.listAll();
-      expect(venuesAfter, hasLength(2));
-      // The surviving program links to one of the (most-recently minted) venues.
-      expect(programsAfter.single.venueId, isNotNull);
-      expect(
-        venuesAfter.map((v) => v.id),
-        contains(programsAfter.single.venueId),
+      expect(result2.insertedVenueCount, 1);
+      expect(await venues.listAll(), hasLength(2));
+    });
+
+    test('dedupe never overwrites the matched venue\'s fields', () async {
+      // The receiver already holds a venue; a later bundle carries a
+      // fingerprint-equal venue with DIFFERENT contact/address2/notes. Matching
+      // must repoint only — never mutate the existing record — preserving the
+      // untrusted-bundle guarantee.
+      await venues.upsert(
+        Venue(
+          id: 'local-v1',
+          name: 'Guiding Star Grange',
+          city: 'Greenfield',
+          address2: 'Room A',
+          contact1Name: 'Local Contact',
+          notes: 'local notes',
+        ),
       );
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [
+          Venue(
+            id: 'orig-v1',
+            name: 'GUIDING STAR GRANGE', // case/space differences still match
+            city: 'greenfield',
+            address2: 'Basement',
+            contact1Name: 'Bundle Contact',
+            notes: 'bundle notes',
+          ),
+        ],
+      );
+      final result = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('slot'),
+      );
+
+      expect(result.insertedVenueCount, 0);
+      final all = await venues.listAll();
+      expect(all, hasLength(1));
+      final existing = all.single;
+      expect(existing.id, 'local-v1');
+      expect(existing.address2, 'Room A', reason: 'never overwritten');
+      expect(
+        existing.contact1Name,
+        'Local Contact',
+        reason: 'never overwritten',
+      );
+      expect(existing.notes, 'local notes', reason: 'never overwritten');
+      expect((await programs.listAll()).single.venueId, 'local-v1');
+    });
+
+    test('an ambiguous fingerprint match fresh-mints (never guesses)', () async {
+      // Two existing venues share a fingerprint (e.g. an earlier weak-key merge
+      // was never applied). An incoming venue that fingerprint-equals both is
+      // ambiguous, so the importer mints a fresh venue rather than guessing.
+      await venues.upsert(
+        Venue(id: 'local-a', name: 'Grange', city: 'Amherst'),
+      );
+      await venues.upsert(
+        Venue(id: 'local-b', name: 'Grange', city: 'Amherst'),
+      );
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [Venue(id: 'orig-v1', name: 'Grange', city: 'Amherst')],
+      );
+      final result = await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('slot'),
+      );
+
+      expect(result.insertedVenueCount, 1);
+      final program = (await programs.listAll()).single;
+      expect(program.venueId, isNot('local-a'));
+      expect(program.venueId, isNot('local-b'));
+      expect(await venues.listAll(), hasLength(3));
+    });
+
+    test(
+      'two fingerprint-equal venues within one bundle collapse to one',
+      () async {
+        // Distinct original ids, identical descriptive fields: the first is
+        // minted and folded into the index, so the second dedupes to it.
+        final d1 = _dance('orig-d1', 'Simplicity Swing');
+        final pA = Program(
+          id: 'orig-pA',
+          title: 'A',
+          venueId: 'orig-v1',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 'orig-slA', position: 0, danceId: 'orig-d1')],
+          createdAt: DateTime.utc(2026, 4, 1),
+          updatedAt: DateTime.utc(2026, 4, 1),
+        );
+        final pB = Program(
+          id: 'orig-pB',
+          title: 'B',
+          venueId: 'orig-v2',
+          status: ProgramStatus.draft,
+          slots: [ProgramSlot(id: 'orig-slB', position: 0, danceId: 'orig-d1')],
+          createdAt: DateTime.utc(2026, 4, 1),
+          updatedAt: DateTime.utc(2026, 4, 1),
+        );
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [d1],
+          programs: [pA, pB],
+          venues: [
+            Venue(
+              id: 'orig-v1',
+              name: 'Guiding Star Grange',
+              city: 'Greenfield',
+            ),
+            Venue(
+              id: 'orig-v2',
+              name: 'Guiding Star Grange',
+              city: 'Greenfield',
+            ),
+          ],
+        );
+        final result = await importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('new'),
+          newSlotId: sequentialIds('slot'),
+        );
+
+        expect(result.insertedVenueCount, 1);
+        final all = await venues.listAll();
+        expect(all, hasLength(1));
+        final progs = await programs.listAll();
+        expect(progs, hasLength(2));
+        expect(progs.map((p) => p.venueId).toSet(), {all.single.id});
+      },
+    );
+
+    test(
+      'a repeated deduped id never overwrites another id\'s minted venue',
+      () async {
+        // Untrusted bundle: id B mints a venue; id A (fingerprint-equal) dedupes
+        // onto B's minted row; then A repeats with DIFFERENT content. A never
+        // minted, so its repeat must be a no-op — it must not clobber the row B
+        // (and A's first occurrence) resolved to. Guards the non-deterministic
+        // "deduped id later mutates a shared minted venue" hazard.
+        final archive = bundleWithVenue(
+          programVenueId: 'B',
+          venues: [
+            Venue(id: 'B', name: 'Guiding Star Grange', city: 'Greenfield'),
+            // A fingerprint-equals B → dedupes onto B's minted row.
+            Venue(id: 'A', name: 'Guiding Star Grange', city: 'Greenfield'),
+            // A repeats with hijacked content: must NOT overwrite the row.
+            Venue(id: 'A', name: 'Evil Hall', city: 'Nowhere'),
+          ],
+        );
+        final result = await run(archive);
+
+        expect(result.insertedVenueCount, 1);
+        final all = await venues.listAll();
+        expect(all, hasLength(1));
+        expect(all.single.name, 'Guiding Star Grange', reason: 'not clobbered');
+        expect(all.single.city, 'Greenfield', reason: 'not clobbered');
+      },
+    );
+
+    test('a repeated minting id still refreshes to last-seen content', () async {
+      // Counterpart to the above: an id that actually MINTED its row keeps the
+      // documented within-bundle "last-seen wins" refresh.
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [
+          Venue(id: 'orig-v1', name: 'Guiding Star Grange', city: 'Greenfield'),
+          Venue(id: 'orig-v1', name: 'Guiding Star Grange', city: 'Amherst'),
+        ],
+      );
+      final result = await run(archive);
+
+      expect(result.insertedVenueCount, 1);
+      final all = await venues.listAll();
+      expect(all, hasLength(1));
+      expect(all.single.city, 'Amherst', reason: 'last-seen wins for a minter');
+    });
+
+    test('undo after a dedupe deletes only newly-minted venues', () async {
+      // The receiver already holds a venue; a bundle dedupes to it. Undo must
+      // remove nothing — the matched venue is pre-existing, never in
+      // insertedVenueIds, so undo can't delete a venue the user already had.
+      await venues.upsert(
+        Venue(id: 'local-v1', name: 'Guiding Star Grange', city: 'Greenfield'),
+      );
+      final archive = bundleWithVenue(
+        programVenueId: 'orig-v1',
+        venues: [
+          Venue(id: 'orig-v1', name: 'Guiding Star Grange', city: 'Greenfield'),
+        ],
+      );
+      final result = await run(archive);
+      expect(result.insertedVenueCount, 0);
+
+      await importer.undo(result);
+
+      // The pre-existing venue survives undo untouched.
+      final survivor = await venues.getById('local-v1');
+      expect(survivor, isNotNull);
+      expect(survivor!.name, 'Guiding Star Grange');
+      expect(await venues.listAll(), hasLength(1));
     });
 
     test('validates venueIds against the minted set (no per-program venue '
@@ -951,8 +1187,10 @@ void main() {
           p('orig-p3', 'orig-v1'),
         ],
         venues: [
-          Venue(id: 'orig-v1', name: 'Grange A'),
-          Venue(id: 'orig-v2', name: 'Grange B'),
+          // Strong keys (name + city) so the dedupe preload actually runs; the
+          // point of this test is that it runs *once*, not per program.
+          Venue(id: 'orig-v1', name: 'Grange A', city: 'Amherst'),
+          Venue(id: 'orig-v2', name: 'Grange B', city: 'Northampton'),
         ],
       );
 
@@ -965,11 +1203,58 @@ void main() {
         newSlotId: sequentialIds('slot'),
       );
 
-      // Built programs only reference freshly-minted venues, so the write phase
-      // validates each `venueId` against the in-memory minted set — issuing no
-      // per-program venue existence SELECT.
-      expect(counter.count, 0);
+      // The only venue SELECT the import issues is the single fingerprint-index
+      // preload (one `listAll` before the venue loop — O(1), not per-venue). The
+      // program write phase then validates each `venueId` against the in-memory
+      // known set, adding no per-program venue existence SELECT; with 3 programs
+      // an N+1 regression would push this to 4+.
+      expect(counter.count, 1);
       expect(await countingPrograms.listAll(), hasLength(3));
+    });
+
+    test('a weak-key-only bundle skips the dedupe preload (zero venue '
+        'SELECTs)', () async {
+      // No bundled venue clears the strong-key threshold, so cross-import
+      // dedupe is impossible and the `listAll` preload must be skipped entirely.
+      final counter = VenueSelectCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final countingImporter = CompendiumArchiveImporter(
+        ImportPipeline(
+          DanceRepository(countingDb, contraTaxonomy),
+          ChoreographerRepository(countingDb),
+        ),
+        ProgramRepository(countingDb),
+        VenueRepository(countingDb),
+      );
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [_dance('orig-d1', 'Simplicity Swing')],
+        programs: [
+          Program(
+            id: 'orig-p1',
+            title: 'P1',
+            venueId: 'orig-v1',
+            status: ProgramStatus.draft,
+            slots: [ProgramSlot(id: 'p1-s0', position: 0, danceId: 'orig-d1')],
+            createdAt: DateTime.utc(2026, 4, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        ],
+        // Name-only venue: below the strong-key threshold (null fingerprint).
+        venues: [Venue(id: 'orig-v1', name: 'Town Hall')],
+      );
+
+      counter.reset();
+      await countingImporter.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('new'),
+        newSlotId: sequentialIds('slot'),
+      );
+
+      expect(counter.count, 0);
     });
 
     test(

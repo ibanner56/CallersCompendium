@@ -42,6 +42,7 @@ export 'src/imports/reparse_custom_figures.dart';
 export 'src/imports/shorthand_mappings.dart';
 export 'src/imports/source_adapter.dart';
 export 'src/imports/structured_draft.dart';
+export 'src/imports/venue_dedupe.dart';
 export 'src/model/choreographer.dart';
 export 'src/model/custom_field.dart';
 export 'src/model/dance.dart';
