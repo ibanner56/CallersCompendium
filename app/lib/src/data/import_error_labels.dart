@@ -25,13 +25,15 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
     UrlFetchFailureReason.blockedHost => l10n.importErrorBlockedHost,
     UrlFetchFailureReason.tooManyRedirects => l10n.importErrorTooManyRedirects,
     UrlFetchFailureReason.responseTooLarge => l10n.importErrorResponseTooLarge,
-    UrlFetchFailureReason.timeout => l10n.importErrorTimeout(
-      error.timeoutSeconds ?? 0,
-    ),
+    UrlFetchFailureReason.timeout =>
+      error.timeoutSeconds == null
+          ? l10n.importErrorUnreachable
+          : l10n.importErrorTimeout(error.timeoutSeconds!),
     UrlFetchFailureReason.unreachable => l10n.importErrorUnreachable,
-    UrlFetchFailureReason.httpStatus => l10n.importErrorHttpStatus(
-      error.statusCode ?? 0,
-    ),
+    UrlFetchFailureReason.httpStatus =>
+      error.statusCode == null
+          ? l10n.importErrorUnreachable
+          : l10n.importErrorHttpStatus(error.statusCode!),
     UrlFetchFailureReason.emptyResponse => l10n.importErrorEmptyResponse,
     UrlFetchFailureReason.callersBoxEmptyInput =>
       l10n.importErrorCallersBoxEmptyInput,
@@ -41,13 +43,16 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
       l10n.importErrorCallersBoxMissingId,
     UrlFetchFailureReason.callersBoxEmptySearch =>
       l10n.importErrorCallersBoxEmptySearch,
-    UrlFetchFailureReason.searchTimeout => l10n.importErrorSearchTimeout(
-      error.timeoutSeconds ?? 0,
-    ),
+    UrlFetchFailureReason.searchTimeout =>
+      error.timeoutSeconds == null
+          ? l10n.importErrorUnreachable
+          : l10n.importErrorSearchTimeout(error.timeoutSeconds!),
     UrlFetchFailureReason.callersBoxUnreachable =>
       l10n.importErrorCallersBoxUnreachable,
     UrlFetchFailureReason.callersBoxHttpStatus =>
-      l10n.importErrorCallersBoxHttpStatus(error.statusCode ?? 0),
+      error.statusCode == null
+          ? l10n.importErrorCallersBoxUnreachable
+          : l10n.importErrorCallersBoxHttpStatus(error.statusCode!),
     UrlFetchFailureReason.callersBoxEmptyPage =>
       l10n.importErrorCallersBoxEmptyPage,
     UrlFetchFailureReason.callersBoxNoImportableDance =>
@@ -73,7 +78,9 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
     UrlFetchFailureReason.contraDbUnreachable =>
       l10n.importErrorContraDbUnreachable,
     UrlFetchFailureReason.contraDbHttpStatus =>
-      l10n.importErrorContraDbHttpStatus(error.statusCode ?? 0),
+      error.statusCode == null
+          ? l10n.importErrorContraDbUnreachable
+          : l10n.importErrorContraDbHttpStatus(error.statusCode!),
     UrlFetchFailureReason.contraDbEmptyResponse =>
       l10n.importErrorContraDbEmptyResponse,
     UrlFetchFailureReason.contraDbNoImportableDance =>

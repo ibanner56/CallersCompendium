@@ -235,7 +235,22 @@ enum UrlFetchFailureReason {
 /// lower-layer/server error (OWASP; CWE-209). The presentation layer maps
 /// [reason] (with [statusCode] / [timeoutSeconds]) to a localized message.
 class UrlFetchException implements Exception {
-  const UrlFetchException(this.reason, {this.statusCode, this.timeoutSeconds});
+  const UrlFetchException(this.reason, {this.statusCode, this.timeoutSeconds})
+    : assert(
+        // An HTTP-status reason must carry the status code it describes.
+        !(reason == UrlFetchFailureReason.httpStatus ||
+                reason == UrlFetchFailureReason.callersBoxHttpStatus ||
+                reason == UrlFetchFailureReason.contraDbHttpStatus) ||
+            statusCode != null,
+        'statusCode is required for an HTTP-status reason',
+      ),
+      assert(
+        // A timeout reason must carry the elapsed seconds it describes.
+        !(reason == UrlFetchFailureReason.timeout ||
+                reason == UrlFetchFailureReason.searchTimeout) ||
+            timeoutSeconds != null,
+        'timeoutSeconds is required for a timeout reason',
+      );
 
   /// What went wrong.
   final UrlFetchFailureReason reason;
