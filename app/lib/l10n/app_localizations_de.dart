@@ -926,7 +926,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonCancel => 'Abbrechen';
 
   @override
-  String get commonUndo => 'Rükgängig';
+  String get commonUndo => 'Rückgängig';
 
   @override
   String get commonRetry => 'Erneut versuchen';
@@ -3567,7 +3567,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importReviewUndoWithPrograms =>
-      'Rükgängig (entfernt die importierten Tänze und Programme)';
+      'Rückgängig (entfernt die importierten Tänze und Programme)';
 
   @override
   String get importReviewUndone => 'Import rückgängig gemacht.';
@@ -3867,7 +3867,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorRedoLabel => 'Wiederholen';
 
   @override
-  String get danceEditorUndoShortcutTooltip => 'Rükgängig (Strg+Z)';
+  String get danceEditorUndoShortcutTooltip => 'Rückgängig (Strg+Z)';
 
   @override
   String get danceEditorRedoShortcutTooltip => 'Wiederholen (Strg+Umschalt+Z)';
@@ -3966,7 +3966,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String danceEditorDeletedFigureAnnouncement(int position) {
-    return 'Figur $position gelöscht. Rükgängig verfügbar.';
+    return 'Figur $position gelöscht. Rückgängig verfügbar.';
   }
 
   @override

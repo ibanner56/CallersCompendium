@@ -1486,7 +1486,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String collectionByPhraseFieldExclude(String caption) {
-    return '$caption, mais ne pas correspondre';
+    return '$caption, mais ne correspondent pas';
   }
 
   @override

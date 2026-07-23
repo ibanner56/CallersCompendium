@@ -391,7 +391,7 @@
   "collectionByPhraseOrdinalN": "phrase {number}",
   "collectionByPhraseCaption": "{ordinal} (généralement {label})",
   "collectionByPhraseFieldMatch": "{caption}, les figures correspondent",
-  "collectionByPhraseFieldExclude": "{caption}, mais ne pas correspondre",
+  "collectionByPhraseFieldExclude": "{caption}, mais ne correspondent pas",
   "collectionByPhraseRemoveMove": "Supprimer {move} de {field}",
   "collectionQueryMatchLabel": "Correspondance",
   "collectionQueryGroupAll": "Toutes",
