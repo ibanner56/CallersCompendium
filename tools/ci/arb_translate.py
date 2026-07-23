@@ -553,8 +553,9 @@ def cmd_validate(args) -> int:
                 parse_icu(template[key])
             except IcuError as exc:
                 template_errors.append(f"{args.template}: template {key!r} invalid ICU: {exc}")
-    for e in template_errors:
-        _err(e)
+    # Template errors are surfaced once, together with any per-locale errors, via
+    # the unified ``::error::`` loop below (see ``all_errors``). Emitting them here
+    # too would double-report each one (one stderr + one stdout annotation).
 
     if args.all:
         locales = sorted(
