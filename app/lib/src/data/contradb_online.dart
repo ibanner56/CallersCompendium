@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 
 import '../search/dance_detail_data.dart';
 import 'import_io.dart';
@@ -41,13 +42,13 @@ class ContraDbOnline implements OnlineSearchService {
 
   /// Searches ContraDB by [OnlineSearchQuery.title] (case-insensitive substring
   /// match, server side) and returns the parsed result rows. Throws a
-  /// [UrlFetchException] (message safe to show) on any fetch failure, or when
+  /// typed [UrlFetchException] on any fetch failure, or when
   /// there is nothing to search.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     final title = query.title.trim();
     if (title.isEmpty) {
-      throw const UrlFetchException('Enter a title to search ContraDB.');
+      throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyTitle);
     }
     final body = await _searchFetcher(title);
     return [
@@ -81,10 +82,14 @@ class ContraDbOnline implements OnlineSearchService {
       ImportRequest(payload: payload, uri: url),
     );
     if (batch.records.isEmpty) {
-      final reason = batch.errors.isNotEmpty
-          ? batch.errors.first.message
-          : 'ContraDB returned no importable dance.';
-      throw UrlFetchException(reason);
+      // Never echo the lower-layer parse error into the UI (CWE-209); keep it
+      // for debug logging only and surface a generic localized reason.
+      if (kDebugMode && batch.errors.isNotEmpty) {
+        debugPrint('ContraDB import parse failed: ${batch.errors.first}');
+      }
+      throw const UrlFetchException(
+        UrlFetchFailureReason.contraDbNoImportableDance,
+      );
     }
 
     final plan = batch.records.first;
@@ -130,9 +135,12 @@ class ContraDbOnline implements OnlineSearchService {
 
     final record = session.records.first;
     if (!record.succeeded || record.danceId == null) {
-      throw UrlFetchException(
-        record.error?.message ?? "The ContraDB dance couldn't be imported.",
-      );
+      // Keep the raw commit error for debug logging only; the UI gets a generic
+      // localized message so no lower-layer detail leaks (CWE-209).
+      if (kDebugMode && record.error != null) {
+        debugPrint('ContraDB import commit failed: ${record.error}');
+      }
+      throw const UrlFetchException(UrlFetchFailureReason.contraDbImportFailed);
     }
     return OnlineImportResult(
       kind: OnlineImportKind.created,

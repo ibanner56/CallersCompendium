@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -9,6 +10,7 @@ import '../data/contradb_program_import.dart';
 import '../data/contradb_program_search.dart';
 import '../data/date_format_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/program_title_date.dart';
 import '../data/regional_formats.dart';
@@ -122,10 +124,11 @@ class _ContraDbProgramImportScreenState
   /// Whether the most recent fetch attempt failed (drives the error UI).
   bool _fetchFailed = false;
 
-  /// A safe-to-show detail for a fetch failure. Only ever a curated
-  /// [UrlFetchException.message] (scheme/redirect/size guards, etc.); it is
-  /// null when the failure was an unexpected exception, whose raw text is
-  /// logged but never shown so no internals leak to the UI (CWE-209).
+  /// A safe-to-show, localized detail for a fetch failure. Only ever the
+  /// localized message for a curated [UrlFetchException] (scheme/redirect/size
+  /// guards, etc.); it is null when the failure was an unexpected exception,
+  /// whose raw text is logged (debug only) but never shown so no internals leak
+  /// to the UI (CWE-209).
   String? _fetchErrorDetail;
 
   @override
@@ -216,14 +219,20 @@ class _ContraDbProgramImportScreenState
       }
     } catch (error, stackTrace) {
       if (!mounted) return;
-      // Log the raw error for debugging/support, but only surface a curated,
-      // safe-to-show UrlFetchException.message to the UI — never an arbitrary
-      // caught exception, which could leak internals (CWE-209).
-      debugPrint('ContraDB program fetch failed: $error\n$stackTrace');
+      final l10n = AppLocalizations.of(context);
+      // Log the raw error for debugging/support (debug builds only, so nothing
+      // leaks to release logs — CWE-532), but only surface a curated, localized
+      // UrlFetchException message to the UI — never an arbitrary caught
+      // exception, which could leak internals (CWE-209).
+      if (kDebugMode) {
+        debugPrint('ContraDB program fetch failed: $error\n$stackTrace');
+      }
       setState(() {
         _fetching = false;
         _fetchFailed = true;
-        _fetchErrorDetail = error is UrlFetchException ? error.message : null;
+        _fetchErrorDetail = error is UrlFetchException
+            ? importErrorMessage(l10n, error)
+            : null;
       });
     }
   }

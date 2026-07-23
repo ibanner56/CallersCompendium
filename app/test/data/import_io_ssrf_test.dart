@@ -130,9 +130,13 @@ void main() {
         );
         fail('expected a UrlFetchException');
       } on UrlFetchException catch (e) {
-        expect(e.message, isNot(contains('secret-host')));
-        expect(e.message, isNot(contains('token=abc123')));
-        expect(e.message, isNot(contains('boom-secret')));
+        // Structurally leak-proof: the exception carries only a typed reason
+        // (no prose, no URL/creds). Assert the generic reason and that even the
+        // debug form never contains the secret host/token/lower-layer text.
+        expect(e.reason, UrlFetchFailureReason.unreachable);
+        expect(e.toString(), isNot(contains('secret-host')));
+        expect(e.toString(), isNot(contains('token=abc123')));
+        expect(e.toString(), isNot(contains('boom-secret')));
       }
     });
 
@@ -143,9 +147,9 @@ void main() {
         fetchImportUrl('https://example.com/big.json', client: client),
         throwsA(
           isA<UrlFetchException>().having(
-            (e) => e.message,
-            'message',
-            contains('too large'),
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.responseTooLarge,
           ),
         ),
       );
@@ -165,9 +169,9 @@ void main() {
           fetchImportUrl('http://example.com/dance.json', client: client),
           throwsA(
             isA<UrlFetchException>().having(
-              (e) => e.message,
-              'message',
-              contains('https'),
+              (e) => e.reason,
+              'reason',
+              UrlFetchFailureReason.insecureScheme,
             ),
           ),
         );
@@ -251,9 +255,9 @@ void main() {
         fetchContraDbSearch('anything', client: client),
         throwsA(
           isA<UrlFetchException>().having(
-            (e) => e.message,
-            'message',
-            contains('too large'),
+            (e) => e.reason,
+            'reason',
+            UrlFetchFailureReason.responseTooLarge,
           ),
         ),
       );
@@ -265,7 +269,8 @@ void main() {
         await fetchContraDbSearch('anything', client: client);
         fail('expected a UrlFetchException');
       } on UrlFetchException catch (e) {
-        expect(e.message, isNot(contains('boom-secret')));
+        expect(e.reason, UrlFetchFailureReason.contraDbUnreachable);
+        expect(e.toString(), isNot(contains('boom-secret')));
       }
     });
   });

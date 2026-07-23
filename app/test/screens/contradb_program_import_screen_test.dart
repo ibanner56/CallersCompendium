@@ -237,11 +237,10 @@ void main() {
       await _pump(
         tester,
         repos,
-        // UrlFetchException messages are curated + safe-to-show, so they are
-        // preserved verbatim (as plain text) below the generic first line.
-        programFetcher: (_) async => throw const UrlFetchException(
-          'Imports must use a secure https:// URL.',
-        ),
+        // UrlFetchException reasons map to curated, localized, safe-to-show
+        // messages, preserved (as plain text) below the generic first line.
+        programFetcher: (_) async =>
+            throw const UrlFetchException(UrlFetchFailureReason.insecureScheme),
         contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
       );
 
@@ -431,7 +430,8 @@ void main() {
       programFetcher: (_) async => _programHtml,
       contraDb: ContraDbOnline(htmlFetcher: (_) async => ''),
       programSearch: ContraDbProgramSearch(
-        fetch: (_) async => throw const UrlFetchException('offline'),
+        fetch: (_) async =>
+            throw const UrlFetchException(UrlFetchFailureReason.unreachable),
       ),
     );
 

@@ -21,6 +21,7 @@ import 'src/data/dialect_library_scope.dart';
 import 'src/data/first_day_of_week_scope.dart';
 import 'src/data/formation_colors_controller.dart';
 import 'src/data/formation_colors_scope.dart';
+import 'src/data/import_error_labels.dart';
 import 'src/data/import_io.dart';
 import 'src/data/incoming_file_channel.dart';
 import 'src/data/locale_scope.dart';
@@ -437,10 +438,15 @@ class _CompendiumAppState extends State<CompendiumApp> {
       validated = extractSharedContraDbProgramUrl(raw);
     } on UrlFetchException catch (e) {
       if (!mounted) return;
+      // Localize the curated, URL-free failure reason. Use the navigator's
+      // context (under MaterialApp's Localizations); if it isn't available yet
+      // there is no localized surface to show, so skip silently.
+      final navContext = _navigatorKey.currentContext;
+      if (navContext == null || !navContext.mounted) return;
       _messengerKey.currentState?.showSnackBar(
         SnackBar(
           key: const ValueKey('shared-url-import-error'),
-          content: Text(e.message),
+          content: Text(importErrorMessage(AppLocalizations.of(navContext), e)),
         ),
       );
       return;

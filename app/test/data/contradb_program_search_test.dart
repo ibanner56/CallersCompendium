@@ -84,7 +84,8 @@ void main() {
 
     test('a fetch failure surfaces a UrlFetchException', () async {
       final search = ContraDbProgramSearch(
-        fetch: (_) async => throw const UrlFetchException('boom'),
+        fetch: (_) async =>
+            throw const UrlFetchException(UrlFetchFailureReason.unreachable),
       );
       await expectLater(
         search.search('contra'),

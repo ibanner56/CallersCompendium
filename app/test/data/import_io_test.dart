@@ -253,8 +253,9 @@ void main() {
         validateSharedContraDbProgramUrl(secret);
         fail('expected a UrlFetchException');
       } on UrlFetchException catch (e) {
-        expect(e.message, isNot(contains('SUPERSECRET')));
-        expect(e.message, isNot(contains('evil.com')));
+        expect(e.reason, UrlFetchFailureReason.contraDbInvalidProgramLink);
+        expect(e.toString(), isNot(contains('SUPERSECRET')));
+        expect(e.toString(), isNot(contains('evil.com')));
       }
     });
   });
@@ -349,9 +350,10 @@ void main() {
         extractSharedContraDbProgramUrl(secret);
         fail('expected a UrlFetchException');
       } on UrlFetchException catch (e) {
-        expect(e.message, isNot(contains('SUPERSECRET')));
-        expect(e.message, isNot(contains('evil.com')));
-        expect(e.message, isNot(contains('My Page')));
+        expect(e.reason, UrlFetchFailureReason.contraDbInvalidProgramLink);
+        expect(e.toString(), isNot(contains('SUPERSECRET')));
+        expect(e.toString(), isNot(contains('evil.com')));
+        expect(e.toString(), isNot(contains('My Page')));
       }
     });
   });
@@ -361,10 +363,10 @@ void main() {
         'list', () {
       final sources = defaultImportSources();
       expect(sources, hasLength(4));
-      expect(sources[0].label, "a Caller's Compendium JSON file");
-      expect(sources[1].label, "The Caller's Box");
-      expect(sources[2].label, 'ContraDB');
-      expect(sources[3].label, "a Caller's Companion .USR file");
+      expect(sources[0].kind, ImportSourceKind.genericJson);
+      expect(sources[1].kind, ImportSourceKind.callersBox);
+      expect(sources[2].kind, ImportSourceKind.contraDb);
+      expect(sources[3].kind, ImportSourceKind.callersCompanionUsr);
       // Only the URL-backed sources carry a urlBuilder / matchesUrl; the
       // generic-JSON default is file/paste only.
       expect(sources[0].urlBuilder, isNull);
@@ -442,10 +444,13 @@ void main() {
     XFile fileOf(List<int> bytes) =>
         XFile.fromData(Uint8List.fromList(bytes), name: 'import.bin');
 
-    test('the friendly message never leaks the length', () {
+    test('carries the length as a typed field with a debug-only toString', () {
       const e = ImportFileTooLargeException(999999999);
-      expect(e.message, 'That file is too large to import.');
-      expect(e.toString(), 'That file is too large to import.');
+      // The length is kept for diagnostics but is never baked into user prose;
+      // toString is a debug-only form and the user-facing message is produced
+      // by importFileTooLargeMessage() at the presentation layer.
+      expect(e.length, 999999999);
+      expect(e.toString(), 'ImportFileTooLargeException(length: 999999999)');
     });
 
     test(

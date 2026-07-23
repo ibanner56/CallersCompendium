@@ -102,7 +102,7 @@ Future<void> _pump(
               sources ??
               [
                 ImportSource(
-                  label: 'test JSON',
+                  kind: ImportSourceKind.genericJson,
                   adapterFactory: adapterFactory ?? GenericJsonAdapter.new,
                 ),
               ],
@@ -156,7 +156,7 @@ Future<void> _pumpForEdit(
       home: ImportReviewScreen(
         sources: [
           ImportSource(
-            label: 'test JSON',
+            kind: ImportSourceKind.genericJson,
             adapterFactory: GenericJsonAdapter.new,
           ),
         ],
@@ -184,7 +184,7 @@ void main() {
           child: ImportReviewScreen(
             sources: [
               ImportSource(
-                label: 'test JSON',
+                kind: ImportSourceKind.genericJson,
                 adapterFactory: GenericJsonAdapter.new,
               ),
             ],
@@ -702,7 +702,8 @@ void main() {
         repos,
         payload: 'unused',
         fetcher: (url) async => throw const UrlFetchException(
-          'The server responded with HTTP 404.',
+          UrlFetchFailureReason.httpStatus,
+          statusCode: 404,
         ),
       );
 
@@ -721,9 +722,8 @@ void main() {
         tester,
         repos,
         payload: 'unused',
-        fetcher: (url) async => throw const UrlFetchException(
-          'The URL returned an empty response.',
-        ),
+        fetcher: (url) async =>
+            throw const UrlFetchException(UrlFetchFailureReason.emptyResponse),
       );
 
       await _fetch(tester, 'https://example.com/empty.json');
@@ -757,9 +757,12 @@ void main() {
         '{"ID":1,"Name":"The Nice Combination","Permission":"full"}';
 
     List<ImportSource> sourcesFor() => [
-      ImportSource(label: 'test JSON', adapterFactory: GenericJsonAdapter.new),
       ImportSource(
-        label: "The Caller's Box",
+        kind: ImportSourceKind.genericJson,
+        adapterFactory: GenericJsonAdapter.new,
+      ),
+      ImportSource(
+        kind: ImportSourceKind.callersBox,
         adapterFactory: CallersBoxAdapter.new,
         urlBuilder: buildCallersBoxJsonUrl,
       ),
@@ -863,9 +866,12 @@ void main() {
         repos,
         payload: 'unused',
         sources: [
-          ImportSource(label: 'test JSON', adapterFactory: () => adapter),
           ImportSource(
-            label: "The Caller's Box",
+            kind: ImportSourceKind.genericJson,
+            adapterFactory: () => adapter,
+          ),
+          ImportSource(
+            kind: ImportSourceKind.callersBox,
             adapterFactory: CallersBoxAdapter.new,
             urlBuilder: buildCallersBoxJsonUrl,
           ),
@@ -879,7 +885,7 @@ void main() {
       // Switch back to the generic JSON source.
       await tester.tap(find.byKey(const ValueKey('import-source-select')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('test JSON').last);
+      await tester.tap(find.text("a Caller's Compendium JSON file").last);
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('import-continue')));
@@ -904,9 +910,12 @@ void main() {
         '</tr></table></body></html>';
 
     List<ImportSource> sourcesFor() => [
-      ImportSource(label: 'test JSON', adapterFactory: GenericJsonAdapter.new),
       ImportSource(
-        label: 'ContraDB',
+        kind: ImportSourceKind.genericJson,
+        adapterFactory: GenericJsonAdapter.new,
+      ),
+      ImportSource(
+        kind: ImportSourceKind.contraDb,
         adapterFactory: ContraDbHtmlAdapter.new,
         urlBuilder: buildContraDbUrl,
       ),
@@ -1008,11 +1017,11 @@ void main() {
       );
 
       // Default selection is the generic-JSON source.
-      expect(selectedSource(tester).label, "a Caller's Compendium JSON file");
+      expect(selectedSource(tester).kind, ImportSourceKind.genericJson);
 
       await typeUrl(tester, 'https://www.thecallersbox.com/dance.php?id=1');
       // The selector auto-flipped to Caller's Box without the user touching it.
-      expect(selectedSource(tester).label, "The Caller's Box");
+      expect(selectedSource(tester).kind, ImportSourceKind.callersBox);
 
       await tester.tap(find.byKey(const ValueKey('import-fetch-url')));
       await tester.pumpAndSettle();
@@ -1037,7 +1046,7 @@ void main() {
       );
 
       await typeUrl(tester, 'https://contradb.com/dances/42');
-      expect(selectedSource(tester).label, 'ContraDB');
+      expect(selectedSource(tester).kind, ImportSourceKind.contraDb);
     });
 
     testWidgets('a manual source choice is respected (no auto-flip after)', (
@@ -1057,11 +1066,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('ContraDB').last);
       await tester.pumpAndSettle();
-      expect(selectedSource(tester).label, 'ContraDB');
+      expect(selectedSource(tester).kind, ImportSourceKind.contraDb);
 
       // …then pastes a Caller's Box URL: the manual choice wins, no auto-flip.
       await typeUrl(tester, 'https://www.thecallersbox.com/dance.php?id=1');
-      expect(selectedSource(tester).label, 'ContraDB');
+      expect(selectedSource(tester).kind, ImportSourceKind.contraDb);
     });
   });
 
@@ -1123,9 +1132,12 @@ void main() {
     ]);
 
     List<ImportSource> sourcesFor(ImportBytePicker picker) => [
-      ImportSource(label: 'test JSON', adapterFactory: GenericJsonAdapter.new),
       ImportSource(
-        label: "a Caller's Companion .USR file",
+        kind: ImportSourceKind.genericJson,
+        adapterFactory: GenericJsonAdapter.new,
+      ),
+      ImportSource(
+        kind: ImportSourceKind.callersCompanionUsr,
         adapterFactory: CallersCompanionUsrAdapter.new,
         bytePicker: picker,
       ),
@@ -1364,11 +1376,13 @@ void main() {
       await expectLater(
         fetchImportUrl('https://example.com/a.json', client: client),
         throwsA(
-          isA<UrlFetchException>().having(
-            (e) => e.message,
-            'message',
-            contains('404'),
-          ),
+          isA<UrlFetchException>()
+              .having(
+                (e) => e.reason,
+                'reason',
+                UrlFetchFailureReason.httpStatus,
+              )
+              .having((e) => e.statusCode, 'statusCode', 404),
         ),
       );
     });
@@ -1553,7 +1567,7 @@ void main() {
                       builder: (_) => ImportReviewScreen(
                         sources: [
                           ImportSource(
-                            label: 'test JSON',
+                            kind: ImportSourceKind.genericJson,
                             adapterFactory: GenericJsonAdapter.new,
                           ),
                         ],
@@ -1841,7 +1855,7 @@ void main() {
                 child: ImportReviewScreen(
                   sources: [
                     ImportSource(
-                      label: 'test JSON',
+                      kind: ImportSourceKind.genericJson,
                       adapterFactory: GenericJsonAdapter.new,
                     ),
                   ],

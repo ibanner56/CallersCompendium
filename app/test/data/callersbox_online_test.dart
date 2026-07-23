@@ -314,7 +314,8 @@ void main() {
 
     test('propagates a UrlFetchException from the fetch seam', () async {
       final online = CallersBoxOnline(
-        searchFetcher: (_) async => throw const UrlFetchException('offline'),
+        searchFetcher: (_) async =>
+            throw const UrlFetchException(UrlFetchFailureReason.unreachable),
       );
       expect(
         online.search(const OnlineSearchQuery(title: 'x')),

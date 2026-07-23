@@ -169,7 +169,8 @@ BackupReadResult decodeBackup(String json) {
         ArchiveError(
           kind: ArchiveErrorKind.read,
           entityType: 'backup',
-          message: 'backup file is not valid JSON',
+          message:
+              'backup file is not valid JSON', // i18n-ignore: internal diagnostic, never shown
           cause: e,
         ),
       ],
@@ -183,7 +184,8 @@ BackupReadResult decodeBackup(String json) {
         ArchiveError(
           kind: ArchiveErrorKind.read,
           entityType: 'backup',
-          message: 'backup file is not a JSON object',
+          message:
+              'backup file is not a JSON object', // i18n-ignore: internal diagnostic, never shown
         ),
       ],
       fatal: true,
@@ -239,7 +241,8 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
       const ArchiveError(
         kind: ArchiveErrorKind.read,
         entityType: 'backup',
-        message: 'core section is not an object; no content restored',
+        message:
+            'core section is not an object; no content restored', // i18n-ignore: internal diagnostic, never shown
       ),
     );
   } else {
@@ -248,7 +251,8 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
       const ArchiveError(
         kind: ArchiveErrorKind.read,
         entityType: 'backup',
-        message: 'backup has no core section; no content restored',
+        message:
+            'backup has no core section; no content restored', // i18n-ignore: internal diagnostic, never shown
       ),
     );
   }
@@ -280,7 +284,8 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
                 ArchiveError(
                   kind: ArchiveErrorKind.read,
                   entityType: 'dialect',
-                  message: 'a custom dialect could not be read',
+                  message:
+                      'a custom dialect could not be read', // i18n-ignore: internal diagnostic, never shown
                   cause: e,
                 ),
               );
@@ -308,7 +313,8 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
                 ArchiveError(
                   kind: ArchiveErrorKind.read,
                   entityType: 'theme',
-                  message: 'a custom theme could not be read',
+                  message:
+                      'a custom theme could not be read', // i18n-ignore: internal diagnostic, never shown
                   cause: e,
                 ),
               );

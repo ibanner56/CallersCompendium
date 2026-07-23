@@ -12,22 +12,22 @@
 /// guard also fails if a listed file no longer exists or no longer has any
 /// flagged literal, so the manifest can't silently rot.
 ///
-/// The remaining entries are all **permanent, non-UI / by-design English**:
-/// data/service-layer curated messages awaiting a typed-error refactor, and the
-/// English export-document (PDF) body builders. See `docs/dev/localization.md`
-/// for the full rationale and the other English-by-design surfaces that are not
-/// guard-flagged (so not listed here) — `import_io` exception messages /
-/// `ImportSource.label`, and the diagnostics-log export body.
+/// The remaining entries are all **permanent, by-design English**: the
+/// export-document (PDF) body builders, whose field-name labels stay English
+/// pending a product decision on whether exports follow the UI language. See
+/// `docs/dev/localization.md` for the full rationale and the other
+/// English-by-design surfaces that are not guard-flagged (so not listed here) —
+/// the diagnostics-log export body.
+///
+/// The former data/service-layer curated messages (`backup_document`,
+/// `callersbox_online`, `contradb_online`, and the related `import_io`
+/// exception messages / `ImportSource.label`) have been localized via a
+/// typed-error refactor and removed from this list.
 library;
 
 /// Files the guard skips. Paths are POSIX, relative to `app/lib/`.
 const Set<String> hardcodedUiStringAllowlist = <String>{
-  // ---- Permanent deferrals (non-UI / by-design English) ----
-  // Data/service-layer curated messages: no enum discriminator, need a typed
-  // error-code refactor before they can be localized (separate follow-up).
-  'src/data/backup_document.dart',
-  'src/data/callersbox_online.dart',
-  'src/data/contradb_online.dart',
+  // ---- Permanent deferrals (by-design English) ----
   // Exported-document body builders (PDF): field-name labels stay English
   // pending a product decision on whether exports follow the UI language.
   'src/export/dance_pdf.dart',

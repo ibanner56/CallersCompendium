@@ -1,10 +1,10 @@
-import 'dart:typed_data';
-
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/collection_refresh_scope.dart';
+import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
 import '../utils/undo_snack_bar.dart';
@@ -212,6 +212,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Future<void> _chooseFile() async {
     final picker = widget.picker ?? pickImportFile;
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     setState(() => _picking = true);
     try {
       final text = await picker();
@@ -227,7 +228,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('import-file-too-large'),
-          content: Text(e.message),
+          content: Text(importFileTooLargeMessage(l10n, e)),
         ),
       );
     } finally {
@@ -243,6 +244,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final picker = widget.bytePicker ?? _selected.bytePicker;
     if (picker == null) return;
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     setState(() => _picking = true);
     try {
       final bytes = await picker();
@@ -252,7 +254,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('import-file-too-large'),
-          content: Text(e.message),
+          content: Text(importFileTooLargeMessage(l10n, e)),
         ),
       );
     } finally {
@@ -262,6 +264,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   Future<void> _fetchFromUrl() async {
     final fetcher = widget.fetcher ?? fetchImportUrl;
+    final l10n = AppLocalizations.of(context);
     final input = _urlController.text.trim();
     // Rewrite the typed input into the URL actually fetched (e.g. build the
     // Caller's Box &format=JSON endpoint). A null builder fetches as typed.
@@ -269,7 +272,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     try {
       target = _selected.urlBuilder?.call(input) ?? input;
     } on UrlFetchException catch (e) {
-      setState(() => _fetchError = e.message);
+      setState(() => _fetchError = importErrorMessage(l10n, e));
       return;
     }
     setState(() {
@@ -287,10 +290,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       });
     } on UrlFetchException catch (e) {
       if (!mounted) return;
-      setState(() => _fetchError = e.message);
+      setState(() => _fetchError = importErrorMessage(l10n, e));
     } catch (e) {
       if (!mounted) return;
-      setState(() => _fetchError = "Couldn't fetch that URL: $e");
+      // Never surface the raw error to the user (CWE-209); keep it for debug
+      // logging only and show a generic, localized fetch-failure message.
+      if (kDebugMode) {
+        debugPrint('Import URL fetch failed: $e');
+      }
+      setState(() => _fetchError = l10n.importErrorUnreachable);
     } finally {
       if (mounted) setState(() => _fetching = false);
     }
@@ -902,7 +910,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               for (final source in widget.sources)
                 DropdownMenuItem<ImportSource>(
                   value: source,
-                  child: Text(source.label),
+                  child: Text(importSourceLabel(l10n, source.kind)),
                 ),
             ],
           ),
@@ -910,7 +918,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ],
         if (_isByteSource) ...[
           Text(
-            l10n.importReviewFromSource(_selected.label),
+            l10n.importReviewFromSource(
+              importSourceLabel(l10n, _selected.kind),
+            ),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
@@ -940,7 +950,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             ),
         ] else ...[
           Text(
-            l10n.importReviewDancesFromSource(_selected.label),
+            l10n.importReviewDancesFromSource(
+              importSourceLabel(l10n, _selected.kind),
+            ),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),

@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
+import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
@@ -205,7 +206,7 @@ class _CollectionShellState extends State<CollectionShell> {
     } on UrlFetchException catch (error) {
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
-        _onlinePreviewError = error.message;
+        _onlinePreviewError = importErrorMessage(l10n, error);
         _onlinePreviewLoading = false;
       });
     } catch (_) {
@@ -261,7 +262,9 @@ class _CollectionShellState extends State<CollectionShell> {
       );
     } on UrlFetchException catch (error) {
       if (!mounted) return;
-      messenger?.showSnackBar(SnackBar(content: Text(error.message)));
+      messenger?.showSnackBar(
+        SnackBar(content: Text(importErrorMessage(l10n, error))),
+      );
     } catch (_) {
       if (!mounted) return;
       messenger?.showSnackBar(SnackBar(content: Text(l10n.onlineImportError)));
