@@ -865,7 +865,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get diagnosticsIntro =>
-      'En cas de problème, l’application enregistre une note technique dans un journal local sur cet appareil pour faciliter le diagnostic. Elle n’est jamais envoyée nulle part — il n’y a pas de télémétrie. Vous pouvez l’exporter pour l’joindre à un rapport de bogue, ou l’effacer à tout moment.';
+      'En cas de problème, l’application enregistre une note technique dans un journal local sur cet appareil pour faciliter le diagnostic. Elle n’est jamais envoyée nulle part — il n’y a pas de télémétrie. Vous pouvez l’exporter pour le joindre à un rapport de bogue, ou l’effacer à tout moment.';
 
   @override
   String get diagnosticsRecentEntriesHeader => 'Entrées récentes';

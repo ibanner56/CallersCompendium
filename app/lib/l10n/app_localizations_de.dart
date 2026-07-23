@@ -53,7 +53,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String confirmDeleteBody(String itemLabel) {
-    return '„$itemLabel“ wird gelöscht. Sie können dies rükgängig machen.';
+    return '„$itemLabel“ wird gelöscht. Sie können dies rückgängig machen.';
   }
 
   @override
@@ -627,7 +627,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsGeneralConfirmBeforeDeleteSubtitle =>
-      'Vor dem Löschen eines Tanzes oder Programms um Bestätigung bitten. Löschvorgänge können noch rükgängig gemacht werden; dies fügt nur eine explizite Abfrage vorweg hinzu.';
+      'Vor dem Löschen eines Tanzes oder Programms um Bestätigung bitten. Löschvorgänge können noch rückgängig gemacht werden; dies fügt nur eine explizite Abfrage vorweg hinzu.';
 
   @override
   String get settingsGeneralDeletedItemsHeader => 'Gelöschte Elemente';
@@ -727,7 +727,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backupRestoreSubtitle =>
-      'Alles, was sich derzeit in der App befindet, durch den Inhalt einer Sicherungsdatei ersetzen. Dies kann nicht rükgängig gemacht werden.';
+      'Alles, was sich derzeit in der App befindet, durch den Inhalt einer Sicherungsdatei ersetzen. Dies kann nicht rückgängig gemacht werden.';
 
   @override
   String get backupRestoreAction => 'Wiederherstellen';
@@ -758,7 +758,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backupRestoreDialogBody =>
-      'Bei der Wiederherstellung wird alles in der App – Ihre Sammlung, Programme, Dialekte, Designs und Einstellungen – durch den Inhalt der Sicherung ersetzt. Dies kann nicht rükgängig gemacht werden.';
+      'Bei der Wiederherstellung wird alles in der App – Ihre Sammlung, Programme, Dialekte, Designs und Einstellungen – durch den Inhalt der Sicherung ersetzt. Dies kann nicht rückgängig gemacht werden.';
 
   @override
   String get backupChooseFileAction => 'Datei auswählen…';
@@ -847,7 +847,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get diagnosticsClearLogBody =>
-      'Dies löscht das lokale Absturzprotokoll dauerhaft von diesem Gerät. Dies kann nicht rükgängig gemacht werden.';
+      'Dies löscht das lokale Absturzprotokoll dauerhaft von diesem Gerät. Dies kann nicht rückgängig gemacht werden.';
 
   @override
   String get diagnosticsClearAction => 'Löschen';
@@ -1645,7 +1645,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collectionBatchClearTunesConfirmBody =>
-      'Dadurch werden alle Melodien von den ausgewählten Tänzen entfernt. Sie können dies danach rükgängig machen.';
+      'Dadurch werden alle Melodien von den ausgewählten Tänzen entfernt. Sie können dies danach rückgängig machen.';
 
   @override
   String get collectionBatchClearTunesConfirmButton => 'Melodien löschen';
@@ -2645,7 +2645,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get performAdjustmentUndone => 'Anpassung rükgängig gemacht';
+  String get performAdjustmentUndone => 'Anpassung rückgängig gemacht';
 
   @override
   String get performProgramAdjustedSnack => 'Programm angepasst.';
@@ -3570,7 +3570,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Rükgängig (entfernt die importierten Tänze und Programme)';
 
   @override
-  String get importReviewUndone => 'Import rükgängig gemacht.';
+  String get importReviewUndone => 'Import rückgängig gemacht.';
 
   @override
   String get importReviewEditError =>
@@ -4502,7 +4502,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String customFieldsDeleteBody(String label) {
-    return '„$label“ löschen? Dies kann nicht rükgängig gemacht werden.';
+    return '„$label“ löschen? Dies kann nicht rückgängig gemacht werden.';
   }
 
   @override
@@ -4821,7 +4821,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String venueManagerDeleteBody(String name) {
-    return '„$name“ dauerhaft löschen? Dies kann nicht rükgängig gemacht werden.';
+    return '„$name“ dauerhaft löschen? Dies kann nicht rückgängig gemacht werden.';
   }
 
   @override

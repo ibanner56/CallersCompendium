@@ -236,7 +236,7 @@
   "diagnosticsClearAction": "Effacer",
   "diagnosticsLogCleared": "Journal de diagnostic effacé.",
   "diagnosticsHeader": "Diagnostic",
-  "diagnosticsIntro": "En cas de problème, l’application enregistre une note technique dans un journal local sur cet appareil pour faciliter le diagnostic. Elle n’est jamais envoyée nulle part — il n’y a pas de télémétrie. Vous pouvez l’exporter pour l’joindre à un rapport de bogue, ou l’effacer à tout moment.",
+  "diagnosticsIntro": "En cas de problème, l’application enregistre une note technique dans un journal local sur cet appareil pour faciliter le diagnostic. Elle n’est jamais envoyée nulle part — il n’y a pas de télémétrie. Vous pouvez l’exporter pour le joindre à un rapport de bogue, ou l’effacer à tout moment.",
   "diagnosticsRecentEntriesHeader": "Entrées récentes",
   "diagnosticsReadFailedTitle": "Impossible de lire le journal de diagnostic",
   "diagnosticsReadFailedSubtitle": "Le journal local est peut-être inaccessible sur cet appareil. Vous pouvez toujours essayer de l’exporter ou de l’effacer.",
