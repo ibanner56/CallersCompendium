@@ -3,6 +3,11 @@
 Use one copy of this per beta tag (e.g. v0.1.0-beta.1). Check every box or
 explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 
+> **First time submitting to the App Store or Google Play?** This checklist is per
+> *tag/build*. The one-time **store-submission** work (accounts, TestFlight
+> external beta, Play testing tracks, listings, privacy/data forms) is in
+> [`store-submission/`](store-submission/README.md).
+
 ## 0. Pre-flight
 - [ ] main is green: your target commit's CI passed — Format/analyze/test and the
  5-platform Build matrix (android/ios/linux/macos/windows). (The **Schema

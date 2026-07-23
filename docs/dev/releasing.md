@@ -3,6 +3,12 @@
 This is the operator runbook for cutting a desktop release. It documents the
 `.github/workflows/release.yml` pipeline added in Wave-1 (ADR-002 layers A6/A7).
 
+> **Publishing to the mobile app stores?** This runbook covers the *build/sign/CI*
+> mechanics. The **store-side** work — App Store Connect / Play Console accounts,
+> TestFlight external (open) beta, Google Play testing tracks, store listings, and
+> the App Privacy / Data safety / content-rating forms — lives in
+> [`store-submission/`](store-submission/README.md).
+
 > **Scope of this wave.** Desktop builds are **free** — no paid accounts. The
 > **Linux** (`tar.gz`/AppImage) and **Windows** (installer/`zip`) artifacts are
 > **UNSIGNED**: until Windows Authenticode lands, Windows users bypass the
