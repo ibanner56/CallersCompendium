@@ -53,7 +53,7 @@ work we have not done before.
   until verification passes** — it can take a few days, so start early.
 - [ ] Set the **public developer name** (does not have to be your legal name — e.g.
   "Caller's Compendium" or "Isaac Banner") and the **public developer email**
-  (isaac@banner.is is fine, and is shown on the listing).
+  (compendium@contra.dance is fine, and is shown on the listing).
 - [ ] Accept the **Developer Distribution Agreement** and **US export law**
   acknowledgement.
 

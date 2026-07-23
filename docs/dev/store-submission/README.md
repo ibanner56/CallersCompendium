@@ -59,7 +59,7 @@ Keep this handy — every form asks some slice of it.
 | In-app purchases / subscriptions | **None** |
 | Ads | **None** |
 | Developer / seller | Isaac Banner (individual) |
-| Support email | isaac@banner.is |
+| Support email | compendium@contra.dance |
 | Support / marketing site | <https://ibanner56.github.io/CallersCompendium/> |
 | Source & issues | <https://github.com/ibanner56/CallersCompendium> |
 | Privacy policy URL | <https://ibanner56.github.io/CallersCompendium/privacy/> (published — source in [`privacy-policy.md`](privacy-policy.md), page at `site/privacy/index.html`) |

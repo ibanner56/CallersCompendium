@@ -123,7 +123,7 @@ GitHub. Tell us your device, the version, and what you were doing.
   account or sign-in; everything works offline. Optional: try an import (paste a
   ContraDB program link) to exercise the one network feature.
   ```
-- **Feedback email:** isaac@banner.is
+- **Feedback email:** compendium@contra.dance
 - **Marketing URL:** https://ibanner56.github.io/CallersCompendium/
 - **Privacy Policy URL:** *(the published privacy-policy page)*
 - **What to test:** Collection search, building a Program and viewing the matrix,

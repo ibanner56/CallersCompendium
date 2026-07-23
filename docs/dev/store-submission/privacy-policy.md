@@ -111,5 +111,5 @@ notes.
 ### 10. Contact
 
 Questions about this policy or the app's privacy practices:
-**isaac@banner.is** — or open an issue at
+**compendium@contra.dance** — or open an issue at
 <https://github.com/ibanner56/CallersCompendium/issues>.
