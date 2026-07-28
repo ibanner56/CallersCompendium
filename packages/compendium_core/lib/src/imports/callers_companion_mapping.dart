@@ -420,31 +420,265 @@ Progression _mapProgression(String? raw, List<ImportIssue> issues) {
   return Progression.single;
 }
 
+/// Upper bound on a date string we will attempt to parse. Real composed/revised
+/// values are short (`"2004"`, `"15 March 2004"`); anything longer is treated as
+/// unparseable rather than fed to the regexes. Defense-in-depth against
+/// pathological imported input (the anchored patterns below are already
+/// linear-time / ReDoS-safe, but bounding the length keeps work trivial).
+const int _kMaxDateLength = 64;
+
+/// English month names and common abbreviations → month number (1–12).
+/// Lower-cased keys; lookups lower-case their input. Includes the `sept`
+/// abbreviation in addition to the canonical `sep`.
+const Map<String, int> _ccMonthNames = {
+  'january': 1, 'jan': 1,
+  'february': 2, 'feb': 2,
+  'march': 3, 'mar': 3,
+  'april': 4, 'apr': 4,
+  'may': 5,
+  'june': 6, 'jun': 6,
+  'july': 7, 'jul': 7,
+  'august': 8, 'aug': 8,
+  'september': 9, 'sep': 9, 'sept': 9,
+  'october': 10, 'oct': 10,
+  'november': 11, 'nov': 11,
+  'december': 12, 'dec': 12,
+};
+
+/// Builds a [PartialDate] via the validating constructor, returning `null`
+/// (rather than throwing) for any calendar-invalid combination (e.g. `Feb 30`,
+/// month 13). Callers treat `null` as "unparseable" and fall through.
+PartialDate? _tryPartialDate(int year, [int? month, int? day]) {
+  try {
+    return PartialDate(year, month, day);
+  } on ArgumentError {
+    return null;
+  }
+}
+
+/// Maps a CC composed/revised date string onto a [PartialDate], accepting the
+/// common human/locale shapes observed in Caller's Companion exports and
+/// degrading to year-only precision when only the year is safely recoverable.
+///
+/// Input is untrusted (imported `.USR`/CC data): the string is length-bounded,
+/// every pattern is anchored and non-backtracking (ReDoS-safe), and every
+/// candidate is validated through the [PartialDate] constructor. Any
+/// interpretation that relied on an assumption (US month/day ordering, or a
+/// year-only reduction) is surfaced as an [ImportIssue] rather than applied
+/// silently. Anything still unparseable emits a warning and returns `null`.
 PartialDate? _mapDate(String? raw, String which, List<ImportIssue> issues) {
   final value = raw?.trim() ?? '';
   if (value.isEmpty) return null;
-  // Accept the canonical YYYY / YYYY-MM / YYYY-MM-DD shapes; a bare 4-digit
-  // year is the common CC case.
-  final canonical = RegExp(r'^\d{4}(-\d{2}(-\d{2})?)?$');
-  if (canonical.hasMatch(value)) {
-    try {
-      return PartialDate.parse(value);
-    } on FormatException {
-      // fall through to the warning
-    } on ArgumentError {
-      // well-shaped but invalid (e.g. 2004-13) — fall through
+
+  if (value.length <= _kMaxDateLength) {
+    // 1. Canonical ISO: YYYY / YYYY-MM / YYYY-MM-DD. A shape match that fails
+    // validation (e.g. 2004-13) falls through to the warning rather than being
+    // reduced to a year — a malformed but date-shaped value is surfaced loudly.
+    if (RegExp(r'^\d{4}(-\d{2}(-\d{2})?)?$').hasMatch(value)) {
+      try {
+        return PartialDate.parse(value);
+      } on FormatException {
+        // fall through
+      } on ArgumentError {
+        // well-shaped but invalid (e.g. 2004-13) — fall through
+      }
     }
+
+    // 2. Month-name formats (unambiguous → full precision).
+    final named = _parseMonthNameDate(value);
+    if (named.matched) {
+      if (named.date != null) return named.date;
+      // Recognized shape but calendar-invalid (e.g. Feb 30) — warn, do not
+      // silently reduce a malformed date to its year.
+      return _unparsedDate(value, which, issues);
+    }
+
+    // 3. Numeric slash/dot/hyphen dates with a clear 4-digit year.
+    final numeric = _parseNumericDate(value, which, issues);
+    if (numeric.matched) {
+      if (numeric.date != null) return numeric.date;
+      return _unparsedDate(value, which, issues);
+    }
+
+    // 4. Year-only degrade: only reached when the value did not look like a
+    // fuller date shape. A single standalone 4-digit year is recoverable.
+    final yearOnly = _parseYearOnly(value, which, issues);
+    if (yearOnly != null) return yearOnly;
   }
+
+  return _unparsedDate(value, which, issues);
+}
+
+/// Emits the standard `cc_unparsed_date` warning and returns `null`.
+PartialDate? _unparsedDate(
+  String value,
+  String which,
+  List<ImportIssue> issues,
+) {
   issues.add(
     ImportIssue(
       severity: ImportIssueSeverity.warning,
       code: 'cc_unparsed_date',
       message:
-          'Could not parse the $which date "$value" (expected YYYY, YYYY-MM, '
-          'or YYYY-MM-DD); left unset.',
+          'Could not parse the $which date "$value" (expected e.g. YYYY, '
+          'YYYY-MM, YYYY-MM-DD, "March 2004", "15 March 2004", or a numeric '
+          'date with a 4-digit year); left unset.',
     ),
   );
   return null;
+}
+
+/// Result of a shape-specific date parse: [matched] is whether the value looked
+/// like this shape at all (so the caller knows whether to try the next, looser
+/// layer), and [date] is the validated result (null when the shape matched but
+/// was calendar-invalid — the caller then warns rather than degrading).
+typedef _DateParse = ({bool matched, PartialDate? date});
+
+const _DateParse _noMatch = (matched: false, date: null);
+
+/// Parses month-name shapes. Case-insensitive. Accepts:
+/// `March 2004` / `Mar 2004` / `March, 2004` (month precision), and
+/// `March 15, 2004` / `Mar 15 2004` / `15 March 2004` / `15 Mar 2004`
+/// (day precision). Returns [matched] false when no known month name leads the
+/// shape (so an unknown word like `Smarch 2004` can still degrade to its year);
+/// returns matched with a null date for a recognized-but-invalid date.
+_DateParse _parseMonthNameDate(String value) {
+  // "<name> [day,] year"  e.g. "March 2004", "March 15, 2004", "Mar 15 2004".
+  final nameFirst = RegExp(
+    r'^([A-Za-z]{3,9})\.?,?\s+(?:(\d{1,2})\s*,?\s+)?(\d{4})$',
+  ).firstMatch(value);
+  if (nameFirst != null) {
+    final month = _ccMonthNames[nameFirst.group(1)!.toLowerCase()];
+    if (month == null) return _noMatch;
+    final year = int.parse(nameFirst.group(3)!);
+    final dayStr = nameFirst.group(2);
+    final day = dayStr == null ? null : int.parse(dayStr);
+    return (matched: true, date: _tryPartialDate(year, month, day));
+  }
+
+  // "<day> <name> <year>"  e.g. "15 March 2004", "15 Mar 2004".
+  final dayFirst = RegExp(
+    r'^(\d{1,2})\s+([A-Za-z]{3,9})\.?\s+(\d{4})$',
+  ).firstMatch(value);
+  if (dayFirst != null) {
+    final month = _ccMonthNames[dayFirst.group(2)!.toLowerCase()];
+    if (month == null) return _noMatch;
+    final year = int.parse(dayFirst.group(3)!);
+    final day = int.parse(dayFirst.group(1)!);
+    return (matched: true, date: _tryPartialDate(year, month, day));
+  }
+  return _noMatch;
+}
+
+/// Parses purely-numeric slash/dot/hyphen dates that carry a single clear
+/// 4-digit year. Returns [matched] false when the value is not a numeric date
+/// shape at all; matched with a null date when it is but cannot resolve to a
+/// valid date (e.g. a `2004-2005` range, `13/14/2004`, `2/31/2004`).
+///
+/// Ordering rules (year is always the 4-digit component):
+/// - `YYYY[sep]M[sep]D` (year first) → Y/M/D by position.
+/// - `M[sep]YYYY` → month precision; `YYYY[sep]M` → month precision.
+/// - `A[sep]B[sep]YYYY` (year last): if exactly one of A,B is >12 it must be the
+///   day (deterministic); the other is the month. If both ≤12 the ordering is
+///   genuinely ambiguous → assume US MM/DD and emit an info `cc_date_assumed_mdy`
+///   issue so the assumption is auditable, never silent.
+_DateParse _parseNumericDate(
+  String value,
+  String which,
+  List<ImportIssue> issues,
+) {
+  final parts = RegExp(r'^(\d{1,4})[/.\-](\d{1,4})(?:[/.\-](\d{1,4}))?$')
+      .firstMatch(value);
+  if (parts == null) return _noMatch;
+
+  final a = parts.group(1)!;
+  final b = parts.group(2)!;
+  final c = parts.group(3);
+
+  bool isYear(String s) => s.length == 4;
+
+  if (c == null) {
+    // Two components: month + 4-digit year, in either order.
+    if (isYear(a) && !isYear(b)) {
+      return (matched: true, date: _tryPartialDate(int.parse(a), int.parse(b)));
+    }
+    if (isYear(b) && !isYear(a)) {
+      return (matched: true, date: _tryPartialDate(int.parse(b), int.parse(a)));
+    }
+    return (matched: true, date: null);
+  }
+
+  // Three components. Require exactly one 4-digit year, first or last.
+  final yearFirst = isYear(a) && !isYear(b) && !isYear(c);
+  final yearLast = isYear(c) && !isYear(a) && !isYear(b);
+
+  if (yearFirst) {
+    // Y/M/D by position.
+    return (
+      matched: true,
+      date: _tryPartialDate(int.parse(a), int.parse(b), int.parse(c)),
+    );
+  }
+  if (yearLast) {
+    final year = int.parse(c);
+    final first = int.parse(a);
+    final second = int.parse(b);
+    if (first > 12 && second <= 12) {
+      // first is the day.
+      return (matched: true, date: _tryPartialDate(year, second, first));
+    }
+    if (second > 12 && first <= 12) {
+      // second is the day.
+      return (matched: true, date: _tryPartialDate(year, first, second));
+    }
+    if (first <= 12 && second <= 12) {
+      // Genuinely ambiguous — assume US MM/DD ordering and flag it.
+      final date = _tryPartialDate(year, first, second);
+      if (date != null) {
+        issues.add(
+          ImportIssue(
+            severity: ImportIssueSeverity.info,
+            code: 'cc_date_assumed_mdy',
+            message:
+                'Ambiguous $which date "$value" was interpreted as MM/DD '
+                '(US ordering): ${date.serialize()}. Verify if the source '
+                'used day-first ordering.',
+          ),
+        );
+      }
+      return (matched: true, date: date);
+    }
+    // Both >12: cannot be a valid month/day pair.
+    return (matched: true, date: null);
+  }
+  return (matched: true, date: null);
+}
+
+/// Recovers a year-only [PartialDate] when the string carries exactly one
+/// standalone 4-digit run in 1000–9999 (e.g. `Spring 2004`, `c. 2004`,
+/// `2004?`), emitting an info `cc_date_reduced_precision` issue to record that
+/// month/day were dropped. Returns `null` when there is no such run or more
+/// than one (e.g. a `2004-2005` range), so the caller can warn instead.
+PartialDate? _parseYearOnly(
+  String value,
+  String which,
+  List<ImportIssue> issues,
+) {
+  final years = RegExp(r'(?<!\d)(\d{4})(?!\d)').allMatches(value).toList();
+  if (years.length != 1) return null;
+  final year = int.parse(years.single.group(1)!);
+  final date = _tryPartialDate(year);
+  if (date == null) return null;
+  issues.add(
+    ImportIssue(
+      severity: ImportIssueSeverity.info,
+      code: 'cc_date_reduced_precision',
+      message:
+          'Recovered only the year $year from the $which date "$value"; '
+          'month/day could not be determined and were dropped.',
+    ),
+  );
+  return date;
 }
 
 String _joinNotes(List<String> parts) =>
