@@ -319,6 +319,90 @@ void main() {
     });
   });
 
+  group('contraDbHtmlFigureFrontEnd — complex detail-clause moves', () {
+    test('revolving door', () {
+      final f = _parse(
+        'revolving door - ladles take left hands and drop off partners on other side',
+      );
+      expect(f.move, 'revolving_door');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['hand'], 'left');
+      expect(f.params['whom'], 'partners');
+    });
+
+    test('facing star', () {
+      final f = _parse(
+        'facing star clockwise 3 places with ones putting their right hands in and backing up',
+      );
+      expect(f.move, 'facing_star');
+      expect(f.params['turn'], 'clockwise');
+      expect(f.params['places'], 3);
+      expect(f.params['who'], 'ones');
+    });
+
+    test('poussette', () {
+      final f = _parse('half poussette - ones pull neighbors back then right');
+      expect(f.move, 'poussette');
+      expect(f.params['half'], 'half');
+      expect(f.params['who'], 'ones');
+      expect(f.params['whom'], 'neighbors');
+      expect(f.params['turn'], 'clockwise');
+    });
+
+    test('cross trails', () {
+      final f = _parse(
+        'cross trails - partners across the set right shoulders, neighbors along the set left shoulders',
+      );
+      expect(f.move, 'cross_trails');
+      expect(f.params['who'], 'partners');
+      expect(f.params['dir'], 'across');
+      expect(f.params['shoulder'], 'right');
+      expect(f.params['who2'], 'neighbors');
+    });
+
+    test('down the hall', () {
+      final f = _parse('down the hall forward');
+      expect(f.move, 'down_the_hall');
+      expect(f.params['moving'], 'all');
+      expect(f.params['facing'], 'forward');
+    });
+
+    test('up the hall', () {
+      final f = _parse('up the hall forward');
+      expect(f.move, 'up_the_hall');
+      expect(f.params['moving'], 'all');
+    });
+
+    test('figure 8', () {
+      final f = _parse('ones figure 8 above');
+      expect(f.move, 'figure_8');
+      expect(f.params['who'], 'ones');
+      expect(f.params['dir'], 'above');
+    });
+
+    test('square through', () {
+      final f = _parse(
+        'square through four - partners balance pull by right, then neighbors pull by left',
+      );
+      expect(f.move, 'square_through');
+      expect(f.params['places'], 4);
+      expect(f.params['who'], 'partners');
+      expect(f.params['balance'], isTrue);
+      expect(f.params['hand'], 'right');
+      expect(f.params['who2'], 'neighbors');
+    });
+
+    test('form a long wave', () {
+      final f = _parse(
+        'ladles dance in to a long wave in the center - balance the wave',
+      );
+      expect(f.move, 'form_a_long_wave');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['in'], isTrue);
+      expect(f.params['balance'], isTrue);
+    });
+  });
+
   group('contraDbHtmlFigureFrontEnd — ocean wave family', () {
     test(
       'form an ocean wave → form_a_short_wave (across, center/sides/hands)',

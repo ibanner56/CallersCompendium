@@ -81,6 +81,15 @@ const List<FigureMatch? Function(String)> _recognizers =
       _zigZag,
       _boxCirculate,
       _slice,
+      _revolvingDoor,
+      _facingStar,
+      _poussette,
+      _crossTrails,
+      _downTheHall,
+      _upTheHall,
+      _figure8,
+      _squareThrough,
+      _formALongWave,
     ];
 
 // --- Recognizers ------------------------------------------------------------
@@ -793,6 +802,243 @@ FigureMatch? _slice(String text) {
   if (slide == null) return null;
   s.take();
   return FigureMatch('slice', params: {'slice': slide}, note: s.note());
+}
+
+/// revolvingDoorWords. Renders as: "revolving door - WHO take HAND hands and
+/// drop off WHOM on other side".
+FigureMatch? _revolvingDoor(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('revolving door')) return null;
+  final params = <String, Object?>{};
+  final save = s.pos;
+  if (s.eat('-')) {
+    final who = _subject(s);
+    if (who != null && s.eat('take')) {
+      params['who'] = who;
+      final hand = _leftRight(s.peek());
+      if (hand != null) {
+        s.take();
+        params['hand'] = hand;
+      }
+      if (s.eatPhrase('hands and drop off')) {
+        final whom = _subject(s);
+        if (whom != null) {
+          params['whom'] = whom;
+          s.eatPhrase('on other side');
+        }
+      }
+    } else {
+      s.reset(save);
+    }
+  }
+  return FigureMatch('revolving_door', params: params, note: s.note());
+}
+
+/// facingStarWords. Renders as: "facing star SPIN N places with WHO putting
+/// their HAND hands in and backing up".
+FigureMatch? _facingStar(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('facing star')) return null;
+  final params = <String, Object?>{};
+  final turn = _spinDir(s);
+  if (turn != null) params['turn'] = turn;
+  final n = int.tryParse(s.peek() ?? '');
+  if (n != null) {
+    final save = s.pos;
+    s.take();
+    if (s.eat('places') || s.eat('place')) {
+      params['places'] = n;
+    } else {
+      s.reset(save);
+    }
+  }
+  if (s.eat('with')) {
+    final who = _subject(s);
+    if (who != null) params['who'] = who;
+    if (s.eatPhrase('putting their')) {
+      if (_leftRight(s.peek()) != null) s.take();
+      s.eatPhrase('hands in and backing up');
+    }
+  }
+  return FigureMatch('facing_star', params: params, note: s.note());
+}
+
+/// poussetteWords. Renders as: "[half|full] poussette - WHO pull WHOM back then
+/// left|right".
+FigureMatch? _poussette(String text) {
+  final s = _Scan(text);
+  String? half;
+  if (s.eat('half')) {
+    half = 'half';
+  } else if (s.eat('full')) {
+    half = 'full';
+  }
+  if (!s.eat('poussette')) return null;
+  final params = <String, Object?>{if (half != null) 'half': half};
+  if (s.eat('-')) {
+    final who = _subject(s);
+    if (who != null && s.eat('pull')) {
+      params['who'] = who;
+      final whom = _subject(s);
+      if (whom != null) params['whom'] = whom;
+      if (s.eatPhrase('back then')) {
+        final d = _leftRight(s.peek());
+        if (d != null) {
+          s.take();
+          params['turn'] = d == 'right' ? 'clockwise' : 'counterclockwise';
+        }
+      }
+    }
+  }
+  return FigureMatch('poussette', params: params, note: s.note());
+}
+
+/// crossTrailsWords. Renders as: "cross trails - WHO DIR the set SHOULDER
+/// shoulders, WHO2 DIR2 the set SHOULDER2 shoulders".
+FigureMatch? _crossTrails(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('cross trails')) return null;
+  final params = <String, Object?>{};
+  if (s.eat('-')) {
+    final who = _subject(s);
+    if (who != null) {
+      params['who'] = who;
+      final dir = _direction(s.peek());
+      if (dir != null) {
+        s.take();
+        s.eatPhrase('the set');
+        params['dir'] = dir;
+      }
+      final sh = _shoulderPhrase(s);
+      if (sh != null) params['shoulder'] = sh;
+      final who2 = _subject(s);
+      if (who2 != null) {
+        params['who2'] = who2;
+        if (_direction(s.peek()) != null) {
+          s.take();
+          s.eatPhrase('the set');
+        }
+        _shoulderPhrase(s);
+      }
+    }
+  }
+  return FigureMatch('cross_trails', params: params, note: s.note());
+}
+
+FigureMatch? _downTheHall(String text) => _hall(text, 'down', 'down_the_hall');
+FigureMatch? _upTheHall(String text) => _hall(text, 'up', 'up_the_hall');
+
+/// upOrDownTheHallWords. Renders as: "[WHO] down|up the hall|center|outsides
+/// FACING [and ENDER]".
+FigureMatch? _hall(String text, String dir, String moveId) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (!s.eat(dir)) return null;
+  if (!s.eat('the')) return null;
+  final String moving;
+  if (s.eat('hall')) {
+    moving = 'all';
+  } else if (s.eat('center')) {
+    moving = 'center';
+  } else if (s.eat('outsides')) {
+    moving = 'outsides';
+  } else {
+    return null;
+  }
+  final params = <String, Object?>{'moving': moving};
+  if (who != null) params['who'] = who;
+  final facing = _hallFacing(s);
+  if (facing != null) params['facing'] = facing;
+  return FigureMatch(moveId, params: params, note: s.note());
+}
+
+/// figure8Words. Renders as: "WHO [half|full] figure 8 [DIR] [, LEAD leading]".
+FigureMatch? _figure8(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  String? half;
+  if (s.eat('half')) {
+    half = 'half';
+  } else if (s.eat('full')) {
+    half = 'full';
+  }
+  if (!s.eatPhrase('figure 8')) return null;
+  final params = <String, Object?>{'who': who, if (half != null) 'half': half};
+  final d = s.peek();
+  if (d == 'above' || d == 'below' || d == 'across') {
+    s.take();
+    params['dir'] = d;
+  }
+  return FigureMatch('figure_8', params: params, note: s.note());
+}
+
+/// squareThroughWords. Renders as: "square through TWO|THREE|FOUR - WHO [balance]
+/// pull by HAND, then WHO2 pull by HAND, …".
+FigureMatch? _squareThrough(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('square through')) return null;
+  const placeWords = {'two': 2, 'three': 3, 'four': 4};
+  final params = <String, Object?>{};
+  final pw = s.peek();
+  if (placeWords.containsKey(pw)) {
+    s.take();
+    params['places'] = placeWords[pw];
+  }
+  if (s.eat('-')) {
+    final who = _subject(s);
+    if (who != null) {
+      params['who'] = who;
+      params['balance'] = s.eat('balance');
+      if (s.eatPhrase('pull by')) {
+        final hand = _leftRight(s.peek());
+        if (hand != null) {
+          s.take();
+          params['hand'] = hand;
+        }
+      }
+      if (s.eat('then')) {
+        final who2 = _subject(s);
+        if (who2 != null) params['who2'] = who2;
+      }
+    }
+  }
+  return FigureMatch('square_through', params: params, note: s.note());
+}
+
+/// formALongWaveWords (the common in=true/out=false form). Renders as: "WHO dance
+/// in to a long wave in the center [- balance the wave]".
+FigureMatch? _formALongWave(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eatPhrase('dance in to a long wave in the center')) return null;
+  final params = <String, Object?>{'who': who, 'in': true, 'out': false};
+  params['balance'] = s.eat('-') && s.eatPhrase('balance the wave');
+  return FigureMatch('form_a_long_wave', params: params, note: s.note());
+}
+
+/// Consumes a spin-direction word, returning `clockwise`/`counterclockwise`.
+String? _spinDir(_Scan s) {
+  if (s.eat('clockwise')) return 'clockwise';
+  if (s.eat('counter-clockwise')) return 'counterclockwise';
+  final save = s.pos;
+  if (s.eat('counter') && s.eat('clockwise')) return 'counterclockwise';
+  s.reset(save);
+  return null;
+}
+
+/// Consumes a down/up-the-hall facing phrase.
+String? _hallFacing(_Scan s) {
+  final save = s.pos;
+  if (s.eat('forward')) {
+    if (s.eat('and') && s.eat('back')) return 'forwardThenBackward';
+    s.reset(save);
+    s.eat('forward');
+    return 'forward';
+  }
+  if (s.eat('backward') || s.eat('backing')) return 'backward';
+  return null;
 }
 
 // --- Scanning + token helpers -----------------------------------------------
