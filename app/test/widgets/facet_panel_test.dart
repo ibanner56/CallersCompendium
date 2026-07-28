@@ -345,7 +345,7 @@ void main() {
 
   group('author multi-select (#341)', () {
     final authors = [
-      Choreographer(id: 'c1', name: 'Ada Lovelace'),
+      Choreographer(id: 'c1', name: 'Folk Process'),
       Choreographer(id: 'c2', name: 'Grace Hopper'),
       Choreographer(id: 'c3', name: 'Gene Hubert'),
     ];
@@ -413,7 +413,7 @@ void main() {
 
       await tester.enterText(
         find.byKey(const ValueKey('author-facet-search')),
-        'ada',
+        'folk',
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('author-facet-option-c1')));
@@ -435,7 +435,7 @@ void main() {
 
       await tester.enterText(
         find.byKey(const ValueKey('author-facet-search')),
-        'ada',
+        'folk',
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('author-facet-option-c1')));
@@ -516,7 +516,7 @@ void main() {
 
       await tester.enterText(
         find.byKey(const ValueKey('author-facet-search')),
-        'ada',
+        'folk',
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('author-facet-option-c1')));

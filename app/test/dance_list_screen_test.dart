@@ -174,7 +174,7 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await repos.choreographers.upsert(
-        Choreographer(id: 'c1', name: 'Ada Lovelace'),
+        Choreographer(id: 'c1', name: 'Folk Process'),
       );
       await repos.tags.upsert(Tag(id: 't1', name: 'Beginner-friendly'));
       await repos.dances.create(
@@ -191,7 +191,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Chase the Squirrel'), findsOneWidget);
-      expect(find.text('Ada Lovelace'), findsOneWidget);
+      expect(find.text('Folk Process'), findsOneWidget);
       expect(
         find.descendant(
           of: find.byType(DanceListTile),
@@ -302,7 +302,7 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await repos.choreographers.upsert(
-        Choreographer(id: 'c1', name: 'Ada Lovelace'),
+        Choreographer(id: 'c1', name: 'Folk Process'),
       );
       await repos.dances.create(
         _dance(id: 'd1', title: 'Chase the Squirrel', authorIds: const ['c1']),

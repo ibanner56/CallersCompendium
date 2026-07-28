@@ -307,10 +307,10 @@ A1 (8) Do the thing
       final mapping = mapCallersCompanionDance(
         CcDanceRecord(
           name: 'Dance',
-          authors: ['Ada${rlo}Lovelace', '${zwsp}Alan Turing'],
+          authors: ['Folk${rlo}Process', '${zwsp}Roast Chestnut'],
         ),
       );
-      expect(mapping.authorNames, ['AdaLovelace', 'Alan Turing']);
+      expect(mapping.authorNames, ['FolkProcess', 'Roast Chestnut']);
     });
 
     test('strips spoofing chars from formation detail', () {
