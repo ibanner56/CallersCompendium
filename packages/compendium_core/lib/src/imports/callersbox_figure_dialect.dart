@@ -299,8 +299,9 @@ FigureMatch? _hey(String scrubbed) {
   final passText = lower.substring(open + 1, close);
   final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
 
-  // The non-paren remainder must be exactly {hey, optional fraction, filler};
-  // anything else (a trailing move, a second parenthetical, ...) -> custom.
+  // The non-paren remainder must be exactly {hey, optional fraction,
+  // optional leading "on left/right diagonal", filler}; anything else (a
+  // trailing move, a second parenthetical, ...) -> custom.
   final outWords = outside
       .replaceAll('½', ' 1/2 ')
       .replaceAll('¼', ' 1/4 ')
@@ -309,6 +310,21 @@ FigureMatch? _hey(String scrubbed) {
       .map(_stripEdgePunct)
       .where((w) => w.isNotEmpty)
       .toList();
+
+  // A leading "on [the] left/right diagonal" sets the hey's `dir` (the taxonomy
+  // direction domain carries leftDiagonal/rightDiagonal). Consumed up front so
+  // its tokens don't trip the strict remainder check below.
+  String? dir;
+  if (outWords.isNotEmpty && outWords.first == 'on') {
+    var i = 1;
+    if (i < outWords.length && outWords[i] == 'the') i++;
+    if (i + 1 < outWords.length &&
+        (outWords[i] == 'left' || outWords[i] == 'right') &&
+        outWords[i + 1] == 'diagonal') {
+      dir = outWords[i] == 'left' ? 'leftDiagonal' : 'rightDiagonal';
+      outWords.removeRange(0, i + 2);
+    }
+  }
 
   var sawHey = false;
   var length = 'half';
@@ -337,7 +353,7 @@ FigureMatch? _hey(String scrubbed) {
   final cells = passText.split(';').map((c) => c.trim()).toList();
   if (cells.isEmpty || cells.any((c) => c.isEmpty)) return null;
 
-  final params = <String, Object?>{'length': length};
+  final params = <String, Object?>{'length': length, 'dir': ?dir};
   final maxRicoSlot = _heyMaxRicoSlot(length);
   String? shoulderBase; // the shoulder implied at ODD positions.
   String? pass1;

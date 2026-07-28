@@ -171,14 +171,18 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   swat the flea, allemande, circle, star, chain, long lines, right left
   through, pass through, promenade, petronella. **Enriched for CallersBox
   (#553):** roll away, cross trails, figure eight, form (a) long wave(s), trade
-  (→ pass by), lead down/up & go down/up outside (→ down/up the hall `moving`),
-  circulate (→ box circulate, balance folded), weave-the-line `with <dancer>`,
-  relationship N-suffix (`with/to neighbor N2`), and `(A-B)` beat ranges. **Out
-  (→ custom for now, tracked on #295):** balance-in-a-wave, cast off, turn as
-  couples, mad robin & butterfly whirl (need direction/who params), same-role
-  right & left through, diagonal figures, `||` simultaneity, and anything with
-  `or`/leftover prose. Coverage improves iteratively — measured against the full
-  corpus (design target ≥80% of lines structured over time).
+  (→ pass by), pass/cross-by left/right (→ pass by), lead down/up & go down/up
+  outside (→ down/up the hall `moving`), circulate (→ box circulate, balance
+  folded), hall + turn as couples (→ `ender: turnCouple`), diagonal chain / hey
+  / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
+  through (variant kept as a note), weave-the-line `with <dancer>`, relationship
+  N-suffix (`with/to neighbor N2`), explicit dancer codes (M1/W1/M2/W2 →
+  ones/twos single-dancer identities), and `(A-B)` beat ranges. **Out (→ custom
+  for now, tracked on #295):** balance-in-a-wave, cast off, mad robin & butterfly
+  whirl (need direction/who params), two-hand turn & other ECD figures, promenade
+  CW/CCW around the major set, `||` simultaneity, non-duple formations, and
+  anything with leftover prose. Coverage improves iteratively — measured against
+  the full corpus (design target ≥80% of lines structured over time).
 
 ## Error handling & testing
 

@@ -206,6 +206,81 @@ void main() {
     });
   });
 
+  group('diagonal figures → dir', () {
+    test('"On left diagonal, right and left through with partner"', () {
+      final f = _parse('On left diagonal, right and left through with partner');
+      expect(f!.move, 'right_left_through');
+      expect(f.params['dir'], 'leftDiagonal');
+    });
+
+    test('"On right diagonal, ladies chain to neighbor N2"', () {
+      final f = _parse('On right diagonal, ladies chain to neighbor N2');
+      expect(f!.move, 'chain');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['dir'], 'rightDiagonal');
+      expect(f.note, contains('n2'));
+    });
+
+    test('diagonal hey: "On left diagonal, hey 1/2 (WR;PL)"', () {
+      final f = _parse('On left diagonal, hey 1/2 (WR;PL)');
+      expect(f!.move, 'hey');
+      expect(f.params['dir'], 'leftDiagonal');
+      expect(f.params['pass1'], 'role2s');
+    });
+
+    test('non-diagonal chain keeps default dir (no diagonal)', () {
+      final f = _parse('Ladies chain to partner');
+      expect(f!.move, 'chain');
+      expect(f.params.containsKey('dir'), isFalse);
+    });
+  });
+
+  group('same-role right and left through', () {
+    test('preserves the same-role variant as a note', () {
+      final f = _parse('Same-role right and left through with neighbor');
+      expect(f!.move, 'right_left_through');
+      expect(f.note, 'same-role');
+    });
+  });
+
+  group('pass / cross by → pass_by', () {
+    test('"Men pass left" → pass_by who=role1s shoulder=left', () {
+      final f = _parse('Men pass left');
+      expect(f!.move, 'pass_by');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['shoulder'], 'left');
+    });
+
+    test('"Women cross by right" → pass_by who=role2s shoulder=right', () {
+      final f = _parse('Women cross by right');
+      expect(f!.move, 'pass_by');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['shoulder'], 'right');
+    });
+
+    test('"Partner pass right" → pass_by who=partners', () {
+      expect(_parse('Partner pass right')!.params['who'], 'partners');
+    });
+
+    test('"pass through across" is NOT claimed as pass_by (no side)', () {
+      expect(_parse('Pass through across')!.move, 'pass_through');
+    });
+
+    test('"pass the ocean" is NOT claimed as pass_by', () {
+      expect(_parse('Pass the ocean')!.move, 'pass_the_ocean');
+    });
+  });
+
+  group('explicit dancer codes', () {
+    test('M1/W2 map to the ones/twos single-dancer identities', () {
+      // figure_8 accepts a single-dancer `who`, so "M1 figure eight" exercises
+      // the M1 → onesRole1 mapping end to end.
+      final f = _parse('M1 figure eight up');
+      expect(f!.move, 'figure_8');
+      expect(f.params['who'], 'onesRole1');
+    });
+  });
+
   group('(A-B) beat range', () {
     test('range prefix parses to inclusive duration and structures', () {
       // "(9-16) Threes swing" → 8 beats; "threes" is not a taxonomy dancer set

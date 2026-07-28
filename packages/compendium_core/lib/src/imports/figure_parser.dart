@@ -266,6 +266,15 @@ const Map<String, String> _dancerWords = {
   'n2': 'nextNeighbors',
   'n3': 'thirdNeighbors',
   'n4': 'fourthNeighbors',
+  // TCB explicit-dancer codes map to the single-dancer identities: M/W are the
+  // roles, 1 = the active couple (ones), 2 = the inactive couple (twos). So
+  // M1 = active role1 (onesRole1), W1 = active role2 (onesRole2), M2 = inactive
+  // role1 (twosRole1), W2 = inactive role2 (twosRole2). Bare codes only —
+  // line-order annotations like "(M1-W2-M2-W1)" are stripped before recognition.
+  'm1': 'onesRole1',
+  'w1': 'onesRole2',
+  'm2': 'twosRole1',
+  'w2': 'twosRole2',
 };
 
 /// Filler words that carry no structural meaning and may be dropped anywhere.
@@ -373,6 +382,26 @@ bool _hasPhrase(List<String> w, List<String> phrase) {
     if (hit) return true;
   }
   return false;
+}
+
+/// Consumes a LEADING "on [the] left/right diagonal" clause (TCB writes it as a
+/// prefix, e.g. "On left diagonal, ladies chain to neighbor"; the comma is
+/// stripped by `_normalize`) and returns the canonical `dir` value
+/// `leftDiagonal`/`rightDiagonal`, or null when absent. Only fires at the FRONT
+/// so the "left" in "on left diagonal" is never confused with a later figure
+/// token (e.g. the "left" of "right and left through").
+String? _takeDiagonal(List<String> w) {
+  if (w.isEmpty || w[0] != 'on') return null;
+  var i = 1;
+  if (i < w.length && w[i] == 'the') i++;
+  if (i + 1 < w.length &&
+      (w[i] == 'left' || w[i] == 'right') &&
+      w[i + 1] == 'diagonal') {
+    final side = w[i];
+    w.removeRange(0, i + 2);
+    return side == 'left' ? 'leftDiagonal' : 'rightDiagonal';
+  }
+  return null;
 }
 
 /// Recognises a rotation amount (allemande/do si do/shoulder round `turn`).
@@ -550,6 +579,11 @@ final List<_Recognizer> _recognizers = [
   // "trade by"/"trade the wave"/"trade the line" internally, so it cannot claim
   // those unmodeled constructions.
   _tradePassBy,
+  // "Men pass left" / "Women cross by right" → pass_by (who + shoulder). Placed
+  // after the "pass …" family (_passTheOcean/_passThrough) and _crossTrails; it
+  // requires an explicit side and empty leftover, so it declines "pass through",
+  // "pass the ocean", and "cross trail through" and never shadows them.
+  _passCrossBy,
   // TCB rotation-gate (issue #294, Option B). A DISTINCT figure from the
   // ContraDB `gate` (facing up/down/in/out, fixed 8 beats), which we still do
   // NOT recognize: the domains are disjoint (0/62 surveyed TCB gate lines map to
@@ -863,6 +897,8 @@ _Match? _star(List<String> w) {
 }
 
 _Match? _chain(List<String> w) {
+  // Optional leading "on left/right diagonal" → the diagonal `dir`.
+  final diag = _takeDiagonal(w);
   // TCB writes "Ladies chain to neighbor/partner" exclusively. Preserve the
   // "to <dancer>" target as a Figure NOTE rather than folding it into `who`
   // (which would misrepresent the chaining set). Capture it FIRST so its
@@ -886,12 +922,14 @@ _Match? _chain(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['chain'])) return null;
   final who2 = who ?? _takeDancer(w);
-  // Optional direction.
-  String? dir;
-  if (_consumePhrase(w, ['across'])) {
-    dir = 'across';
-  } else if (_consumePhrase(w, ['along'])) {
-    dir = 'along';
+  // Optional direction (a leading diagonal wins over a trailing across/along).
+  String? dir = diag;
+  if (dir == null) {
+    if (_consumePhrase(w, ['across'])) {
+      dir = 'across';
+    } else if (_consumePhrase(w, ['along'])) {
+      dir = 'along';
+    }
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
@@ -905,15 +943,21 @@ _Match? _chain(List<String> w) {
 }
 
 _Match? _rightLeftThrough(List<String> w) {
+  // Optional leading "on left/right diagonal" and/or "same-role" qualifier.
+  final diag = _takeDiagonal(w);
+  final sameRole =
+      _consumePhrase(w, ['same-role']) || _consumePhrase(w, ['same', 'role']);
   final ok =
       _consumePhrase(w, ['right', 'left', 'through']) ||
       _consumePhrase(w, ['right', 'and', 'left', 'through']);
   if (!ok) return null;
-  String? dir;
-  if (_consumePhrase(w, ['across'])) {
-    dir = 'across';
-  } else if (_consumePhrase(w, ['along'])) {
-    dir = 'along';
+  String? dir = diag;
+  if (dir == null) {
+    if (_consumePhrase(w, ['across'])) {
+      dir = 'across';
+    } else if (_consumePhrase(w, ['along'])) {
+      dir = 'along';
+    }
   }
   // TCB writes "...right and left through with partner/neighbor" exclusively;
   // consume the trailing "with <dancer>" qualifier (no structured slot), plus
@@ -924,7 +968,13 @@ _Match? _rightLeftThrough(List<String> w) {
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('right_left_through', {'dir': ?dir});
+  // right_left_through has no same-role slot, so the same-role variant is
+  // preserved as a note (the move + dir still structure faithfully).
+  return _Match(
+    'right_left_through',
+    {'dir': ?dir},
+    sameRole ? 'same-role' : null,
+  );
 }
 
 _Match? _passThrough(List<String> w) {
@@ -1368,6 +1418,28 @@ _Match? _tradePassBy(List<String> w) {
     null,
     who2 == null,
   );
+}
+
+/// Tier B: TCB writes "Men pass left" / "Women pass right" / "Men cross by
+/// right" / "Partner pass right" — all a pass-by, unified onto `pass_by` with
+/// the stated `who` and the left/right `shoulder`. A side is REQUIRED: a bare
+/// "pass"/"cross by" is left for the more specific pass recognizers
+/// ("pass through", "pass the ocean", "cross trail through") and otherwise
+/// falls to custom, so this never mis-claims them (each declines here because a
+/// side is absent and/or tokens are left over).
+_Match? _passCrossBy(List<String> w) {
+  final who = _takeDancer(w);
+  final ok = _consumePhrase(w, ['pass']) || _consumePhrase(w, ['cross', 'by']);
+  if (!ok) return null;
+  final who2 = who ?? _takeDancer(w);
+  final shoulder = _takeSide(w);
+  if (shoulder == null) return null;
+  _consumePhrase(w, ['shoulder']);
+  _consumePhrase(w, ['shoulders']);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('pass_by', {'who': ?who2, 'shoulder': shoulder}, null,
+      who2 == null);
 }
 
 /// Tier A: TCB writes "Rory O'More" (dance ids 6, 39), optionally with a slide
