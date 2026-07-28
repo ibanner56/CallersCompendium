@@ -33,6 +33,7 @@ export 'src/imports/contradb_program.dart';
 export 'src/imports/contradb_program_index.dart';
 export 'src/imports/contradb_search.dart';
 export 'src/imports/figure_parser.dart';
+export 'src/imports/figure_front_end_fan_out.dart';
 export 'src/imports/figure_text_scrub.dart';
 export 'src/imports/free_text_entry.dart';
 export 'src/imports/fmp/fmp_reader.dart';
