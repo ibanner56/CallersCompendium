@@ -65,6 +65,22 @@ Future<StructuredDraft> _importOne(String payload, {String? uri}) async {
 
 int _beats(Figure f) => (f.params['beats'] as int?) ?? 0;
 
+/// Builds a ContraDB dance page from `(beats, figureHtml)` rows for the
+/// end-to-end corpus tests.
+String _dancePage(String title, List<(int, String)> rows) {
+  final trs = rows
+      .map(
+        (r) =>
+            '<tr><td>A1</td><td class=dance-show-beats>${r.$1}</td>'
+            '<td><div class="show-figure">${r.$2}</div></td></tr>',
+      )
+      .join();
+  return _page(
+    '<h1 class="dance-show-title">$title</h1>'
+    '<table class="contra-table-nonfluid">$trs</table>',
+  );
+}
+
 void main() {
   group('discover', () {
     test('emits one record and derives the id from the URL', () async {
@@ -433,6 +449,99 @@ void main() {
         contentType: 'text/html',
       );
       expect(() => adapter.parse(raw), throwsA(isA<ImportError>()));
+    });
+  });
+
+  group('parse — corpus regression (real ContraDB renders)', () {
+    test('Butter (dances/94) structures every figure', () async {
+      final draft = await _importOne(
+        _dancePage('Butter', const [
+          (2, 'slide left along set \u204B'),
+          (6, 'circle left 3 places'),
+          (8, 'neighbors swing'),
+          (8, 'long lines forward &amp; back'),
+          (8, 'ladles chain'),
+          (16, 'ladles start a full hey - rights in center, lefts on ends'),
+          (16, 'partners balance &amp; swing'),
+        ]),
+      );
+      final f = draft.dance.figures;
+      expect(f, hasLength(7));
+      expect(
+        f.every((g) => !g.isCustom),
+        isTrue,
+        reason: '${f.map((g) => g.move)}',
+      );
+
+      expect(f[0].move, 'slide_along_set');
+      expect(f[0].params['slide'], 'left');
+      expect(f[0].progression, isTrue);
+      expect(f[1].move, 'circle');
+      expect(f[1].params['places'], 3);
+      expect(f[2].move, 'swing');
+      expect(f[2].params['who'], 'neighbors');
+      expect(f[3].move, 'long_lines');
+      expect(f[3].params['goBack'], isTrue);
+      expect(f[4].move, 'chain');
+      expect(f[4].params['who'], 'role2s');
+      expect(f[5].move, 'hey');
+      expect(f[5].params['pass1'], 'role2s');
+      expect(f[5].params['length'], 'full');
+      expect(f[5].params['shoulder'], 'right');
+      expect(f[6].move, 'swing');
+      expect(f[6].params['who'], 'partners');
+      expect(f[6].params['prefix'], 'balance');
+    });
+
+    test('dances/81 structures every figure incl. the ocean-wave split', () async {
+      final draft = await _importOne(
+        _dancePage('Dance 81', const [
+          (6, 'gentlespoons allemande left once'),
+          (10, 'neighbors swing'),
+          (8, 'circle left 3 places'),
+          (8, 'partners swing'),
+          (8, 'long lines forward &amp; back'),
+          (8, 'ladles allemande right 1\u00BD - don\'t let go'),
+          (
+            4,
+            'form an ocean wave &amp; balance - ladles by right hands and neighbors by left hands',
+          ),
+          (4, 'neighbors allemande left \u00BE to long wavy lines'),
+          (0, 'form long waves - ladles face in, gentlespoons face out \u204B'),
+          (4, 'balance'),
+          (4, 'next neighbors allemande right \u00BE'),
+        ]),
+      );
+      final f = draft.dance.figures;
+      // 11 rows, but the ocean-wave-&-balance row splits into two figures.
+      expect(f, hasLength(12));
+      expect(
+        f.every((g) => !g.isCustom),
+        isTrue,
+        reason: '${f.map((g) => g.move)}',
+      );
+
+      expect(f[0].move, 'allemande');
+      expect(f[0].params['hand'], 'left');
+      expect(f[0].params['turn'], 1.0);
+      expect(f[5].move, 'allemande');
+      expect(f[5].params['turn'], 1.5);
+      expect(f[5].note, "- don't let go");
+      // Ocean-wave split: wave (formation, 0 beats) then a standalone balance.
+      expect(f[6].move, 'form_a_short_wave');
+      expect(f[6].params['center'], 'role2s');
+      expect(_beats(f[6]), 0);
+      expect(f[7].move, 'balance');
+      expect(f[7].params['who'], 'everyone');
+      expect(_beats(f[7]), 4);
+      expect(f[8].move, 'allemande');
+      expect(f[8].note, 'to long wavy lines');
+      expect(f[9].move, 'form_long_waves');
+      expect(f[9].params['who'], 'role2s');
+      expect(f[9].progression, isTrue);
+      expect(f[10].move, 'balance');
+      expect(f[11].move, 'allemande');
+      expect(f[11].params['who'], 'nextNeighbors');
     });
   });
 }
