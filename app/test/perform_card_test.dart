@@ -180,7 +180,8 @@ void main() {
       for (var i = 0; i < 8; i++)
         Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
     ],
-    callingNotes: 'Balance and swing your neighbour, then long lines forward '
+    callingNotes:
+        'Balance and swing your neighbour, then long lines forward '
         'and back before the ladies chain across the set.',
     status: DanceStatus.active,
     createdAt: _now,
@@ -217,9 +218,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  ScrollPosition scrollPosition(WidgetTester tester) => tester
-      .state<ScrollableState>(find.byType(Scrollable).first)
-      .position;
+  ScrollPosition scrollPosition(WidgetTester tester) =>
+      tester.state<ScrollableState>(find.byType(Scrollable).first).position;
 
   testWidgets(
     'auto-size shrinks a tall card to fit a smaller-than-fullscreen window '
