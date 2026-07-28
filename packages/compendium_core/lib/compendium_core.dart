@@ -27,6 +27,7 @@ export 'src/imports/callersbox_search.dart';
 export 'src/imports/callers_companion_text_adapter.dart';
 export 'src/imports/dedupe.dart';
 export 'src/imports/contradb_adapter.dart';
+export 'src/imports/contradb_figure_dialect.dart';
 export 'src/imports/contradb_html_adapter.dart';
 export 'src/imports/contradb_program.dart';
 export 'src/imports/contradb_program_index.dart';

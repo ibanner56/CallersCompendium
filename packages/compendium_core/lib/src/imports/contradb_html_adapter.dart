@@ -6,6 +6,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../util/text_sanitizer.dart';
+import 'contradb_figure_dialect.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
 import 'import_error.dart';
@@ -67,14 +68,12 @@ import 'structured_draft.dart';
 /// Missing/malformed elements become non-fatal [ImportIssue]s; a page with no
 /// figures table still imports as a metadata stub with a warning. [parse] throws
 /// only when the payload is not a ContraDB dance page at all.
-/// The ContraDB-HTML figure-text front-end. ContraDB renders clean, structured
-/// prose and never emits TCB paren/annotation notation, so its front-end is the
-/// neutral [canonicalFigureFrontEnd] for now — the shared recognizer's canonical
-/// dialect is ContraDB-aligned. Exposed as its own named, independently-callable
-/// [FigureFrontEnd] so a later PR can enrich it (dedicated ContraDB reverse
-/// parsers) and a free-text fan-out can select it, without touching the adapter.
-const FigureFrontEnd contraDbHtmlFigureFrontEnd = canonicalFigureFrontEnd;
-
+/// The ContraDB-HTML figure-text front-end lives in `contradb_figure_dialect.dart`
+/// ([contraDbHtmlFigureFrontEnd]): dedicated reverse-parsers that map ContraDB's
+/// rendered figure prose back to structured taxonomy figures and split off any
+/// verbatim note tail. Exposed as its own named, independently-callable
+/// [FigureFrontEnd] so a free-text fan-out can select it without touching the
+/// adapter.
 class ContraDbHtmlAdapter implements SourceAdapter {
   ContraDbHtmlAdapter();
 

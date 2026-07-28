@@ -294,22 +294,27 @@ void main() {
     test('captures <u> and ⁋ progression markers on the figure', () async {
       final draft = await _importOne(_page(_rendezvousBody));
       final figures = draft.dance.figures;
-      // Row 3: "<u>swing</u>" — progression flag set, tag unwrapped to text.
+      // Row 3: "… or <u>swing</u> to partner" — progression flag set, tag
+      // unwrapped. The do si do now structures, with the trailing alternative
+      // preserved verbatim as its note.
       expect(figures[2].progression, isTrue);
-      expect(_text(figures[2]), contains('swing to partner'));
-      expect(_text(figures[2]), isNot(contains('<u>')));
-      // Row 6: trailing "⁋" — progression flag set, marker stripped.
+      expect(figures[2].move, 'do_si_do');
+      expect(figures[2].note, contains('swing to partner'));
+      // Row 6: trailing "⁋" — progression flag set, marker stripped; the figure
+      // structures as a slide along set.
       expect(figures[5].progression, isTrue);
-      expect(_text(figures[5]), isNot(contains('⁋')));
-      expect(_text(figures[5]).trim(), 'slide left along set');
+      expect(figures[5].move, 'slide_along_set');
+      expect(figures[5].params['slide'], 'left');
       // A row with no marker is not flagged.
       expect(figures[0].progression, isFalse);
     });
 
     test('scrubs gendered role terms through the canonical dialect', () async {
       final draft = await _importOne(_page(_rendezvousBody));
-      // "ladles" -> "role2s" (Row 3 continuation).
-      expect(_text(draft.dance.figures[2]), contains('role2s do si do'));
+      // "ladles" -> "role2s" (Row 3 continuation), carried onto the structured
+      // do si do's subject.
+      expect(draft.dance.figures[2].move, 'do_si_do');
+      expect(draft.dance.figures[2].params['who'], 'role2s');
     });
 
     test(
