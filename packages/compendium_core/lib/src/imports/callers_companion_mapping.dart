@@ -555,9 +555,12 @@ const _DateParse _noMatch = (matched: false, date: null);
 /// shape (so an unknown word like `Smarch 2004` can still degrade to its year);
 /// returns matched with a null date for a recognized-but-invalid date.
 _DateParse _parseMonthNameDate(String value) {
-  // "<name> [day,] year"  e.g. "March 2004", "March 15, 2004", "Mar 15 2004".
+  // "<name> [day,] year"  e.g. "March 2004", "March 15, 2004", "Mar 15,2004".
+  // The separator between the name/day/year tokens is either whitespace or a
+  // comma (with optional surrounding whitespace), so a comma without a space
+  // (`March 15,2004`) is accepted; a missing separator (`March 152004`) is not.
   final nameFirst = RegExp(
-    r'^([A-Za-z]{3,9})\.?,?\s+(?:(\d{1,2})\s*,?\s+)?(\d{4})$',
+    r'^([A-Za-z]{3,9})\.?(?:\s*,\s*|\s+)(?:(\d{1,2})(?:\s*,\s*|\s+))?(\d{4})$',
   ).firstMatch(value);
   if (nameFirst != null) {
     final month = _ccMonthNames[nameFirst.group(1)!.toLowerCase()];
@@ -667,19 +670,23 @@ _DateParse _parseNumericDate(
   return (matched: true, date: null);
 }
 
-/// Recovers a year-only [PartialDate] when the string carries exactly one
-/// standalone 4-digit run in 1000–9999 (e.g. `Spring 2004`, `c. 2004`,
-/// `2004?`), emitting an info `cc_date_reduced_precision` issue to record that
-/// month/day were dropped. Returns `null` when there is no such run or more
-/// than one (e.g. a `2004-2005` range), so the caller can warn instead.
+/// Recovers a year-only [PartialDate] when the year is the *only* number in the
+/// value (e.g. `Spring 2004`, `c. 2004`, `2004?`), emitting an info
+/// `cc_date_reduced_precision` issue to record that no finer precision was
+/// available. Requires exactly one run of digits and that it is a 4-digit year,
+/// so a value that still carries other numeric components (a partially-parseable
+/// or malformed fuller date, or a `2004-2005` range) is *not* silently reduced —
+/// the caller warns instead. Uses only simple digit-run matching (no lookbehind).
 PartialDate? _parseYearOnly(
   String value,
   String which,
   List<ImportIssue> issues,
 ) {
-  final years = RegExp(r'(?<!\d)(\d{4})(?!\d)').allMatches(value).toList();
-  if (years.length != 1) return null;
-  final year = int.parse(years.single.group(1)!);
+  final runs = RegExp(r'\d+').allMatches(value).toList();
+  if (runs.length != 1) return null;
+  final token = runs.single.group(0)!;
+  if (token.length != 4) return null;
+  final year = int.parse(token);
   final date = _tryPartialDate(year);
   if (date == null) return null;
   issues.add(
@@ -688,7 +695,7 @@ PartialDate? _parseYearOnly(
       code: 'cc_date_reduced_precision',
       message:
           'Recovered only the year $year from the $which date "$value"; '
-          'month/day could not be determined and were dropped.',
+          'no month or day was present to parse.',
     ),
   );
   return date;

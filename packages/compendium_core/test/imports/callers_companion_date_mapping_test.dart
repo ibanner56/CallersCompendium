@@ -79,6 +79,20 @@ void main() {
       );
     });
 
+    test(
+      'comma with no space between day and year is accepted (#552 review)',
+      () {
+        expect(
+          mapComposed('March 15,2004').dance.composedOn,
+          PartialDate(2004, 3, 15),
+        );
+      },
+    );
+
+    test('comma with no space between month and year is accepted', () {
+      expect(mapComposed('March,2004').dance.composedOn, PartialDate(2004, 3));
+    });
+
     test('day + month name + year', () {
       expect(
         mapComposed('15 March 2004').dance.composedOn,
@@ -205,6 +219,17 @@ void main() {
 
     test('a year range is NOT degraded (ambiguous) and warns', () {
       final m = mapComposed('2004-2005');
+      expect(m.dance.composedOn, isNull);
+      expect(hasCode(m, 'cc_unparsed_date'), isTrue);
+      expect(hasCode(m, 'cc_date_reduced_precision'), isFalse);
+    });
+
+    test('a value with other numbers besides the year warns, not degrades '
+        '(#552 review)', () {
+      // A partially-parseable/malformed fuller date (here an ordinal we do not
+      // parse) still carries a day number, so it is surfaced as unparseable
+      // rather than silently reduced to just its year.
+      final m = mapComposed('15th March 2004');
       expect(m.dance.composedOn, isNull);
       expect(hasCode(m, 'cc_unparsed_date'), isTrue);
       expect(hasCode(m, 'cc_date_reduced_precision'), isFalse);
