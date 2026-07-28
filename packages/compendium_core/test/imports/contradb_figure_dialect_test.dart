@@ -181,6 +181,27 @@ void main() {
       final f = _parse('stand still');
       expect(f.move, 'stand_still');
     });
+
+    test('gyre → shoulder_round (ContraDB term the scrub leaves intact)', () {
+      final f = _parse('neighbors gyre once');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'shoulder_round');
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['turn'], 1.0);
+    });
+
+    test('gyre left shoulders', () {
+      final f = _parse('neighbors gyre left shoulders 1½');
+      expect(f.move, 'shoulder_round');
+      expect(f.params['shoulder'], 'left');
+      expect(f.params['turn'], 1.5);
+    });
+
+    test('arch & dive', () {
+      final f = _parse('ones arch twos dive');
+      expect(f.move, 'arch_and_dive');
+      expect(f.params['who'], 'ones');
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {

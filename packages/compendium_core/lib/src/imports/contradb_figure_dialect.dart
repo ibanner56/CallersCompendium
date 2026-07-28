@@ -60,6 +60,8 @@ const List<FigureMatch? Function(String)> _recognizers =
       _californiaTwirl,
       _butterflyWhirl,
       _standStill,
+      _gyre,
+      _archAndDive,
     ];
 
 // --- Recognizers ------------------------------------------------------------
@@ -318,6 +320,45 @@ FigureMatch? _standStill(String text) {
   final s = _Scan(text);
   if (!s.eatPhrase('stand still')) return null;
   return FigureMatch('stand_still', note: s.note());
+}
+
+/// gyreWords → our `shoulder_round`: `<who> gyre [<side> shoulders] [<rotation>]`.
+/// ContraDB renders the move name `gyre` (only `gypsy` is rewritten to
+/// `shoulder round` by the scrub), and shows the shoulder word only for the
+/// non-default (left) side.
+FigureMatch? _gyre(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eat('gyre')) return null;
+  final params = <String, Object?>{'who': who};
+  final save = s.pos;
+  final side = _leftRight(s.peek());
+  if (side != null) {
+    s.take();
+    if (s.eat('shoulders') || s.eat('shoulder')) {
+      params['shoulder'] = side;
+    } else {
+      s.reset(save);
+    }
+  }
+  final rot = _rotation(s.peek());
+  if (rot != null) {
+    s.take();
+    params['turn'] = rot;
+  }
+  return FigureMatch('shoulder_round', params: params, note: s.note());
+}
+
+/// archAndDiveWords: `<who> arch <other> dive`.
+FigureMatch? _archAndDive(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eat('arch')) return null;
+  if (_subject(s) == null) return null; // the mirrored diving pair
+  if (!s.eat('dive')) return null;
+  return FigureMatch('arch_and_dive', params: {'who': who}, note: s.note());
 }
 
 // --- Scanning + token helpers -----------------------------------------------
