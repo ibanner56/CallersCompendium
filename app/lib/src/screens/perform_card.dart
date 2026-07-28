@@ -27,6 +27,18 @@ const double kPerformDefaultScale = 1.8;
 /// intent is lost). There is deliberately no practical upper bound.
 const double kPerformMinScale = 1.0;
 
+/// Lower bound for the *auto-size* fit search only (ROADMAP G.1). Unlike manual
+/// mode — which must never drop below the large-print [kPerformMinScale] — the
+/// whole point of auto-size is "the full dance or slot fits the screen without
+/// scrolling", so on a window smaller than the card's natural large-print
+/// height the fit must be allowed to shrink *below* 1.0 to make the card fit.
+/// Flooring the auto-fit search at [kPerformMinScale] (issue #527) left the card
+/// unable to shrink enough for a smaller-than-fullscreen window, so trailing
+/// sections (e.g. B1, calling notes) fell off the viewport. This is a generous
+/// floor: below it text is unreadably small, at which point the scroll fallback
+/// keeps content reachable rather than clipping it.
+const double kPerformMinAutoScale = 0.2;
+
 /// Upper bound for the *auto-size* fit search only (ROADMAP G.1). Manual mode
 /// keeps its "no practical upper bound" behaviour; auto-size is naturally
 /// bounded by what fits the viewport, but the binary search needs a finite
@@ -44,6 +56,15 @@ TextScaler _effectiveScaler(BuildContext context, double scale) {
   final systemScale = MediaQuery.of(context).textScaler.scale(1);
   return TextScaler.linear(systemScale * scale);
 }
+
+/// Factor applied to the card's fixed vertical chrome (inter-element spacing and
+/// padding) so it shrinks together with the text when the *auto-size* fit search
+/// scales below 1.0 (issue #527). Without this, the fixed `AppSpacing` chrome
+/// would dominate a short viewport and stop the card fitting no matter how small
+/// the text got. Clamped to 1.0 so manual mode and the auto-size grow-to-fill
+/// path (scale >= 1.0) keep their current spacing exactly — only the
+/// shrink-to-fit case is affected.
+double _chromeScale(double scale) => scale < 1.0 ? scale : 1.0;
 
 /// Large-print card body for a dance-backed slot: header (title / authors /
 /// formation / level / status) + section-grouped figures + calling notes.
@@ -85,25 +106,31 @@ class PerformCard extends StatelessWidget {
   /// measure its natural height; the manual path wraps it in a scroll view.
   Widget _body(BuildContext context, double scale) {
     final mediaQuery = MediaQuery.of(context);
+    final chrome = _chromeScale(scale);
     return MediaQuery(
       data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: EdgeInsets.all(AppSpacing.lg * chrome),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Header(dance: dance, authorNames: authorNames),
-            const SizedBox(height: AppSpacing.lg),
+            _Header(
+              dance: dance,
+              authorNames: authorNames,
+              chromeScale: chrome,
+            ),
+            SizedBox(height: AppSpacing.lg * chrome),
             _Figures(
               figures: dance.figures,
               phraseStructure: dance.phraseStructure,
               renderer: renderer,
               dialect: dialect,
+              chromeScale: chrome,
             ),
             if (dance.callingNotes.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.lg),
+              SizedBox(height: AppSpacing.lg * chrome),
               _SectionTitle(AppLocalizations.of(context).performCallingNotes),
-              const SizedBox(height: AppSpacing.xs),
+              SizedBox(height: AppSpacing.xs * chrome),
               Text(
                 renderer.renderFreeText(dance.callingNotes, dialect),
                 style: Theme.of(
@@ -121,7 +148,7 @@ class PerformCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (autoSize) {
       return _FitToHeight(
-        minScale: kPerformMinScale,
+        minScale: kPerformMinAutoScale,
         maxScale: kPerformMaxAutoScale,
         resetToken: Object.hash(dance.id, dialect),
         builder: _body,
@@ -159,7 +186,7 @@ class PerformTextCard extends StatelessWidget {
     return MediaQuery(
       data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: EdgeInsets.all(AppSpacing.lg * _chromeScale(scale)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -180,7 +207,7 @@ class PerformTextCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (autoSize) {
       return _FitToHeight(
-        minScale: kPerformMinScale,
+        minScale: kPerformMinAutoScale,
         maxScale: kPerformMaxAutoScale,
         resetToken: text,
         builder: _body,
@@ -293,6 +320,15 @@ class _FitToHeightState extends State<_FitToHeight> {
   static const double _scaleEpsilon = 0.02;
   static const double _heightEpsilon = 0.5;
 
+  /// Multiplier used to grow the trial scale upward while it still fits (see
+  /// [_measureAndStep]). Growing geometrically from [minScale] — rather than
+  /// jumping straight to the midpoint of `[minScale, maxScale]` — keeps the
+  /// search from briefly rendering a scale far larger than the one it will
+  /// settle on, which on a narrow viewport would overflow the card's figure
+  /// rows horizontally for a frame (issue #527). The converged result is
+  /// identical either way.
+  static const double _growthFactor = 1.5;
+
   final GlobalKey _contentKey = GlobalKey();
 
   /// Fallback cache used only when no parent-owned [_FitToHeight.scaleCache] is
@@ -306,6 +342,12 @@ class _FitToHeightState extends State<_FitToHeight> {
   late double _hi = widget.maxScale;
   late double _scale = widget.minScale;
 
+  /// Phase flag: while true the search grows [_scale] upward from [minScale]
+  /// (each fitting probe records [_lo] and tries a [_growthFactor]× larger one);
+  /// the first probe that overflows brackets the fit in `[_lo, _hi]` and flips
+  /// this to false, after which a bisection converges within [_scaleEpsilon].
+  bool _growing = true;
+
   Size? _lastViewport;
   double? _lastSystemTextScale;
   Object? _lastToken;
@@ -313,14 +355,15 @@ class _FitToHeightState extends State<_FitToHeight> {
 
   /// Prepares the search for [token] in the ([viewport], [systemTextScale])
   /// context: if a converged scale for it is cached (same context), reuse it
-  /// directly and skip the search — no flash — else restart the binary search
-  /// from [minScale].
+  /// directly and skip the search — no flash — else restart the search from
+  /// [minScale].
   void _beginToken(Object? token, Size viewport, double systemTextScale) {
     final cached = _cache.scaleFor(token, viewport, systemTextScale);
     if (cached != null) {
       _lo = cached;
       _hi = widget.maxScale;
       _scale = cached;
+      _growing = false;
       _converged = true;
     } else {
       _resetSearch();
@@ -331,7 +374,19 @@ class _FitToHeightState extends State<_FitToHeight> {
     _lo = widget.minScale;
     _hi = widget.maxScale;
     _scale = widget.minScale;
+    _growing = true;
     _converged = false;
+  }
+
+  /// Records the converged [value], caches it so a return visit skips the
+  /// search, and repaints at it if the last trial differs meaningfully.
+  void _settle(double value, Size viewport, double systemTextScale) {
+    final settled = value.clamp(widget.minScale, widget.maxScale);
+    _converged = true;
+    _cache.remember(widget.resetToken, viewport, systemTextScale, settled);
+    if ((settled - _scale).abs() > _scaleEpsilon / 2) {
+      setState(() => _scale = settled);
+    }
   }
 
   void _measureAndStep(Size viewport, double systemTextScale) {
@@ -341,26 +396,49 @@ class _FitToHeightState extends State<_FitToHeight> {
     final contentHeight = box.size.height;
 
     final fits = contentHeight <= viewport.height + _heightEpsilon;
+
+    if (_growing) {
+      if (!fits) {
+        if (_scale <= widget.minScale + _scaleEpsilon) {
+          // Even the smallest scale overflows (a long dance on a short window):
+          // settle at min and let the scroll view keep the content reachable
+          // rather than clipping it — the "content is never hidden" invariant.
+          _settle(widget.minScale, viewport, systemTextScale);
+        } else {
+          // This probe overshot: bracket the fit in [_lo, _scale] and bisect.
+          _hi = _scale;
+          _growing = false;
+          setState(() => _scale = (_lo + _hi) / 2);
+        }
+        return;
+      }
+      // Current scale fits; remember it and try a moderately larger one.
+      _lo = _scale;
+      final next = (_scale * _growthFactor).clamp(
+        widget.minScale,
+        widget.maxScale,
+      );
+      if (_scale >= widget.maxScale - _scaleEpsilon ||
+          next - _scale <= _scaleEpsilon) {
+        // Fits even at (near) the ceiling — nothing larger to try.
+        _settle(_lo, viewport, systemTextScale);
+        return;
+      }
+      setState(() => _scale = next);
+      return;
+    }
+
+    // Bisection phase, between a fitting [_lo] and an overflowing [_hi].
     if (fits) {
       _lo = _scale;
     } else {
       _hi = _scale;
     }
-
     if (_hi - _lo <= _scaleEpsilon) {
-      // Settle on the largest scale known to fit, and remember it so a return
-      // visit to this slot skips the search.
-      final settled = _lo.clamp(widget.minScale, widget.maxScale);
-      _converged = true;
-      _cache.remember(widget.resetToken, viewport, systemTextScale, settled);
-      if ((settled - _scale).abs() > _scaleEpsilon / 2) {
-        setState(() => _scale = settled);
-      }
+      _settle(_lo, viewport, systemTextScale);
       return;
     }
-
-    final next = (_lo + _hi) / 2;
-    setState(() => _scale = next);
+    setState(() => _scale = (_lo + _hi) / 2);
   }
 
   @override
@@ -696,10 +774,18 @@ List<Widget> buildPerformAppBarActions({
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.dance, required this.authorNames});
+  const _Header({
+    required this.dance,
+    required this.authorNames,
+    this.chromeScale = 1.0,
+  });
 
   final Dance dance;
   final List<String> authorNames;
+
+  /// See [_chromeScale] — shrinks this header's fixed vertical spacing together
+  /// with the text when the auto-size fit scales below 1.0.
+  final double chromeScale;
 
   @override
   Widget build(BuildContext context) {
@@ -717,7 +803,7 @@ class _Header extends StatelessWidget {
           ),
         ),
         if (authorNames.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xs),
+          SizedBox(height: AppSpacing.xs * chromeScale),
           Text(
             authorNames.join(', '),
             style: theme.textTheme.headlineSmall?.merge(
@@ -725,7 +811,7 @@ class _Header extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: AppSpacing.sm),
+        SizedBox(height: AppSpacing.sm * chromeScale),
         _MetaRow(
           icon: formationIcon,
           text: formationLabel(l10n, dance.formation),
@@ -736,14 +822,14 @@ class _Header extends StatelessWidget {
           )?.overrideFor(dance.formation.shape),
         ),
         if (level != null) ...[
-          const SizedBox(height: AppSpacing.xs),
+          SizedBox(height: AppSpacing.xs * chromeScale),
           _MetaRow(
             icon: Icons.signal_cellular_alt_outlined,
             text: danceLevelLabel(l10n, level),
           ),
         ],
         if (dance.status != DanceStatus.active) ...[
-          const SizedBox(height: AppSpacing.md),
+          SizedBox(height: AppSpacing.md * chromeScale),
           _StatusBanner(status: dance.status),
         ],
       ],
@@ -833,12 +919,17 @@ class _Figures extends StatelessWidget {
     required this.phraseStructure,
     required this.renderer,
     required this.dialect,
+    this.chromeScale = 1.0,
   });
 
   final List<Figure> figures;
   final PhraseStructure phraseStructure;
   final FigureRenderer renderer;
   final Dialect dialect;
+
+  /// See [_chromeScale] — shrinks the fixed spacing between figure sections and
+  /// rows together with the text when the auto-size fit scales below 1.0.
+  final double chromeScale;
 
   @override
   Widget build(BuildContext context) {
@@ -859,8 +950,8 @@ class _Figures extends StatelessWidget {
         children.add(
           Padding(
             padding: EdgeInsets.only(
-              top: lastLabel == null ? 0 : AppSpacing.lg,
-              bottom: AppSpacing.xs,
+              top: lastLabel == null ? 0 : AppSpacing.lg * chromeScale,
+              bottom: AppSpacing.xs * chromeScale,
             ),
             child: Semantics(
               header: true,
@@ -913,6 +1004,7 @@ class _Figures extends StatelessWidget {
           isImportGap:
               sf.figure.isCustom &&
               sf.figure.customOrigin == CustomOrigin.importGap,
+          chromeScale: chromeScale,
         ),
       );
     }
@@ -933,6 +1025,7 @@ class _FigureRow extends StatelessWidget {
     required this.progression,
     required this.note,
     required this.isImportGap,
+    this.chromeScale = 1.0,
   });
 
   /// Terse, dialect-applied text shown on screen (non-custom figures).
@@ -952,6 +1045,12 @@ class _FigureRow extends StatelessWidget {
   /// Whether this is a parser-gap custom figure ([CustomOrigin.importGap]),
   /// which gets a badge + subtle row shading.
   final bool isImportGap;
+
+  /// See [_chromeScale] — shrinks this row's fixed vertical padding together with
+  /// the text when the auto-size fit scales below 1.0. This per-row padding
+  /// accumulates across every figure, so scaling it is what lets a tall dance's
+  /// section list collapse enough to fit a short viewport (issue #527).
+  final double chromeScale;
 
   @override
   Widget build(BuildContext context) {
@@ -994,7 +1093,7 @@ class _FigureRow extends StatelessWidget {
         color: isImportGap
             ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.35)
             : null,
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xs * chromeScale),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

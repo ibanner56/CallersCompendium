@@ -170,4 +170,99 @@ void main() {
       expect(after.height, closeTo(before.height, before.height * 0.25));
     },
   );
+
+  // A dance tall enough that, at the manual large-print floor (scale 1.0), its
+  // card far exceeds a smaller-than-fullscreen window — the issue #527 repro.
+  Dance tallDance() => Dance(
+    id: 'tall',
+    title: 'A Dance With Many Figures',
+    figures: [
+      for (var i = 0; i < 8; i++)
+        Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+    ],
+    callingNotes: 'Balance and swing your neighbour, then long lines forward '
+        'and back before the ladies chain across the set.',
+    status: DanceStatus.active,
+    createdAt: _now,
+    updatedAt: _now,
+  );
+
+  Future<void> pumpAutoSized(
+    WidgetTester tester,
+    Dance dance,
+    Size window,
+    FormationColorsController controller,
+  ) async {
+    await tester.binding.setSurfaceSize(window);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: SafeArea(
+            child: FormationColorsScope(
+              controller: controller,
+              child: PerformCard(
+                dance: dance,
+                renderer: _renderer,
+                dialect: Dialect.larksRobins,
+                textScale: 1.0,
+                autoSize: true,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  ScrollPosition scrollPosition(WidgetTester tester) => tester
+      .state<ScrollableState>(find.byType(Scrollable).first)
+      .position;
+
+  testWidgets(
+    'auto-size shrinks a tall card to fit a smaller-than-fullscreen window '
+    'without scrolling (issue #527)',
+    (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = await _controllerWith(null);
+
+      // A window well below full screen — the reported repro. Before the fix the
+      // auto-fit search was floored at the manual large-print scale (1.0) and
+      // could not shrink the card, so the trailing section (calling notes / B
+      // figures) fell off the viewport and was unreachable.
+      await pumpAutoSized(tester, tallDance(), const Size(720, 620), c);
+
+      expect(tester.takeException(), isNull);
+      // The whole card fits: nothing to scroll.
+      expect(scrollPosition(tester).maxScrollExtent, lessThan(1.0));
+      // …and the last section is actually laid out and visible.
+      expect(find.textContaining('ladies chain'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'auto-size keeps the whole card reachable by scrolling when even the '
+    'smallest fit overflows a very short window (never clipped, issue #527)',
+    (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final c = await _controllerWith(null);
+
+      // A window too short for even the minimum auto scale. The card must not
+      // clip: the SingleChildScrollView fallback keeps every section reachable.
+      await pumpAutoSized(tester, tallDance(), const Size(420, 220), c);
+
+      expect(tester.takeException(), isNull);
+      final pos = scrollPosition(tester);
+      // Content is taller than the viewport, so it is scrollable rather than cut
+      // off — "content is never hidden".
+      expect(pos.maxScrollExtent, greaterThan(0.0));
+
+      // Scroll to the end and confirm the last section can be revealed.
+      pos.jumpTo(pos.maxScrollExtent);
+      await tester.pump();
+      expect(find.textContaining('ladies chain'), findsOneWidget);
+    },
+  );
 }
