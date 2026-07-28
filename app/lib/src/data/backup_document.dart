@@ -220,6 +220,20 @@ BackupDocument _emptyDoc() => BackupDocument(
   core: CompendiumArchive(exportedAt: _epoch),
 );
 
+/// A fatal, nothing-applied [BackupReadResult] carrying a single backup-level
+/// [message]. Used for envelope problems that must refuse a restore outright.
+BackupReadResult _fatalBackup(String message) => BackupReadResult(
+  document: _emptyDoc(),
+  errors: [
+    ArchiveError(
+      kind: ArchiveErrorKind.read,
+      entityType: 'backup',
+      message: message, // i18n-ignore: internal diagnostic, never shown
+    ),
+  ],
+  fatal: true,
+);
+
 /// Decodes a backup string into a [BackupDocument]. Forward-compatible and
 /// partial-failure tolerant: unknown keys are ignored, a newer `backupVersion`
 /// reads best-effort with a warning, and a malformed section is skipped and
@@ -274,6 +288,24 @@ BackupReadResult decodeBackup(String json) {
   // so a maliciously nested container can't drive unbounded recursion.
   final rawPayload = map['payload'];
   if (rawPayload is String) {
+    // The container carries an explicit version (#536). Validate it before
+    // trusting the envelope: a missing/malformed version, or one newer than
+    // this build understands, is refused *cleanly* rather than mis-decoded
+    // against v1 assumptions (a future envelope may move the checksum or change
+    // the payload contract). This is a format-version refusal, not a tamper
+    // signal, so it is fatal but not `integrityFailed`.
+    final rawContainerVersion = map['backupContainer'];
+    if (rawContainerVersion is! int) {
+      return _fatalBackup(
+        'backup container is missing or has a malformed version',
+      );
+    }
+    if (rawContainerVersion > backupContainerVersion) {
+      return _fatalBackup(
+        'backup container is a newer, unsupported version '
+        '($rawContainerVersion > $backupContainerVersion)',
+      );
+    }
     final integrityError = _verifyContainerChecksum(map, rawPayload);
     if (integrityError != null) {
       return BackupReadResult(

@@ -103,8 +103,11 @@ and install notes follow.
 
 - **Passphrase-encrypted backups (`.ccbackup`) have been dropped.** A short-lived
   earlier beta offered an optional encrypted backup; backups are now always a plain,
-  human-readable `.json` file protected by an integrity checksum (see Added). Backups
-  carry no personal data, so encryption added complexity without a real safety benefit.
+  human-readable `.json` file protected by an integrity checksum (see Added). A backup
+  holds your own library and settings — no passwords, accounts, or third-party personal
+  data — and it never leaves your device unless you export it, so the encryption option
+  added real complexity for little practical benefit. Treat an exported backup like any
+  personal document and store it somewhere you trust.
   **Breaking:** the app can no longer open existing `.ccbackup` files. If you have one,
   restore it with the older build and export a fresh `.json` backup.
 

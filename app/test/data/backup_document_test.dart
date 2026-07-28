@@ -178,6 +178,25 @@ void main() {
       expect(decoded.integrityFailed, isTrue);
     });
 
+    test('a container missing its version is refused (not tamper)', () {
+      final envelope = jsonDecode(encodeBackup(_sampleDoc())) as Map
+        ..remove('backupContainer');
+      final decoded = decodeBackup(jsonEncode(envelope));
+      expect(decoded.fatal, isTrue);
+      // A version problem is a format refusal, not a failed integrity check.
+      expect(decoded.integrityFailed, isFalse);
+      expect(decoded.document.core.dances, isEmpty);
+    });
+
+    test('a container from a newer version is refused cleanly', () {
+      final envelope = jsonDecode(encodeBackup(_sampleDoc())) as Map;
+      envelope['backupContainer'] = backupContainerVersion + 1;
+      final decoded = decodeBackup(jsonEncode(envelope));
+      expect(decoded.fatal, isTrue);
+      expect(decoded.integrityFailed, isFalse);
+      expect(decoded.document.core.dances, isEmpty);
+    });
+
     test('a legacy bare document (no container) still decodes', () {
       // The payload string is exactly a pre-#536 plain `.json` backup.
       final bare = encodeBackupPayload(_sampleDoc());
