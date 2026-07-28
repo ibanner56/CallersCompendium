@@ -103,32 +103,38 @@ class SettingsScreen extends StatefulWidget {
 /// The selectable sections in Settings. Declaration order is sidebar order; add
 /// a value (and its content in [_SettingsScreenState._content]) to add a page.
 enum _SettingsSection {
-  general('General', Icons.tune_outlined, Icons.tune),
-  appearance('Appearance', Icons.palette_outlined, Icons.palette),
-  dialect('Dialect', Icons.groups_outlined, Icons.groups),
-  regional('Language & region', Icons.translate_outlined, Icons.translate),
-  defaults('Defaults', Icons.settings_suggest_outlined, Icons.settings_suggest),
-  updates('Updates', Icons.system_update_alt_outlined, Icons.system_update_alt),
-  diagnostics('Diagnostics', Icons.bug_report_outlined, Icons.bug_report),
-  about('About', Icons.info_outline, Icons.info);
+  general(Icons.tune_outlined, Icons.tune),
+  appearance(Icons.palette_outlined, Icons.palette),
+  dialect(Icons.groups_outlined, Icons.groups),
+  regional(Icons.translate_outlined, Icons.translate),
+  defaults(Icons.settings_suggest_outlined, Icons.settings_suggest),
+  updates(Icons.system_update_alt_outlined, Icons.system_update_alt),
+  diagnostics(Icons.bug_report_outlined, Icons.bug_report),
+  about(Icons.info_outline, Icons.info);
 
-  const _SettingsSection(this.label, this.icon, this.selectedIcon);
+  const _SettingsSection(this.icon, this.selectedIcon);
 
-  final String label;
   final IconData icon;
   final IconData selectedIcon;
 }
 
 /// The localized sidebar/app-bar label for [section].
 ///
-/// i18n foundation (PR 1): only the Language & region section is localized so
-/// far — it is the extraction proof for this slice. Other sections fall back to
-/// the enum's [_SettingsSection.label] and are localized in later extraction
-/// PRs, so this deliberately mixes localized and not-yet-localized labels.
-String _sectionLabel(BuildContext context, _SettingsSection section) =>
-    section == _SettingsSection.regional
-    ? AppLocalizations.of(context).settingsLanguageRegionTitle
-    : section.label;
+/// Every section title is sourced from the ARB (`AppLocalizations`) so the
+/// section navigation renders in the selected UI language.
+String _sectionLabel(BuildContext context, _SettingsSection section) {
+  final l10n = AppLocalizations.of(context);
+  return switch (section) {
+    _SettingsSection.general => l10n.settingsGeneralTitle,
+    _SettingsSection.appearance => l10n.settingsAppearanceTitle,
+    _SettingsSection.dialect => l10n.settingsDialectTitle,
+    _SettingsSection.regional => l10n.settingsLanguageRegionTitle,
+    _SettingsSection.defaults => l10n.settingsDefaultsTitle,
+    _SettingsSection.updates => l10n.settingsUpdatesTitle,
+    _SettingsSection.diagnostics => l10n.settingsDiagnosticsTitle,
+    _SettingsSection.about => l10n.settingsAboutTitle,
+  };
+}
 
 class _SettingsScreenState extends State<SettingsScreen> {
   _SettingsSection _section = _SettingsSection.appearance;

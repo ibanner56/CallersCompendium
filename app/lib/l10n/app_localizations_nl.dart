@@ -63,6 +63,27 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsTitle => 'Instellingen';
 
   @override
+  String get settingsGeneralTitle => 'Algemeen';
+
+  @override
+  String get settingsAppearanceTitle => 'Weergave';
+
+  @override
+  String get settingsDialectTitle => 'Dialect';
+
+  @override
+  String get settingsDefaultsTitle => 'Standaardwaarden';
+
+  @override
+  String get settingsUpdatesTitle => 'Updates';
+
+  @override
+  String get settingsDiagnosticsTitle => 'Diagnostics';
+
+  @override
+  String get settingsAboutTitle => 'Over';
+
+  @override
   String get commonSystemDefault => 'Systeemstandaard';
 
   @override

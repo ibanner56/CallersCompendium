@@ -202,6 +202,48 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// Settings section navigation title (sidebar/app bar) for general app preferences: backup, restore, import, performance.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get settingsGeneralTitle;
+
+  /// Settings section navigation title (sidebar/app bar) for visual appearance: theme, colours, easter eggs.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsAppearanceTitle;
+
+  /// Settings section navigation title (sidebar/app bar) for managing figure-notation dialects.
+  ///
+  /// In en, this message translates to:
+  /// **'Dialect'**
+  String get settingsDialectTitle;
+
+  /// Settings section navigation title (sidebar/app bar) for default values applied to new dances (formation, progression, form).
+  ///
+  /// In en, this message translates to:
+  /// **'Defaults'**
+  String get settingsDefaultsTitle;
+
+  /// Settings section navigation title (sidebar/app bar) for the app-update controls.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates'**
+  String get settingsUpdatesTitle;
+
+  /// Settings section navigation title (sidebar/app bar) for crash logs and diagnostic export.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get settingsDiagnosticsTitle;
+
+  /// Settings section navigation title (sidebar/app bar) for app version, license, and help links.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsAboutTitle;
+
   /// Generic option meaning 'follow the device/platform setting'. Shared by the date-format and app-language controls.
   ///
   /// In en, this message translates to:

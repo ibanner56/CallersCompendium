@@ -63,6 +63,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
+  String get settingsGeneralTitle => 'General';
+
+  @override
+  String get settingsAppearanceTitle => 'Appearance';
+
+  @override
+  String get settingsDialectTitle => 'Dialect';
+
+  @override
+  String get settingsDefaultsTitle => 'Defaults';
+
+  @override
+  String get settingsUpdatesTitle => 'Updates';
+
+  @override
+  String get settingsDiagnosticsTitle => 'Diagnostics';
+
+  @override
+  String get settingsAboutTitle => 'About';
+
+  @override
   String get commonSystemDefault => 'System default';
 
   @override

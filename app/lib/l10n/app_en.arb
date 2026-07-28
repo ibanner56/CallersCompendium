@@ -87,6 +87,35 @@
     "description": "Title of the Settings screen (sidebar header on wide layouts, app bar on narrow)."
   },
 
+  "settingsGeneralTitle": "General",
+  "@settingsGeneralTitle": {
+    "description": "Settings section navigation title (sidebar/app bar) for general app preferences: backup, restore, import, performance."
+  },
+  "settingsAppearanceTitle": "Appearance",
+  "@settingsAppearanceTitle": {
+    "description": "Settings section navigation title (sidebar/app bar) for visual appearance: theme, colours, easter eggs."
+  },
+  "settingsDialectTitle": "Dialect",
+  "@settingsDialectTitle": {
+    "description": "Settings section navigation title (sidebar/app bar) for managing figure-notation dialects."
+  },
+  "settingsDefaultsTitle": "Defaults",
+  "@settingsDefaultsTitle": {
+    "description": "Settings section navigation title (sidebar/app bar) for default values applied to new dances (formation, progression, form)."
+  },
+  "settingsUpdatesTitle": "Updates",
+  "@settingsUpdatesTitle": {
+    "description": "Settings section navigation title (sidebar/app bar) for the app-update controls."
+  },
+  "settingsDiagnosticsTitle": "Diagnostics",
+  "@settingsDiagnosticsTitle": {
+    "description": "Settings section navigation title (sidebar/app bar) for crash logs and diagnostic export."
+  },
+  "settingsAboutTitle": "About",
+  "@settingsAboutTitle": {
+    "description": "Settings section navigation title (sidebar/app bar) for app version, license, and help links."
+  },
+
   "commonSystemDefault": "System default",
   "@commonSystemDefault": {
     "description": "Generic option meaning 'follow the device/platform setting'. Shared by the date-format and app-language controls."
