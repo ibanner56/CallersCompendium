@@ -239,6 +239,51 @@ void main() {
     });
   });
 
+  group('contraDbHtmlFigureFrontEnd — ocean wave family', () {
+    test(
+      'form an ocean wave → form_a_short_wave (across, center/sides/hands)',
+      () {
+        final f = _parse(
+          'form an ocean wave - ladles by right hands and neighbors by left hands',
+        );
+        expect(f.move, 'form_a_short_wave');
+        expect(f.params['dir'], 'across');
+        expect(f.params['center'], 'role2s');
+        expect(f.params['centerHand'], 'right');
+        expect(f.params['sides'], 'neighbors');
+      },
+    );
+
+    test('form an ocean wave & balance → short wave with NO balance param', () {
+      // The balance is split into a separate figure by the ADAPTER; the
+      // recognizer just consumes `& balance` and never sets the balance param.
+      final f = _parse(
+        'form an ocean wave & balance - ladles by right hands and neighbors by left hands',
+      );
+      expect(f.move, 'form_a_short_wave');
+      expect(f.params.containsKey('balance'), isFalse);
+    });
+
+    test('pass through to an ocean wave → pass_the_ocean', () {
+      final f = _parse(
+        'pass through to an ocean wave - ladles by right in the center, neighbors by left on the sides',
+      );
+      expect(f.move, 'pass_the_ocean');
+      expect(f.params['center'], 'role2s');
+      expect(f.params['centerHand'], 'right');
+      expect(f.params['sides'], 'neighbors');
+      expect(f.params.containsKey('balance'), isFalse);
+    });
+
+    test('pass through to an ocean wave & balance → balance kept inline', () {
+      final f = _parse(
+        'pass through to an ocean wave & balance - ladles by right in the center, neighbors by left on the sides',
+      );
+      expect(f.move, 'pass_the_ocean');
+      expect(f.params['balance'], isTrue);
+    });
+  });
+
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {
     test('allemande with a trailing note keeps the figure and the note', () {
       final f = _parse('ladles allemande right 1½ - don\'t let go');

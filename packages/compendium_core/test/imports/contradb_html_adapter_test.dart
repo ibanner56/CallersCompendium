@@ -315,6 +315,47 @@ void main() {
     });
 
     test(
+      'splits "form an ocean wave & balance" into wave + a balance',
+      () async {
+        final draft = await _importOne(
+          _page(
+            '<h1 class="dance-show-title">OW</h1>'
+            '<table class="contra-table-nonfluid">'
+            '<tr><td>A1</td><td class=dance-show-beats>4</td>'
+            '<td><div class="show-figure">form an ocean wave &amp; balance - '
+            'ladles by right hands and neighbors by left hands</div></td>'
+            '</tr></table>',
+          ),
+        );
+        final figs = draft.dance.figures;
+        expect(figs, hasLength(2));
+        expect(figs[0].move, 'form_a_short_wave');
+        expect(figs[0].params['center'], 'role2s');
+        expect(figs[0].params['sides'], 'neighbors');
+        expect(figs[0].params['beats'], 0); // 4 total − 4 balance = formation
+        expect(figs[0].params.containsKey('balance'), isFalse);
+        expect(figs[1].move, 'balance');
+        expect(figs[1].params['who'], 'everyone');
+        expect(figs[1].params['beats'], 4);
+      },
+    );
+
+    test('a plain "form an ocean wave" stays a single figure', () async {
+      final draft = await _importOne(
+        _page(
+          '<h1 class="dance-show-title">OW</h1>'
+          '<table class="contra-table-nonfluid">'
+          '<tr><td>A1</td><td class=dance-show-beats>4</td>'
+          '<td><div class="show-figure">form an ocean wave - '
+          'ladles by right hands and neighbors by left hands</div></td>'
+          '</tr></table>',
+        ),
+      );
+      expect(draft.dance.figures, hasLength(1));
+      expect(draft.dance.figures.single.move, 'form_a_short_wave');
+    });
+
+    test(
       'applies the gypsy -> shoulder round safety net before parsing',
       () async {
         final draft = await _importOne(

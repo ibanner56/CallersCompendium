@@ -43,6 +43,8 @@ const FigureFrontEnd contraDbHtmlFigureFrontEnd = FigureFrontEnd(
 const List<FigureMatch? Function(String)> _recognizers =
     <FigureMatch? Function(String)>[
       _swing,
+      _passTheOcean,
+      _formAShortWave,
       _formLongWaves,
       _longLines,
       _balanceTheRing,
@@ -206,6 +208,94 @@ FigureMatch? _chain(String text) {
   if (who != 'role1s' && who != 'role2s') return null;
   if (!s.eat('chain')) return null;
   return FigureMatch('chain', params: {'who': who}, note: s.note());
+}
+
+/// pass_the_ocean (ContraDB `form an ocean wave` with pass_through=true).
+/// Renders as: "pass through to an ocean wave [& balance] - CENTER by HAND in
+/// the center, SIDES by HAND on the sides". The balance is kept INLINE here
+/// (pass_the_ocean carries a balance param). Diagonal waves are deferred.
+FigureMatch? _passTheOcean(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('pass through to')) return null;
+  if (!(s.eat('a') || s.eat('an'))) return null;
+  if (s.peek() == 'diagonal') return null;
+  if (!s.eatPhrase('ocean wave')) return null;
+  final balance = _eatAmpBalance(s);
+  if (!s.eat('-')) return null;
+  final center = _subject(s);
+  if (center == null) return null;
+  if (!s.eat('by')) return null;
+  final centerHand = _leftRight(s.peek());
+  if (centerHand == null) return null;
+  s.take();
+  if (!s.eatPhrase('in the center')) return null;
+  final sides = _subject(s);
+  if (sides == null) return null;
+  if (!s.eat('by')) return null;
+  final sideHand = _leftRight(s.peek());
+  if (sideHand == null) return null;
+  s.take();
+  if (!s.eatPhrase('on the sides')) return null;
+  return FigureMatch(
+    'pass_the_ocean',
+    params: {
+      'dir': 'across',
+      if (balance) 'balance': true,
+      'center': center,
+      'centerHand': centerHand,
+      'sides': sides,
+    },
+    note: s.note(),
+  );
+}
+
+/// form_a_short_wave (ContraDB `form an ocean wave` with pass_through=false).
+/// Renders as: "form an ocean wave [& balance] - CENTER by HAND hands and SIDES
+/// by HAND hands". The balance is NOT stored here — when present it is emitted
+/// as a SEPARATE balance figure by the adapter (the form_long_waves precedent);
+/// the adapter re-detects it from the row text, so this recognizer just consumes
+/// the "& balance" token. Diagonal waves are deferred.
+FigureMatch? _formAShortWave(String text) {
+  final s = _Scan(text);
+  if (!s.eat('form')) return null;
+  if (!(s.eat('a') || s.eat('an'))) return null;
+  if (s.peek() == 'diagonal') return null;
+  if (!s.eatPhrase('ocean wave')) return null;
+  _eatAmpBalance(s); // consumed; the adapter emits the separate balance figure
+  if (!s.eat('-')) return null;
+  final center = _subject(s);
+  if (center == null) return null;
+  if (!s.eat('by')) return null;
+  final centerHand = _leftRight(s.peek());
+  if (centerHand == null) return null;
+  s.take();
+  if (!s.eat('hands')) return null;
+  if (!s.eat('and')) return null;
+  final sides = _subject(s);
+  if (sides == null) return null;
+  if (!s.eat('by')) return null;
+  final sideHand = _leftRight(s.peek());
+  if (sideHand == null) return null;
+  s.take();
+  if (!s.eat('hands')) return null;
+  return FigureMatch(
+    'form_a_short_wave',
+    params: {
+      'dir': 'across',
+      'center': center,
+      'centerHand': centerHand,
+      'sides': sides,
+    },
+    note: s.note(),
+  );
+}
+
+/// Consumes an optional `& balance` token, returning whether it was present.
+bool _eatAmpBalance(_Scan s) {
+  final save = s.pos;
+  if (s.eat('&') && s.eat('balance')) return true;
+  s.reset(save);
+  return false;
 }
 
 /// formLongWavesWords: `form long waves - <who> face in, <other> face out`.
