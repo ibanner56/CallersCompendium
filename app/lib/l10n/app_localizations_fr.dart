@@ -64,6 +64,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsTitle => 'Paramètres';
 
   @override
+  String get settingsGeneralTitle => 'Général';
+
+  @override
+  String get settingsAppearanceTitle => 'Apparence';
+
+  @override
+  String get settingsDialectTitle => 'Dialecte';
+
+  @override
+  String get settingsDefaultsTitle => 'Valeurs par défaut';
+
+  @override
+  String get settingsUpdatesTitle => 'Mises à jour';
+
+  @override
+  String get settingsDiagnosticsTitle => 'Diagnostic';
+
+  @override
+  String get settingsAboutTitle => 'À propos';
+
+  @override
   String get commonSystemDefault => 'Défaut du système';
 
   @override

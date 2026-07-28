@@ -63,6 +63,27 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsTitle => 'Indstillinger';
 
   @override
+  String get settingsGeneralTitle => 'Generelt';
+
+  @override
+  String get settingsAppearanceTitle => 'Udseende';
+
+  @override
+  String get settingsDialectTitle => 'Dialekt';
+
+  @override
+  String get settingsDefaultsTitle => 'Standardværdier';
+
+  @override
+  String get settingsUpdatesTitle => 'Opdateringer';
+
+  @override
+  String get settingsDiagnosticsTitle => 'Diagnostik';
+
+  @override
+  String get settingsAboutTitle => 'Om';
+
+  @override
   String get commonSystemDefault => 'Systemstandard';
 
   @override

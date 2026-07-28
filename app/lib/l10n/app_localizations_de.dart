@@ -63,6 +63,27 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsTitle => 'Einstellungen';
 
   @override
+  String get settingsGeneralTitle => 'Allgemein';
+
+  @override
+  String get settingsAppearanceTitle => 'Darstellung';
+
+  @override
+  String get settingsDialectTitle => 'Dialekt';
+
+  @override
+  String get settingsDefaultsTitle => 'Standardwerte';
+
+  @override
+  String get settingsUpdatesTitle => 'Updates';
+
+  @override
+  String get settingsDiagnosticsTitle => 'Diagnose';
+
+  @override
+  String get settingsAboutTitle => 'Über';
+
+  @override
   String get commonSystemDefault => 'Systemstandard';
 
   @override
@@ -574,7 +595,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wiederverwendbare Veranstaltungsort-Einträge durchsuchen, bearbeiten und löschen.';
 
   @override
-  String get settingsGeneralPerformanceHeader => 'Perform';
+  String get settingsGeneralPerformanceHeader => 'Leistung';
 
   @override
   String get settingsGeneralAutoSizePerformTitle =>

@@ -63,6 +63,27 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsTitle => '設定';
 
   @override
+  String get settingsGeneralTitle => '一般';
+
+  @override
+  String get settingsAppearanceTitle => '外観';
+
+  @override
+  String get settingsDialectTitle => 'ダイアレクト';
+
+  @override
+  String get settingsDefaultsTitle => 'デフォルト';
+
+  @override
+  String get settingsUpdatesTitle => 'アップデート';
+
+  @override
+  String get settingsDiagnosticsTitle => '診断';
+
+  @override
+  String get settingsAboutTitle => '情報';
+
+  @override
   String get commonSystemDefault => 'システムのデフォルト';
 
   @override
