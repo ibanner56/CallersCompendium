@@ -67,6 +67,14 @@ import 'structured_draft.dart';
 /// Missing/malformed elements become non-fatal [ImportIssue]s; a page with no
 /// figures table still imports as a metadata stub with a warning. [parse] throws
 /// only when the payload is not a ContraDB dance page at all.
+/// The ContraDB-HTML figure-text front-end. ContraDB renders clean, structured
+/// prose and never emits TCB paren/annotation notation, so its front-end is the
+/// neutral [canonicalFigureFrontEnd] for now — the shared recognizer's canonical
+/// dialect is ContraDB-aligned. Exposed as its own named, independently-callable
+/// [FigureFrontEnd] so a later PR can enrich it (dedicated ContraDB reverse
+/// parsers) and a free-text fan-out can select it, without touching the adapter.
+const FigureFrontEnd contraDbHtmlFigureFrontEnd = canonicalFigureFrontEnd;
+
 class ContraDbHtmlAdapter implements SourceAdapter {
   ContraDbHtmlAdapter();
 
@@ -269,6 +277,7 @@ class ContraDbHtmlAdapter implements SourceAdapter {
           beats: beats,
           progression: hasProgression,
           scrub: (s) => s,
+          frontEnd: contraDbHtmlFigureFrontEnd,
         )!,
       );
       index++;

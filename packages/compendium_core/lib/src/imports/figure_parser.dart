@@ -5,6 +5,75 @@ import '../validation/validation.dart';
 import 'figure_text_scrub.dart';
 import 'structured_draft.dart';
 
+/// A move recognised by a source-specific front-end pre-recognizer: the taxonomy
+/// [moveId] plus the params/note extracted from the text (never including
+/// `beats`, which [parseFigureLine] layers on from the source line).
+///
+/// This is the public counterpart of the parser's internal recognizer result,
+/// used by a [FigureFrontEnd]'s pre-recognizers (e.g. the CallersBox hey
+/// decoder in `callersbox_figure_dialect.dart`) so they can live outside this
+/// file without exposing the private recognizer machinery. [parseFigureLine]
+/// validates it against the taxonomy exactly like an internal match, so an
+/// invalid front-end match still degrades to a custom figure.
+class FigureMatch {
+  const FigureMatch(
+    this.moveId, {
+    this.params = const {},
+    this.note,
+    this.assumedSubject = false,
+  });
+
+  final String moveId;
+  final Map<String, Object?> params;
+
+  /// Optional free-text note preserved from the source when a detail cannot be
+  /// expressed as a structured param.
+  final String? note;
+
+  /// Whether the subject in [params] was DEFAULTED (not stated by the source);
+  /// propagated to [Figure.assumedSubject] (#460).
+  final bool assumedSubject;
+}
+
+/// The source-specific seam feeding the canonical single-line recognizer. Each
+/// free-text source (adapter) supplies its own front-end so `figure_parser.dart`
+/// stays a source-neutral core with no `source == X` branches: the front-end
+/// carries the dialect-specific handling that must NOT leak across sources.
+///
+/// Two hooks, applied in the same order the parser used to hard-code them:
+/// - [preRecognizers] run FIRST, on the RAW scrubbed text (before `_normalize`),
+///   so a recognizer whose structured payload lives inside parentheses (the TCB
+///   hey pass list) reads it before annotations are stripped. The first non-null
+///   result wins.
+/// - [recognitionNormalize] runs inside `_normalize`, on the lowercased text,
+///   for RECOGNITION only (e.g. the TCB `()`/`[]` annotation strip). The custom
+///   fallback uses the un-normalized scrubbed text, so anything the hook removes
+///   still survives verbatim on an unrecognised line.
+///
+/// [canonicalFigureFrontEnd] is the neutral default (no pre-recognizers, no
+/// normalization) — the ContraDB-aligned canonical dialect. Concrete source
+/// front-ends (`tcbFigureFrontEnd`, `contraDbHtmlFigureFrontEnd`,
+/// `callersCompanionFigureFrontEnd`) are defined next to their adapters and are
+/// independently callable, so a future free-text fan-out can select among them.
+class FigureFrontEnd {
+  const FigureFrontEnd({
+    this.preRecognizers = const [],
+    this.recognitionNormalize,
+  });
+
+  /// Source-specific recognizers run before the shared ones, on raw scrubbed
+  /// text. First non-null result wins.
+  final List<FigureMatch? Function(String scrubbed)> preRecognizers;
+
+  /// Optional recognition-only normalization applied to the lowercased text
+  /// inside `_normalize` (does not affect the stored custom-fallback text).
+  final String Function(String)? recognitionNormalize;
+}
+
+/// The neutral canonical front-end: no source-specific handling. This is the
+/// ContraDB-aligned baseline the shared recognizer targets.
+const FigureFrontEnd canonicalFigureFrontEnd = FigureFrontEnd();
+
 /// Parses a single free-text figure line into a structured taxonomy [Figure]
 /// when it can do so *confidently*, and otherwise degrades to a [customFigure]
 /// carrying the (scrubbed) text. This is the ONE parser every free-text import
@@ -45,6 +114,7 @@ Figure? parseFigureLine(
   bool progression = false,
   Taxonomy? taxonomy,
   String Function(String)? scrub,
+  FigureFrontEnd frontEnd = canonicalFigureFrontEnd,
 }) {
   final scrubFn = scrub ?? scrubFigureText;
   final tax = taxonomy ?? contraTaxonomy;
@@ -64,7 +134,7 @@ Figure? parseFigureLine(
   );
 
   try {
-    final match = _recognize(scrubbed);
+    final match = _recognize(scrubbed, frontEnd);
     if (match == null) return fallback();
 
     final params = <String, Object?>{
@@ -85,131 +155,6 @@ Figure? parseFigureLine(
   } catch (_) {
     return fallback();
   }
-}
-
-/// Parses a compound figure line, splitting it on TOP-LEVEL `;` separators and
-/// returning one [Figure] per clause. This is how CallersBox writes "do A; then
-/// do B" compounds (e.g. `Pass through across (PR); turn alone`). A line with no
-/// top-level `;` yields exactly what [parseFigureLine] would (a single-element
-/// list, or an empty list when the line is empty after scrubbing), so callers
-/// can route every line through this without changing single-line behaviour.
-///
-/// Fidelity guards (per the CallersBox dialect rulings):
-/// - **All-or-nothing.** Every clause must independently structure to a taxonomy
-///   move. If ANY clause degrades to custom (or is empty), the WHOLE line is
-///   kept as a single custom figure carrying the original text — never
-///   partially structured. Most `;` compounds pair a move with an
-///   unstructurable formation/facing note (`…; form a wave of four`, `…; face
-///   up`); structuring the move alone would drop the note, and structuring the
-///   note would fabricate a move, so those correctly stay whole-custom.
-/// - **`||` (simultaneity) stays custom.** Any line containing a top-level `||`
-///   (`A || B`) is left whole-custom: the model cannot represent two moves at
-///   once, so structuring it would fabricate a relationship.
-/// - **Lossless beats.** [deriveSections] sums each figure's `beats`
-///   cumulatively to place section labels, so a split MUST preserve the source
-///   line's TOTAL beats exactly — no more (double-count) and no less (section
-///   underflow/drift). The source states only one combined total for the whole
-///   compound (never per-move beats), so that total rides on the FIRST clause
-///   and the remaining clauses are beats-absent. The cumulative beat total is
-///   then byte-identical to the un-split compound, and nothing the source
-///   actually stated is dropped or invented.
-List<Figure> parseFigureLines(
-  String rawText, {
-  int beats = 0,
-  bool progression = false,
-  Taxonomy? taxonomy,
-  String Function(String)? scrub,
-}) {
-  Figure? whole() => parseFigureLine(
-    rawText,
-    beats: beats,
-    progression: progression,
-    taxonomy: taxonomy,
-    scrub: scrub,
-  );
-
-  List<Figure> wholeAsList() {
-    final f = whole();
-    return f == null ? const [] : [f];
-  }
-
-  // Simultaneity is not modelled → keep the whole line custom (never split).
-  if (_hasTopLevel(rawText, '||')) return wholeAsList();
-
-  final clauses = _splitTopLevel(rawText, ';');
-  if (clauses.length < 2) return wholeAsList();
-  // An empty clause means a malformed / degenerate separator run (`A;;B`,
-  // `A; ;B`) or a leading/trailing `;` (`A;`). We do NOT silently drop it — that
-  // would be a lossy split. Instead we decline to split and re-parse the whole
-  // line: `A;` structures via the normal edge-`;` strip, while a genuinely
-  // malformed `A;;B` reaches no recognizer and stays honestly custom.
-  if (clauses.any((c) => c.isEmpty)) return wholeAsList();
-
-  final parsed = <Figure>[];
-  for (var i = 0; i < clauses.length; i++) {
-    // Option A beats distribution: the source's combined total rides on the
-    // first clause; every later clause is beats-absent so the cumulative total
-    // equals the original compound (no double-count, no section drift).
-    final clauseBeats = i == 0 ? beats : 0;
-    final f = parseFigureLine(
-      clauses[i],
-      beats: clauseBeats,
-      // Progression is a whole-line marker; conventionally the dance progresses
-      // at the end of the sequence, so it rides on the last clause. (CallersBox
-      // never sets it, so this is defensive.)
-      progression: progression && i == clauses.length - 1,
-      taxonomy: taxonomy,
-      scrub: scrub,
-    );
-    // All-or-nothing: any clause that fails to structure (null/empty or custom)
-    // collapses the whole line back to a single custom figure.
-    if (f == null || f.isCustom) return wholeAsList();
-    parsed.add(f);
-  }
-  return parsed;
-}
-
-/// Whether [sep] occurs at bracket depth 0 in [t] (outside any `()`/`[]`). Used
-/// to find genuine clause separators while ignoring separators inside CallersBox
-/// annotations like a hey's `(PR;WL;NR;ML)` pass list.
-bool _hasTopLevel(String t, String sep) {
-  var depth = 0;
-  for (var i = 0; i < t.length; i++) {
-    final c = t.codeUnitAt(i);
-    if (c == 0x28 || c == 0x5B) {
-      depth++;
-    } else if (c == 0x29 || c == 0x5D) {
-      if (depth > 0) depth--;
-    } else if (depth == 0 && t.startsWith(sep, i)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/// Splits [t] on top-level (bracket-depth-0) occurrences of [sep], trimming each
-/// piece. Empty pieces are RETAINED (not dropped) so the caller can detect a
-/// malformed/degenerate separator run and decline to split rather than lose a
-/// clause. `(…)`/`[…]` annotations are treated as opaque so their internal
-/// separators never split a line.
-List<String> _splitTopLevel(String t, String sep) {
-  final out = <String>[];
-  var depth = 0;
-  var start = 0;
-  for (var i = 0; i < t.length; i++) {
-    final c = t.codeUnitAt(i);
-    if (c == 0x28 || c == 0x5B) {
-      depth++;
-    } else if (c == 0x29 || c == 0x5D) {
-      if (depth > 0) depth--;
-    } else if (depth == 0 && t.startsWith(sep, i)) {
-      out.add(t.substring(start, i));
-      start = i + sep.length;
-      i += sep.length - 1;
-    }
-  }
-  out.add(t.substring(start));
-  return out.map((s) => s.trim()).toList();
 }
 
 /// A recognised move: its taxonomy [moveId] and the params extracted from the
@@ -237,17 +182,23 @@ class _Match {
 
 /// Attempts to recognise [scrubbed] as one covered move. Returns `null` when no
 /// recognizer accounts for the whole line (→ custom fallback).
-_Match? _recognize(String scrubbed) {
-  // The hey recognizer runs FIRST and on the RAW scrubbed text, not the
-  // normalized word list: a TCB hey carries its structured payload (the pass
-  // list) INSIDE parentheses, which `_normalize` strips as a non-structural
-  // annotation for every other move. `_hey` is highly specific — it requires
-  // the `hey` anchor plus a fully decodable pass list and rejects `dolphin
-  // hey` — so running it ahead of the generic recognizers cannot shadow them.
-  final hey = _hey(scrubbed);
-  if (hey != null) return hey;
+_Match? _recognize(String scrubbed, FigureFrontEnd frontEnd) {
+  // Source-specific pre-recognizers (supplied by the caller's front-end) run
+  // FIRST and on the RAW scrubbed text, not the normalized word list: a move
+  // whose structured payload lives INSIDE parentheses (the TCB hey pass list)
+  // must read it before `_normalize`'s annotation strip removes it. The
+  // canonical core carries none of these, so it stays source-neutral. Each is
+  // highly specific (e.g. the hey decoder requires the `hey` anchor plus a fully
+  // decodable pass list and rejects `dolphin hey`), so running them ahead of the
+  // generic recognizers cannot shadow them.
+  for (final pre in frontEnd.preRecognizers) {
+    final m = pre(scrubbed);
+    if (m != null) {
+      return _Match(m.moveId, m.params, m.note, m.assumedSubject);
+    }
+  }
 
-  final words = _normalize(scrubbed);
+  final words = _normalize(scrubbed, frontEnd.recognitionNormalize);
   if (words.isEmpty) return null;
 
   for (final recognizer in _recognizers) {
@@ -257,25 +208,21 @@ _Match? _recognize(String scrubbed) {
   return null;
 }
 
-/// Lowercases, strips `()`/`[]` parenthetical annotations (TCB appends shoulder
-/// / param notes like `(NR)` or `(W1-M2-W2-M1)`), maps `&`→`and` and
+/// Lowercases, applies the front-end's optional recognition-only normalization
+/// (e.g. the CallersBox `()`/`[]` annotation strip), maps `&`→`and` and
 /// `thru`→`through`, folds the common unicode halves/quarters, strips
 /// surrounding punctuation, and splits into words.
 ///
-/// The annotation strip is for RECOGNITION only, so a structured match does
-/// NOT retain the bracketed text — the value it carried (e.g. shoulder/param
-/// hints) is not part of the taxonomy figure. The annotation only survives on
-/// the *custom fallback*, which runs on the un-normalized scrubbed text: a line
-/// that fails recognition keeps its annotation verbatim in the custom figure.
-List<String> _normalize(String text) {
+/// [recognitionNormalize] affects RECOGNITION only: a structured match does NOT
+/// retain whatever it removed, but the *custom fallback* runs on the
+/// un-normalized scrubbed text, so a line that fails recognition keeps that
+/// content verbatim in the custom figure (e.g. a TCB annotation survives).
+List<String> _normalize(
+  String text,
+  String Function(String)? recognitionNormalize,
+) {
   var s = text.toLowerCase();
-  // Drop bracketed/parenthesized annotations for RECOGNITION only. This trims
-  // them from the structured match; the custom fallback path operates on the
-  // original scrubbed text, so an *unrecognized* line still keeps its
-  // annotation.
-  s = s
-      .replaceAll(RegExp(r'\([^)]*\)'), ' ')
-      .replaceAll(RegExp(r'\[[^\]]*\]'), ' ');
+  if (recognitionNormalize != null) s = recognitionNormalize(s);
   s = s
       .replaceAll('&', ' and ')
       .replaceAll('½', ' 1/2 ')
@@ -1321,195 +1268,4 @@ _Match? _upTheHall(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('up_the_hall', {'who': ?who2, 'ender': 'none'});
-}
-
-// --- Hey (TCB pass-list) recognizer ------------------------------------------
-//
-// TCB writes heys as an optional fraction plus a `;`-separated pass list inside
-// parentheses: "Hey 1/2 (WR;PL;MR;N2L~)", "Full hey (ML;PR)". This is the ONE
-// recognizer that reads parenthetical content, because the pass list is the
-// hey's structured payload rather than a droppable annotation (see the note in
-// `_recognize`). It decodes onto the existing `hey` MoveDef:
-//   * length   <- the fraction (default `half` when unspecified),
-//   * pass1     <- the *who* of the 1st pass code,
-//   * shoulder  <- the initial-pass shoulder (position-parity base; see below),
-//   * pass2     <- the *who* of the 2nd pass code (else the MoveDef default
-//                  `unspecified`),
-//   * rico1..4  <- ricochet flags, assigned SEQUENTIALLY to the 1st/2nd/3rd/4th
-//                  same-role center pass (the odd pass-list positions), capped
-//                  by what the hey length can physically reach.
-// The `~` partial-last-pass marker is dropped (informational only — not
-// representable, ratified). Any token the decoder cannot fully account for
-// forces `null` -> the custom fallback (parse-never-fails / prefer-custom).
-
-/// TCB pass-list people codes -> canonical dancer set (TCB glossary, see
-/// docs/research/callersbox.md). Post-scrub these compact codes survive intact
-/// (they are not word-boundary role terms), so map them here.
-const Map<String, String> _heyPeople = {
-  'm': 'role1s',
-  'w': 'role2s',
-  'p': 'partners',
-  'n': 'neighbors',
-  'n0': 'prevNeighbors',
-  // N1 is the current neighbor (glossary: callersbox.md L51; mirrors the
-  // general Tier-B role map's `'n1': 'neighbors'`). Without it, a pass code
-  // like `N1L` fails to decode and drops the whole hey to custom (#308).
-  'n1': 'neighbors',
-  'n2': 'nextNeighbors',
-  'n3': 'thirdNeighbors',
-  'n4': 'fourthNeighbors',
-  's': 'shadows',
-  '1': 'ones',
-  '2': 'twos',
-};
-
-/// A hey fraction token -> `length`. Absent => `half` (ratified default). The
-/// length is read from the FRACTION, not the pass count (officially ambiguous).
-const Map<String, String> _heyLength = {
-  '1/4': 'lessThanHalf',
-  '1/2': 'half',
-  '3/4': 'betweenHalfAndFull',
-  'full': 'full',
-  'whole': 'full',
-};
-
-/// The highest reachable ricochet slot for a hey [length]. Ricochets fall on
-/// the same-role center passes, and how far a hey progresses caps which ones
-/// can occur: each named length reaches one more slot than the previous —
-/// `lessThanHalf` → rico1, `half` (incl. the unspecified default) → rico2,
-/// `betweenHalfAndFull` → rico3, `full` → rico4 (the "whole" input token is
-/// decoded to `full` before it reaches here). A ricochet whose positional slot
-/// exceeds this cap is an internal contradiction (e.g. a rico3 in a half hey)
-/// and forces the custom fallback — we never infer length from the pass count,
-/// so the stated/default length is authoritative.
-int _heyMaxRicoSlot(String length) {
-  switch (length) {
-    case 'lessThanHalf':
-      return 1;
-    case 'betweenHalfAndFull':
-      return 3;
-    case 'full':
-      return 4;
-    case 'half':
-    default:
-      return 2;
-  }
-}
-
-String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
-
-_Match? _hey(String scrubbed) {
-  final lower = scrubbed.toLowerCase();
-  // dolphin_hey is a DIFFERENT move; never match it here.
-  if (lower.contains('dolphin')) return null;
-
-  // A hey is only structured when it carries a parenthetical pass list — that
-  // is the sole source of pass1/shoulder. No pass list -> custom.
-  final open = lower.indexOf('(');
-  if (open == -1) return null;
-  final close = lower.indexOf(')', open + 1);
-  if (close == -1) return null;
-  final passText = lower.substring(open + 1, close);
-  final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
-
-  // The non-paren remainder must be exactly {hey, optional fraction, filler};
-  // anything else (a trailing move, a second parenthetical, ...) -> custom.
-  final outWords = outside
-      .replaceAll('½', ' 1/2 ')
-      .replaceAll('¼', ' 1/4 ')
-      .replaceAll('¾', ' 3/4 ')
-      .split(RegExp(r'\s+'))
-      .map(_stripEdgePunct)
-      .where((w) => w.isNotEmpty)
-      .toList();
-
-  var sawHey = false;
-  var length = 'half';
-  var sawFraction = false;
-  for (final word in outWords) {
-    if (word == 'hey') {
-      sawHey = true;
-      continue;
-    }
-    // "Ricochet hey" names the variant; the actual ricochet flags are decoded
-    // from the pass list, so a leading/standalone "ricochet" word here carries
-    // no extra structure and is ignored.
-    if (word == 'ricochet') continue;
-    if (_filler.contains(word)) continue;
-    final len = _heyLength[word];
-    if (len != null) {
-      if (sawFraction) return null; // two fractions -> ambiguous
-      length = len;
-      sawFraction = true;
-      continue;
-    }
-    return null; // unexplained token -> custom
-  }
-  if (!sawHey) return null;
-
-  final cells = passText.split(';').map((c) => c.trim()).toList();
-  if (cells.isEmpty || cells.any((c) => c.isEmpty)) return null;
-
-  final params = <String, Object?>{'length': length};
-  final maxRicoSlot = _heyMaxRicoSlot(length);
-  String? shoulderBase; // the shoulder implied at ODD positions.
-  String? pass1;
-  String? pass2;
-
-  for (var i = 0; i < cells.length; i++) {
-    final position = i + 1; // 1-based pass position.
-    final cell = cells[i].replaceAll('~', '').trim(); // drop the `~` marker.
-    if (cell.isEmpty) return null;
-
-    if (cell.endsWith('ricochet')) {
-      final people = cell.substring(0, cell.length - 'ricochet'.length).trim();
-      final who = _heyPeople[people];
-      // Only center same-role dancers ricochet — never neighbor/partner/etc.
-      if (who != 'role1s' && who != 'role2s') return null;
-      // The same-role center passes are the odd pass-list positions; enumerate
-      // them in order (pos1 = 1st, pos3 = 2nd, ...) to pick the ricochet slot.
-      // An even position is not a center pass, so it can't ricochet.
-      if (position.isEven) return null;
-      final slotIndex = (position + 1) ~/ 2; // 1st/2nd/3rd/4th center pass.
-      // The length must physically reach this slot (e.g. a half hey has at
-      // most two same-role passes, so rico3/rico4 are unreachable → custom).
-      if (slotIndex > maxRicoSlot) return null;
-      params['rico$slotIndex'] = true;
-      if (position == 1) pass1 = who;
-      continue;
-    }
-
-    // Normal pass code: a trailing R/L shoulder plus a people-code prefix.
-    final shoulderChar = cell[cell.length - 1];
-    final shoulder = shoulderChar == 'r'
-        ? 'right'
-        : shoulderChar == 'l'
-        ? 'left'
-        : null;
-    if (shoulder == null) return null;
-    final who = _heyPeople[cell.substring(0, cell.length - 1)];
-    if (who == null) return null;
-
-    // Shoulders alternate by position parity: odd positions share the base
-    // shoulder, even positions the opposite. Derive the base from the first
-    // shouldered code, then require every later code to agree — a pass list
-    // that does not alternate is malformed/ambiguous -> custom.
-    final impliedBase = position.isOdd ? shoulder : _otherShoulder(shoulder);
-    if (shoulderBase == null) {
-      shoulderBase = impliedBase;
-    } else if (shoulderBase != impliedBase) {
-      return null;
-    }
-
-    if (position == 1) pass1 = who;
-    if (position == 2) pass2 = who;
-  }
-
-  if (shoulderBase == null) return null; // no shouldered code -> can't decode.
-  if (pass1 == null) return null;
-
-  params['pass1'] = pass1;
-  params['shoulder'] = shoulderBase;
-  if (pass2 != null) params['pass2'] = pass2;
-  return _Match('hey', params);
 }

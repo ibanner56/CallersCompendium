@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../model/figure.dart';
 import '../taxonomy/taxonomy.dart';
+import 'callersbox_figure_dialect.dart';
 import 'figure_parser.dart';
 
 /// Upper bound on the length of stored custom text we will feed back through
@@ -102,6 +103,7 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
     beats: beats,
     progression: figure.progression,
     taxonomy: taxonomy,
+    frontEnd: tcbFigureFrontEnd,
   );
 
   // Keep the original when the re-parse is empty or still custom: an import-gap

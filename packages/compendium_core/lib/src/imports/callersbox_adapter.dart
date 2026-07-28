@@ -6,6 +6,7 @@ import '../model/figure.dart';
 import '../model/formation.dart';
 import '../model/phrase_structure.dart';
 import '../util/text_sanitizer.dart';
+import 'callersbox_figure_dialect.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
 import 'import_error.dart';
@@ -364,11 +365,15 @@ class CallersBoxAdapter implements SourceAdapter {
     // only the top-level-`;` case builds its own custom figure and must scrub
     // the raw text itself. Guard the extreme empty-after-scrub case so
     // `customFigure` is never handed empty text (parse-never-fails: decline).
-    final parsed = parseFigureLine(parentText, beats: parentBeats);
+    final parsed = parseFigureLine(
+      parentText,
+      beats: parentBeats,
+      frontEnd: tcbFigureFrontEnd,
+    );
     final Figure base;
     if (parsed != null &&
         !parsed.isCustom &&
-        !_hasTopLevelSemicolon(parentText)) {
+        !hasTopLevelSeparator(parentText, ';')) {
       base = parsed; // known parent → structured taxonomy move (scrubbed)
     } else if (parsed != null && parsed.isCustom) {
       base = parsed; // unknown parent → already-scrubbed custom fallback
@@ -413,25 +418,6 @@ class CallersBoxAdapter implements SourceAdapter {
     return scrubbed.isEmpty ? '($beats)' : '($beats) $scrubbed';
   }
 
-  /// Whether [text] contains a top-level `;` clause separator (outside any
-  /// bracketed annotation). Mirrors [parseFigureLines]' split rule so a compound
-  /// parent that would fan out into multiple structured clauses is kept as a
-  /// single custom figure instead.
-  static bool _hasTopLevelSemicolon(String text) {
-    var depth = 0;
-    for (var i = 0; i < text.length; i++) {
-      final c = text.codeUnitAt(i);
-      if (c == 0x28 || c == 0x5B) {
-        depth++;
-      } else if (c == 0x29 || c == 0x5D) {
-        if (depth > 0) depth--;
-      } else if (depth == 0 && c == 0x3B) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /// Parses one TCB figure line `(beats) text` into one or more figures. A
   /// missing prefix or `(0)` means a 0-beat line (a formation label). The
   /// scrubbed dance prose is stored as clean text — section grouping is not
@@ -453,7 +439,7 @@ class CallersBoxAdapter implements SourceAdapter {
     // Route through the shared parser: recognised moves become structured
     // figures; the rest fall back to custom. Empty when the line is empty
     // after scrubbing.
-    return parseFigureLines(text, beats: beats);
+    return parseFigureLines(text, beats: beats, frontEnd: tcbFigureFrontEnd);
   }
 
   // --- Cross-line merge (PR3b) -----------------------------------------------
