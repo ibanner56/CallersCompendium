@@ -2233,6 +2233,10 @@
   "@danceSectionCallingNotes": {
     "description": "Heading of the calling-notes section on the dance detail screen."
   },
+  "danceSectionWalkthrough": "Walkthrough",
+  "@danceSectionWalkthrough": {
+    "description": "Heading of the walkthrough section on the dance detail screen (issue #370)."
+  },
   "danceSectionTunes": "Tunes",
   "@danceSectionTunes": {
     "description": "Heading of the tunes section on the dance detail screen."
@@ -3447,6 +3451,18 @@
   "@performCallingNotes": {
     "description": "Section title above a dance's calling notes on the perform-mode card."
   },
+  "performWalkthrough": "Walkthrough",
+  "@performWalkthrough": {
+    "description": "Title of the perform-mode walkthrough overlay/panel and its section heading."
+  },
+  "performShowWalkthrough": "Show walkthrough",
+  "@performShowWalkthrough": {
+    "description": "Tooltip, overflow-menu label and accessible name for the perform-mode toggle that shows/hides the dedicated walkthrough overlay (issue #370)."
+  },
+  "performWalkthroughEmpty": "No walkthrough for this dance.",
+  "@performWalkthroughEmpty": {
+    "description": "Empty-state text shown in the perform-mode walkthrough overlay when the current dance has no walkthrough written."
+  },
   "performNoFigures": "No figures yet.",
   "@performNoFigures": {
     "description": "Empty-state text shown on the perform-mode card when a dance has no figures."
@@ -3929,6 +3945,14 @@
   "danceEditorHookHint": "One-line \"why call this\"",
   "@danceEditorHookHint":   {
     "description": "Hint text for the hook field."
+  },
+  "danceEditorWalkthroughLabel": "Walkthrough",
+  "@danceEditorWalkthroughLabel":   {
+    "description": "Text field label for the dedicated per-dance walkthrough (step-by-step description), distinct from the shorter calling notes."
+  },
+  "danceEditorWalkthroughHelper": "Step-by-step description of the dance and its transitions",
+  "@danceEditorWalkthroughHelper":   {
+    "description": "Helper text under the walkthrough field explaining what to write there."
   },
   "danceEditorMoreDetailsTitle": "More details",
   "@danceEditorMoreDetailsTitle":   {

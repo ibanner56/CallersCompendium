@@ -103,6 +103,7 @@ class EditorSnapshot {
     required this.title,
     required this.hook,
     required this.notes,
+    this.walkthrough = '',
     required this.phrase,
     required this.formationDetail,
     required this.form,
@@ -127,6 +128,9 @@ class EditorSnapshot {
   final String title;
   final String hook;
   final String notes;
+
+  /// Free-form step-by-step walkthrough (issue #370); distinct from [notes].
+  final String walkthrough;
   final String phrase;
   final String formationDetail;
 

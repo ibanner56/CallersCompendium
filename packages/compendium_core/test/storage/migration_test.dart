@@ -1722,7 +1722,7 @@ void main() {
 
       final rows = await db.customSelect('PRAGMA user_version').get();
       expect(rows.single.data.values.first, db.schemaVersion);
-      expect(db.schemaVersion, 14);
+      expect(db.schemaVersion, 15);
 
       await db.close();
     });
@@ -1797,6 +1797,83 @@ void main() {
 
       await db.close();
     });
+  });
+
+  group('v14 -> v15 upgrade (dance walkthrough, issue #370)', () {
+    late Directory dir;
+    late String dbPath;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('compendium_core_mig_v15_');
+      dbPath = p.join(dir.path, 'test.sqlite');
+      // Copy the checked-in v14 fixture to a temp path (opening mutates it).
+      final fixture = File(
+        p.join(
+          Directory.current.path,
+          'test',
+          'storage',
+          'fixtures',
+          'v14.sqlite',
+        ),
+      );
+      await fixture.copy(dbPath);
+    });
+
+    tearDown(() => dir.delete(recursive: true));
+
+    test('drift schema version is current after upgrade', () async {
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.ensureMigrated();
+
+      final rows = await db.customSelect('PRAGMA user_version').get();
+      expect(rows.single.data.values.first, db.schemaVersion);
+      expect(db.schemaVersion, 15);
+
+      await db.close();
+    });
+
+    test(
+      'adds the dances.walkthrough column, defaulting existing rows to empty',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final cols = await db.customSelect('PRAGMA table_info(dances)').get();
+        final names = cols.map((r) => r.read<String>('name')).toList();
+        expect(names, contains('walkthrough'));
+
+        // The pre-existing dance loads with an empty walkthrough, and the
+        // neighbouring free-text column is left untouched by the migration.
+        final dance = await repos.dances.getById('dance-1');
+        expect(dance, isNotNull);
+        expect(dance!.walkthrough, '');
+        expect(dance.callingNotes, 'No balances in this dance.');
+
+        await db.close();
+      },
+    );
+
+    test(
+      'a walkthrough can be written and round-trips after the upgrade',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.ensureMigrated();
+
+        final dance = await repos.dances.getById('dance-1');
+        const walkthrough =
+            'A1: Neighbours balance and swing. A2: Ladies chain across, '
+            'then star left three-quarters. B1: Partners balance and swing.';
+        await repos.dances.update(dance!.copyWith(walkthrough: walkthrough));
+
+        final reloaded = await repos.dances.getById('dance-1');
+        expect(reloaded!.walkthrough, walkthrough);
+
+        await db.close();
+      },
+    );
   });
 
   test('a fresh database has the programs.venue_id lookup index', () async {

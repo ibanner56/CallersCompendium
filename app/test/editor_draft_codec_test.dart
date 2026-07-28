@@ -504,5 +504,49 @@ void main() {
           '"customValues":{},"figureDrafts":[]}';
       expect(() => decodeDraft(badJson), throwsA(isA<FormatException>()));
     });
+
+    test('walkthrough round-trips (v7)', () {
+      final snapshot = _minimalSnapshotWith(
+        walkthrough: 'A1: balance and swing.\nB1: circle left.',
+      );
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      expect(decoded.walkthrough, 'A1: balance and swing.\nB1: circle left.');
+    });
+
+    test('an empty walkthrough is omitted from the encoded JSON', () {
+      final json = encodeDraft(_minimalSnapshotWith(walkthrough: ''));
+      expect(json.contains('walkthrough'), isFalse);
+    });
+
+    test('a pre-walkthrough (v6) draft decodes with an empty walkthrough', () {
+      const v6Json =
+          '{"v":6,"title":"Old","hook":"","notes":"","phrase":"",'
+          '"formationDetail":"","form":"contra","formationShape":"dupleImproper",'
+          '"progression":"single","status":"active",'
+          '"authorIds":[],"tagIds":[],"tunes":[],"links":[],'
+          '"customValues":{},"figureDrafts":[]}';
+      expect(decodeDraft(v6Json).walkthrough, '');
+    });
   });
 }
+
+EditorSnapshot _minimalSnapshotWith({required String walkthrough}) =>
+    EditorSnapshot(
+      title: 'Test',
+      hook: '',
+      notes: '',
+      walkthrough: walkthrough,
+      phrase: '',
+      formationDetail: '',
+      form: DanceForm.contra,
+      formationShape: FormationShape.dupleImproper,
+      progression: Progression.single,
+      status: DanceStatus.active,
+      authorIds: const [],
+      tagIds: const [],
+      tunes: const [],
+      links: const [],
+      sourceCitations: const [],
+      customValues: const {},
+      figureDrafts: const [],
+    );

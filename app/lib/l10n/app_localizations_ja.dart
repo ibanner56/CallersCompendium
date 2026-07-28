@@ -1648,6 +1648,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceSectionCallingNotes => 'コーリングノート';
 
   @override
+  String get danceSectionWalkthrough => 'ウォークスルー';
+
+  @override
   String get danceSectionTunes => 'チューン';
 
   @override
@@ -2621,6 +2624,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get performCallingNotes => 'コーリングノート';
 
   @override
+  String get performWalkthrough => 'ウォークスルー';
+
+  @override
+  String get performShowWalkthrough => 'ウォークスルーを表示';
+
+  @override
+  String get performWalkthroughEmpty => 'このダンスのウォークスルーはありません。';
+
+  @override
   String get performNoFigures => 'フィギュアがまだありません。';
 
   @override
@@ -3465,6 +3477,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorHookHint => '「なぜこれをコールするか」の1行説明';
+
+  @override
+  String get danceEditorWalkthroughLabel => 'ウォークスルー';
+
+  @override
+  String get danceEditorWalkthroughHelper => 'ダンスの各ステップと遷移の手順説明';
 
   @override
   String get danceEditorMoreDetailsTitle => '詳細情報';

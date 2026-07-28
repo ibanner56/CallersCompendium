@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_program_screen.dart';
+import 'package:compendium_app/src/screens/perform_walkthrough_overlay.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show
@@ -27,13 +28,18 @@ import 'support/l10n_harness.dart';
 final _now = DateTime.utc(2026, 1, 1);
 final _renderer = FigureRenderer(contraTaxonomy);
 
-Dance _dance({required String id, required String title}) => Dance(
+Dance _dance({
+  required String id,
+  required String title,
+  String walkthrough = '',
+}) => Dance(
   id: id,
   title: title,
   figures: [
     Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
   ],
   status: DanceStatus.active,
+  walkthrough: walkthrough,
   createdAt: _now,
   updatedAt: _now,
 );
@@ -1407,6 +1413,46 @@ void main() {
       expect(
         (storedScale as num).toDouble(),
         greaterThan(kPerformDefaultScale),
+      );
+    });
+  });
+
+  group('walkthrough overlay (issue #370)', () {
+    testWidgets('shows the active dance-slot walkthrough on toggle', (
+      tester,
+    ) async {
+      final dance = _dance(
+        id: 'd1',
+        title: 'Sarahs Journey',
+        walkthrough: 'A1: neighbours balance and swing.',
+      );
+      final data = await _dataWith([dance]);
+      await _pumpProgram(
+        tester,
+        program: _program([_slot(id: 's1', position: 0, danceId: 'd1')]),
+        data: data,
+      );
+
+      final toggle = find.byKey(const ValueKey('perform-walkthrough-toggle'));
+      expect(toggle, findsOneWidget);
+      expect(find.byType(PerformWalkthroughOverlay), findsNothing);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+      expect(find.text('A1: neighbours balance and swing.'), findsOneWidget);
+    });
+
+    testWidgets('no toggle for a free-text-only slot', (tester) async {
+      final data = await _dataWith(const []);
+      await _pumpProgram(
+        tester,
+        program: _program([_slot(id: 's1', position: 0, text: 'Waltz break')]),
+        data: data,
+      );
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-toggle')),
+        findsNothing,
       );
     });
   });

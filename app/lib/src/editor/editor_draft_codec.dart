@@ -35,7 +35,10 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// v5 → v6: adds `sourceCitations` (ordered list of `{sourceId, page?, number?}`
 /// citing reusable published sources; omitted entirely when empty). Older
 /// drafts (v ≤ 5) decode with `sourceCitations: const []`.
-const _kDraftVersion = 6;
+///
+/// v6 → v7: adds `walkthrough` (free-form step-by-step text, issue #370; omitted
+/// when empty). Older drafts (v ≤ 6) decode with `walkthrough: ''`.
+const _kDraftVersion = 7;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -44,11 +47,12 @@ const _kDraftVersion = 6;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v6):
+/// Schema (v7):
 /// ```jsonc
 /// {
-///   "v": 6,
+///   "v": 7,
 ///   "title": "...", "hook": "...", "notes": "...",
+///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
 ///   "form": "contra", "formationShape": "dupleImproper",
 ///   "progression": "single", "status": "active",
@@ -82,6 +86,7 @@ String encodeDraft(EditorSnapshot snapshot) {
     'title': snapshot.title,
     'hook': snapshot.hook,
     'notes': snapshot.notes,
+    if (snapshot.walkthrough.isNotEmpty) 'walkthrough': snapshot.walkthrough,
     'phrase': snapshot.phrase,
     'formationDetail': snapshot.formationDetail,
     'form': snapshot.form.name,
@@ -181,6 +186,7 @@ EditorSnapshot decodeDraft(Object? value) {
     title: _str(json, 'title'),
     hook: _str(json, 'hook'),
     notes: _str(json, 'notes'),
+    walkthrough: _str(json, 'walkthrough'),
     phrase: _str(json, 'phrase'),
     formationDetail: _str(json, 'formationDetail'),
     form: _parseEnum(DanceForm.values, _str(json, 'form')),

@@ -10,6 +10,7 @@ import '../widgets/tap_tempo_metronome.dart';
 import 'perform_a11y_prefs.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
+import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart' show kAutoSizePerformKey;
 
 /// Full-screen, large-print performance view for a single [Dance]
@@ -84,6 +85,21 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   /// already canonical (toggling would be a no-op). Persisted across sessions
   /// (issue #449) and restored on entry.
   bool _canonicalView = false;
+
+  /// Whether the on-demand walkthrough overlay is currently shown (issue #370).
+  /// Session-scoped and default OFF — the walkthrough must never cover the
+  /// notation unless the caller asks for it — and deliberately NOT persisted
+  /// across app restarts (consistent with the #373 toggle decision).
+  bool _showWalkthrough = false;
+
+  void _toggleWalkthrough() {
+    setState(() => _showWalkthrough = !_showWalkthrough);
+  }
+
+  /// Whether the current dance has a non-empty walkthrough to show. The toggle
+  /// and overlay are suppressed entirely when it is empty, so the caller never
+  /// sees a dead control.
+  bool get _hasWalkthrough => widget.dance.walkthrough.trim().isNotEmpty;
 
   @override
   void didChangeDependencies() {
@@ -207,6 +223,15 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
               wide: wide,
               leadingPrimary: const DialectQuickSwitch(),
               secondaryInline: [
+                if (_hasWalkthrough)
+                  IconButton(
+                    key: const ValueKey('perform-walkthrough-toggle'),
+                    tooltip: l10n.performShowWalkthrough,
+                    isSelected: _showWalkthrough,
+                    icon: const Icon(Icons.menu_book_outlined),
+                    selectedIcon: const Icon(Icons.menu_book),
+                    onPressed: _toggleWalkthrough,
+                  ),
                 IconButton(
                   key: const ValueKey('perform-metronome'),
                   tooltip: l10n.performTapTempo,
@@ -238,6 +263,14 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                   ),
               ],
               overflowActions: [
+                if (_hasWalkthrough)
+                  PerformMenuAction(
+                    menuKey: const ValueKey('perform-walkthrough-toggle-menu'),
+                    icon: Icons.menu_book,
+                    label: l10n.performShowWalkthrough,
+                    toggledOn: _showWalkthrough,
+                    onSelected: _toggleWalkthrough,
+                  ),
                 PerformMenuAction(
                   menuKey: const ValueKey('perform-metronome-menu'),
                   icon: Icons.av_timer,
@@ -295,13 +328,29 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
             ),
           ),
           body: SafeArea(
-            child: PerformCard(
-              dance: widget.dance,
-              renderer: widget.renderer,
-              dialect: dialect,
-              textScale: _textScale,
-              autoSize: _autoSize,
-              authorNames: widget.authorNames,
+            child: Stack(
+              children: [
+                PerformCard(
+                  dance: widget.dance,
+                  renderer: widget.renderer,
+                  dialect: dialect,
+                  textScale: _textScale,
+                  autoSize: _autoSize,
+                  authorNames: widget.authorNames,
+                ),
+                // The walkthrough overlay is a sibling of the card — never a
+                // child routed through its `_FitToHeight` measurement — so
+                // showing it can't shrink or compete with the notation (#370).
+                if (_showWalkthrough && _hasWalkthrough)
+                  Positioned.fill(
+                    child: PerformWalkthroughOverlay(
+                      walkthrough: widget.dance.walkthrough,
+                      renderer: widget.renderer,
+                      dialect: dialect,
+                      onClose: _toggleWalkthrough,
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

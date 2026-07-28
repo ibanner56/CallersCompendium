@@ -90,6 +90,18 @@ Future<Uint8List> buildDancePdf(
             style: const pw.TextStyle(fontSize: 12),
           ),
         ],
+        if (_has(dance.walkthrough)) ...[
+          pw.SizedBox(height: 12),
+          pw.Text(
+            'Walkthrough',
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(
+            fig.renderFreeText(dance.walkthrough.trim(), dialect),
+            style: const pw.TextStyle(fontSize: 12),
+          ),
+        ],
       ],
     ),
   );

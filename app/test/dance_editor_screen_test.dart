@@ -58,7 +58,11 @@ Future<void> _pumpEditor(
   ThemeData? theme,
   ValueNotifier<int>? collectionRefresh,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 2400));
+  // Tall surface so the full editor form (which grew with the walkthrough
+  // field, #370) lays out without the trailing controls falling beyond a
+  // lazily-built ListView's cache extent, which makes `ensureVisible`
+  // under-scroll the last element in widget tests.
+  await tester.binding.setSurfaceSize(const Size(1200, 3200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
@@ -231,6 +235,25 @@ void main() {
     expect(saved!.title, 'Renamed');
     // createdAt preserved from the original.
     expect(saved.createdAt, _now);
+  });
+
+  testWidgets('walkthrough round-trips on save', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    await tester.enterText(
+      find.byKey(const ValueKey('walkthrough-field')),
+      'A1: neighbours balance and swing.\nB1: circle left.',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(
+      saved!.walkthrough,
+      'A1: neighbours balance and swing.\nB1: circle left.',
+    );
   });
 
   testWidgets('level and mixed level round-trip on save', (tester) async {

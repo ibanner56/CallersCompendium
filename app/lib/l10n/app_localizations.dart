@@ -2858,6 +2858,12 @@ abstract class AppLocalizations {
   /// **'Calling notes'**
   String get danceSectionCallingNotes;
 
+  /// Heading of the walkthrough section on the dance detail screen (issue #370).
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough'**
+  String get danceSectionWalkthrough;
+
   /// Heading of the tunes section on the dance detail screen.
   ///
   /// In en, this message translates to:
@@ -4301,6 +4307,24 @@ abstract class AppLocalizations {
   /// **'Calling notes'**
   String get performCallingNotes;
 
+  /// Title of the perform-mode walkthrough overlay/panel and its section heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough'**
+  String get performWalkthrough;
+
+  /// Tooltip, overflow-menu label and accessible name for the perform-mode toggle that shows/hides the dedicated walkthrough overlay (issue #370).
+  ///
+  /// In en, this message translates to:
+  /// **'Show walkthrough'**
+  String get performShowWalkthrough;
+
+  /// Empty-state text shown in the perform-mode walkthrough overlay when the current dance has no walkthrough written.
+  ///
+  /// In en, this message translates to:
+  /// **'No walkthrough for this dance.'**
+  String get performWalkthroughEmpty;
+
   /// Empty-state text shown on the perform-mode card when a dance has no figures.
   ///
   /// In en, this message translates to:
@@ -5544,6 +5568,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One-line \"why call this\"'**
   String get danceEditorHookHint;
+
+  /// Text field label for the dedicated per-dance walkthrough (step-by-step description), distinct from the shorter calling notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough'**
+  String get danceEditorWalkthroughLabel;
+
+  /// Helper text under the walkthrough field explaining what to write there.
+  ///
+  /// In en, this message translates to:
+  /// **'Step-by-step description of the dance and its transitions'**
+  String get danceEditorWalkthroughHelper;
 
   /// Expansion tile title for less frequently used dance metadata fields.
   ///

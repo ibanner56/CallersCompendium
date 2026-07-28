@@ -1714,6 +1714,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceSectionCallingNotes => 'Calling-Notizen';
 
   @override
+  String get danceSectionWalkthrough => 'Ablauf';
+
+  @override
   String get danceSectionTunes => 'Melodien';
 
   @override
@@ -2716,6 +2719,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get performCallingNotes => 'Calling-Notizen';
 
   @override
+  String get performWalkthrough => 'Ablauf';
+
+  @override
+  String get performShowWalkthrough => 'Ablauf anzeigen';
+
+  @override
+  String get performWalkthroughEmpty => 'Kein Ablauf für diesen Tanz.';
+
+  @override
   String get performNoFigures => 'Noch keine Figuren.';
 
   @override
@@ -3623,6 +3635,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorHookHint => 'Einzeiliges „Warum diesen Tanz aufrufen“';
+
+  @override
+  String get danceEditorWalkthroughLabel => 'Ablauf';
+
+  @override
+  String get danceEditorWalkthroughHelper =>
+      'Schritt-für-Schritt-Beschreibung des Tanzes und seiner Übergänge';
 
   @override
   String get danceEditorMoreDetailsTitle => 'Weitere Details';

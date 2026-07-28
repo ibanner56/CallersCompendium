@@ -15,6 +15,18 @@ import '../util/uuid.dart';
 
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
 
+/// Upper bound on the length of [Dance.walkthrough], in UTF-16 code units.
+///
+/// The walkthrough is free text that travels through backup / share / import of
+/// files originating on the internet or from other users, so it needs a defence
+/// against unbounded input (memory / render-time DoS). The limit is deliberately
+/// generous — real walkthroughs run to a few thousand characters — while still
+/// bounding a hostile payload. Enforcement is intentionally *soft*: the editor
+/// caps input via `maxLength`, and the deserializer **clamps** (truncates)
+/// rather than rejecting, consistent with the archive codec's partial-failure
+/// tolerance, so an oversized field can never fail an otherwise-valid import.
+const int kMaxWalkthroughLength = 20000;
+
 /// A dance transcription — the central entity of the collection.
 ///
 /// Hard invariants (thrown at construction): non-empty title, parseable
@@ -33,6 +45,7 @@ class Dance {
     List<Figure> figures = const [],
     this.hook = '',
     this.callingNotes = '',
+    this.walkthrough = '',
     this.status = DanceStatus.active,
     this.level,
     this.mixedLevel = false,
@@ -91,6 +104,15 @@ class Dance {
 
   /// Teaching/history notes; dialect-aware free text.
   final String callingNotes;
+
+  /// A free-form, step-by-step **walkthrough** of the dance — descriptions of
+  /// each move and the transitions between them — kept deliberately distinct
+  /// from the short reminder-style [callingNotes]. Dialect-aware free text
+  /// (rendered via the domain renderer's `renderFreeText`), typically long
+  /// (hundreds to a few thousand characters). Defaults to `''` (unwritten), so
+  /// existing/imported dances stay valid. Plain multi-line text in v1; richer
+  /// structure / auto-generation is tracked separately (issue #411).
+  final String walkthrough;
   final DanceStatus status;
 
   /// Difficulty on the ordered [DanceLevel] scale; `null` when unspecified
@@ -186,6 +208,7 @@ class Dance {
     List<Figure>? figures,
     String? hook,
     String? callingNotes,
+    String? walkthrough,
     DanceStatus? status,
     DanceLevel? level,
     bool clearLevel = false,
@@ -217,6 +240,7 @@ class Dance {
     figures: figures ?? this.figures,
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
+    walkthrough: walkthrough ?? this.walkthrough,
     status: status ?? this.status,
     level: clearLevel ? null : (level ?? this.level),
     mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -263,6 +287,7 @@ class Dance {
       figures: figures,
       hook: hook,
       callingNotes: callingNotes,
+      walkthrough: walkthrough,
       status: status,
       level: level,
       mixedLevel: mixedLevel,
@@ -301,6 +326,7 @@ class Dance {
       _listEq.equals(other.figures, figures) &&
       other.hook == hook &&
       other.callingNotes == callingNotes &&
+      other.walkthrough == walkthrough &&
       other.status == status &&
       other.level == level &&
       other.mixedLevel == mixedLevel &&
