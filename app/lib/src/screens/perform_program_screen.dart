@@ -18,6 +18,7 @@ import 'perform_a11y_prefs.dart';
 import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
+import 'perform_walkthrough_overlay.dart';
 import 'settings_screen.dart' show kAutoSizePerformKey;
 
 /// Full-screen, large-print performance view for a whole [Program]
@@ -165,6 +166,21 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// user's active dialect. Persisted across sessions (issue #449) and restored
   /// on entry.
   bool _canonicalView = false;
+
+  /// Whether the on-demand walkthrough overlay is currently shown for the active
+  /// slot (issue #370). Session-scoped, default OFF, and NOT persisted across
+  /// restarts (consistent with the #373 toggle decision). It shows the *active*
+  /// dance-slot's walkthrough; free-text-only slots have none.
+  bool _showWalkthrough = false;
+
+  void _toggleWalkthrough() {
+    setState(() => _showWalkthrough = !_showWalkthrough);
+  }
+
+  /// Resolves the dance backing [slot], or `null` for a free-text-only slot or
+  /// an unresolved dance id.
+  Dance? _danceForSlot(ProgramSlot slot) =>
+      slot.danceId == null ? null : widget.data.dancesById[slot.danceId];
 
   /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the
   /// General setting (on by default) in [didChangeDependencies]; recomputes per
@@ -683,6 +699,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       members.length - 1,
     );
     final slot = members[memberIndex];
+    final activeDance = _danceForSlot(slot);
+    final hasWalkthrough = activeDance?.walkthrough.trim().isNotEmpty ?? false;
 
     return ColourDanceTheme(
       title: _slotLabel(l10n, slot),
@@ -725,6 +743,15 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                     icon: const Icon(Icons.av_timer),
                     onPressed: _openMetronomeSheet,
                   ),
+                  if (hasWalkthrough)
+                    IconButton(
+                      key: const ValueKey('perform-walkthrough-toggle'),
+                      tooltip: l10n.performShowWalkthrough,
+                      isSelected: _showWalkthrough,
+                      icon: const Icon(Icons.menu_book_outlined),
+                      selectedIcon: const Icon(Icons.menu_book),
+                      onPressed: _toggleWalkthrough,
+                    ),
                   if (hasAlternates)
                     IconButton(
                       key: const ValueKey('perform-alt-swap'),
@@ -775,6 +802,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                     label: l10n.performTapTempo,
                     onSelected: _openMetronomeSheet,
                   ),
+                  if (hasWalkthrough)
+                    PerformMenuAction(
+                      menuKey: const ValueKey(
+                        'perform-walkthrough-toggle-menu',
+                      ),
+                      icon: Icons.menu_book,
+                      label: l10n.performShowWalkthrough,
+                      toggledOn: _showWalkthrough,
+                      onSelected: _toggleWalkthrough,
+                    ),
                   if (hasAlternates)
                     PerformMenuAction(
                       menuKey: const ValueKey('perform-alt-swap-menu'),
@@ -877,6 +914,19 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                           ),
                         ),
                       ),
+                      // Walkthrough overlay sits ABOVE the edge hit zones so
+                      // reading it doesn't trigger prev/next navigation, and is
+                      // a sibling of the card — never routed through its
+                      // `_FitToHeight` — so it can't shrink the notation (#370).
+                      if (_showWalkthrough && hasWalkthrough)
+                        Positioned.fill(
+                          child: PerformWalkthroughOverlay(
+                            walkthrough: activeDance!.walkthrough,
+                            renderer: widget.renderer,
+                            dialect: dialect,
+                            onClose: _toggleWalkthrough,
+                          ),
+                        ),
                     ],
                   ),
                 ),

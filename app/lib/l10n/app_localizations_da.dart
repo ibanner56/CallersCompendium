@@ -1656,6 +1656,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceSectionCallingNotes => 'Kaldsnotes';
 
   @override
+  String get danceSectionWalkthrough => 'Gennemgang';
+
+  @override
   String get danceSectionTunes => 'Melodier';
 
   @override
@@ -2651,6 +2654,15 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performCallingNotes => 'Kaldsnotes';
 
   @override
+  String get performWalkthrough => 'Gennemgang';
+
+  @override
+  String get performShowWalkthrough => 'Vis gennemgang';
+
+  @override
+  String get performWalkthroughEmpty => 'Ingen gennemgang for denne dans.';
+
+  @override
   String get performNoFigures => 'Ingen figurer endnu.';
 
   @override
@@ -3540,6 +3552,13 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorHookHint => 'Én linje „hvorfor kalde denne dans“';
+
+  @override
+  String get danceEditorWalkthroughLabel => 'Gennemgang';
+
+  @override
+  String get danceEditorWalkthroughHelper =>
+      'Trin-for-trin-beskrivelse af dansen og dens overgange';
 
   @override
   String get danceEditorMoreDetailsTitle => 'Flere detaljer';

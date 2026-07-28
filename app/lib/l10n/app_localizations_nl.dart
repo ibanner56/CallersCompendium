@@ -1663,6 +1663,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceSectionCallingNotes => 'Callnotities';
 
   @override
+  String get danceSectionWalkthrough => 'Doorloop';
+
+  @override
   String get danceSectionTunes => 'Deuntjes';
 
   @override
@@ -2663,6 +2666,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performCallingNotes => 'Callnotities';
 
   @override
+  String get performWalkthrough => 'Doorloop';
+
+  @override
+  String get performShowWalkthrough => 'Doorloop tonen';
+
+  @override
+  String get performWalkthroughEmpty => 'Geen doorloop voor deze dans.';
+
+  @override
   String get performNoFigures => 'Nog geen figuren.';
 
   @override
@@ -3564,6 +3576,13 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorHookHint => 'Één zin “waarom deze dans callen”';
+
+  @override
+  String get danceEditorWalkthroughLabel => 'Doorloop';
+
+  @override
+  String get danceEditorWalkthroughHelper =>
+      'Stapsgewijze beschrijving van de dans en de overgangen';
 
   @override
   String get danceEditorMoreDetailsTitle => 'Meer details';

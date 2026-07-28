@@ -34,6 +34,7 @@ class DanceEditorController extends ChangeNotifier {
        titleController = LingoTextEditingController(dialect: dialect),
        hookController = LingoTextEditingController(dialect: dialect),
        notesController = LingoTextEditingController(dialect: dialect),
+       walkthroughController = LingoTextEditingController(dialect: dialect),
        phraseController = LingoTextEditingController(dialect: dialect),
        formationDetailController = LingoTextEditingController(dialect: dialect),
        tuneController = LingoTextEditingController(dialect: dialect);
@@ -48,6 +49,10 @@ class DanceEditorController extends ChangeNotifier {
   final LingoTextEditingController titleController;
   final LingoTextEditingController hookController;
   final LingoTextEditingController notesController;
+
+  /// Editor for the free-form [Dance.walkthrough] (issue #370); a taller,
+  /// dedicated field distinct from the short [notesController] (calling notes).
+  final LingoTextEditingController walkthroughController;
   final LingoTextEditingController phraseController;
   final LingoTextEditingController formationDetailController;
   final LingoTextEditingController tuneController;
@@ -63,6 +68,7 @@ class DanceEditorController extends ChangeNotifier {
     titleController,
     hookController,
     notesController,
+    walkthroughController,
     phraseController,
     formationDetailController,
     tuneController,
@@ -186,6 +192,7 @@ class DanceEditorController extends ChangeNotifier {
       titleController.text = dance.title;
       hookController.text = dance.hook;
       notesController.text = dance.callingNotes;
+      walkthroughController.text = dance.walkthrough;
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
       _form = dance.form;
@@ -356,6 +363,7 @@ class DanceEditorController extends ChangeNotifier {
     title: titleController.text,
     hook: hookController.text,
     notes: notesController.text,
+    walkthrough: walkthroughController.text,
     phrase: phraseController.text,
     formationDetail: formationDetailController.text,
     form: _form,
@@ -409,6 +417,9 @@ class DanceEditorController extends ChangeNotifier {
     if (titleController.text != s.title) titleController.text = s.title;
     if (hookController.text != s.hook) hookController.text = s.hook;
     if (notesController.text != s.notes) notesController.text = s.notes;
+    if (walkthroughController.text != s.walkthrough) {
+      walkthroughController.text = s.walkthrough;
+    }
     if (phraseController.text != s.phrase) phraseController.text = s.phrase;
     if (formationDetailController.text != s.formationDetail) {
       formationDetailController.text = s.formationDetail;
@@ -627,6 +638,7 @@ class DanceEditorController extends ChangeNotifier {
         phraseStructure: phraseController.text.trim(),
         hook: hookController.text.trim(),
         callingNotes: notesController.text.trim(),
+        walkthrough: walkthroughController.text.trim(),
         status: _status,
         level: _level,
         clearLevel: _level == null,
@@ -656,6 +668,7 @@ class DanceEditorController extends ChangeNotifier {
       phraseStructure: phraseController.text.trim(),
       hook: hookController.text.trim(),
       callingNotes: notesController.text.trim(),
+      walkthrough: walkthroughController.text.trim(),
       status: _status,
       level: _level,
       mixedLevel: _mixedLevel,
@@ -936,6 +949,7 @@ class DanceEditorController extends ChangeNotifier {
     titleController.dispose();
     hookController.dispose();
     notesController.dispose();
+    walkthroughController.dispose();
     phraseController.dispose();
     formationDetailController.dispose();
     tuneController.dispose();

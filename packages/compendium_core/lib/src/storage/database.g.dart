@@ -110,6 +110,18 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _walkthroughMeta = const VerificationMeta(
+    'walkthrough',
+  );
+  @override
+  late final GeneratedColumn<String> walkthrough = GeneratedColumn<String>(
+    'walkthrough',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<DanceStatus, String> status =
       GeneratedColumn<String>(
@@ -231,6 +243,7 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     figuresJson,
     hook,
     callingNotes,
+    walkthrough,
     status,
     level,
     mixedLevel,
@@ -306,6 +319,15 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         callingNotes.isAcceptableOrUnknown(
           data['calling_notes']!,
           _callingNotesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('walkthrough')) {
+      context.handle(
+        _walkthroughMeta,
+        walkthrough.isAcceptableOrUnknown(
+          data['walkthrough']!,
+          _walkthroughMeta,
         ),
       );
     }
@@ -416,6 +438,10 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         DriftSqlType.string,
         data['${effectivePrefix}calling_notes'],
       )!,
+      walkthrough: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}walkthrough'],
+      )!,
       status: $DancesTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -497,6 +523,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   final String figuresJson;
   final String hook;
   final String callingNotes;
+
+  /// Free-form step-by-step walkthrough of the dance; dialect-aware free text,
+  /// distinct from the short [callingNotes]. Defaults to `''`. Added in schema
+  /// v15 (issue #370). Dance-scalar content (not figure text), so it does NOT
+  /// feed the derived `dance_figures`/`dance_fts` indexes.
+  final String walkthrough;
   final DanceStatus status;
 
   /// Difficulty on the ordered [DanceLevel] scale, persisted by enum name;
@@ -539,6 +571,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.figuresJson,
     required this.hook,
     required this.callingNotes,
+    required this.walkthrough,
     required this.status,
     this.level,
     required this.mixedLevel,
@@ -575,6 +608,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     map['figures_json'] = Variable<String>(figuresJson);
     map['hook'] = Variable<String>(hook);
     map['calling_notes'] = Variable<String>(callingNotes);
+    map['walkthrough'] = Variable<String>(walkthrough);
     {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status),
@@ -618,6 +652,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       figuresJson: Value(figuresJson),
       hook: Value(hook),
       callingNotes: Value(callingNotes),
+      walkthrough: Value(walkthrough),
       status: Value(status),
       level: level == null && nullToAbsent
           ? const Value.absent()
@@ -663,6 +698,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       figuresJson: serializer.fromJson<String>(json['figuresJson']),
       hook: serializer.fromJson<String>(json['hook']),
       callingNotes: serializer.fromJson<String>(json['callingNotes']),
+      walkthrough: serializer.fromJson<String>(json['walkthrough']),
       status: $DancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
@@ -699,6 +735,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'figuresJson': serializer.toJson<String>(figuresJson),
       'hook': serializer.toJson<String>(hook),
       'callingNotes': serializer.toJson<String>(callingNotes),
+      'walkthrough': serializer.toJson<String>(walkthrough),
       'status': serializer.toJson<String>(
         $DancesTable.$converterstatus.toJson(status),
       ),
@@ -727,6 +764,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     String? figuresJson,
     String? hook,
     String? callingNotes,
+    String? walkthrough,
     DanceStatus? status,
     Value<DanceLevel?> level = const Value.absent(),
     bool? mixedLevel,
@@ -750,6 +788,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     figuresJson: figuresJson ?? this.figuresJson,
     hook: hook ?? this.hook,
     callingNotes: callingNotes ?? this.callingNotes,
+    walkthrough: walkthrough ?? this.walkthrough,
     status: status ?? this.status,
     level: level.present ? level.value : this.level,
     mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -785,6 +824,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       callingNotes: data.callingNotes.present
           ? data.callingNotes.value
           : this.callingNotes,
+      walkthrough: data.walkthrough.present
+          ? data.walkthrough.value
+          : this.walkthrough,
       status: data.status.present ? data.status.value : this.status,
       level: data.level.present ? data.level.value : this.level,
       mixedLevel: data.mixedLevel.present
@@ -815,6 +857,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('figuresJson: $figuresJson, ')
           ..write('hook: $hook, ')
           ..write('callingNotes: $callingNotes, ')
+          ..write('walkthrough: $walkthrough, ')
           ..write('status: $status, ')
           ..write('level: $level, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -830,7 +873,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     title,
     form,
@@ -841,6 +884,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     figuresJson,
     hook,
     callingNotes,
+    walkthrough,
     status,
     level,
     mixedLevel,
@@ -851,7 +895,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     createdAt,
     updatedAt,
     deletedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -866,6 +910,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.figuresJson == this.figuresJson &&
           other.hook == this.hook &&
           other.callingNotes == this.callingNotes &&
+          other.walkthrough == this.walkthrough &&
           other.status == this.status &&
           other.level == this.level &&
           other.mixedLevel == this.mixedLevel &&
@@ -889,6 +934,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<String> figuresJson;
   final Value<String> hook;
   final Value<String> callingNotes;
+  final Value<String> walkthrough;
   final Value<DanceStatus> status;
   final Value<DanceLevel?> level;
   final Value<bool> mixedLevel;
@@ -911,6 +957,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.figuresJson = const Value.absent(),
     this.hook = const Value.absent(),
     this.callingNotes = const Value.absent(),
+    this.walkthrough = const Value.absent(),
     this.status = const Value.absent(),
     this.level = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -934,6 +981,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.figuresJson = const Value.absent(),
     this.hook = const Value.absent(),
     this.callingNotes = const Value.absent(),
+    this.walkthrough = const Value.absent(),
     required DanceStatus status,
     this.level = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -964,6 +1012,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? figuresJson,
     Expression<String>? hook,
     Expression<String>? callingNotes,
+    Expression<String>? walkthrough,
     Expression<String>? status,
     Expression<String>? level,
     Expression<bool>? mixedLevel,
@@ -987,6 +1036,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (figuresJson != null) 'figures_json': figuresJson,
       if (hook != null) 'hook': hook,
       if (callingNotes != null) 'calling_notes': callingNotes,
+      if (walkthrough != null) 'walkthrough': walkthrough,
       if (status != null) 'status': status,
       if (level != null) 'level': level,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
@@ -1012,6 +1062,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<String>? figuresJson,
     Value<String>? hook,
     Value<String>? callingNotes,
+    Value<String>? walkthrough,
     Value<DanceStatus>? status,
     Value<DanceLevel?>? level,
     Value<bool>? mixedLevel,
@@ -1035,6 +1086,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       figuresJson: figuresJson ?? this.figuresJson,
       hook: hook ?? this.hook,
       callingNotes: callingNotes ?? this.callingNotes,
+      walkthrough: walkthrough ?? this.walkthrough,
       status: status ?? this.status,
       level: level ?? this.level,
       mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1087,6 +1139,9 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     }
     if (callingNotes.present) {
       map['calling_notes'] = Variable<String>(callingNotes.value);
+    }
+    if (walkthrough.present) {
+      map['walkthrough'] = Variable<String>(walkthrough.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(
@@ -1141,6 +1196,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('figuresJson: $figuresJson, ')
           ..write('hook: $hook, ')
           ..write('callingNotes: $callingNotes, ')
+          ..write('walkthrough: $walkthrough, ')
           ..write('status: $status, ')
           ..write('level: $level, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -9346,6 +9402,7 @@ typedef $$DancesTableCreateCompanionBuilder =
       Value<String> figuresJson,
       Value<String> hook,
       Value<String> callingNotes,
+      Value<String> walkthrough,
       required DanceStatus status,
       Value<DanceLevel?> level,
       Value<bool> mixedLevel,
@@ -9370,6 +9427,7 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<String> figuresJson,
       Value<String> hook,
       Value<String> callingNotes,
+      Value<String> walkthrough,
       Value<DanceStatus> status,
       Value<DanceLevel?> level,
       Value<bool> mixedLevel,
@@ -9619,6 +9677,11 @@ class $$DancesTableFilterComposer
 
   ColumnFilters<String> get callingNotes => $composableBuilder(
     column: $table.callingNotes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get walkthrough => $composableBuilder(
+    column: $table.walkthrough,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9959,6 +10022,11 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get walkthrough => $composableBuilder(
+    column: $table.walkthrough,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -10060,6 +10128,11 @@ class $$DancesTableAnnotationComposer
 
   GeneratedColumn<String> get callingNotes => $composableBuilder(
     column: $table.callingNotes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get walkthrough => $composableBuilder(
+    column: $table.walkthrough,
     builder: (column) => column,
   );
 
@@ -10372,6 +10445,7 @@ class $$DancesTableTableManager
                 Value<String> figuresJson = const Value.absent(),
                 Value<String> hook = const Value.absent(),
                 Value<String> callingNotes = const Value.absent(),
+                Value<String> walkthrough = const Value.absent(),
                 Value<DanceStatus> status = const Value.absent(),
                 Value<DanceLevel?> level = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -10394,6 +10468,7 @@ class $$DancesTableTableManager
                 figuresJson: figuresJson,
                 hook: hook,
                 callingNotes: callingNotes,
+                walkthrough: walkthrough,
                 status: status,
                 level: level,
                 mixedLevel: mixedLevel,
@@ -10418,6 +10493,7 @@ class $$DancesTableTableManager
                 Value<String> figuresJson = const Value.absent(),
                 Value<String> hook = const Value.absent(),
                 Value<String> callingNotes = const Value.absent(),
+                Value<String> walkthrough = const Value.absent(),
                 required DanceStatus status,
                 Value<DanceLevel?> level = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -10440,6 +10516,7 @@ class $$DancesTableTableManager
                 figuresJson: figuresJson,
                 hook: hook,
                 callingNotes: callingNotes,
+                walkthrough: walkthrough,
                 status: status,
                 level: level,
                 mixedLevel: mixedLevel,

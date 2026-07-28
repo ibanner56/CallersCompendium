@@ -99,7 +99,7 @@ const String purgeCorruptionRepairDoneKey = '__purge_corruption_repair_done__';
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 14;
+const int kCompendiumSchemaVersion = 15;
 
 /// The Caller's Compendium local database.
 ///
@@ -216,6 +216,13 @@ const int kCompendiumSchemaVersion = 14;
 ///   (see [venueLookupIndexSql]), so that guard's reference-count query stays
 ///   cheap instead of full-scanning `programs`. Venues do NOT feed the derived
 ///   `dance_fts`/`dance_figures` indexes, so NO derived rebuild is required.
+/// - v15 (2026-07-28): dedicated per-dance walkthrough (issue #370). Adds a
+///   single additive `dances.walkthrough` text column (defaults to `''`) — a
+///   free-form step-by-step walkthrough, distinct from the short
+///   `calling_notes`. Purely additive `addColumn`; existing rows get `''` and
+///   stay valid. It is dance-scalar *content* (not figure text), so it does NOT
+///   feed the derived `dance_fts`/`dance_figures` indexes and NO derived rebuild
+///   is required.
 ///
 /// Every future migration must (a) bump [schemaVersion], (b) add a
 /// `MigrationStrategy` step for the new version, and (c) ship a test that
@@ -446,6 +453,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         for (final sql in venueLookupIndexSql) {
           await customStatement(sql);
         }
+      }
+      if (from < 15) {
+        // Dedicated per-dance walkthrough (issue #370). A single additive text
+        // column defaulting to `''`: existing rows get an empty walkthrough and
+        // stay valid. It is dance-scalar *content* (not figure text), so it does
+        // NOT feed the derived `dance_fts`/`dance_figures` indexes and NO
+        // derived rebuild is required.
+        await m.addColumn(dances, dances.walkthrough);
       }
     },
     beforeOpen: (details) async {

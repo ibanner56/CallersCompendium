@@ -132,6 +132,7 @@ Map<String, Object?> _danceToJson(Dance d) => {
   'figures': [for (final f in d.figures) figureToJson(f)],
   'hook': d.hook,
   'callingNotes': d.callingNotes,
+  'walkthrough': d.walkthrough,
   'status': d.status.name,
   if (d.level != null) 'level': d.level!.name,
   'mixedLevel': d.mixedLevel,
@@ -528,6 +529,15 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
   figures: _figuresFromJson(m['figures']),
   hook: _strOr(m, 'hook', ''),
   callingNotes: _strOr(m, 'callingNotes', ''),
+  // Soft length bound (OWASP): the walkthrough is untrusted long free text from
+  // an external archive, so clamp rather than reject — an oversized value is
+  // truncated (never fails the import), consistent with this codec's
+  // partial-failure tolerance. (`_strOr` already sanitizes invisible/bidi
+  // spoofing characters; there is no HTML/XSS render path — see text_sanitizer.)
+  walkthrough: _clampLength(
+    _strOr(m, 'walkthrough', ''),
+    kMaxWalkthroughLength,
+  ),
   status: _enumByNameOr(
     DanceStatus.values,
     m['status'],
@@ -769,6 +779,14 @@ String? _strOrNull(Map<String, Object?> m, String key) {
   if (v is! String) throw FormatException('"$key" must be a string');
   return sanitizeImportedText(v);
 }
+
+/// Soft length bound for untrusted long free text (OWASP): returns [value]
+/// unchanged when within [max] UTF-16 code units, otherwise truncates it to
+/// [max]. Truncating (rather than rejecting) keeps an oversized field from
+/// failing an otherwise-valid import, consistent with the codec's
+/// partial-failure tolerance.
+String _clampLength(String value, int max) =>
+    value.length <= max ? value : value.substring(0, max);
 
 int _int(Map<String, Object?> m, String key) {
   final v = m[key];

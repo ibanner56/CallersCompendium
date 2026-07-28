@@ -105,6 +105,12 @@ String danceToPlainText(
     lines.add(fig.renderFreeText(dance.callingNotes.trim(), dialect));
   }
 
+  if (_has(dance.walkthrough)) {
+    lines.add('');
+    lines.add('Walkthrough:');
+    lines.add(fig.renderFreeText(dance.walkthrough.trim(), dialect));
+  }
+
   return lines.join('\n');
 }
 

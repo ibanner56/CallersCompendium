@@ -31,6 +31,12 @@ class Dances extends Table {
   TextColumn get figuresJson => text().withDefault(const Constant('[]'))();
   TextColumn get hook => text().withDefault(const Constant(''))();
   TextColumn get callingNotes => text().withDefault(const Constant(''))();
+
+  /// Free-form step-by-step walkthrough of the dance; dialect-aware free text,
+  /// distinct from the short [callingNotes]. Defaults to `''`. Added in schema
+  /// v15 (issue #370). Dance-scalar content (not figure text), so it does NOT
+  /// feed the derived `dance_figures`/`dance_fts` indexes.
+  TextColumn get walkthrough => text().withDefault(const Constant(''))();
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 

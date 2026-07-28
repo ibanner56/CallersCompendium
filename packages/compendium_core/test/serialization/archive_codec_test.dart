@@ -86,6 +86,9 @@ CompendiumArchive _sampleArchive() {
     ],
     hook: 'a zesty becket',
     callingNotes: 'teach the allemande',
+    walkthrough:
+        'A1: neighbours balance and swing.\n'
+        'A2: ladies chain; star left.\nB1: partners balance and swing.',
     status: DanceStatus.active,
     level: DanceLevel.intermediate,
     mixedLevel: false,
@@ -749,6 +752,71 @@ void main() {
       // Sanitizing decode must not perturb archives the encoder produced.
       final json = encodeArchive(_sampleArchive());
       expect(encodeArchive(decodeArchive(json).archive), json);
+    });
+
+    test('walkthrough survives a JSON round-trip', () {
+      // d1 carries a multi-line walkthrough; Dance equality includes it, so the
+      // whole-object round-trip below also guards it, but assert explicitly.
+      final json = encodeArchive(_sampleArchive());
+      final decoded = decodeArchive(
+        json,
+      ).archive.dances.firstWhere((d) => d.id == 'd1');
+      expect(
+        decoded.walkthrough,
+        'A1: neighbours balance and swing.\n'
+        'A2: ladies chain; star left.\nB1: partners balance and swing.',
+      );
+    });
+
+    test('an over-long walkthrough is clamped on decode (OWASP)', () {
+      // A hostile archive with a walkthrough beyond the cap must not fail the
+      // import; it is truncated to kMaxWalkthroughLength, not rejected.
+      final oversized = 'x' * (kMaxWalkthroughLength + 5000);
+      final archive = {
+        'schemaVersion': archiveSchemaVersion,
+        'exportedAt': '2026-01-01T00:00:00.000Z',
+        'dances': [
+          {
+            'id': 'd1',
+            'title': 'Long One',
+            'authorIds': <String>[],
+            'phraseStructure': '',
+            'walkthrough': oversized,
+            'figures': <Object?>[],
+            'createdAt': '2026-01-01T00:00:00.000Z',
+            'updatedAt': '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      };
+      final result = decodeArchive(jsonEncode(archive));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      expect(
+        result.archive.dances.single.walkthrough.length,
+        kMaxWalkthroughLength,
+      );
+    });
+
+    test('control/bidi chars are stripped from a decoded walkthrough', () {
+      final archive = {
+        'schemaVersion': archiveSchemaVersion,
+        'exportedAt': '2026-01-01T00:00:00.000Z',
+        'dances': [
+          {
+            'id': 'd1',
+            'title': 'Sanitize Me',
+            'authorIds': <String>[],
+            'phraseStructure': '',
+            'walkthrough': 'step1\nstep\u00072\u202E',
+            'figures': <Object?>[],
+            'createdAt': '2026-01-01T00:00:00.000Z',
+            'updatedAt': '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      };
+      final result = decodeArchive(jsonEncode(archive));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      // Legitimate newline survives; control byte and bidi override removed.
+      expect(result.archive.dances.single.walkthrough, 'step1\nstep2');
     });
   });
 }

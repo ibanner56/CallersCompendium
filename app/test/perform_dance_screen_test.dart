@@ -12,6 +12,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_app/src/screens/perform_dance_screen.dart';
+import 'package:compendium_app/src/screens/perform_walkthrough_overlay.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
     show
         kAutoSizePerformKey,
@@ -35,12 +36,14 @@ Dance _dance({
   List<Figure> figures = const [],
   DanceStatus status = DanceStatus.active,
   DanceLevel? level,
+  String walkthrough = '',
 }) => Dance(
   id: id,
   title: title,
   figures: figures,
   status: status,
   level: level,
+  walkthrough: walkthrough,
   createdAt: _now,
   updatedAt: _now,
 );
@@ -865,5 +868,107 @@ void main() {
         greaterThan(kPerformDefaultScale),
       );
     });
+  });
+
+  group('walkthrough overlay (issue #370)', () {
+    testWidgets('no toggle is shown when the dance has no walkthrough', (
+      tester,
+    ) async {
+      await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-toggle')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('toggling shows then hides the walkthrough overlay', (
+      tester,
+    ) async {
+      await _pumpPerform(
+        tester,
+        dance: _dance(
+          figures: [_chain()],
+          walkthrough: 'A1: neighbours balance and swing.',
+        ),
+      );
+
+      final toggle = find.byKey(const ValueKey('perform-walkthrough-toggle'));
+      expect(toggle, findsOneWidget);
+      // Off by default: the overlay is absent until requested.
+      expect(find.byType(PerformWalkthroughOverlay), findsNothing);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+      expect(find.text('A1: neighbours balance and swing.'), findsOneWidget);
+
+      // Closing from within the overlay hides it again.
+      await tester.tap(find.byKey(const ValueKey('perform-walkthrough-close')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerformWalkthroughOverlay), findsNothing);
+    });
+
+    testWidgets(
+      'overlay is a sibling of the card, never inside its auto-size subtree',
+      (tester) async {
+        // The overlay must not participate in PerformCard's _FitToHeight
+        // measurement (#370/#527): assert it is NOT a descendant of the card
+        // even with auto-size on, so surfacing it can never shrink the notation.
+        await _pumpPerform(
+          tester,
+          autoSize: true,
+          dance: _dance(
+            figures: [_chain()],
+            walkthrough: 'A1: neighbours balance and swing.',
+          ),
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('perform-walkthrough-toggle')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(PerformCard),
+            matching: find.byType(PerformWalkthroughOverlay),
+          ),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'a tap outside the panel is absorbed and dismisses the overlay',
+      (tester) async {
+        // The overlay installs a full-screen barrier so taps behind it can't
+        // reach the card/navigation; an outside tap closes it (a modal panel).
+        await _pumpPerform(
+          tester,
+          dance: _dance(
+            figures: [_chain()],
+            walkthrough: 'A1: neighbours balance and swing.',
+          ),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('perform-walkthrough-toggle')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+        final barrier = find.descendant(
+          of: find.byType(PerformWalkthroughOverlay),
+          matching: find.byType(ModalBarrier),
+        );
+        expect(barrier, findsOneWidget);
+
+        // Tapping the barrier (the area outside the bottom panel) dismisses the
+        // overlay, proving it absorbs taps that would otherwise reach the card
+        // / edge navigation behind it.
+        await tester.tap(barrier, warnIfMissed: false);
+        await tester.pumpAndSettle();
+        expect(find.byType(PerformWalkthroughOverlay), findsNothing);
+      },
+    );
   });
 }
