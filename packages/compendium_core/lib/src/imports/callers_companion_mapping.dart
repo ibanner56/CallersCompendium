@@ -431,18 +431,30 @@ const int _kMaxDateLength = 64;
 /// Lower-cased keys; lookups lower-case their input. Includes the `sept`
 /// abbreviation in addition to the canonical `sep`.
 const Map<String, int> _ccMonthNames = {
-  'january': 1, 'jan': 1,
-  'february': 2, 'feb': 2,
-  'march': 3, 'mar': 3,
-  'april': 4, 'apr': 4,
+  'january': 1,
+  'jan': 1,
+  'february': 2,
+  'feb': 2,
+  'march': 3,
+  'mar': 3,
+  'april': 4,
+  'apr': 4,
   'may': 5,
-  'june': 6, 'jun': 6,
-  'july': 7, 'jul': 7,
-  'august': 8, 'aug': 8,
-  'september': 9, 'sep': 9, 'sept': 9,
-  'october': 10, 'oct': 10,
-  'november': 11, 'nov': 11,
-  'december': 12, 'dec': 12,
+  'june': 6,
+  'jun': 6,
+  'july': 7,
+  'jul': 7,
+  'august': 8,
+  'aug': 8,
+  'september': 9,
+  'sep': 9,
+  'sept': 9,
+  'october': 10,
+  'oct': 10,
+  'november': 11,
+  'nov': 11,
+  'december': 12,
+  'dec': 12,
 };
 
 /// Builds a [PartialDate] via the validating constructor, returning `null`
@@ -587,8 +599,9 @@ _DateParse _parseNumericDate(
   String which,
   List<ImportIssue> issues,
 ) {
-  final parts = RegExp(r'^(\d{1,4})[/.\-](\d{1,4})(?:[/.\-](\d{1,4}))?$')
-      .firstMatch(value);
+  final parts = RegExp(
+    r'^(\d{1,4})[/.\-](\d{1,4})(?:[/.\-](\d{1,4}))?$',
+  ).firstMatch(value);
   if (parts == null) return _noMatch;
 
   final a = parts.group(1)!;
