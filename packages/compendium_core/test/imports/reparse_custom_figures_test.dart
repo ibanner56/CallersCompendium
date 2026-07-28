@@ -218,5 +218,26 @@ void main() {
       expect(result.upgradedCount, 0);
       expect(result.figures, isEmpty);
     });
+
+    group('fan-out across source front-ends', () {
+      test('upgrades an import-gap custom whose text is a CallersBox/TCB hey '
+          'pass-list (the fan-out reaches the TCB front-end)', () {
+        final result = reparseImportGapFigures([
+          importGap('hey 1/2 (ml;pr)', beats: 8),
+        ]);
+        expect(result.upgradedCount, 1);
+        final f = result.figures.single;
+        expect(f.isCustom, isFalse);
+        expect(f.move, 'hey');
+        expect(f.params['beats'], 8);
+      });
+
+      test('the hey upgrade is idempotent (a second run changes nothing)', () {
+        final first = reparseImportGapFigures([importGap('hey 1/2 (ml;pr)')]);
+        final second = reparseImportGapFigures(first.figures);
+        expect(second.upgradedCount, 0);
+        expect(identical(second.figures, first.figures), isTrue);
+      });
+    });
   });
 }

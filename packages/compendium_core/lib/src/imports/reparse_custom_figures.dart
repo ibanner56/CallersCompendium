@@ -2,8 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../model/figure.dart';
 import '../taxonomy/taxonomy.dart';
-import 'callersbox_figure_dialect.dart';
-import 'figure_parser.dart';
+import 'figure_front_end_fan_out.dart';
 
 /// Upper bound on the length of stored custom text we will feed back through
 /// the parser. Import-gap text is a single figure line (typically a few dozen
@@ -33,15 +32,16 @@ class FigureReparseOutcome {
   bool get changed => upgradedCount > 0;
 }
 
-/// Re-runs the current [parseFigureLine] over the stored text of every
-/// [CustomOrigin.importGap] custom figure in [figures], upgrading in place any
-/// that now map to a structured taxonomy move.
+/// Re-runs the fan-out parser ([parseFigureLineFanOut]) over the stored text of
+/// every [CustomOrigin.importGap] custom figure in [figures], upgrading in place
+/// any that now map to a structured taxonomy move.
 ///
 /// This is the local-first heart of issue #417: an import-gap custom only ever
 /// existed because the parser could not map its source line at import time
-/// (#398). Improved taxonomy/recognizers since then can now structure some of
-/// those lines — without the user deleting and re-importing (which would lose
-/// their tags, ratings, notes, etc.).
+/// (#398). Improved taxonomy/recognizers since then — and now the fan-out across
+/// all three source front-ends (ContraDB > CallersBox > CallersCompanion) — can
+/// structure some of those lines without the user deleting and re-importing
+/// (which would lose their tags, ratings, notes, etc.).
 ///
 /// Contract:
 /// - Only figures with `isCustom && customOrigin == CustomOrigin.importGap` are
@@ -53,8 +53,8 @@ class FigureReparseOutcome {
 ///   operation idempotent: a second run finds nothing further to upgrade.
 /// - Untrusted stored text is guarded before parsing (must be a non-empty
 ///   String no longer than [maxReparseTextLength]; beats coerced to a safe
-///   non-negative int). [parseFigureLine] itself never throws (parse-never-
-///   fails), so a malformed line degrades to custom rather than crashing.
+///   non-negative int). [parseFigureLineFanOut] itself never throws (parse-
+///   never-fails), so a malformed line degrades to custom rather than crashing.
 /// - When nothing changes the input list is returned unchanged (identity
 ///   preserved) so repository callers can cheaply skip the write.
 FigureReparseOutcome reparseImportGapFigures(
@@ -98,12 +98,11 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy) {
   final rawBeats = figure.params['beats'];
   final beats = rawBeats is int && rawBeats > 0 ? rawBeats : 0;
 
-  final parsed = parseFigureLine(
+  final parsed = parseFigureLineFanOut(
     text,
     beats: beats,
     progression: figure.progression,
     taxonomy: taxonomy,
-    frontEnd: tcbFigureFrontEnd,
   );
 
   // Keep the original when the re-parse is empty or still custom: an import-gap
