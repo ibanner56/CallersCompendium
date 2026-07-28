@@ -90,6 +90,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _figure8,
       _squareThrough,
       _formALongWave,
+      _dolphinHey,
     ];
 
 // --- Recognizers ------------------------------------------------------------
@@ -624,9 +625,49 @@ FigureMatch? _madRobin(String text) {
   return FigureMatch('mad_robin', params: params, note: s.note());
 }
 
-/// dolphinHeyWords is intentionally NOT handled yet: its `whom` is a
-/// single-dancer identity (`onesRole1` …) and the render names that single
-/// dancer, which needs single-dancer parsing not built here.
+/// dolphinHeyWords. Renders as: "dolphin hey - start with WHO passing WHOM by
+/// SHOULDER", where WHOM is a single dancer ("[the] first|second
+/// gentlespoon|ladle", scrubbed to "first|second role1|role2").
+FigureMatch? _dolphinHey(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('dolphin hey')) return null;
+  if (!s.eat('-')) return null;
+  if (!s.eatPhrase('start with')) return null;
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eat('passing')) return null;
+  final whom = _singleDancer(s);
+  if (whom == null) return null;
+  if (!s.eat('by')) return null;
+  final params = <String, Object?>{'who': who, 'whom': whom};
+  final side = _shoulderPhrase(s);
+  if (side != null) params['shoulder'] = side;
+  return FigureMatch('dolphin_hey', params: params, note: s.note());
+}
+
+/// Consumes a single-dancer identity `[the] first|second role1|role2` →
+/// `onesRole1`/`onesRole2`/`twosRole1`/`twosRole2`.
+String? _singleDancer(_Scan s) {
+  s.eat('the');
+  final String couple;
+  if (s.eat('first')) {
+    couple = 'ones';
+  } else if (s.eat('second')) {
+    couple = 'twos';
+  } else {
+    return null;
+  }
+  final role = s.peek();
+  if (role == 'role1' || role == 'role1s') {
+    s.take();
+    return couple == 'ones' ? 'onesRole1' : 'twosRole1';
+  }
+  if (role == 'role2' || role == 'role2s') {
+    s.take();
+    return couple == 'ones' ? 'onesRole2' : 'twosRole2';
+  }
+  return null;
+}
 
 /// pass by (generic renderer): `<who> pass by [<side> shoulders]`.
 FigureMatch? _passBy(String text) {
@@ -874,7 +915,7 @@ FigureMatch? _poussette(String text) {
     half = 'full';
   }
   if (!s.eat('poussette')) return null;
-  final params = <String, Object?>{if (half != null) 'half': half};
+  final params = <String, Object?>{'half': ?half};
   if (s.eat('-')) {
     final who = _subject(s);
     if (who != null && s.eat('pull')) {
@@ -964,7 +1005,7 @@ FigureMatch? _figure8(String text) {
     half = 'full';
   }
   if (!s.eatPhrase('figure 8')) return null;
-  final params = <String, Object?>{'who': who, if (half != null) 'half': half};
+  final params = <String, Object?>{'who': who, 'half': ?half};
   final d = s.peek();
   if (d == 'above' || d == 'below' || d == 'across') {
     s.take();

@@ -401,6 +401,16 @@ void main() {
       expect(f.params['in'], isTrue);
       expect(f.params['balance'], isTrue);
     });
+
+    test('dolphin hey (single-dancer whom)', () {
+      final f = _parse(
+        'dolphin hey - start with ones passing the first ladle by right shoulders',
+      );
+      expect(f.move, 'dolphin_hey');
+      expect(f.params['who'], 'ones');
+      expect(f.params['whom'], 'onesRole2');
+      expect(f.params['shoulder'], 'right');
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — ocean wave family', () {
