@@ -237,6 +237,54 @@ void main() {
       expect(f.move, 'mad_robin');
       expect(f.params['who'], 'role1s');
     });
+
+    test('pass through across', () {
+      final f = _parse('pass through across');
+      expect(f.move, 'pass_through');
+      expect(f.params['dir'], 'across');
+    });
+
+    test('pull by dancers', () {
+      final f = _parse('neighbors pull by right');
+      expect(f.move, 'pull_by_dancers');
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['hand'], 'right');
+    });
+
+    test('pull by direction', () {
+      final f = _parse('pull by right along');
+      expect(f.move, 'pull_by_direction');
+      expect(f.params['hand'], 'right');
+      expect(f.params['dir'], 'along');
+    });
+
+    test('gate', () {
+      final f = _parse('ones gate neighbors to face up the set');
+      expect(f.move, 'gate');
+      expect(f.params['who'], 'ones');
+      expect(f.params['whom'], 'neighbors');
+      expect(f.params['face'], 'up');
+    });
+
+    test('contra corners', () {
+      final f = _parse('ones contra corners');
+      expect(f.move, 'contra_corners');
+      expect(f.params['who'], 'ones');
+    });
+
+    test("Rory O'More", () {
+      final f = _parse("balance rory o'more right");
+      expect(f.move, 'rory_o_more');
+      expect(f.params['balance'], isTrue);
+      expect(f.params['slide'], 'right');
+    });
+
+    test('star promenade', () {
+      final f = _parse('star promenade left ½');
+      expect(f.move, 'star_promenade');
+      expect(f.params['hand'], 'left');
+      expect(f.params['turn'], 0.5);
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — ocean wave family', () {

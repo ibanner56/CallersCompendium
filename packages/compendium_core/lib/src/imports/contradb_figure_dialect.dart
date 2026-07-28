@@ -50,6 +50,8 @@ const List<FigureMatch? Function(String)> _recognizers =
       _longLines,
       _balanceTheRing,
       _petronella,
+      _roryOMore,
+      _pullByDirection,
       _balance,
       _doSiDo,
       _allemande,
@@ -70,6 +72,11 @@ const List<FigureMatch? Function(String)> _recognizers =
       _turnAlone,
       _madRobin,
       _passBy,
+      _passThrough,
+      _pullByDancers,
+      _gate,
+      _contraCorners,
+      _starPromenade,
     ];
 
 // --- Recognizers ------------------------------------------------------------
@@ -588,6 +595,116 @@ FigureMatch? _passBy(String text) {
   return FigureMatch('pass_by', params: params, note: s.note());
 }
 
+/// passThroughWords: `pass through [<side> shoulders] <dir>`. ContraDB always
+/// renders a direction; a bare "pass through" (or a TCB annotation like "(NR)")
+/// is left to the canonical core / custom fallback.
+FigureMatch? _passThrough(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('pass through')) return null;
+  final params = <String, Object?>{};
+  final side = _shoulderPhrase(s);
+  if (side != null) params['shoulder'] = side;
+  final dir = _direction(s.peek());
+  if (dir == null) return null;
+  s.take();
+  params['dir'] = dir;
+  return FigureMatch('pass_through', params: params, note: s.note());
+}
+
+/// pullByDancersWords: `<who> [balance] pull by <hand>`.
+FigureMatch? _pullByDancers(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  final balance = s.eat('balance');
+  if (!s.eatPhrase('pull by')) return null;
+  final hand = _leftRight(s.peek());
+  if (hand == null) return null;
+  s.take();
+  return FigureMatch(
+    'pull_by_dancers',
+    params: {'who': who, if (balance) 'balance': true, 'hand': hand},
+    note: s.note(),
+  );
+}
+
+/// pullByDirectionWords (non-diagonal): `[balance] pull by <hand> <dir>`.
+FigureMatch? _pullByDirection(String text) {
+  final s = _Scan(text);
+  final balance = s.eat('balance');
+  if (!s.eatPhrase('pull by')) return null;
+  final hand = _leftRight(s.peek());
+  if (hand == null) return null;
+  s.take();
+  final params = <String, Object?>{if (balance) 'balance': true, 'hand': hand};
+  final dir = _direction(s.peek());
+  if (dir != null) {
+    s.take();
+    params['dir'] = dir;
+  }
+  return FigureMatch('pull_by_direction', params: params, note: s.note());
+}
+
+/// gateWords: `<who> gate <whom> to face <direction>`.
+FigureMatch? _gate(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eat('gate')) return null;
+  final whom = _subject(s);
+  if (whom == null) return null;
+  if (!s.eatPhrase('to face')) return null;
+  final face = _gateFace(s);
+  final params = <String, Object?>{'who': who, 'whom': whom};
+  if (face != null) params['face'] = face;
+  return FigureMatch('gate', params: params, note: s.note());
+}
+
+/// contra corners (generic renderer): `<who> contra corners`. Any authored
+/// detail (the custom_figure param) survives verbatim as the note.
+FigureMatch? _contraCorners(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eatPhrase('contra corners')) return null;
+  return FigureMatch('contra_corners', params: {'who': who}, note: s.note());
+}
+
+/// roryOMoreWords: `[balance] [<who>] Rory O'More <slide>`.
+FigureMatch? _roryOMore(String text) {
+  final s = _Scan(text);
+  final balance = s.eat('balance');
+  final who = _subject(s);
+  if (!s.eatPhrase("rory o'more")) return null;
+  final params = <String, Object?>{'balance': balance};
+  if (who != null) params['who'] = who;
+  final slide = _leftRight(s.peek());
+  if (slide != null) {
+    s.take();
+    params['slide'] = slide;
+  }
+  return FigureMatch('rory_o_more', params: params, note: s.note());
+}
+
+/// starPromenadeWords: `[<who>] star promenade <hand> <rotation>` (who omitted
+/// when it is the role1s default).
+FigureMatch? _starPromenade(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (!s.eatPhrase('star promenade')) return null;
+  final hand = _leftRight(s.peek());
+  if (hand == null) return null;
+  s.take();
+  final params = <String, Object?>{'hand': hand};
+  if (who != null) params['who'] = who;
+  final rot = _rotation(s.peek());
+  if (rot != null) {
+    s.take();
+    params['turn'] = rot;
+  }
+  return FigureMatch('star_promenade', params: params, note: s.note());
+}
+
 // --- Scanning + token helpers -----------------------------------------------
 
 /// A whitespace tokenizer over the (already-scrubbed) figure text that remembers
@@ -718,3 +835,12 @@ const Map<String, String> _directionWords = <String, String>{
 
 String? _direction(String? token) =>
     token == null ? null : _directionWords[token];
+
+/// Consumes a gate-face phrase, returning our `up`/`down`/`in`/`out`.
+String? _gateFace(_Scan s) {
+  if (s.eatPhrase('up the set')) return 'up';
+  if (s.eatPhrase('down the set')) return 'down';
+  if (s.eatPhrase('into the set')) return 'in';
+  if (s.eatPhrase('out of the set')) return 'out';
+  return null;
+}
