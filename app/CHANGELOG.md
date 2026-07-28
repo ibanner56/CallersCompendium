@@ -19,7 +19,8 @@ This section covers the `0.1.0` line. **`v0.1.0-beta.4`** (this pre-release) bui
 on **`v0.1.0-beta.3`** with the project's biggest round of hardening yet — a broad
 data-safety and update-integrity pass — alongside genuinely new capabilities:
 **venues as a first-class entity**, **free-text figure entry** with your own
-shorthands, **encrypted backups**, **crash diagnostics**, and a **newly multilingual
+shorthands, **portable backups with a built-in integrity check**, **crash
+diagnostics**, and a **newly multilingual
 interface** — the app now speaks German, French, Japanese, Danish, and Dutch alongside
 English. The changes **since beta.3** are grouped first; the standing feature overview
 and install notes follow.
@@ -44,9 +45,10 @@ and install notes follow.
 - **Your own figure shorthands.** Define personal shorthands (e.g. `pt` → *pass
   through*) that expand — one shorthand can even stand in for several figures — as you
   use free-text entry, so common phrases go in fast.
-- **Optional passphrase-encrypted backup export.** Alongside the plain-text backup you
-  can now export an encrypted backup protected by a passphrase, for extra safety when
-  a backup leaves your device. The default JSON export is unchanged and stays readable.
+- **Backups now carry an integrity check.** Every exported backup wraps your data in a
+  built-in **SHA-256 checksum**, so a corrupted or altered file is caught and refused at
+  restore — before any of your current data is touched — instead of importing something
+  damaged. The export stays a single, human-readable `.json` file.
 - **Crash diagnostics.** Unexpected errors are now caught and written to a local,
   rotating crash log you can view, export, and clear from **Settings ▸ Diagnostics**.
   Exports scrub your dance content, file paths, and contact details by default; there
@@ -97,6 +99,15 @@ and install notes follow.
   the same fuller rendering you see on screen, so balances, enders, hey length, and
   hall direction are no longer dropped from exports.
 
+### Removed
+
+- **Passphrase-encrypted backups (`.ccbackup`) have been dropped.** A short-lived
+  earlier beta offered an optional encrypted backup; backups are now always a plain,
+  human-readable `.json` file protected by an integrity checksum (see Added). Backups
+  carry no personal data, so encryption added complexity without a real safety benefit.
+  **Breaking:** the app can no longer open existing `.ccbackup` files. If you have one,
+  restore it with the older build and export a fresh `.json` backup.
+
 ### Fixed
 
 - **Deleting a dance, venue, or related-dance link can no longer corrupt your data.** A
@@ -126,6 +137,10 @@ or tampered with:
 - **Atomic backups and all-or-nothing restore.** Backups are written to a temporary
   file and swapped into place, so an interrupted write can't corrupt your last good
   backup; a replace-mode restore now fully succeeds or leaves your data untouched.
+- **Tamper-evident backups.** Every backup carries a SHA-256 integrity checksum; a
+  corrupted or altered file fails the check and is refused at restore, before any of
+  your current data is touched. (This is a corruption/tamper check, not encryption —
+  backups stay plain, human-readable JSON.)
 - **Single-instance desktop guard.** Running a second copy on desktop no longer risks a
   database-lock race.
 - **Hardened imports.** Imported text is sanitized against control, bidirectional, and
@@ -193,7 +208,7 @@ or tampered with:
 - **Search the way you talk.** Dialect-aware search and filtering understands the
   terminology you use, whichever tradition you call in.
 - **Keep your data yours.** Export a full backup to a single human-readable JSON file
-  (or a passphrase-encrypted one) and restore it on another machine — no account, no
+  (with a built-in integrity check) and restore it on another machine — no account, no
   cloud, no telemetry.
 
 ### Platforms & install

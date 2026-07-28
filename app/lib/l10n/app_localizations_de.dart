@@ -695,23 +695,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Sicherung & Wiederherstellung';
 
   @override
-  String get backupEncryptingProgress => 'Sicherung wird verschlüsselt…';
-
-  @override
-  String get backupEncryptedExported => 'Verschlüsselte Sicherung exportiert.';
-
-  @override
   String get backupExported => 'Sicherung exportiert.';
 
   @override
   String get backupExportFailed => 'Sicherung konnte nicht exportiert werden.';
 
   @override
-  String get backupDecryptingProgress => 'Sicherung wird entschlüsselt…';
-
-  @override
-  String get backupDecryptFailed =>
-      'Sicherung konnte nicht entschlüsselt werden. Ihre Daten sind unverändert.';
+  String get backupRestoreIntegrityFailed =>
+      'Diese Sicherung hat die Integritätsprüfung nicht bestanden, daher ist sie möglicherweise beschädigt oder wurde nach dem Export verändert. Die Wiederherstellung wurde abgebrochen und Ihre Daten sind unverändert.';
 
   @override
   String get backupRestoreIncompatibleVersion =>
@@ -789,61 +780,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get backupReplaceAllDataAction => 'Alle Daten ersetzen';
-
-  @override
-  String get backupExportDialogBody =>
-      'Dies speichert alles in der App – Ihre Sammlung, Programme, Dialekte, Designs und Einstellungen – in eine Datei, die Sie aufbewahren oder auf ein anderes Gerät übertragen können.';
-
-  @override
-  String get backupEncryptToggleTitle =>
-      'Diese Sicherung mit einer Passphrase verschlüsseln';
-
-  @override
-  String get backupEncryptToggleSubtitle =>
-      'Schützt die Datei, sodass sie nur mit der Passphrase geöffnet werden kann.';
-
-  @override
-  String get backupPassphraseLabel => 'Passphrase';
-
-  @override
-  String get backupConfirmPassphraseLabel => 'Passphrase bestätigen';
-
-  @override
-  String get backupPassphrasesDontMatch => 'Passphrasen stimmen nicht überein';
-
-  @override
-  String backupPassphraseStrength(String level) {
-    String _temp0 = intl.Intl.selectLogic(level, {
-      'weak': 'Stärke: Schwach',
-      'fair': 'Stärke: Mittel',
-      'strong': 'Stärke: Stark',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String get backupShowPassphrase => 'Passphrase anzeigen';
-
-  @override
-  String get backupHidePassphrase => 'Passphrase verbergen';
-
-  @override
-  String get backupNoRecoveryWarning =>
-      'Diese Passphrase kann nicht wiederhergestellt werden. Wenn Sie sie verlieren, kann diese Sicherung nie mehr geöffnet werden – es gibt keinen Reset und keine Wiederherstellungsmöglichkeit. Bewahren Sie sie an einem sicheren Ort auf.';
-
-  @override
-  String get backupEncryptAndExportAction => 'Verschlüsseln & exportieren';
-
-  @override
-  String get backupEnterPassphraseTitle => 'Passphrase eingeben';
-
-  @override
-  String get backupEnterPassphraseBody =>
-      'Diese Sicherung ist verschlüsselt. Geben Sie die Passphrase ein, um sie zu entsperren und wiederherzustellen.';
-
-  @override
-  String get backupUnlockAndRestoreAction => 'Entsperren & wiederherstellen';
 
   @override
   String get diagnosticsNoDiagnosticsToExport =>

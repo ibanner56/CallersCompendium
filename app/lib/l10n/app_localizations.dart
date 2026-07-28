@@ -1256,18 +1256,6 @@ abstract class AppLocalizations {
   /// **'Backup & restore'**
   String get settingsGeneralBackupRestoreHeader;
 
-  /// Modal progress message shown while a backup export is being encrypted.
-  ///
-  /// In en, this message translates to:
-  /// **'Encrypting backup…'**
-  String get backupEncryptingProgress;
-
-  /// Snackbar confirming an encrypted backup was exported.
-  ///
-  /// In en, this message translates to:
-  /// **'Encrypted backup exported.'**
-  String get backupEncryptedExported;
-
   /// Snackbar confirming an unencrypted backup was exported.
   ///
   /// In en, this message translates to:
@@ -1280,17 +1268,11 @@ abstract class AppLocalizations {
   /// **'Couldn\'t export a backup.'**
   String get backupExportFailed;
 
-  /// Modal progress message shown while an encrypted backup is being decrypted before restore.
+  /// Snackbar shown when a backup is refused because its SHA-256 integrity checksum did not verify (issue #536): the file is corrupt or was altered after export, so the restore does not run and data is unchanged.
   ///
   /// In en, this message translates to:
-  /// **'Decrypting backup…'**
-  String get backupDecryptingProgress;
-
-  /// Snackbar shown when decrypting an encrypted backup fails unexpectedly. The restore does not run, so existing data is unchanged.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t decrypt the backup. Your data is unchanged.'**
-  String get backupDecryptFailed;
+  /// **'This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was cancelled and your data is unchanged.'**
+  String get backupRestoreIntegrityFailed;
 
   /// Snackbar shown when a valid backup contains data too new for this app version, so restore is refused without changing local data.
   ///
@@ -1423,90 +1405,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Replace all data'**
   String get backupReplaceAllDataAction;
-
-  /// Introductory text in the export-backup dialog explaining what the backup contains.
-  ///
-  /// In en, this message translates to:
-  /// **'This saves everything in the app — your collection, programs, dialects, themes, and settings — to a file you can keep or move to another device.'**
-  String get backupExportDialogBody;
-
-  /// Title of the export-backup dialog toggle that encrypts the backup with a passphrase.
-  ///
-  /// In en, this message translates to:
-  /// **'Encrypt this backup with a passphrase'**
-  String get backupEncryptToggleTitle;
-
-  /// Subtitle explaining the encrypted-backup toggle.
-  ///
-  /// In en, this message translates to:
-  /// **'Protects the file so only someone with the passphrase can open it.'**
-  String get backupEncryptToggleSubtitle;
-
-  /// Text field label for backup encryption/decryption passphrase entry.
-  ///
-  /// In en, this message translates to:
-  /// **'Passphrase'**
-  String get backupPassphraseLabel;
-
-  /// Text field label for confirming the export-backup encryption passphrase.
-  ///
-  /// In en, this message translates to:
-  /// **'Confirm passphrase'**
-  String get backupConfirmPassphraseLabel;
-
-  /// Validation error shown when the backup encryption passphrase and confirmation differ.
-  ///
-  /// In en, this message translates to:
-  /// **'Passphrases don\'t match'**
-  String get backupPassphrasesDontMatch;
-
-  /// Passphrase strength label shown next to the strength meter in the export-backup dialog. The level token comes from the local strength estimator.
-  ///
-  /// In en, this message translates to:
-  /// **'{level, select, weak{Strength: Weak} fair{Strength: Fair} strong{Strength: Strong} other{}}'**
-  String backupPassphraseStrength(String level);
-
-  /// Tooltip on the passphrase visibility button when the passphrase is currently hidden.
-  ///
-  /// In en, this message translates to:
-  /// **'Show passphrase'**
-  String get backupShowPassphrase;
-
-  /// Tooltip on the passphrase visibility button when the passphrase is currently visible.
-  ///
-  /// In en, this message translates to:
-  /// **'Hide passphrase'**
-  String get backupHidePassphrase;
-
-  /// Warning in the export-backup dialog that encrypted backup passphrases cannot be recovered.
-  ///
-  /// In en, this message translates to:
-  /// **'We can\'t recover this passphrase. If you lose it, this backup can never be opened — there is no reset and no recovery. Store it somewhere safe.'**
-  String get backupNoRecoveryWarning;
-
-  /// Confirm button label in the export-backup dialog when encryption is enabled.
-  ///
-  /// In en, this message translates to:
-  /// **'Encrypt & export'**
-  String get backupEncryptAndExportAction;
-
-  /// Title of the dialog that asks for the passphrase of an encrypted backup before restore.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter passphrase'**
-  String get backupEnterPassphraseTitle;
-
-  /// Body text in the encrypted-backup passphrase prompt before restore.
-  ///
-  /// In en, this message translates to:
-  /// **'This backup is encrypted. Enter its passphrase to unlock and restore it.'**
-  String get backupEnterPassphraseBody;
-
-  /// Confirm button label in the encrypted-backup passphrase prompt.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlock & restore'**
-  String get backupUnlockAndRestoreAction;
 
   /// Snackbar shown when the user tries to export diagnostics but the local diagnostics log is empty.
   ///

@@ -793,11 +793,13 @@ Store.
 ### Export compliance (handled via `Info.plist`, no per-build action)
 
 `app/ios/Runner/Info.plist` sets `ITSAppUsesNonExemptEncryption` = `false`.
-Caller's Compendium is local-first and uses only standard/exempt encryption
-(HTTPS for the update check), so it qualifies for the export-compliance
-exemption. Declaring this in the bundle makes **every** TestFlight/App Store
-upload skip the per-build "Missing Compliance" question in App Store Connect —
-neither CI nor testers need to answer it. No per-build action is required.
+Caller's Compendium is local-first and uses only standard/exempt cryptography
+(HTTPS for the update check, Ed25519 update-manifest signatures, and a SHA-256
+integrity checksum on exported backups — all authentication/hashing, no
+confidentiality), so it qualifies for the export-compliance exemption.
+Declaring this in the bundle makes **every** TestFlight/App Store upload skip
+the per-build "Missing Compliance" question in App Store Connect — neither CI
+nor testers need to answer it. No per-build action is required.
 
 ### Maintainer: obtain the App Store Connect API key (one-time, out-of-band)
 

@@ -688,23 +688,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Sikkerhedskopiering og gendannelse';
 
   @override
-  String get backupEncryptingProgress => 'Krypterer sikkerhedskopi…';
-
-  @override
-  String get backupEncryptedExported => 'Krypteret sikkerhedskopi eksporteret.';
-
-  @override
   String get backupExported => 'Sikkerhedskopi eksporteret.';
 
   @override
   String get backupExportFailed => 'Kunne ikke eksportere en sikkerhedskopi.';
 
   @override
-  String get backupDecryptingProgress => 'Dekrypterer sikkerhedskopi…';
-
-  @override
-  String get backupDecryptFailed =>
-      'Kunne ikke dekryptere sikkerhedskopien. Dine data er uændret.';
+  String get backupRestoreIntegrityFailed =>
+      'Denne sikkerhedskopi bestod ikke integritetstjekket, så den kan være beskadiget eller ændret efter eksporten. Gendannelsen blev annulleret, og dine data er uændret.';
 
   @override
   String get backupRestoreIncompatibleVersion =>
@@ -781,62 +772,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get backupReplaceAllDataAction => 'Erstat alle data';
-
-  @override
-  String get backupExportDialogBody =>
-      'Dette gemmer alt i appen – din samling, programmer, dialekter, temaer og indstillinger – i én JSON-fil.';
-
-  @override
-  String get backupEncryptToggleTitle =>
-      'Kryptér denne sikkerhedskopi med en adgangssætning';
-
-  @override
-  String get backupEncryptToggleSubtitle =>
-      'Beskytter filen, så kun nogen med adgangssætningen kan åbne den.';
-
-  @override
-  String get backupPassphraseLabel => 'Adgangssætning';
-
-  @override
-  String get backupConfirmPassphraseLabel => 'Bekræft adgangssætning';
-
-  @override
-  String get backupPassphrasesDontMatch =>
-      'Adgangssætningerne stemmer ikke overens';
-
-  @override
-  String backupPassphraseStrength(String level) {
-    String _temp0 = intl.Intl.selectLogic(level, {
-      'weak': 'Styrke: Svag',
-      'fair': 'Styrke: Fair',
-      'strong': 'Styrke: Stærk',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String get backupShowPassphrase => 'Vis adgangssætning';
-
-  @override
-  String get backupHidePassphrase => 'Skjul adgangssætning';
-
-  @override
-  String get backupNoRecoveryWarning =>
-      'Vi kan ikke gendanne denne adgangssætning. Hvis du mister den, kan denne sikkerhedskopi aldrig åbnes – der er ingen nulstilling og ingen gendannelse. Opbevar den et sikkert sted.';
-
-  @override
-  String get backupEncryptAndExportAction => 'Kryptér og eksportér';
-
-  @override
-  String get backupEnterPassphraseTitle => 'Indtast adgangssætning';
-
-  @override
-  String get backupEnterPassphraseBody =>
-      'Denne sikkerhedskopi er krypteret. Indtast dens adgangssætning for at låse op og gendanne den.';
-
-  @override
-  String get backupUnlockAndRestoreAction => 'Lås op og gendan';
 
   @override
   String get diagnosticsNoDiagnosticsToExport =>

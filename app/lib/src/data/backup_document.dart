@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:crypto/crypto.dart' as crypto;
 
 import 'custom_theme.dart';
 
@@ -12,6 +13,24 @@ import 'custom_theme.dart';
 /// reads a newer version on a best-effort basis with a warning rather than
 /// failing.
 const int backupSchemaVersion = 1;
+
+/// Current version of the backup **container** envelope (issue #536).
+///
+/// The container wraps the [BackupDocument] JSON [payload] with a SHA-256
+/// integrity checksum so a corrupted or altered backup fails to restore
+/// *loudly* instead of silently importing garbage. This is deliberately just a
+/// plain hash, not a keyed MAC: it detects accidental corruption and casual
+/// tampering, **not** a determined adversary (who could recompute the hash).
+/// Confidentiality is intentionally out of scope — backups replaced the former
+/// opt-in `.ccbackup` encryption (see #536 for the rationale).
+///
+/// Bumped independently of [backupSchemaVersion], which versions the *document*
+/// carried inside the payload.
+const int backupContainerVersion = 1;
+
+/// The only checksum algorithm the container understands. A backup that names
+/// anything else is refused rather than trusted.
+const String kBackupChecksumAlgorithm = 'sha256';
 
 /// A full-fidelity snapshot of the *entire* app state (ROADMAP G.5).
 ///
@@ -72,6 +91,7 @@ class BackupReadResult {
     this.errors = const [],
     this.warnings = const [],
     this.fatal = false,
+    this.integrityFailed = false,
     this.coreHasErrors = false,
     this.coreDroppedEntities = 0,
   });
@@ -86,6 +106,13 @@ class BackupReadResult {
   /// replace mode would wipe live data. Per-entity problems (a single corrupt
   /// dialect/theme/dance) are recorded in [errors] but are NOT fatal.
   final bool fatal;
+
+  /// Whether the backup was refused specifically because its **integrity
+  /// checksum did not verify** (issue #536) — the file is corrupt or was
+  /// altered after export, so restoring it could import garbage. Always implies
+  /// [fatal]; tracked separately so the UI can say "this backup failed its
+  /// integrity check" instead of a generic "invalid file".
+  final bool integrityFailed;
 
   /// Whether the **core** archive (the user's collection) had per-entity decode
   /// errors — a dance/program/etc. that could not be read. The envelope is
@@ -120,10 +147,49 @@ class BackupReadResult {
 // Encoding
 // ---------------------------------------------------------------------------
 
-/// Serializes [doc] to a JSON string. The nested core archive is emitted via
-/// the core codec's canonical [archiveToJson] (structured JSON, not a
-/// double-encoded string), so the whole document round-trips deterministically.
-String encodeBackup(BackupDocument doc) => jsonEncode(backupToJson(doc));
+/// Serializes [doc] to an integrity-checked backup **container** string
+/// (issue #536): the canonical document JSON [payload] wrapped with a SHA-256
+/// checksum over its exact UTF-8 bytes. [decodeBackup] verifies that checksum
+/// and refuses a payload that has been corrupted or altered.
+///
+/// The nested core archive is emitted via the core codec's canonical
+/// [archiveToJson] (structured JSON, not a double-encoded string), so the
+/// document round-trips deterministically.
+String encodeBackup(BackupDocument doc) =>
+    jsonEncode(_wrapWithChecksum(encodeBackupPayload(doc)));
+
+/// Serializes just the [doc] payload (no container/checksum) to a JSON string.
+///
+/// This is the exact byte sequence the container checksums and that
+/// [backupFromJson] decodes. Exposed for tests and callers that need the raw
+/// document; production export goes through [encodeBackup].
+String encodeBackupPayload(BackupDocument doc) => jsonEncode(backupToJson(doc));
+
+/// Wraps a document [payload] JSON string in the checksum container object.
+Map<String, Object?> _wrapWithChecksum(String payload) => {
+  'backupContainer': backupContainerVersion,
+  'checksum': {
+    'algorithm': kBackupChecksumAlgorithm,
+    'value': _sha256Hex(payload),
+  },
+  'payload': payload,
+};
+
+/// Lowercase hex SHA-256 of [text]'s UTF-8 bytes.
+String _sha256Hex(String text) =>
+    crypto.sha256.convert(utf8.encode(text)).toString();
+
+/// Constant-time comparison of two equal-purpose hex strings, so verifying the
+/// checksum never leaks position-of-first-difference timing (defensive; the
+/// hash isn't secret, but constant-time compare is the correct habit).
+bool _hexEquals(String a, String b) {
+  if (a.length != b.length) return false;
+  var diff = 0;
+  for (var i = 0; i < a.length; i++) {
+    diff |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+  }
+  return diff == 0;
+}
 
 /// The JSON object for [doc].
 Map<String, Object?> backupToJson(BackupDocument doc) => {
@@ -154,10 +220,19 @@ BackupDocument _emptyDoc() => BackupDocument(
   core: CompendiumArchive(exportedAt: _epoch),
 );
 
-/// Decodes a backup JSON string into a [BackupDocument]. Forward-compatible and
+/// Decodes a backup string into a [BackupDocument]. Forward-compatible and
 /// partial-failure tolerant: unknown keys are ignored, a newer `backupVersion`
 /// reads best-effort with a warning, and a malformed section is skipped and
 /// recorded in [BackupReadResult.errors] while the rest still loads.
+///
+/// Accepts two shapes (issue #536):
+/// - the current **container** — `{backupContainer, checksum, payload}` — whose
+///   `payload` is the document JSON string. Its SHA-256 checksum is verified
+///   first; a missing, malformed, or mismatched checksum is refused as
+///   [BackupReadResult.integrityFailed] (and [BackupReadResult.fatal]) so a
+///   corrupt/altered file never drives a restore.
+/// - a legacy **bare** document object (a plain `.json` exported before #536, or
+///   the inner payload itself), which is decoded directly with no checksum.
 BackupReadResult decodeBackup(String json) {
   Object? root;
   try {
@@ -191,7 +266,97 @@ BackupReadResult decodeBackup(String json) {
       fatal: true,
     );
   }
-  return backupFromJson(root.cast<String, Object?>());
+  final map = root.cast<String, Object?>();
+
+  // Container format (#536): a String `payload` means this is a checksummed
+  // container. Verify integrity before trusting anything inside. Containers
+  // never nest — the verified payload is decoded as a bare document directly,
+  // so a maliciously nested container can't drive unbounded recursion.
+  final rawPayload = map['payload'];
+  if (rawPayload is String) {
+    final integrityError = _verifyContainerChecksum(map, rawPayload);
+    if (integrityError != null) {
+      return BackupReadResult(
+        document: _emptyDoc(),
+        errors: [integrityError],
+        fatal: true,
+        integrityFailed: true,
+      );
+    }
+    Object? inner;
+    try {
+      inner = jsonDecode(rawPayload);
+    } on FormatException catch (e) {
+      return BackupReadResult(
+        document: _emptyDoc(),
+        errors: [
+          ArchiveError(
+            kind: ArchiveErrorKind.read,
+            entityType: 'backup',
+            message:
+                'backup payload is not valid JSON', // i18n-ignore: internal diagnostic, never shown
+            cause: e,
+          ),
+        ],
+        fatal: true,
+      );
+    }
+    if (inner is! Map) {
+      return BackupReadResult(
+        document: _emptyDoc(),
+        errors: const [
+          ArchiveError(
+            kind: ArchiveErrorKind.read,
+            entityType: 'backup',
+            message:
+                'backup payload is not a JSON object', // i18n-ignore: internal diagnostic, never shown
+          ),
+        ],
+        fatal: true,
+      );
+    }
+    return backupFromJson(inner.cast<String, Object?>());
+  }
+
+  // Legacy bare document (plain `.json` exported before #536): decode directly.
+  return backupFromJson(map);
+}
+
+/// Verifies a container's SHA-256 [payload] checksum. Returns `null` when the
+/// checksum is present, uses the supported algorithm, and matches; otherwise
+/// returns the [ArchiveError] describing why the backup must be refused.
+///
+/// A container that omits the checksum, names an unsupported algorithm, or
+/// whose value doesn't match is treated as a failed integrity check rather than
+/// trusted — the whole point is that stripping/altering the checksum can't
+/// launder a tampered payload past the guard.
+ArchiveError? _verifyContainerChecksum(
+  Map<String, Object?> container,
+  String payload,
+) {
+  ArchiveError fail(String message) => ArchiveError(
+    kind: ArchiveErrorKind.read,
+    entityType: 'backup',
+    message: message, // i18n-ignore: internal diagnostic, never shown
+  );
+
+  final rawChecksum = container['checksum'];
+  if (rawChecksum is! Map) {
+    return fail('backup container is missing its integrity checksum');
+  }
+  final checksum = rawChecksum.cast<String, Object?>();
+  final algorithm = checksum['algorithm'];
+  if (algorithm != kBackupChecksumAlgorithm) {
+    return fail('backup uses an unsupported checksum algorithm');
+  }
+  final value = checksum['value'];
+  if (value is! String || value.isEmpty) {
+    return fail('backup integrity checksum is missing or malformed');
+  }
+  if (!_hexEquals(_sha256Hex(payload), value.toLowerCase())) {
+    return fail('backup failed its integrity check (corrupt or altered)');
+  }
+  return null;
 }
 
 /// Decodes an already-parsed backup object. See [decodeBackup].

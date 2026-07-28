@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_app/src/data/backup_document.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -123,5 +125,66 @@ void main() {
     );
     expect(decoded.hasErrors, isFalse);
     expect(decoded.document.settings, isEmpty);
+  });
+
+  group('integrity container (#536)', () {
+    test('encodeBackup wraps the document in a SHA-256 checksum container', () {
+      final envelope = jsonDecode(encodeBackup(_sampleDoc())) as Map;
+      expect(envelope['backupContainer'], backupContainerVersion);
+      final checksum = envelope['checksum'] as Map;
+      expect(checksum['algorithm'], kBackupChecksumAlgorithm);
+      expect(checksum['value'], isA<String>());
+      expect((checksum['value'] as String), isNotEmpty);
+      // The payload is the bare document JSON string (encodeBackupPayload).
+      expect(envelope['payload'], isA<String>());
+      expect(envelope['payload'], encodeBackupPayload(_sampleDoc()));
+    });
+
+    test('a container round-trips through decodeBackup', () {
+      final decoded = decodeBackup(encodeBackup(_sampleDoc()));
+      expect(decoded.fatal, isFalse);
+      expect(decoded.hasErrors, isFalse);
+      expect(decoded.integrityFailed, isFalse);
+      expect(decoded.document.core.dances.map((d) => d.id), ['d1', 'd2']);
+    });
+
+    test('a tampered payload fails the integrity check (fatal, no data)', () {
+      final envelope = jsonDecode(encodeBackup(_sampleDoc())) as Map;
+      // Alter the payload without recomputing the checksum.
+      envelope['payload'] = (envelope['payload'] as String).replaceFirst(
+        'Full Dance',
+        'Tampered Dance',
+      );
+      final decoded = decodeBackup(jsonEncode(envelope));
+
+      expect(decoded.fatal, isTrue);
+      expect(decoded.integrityFailed, isTrue);
+      expect(decoded.document.core.dances, isEmpty);
+    });
+
+    test('a container missing its checksum is refused', () {
+      final envelope = jsonDecode(encodeBackup(_sampleDoc())) as Map
+        ..remove('checksum');
+      final decoded = decodeBackup(jsonEncode(envelope));
+      expect(decoded.fatal, isTrue);
+      expect(decoded.integrityFailed, isTrue);
+    });
+
+    test('a container naming an unsupported algorithm is refused', () {
+      final envelope = jsonDecode(encodeBackup(_sampleDoc())) as Map;
+      (envelope['checksum'] as Map)['algorithm'] = 'md5';
+      final decoded = decodeBackup(jsonEncode(envelope));
+      expect(decoded.fatal, isTrue);
+      expect(decoded.integrityFailed, isTrue);
+    });
+
+    test('a legacy bare document (no container) still decodes', () {
+      // The payload string is exactly a pre-#536 plain `.json` backup.
+      final bare = encodeBackupPayload(_sampleDoc());
+      final decoded = decodeBackup(bare);
+      expect(decoded.fatal, isFalse);
+      expect(decoded.integrityFailed, isFalse);
+      expect(decoded.document.core.dances.map((d) => d.id), ['d1', 'd2']);
+    });
   });
 }

@@ -701,23 +701,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsGeneralBackupRestoreHeader => 'Sauvegarde et restauration';
 
   @override
-  String get backupEncryptingProgress => 'Chiffrement de la sauvegarde…';
-
-  @override
-  String get backupEncryptedExported => 'Sauvegarde chiffrée exportée.';
-
-  @override
   String get backupExported => 'Sauvegarde exportée.';
 
   @override
   String get backupExportFailed => 'Impossible d’exporter une sauvegarde.';
 
   @override
-  String get backupDecryptingProgress => 'Déchiffrement de la sauvegarde…';
-
-  @override
-  String get backupDecryptFailed =>
-      'Impossible de déchiffrer la sauvegarde. Vos données sont inchangées.';
+  String get backupRestoreIntegrityFailed =>
+      'Cette sauvegarde a échoué au contrôle d’intégrité ; elle est peut-être corrompue ou a été modifiée après son exportation. La restauration a été annulée et vos données sont inchangées.';
 
   @override
   String get backupRestoreIncompatibleVersion =>
@@ -794,62 +785,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get backupReplaceAllDataAction => 'Remplacer toutes les données';
-
-  @override
-  String get backupExportDialogBody =>
-      'Ceci enregistre tout le contenu de l’application — votre collection, programmes, dialectes, thèmes et paramètres — dans un fichier que vous pouvez conserver ou transférer vers un autre appareil.';
-
-  @override
-  String get backupEncryptToggleTitle =>
-      'Chiffrer cette sauvegarde avec une phrase secrète';
-
-  @override
-  String get backupEncryptToggleSubtitle =>
-      'Protège le fichier pour que seule une personne connaissant la phrase secrète puisse l’ouvrir.';
-
-  @override
-  String get backupPassphraseLabel => 'Phrase secrète';
-
-  @override
-  String get backupConfirmPassphraseLabel => 'Confirmer la phrase secrète';
-
-  @override
-  String get backupPassphrasesDontMatch =>
-      'Les phrases secrètes ne correspondent pas';
-
-  @override
-  String backupPassphraseStrength(String level) {
-    String _temp0 = intl.Intl.selectLogic(level, {
-      'weak': 'Force : faible',
-      'fair': 'Force : correcte',
-      'strong': 'Force : forte',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String get backupShowPassphrase => 'Afficher la phrase secrète';
-
-  @override
-  String get backupHidePassphrase => 'Masquer la phrase secrète';
-
-  @override
-  String get backupNoRecoveryWarning =>
-      'Nous ne pouvons pas récupérer cette phrase secrète. Si vous la perdez, cette sauvegarde ne pourra jamais être ouverte — il n’existe aucune réinitialisation ni récupération. Conservez-la en lieu sûr.';
-
-  @override
-  String get backupEncryptAndExportAction => 'Chiffrer et exporter';
-
-  @override
-  String get backupEnterPassphraseTitle => 'Saisir la phrase secrète';
-
-  @override
-  String get backupEnterPassphraseBody =>
-      'Cette sauvegarde est chiffrée. Saisissez sa phrase secrète pour la déverrouiller et la restaurer.';
-
-  @override
-  String get backupUnlockAndRestoreAction => 'Déverrouiller et restaurer';
 
   @override
   String get diagnosticsNoDiagnosticsToExport => 'Aucun diagnostic à exporter.';

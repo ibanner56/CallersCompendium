@@ -685,23 +685,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsGeneralBackupRestoreHeader => 'Backup & restore';
 
   @override
-  String get backupEncryptingProgress => 'Encrypting backup…';
-
-  @override
-  String get backupEncryptedExported => 'Encrypted backup exported.';
-
-  @override
   String get backupExported => 'Backup exported.';
 
   @override
   String get backupExportFailed => 'Couldn\'t export a backup.';
 
   @override
-  String get backupDecryptingProgress => 'Decrypting backup…';
-
-  @override
-  String get backupDecryptFailed =>
-      'Couldn\'t decrypt the backup. Your data is unchanged.';
+  String get backupRestoreIntegrityFailed =>
+      'This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was cancelled and your data is unchanged.';
 
   @override
   String get backupRestoreIncompatibleVersion =>
@@ -778,61 +769,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupReplaceAllDataAction => 'Replace all data';
-
-  @override
-  String get backupExportDialogBody =>
-      'This saves everything in the app — your collection, programs, dialects, themes, and settings — to a file you can keep or move to another device.';
-
-  @override
-  String get backupEncryptToggleTitle =>
-      'Encrypt this backup with a passphrase';
-
-  @override
-  String get backupEncryptToggleSubtitle =>
-      'Protects the file so only someone with the passphrase can open it.';
-
-  @override
-  String get backupPassphraseLabel => 'Passphrase';
-
-  @override
-  String get backupConfirmPassphraseLabel => 'Confirm passphrase';
-
-  @override
-  String get backupPassphrasesDontMatch => 'Passphrases don\'t match';
-
-  @override
-  String backupPassphraseStrength(String level) {
-    String _temp0 = intl.Intl.selectLogic(level, {
-      'weak': 'Strength: Weak',
-      'fair': 'Strength: Fair',
-      'strong': 'Strength: Strong',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String get backupShowPassphrase => 'Show passphrase';
-
-  @override
-  String get backupHidePassphrase => 'Hide passphrase';
-
-  @override
-  String get backupNoRecoveryWarning =>
-      'We can\'t recover this passphrase. If you lose it, this backup can never be opened — there is no reset and no recovery. Store it somewhere safe.';
-
-  @override
-  String get backupEncryptAndExportAction => 'Encrypt & export';
-
-  @override
-  String get backupEnterPassphraseTitle => 'Enter passphrase';
-
-  @override
-  String get backupEnterPassphraseBody =>
-      'This backup is encrypted. Enter its passphrase to unlock and restore it.';
-
-  @override
-  String get backupUnlockAndRestoreAction => 'Unlock & restore';
 
   @override
   String get diagnosticsNoDiagnosticsToExport => 'No diagnostics to export.';

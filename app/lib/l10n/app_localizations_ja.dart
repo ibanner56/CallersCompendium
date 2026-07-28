@@ -669,22 +669,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralBackupRestoreHeader => 'バックアップと復元';
 
   @override
-  String get backupEncryptingProgress => 'バックアップを暗号化しています…';
-
-  @override
-  String get backupEncryptedExported => '暗号化されたバックアップをエクスポートしました。';
-
-  @override
   String get backupExported => 'バックアップをエクスポートしました。';
 
   @override
   String get backupExportFailed => 'バックアップをエクスポートできませんでした。';
 
   @override
-  String get backupDecryptingProgress => 'バックアップを復号しています…';
-
-  @override
-  String get backupDecryptFailed => 'バックアップを復号できませんでした。データは変更されていません。';
+  String get backupRestoreIntegrityFailed =>
+      'このバックアップは整合性チェックに失敗しました。破損しているか、エクスポート後に変更された可能性があります。復元はキャンセルされ、データは変更されていません。';
 
   @override
   String get backupRestoreIncompatibleVersion =>
@@ -761,59 +753,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupReplaceAllDataAction => 'すべてのデータを置き換え';
-
-  @override
-  String get backupExportDialogBody =>
-      'アプリ内のすべてのデータ（コレクション、プログラム、ダイアレクト、テーマ、設定）を1つのファイルに保存します。保管したり別のデバイスに移動したりできます。';
-
-  @override
-  String get backupEncryptToggleTitle => 'パスフレーズでこのバックアップを暗号化する';
-
-  @override
-  String get backupEncryptToggleSubtitle => 'パスフレーズを知っている人だけがファイルを開けるよう保護します。';
-
-  @override
-  String get backupPassphraseLabel => 'パスフレーズ';
-
-  @override
-  String get backupConfirmPassphraseLabel => 'パスフレーズを確認';
-
-  @override
-  String get backupPassphrasesDontMatch => 'パスフレーズが一致しません';
-
-  @override
-  String backupPassphraseStrength(String level) {
-    String _temp0 = intl.Intl.selectLogic(level, {
-      'weak': '強度: 弱',
-      'fair': '強度: 普通',
-      'strong': '強度: 強',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String get backupShowPassphrase => 'パスフレーズを表示';
-
-  @override
-  String get backupHidePassphrase => 'パスフレーズを非表示';
-
-  @override
-  String get backupNoRecoveryWarning =>
-      'このパスフレーズは回復できません。失った場合、このバックアップは二度と開けません — リセットも回復もありません。安全な場所に保管してください。';
-
-  @override
-  String get backupEncryptAndExportAction => '暗号化してエクスポート';
-
-  @override
-  String get backupEnterPassphraseTitle => 'パスフレーズを入力';
-
-  @override
-  String get backupEnterPassphraseBody =>
-      'このバックアップは暗号化されています。ロックを解除して復元するにはパスフレーズを入力してください。';
-
-  @override
-  String get backupUnlockAndRestoreAction => 'ロック解除して復元';
 
   @override
   String get diagnosticsNoDiagnosticsToExport => 'エクスポートできる診断情報がありません。';
