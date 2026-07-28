@@ -169,10 +169,16 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
 - **First-cut coverage (in):** swing (+balance/meltdown prefix), balance,
   balance the ring, do si do / see saw, shoulder round (+gypsy), box the gnat /
   swat the flea, allemande, circle, star, chain, long lines, right left
-  through, pass through, promenade, petronella. **Out (→ custom for now):**
-  multi-move lines, heys, poussette, down/up the hall, contra corners, figure
-  8, waves, square through, and anything with `or`/leftover prose. Coverage
-  improves iteratively (design target ≥80% of lines structured over time).
+  through, pass through, promenade, petronella. **Enriched for CallersBox
+  (#553):** roll away, cross trails, figure eight, form (a) long wave(s), trade
+  (→ pass by), lead down/up & go down/up outside (→ down/up the hall `moving`),
+  circulate (→ box circulate, balance folded), weave-the-line `with <dancer>`,
+  relationship N-suffix (`with/to neighbor N2`), and `(A-B)` beat ranges. **Out
+  (→ custom for now, tracked on #295):** balance-in-a-wave, cast off, turn as
+  couples, mad robin & butterfly whirl (need direction/who params), same-role
+  right & left through, diagonal figures, `||` simultaneity, and anything with
+  `or`/leftover prose. Coverage improves iteratively — measured against the full
+  corpus (design target ≥80% of lines structured over time).
 
 ## Error handling & testing
 

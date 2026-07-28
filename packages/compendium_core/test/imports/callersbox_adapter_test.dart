@@ -991,15 +991,25 @@ void main() {
         expect(draft.dance.authorIds, isEmpty);
         expect(draft.authorNames, ['Gene Hubert']);
         expect(draft.dance.callingNotes, isNot(contains('Gene Hubert')));
-        // 8 figures: A1's balance folds into the following swing (PR3b), and in
-        // A2 both "in a line of four" halls now structure (PR3) with the
-        // trailing "Bend the line" folding into the up-the-hall (PR3b), so the
-        // 10 source lines across A1/A2/B1/B2 collapse to 8.
-        expect(draft.dance.figures, hasLength(8));
-        // Recognised lines structure (the balance-and-swing, swings, circle,
-        // star, chain-to-neighbor, and both A2 halls with their "in a line of
-        // four" prefix). Only A2's "Neighbor turn as couples" stays custom.
-        expect(draft.dance.figures.where((f) => f.isCustom), hasLength(1));
+        // 7 figures: A1's balance folds into the following swing (PR3b), and in
+        // A2 both "in a line of four" halls now structure (PR3). The trailing
+        // "Bend the line" folds into the up-the-hall, and "Neighbor turn as
+        // couples" now folds into the DOWN-the-hall as `ender: turnCouple`
+        // (#553), so the 10 source lines across A1/A2/B1/B2 collapse to 7.
+        expect(draft.dance.figures, hasLength(7));
+        // Every remaining line structures — A2's "Neighbor turn as couples" is
+        // no longer a standalone custom (it rode into the down-hall's ender).
+        expect(draft.dance.figures.where((f) => f.isCustom), isEmpty);
+        // The two A2 halls carry their folded enders.
+        final down = draft.dance.figures.firstWhere(
+          (f) => f.move == 'down_the_hall',
+        );
+        expect(down.params['ender'], 'turnCouple');
+        expect(down.params['beats'], 8); // hall 6 + turn as couples 2
+        final up = draft.dance.figures.firstWhere(
+          (f) => f.move == 'up_the_hall',
+        );
+        expect(up.params['ender'], 'bendTheLine');
         // "Ladies chain to neighbor" (phrase B2) now structures as a chain with
         // the "to neighbor" target preserved as a Figure note.
         final chain = draft.dance.figures.firstWhere((f) => f.move == 'chain');

@@ -413,9 +413,11 @@ class CallersBoxAdapter implements SourceAdapter {
   static String _scrubCompoundChild(String childLine) {
     final match = _beatsPrefix.firstMatch(childLine);
     if (match == null) return scrubFigureText(childLine);
-    final beats = match.group(1)!;
-    final scrubbed = scrubFigureText(match.group(2)!);
-    return scrubbed.isEmpty ? '($beats)' : '($beats) $scrubbed';
+    final start = match.group(1)!;
+    final endStr = match.group(2);
+    final beatsLabel = endStr == null ? start : '$start-$endStr';
+    final scrubbed = scrubFigureText(match.group(3)!);
+    return scrubbed.isEmpty ? '($beatsLabel)' : '($beatsLabel) $scrubbed';
   }
 
   /// Parses one TCB figure line `(beats) text` into one or more figures. A
@@ -433,8 +435,22 @@ class CallersBoxAdapter implements SourceAdapter {
     int beats = 0;
     String text = line.trim();
     if (match != null) {
-      beats = int.tryParse(match.group(1)!) ?? 0;
-      text = match.group(2)!.trim();
+      final start = int.tryParse(match.group(1)!) ?? 0;
+      final endStr = match.group(2);
+      if (endStr != null) {
+        // A `(START-END)` range gives an absolute, inclusive beat span (TCB uses
+        // it for simultaneous / positioned figures, e.g. `(5-16) Hey …`): the
+        // duration is END - START + 1 (verified against the corpus, where the
+        // common spans land on 4 and 8 beats). Overlapping simultaneous ranges
+        // in a phrase can still exceed the phrase total, but that is inherent to
+        // the notation and no worse than the previous behaviour, which left the
+        // whole prefix in the text (beats 0 + forced custom).
+        final end = int.tryParse(endStr) ?? start;
+        beats = end >= start ? end - start + 1 : 0;
+      } else {
+        beats = start;
+      }
+      text = match.group(3)!.trim();
     }
     // Route through the shared parser: recognised moves become structured
     // figures; the rest fall back to custom. Empty when the line is empty
@@ -493,7 +509,18 @@ class CallersBoxAdapter implements SourceAdapter {
         }
         // Fold 2: structured hall → following bend-the-line line.
         if (_isHall(current) && _isBendLine(next)) {
-          merged.add(_foldBendIntoHall(current, next));
+          merged.add(_foldEnderIntoHall(current, next, 'bendTheLine'));
+          i += 2;
+          continue;
+        }
+        // Fold 3: structured hall → following "turn as couples" line. TCB frames
+        // the down-hall/up-hall figure with a turn-as-couples at the far end
+        // (e.g. #1 A2: "go down the hall / neighbor turn as couples / go up the
+        // hall / bend the line"). turn_as_couples has no taxonomy move (custom;
+        // tracked on #295), but it IS a valid hall `ender` — fold it in so the
+        // hall carries `ender: turnCouple` and the standalone custom is removed.
+        if (_isHall(current) && _isTurnAsCouplesLine(next)) {
+          merged.add(_foldEnderIntoHall(current, next, 'turnCouple'));
           i += 2;
           continue;
         }
@@ -526,6 +553,17 @@ class CallersBoxAdapter implements SourceAdapter {
     return words.length == 1 ||
         (words.length == 2 && words[1] == 'line') ||
         (words.length == 3 && words[1] == 'the' && words[2] == 'line');
+  }
+
+  /// A "turn as couples" line: a custom figure whose scrubbed text ENDS with
+  /// "turn as couples" (optionally led by a dancer set, e.g. "neighbor turn as
+  /// couples"). turn_as_couples has no structured move, so it is always custom.
+  static bool _isTurnAsCouplesLine(Figure f) {
+    if (!f.isCustom) return false;
+    final w = _figureWords(f);
+    final n = w.length;
+    if (n < 3) return false;
+    return w[n - 3] == 'turn' && w[n - 2] == 'as' && w[n - 1] == 'couples';
   }
 
   static bool _isHall(Figure f) =>
@@ -563,10 +601,10 @@ class CallersBoxAdapter implements SourceAdapter {
     );
   }
 
-  static Figure _foldBendIntoHall(Figure hall, Figure bend) {
-    final beats = _sumBeats(hall, bend);
+  static Figure _foldEnderIntoHall(Figure hall, Figure enderLine, String ender) {
+    final beats = _sumBeats(hall, enderLine);
     return hall.copyWith(
-      params: {...hall.params, 'ender': 'bendTheLine', 'beats': ?beats},
+      params: {...hall.params, 'ender': ender, 'beats': ?beats},
     );
   }
 
@@ -877,7 +915,7 @@ class CallersBoxAdapter implements SourceAdapter {
   ];
 
   static final RegExp _beatsPrefix = RegExp(
-    r'^\s*\((\d+)\)\s*(.*)$',
+    r'^\s*\((\d+)(?:-(\d+))?\)\s*(.*)$',
     dotAll: true,
   );
 
