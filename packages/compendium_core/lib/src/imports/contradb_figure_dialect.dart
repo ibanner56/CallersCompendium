@@ -65,6 +65,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _giveAndTake,
       _rollAway,
       _turnAlone,
+      _passBy,
     ];
 
 // --- Recognizers ------------------------------------------------------------
@@ -402,6 +403,25 @@ FigureMatch? _turnAlone(String text) {
   );
 }
 
+/// madRobinWords and dolphinHeyWords are intentionally NOT handled yet:
+/// - `mad robin`: the shared scrub canonicalizes `robin` → `role2` (larks/robins
+///   dialect), mangling the move name to `mad role2` before recognition; a
+///   correct fix protects the move name in `scrubFigureText` (cf. `gypsy`).
+/// - `dolphin hey`: its `whom` is a single-dancer identity (`onesRole1` …) and
+///   its render names that single dancer, which needs single-dancer parsing.
+
+/// pass by (generic renderer): `<who> pass by [<side> shoulders]`.
+FigureMatch? _passBy(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eatPhrase('pass by')) return null;
+  final params = <String, Object?>{'who': who};
+  final side = _shoulderPhrase(s);
+  if (side != null) params['shoulder'] = side;
+  return FigureMatch('pass_by', params: params, note: s.note());
+}
+
 // --- Scanning + token helpers -----------------------------------------------
 
 /// A whitespace tokenizer over the (already-scrubbed) figure text that remembers
@@ -510,6 +530,18 @@ double? _rotation(String? token) =>
 /// Hand/spin direction token → `left`/`right`, else null.
 String? _leftRight(String? token) =>
     (token == 'left' || token == 'right') ? token : null;
+
+/// Consumes a `<side> shoulder[s]` phrase, returning `left`/`right`, or null
+/// (leaving the cursor put) when the next tokens are not a shoulder phrase.
+String? _shoulderPhrase(_Scan s) {
+  final side = _leftRight(s.peek());
+  if (side == null) return null;
+  final save = s.pos;
+  s.take();
+  if (s.eat('shoulders') || s.eat('shoulder')) return side;
+  s.reset(save);
+  return null;
+}
 
 /// ContraDB rendered set-direction words → our direction vocabulary. Only the
 /// common `across`/`along` are mapped; `across` is usually the (empty) default.

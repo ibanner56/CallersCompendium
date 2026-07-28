@@ -223,6 +223,13 @@ void main() {
       expect(f.move, 'turn_alone');
       expect(f.params['who'], 'everyone');
     });
+
+    test('pass by right shoulders', () {
+      final f = _parse('neighbors pass by right shoulders');
+      expect(f.move, 'pass_by');
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['shoulder'], 'right');
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {
