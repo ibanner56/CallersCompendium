@@ -232,6 +232,41 @@ kinds:
 - FTS indexing uses canonical rendered text + searchKeywords (incl. legacy
   terms like "gypsy" so searches by older users still find shoulder round).
 
+### Derived (computed-at-render) taxonomy values — file convention
+
+Almost every taxonomy value is **stored data**: a named `ParamSpec` on a
+`MoveDef`, authored by the user or supplied by an importer, and serialized with
+the figure. A small minority are instead **derived** — computed at render time
+from other params, *never* stored, free-typed, or fabricated. The first (and
+currently only) example is a rotation-gate's ending facing, derived from
+`(startFacing, direction, turn)` in
+[`taxonomy/gate_facing.dart`](../../packages/compendium_core/lib/src/taxonomy/gate_facing.dart)
+(issue #294).
+
+Because a derived value is *logic carrying a guarantee*, not taxonomy data, it
+does **not** belong inside the `MoveDef` list in `contra_taxonomy.dart`. The
+convention is:
+
+- **Each derived value lives in its own pure module**, named
+  `<figure>_<property>.dart` (e.g. `gate_facing.dart`), exporting a pure,
+  defensively-total function (never throws; returns `null` for any
+  convention-dependent / ambiguous case so the renderer emits nothing rather
+  than guessing).
+- **Isolate any unratified assumption at the top** of that module as a single
+  named constant with a comment, so revisiting it is a one-line change (see
+  `gateStartFacing = 'in'`).
+- **Keep the canonical line template-driven.** The derived clause is appended by
+  the *display* renderer (`FigureRenderer`), so it never enters the canonical,
+  byte-stable serialization — preserving the canonical/display split above.
+- **Do not create a shared `derived_values.dart` grab-bag.** One derivation =
+  one module = one reviewable guarantee + one test surface. Apply the rule of
+  three: when a *second* derived value appears, group the (still separate) files
+  under a `taxonomy/derived/` subdirectory rather than merging them.
+
+Contrast: an *author-set* facing (e.g. a swing's optional end-facing, #543) is
+stored data — it stays a plain `ParamSpec` in the taxonomy and needs no
+derivation module.
+
 ## Open questions (to resolve during implementation, with user input)
 
 1. Exact positional definition of role1/role2 across formations (esp. Becket).
