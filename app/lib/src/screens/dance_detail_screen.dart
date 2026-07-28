@@ -791,7 +791,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             onOpenDance: _openDance,
           ),
         ],
-        if (dance.walkthrough.isNotEmpty) ...[
+        if (dance.walkthrough.trim().isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
           Text(
             l10n.danceSectionWalkthrough,
@@ -799,7 +799,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
-            text: _renderer.renderFreeText(dance.walkthrough, dialect),
+            text: _renderer.renderFreeText(dance.walkthrough.trim(), dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,

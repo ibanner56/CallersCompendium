@@ -938,5 +938,37 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'a tap outside the panel is absorbed and dismisses the overlay',
+      (tester) async {
+        // The overlay installs a full-screen barrier so taps behind it can't
+        // reach the card/navigation; an outside tap closes it (a modal panel).
+        await _pumpPerform(
+          tester,
+          dance: _dance(
+            figures: [_chain()],
+            walkthrough: 'A1: neighbours balance and swing.',
+          ),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('perform-walkthrough-toggle')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+        final barrier = find.descendant(
+          of: find.byType(PerformWalkthroughOverlay),
+          matching: find.byType(ModalBarrier),
+        );
+        expect(barrier, findsOneWidget);
+
+        // Tapping the barrier (the area outside the bottom panel) dismisses the
+        // overlay, proving it absorbs taps that would otherwise reach the card
+        // / edge navigation behind it.
+        await tester.tap(barrier, warnIfMissed: false);
+        await tester.pumpAndSettle();
+        expect(find.byType(PerformWalkthroughOverlay), findsNothing);
+      },
+    );
   });
 }
