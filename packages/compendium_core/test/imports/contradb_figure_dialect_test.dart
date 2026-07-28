@@ -159,6 +159,28 @@ void main() {
       expect(f.params['who'], 'partners');
       expect(f.params['dir'], 'across');
     });
+
+    test('box the gnat', () {
+      final f = _parse('partners box the gnat');
+      expect(f.move, 'box_the_gnat');
+      expect(f.params['who'], 'partners');
+    });
+
+    test('California twirl', () {
+      final f = _parse('partners California twirl');
+      expect(f.move, 'california_twirl');
+      expect(f.params['who'], 'partners');
+    });
+
+    test('butterfly whirl (no subject)', () {
+      final f = _parse('butterfly whirl');
+      expect(f.move, 'butterfly_whirl');
+    });
+
+    test('stand still', () {
+      final f = _parse('stand still');
+      expect(f.move, 'stand_still');
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {

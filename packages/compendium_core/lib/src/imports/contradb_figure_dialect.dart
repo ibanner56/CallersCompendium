@@ -56,6 +56,10 @@ const List<FigureMatch? Function(String)> _recognizers =
       _rightLeftThrough,
       _star,
       _promenade,
+      _boxTheGnat,
+      _californiaTwirl,
+      _butterflyWhirl,
+      _standStill,
     ];
 
 // --- Recognizers ------------------------------------------------------------
@@ -282,6 +286,38 @@ FigureMatch? _promenade(String text) {
     params['dir'] = dir;
   }
   return FigureMatch('promenade', params: params, note: s.note());
+}
+
+/// boxTheGnatWords (common form): `<who> box the gnat`.
+FigureMatch? _boxTheGnat(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eatPhrase('box the gnat')) return null;
+  return FigureMatch('box_the_gnat', params: {'who': who}, note: s.note());
+}
+
+/// California twirl (generic renderer): `<who> California twirl`.
+FigureMatch? _californiaTwirl(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eatPhrase('california twirl')) return null;
+  return FigureMatch('california_twirl', params: {'who': who}, note: s.note());
+}
+
+/// butterfly whirl (generic renderer, no subject): `butterfly whirl`.
+FigureMatch? _butterflyWhirl(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('butterfly whirl')) return null;
+  return FigureMatch('butterfly_whirl', note: s.note());
+}
+
+/// stand still (generic renderer): `stand still`.
+FigureMatch? _standStill(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('stand still')) return null;
+  return FigureMatch('stand_still', note: s.note());
 }
 
 // --- Scanning + token helpers -----------------------------------------------
