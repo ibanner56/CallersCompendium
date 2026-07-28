@@ -285,6 +285,38 @@ void main() {
       expect(f.params['hand'], 'left');
       expect(f.params['turn'], 0.5);
     });
+
+    test('allemande orbit (not read as a plain allemande)', () {
+      final f = _parse(
+        'gentlespoons allemande left 1½ around while the ladles orbit clockwise ½ around',
+      );
+      expect(f.move, 'allemande_orbit');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['hand'], 'left');
+      expect(f.params['inner'], 1.5);
+      expect(f.params['outer'], 0.5);
+    });
+
+    test('zig zag', () {
+      final f = _parse('partners zig left zag right');
+      expect(f.move, 'zig_zag');
+      expect(f.params['turn'], 'left');
+    });
+
+    test('box circulate', () {
+      final f = _parse(
+        'box circulate - gentlespoons cross while ladles loop right',
+      );
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['hand'], 'right');
+    });
+
+    test('slice', () {
+      final f = _parse('slice left');
+      expect(f.move, 'slice');
+      expect(f.params['slice'], 'left');
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — ocean wave family', () {

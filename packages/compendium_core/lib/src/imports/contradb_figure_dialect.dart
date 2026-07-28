@@ -54,6 +54,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _pullByDirection,
       _balance,
       _doSiDo,
+      _allemandeOrbit,
       _allemande,
       _circle,
       _slideAlongSet,
@@ -77,6 +78,9 @@ const List<FigureMatch? Function(String)> _recognizers =
       _gate,
       _contraCorners,
       _starPromenade,
+      _zigZag,
+      _boxCirculate,
+      _slice,
     ];
 
 // --- Recognizers ------------------------------------------------------------
@@ -155,6 +159,38 @@ FigureMatch? _doSiDo(String text) {
     params['turn'] = rot;
   }
   return FigureMatch('do_si_do', params: params, note: s.note());
+}
+
+/// allemandeOrbitWords. Renders as: "WHO allemande HAND INNER around while the
+/// OTHER orbit clockwise|counter clockwise OUTER around". Ordered before the
+/// plain allemande so an orbit isn't read as an allemande with a trailing note.
+FigureMatch? _allemandeOrbit(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eat('allemande')) return null;
+  final hand = _leftRight(s.peek());
+  if (hand == null) return null;
+  s.take();
+  final inner = _rotation(s.peek());
+  if (inner == null) return null;
+  s.take();
+  if (!s.eat('around')) return null;
+  if (!s.eatPhrase('while the')) return null;
+  if (_subject(s) == null) return null; // the orbiting pair
+  if (!s.eat('orbit')) return null;
+  if (!(s.eatPhrase('counter clockwise') || s.eat('clockwise'))) {
+    // direction word is always rendered; if absent this isn't an orbit
+    return null;
+  }
+  final params = <String, Object?>{'who': who, 'hand': hand, 'inner': inner};
+  final outer = _rotation(s.peek());
+  if (outer != null) {
+    s.take();
+    params['outer'] = outer;
+  }
+  s.eat('around');
+  return FigureMatch('allemande_orbit', params: params, note: s.note());
 }
 
 /// allemande (generic renderer): `<who> allemande <hand> <rotation>`.
@@ -703,6 +739,60 @@ FigureMatch? _starPromenade(String text) {
     params['turn'] = rot;
   }
   return FigureMatch('star_promenade', params: params, note: s.note());
+}
+
+/// zigZagWords: `[<who>] zig <dir> zag <dir> [, <ender>]`. Captures the zig
+/// (turn) direction; the ender, if any, survives verbatim as the note.
+FigureMatch? _zigZag(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (!s.eat('zig')) return null;
+  final turn = _leftRight(s.peek());
+  if (turn == null) return null;
+  s.take();
+  if (!s.eat('zag')) return null;
+  if (_leftRight(s.peek()) != null) s.take(); // the (derived) return direction
+  final params = <String, Object?>{'turn': turn};
+  if (who != null) params['who'] = who;
+  return FigureMatch('zig_zag', params: params, note: s.note());
+}
+
+/// boxCirculateWords. Renders as: "[balance] box circulate - WHO cross while
+/// OTHER loop HAND".
+FigureMatch? _boxCirculate(String text) {
+  final s = _Scan(text);
+  final balance = s.eat('balance');
+  if (!s.eatPhrase('box circulate')) return null;
+  final params = <String, Object?>{if (balance) 'balance': true};
+  final save = s.pos;
+  if (s.eat('-')) {
+    final who = _subject(s);
+    if (who != null &&
+        s.eatPhrase('cross while') &&
+        _subject(s) != null &&
+        s.eat('loop')) {
+      params['who'] = who;
+      final hand = _leftRight(s.peek());
+      if (hand != null) {
+        s.take();
+        params['hand'] = hand;
+      }
+    } else {
+      s.reset(save);
+    }
+  }
+  return FigureMatch('box_circulate', params: params, note: s.note());
+}
+
+/// slice (generic renderer): `slice <left|right> …`. The increment/return detail
+/// (by/return params) is left verbatim in the note.
+FigureMatch? _slice(String text) {
+  final s = _Scan(text);
+  if (!s.eat('slice')) return null;
+  final slide = _leftRight(s.peek());
+  if (slide == null) return null;
+  s.take();
+  return FigureMatch('slice', params: {'slice': slide}, note: s.note());
 }
 
 // --- Scanning + token helpers -----------------------------------------------
