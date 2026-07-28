@@ -284,6 +284,30 @@ void main() {
     });
   });
 
+  group('contraDbHtmlFigureFrontEnd — hey', () {
+    test('full hey with shoulder/place clause (dances/94 shape)', () {
+      final f = _parse(
+        'ladles start a full hey - rights in center, lefts on ends',
+      );
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'hey');
+      expect(f.params['pass1'], 'role2s');
+      expect(f.params['length'], 'full');
+      expect(f.params['shoulder'], 'right');
+      expect(f.note, isNull);
+    });
+
+    test('half hey, left shoulders', () {
+      final f = _parse(
+        'gentlespoons start a half hey - lefts in center, rights on ends',
+      );
+      expect(f.move, 'hey');
+      expect(f.params['pass1'], 'role1s');
+      expect(f.params['length'], 'half');
+      expect(f.params['shoulder'], 'left');
+    });
+  });
+
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {
     test('allemande with a trailing note keeps the figure and the note', () {
       final f = _parse('ladles allemande right 1½ - don\'t let go');

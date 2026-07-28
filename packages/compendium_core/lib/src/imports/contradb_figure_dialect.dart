@@ -46,6 +46,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _passTheOcean,
       _formAShortWave,
       _formLongWaves,
+      _hey,
       _longLines,
       _balanceTheRing,
       _petronella,
@@ -296,6 +297,61 @@ bool _eatAmpBalance(_Scan s) {
   if (s.eat('&') && s.eat('balance')) return true;
   s.reset(save);
   return false;
+}
+
+/// heyWords (common full/half form). Renders as: "PASS1 start a FULL|HALF hey -
+/// SH1 PLACE, SH2 PLACE". Extracts pass1, length, and the first shoulder; the
+/// shoulder/place clause is part of the render (consumed, not a note).
+/// `until`-length heys and ricochets are deferred (their extra tail, if any,
+/// survives verbatim as the note).
+FigureMatch? _hey(String text) {
+  final s = _Scan(text);
+  final pass1 = _subject(s);
+  if (pass1 == null) return null;
+  if (!s.eat('start')) return null;
+  if (!(s.eat('a') || s.eat('an'))) return null;
+  String? length;
+  if (s.eat('full')) {
+    length = 'full';
+  } else if (s.eat('half')) {
+    length = 'half';
+  }
+  if (!s.eat('hey')) return null;
+  final params = <String, Object?>{'pass1': pass1};
+  if (length != null) params['length'] = length;
+  final clauseSave = s.pos;
+  if (s.eat('-')) {
+    final sh1 = _shoulderTerse(s.peek());
+    if (sh1 != null) {
+      s.take();
+      params['shoulder'] = sh1;
+      _eatHeyPlace(s);
+      final sh2 = _shoulderTerse(s.peek());
+      if (sh2 != null) {
+        s.take();
+        _eatHeyPlace(s);
+      }
+    } else {
+      s.reset(clauseSave); // not a shoulder clause — leave it as the note
+    }
+  }
+  return FigureMatch('hey', params: params, note: s.note());
+}
+
+/// Terse hey shoulder word (`rights`/`lefts`) → `right`/`left`.
+String? _shoulderTerse(String? token) => switch (token) {
+  'rights' => 'right',
+  'lefts' => 'left',
+  _ => null,
+};
+
+/// Consumes a hey place phrase (`in center` / `on ends`) if present.
+void _eatHeyPlace(_Scan s) {
+  final save = s.pos;
+  if (s.eat('in') && s.eat('center')) return;
+  s.reset(save);
+  if (s.eat('on') && s.eat('ends')) return;
+  s.reset(save);
 }
 
 /// formLongWavesWords: `form long waves - <who> face in, <other> face out`.
