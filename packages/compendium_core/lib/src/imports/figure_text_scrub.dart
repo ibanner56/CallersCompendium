@@ -40,12 +40,27 @@ String scrubFigureText(String text) {
   final normalizedMoves = sanitized
       .replaceAllMapped(_gypsiesTerm, (_) => 'shoulder rounds')
       .replaceAllMapped(_gypsyTerm, (_) => 'shoulder round')
-      .replaceAllMapped(_doSiDoTerm, (_) => 'do si do');
+      .replaceAllMapped(_doSiDoTerm, (_) => 'do si do')
+      // Protect the move name "mad robin(s)" from role canonicalization: the
+      // canonical dialect maps `robin(s)` → `role2(s)` (larks/robins), which
+      // would otherwise mangle "mad robin" into "mad role2". Collapsing it to a
+      // single non-role token first (no interior word boundary before `robin`)
+      // hides it from the substitution; it is restored after canonicalization.
+      .replaceAllMapped(_madRobinsTerm, (_) => _madRobinsSentinel)
+      .replaceAllMapped(_madRobinTerm, (_) => _madRobinSentinel);
   final canonical = canonicalizeText(normalizedMoves, Dialect.canonical);
-  return canonical.replaceAll(_whitespace, ' ').trim();
+  final restored = canonical
+      .replaceAll(_madRobinsSentinel, 'mad robins')
+      .replaceAll(_madRobinSentinel, 'mad robin');
+  return restored.replaceAll(_whitespace, ' ').trim();
 }
+
+const String _madRobinSentinel = 'madrobin';
+const String _madRobinsSentinel = 'madrobins';
 
 final RegExp _gypsyTerm = RegExp(r'\bgypsy\b', caseSensitive: false);
 final RegExp _gypsiesTerm = RegExp(r'\bgypsies\b', caseSensitive: false);
 final RegExp _doSiDoTerm = RegExp(r'\bdo-si-do\b', caseSensitive: false);
+final RegExp _madRobinsTerm = RegExp(r'\bmad robins\b', caseSensitive: false);
+final RegExp _madRobinTerm = RegExp(r'\bmad robin\b', caseSensitive: false);
 final RegExp _whitespace = RegExp(r'\s+');

@@ -6,6 +6,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../util/text_sanitizer.dart';
+import 'contradb_figure_dialect.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
 import 'import_error.dart';
@@ -67,14 +68,12 @@ import 'structured_draft.dart';
 /// Missing/malformed elements become non-fatal [ImportIssue]s; a page with no
 /// figures table still imports as a metadata stub with a warning. [parse] throws
 /// only when the payload is not a ContraDB dance page at all.
-/// The ContraDB-HTML figure-text front-end. ContraDB renders clean, structured
-/// prose and never emits TCB paren/annotation notation, so its front-end is the
-/// neutral [canonicalFigureFrontEnd] for now — the shared recognizer's canonical
-/// dialect is ContraDB-aligned. Exposed as its own named, independently-callable
-/// [FigureFrontEnd] so a later PR can enrich it (dedicated ContraDB reverse
-/// parsers) and a free-text fan-out can select it, without touching the adapter.
-const FigureFrontEnd contraDbHtmlFigureFrontEnd = canonicalFigureFrontEnd;
-
+/// The ContraDB-HTML figure-text front-end lives in `contradb_figure_dialect.dart`
+/// ([contraDbHtmlFigureFrontEnd]): dedicated reverse-parsers that map ContraDB's
+/// rendered figure prose back to structured taxonomy figures and split off any
+/// verbatim note tail. Exposed as its own named, independently-callable
+/// [FigureFrontEnd] so a free-text fan-out can select it without touching the
+/// adapter.
 class ContraDbHtmlAdapter implements SourceAdapter {
   ContraDbHtmlAdapter();
 
@@ -271,19 +270,55 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       // moves become structured figures, the rest fall back to custom. The
       // section label is not embedded in the text (it derives from beats).
       // Non-null since `scrubbed` isn't empty.
-      figures.add(
-        parseFigureLine(
-          scrubbed,
-          beats: beats,
-          progression: hasProgression,
-          scrub: (s) => s,
-          frontEnd: contraDbHtmlFigureFrontEnd,
-        )!,
-      );
+      final figure = parseFigureLine(
+        scrubbed,
+        beats: beats,
+        progression: hasProgression,
+        scrub: (s) => s,
+        frontEnd: contraDbHtmlFigureFrontEnd,
+      )!;
+
+      // Ocean-wave balance split: ContraDB renders "form an ocean wave &
+      // balance …" as ONE figure, but our taxonomy keeps the balance as a
+      // SEPARATE figure (the form_long_waves precedent) until a future release.
+      // The recognizer emits `form_a_short_wave` (no balance param); when the
+      // row carried the balance, split off a trailing standalone `balance`.
+      // Beats: the balance takes 4, the wave formation takes the remainder (0
+      // for the typical 4-beat row — a formation, like form_long_waves).
+      // Progression rides the trailing balance (end of the phrase).
+      if (figure.move == 'form_a_short_wave' &&
+          _oceanWaveBalance.hasMatch(scrubbed)) {
+        const balanceBeats = 4;
+        final waveBeats = beats > balanceBeats ? beats - balanceBeats : 0;
+        figures.add(
+          figure.copyWith(
+            params: {...figure.params, 'beats': waveBeats},
+            progression: false,
+          ),
+        );
+        figures.add(
+          Figure(
+            move: 'balance',
+            params: const {'who': 'everyone', 'beats': balanceBeats},
+            progression: hasProgression,
+          ),
+        );
+      } else {
+        figures.add(figure);
+      }
       index++;
     }
     return figures;
   }
+
+  /// Matches ContraDB's `form … ocean wave & balance` render, so the adapter can
+  /// split the inline balance into a separate figure (see [_parseFigures]).
+  /// Case-insensitive to stay consistent with the recognizers, which match on
+  /// lowercased tokens.
+  static final RegExp _oceanWaveBalance = RegExp(
+    r'ocean wave & balance',
+    caseSensitive: false,
+  );
 
   /// The beats cell is `td.dance-show-beats`; fall back to the middle cell.
   dom.Element? _beatsCell(List<dom.Element> cells) {

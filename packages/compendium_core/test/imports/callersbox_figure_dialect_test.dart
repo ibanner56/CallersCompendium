@@ -111,18 +111,19 @@ void main() {
   });
 
   group('adapter front-ends are independently-callable', () {
-    test('ContraDB-HTML and CallersCompanion front-ends are canonical/neutral '
-        'for now', () {
+    test('CallersCompanion stays canonical; ContraDB-HTML is now enriched', () {
       // Named, independently-callable seams so a future free-text fan-out can
-      // select them; both are the neutral canonical dialect in this PR.
-      expect(
-        identical(contraDbHtmlFigureFrontEnd, canonicalFigureFrontEnd),
-        isTrue,
-      );
+      // select them. CallersCompanion is still the neutral canonical dialect;
+      // ContraDB-HTML now carries its own dedicated reverse-parsers.
       expect(
         identical(callersCompanionFigureFrontEnd, canonicalFigureFrontEnd),
         isTrue,
       );
+      expect(
+        identical(contraDbHtmlFigureFrontEnd, canonicalFigureFrontEnd),
+        isFalse,
+      );
+      expect(contraDbHtmlFigureFrontEnd.preRecognizers, isNotEmpty);
     });
 
     test('the neutral front-ends leave TCB notation unstructured', () {

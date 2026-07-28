@@ -42,6 +42,17 @@ void main() {
         'role2s chain to the role1s',
       );
     });
+
+    test('protects the "mad robin" move name from robin→role2', () {
+      // "robin(s)" canonicalizes to role2(s) (larks/robins), which would mangle
+      // the move name "mad robin" into "mad role2". It must survive intact while
+      // a standalone role term is still canonicalized.
+      expect(
+        scrubFigureText('mad robin, gentlespoons in front'),
+        'mad robin, role1s in front',
+      );
+      expect(scrubFigureText('robins allemande left'), 'role2s allemande left');
+    });
   });
 
   group('scrubFigureText strips control and bidi/format characters (#444)', () {
