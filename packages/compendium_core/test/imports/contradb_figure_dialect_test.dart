@@ -230,6 +230,13 @@ void main() {
       expect(f.params['who'], 'neighbors');
       expect(f.params['shoulder'], 'right');
     });
+
+    test('mad robin (move name protected from robin→role2 scrub)', () {
+      final f = _parse('mad robin, gentlespoons in front');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'mad_robin');
+      expect(f.params['who'], 'role1s');
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {

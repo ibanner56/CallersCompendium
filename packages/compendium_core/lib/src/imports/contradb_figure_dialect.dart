@@ -65,6 +65,7 @@ const List<FigureMatch? Function(String)> _recognizers =
       _giveAndTake,
       _rollAway,
       _turnAlone,
+      _madRobin,
       _passBy,
     ];
 
@@ -403,12 +404,31 @@ FigureMatch? _turnAlone(String text) {
   );
 }
 
-/// madRobinWords and dolphinHeyWords are intentionally NOT handled yet:
-/// - `mad robin`: the shared scrub canonicalizes `robin` → `role2` (larks/robins
-///   dialect), mangling the move name to `mad role2` before recognition; a
-///   correct fix protects the move name in `scrubFigureText` (cf. `gypsy`).
-/// - `dolphin hey`: its `whom` is a single-dancer identity (`onesRole1` …) and
-///   its render names that single dancer, which needs single-dancer parsing.
+/// madRobinWords: `mad robin[ <rotation> around], <who> in front`.
+FigureMatch? _madRobin(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('mad robin')) return null;
+  final params = <String, Object?>{};
+  final save = s.pos;
+  final rot = _rotation(s.peek());
+  if (rot != null) {
+    s.take();
+    if (s.eat('around')) {
+      params['turn'] = rot;
+    } else {
+      s.reset(save);
+    }
+  }
+  final who = _subject(s);
+  if (who == null) return null;
+  params['who'] = who;
+  if (!s.eatPhrase('in front')) return null;
+  return FigureMatch('mad_robin', params: params, note: s.note());
+}
+
+/// dolphinHeyWords is intentionally NOT handled yet: its `whom` is a
+/// single-dancer identity (`onesRole1` …) and the render names that single
+/// dancer, which needs single-dancer parsing not built here.
 
 /// pass by (generic renderer): `<who> pass by [<side> shoulders]`.
 FigureMatch? _passBy(String text) {
