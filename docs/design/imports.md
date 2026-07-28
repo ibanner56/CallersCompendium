@@ -127,12 +127,17 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   one-at-a-time migration.
 
 ### 3. ContraDB (6.4)
-- Input: ContraDB JSON (its `figures_json` move/parameter model). Being
-  structurally closest to ours, this maps move-for-move with a
-  positional→named parameter conversion table per move, and gyre →
-  shoulder_round etc. term migration.
-- Site is grey-code; primary path is user-supplied exports/dumps rather than
-  live API.
+- Input: the **server-rendered HTML** at `contradb.com/dances/N` (the page a
+  normal visitor sees), parsed by `ContraDbHtmlAdapter`. ContraDB serves **no
+  JSON** (`dances/N.json` → HTTP 406, no public API), so the rendered page is the
+  only path a user can actually reach; they import a dance by pasting its URL.
+  The adapter walks the dance table rows into `(section-label, beats, figure-text)`
+  and routes each figure line through the shared free-text parser.
+- A second, **deprecated** adapter (`ContraDbAdapter`) maps ContraDB's internal
+  `figures_json` positional move/parameter model move-for-move onto our taxonomy
+  (positional→named table per move, gyre → shoulder_round term migration). It is
+  **`@Deprecated` and wired into no live path** — that JSON input is unobtainable
+  from the site — and is retained only as reference prior art plus its unit tests.
 
 ### 4. Generic JSON (6.6)
 - Our own canonical export format (full fidelity: figures, programs, custom

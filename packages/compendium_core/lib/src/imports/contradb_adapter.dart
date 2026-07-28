@@ -63,6 +63,19 @@ import 'structured_draft.dart';
 /// [FormationShape] best-effort (its original text preserved in
 /// [Formation.detail]); an unclassifiable string yields a warning and
 /// [FormationShape.other].
+///
+/// ## Deprecated — use [ContraDbHtmlAdapter] instead
+/// This JSON adapter is **not wired into any live import path**: ContraDB serves
+/// no JSON (`dances/N.json` → HTTP 406, no public API), so a typical user cannot
+/// obtain the `figures_json` input this adapter expects. The live, user-facing
+/// ContraDB import parses the **server-rendered HTML** at `contradb.com/dances/N`
+/// via [ContraDbHtmlAdapter]. This class is retained only as reference prior art
+/// (and to keep its unit tests exercising the positional→named mapping); do not
+/// instantiate it in application code.
+@Deprecated(
+  'Dead JSON path — ContraDB serves no JSON. The live ContraDB import parses '
+  'rendered HTML via ContraDbHtmlAdapter. Kept for reference/tests only.',
+)
 class ContraDbAdapter implements SourceAdapter {
   ContraDbAdapter();
 

@@ -21,10 +21,12 @@ import 'structured_draft.dart';
 /// The sibling [ContraDbAdapter] parses ContraDB's internal `figures_json` DB
 /// column — a positional move/parameter model a typical user *cannot* obtain
 /// from the website (ContraDB serves **no JSON**: `dances/N.json` → HTTP 406,
-/// no public API). This adapter parses the reachable path — the clean,
-/// server-rendered HTML — so a user can import a dance by pasting its URL. This
-/// is the user-facing ContraDB import path (ROADMAP 6.4). The two adapters take
-/// completely different inputs and are intentionally kept self-contained.
+/// no public API). Because that input is unreachable in practice, the JSON
+/// adapter is now **`@Deprecated` and unused** (retained only as reference prior
+/// art + tests). This adapter parses the reachable path — the clean,
+/// server-rendered HTML — so a user can import a dance by pasting its URL, and
+/// is the **sole live** ContraDB import path (ROADMAP 6.4). The two adapters
+/// take completely different inputs and are intentionally kept self-contained.
 ///
 /// ## Core is I/O-free
 /// This adapter never fetches the page. It parses an HTML *string* the app

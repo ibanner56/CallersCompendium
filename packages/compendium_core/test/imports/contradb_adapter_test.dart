@@ -1,3 +1,9 @@
+// ContraDbAdapter is intentionally @Deprecated (the live ContraDB path is
+// ContraDbHtmlAdapter). These tests are deliberately retained to keep the dead
+// JSON adapter's positional→named mapping exercised, so the same-package
+// deprecation hint is expected here and suppressed file-wide.
+// ignore_for_file: deprecated_member_use_from_same_package
+
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
