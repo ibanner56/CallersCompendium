@@ -59,12 +59,13 @@ already true, verify it. **[One-time]** = account/setup step you do once.
 - [ ] **[Confirm]** Build number is unique (CI computes `CFBundleVersion` from the
   run number; TestFlight rejects duplicates). If you ever upload manually, bump it.
 - [ ] **[Gate]** **Export compliance.** `Info.plist` sets
-  `ITSAppUsesNonExemptEncryption = false`, so ASC currently skips the per-build
-  "Missing Compliance" prompt. **Re-verify this is still the honest answer now
-  that encrypted backup ships** (see [`README.md`](README.md) → export compliance).
-  If you must change it to "uses encryption / exempt," update `Info.plist` and be
-  ready to file the annual self-classification. Do this **before** external
-  testing, not after.
+  `ITSAppUsesNonExemptEncryption = false`, so ASC skips the per-build
+  "Missing Compliance" prompt. This is the honest answer: the app uses only
+  exempt cryptography (Ed25519 update signatures + SHA-256 backup integrity
+  checksum — no confidentiality encryption; see [`README.md`](README.md) →
+  export compliance). Only revisit if confidentiality crypto is ever
+  reintroduced — then update `Info.plist` and be ready to file the annual
+  self-classification, **before** external testing, not after.
 
 ## 3. Store listing metadata (needed for review, even for beta) — [Gate]
 
@@ -182,7 +183,7 @@ Open beta does not require full App Review; the public store does. When ready:
 | Program | Apple Developer Program ($99/yr, active) |
 | Upload path | CI: `flutter build ipa` + `xcrun altool --upload-app` on `v*` tag |
 | Signing | Automatic (Xcode-managed) via App Store Connect API key (App Manager role) |
-| Export compliance | `ITSAppUsesNonExemptEncryption=false` — **re-verify vs. encrypted backup** |
+| Export compliance | `ITSAppUsesNonExemptEncryption=false` — exempt (signatures + SHA-256 checksum only, no confidentiality crypto) |
 | Open beta = | TestFlight **external** testing + **public link** (after Beta App Review) |
 | Internal testers | ≤100, no review (already live) |
 | External testers | ≤10,000, Beta App Review, public link |

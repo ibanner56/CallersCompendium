@@ -127,24 +127,29 @@ block us, but the **copyright holder must act**:
 Track this as a real to-do; don't submit to Apple until it's decided. (Not legal
 advice — confirm the exact wording you're comfortable with.)
 
-### 2. Export compliance now that encrypted backup ships
+### 2. Export compliance
 
-`app/ios/Runner/Info.plist` currently declares
-`ITSAppUsesNonExemptEncryption = false`. That was accurate for a plain
-local-first app — but the optional **passphrase-encrypted backup** feature
-(`app/lib/src/data/backup_crypto.dart`, using Argon2id + XChaCha20-Poly1305 /
-AES-GCM via the `cryptography` package) is now compiled into the binary.
+`app/ios/Runner/Info.plist` declares `ITSAppUsesNonExemptEncryption = false`,
+which is accurate: Caller's Compendium is a plain local-first app that uses
+only standard/exempt cryptography. The only cryptographic code in the binary
+is update-signature verification (Ed25519 via the `cryptography` package) and
+a SHA-256 **integrity checksum** on exported backups — both are
+authentication/hashing, not confidentiality, and fall under the EAR's
+digital-signature/exempt provisions.
 
-- **Re-evaluate the declaration.** Apps that include encryption usually still
-  qualify for an **exemption** (encryption used to protect the *user's own* data,
-  not an encryption product), but the honest answer to "does your app use
-  encryption?" is now **yes**, and you may need to answer that you qualify for an
-  exemption rather than declaring "no encryption."
-- **You may owe an annual self-classification report to the U.S. BIS** and should
-  keep the exemption rationale on file. App Store Connect walks you through this
-  the first time.
-- Do the same review for Google Play (it asks about encryption indirectly via the
-  US export-law acknowledgement at publish time).
+> **History:** an earlier beta shipped an optional passphrase-encrypted backup
+> (Argon2id + XChaCha20-Poly1305/AES-GCM). That confidentiality feature was
+> **removed** in favor of the plain-JSON + SHA-256 checksum backup (see the
+> `[0.1.0]` CHANGELOG entry and issue #536), which returns the app to the
+> export-compliance-exempt state — no encryption-usage declaration, no annual
+> BIS self-classification report, no `Info.plist` change needed.
+
+- **If confidentiality crypto is ever reintroduced,** re-evaluate this
+  declaration: the honest answer to "does your app use encryption?" would
+  become **yes** (likely still exemption-qualifying, but it must be declared),
+  and you may owe an annual self-classification report to the U.S. BIS. Do the
+  same review for Google Play (it asks indirectly via the US export-law
+  acknowledgement at publish time).
 
 This aligns with our security posture: don't hand-wave a compliance question just
 because the app is local-first.

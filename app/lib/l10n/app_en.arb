@@ -893,14 +893,6 @@
     "description": "General settings section header for backup and restore actions."
   },
 
-  "backupEncryptingProgress": "Encrypting backup…",
-  "@backupEncryptingProgress": {
-    "description": "Modal progress message shown while a backup export is being encrypted."
-  },
-  "backupEncryptedExported": "Encrypted backup exported.",
-  "@backupEncryptedExported": {
-    "description": "Snackbar confirming an encrypted backup was exported."
-  },
   "backupExported": "Backup exported.",
   "@backupExported": {
     "description": "Snackbar confirming an unencrypted backup was exported."
@@ -909,13 +901,9 @@
   "@backupExportFailed": {
     "description": "Snackbar shown when backup export fails. The raw exception is logged separately, not shown in the UI."
   },
-  "backupDecryptingProgress": "Decrypting backup…",
-  "@backupDecryptingProgress": {
-    "description": "Modal progress message shown while an encrypted backup is being decrypted before restore."
-  },
-  "backupDecryptFailed": "Couldn't decrypt the backup. Your data is unchanged.",
-  "@backupDecryptFailed": {
-    "description": "Snackbar shown when decrypting an encrypted backup fails unexpectedly. The restore does not run, so existing data is unchanged."
+  "backupRestoreIntegrityFailed": "This backup failed its integrity check, so it may be corrupt or was changed after it was exported. The restore was cancelled and your data is unchanged.",
+  "@backupRestoreIntegrityFailed": {
+    "description": "Snackbar shown when a backup is refused because its SHA-256 integrity checksum did not verify (issue #536): the file is corrupt or was altered after export, so the restore does not run and data is unchanged."
   },
   "backupRestoreIncompatibleVersion": "This backup contains items this version of the app can't read (it may be from a newer version), so the restore was cancelled. Your data is unchanged.",
   "@backupRestoreIncompatibleVersion": {
@@ -1016,68 +1004,6 @@
   "backupReplaceAllDataAction": "Replace all data",
   "@backupReplaceAllDataAction": {
     "description": "Destructive confirmation button in the restore-from-backup dialog."
-  },
-  "backupExportDialogBody": "This saves everything in the app — your collection, programs, dialects, themes, and settings — to a file you can keep or move to another device.",
-  "@backupExportDialogBody": {
-    "description": "Introductory text in the export-backup dialog explaining what the backup contains."
-  },
-  "backupEncryptToggleTitle": "Encrypt this backup with a passphrase",
-  "@backupEncryptToggleTitle": {
-    "description": "Title of the export-backup dialog toggle that encrypts the backup with a passphrase."
-  },
-  "backupEncryptToggleSubtitle": "Protects the file so only someone with the passphrase can open it.",
-  "@backupEncryptToggleSubtitle": {
-    "description": "Subtitle explaining the encrypted-backup toggle."
-  },
-  "backupPassphraseLabel": "Passphrase",
-  "@backupPassphraseLabel": {
-    "description": "Text field label for backup encryption/decryption passphrase entry."
-  },
-  "backupConfirmPassphraseLabel": "Confirm passphrase",
-  "@backupConfirmPassphraseLabel": {
-    "description": "Text field label for confirming the export-backup encryption passphrase."
-  },
-  "backupPassphrasesDontMatch": "Passphrases don't match",
-  "@backupPassphrasesDontMatch": {
-    "description": "Validation error shown when the backup encryption passphrase and confirmation differ."
-  },
-  "backupPassphraseStrength": "{level, select, weak{Strength: Weak} fair{Strength: Fair} strong{Strength: Strong} other{}}",
-  "@backupPassphraseStrength": {
-    "description": "Passphrase strength label shown next to the strength meter in the export-backup dialog. The level token comes from the local strength estimator.",
-    "placeholders": {
-      "level": {
-        "type": "String",
-        "example": "weak"
-      }
-    }
-  },
-  "backupShowPassphrase": "Show passphrase",
-  "@backupShowPassphrase": {
-    "description": "Tooltip on the passphrase visibility button when the passphrase is currently hidden."
-  },
-  "backupHidePassphrase": "Hide passphrase",
-  "@backupHidePassphrase": {
-    "description": "Tooltip on the passphrase visibility button when the passphrase is currently visible."
-  },
-  "backupNoRecoveryWarning": "We can't recover this passphrase. If you lose it, this backup can never be opened — there is no reset and no recovery. Store it somewhere safe.",
-  "@backupNoRecoveryWarning": {
-    "description": "Warning in the export-backup dialog that encrypted backup passphrases cannot be recovered."
-  },
-  "backupEncryptAndExportAction": "Encrypt & export",
-  "@backupEncryptAndExportAction": {
-    "description": "Confirm button label in the export-backup dialog when encryption is enabled."
-  },
-  "backupEnterPassphraseTitle": "Enter passphrase",
-  "@backupEnterPassphraseTitle": {
-    "description": "Title of the dialog that asks for the passphrase of an encrypted backup before restore."
-  },
-  "backupEnterPassphraseBody": "This backup is encrypted. Enter its passphrase to unlock and restore it.",
-  "@backupEnterPassphraseBody": {
-    "description": "Body text in the encrypted-backup passphrase prompt before restore."
-  },
-  "backupUnlockAndRestoreAction": "Unlock & restore",
-  "@backupUnlockAndRestoreAction": {
-    "description": "Confirm button label in the encrypted-backup passphrase prompt."
   },
 
   "diagnosticsNoDiagnosticsToExport": "No diagnostics to export.",

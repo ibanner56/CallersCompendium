@@ -690,23 +690,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsGeneralBackupRestoreHeader => 'Back-up en herstel';
 
   @override
-  String get backupEncryptingProgress => 'Back-up versleutelen…';
-
-  @override
-  String get backupEncryptedExported => 'Versleutelde back-up geëxporteerd.';
-
-  @override
   String get backupExported => 'Back-up geëxporteerd.';
 
   @override
   String get backupExportFailed => 'Back-up kon niet worden geëxporteerd.';
 
   @override
-  String get backupDecryptingProgress => 'Back-up ontsleutelen…';
-
-  @override
-  String get backupDecryptFailed =>
-      'De back-up kon niet worden ontsleuteld. Je gegevens zijn ongewijzigd.';
+  String get backupRestoreIntegrityFailed =>
+      'Deze back-up is niet door de integriteitscontrole gekomen, dus mogelijk is deze beschadigd of na het exporteren gewijzigd. Het herstel is geannuleerd en je gegevens zijn ongewijzigd.';
 
   @override
   String get backupRestoreIncompatibleVersion =>
@@ -783,62 +774,6 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get backupReplaceAllDataAction => 'Alle gegevens vervangen';
-
-  @override
-  String get backupExportDialogBody =>
-      'Dit slaat alles in de app op — je collectie, programma’s, dialecten, thema’s en instellingen — in een bestand dat je kunt bewaren of naar een ander apparaat kunt overzetten.';
-
-  @override
-  String get backupEncryptToggleTitle =>
-      'Deze back-up versleutelen met een wachtwoordzin';
-
-  @override
-  String get backupEncryptToggleSubtitle =>
-      'Beschermt het bestand zodat alleen iemand met de wachtwoordzin het kan openen.';
-
-  @override
-  String get backupPassphraseLabel => 'Wachtwoordzin';
-
-  @override
-  String get backupConfirmPassphraseLabel => 'Wachtwoordzin bevestigen';
-
-  @override
-  String get backupPassphrasesDontMatch =>
-      'Wachtwoordzinnen komen niet overeen';
-
-  @override
-  String backupPassphraseStrength(String level) {
-    String _temp0 = intl.Intl.selectLogic(level, {
-      'weak': 'Sterkte: Zwak',
-      'fair': 'Sterkte: Redelijk',
-      'strong': 'Sterkte: Sterk',
-      'other': '',
-    });
-    return '$_temp0';
-  }
-
-  @override
-  String get backupShowPassphrase => 'Wachtwoordzin tonen';
-
-  @override
-  String get backupHidePassphrase => 'Wachtwoordzin verbergen';
-
-  @override
-  String get backupNoRecoveryWarning =>
-      'We kunnen deze wachtwoordzin niet herstellen. Als je hem kwijtraakt, kan deze back-up nooit worden geopend — er is geen reset en geen herstel. Bewaar hem ergens veilig.';
-
-  @override
-  String get backupEncryptAndExportAction => 'Versleutelen en exporteren';
-
-  @override
-  String get backupEnterPassphraseTitle => 'Wachtwoordzin invoeren';
-
-  @override
-  String get backupEnterPassphraseBody =>
-      'Deze back-up is versleuteld. Voer de wachtwoordzin in om hem te ontgrendelen en te herstellen.';
-
-  @override
-  String get backupUnlockAndRestoreAction => 'Ontgrendelen en herstellen';
 
   @override
   String get diagnosticsNoDiagnosticsToExport =>

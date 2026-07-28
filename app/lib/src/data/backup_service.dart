@@ -66,6 +66,7 @@ class BackupRestoreOutcome {
     this.warnings = const [],
     this.applied = false,
     this.incompleteCore = false,
+    this.integrityFailed = false,
   });
 
   final List<ArchiveError> errors;
@@ -85,6 +86,11 @@ class BackupRestoreOutcome {
   /// destructive replace was cancelled to protect your data" (issue #430), so
   /// the UI never reports a clean success when entities were skipped/refused.
   final bool incompleteCore;
+
+  /// Whether the restore was refused because the backup failed its **integrity
+  /// checksum** (issue #536) — corrupt or altered file, nothing applied. Lets
+  /// the UI say so specifically instead of a generic "invalid file".
+  final bool integrityFailed;
 
   bool get hasErrors => errors.isNotEmpty;
 }
@@ -184,6 +190,7 @@ class BackupService {
         errors: errors,
         warnings: warnings,
         applied: false,
+        integrityFailed: read.integrityFailed,
       );
     }
 

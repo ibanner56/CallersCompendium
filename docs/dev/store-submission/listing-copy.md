@@ -83,8 +83,8 @@ IMPORTS
 YOUR DATA STAYS YOURS
 - Local-first: your collection lives on your device and the app works fully
   offline. No account, no cloud, no telemetry, nothing collected automatically.
-- Export a full backup to a single human-readable file (optionally passphrase-
-  encrypted) and restore it anywhere.
+- Export a full backup to a single human-readable file (with a built-in
+  integrity checksum) and restore it anywhere.
 
 Accessibility is a first-class goal: large type, high contrast, low-vision fonts,
 and screen-reader support throughout.
