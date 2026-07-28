@@ -72,13 +72,14 @@
         },
         {
           "schemaVersion": 1,
-          "move": "custom",
+          "move": "star",
           "params": {
-            "text": "star left 4 places to new neighbors",
+            "hand": "left",
+            "places": 4,
             "beats": 8
           },
-          "progression": true,
-          "customOrigin": "importGap"
+          "note": "to new neighbors",
+          "progression": true
         }
       ],
       "hook": "",

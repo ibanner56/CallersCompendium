@@ -63,9 +63,6 @@ Future<StructuredDraft> _importOne(String payload, {String? uri}) async {
   return adapter.parse(raw);
 }
 
-/// The custom-figure text ([customFigure] stores it in `params['text']`).
-String _text(Figure f) => f.params['text'] as String;
-
 int _beats(Figure f) => (f.params['beats'] as int?) ?? 0;
 
 void main() {

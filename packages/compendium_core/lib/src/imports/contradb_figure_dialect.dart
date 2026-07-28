@@ -43,14 +43,19 @@ const FigureFrontEnd contraDbHtmlFigureFrontEnd = FigureFrontEnd(
 const List<FigureMatch? Function(String)> _recognizers =
     <FigureMatch? Function(String)>[
       _swing,
+      _formLongWaves,
       _longLines,
       _balanceTheRing,
+      _petronella,
       _balance,
       _doSiDo,
       _allemande,
       _circle,
       _slideAlongSet,
       _chain,
+      _rightLeftThrough,
+      _star,
+      _promenade,
     ];
 
 // --- Recognizers ------------------------------------------------------------
@@ -192,6 +197,93 @@ FigureMatch? _chain(String text) {
   return FigureMatch('chain', params: {'who': who}, note: s.note());
 }
 
+/// formLongWavesWords: `form long waves - <who> face in, <other> face out`.
+/// The mirror clause is part of the render; `who` is the "face in" subject.
+FigureMatch? _formLongWaves(String text) {
+  final s = _Scan(text);
+  if (!s.eatPhrase('form long waves')) return null;
+  final params = <String, Object?>{};
+  final save = s.pos;
+  if (s.eat('-')) {
+    final who = _subject(s);
+    if (who != null && s.eat('face') && s.eat('in')) {
+      params['who'] = who;
+      final mirror = s.pos;
+      final other = _subject(s);
+      if (!(other != null && s.eat('face') && s.eat('out'))) {
+        s.reset(mirror);
+      }
+    } else {
+      s.reset(save);
+    }
+  }
+  return FigureMatch('form_long_waves', params: params, note: s.note());
+}
+
+/// petronellaWords: `[balance] petronella` (balance renders as a leading word).
+/// Ordered before [_balance] so `balance petronella` is not read as a balance.
+FigureMatch? _petronella(String text) {
+  final s = _Scan(text);
+  final balance = s.eat('balance');
+  if (!s.eat('petronella')) return null;
+  return FigureMatch(
+    'petronella',
+    params: {'balance': balance},
+    note: s.note(),
+  );
+}
+
+/// rightLeftThroughWords: `[<dir>] right left through` (across renders empty).
+FigureMatch? _rightLeftThrough(String text) {
+  final s = _Scan(text);
+  final params = <String, Object?>{};
+  final dir = _direction(s.peek());
+  if (dir != null) {
+    s.take();
+    params['dir'] = dir;
+  }
+  if (!s.eatPhrase('right left through')) return null;
+  return FigureMatch('right_left_through', params: params, note: s.note());
+}
+
+/// starWords (no-grip form): `star <hand> <n> places`. The grip form
+/// (`star <hand> - <grip> - <n> places`) is left to the shared recognizer.
+FigureMatch? _star(String text) {
+  final s = _Scan(text);
+  if (!s.eat('star')) return null;
+  final hand = _leftRight(s.peek());
+  if (hand == null) return null;
+  s.take();
+  final n = int.tryParse(s.peek() ?? '');
+  if (n == null) return null; // grip form / no places → defer to shared _star
+  final save = s.pos;
+  s.take();
+  if (!(s.eat('places') || s.eat('place'))) {
+    s.reset(save);
+    return null;
+  }
+  return FigureMatch(
+    'star',
+    params: {'hand': hand, 'places': n},
+    note: s.note(),
+  );
+}
+
+/// promenadeWords: `<who> promenade [<dir>] [<spin>]`.
+FigureMatch? _promenade(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eat('promenade')) return null;
+  final params = <String, Object?>{'who': who};
+  final dir = _direction(s.peek());
+  if (dir != null) {
+    s.take();
+    params['dir'] = dir;
+  }
+  return FigureMatch('promenade', params: params, note: s.note());
+}
+
 // --- Scanning + token helpers -----------------------------------------------
 
 /// A whitespace tokenizer over the (already-scrubbed) figure text that remembers
@@ -213,12 +305,20 @@ class _Scan {
   int get pos => _i;
   void reset(int p) => _i = p;
 
-  /// The next token, lowercased, or null at end.
-  String? peek() => _i < _tokens.length ? _tokens[_i].toLowerCase() : null;
+  /// Lowercases and strips surrounding `.,;:!` for matching (ContraDB renders
+  /// clause commas like `face in,` / `center,`); the fraction glyphs and `&`
+  /// are preserved. The verbatim originals are kept for [note].
+  static String _norm(String t) => t
+      .toLowerCase()
+      .replaceAll(RegExp(r'^[.,;:!]+'), '')
+      .replaceAll(RegExp(r'[.,;:!]+$'), '');
 
-  /// Consumes the next token if it equals [word] (case-insensitively).
+  /// The next token, normalized for matching, or null at end.
+  String? peek() => _i < _tokens.length ? _norm(_tokens[_i]) : null;
+
+  /// Consumes the next token if it equals [word] (normalized).
   bool eat(String word) {
-    if (_i < _tokens.length && _tokens[_i].toLowerCase() == word) {
+    if (_i < _tokens.length && _norm(_tokens[_i]) == word) {
       _i++;
       return true;
     }
@@ -230,7 +330,7 @@ class _Scan {
     final parts = phrase.split(' ');
     if (_i + parts.length > _tokens.length) return false;
     for (var k = 0; k < parts.length; k++) {
-      if (_tokens[_i + k].toLowerCase() != parts[k]) return false;
+      if (_norm(_tokens[_i + k]) != parts[k]) return false;
     }
     _i += parts.length;
     return true;
@@ -292,3 +392,13 @@ double? _rotation(String? token) =>
 /// Hand/spin direction token → `left`/`right`, else null.
 String? _leftRight(String? token) =>
     (token == 'left' || token == 'right') ? token : null;
+
+/// ContraDB rendered set-direction words → our direction vocabulary. Only the
+/// common `across`/`along` are mapped; `across` is usually the (empty) default.
+const Map<String, String> _directionWords = <String, String>{
+  'across': 'across',
+  'along': 'along',
+};
+
+String? _direction(String? token) =>
+    token == null ? null : _directionWords[token];

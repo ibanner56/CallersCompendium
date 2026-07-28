@@ -120,6 +120,47 @@ void main() {
     });
   });
 
+  group('contraDbHtmlFigureFrontEnd — batch 2 moves', () {
+    test('form long waves keeps the face-in subject', () {
+      final f = _parse(
+        'form long waves - ladles face in, gentlespoons face out',
+      );
+      expect(f.move, 'form_long_waves');
+      expect(f.params['who'], 'role2s');
+    });
+
+    test('balance petronella → balance true', () {
+      final f = _parse('balance petronella');
+      expect(f.move, 'petronella');
+      expect(f.params['balance'], isTrue);
+    });
+
+    test('bare petronella → balance false', () {
+      final f = _parse('petronella');
+      expect(f.move, 'petronella');
+      expect(f.params['balance'], isFalse);
+    });
+
+    test('right left through', () {
+      final f = _parse('right left through');
+      expect(f.move, 'right_left_through');
+    });
+
+    test('star right 4 places', () {
+      final f = _parse('star right 4 places');
+      expect(f.move, 'star');
+      expect(f.params['hand'], 'right');
+      expect(f.params['places'], 4);
+    });
+
+    test('promenade across', () {
+      final f = _parse('partners promenade across');
+      expect(f.move, 'promenade');
+      expect(f.params['who'], 'partners');
+      expect(f.params['dir'], 'across');
+    });
+  });
+
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {
     test('allemande with a trailing note keeps the figure and the note', () {
       final f = _parse('ladles allemande right 1½ - don\'t let go');
