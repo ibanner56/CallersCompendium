@@ -9,6 +9,13 @@
 /// returns a facing ONLY for the cases that are unambiguous, and returns `null`
 /// otherwise so the renderer emits no facing clause rather than guessing.
 ///
+/// This is the **first instance of the "derived taxonomy value" convention** —
+/// a computed-at-render value that is never stored, so it lives in its own pure
+/// module (named `<figure>_<property>.dart`) rather than as a `ParamSpec` in
+/// `contra_taxonomy.dart`. See the "Derived (computed-at-render) taxonomy
+/// values" section of `docs/design/figure-taxonomy.md` for the rationale and the
+/// rule for when future derivations should move under `taxonomy/derived/`.
+///
 /// ## Derivation table (start = [gateStartFacing] = `in`, across the set)
 ///
 /// | direction        | turn (mod full) | result | rationale                    |
