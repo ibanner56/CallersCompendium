@@ -62,6 +62,9 @@ const List<FigureMatch? Function(String)> _recognizers =
       _standStill,
       _gyre,
       _archAndDive,
+      _giveAndTake,
+      _rollAway,
+      _turnAlone,
     ];
 
 // --- Recognizers ------------------------------------------------------------
@@ -359,6 +362,44 @@ FigureMatch? _archAndDive(String text) {
   if (_subject(s) == null) return null; // the mirrored diving pair
   if (!s.eat('dive')) return null;
   return FigureMatch('arch_and_dive', params: {'who': who}, note: s.note());
+}
+
+/// giveAndTakeWords (give form): `<who> give & take <whom>`. The rarer `take`
+/// (give=false) form is left to the shared recognizer / custom fallback.
+FigureMatch? _giveAndTake(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!(s.eat('give') && s.eat('&') && s.eat('take'))) return null;
+  final params = <String, Object?>{'who': who, 'give': true};
+  final whom = _subject(s);
+  if (whom != null) params['whom'] = whom;
+  return FigureMatch('give_and_take', params: params, note: s.note());
+}
+
+/// roll away (generic renderer): `<who> roll away <whom> [half sashay]`. Any
+/// half-sashay detail is preserved verbatim as the note rather than guessed.
+FigureMatch? _rollAway(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (who == null) return null;
+  if (!s.eatPhrase('roll away')) return null;
+  final params = <String, Object?>{'who': who};
+  final whom = _subject(s);
+  if (whom != null) params['whom'] = whom;
+  return FigureMatch('roll_away', params: params, note: s.note());
+}
+
+/// turnAloneWords: `[<who>] turn alone` (who omitted when everyone).
+FigureMatch? _turnAlone(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (!s.eatPhrase('turn alone')) return null;
+  return FigureMatch(
+    'turn_alone',
+    params: {'who': who ?? 'everyone'},
+    note: s.note(),
+  );
 }
 
 // --- Scanning + token helpers -----------------------------------------------

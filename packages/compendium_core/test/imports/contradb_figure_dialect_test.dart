@@ -202,6 +202,27 @@ void main() {
       expect(f.move, 'arch_and_dive');
       expect(f.params['who'], 'ones');
     });
+
+    test('give & take', () {
+      final f = _parse('gentlespoons give & take ladles');
+      expect(f.move, 'give_and_take');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['give'], isTrue);
+      expect(f.params['whom'], 'role2s');
+    });
+
+    test('roll away', () {
+      final f = _parse('gentlespoons roll away ladles');
+      expect(f.move, 'roll_away');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['whom'], 'role2s');
+    });
+
+    test('turn alone → everyone', () {
+      final f = _parse('turn alone');
+      expect(f.move, 'turn_alone');
+      expect(f.params['who'], 'everyone');
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {
