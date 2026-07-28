@@ -7,9 +7,9 @@ import 'package:test/test.dart';
 /// `()`/`[]` recognition-only annotation strip). Before that grammar was split
 /// into a narrowed core + per-adapter front-ends these assertions ran against
 /// the (TCB-flavored) core directly; binding them to `tcbFigureFrontEnd` keeps
-/// every assertion byte-identical. The narrowed core's behavior WITHOUT a front
-/// -end (and the canonical-vs-TCB contrast that pins the relocation) is covered
-/// by `callersbox_figure_dialect_test.dart`.
+/// every assertion byte-identical. The narrowed core's behavior WITHOUT a
+/// front-end (and the canonical-vs-TCB contrast that pins the relocation) is
+/// covered by `callersbox_figure_dialect_test.dart`.
 Figure? _parseLine(
   String rawText, {
   int beats = 0,
