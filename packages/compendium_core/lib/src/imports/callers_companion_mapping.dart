@@ -33,6 +33,14 @@ import 'structured_draft.dart';
 /// core yet (that lands with the CallersBox TCB grammar, roadmap 6.2), so this
 /// mapping keeps every figure custom and never invents structure.
 
+/// The Caller's Companion figure-text front-end. CC's `(beats) text` body lines
+/// are the user's personal free text and never carry TCB paren/annotation
+/// notation, so its front-end is the neutral [canonicalFigureFrontEnd] for now.
+/// Exposed as its own named, independently-callable [FigureFrontEnd] (covering
+/// both the CC-text and CC-`.USR` branches, which share this mapping) so a later
+/// free-text fan-out can select it without adapter rework.
+const FigureFrontEnd callersCompanionFigureFrontEnd = canonicalFigureFrontEnd;
+
 /// One free-text body section of a CC dance (e.g. `A1`, `B2`).
 ///
 /// [label] is the section name when known (`A1`/`A2`/`B1`/`B2`/`C1`/`C2`), or
@@ -259,7 +267,12 @@ CcDanceMapping mapCallersCompanionDance(
       final line = rawLine.trim();
       if (line.isEmpty) continue;
       final (beats, text) = _splitBeats(line);
-      final figure = parseFigureLine(text, beats: beats, scrub: scrubFn);
+      final figure = parseFigureLine(
+        text,
+        beats: beats,
+        scrub: scrubFn,
+        frontEnd: callersCompanionFigureFrontEnd,
+      );
       if (figure != null) figures.add(figure);
     }
   }

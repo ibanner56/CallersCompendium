@@ -1,15 +1,50 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
+/// This suite exercises the FULL CallersBox/TCB figure grammar — the canonical
+/// single-line recognizer core in `figure_parser.dart` PLUS the relocated
+/// CallersBox front-end (`tcbFigureFrontEnd`: the hey pass-list decoder and the
+/// `()`/`[]` recognition-only annotation strip). Before that grammar was split
+/// into a narrowed core + per-adapter front-ends these assertions ran against
+/// the (TCB-flavored) core directly; binding them to `tcbFigureFrontEnd` keeps
+/// every assertion byte-identical. The narrowed core's behavior WITHOUT a
+/// front-end (and the canonical-vs-TCB contrast that pins the relocation) is
+/// covered by `callersbox_figure_dialect_test.dart`.
+Figure? _parseLine(
+  String rawText, {
+  int beats = 0,
+  bool progression = false,
+  Taxonomy? taxonomy,
+}) => parseFigureLine(
+  rawText,
+  beats: beats,
+  progression: progression,
+  taxonomy: taxonomy,
+  frontEnd: tcbFigureFrontEnd,
+);
+
+List<Figure> _parseLines(
+  String rawText, {
+  int beats = 0,
+  bool progression = false,
+  Taxonomy? taxonomy,
+}) => parseFigureLines(
+  rawText,
+  beats: beats,
+  progression: progression,
+  taxonomy: taxonomy,
+  frontEnd: tcbFigureFrontEnd,
+);
+
 /// The custom-figure text (`customFigure` stores it in `params['text']`).
 String _text(Figure f) => f.params['text'] as String;
 
 void main() {
   group('parseFigureLine — parse-never-fails', () {
     test('empty / whitespace-only input returns null (nothing to store)', () {
-      expect(parseFigureLine(''), isNull);
-      expect(parseFigureLine('   '), isNull);
-      expect(parseFigureLine('\t\n '), isNull);
+      expect(_parseLine(''), isNull);
+      expect(_parseLine('   '), isNull);
+      expect(_parseLine('\t\n '), isNull);
     });
 
     test('never throws on bizarre input — degrades to custom', () {
@@ -20,7 +55,7 @@ void main() {
         'a b c d e f g',
         'balance & swing & balance & swing forever',
       ]) {
-        final f = parseFigureLine(line);
+        final f = _parseLine(line);
         expect(f, isNotNull, reason: line);
         expect(f!.isCustom, isTrue, reason: line);
       }
@@ -225,7 +260,7 @@ void main() {
 
     cases.forEach((line, expected) {
       test('"$line" → ${expected.move}', () {
-        final f = parseFigureLine(line);
+        final f = _parseLine(line);
         expect(f, isNotNull, reason: line);
         expect(f!.isCustom, isFalse, reason: line);
         expect(f.move, expected.move, reason: line);
@@ -237,14 +272,14 @@ void main() {
 
     test('the default scrub runs before recognition (gypsy → shoulder '
         'round)', () {
-      final f = parseFigureLine('gypsy your partner');
+      final f = _parseLine('gypsy your partner');
       expect(f!.move, 'shoulder_round');
       expect(f.params['who'], 'partners');
     });
 
     test('the default scrub canonicalises gendered role terms', () {
       // "Ladies chain" scrubs to "role2s chain" before the chain recogniser.
-      final f = parseFigureLine('Ladies chain');
+      final f = _parseLine('Ladies chain');
       expect(f!.move, 'chain');
       expect(f.params['who'], 'role2s');
     });
@@ -255,7 +290,7 @@ void main() {
       // preceding line (PR3b's merge flips it to true). `balance` is a
       // structured param, not a render token, so it never appears in the
       // canonical rendering; `slide`/`who` fall to their MoveDef defaults.
-      final f = parseFigureLine("Rory O'More");
+      final f = _parseLine("Rory O'More");
       expect(f!.isCustom, isFalse);
       expect(f.move, 'rory_o_more');
       expect(f.params['balance'], false);
@@ -267,21 +302,21 @@ void main() {
       // The ender is a separate following line in TCB; a bare hall line states
       // no ender, so we emit the neutral `none` rather than inheriting the
       // MoveDef default (turnCouple/circle). PR3b upgrades none→bendTheLine.
-      final down = parseFigureLine('Go down the hall');
+      final down = _parseLine('Go down the hall');
       expect(down!.move, 'down_the_hall');
       expect(down.params['ender'], 'none');
-      final up = parseFigureLine('Up the hall');
+      final up = _parseLine('Up the hall');
       expect(up!.move, 'up_the_hall');
       expect(up.params['ender'], 'none');
     });
 
     test('issue #290 — "pass the ocean" is not shadowed by "pass through"', () {
       // "pass the ocean" contains no "through", so _passThrough cannot claim it.
-      final ocean = parseFigureLine('Pass the ocean');
+      final ocean = _parseLine('Pass the ocean');
       expect(ocean!.isCustom, isFalse);
       expect(ocean.move, 'pass_the_ocean');
       // The generic pass-through recognizer is unaffected.
-      final through = parseFigureLine('Pass through');
+      final through = _parseLine('Pass through');
       expect(through!.move, 'pass_through');
     });
 
@@ -290,21 +325,15 @@ void main() {
       // ContraDB adapter now maps it to pass_the_ocean (the legacy move was
       // removed at v14). It also must not be mis-claimed by the new short-wave
       // recognizer.
-      final f = parseFigureLine('Form an ocean wave');
+      final f = _parseLine('Form an ocean wave');
       expect(f!.isCustom, isTrue);
     });
 
     test('issue #290 — long-wave lines are not claimed by the short wave', () {
       // "form a long wave" / "form long waves" must not resolve to
       // form_a_short_wave (tokens are never consecutive with its phrases).
-      expect(
-        parseFigureLine('Form a long wave')!.move,
-        isNot('form_a_short_wave'),
-      );
-      expect(
-        parseFigureLine('Form long waves')!.move,
-        isNot('form_a_short_wave'),
-      );
+      expect(_parseLine('Form a long wave')!.move, isNot('form_a_short_wave'));
+      expect(_parseLine('Form long waves')!.move, isNot('form_a_short_wave'));
     });
   });
 
@@ -369,7 +398,7 @@ void main() {
 
     stated.forEach((line, e) {
       test('[${e.site}] "$line" states its subject → not assumed', () {
-        final f = parseFigureLine(line);
+        final f = _parseLine(line);
         expect(f, isNotNull, reason: line);
         expect(f!.isCustom, isFalse, reason: line);
         expect(f.move, e.move, reason: line);
@@ -430,7 +459,7 @@ void main() {
 
     defaulted.forEach((line, e) {
       test('[${e.site}] "$line" omits its subject → assumed default', () {
-        final f = parseFigureLine(line);
+        final f = _parseLine(line);
         expect(f, isNotNull, reason: line);
         expect(f!.isCustom, isFalse, reason: line);
         expect(f.move, e.move, reason: line);
@@ -444,7 +473,7 @@ void main() {
     test('a defaulted subject survives copyWith (reparse-note flow) (#460)', () {
       // reparse_custom_figures re-parses then copyWith(note:) — the provenance
       // flag must ride along, never silently laundered off.
-      final f = parseFigureLine('Allemande left 1 1/2')!;
+      final f = _parseLine('Allemande left 1 1/2')!;
       expect(f.assumedSubject, isTrue);
       expect(f.copyWith(note: 'gently').assumedSubject, isTrue);
     });
@@ -583,7 +612,7 @@ void main() {
 
     for (final line in mustStayCustom) {
       test('"$line" stays custom', () {
-        final f = parseFigureLine(line);
+        final f = _parseLine(line);
         expect(f, isNotNull, reason: line);
         expect(f!.isCustom, isTrue, reason: line);
       });
@@ -592,13 +621,13 @@ void main() {
 
   group('parseFigureLine — hey (TCB pass lists)', () {
     ({String move, Map<String, Object?> params})? parse(String line) {
-      final f = parseFigureLine(line);
+      final f = _parseLine(line);
       if (f == null || f.isCustom) return null;
       return (move: f.move, params: f.params);
     }
 
     test('decodes the canonical fixture line (~ dropped)', () {
-      final f = parseFigureLine('Hey 1/2 (WR;PL;MR;N2L~)');
+      final f = _parseLine('Hey 1/2 (WR;PL;MR;N2L~)');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'hey');
       expect(f.params['length'], 'half');
@@ -614,7 +643,7 @@ void main() {
     test('decodes an N1 (current neighbor) pass code (#308)', () {
       // `N1L` names the current neighbor on the left shoulder. Before #308
       // `_heyPeople` was missing `n1`, so this line fell to a custom figure.
-      final f = parseFigureLine('Hey 1/2 (WR;PL;MR;N1L~)');
+      final f = _parseLine('Hey 1/2 (WR;PL;MR;N1L~)');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'hey');
       expect(f.params['length'], 'half');
@@ -653,7 +682,7 @@ void main() {
     });
 
     test('a lone code leaves pass2 unspecified (MoveDef default applies)', () {
-      final f = parseFigureLine('Hey (WR)');
+      final f = _parseLine('Hey (WR)');
       expect(f!.isCustom, isFalse);
       expect(f.params.containsKey('pass2'), isFalse);
       expect(contraTaxonomy.effectiveParams(f)['pass2'], 'unspecified');
@@ -705,7 +734,7 @@ void main() {
     // Real TCB fixtures (dances 16101 / 10394): "Ricochet hey" names the
     // variant, the ricochet lands at pass position 3 => rico2.
     test('real TCB fixture: Ricochet hey 1/2 (ML;PR;W ricochet)', () {
-      final f = parseFigureLine('Ricochet hey 1/2 (ML;PR;W ricochet)');
+      final f = _parseLine('Ricochet hey 1/2 (ML;PR;W ricochet)');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'hey');
       expect(f.params['length'], 'half');
@@ -721,7 +750,7 @@ void main() {
     test(
       'real TCB fixture: Ricochet hey 1/2 (WR;PL;M ricochet;PL~) — ~ dropped',
       () {
-        final f = parseFigureLine('Ricochet hey 1/2 (WR;PL;M ricochet;PL~)');
+        final f = _parseLine('Ricochet hey 1/2 (WR;PL;M ricochet;PL~)');
         expect(f!.isCustom, isFalse);
         expect(f.move, 'hey');
         expect(f.params['length'], 'half');
@@ -738,20 +767,14 @@ void main() {
 
   group('parseFigureLine — preservation', () {
     test('source beats are preserved on a structured figure', () {
-      final f = parseFigureLine('Neighbor swing', beats: 12);
+      final f = _parseLine('Neighbor swing', beats: 12);
       expect(f!.move, 'swing');
       expect(f.params['beats'], 12);
     });
 
     test('non-positive beats are omitted (taxonomy defaults apply later)', () {
-      expect(
-        parseFigureLine('Neighbor swing', beats: 0)!.params['beats'],
-        isNull,
-      );
-      expect(
-        parseFigureLine('Neighbor swing', beats: -4)!.params['beats'],
-        isNull,
-      );
+      expect(_parseLine('Neighbor swing', beats: 0)!.params['beats'], isNull);
+      expect(_parseLine('Neighbor swing', beats: -4)!.params['beats'], isNull);
     });
 
     test(
@@ -759,7 +782,7 @@ void main() {
       () {
         // `customFigure` throws on a negative beat count, so a malformed source
         // beat must not propagate through the fallback path.
-        final f = parseFigureLine('hey for four', beats: -8);
+        final f = _parseLine('hey for four', beats: -8);
         expect(f, isNotNull);
         expect(f!.isCustom, isTrue);
         expect(_text(f), 'hey for four');
@@ -769,24 +792,24 @@ void main() {
 
     test('the progression flag is preserved on structured + custom', () {
       expect(
-        parseFigureLine('Neighbor swing', progression: true)!.progression,
+        _parseLine('Neighbor swing', progression: true)!.progression,
         isTrue,
       );
       expect(
-        parseFigureLine('hey for four', progression: true)!.progression,
+        _parseLine('hey for four', progression: true)!.progression,
         isTrue,
       );
     });
 
     test('section labels are never embedded in the figure text', () {
       // Structured: no in-text label (section derives from beats downstream).
-      final structured = parseFigureLine('Neighbor swing');
+      final structured = _parseLine('Neighbor swing');
       expect(structured!.isCustom, isFalse);
       expect(structured.params.containsKey('text'), isFalse);
       // Custom: clean scrubbed text only — no `A1:`/`B2:` prefix. The section
       // label and beats are structured fields on the figure; embedding them in
       // the text would duplicate structured data that can drift out of sync.
-      final custom = parseFigureLine('hey for four');
+      final custom = _parseLine('hey for four');
       expect(custom!.isCustom, isTrue);
       expect(_text(custom), 'hey for four');
     });
@@ -803,7 +826,7 @@ void main() {
           form: DanceForm.contra,
           moves: const [],
         );
-        final f = parseFigureLine('Neighbor swing', beats: 8, taxonomy: empty);
+        final f = _parseLine('Neighbor swing', beats: 8, taxonomy: empty);
         expect(f!.isCustom, isTrue);
         expect(_text(f), 'Neighbor swing');
         expect(f.params['beats'], 8);
@@ -940,7 +963,7 @@ void main() {
 
     cases.forEach((line, expected) {
       test('"$line" → ${expected.move}', () {
-        final f = parseFigureLine(line);
+        final f = _parseLine(line);
         expect(f, isNotNull, reason: line);
         expect(f!.isCustom, isFalse, reason: line);
         expect(f.move, expected.move, reason: line);
@@ -953,7 +976,7 @@ void main() {
     // 9. chain "to neighbor/partner" → structured chain + Figure NOTE (TCB
     //    writes "Ladies chain to neighbor/partner" exclusively).
     test('"Ladies chain to neighbor" structures + preserves note', () {
-      final f = parseFigureLine('Ladies chain to neighbor');
+      final f = _parseLine('Ladies chain to neighbor');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'chain');
       expect(f.params['who'], 'role2s');
@@ -961,7 +984,7 @@ void main() {
     });
 
     test('"Ladies chain to partner" preserves the partner note', () {
-      final f = parseFigureLine('Ladies chain to partner');
+      final f = _parseLine('Ladies chain to partner');
       expect(f!.move, 'chain');
       expect(f.note, 'to partner');
     });
@@ -970,7 +993,7 @@ void main() {
     //    (stripping is for RECOGNITION only, so nothing is lost).
     test('unrecognized line keeps its parenthetical annotation in custom '
         'text', () {
-      final f = parseFigureLine('hey for four (from the top)');
+      final f = _parseLine('hey for four (from the top)');
       expect(f!.isCustom, isTrue);
       expect(_text(f), 'hey for four (from the top)');
     });
@@ -980,7 +1003,7 @@ void main() {
     // pull-by names a dancer (→ pull_by_dancers) — so this synthetic line just
     // guards the defensive direction branch of the _pullBy recognizer.
     test('"Pull by across" (no dancer) → pull_by_direction', () {
-      final f = parseFigureLine('Pull by across');
+      final f = _parseLine('Pull by across');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'pull_by_direction');
       expect(f.params['dir'], 'across');
@@ -990,68 +1013,65 @@ void main() {
     // leading role would misread its target as the giver, so it falls back to
     // custom rather than fabricating a giver.
     test('"give-and-take partner" (no leading role) → custom', () {
-      final f = parseFigureLine('give-and-take partner');
+      final f = _parseLine('give-and-take partner');
       expect(f!.isCustom, isTrue);
     });
 
     // A give-and-take whose leading dancer is outside role1s/role2s is rejected
     // rather than silently coerced to the default giver.
     test('"Neighbor give-and-take partner" (bad giver domain) → custom', () {
-      final f = parseFigureLine('Neighbor give-and-take partner');
+      final f = _parseLine('Neighbor give-and-take partner');
       expect(f!.isCustom, isTrue);
     });
 
     // The giver must LEAD: an unattested order where the role appears after the
     // move ("give-and-take men partner") is not structured.
     test('"give-and-take men partner" (giver not leading) → custom', () {
-      final f = parseFigureLine('give-and-take men partner');
+      final f = _parseLine('give-and-take men partner');
       expect(f!.isCustom, isTrue);
     });
 
     // give-and-take requires a stated target; a bare giver + move is rejected.
     test('"Men give-and-take" (no target) → custom', () {
-      final f = parseFigureLine('Men give-and-take');
+      final f = _parseLine('Men give-and-take');
       expect(f!.isCustom, isTrue);
     });
 
     // contra_corners requires the turning couple to LEAD: a trailing dancer set
     // ("turn contra corners ones") is an unattested order → custom.
     test('"turn contra corners ones" (couple not leading) → custom', () {
-      final f = parseFigureLine('turn contra corners ones');
+      final f = _parseLine('turn contra corners ones');
       expect(f!.isCustom, isTrue);
     });
 
     // contra_corners requires the identifying "turn" keyword.
     test('"Ones contra corners" (no "turn") → custom', () {
-      final f = parseFigureLine('Ones contra corners');
+      final f = _parseLine('Ones contra corners');
       expect(f!.isCustom, isTrue);
     });
   });
 
   group('parseFigureLines — compound `;` split', () {
     test('a line with no top-level `;` yields the single figure unchanged', () {
-      final fs = parseFigureLines('Neighbor swing', beats: 16);
+      final fs = _parseLines('Neighbor swing', beats: 16);
       expect(fs, hasLength(1));
       expect(fs.single.move, 'swing');
       expect(fs.single.params['beats'], 16);
     });
 
     test('an empty line yields an empty list (nothing to store)', () {
-      expect(parseFigureLines('   '), isEmpty);
+      expect(_parseLines('   '), isEmpty);
     });
 
     test('both clauses structure → one figure each, in order', () {
-      final fs = parseFigureLines(
-        'Pass through across (PR); turn alone',
-        beats: 4,
-      );
+      final fs = _parseLines('Pass through across (PR); turn alone', beats: 4);
       expect(fs.map((f) => f.move), ['pass_through', 'turn_alone']);
       expect(fs.every((f) => !f.isCustom), isTrue);
     });
 
     test('the source total beats ride on the FIRST clause; the rest are '
         'beats-absent, so the cumulative total is preserved (no drift)', () {
-      final fs = parseFigureLines('Circle left 3/4; turn alone', beats: 8);
+      final fs = _parseLines('Circle left 3/4; turn alone', beats: 8);
       expect(fs, hasLength(2));
       expect(fs[0].beats, 8);
       expect(fs[1].beats, 0);
@@ -1061,10 +1081,7 @@ void main() {
 
     test('all-or-nothing: a clause that cannot structure keeps the WHOLE line '
         'as a single custom figure with the full text + source beats', () {
-      final fs = parseFigureLines(
-        'Star right 3/4; form wave of four',
-        beats: 8,
-      );
+      final fs = _parseLines('Star right 3/4; form wave of four', beats: 8);
       expect(fs, hasLength(1));
       final only = fs.single;
       expect(only.isCustom, isTrue);
@@ -1077,7 +1094,7 @@ void main() {
     test(
       'a facing/note second clause is not a move → whole line stays custom',
       () {
-        final fs = parseFigureLines('Partner swing; face N3', beats: 8);
+        final fs = _parseLines('Partner swing; face N3', beats: 8);
         expect(fs, hasLength(1));
         expect(fs.single.isCustom, isTrue);
       },
@@ -1085,10 +1102,7 @@ void main() {
 
     test('a top-level `||` (simultaneity) keeps the whole line custom, never '
         'split', () {
-      final fs = parseFigureLines(
-        'Balance the ring || California twirl',
-        beats: 8,
-      );
+      final fs = _parseLines('Balance the ring || California twirl', beats: 8);
       expect(fs, hasLength(1));
       expect(fs.single.isCustom, isTrue);
       expect(fs.single.params['text'], contains('||'));
@@ -1096,7 +1110,7 @@ void main() {
 
     test('a `;` inside a parenthetical annotation does not split the line '
         '(hey pass lists are opaque)', () {
-      final fs = parseFigureLines('Hey for four (PR;WL;NR;ML)', beats: 16);
+      final fs = _parseLines('Hey for four (PR;WL;NR;ML)', beats: 16);
       expect(fs, hasLength(1));
       // Whether it structures as a hey or stays custom, it is never split on
       // the annotation-internal `;`.
@@ -1107,7 +1121,7 @@ void main() {
       'every clause is accounted for — a 3-clause line that fully structures '
       'emits exactly one figure per clause, in order (no clause dropped)',
       () {
-        final fs = parseFigureLines(
+        final fs = _parseLines(
           'Circle left 3/4; pass through across; turn alone',
           beats: 8,
         );
@@ -1118,7 +1132,7 @@ void main() {
 
     test('a malformed empty clause (`A;;B`) is NOT silently dropped — the line '
         'declines to split and stays custom with full text preserved', () {
-      final fs = parseFigureLines('Circle left 3/4;; turn alone', beats: 8);
+      final fs = _parseLines('Circle left 3/4;; turn alone', beats: 8);
       expect(fs, hasLength(1));
       expect(fs.single.isCustom, isTrue);
       expect(fs.single.beats, 8);
@@ -1130,7 +1144,7 @@ void main() {
 
     test('a whitespace-only middle clause (`A; ;B`) is likewise not dropped — '
         'the line stays custom with full text preserved', () {
-      final fs = parseFigureLines('Circle left 3/4; ; turn alone', beats: 8);
+      final fs = _parseLines('Circle left 3/4; ; turn alone', beats: 8);
       expect(fs, hasLength(1));
       expect(fs.single.isCustom, isTrue);
       expect(fs.single.beats, 8);
@@ -1140,7 +1154,7 @@ void main() {
 
     test('a lone trailing `;` is not a compound — the whole line structures as '
         'a single figure', () {
-      final fs = parseFigureLines('Neighbor swing;', beats: 16);
+      final fs = _parseLines('Neighbor swing;', beats: 16);
       expect(fs, hasLength(1));
       expect(fs.single.move, 'swing');
       expect(fs.single.beats, 16);
@@ -1151,9 +1165,9 @@ void main() {
         'is accepted downstream', () {
       // A 64-beat dance whose second line is the compound. "before" carries the
       // compound as one custom figure (beats 8); "after" splits it.
-      final head = parseFigureLine('Neighbor swing', beats: 16)!; // A1 @ 0
-      final tailA = parseFigureLine('Partner swing', beats: 16)!; // @ 24
-      final tailB = parseFigureLine('Neighbor allemande right 1', beats: 24)!;
+      final head = _parseLine('Neighbor swing', beats: 16)!; // A1 @ 0
+      final tailA = _parseLine('Partner swing', beats: 16)!; // @ 24
+      final tailB = _parseLine('Neighbor allemande right 1', beats: 24)!;
 
       final before = <Figure>[
         head,
@@ -1163,7 +1177,7 @@ void main() {
       ];
       final after = <Figure>[
         head,
-        ...parseFigureLines('Circle left 3/4; turn alone', beats: 8),
+        ..._parseLines('Circle left 3/4; turn alone', beats: 8),
         tailA,
         tailB,
       ];
@@ -1250,7 +1264,7 @@ void main() {
       test(
         '"$line" → ${expected.move} places=${expected.params['places']}',
         () {
-          final f = parseFigureLine(line);
+          final f = _parseLine(line);
           expect(f, isNotNull, reason: line);
           expect(f!.isCustom, isFalse, reason: line);
           expect(f.move, expected.move, reason: line);
@@ -1264,26 +1278,26 @@ void main() {
     // An eighth-turn ("1 & 1/8") has no integer place, so the amount is NOT
     // recognized and the line stays custom — never rounded to a nearby place.
     test('"Star left 1 & 1/8" (eighth-turn) → custom', () {
-      final f = parseFigureLine('Star left 1 & 1/8');
+      final f = _parseLine('Star left 1 & 1/8');
       expect(f!.isCustom, isTrue);
     });
 
     // A bare eighth fraction is likewise never mapped to a place.
     test('"Star right 5/8" (eighth-turn) → custom', () {
-      final f = parseFigureLine('Star right 5/8');
+      final f = _parseLine('Star right 5/8');
       expect(f!.isCustom, isTrue);
     });
 
     // 3 & 1/2 = 14 places, past the 1..10 range: the amount is left unconsumed
     // (never clamped to 10) so the line stays custom.
     test('"Circle left 3 & 1/2" (over-range) → custom', () {
-      final f = parseFigureLine('Circle left 3 & 1/2');
+      final f = _parseLine('Circle left 3 & 1/2');
       expect(f!.isCustom, isTrue);
     });
 
     // Regression: a bare quarter fraction still maps to a single place.
     test('"Circle left 3/4" (single fraction) → 3 places', () {
-      final f = parseFigureLine('Circle left 3/4');
+      final f = _parseLine('Circle left 3/4');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'circle');
       expect(f.params['places'], 3);
@@ -1292,7 +1306,7 @@ void main() {
     // Regression: the allemande/do-si-do turn amount is a `turn` (double), not
     // a `places` — the compound-places path must not bleed into it.
     test('"Neighbor allemande left 1 & 1/2" stays a turn, no places', () {
-      final f = parseFigureLine('Neighbor allemande left 1 & 1/2');
+      final f = _parseLine('Neighbor allemande left 1 & 1/2');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'allemande');
       expect(f.params['turn'], 1.5);

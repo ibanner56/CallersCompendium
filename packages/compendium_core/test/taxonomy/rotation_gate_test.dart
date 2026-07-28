@@ -67,8 +67,11 @@ void main() {
   });
 
   group('parser — rotation_gate (corpus) with beats layered from source', () {
+    // These corpus lines are CallersBox/TCB-authored (e.g. #15's `(ones
+    // forward)` which-pair annotation), so they are recognised through the
+    // relocated CallersBox front-end.
     ({Figure f}) parse(String line, int beats) =>
-        (f: parseFigureLine(line, beats: beats)!);
+        (f: parseFigureLine(line, beats: beats, frontEnd: tcbFigureFrontEnd)!);
 
     test('#15 Back to Dublin: mirror, full turn, 8 beats', () {
       final f = parse('Neighbor mirror gate 1 (ones forward)', 8).f;

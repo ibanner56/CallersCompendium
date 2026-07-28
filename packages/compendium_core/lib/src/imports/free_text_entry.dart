@@ -1,5 +1,6 @@
 import '../model/figure.dart';
 import '../taxonomy/taxonomy.dart';
+import 'callersbox_figure_dialect.dart';
 import 'figure_parser.dart';
 import 'shorthand_mappings.dart';
 
@@ -130,5 +131,14 @@ List<Figure> parseFreeTextFigureEntry(
     if (expanded != null) return expanded;
   }
   final split = _splitInlineBeats(trimmed);
-  return parseFigureLines(split.text, beats: split.beats, taxonomy: taxonomy);
+  // Bound to the CallersBox/TCB front-end: a locally-typed line behaves exactly
+  // as the same line arriving from a CallersBox import did before the front-end
+  // relocation (byte-identical). A future fan-out across all source front-ends
+  // is a separate PR.
+  return parseFigureLines(
+    split.text,
+    beats: split.beats,
+    taxonomy: taxonomy,
+    frontEnd: tcbFigureFrontEnd,
+  );
 }

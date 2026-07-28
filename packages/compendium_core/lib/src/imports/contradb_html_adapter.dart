@@ -21,10 +21,12 @@ import 'structured_draft.dart';
 /// The sibling [ContraDbAdapter] parses ContraDB's internal `figures_json` DB
 /// column — a positional move/parameter model a typical user *cannot* obtain
 /// from the website (ContraDB serves **no JSON**: `dances/N.json` → HTTP 406,
-/// no public API). This adapter parses the reachable path — the clean,
-/// server-rendered HTML — so a user can import a dance by pasting its URL. This
-/// is the user-facing ContraDB import path (ROADMAP 6.4). The two adapters take
-/// completely different inputs and are intentionally kept self-contained.
+/// no public API). Because that input is unreachable in practice, the JSON
+/// adapter is now **`@Deprecated` and unused** (retained only as reference prior
+/// art + tests). This adapter parses the reachable path — the clean,
+/// server-rendered HTML — so a user can import a dance by pasting its URL, and
+/// is the **sole live** ContraDB import path (ROADMAP 6.4). The two adapters
+/// take completely different inputs and are intentionally kept self-contained.
 ///
 /// ## Core is I/O-free
 /// This adapter never fetches the page. It parses an HTML *string* the app
@@ -65,6 +67,14 @@ import 'structured_draft.dart';
 /// Missing/malformed elements become non-fatal [ImportIssue]s; a page with no
 /// figures table still imports as a metadata stub with a warning. [parse] throws
 /// only when the payload is not a ContraDB dance page at all.
+/// The ContraDB-HTML figure-text front-end. ContraDB renders clean, structured
+/// prose and never emits TCB paren/annotation notation, so its front-end is the
+/// neutral [canonicalFigureFrontEnd] for now — the shared recognizer's canonical
+/// dialect is ContraDB-aligned. Exposed as its own named, independently-callable
+/// [FigureFrontEnd] so a later PR can enrich it (dedicated ContraDB reverse
+/// parsers) and a free-text fan-out can select it, without touching the adapter.
+const FigureFrontEnd contraDbHtmlFigureFrontEnd = canonicalFigureFrontEnd;
+
 class ContraDbHtmlAdapter implements SourceAdapter {
   ContraDbHtmlAdapter();
 
@@ -267,6 +277,7 @@ class ContraDbHtmlAdapter implements SourceAdapter {
           beats: beats,
           progression: hasProgression,
           scrub: (s) => s,
+          frontEnd: contraDbHtmlFigureFrontEnd,
         )!,
       );
       index++;
