@@ -234,4 +234,50 @@ void main() {
       expect(outcome.figures[1], authored);
     });
   });
+
+  group('parseFreeTextFigureEntry — fan-out across source front-ends', () {
+    test(
+      'a shorthand hit STILL wins over the fan-out parse (shorthand-first)',
+      () {
+        // The fan-out would structure "neighbor swing" to swing/who:neighbors,
+        // but a shorthand mapping for the same whole-line token must short-circuit
+        // FIRST and return its own target (swing/who:partners) verbatim.
+        final shorthands = ShorthandMappings([
+          ShorthandMapping(
+            token: 'neighbor swing',
+            figures: [
+              Figure(move: 'swing', params: const {'who': 'partners'}),
+            ],
+          ),
+        ]);
+        final fs = parseFreeTextFigureEntry(
+          'neighbor swing',
+          shorthands: shorthands,
+        );
+        expect(fs, hasLength(1));
+        expect(fs.single.move, 'swing');
+        expect(fs.single.params['who'], 'partners');
+      },
+    );
+
+    test('a CallersBox/TCB hey pass-list structures through the fan-out', () {
+      // Only the TCB front-end decodes the parenthetical pass list; the ContraDB
+      // (canonical) attempt misses first, so this proves the fan-out reaches the
+      // CallersBox front-end.
+      final fs = parseFreeTextFigureEntry('hey 1/2 (ml;pr)');
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isFalse);
+      expect(fs.single.move, 'hey');
+    });
+
+    test('an unrecognised line still degrades to an import-gap custom', () {
+      final fs = parseFreeTextFigureEntry('qwx zzz nonsense (16)');
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isTrue);
+      expect(fs.single.customOrigin, CustomOrigin.importGap);
+      // The trailing inline beat is still peeled before the fan-out parse.
+      expect(fs.single.params['beats'], 16);
+      expect(fs.single.params['text'], 'qwx zzz nonsense');
+    });
+  });
 }

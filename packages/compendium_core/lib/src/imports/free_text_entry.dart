@@ -1,7 +1,6 @@
 import '../model/figure.dart';
 import '../taxonomy/taxonomy.dart';
-import 'callersbox_figure_dialect.dart';
-import 'figure_parser.dart';
+import 'figure_front_end_fan_out.dart';
 import 'shorthand_mappings.dart';
 
 /// Longest inline beat count we will read from a free-text line. Bounds the
@@ -87,10 +86,11 @@ _BeatSplit _splitInlineBeats(String line) {
 /// #419 parser path below.
 ///
 /// This is the local-typed counterpart to the import adapters: it reuses the
-/// SAME hardened, bounded, never-throw core parser ([parseFigureLines]) rather
-/// than any "trusted-local" fast-path, so a typed line behaves identically to
-/// the same line arriving from an import — `;`-compounds split all-or-nothing
-/// and a top-level `||` stays whole-custom.
+/// SAME hardened, bounded, never-throw core parser (fanning out across the
+/// source front-ends via [parseFigureLinesFanOut]) rather than any
+/// "trusted-local" fast-path, so a typed line behaves identically to the same
+/// line arriving from an import — `;`-compounds split all-or-nothing (in the
+/// CallersBox/TCB attempt) and a top-level `||` stays whole-custom.
 ///
 /// Before parsing, an optional inline beat count is peeled off the line and
 /// passed as the `beats` argument:
@@ -131,14 +131,15 @@ List<Figure> parseFreeTextFigureEntry(
     if (expanded != null) return expanded;
   }
   final split = _splitInlineBeats(trimmed);
-  // Bound to the CallersBox/TCB front-end: a locally-typed line behaves exactly
-  // as the same line arriving from a CallersBox import did before the front-end
-  // relocation (byte-identical). A future fan-out across all source front-ends
-  // is a separate PR.
-  return parseFigureLines(
+  // Fan OUT across the three source front-ends in precedence order
+  // (ContraDB > CallersBox/TCB > CallersCompanion) and take the highest-
+  // precedence attempt that structures the whole line to non-custom figure(s);
+  // on a full miss the line stays an import-gap custom (byte-identical to the
+  // pre-fan-out CallersBox fallback). Only the TCB attempt `;`-splits, so a
+  // `;`-compound still resolves through it, and a top-level `||` stays custom.
+  return parseFigureLinesFanOut(
     split.text,
     beats: split.beats,
     taxonomy: taxonomy,
-    frontEnd: tcbFigureFrontEnd,
   );
 }
