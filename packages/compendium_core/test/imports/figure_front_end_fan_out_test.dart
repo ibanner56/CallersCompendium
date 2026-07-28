@@ -3,15 +3,31 @@ import 'package:test/test.dart';
 
 /// A stub front-end whose pre-recognizer structures any scrubbed line that
 /// satisfies [when] to a valid `swing`/neighbors figure carrying [note], so a
-/// test can tell WHICH front-end produced a fan-out winner by its note. When
-/// [when] is not satisfied the pre-recognizer returns null and the line falls to
-/// the shared recognizers (which do not recognize the nonsense sentinels used
-/// here), so the stub effectively "misses" and degrades to custom.
+/// test can tell WHICH front-end produced a fan-out winner by its note. Because
+/// it always carries a note it is a NOTE-BEARING (tier-2) attempt, which is
+/// exactly what the precedence-within-a-tier tests below want (they compare
+/// several note-bearing stubs, so the highest-precedence one wins). When [when]
+/// is not satisfied the pre-recognizer returns null and the line falls to the
+/// shared recognizers (which do not recognize the nonsense sentinels used here),
+/// so the stub effectively "misses" and degrades to custom.
 FigureFrontEnd _stub(String note, {required bool Function(String) when}) =>
     FigureFrontEnd(
       preRecognizers: [
         (scrubbed) => when(scrubbed.toLowerCase())
             ? FigureMatch('swing', params: {'who': 'neighbors'}, note: note)
+            : null,
+      ],
+    );
+
+/// A CLEAN (noteless) stub front-end that structures any line satisfying [when]
+/// to a `swing` figure with the given [who], identifiable by that param rather
+/// than a note. Used to test precedence WITHIN the clean (tier-1) band, where a
+/// note would otherwise change the tier.
+FigureFrontEnd _cleanStub(String who, {required bool Function(String) when}) =>
+    FigureFrontEnd(
+      preRecognizers: [
+        (scrubbed) => when(scrubbed.toLowerCase())
+            ? FigureMatch('swing', params: {'who': who})
             : null,
       ],
     );
@@ -170,11 +186,133 @@ void main() {
     });
 
     test('a TCB hey pass-list structures via the CallersBox attempt', () {
-      // Only the TCB front-end decodes the parenthetical pass list; the
-      // ContraDB (canonical) attempt misses and the fan-out falls through to it.
+      // The parenthetical pass list is TCB-specific; the enriched ContraDB
+      // front-end does not decode it, so the fan-out falls through to TCB.
       final f = parseFigureLineFanOut('hey 1/2 (ml;pr)');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'hey');
+    });
+  });
+
+  group('parseFigureLineFanOut — ContraDB precedence (real enriched front-end)', () {
+    // `slide left along set` renders ContraDB's slideAlongSetWords; only the
+    // enriched contraDbHtmlFigureFrontEnd reverse-parses it. The shared/TCB
+    // recognizers choke on the trailing "along set" and fall to custom, so this
+    // line proves the fan-out actually consults ContraDB — and that ContraDB
+    // sits at the FRONT of the precedence list.
+    test('a ContraDB-only line structures via the ContraDB front-end', () {
+      final f = parseFigureLineFanOut('slide left along set');
+      expect(f, isNotNull);
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'slide_along_set');
+      expect(f.params['slide'], 'left');
+    });
+
+    test(
+      'the same line stays custom when ContraDB is removed from the fan-out',
+      () {
+        // With only TCB + CC, nothing reverse-parses "along set", so the win above
+        // is attributable specifically to ContraDB's presence and precedence.
+        final f = parseFigureLineFanOut(
+          'slide left along set',
+          frontEnds: [tcbFigureFrontEnd, callersCompanionFigureFrontEnd],
+        );
+        expect(f, isNotNull);
+        expect(f!.isCustom, isTrue);
+        expect(f.customOrigin, CustomOrigin.importGap);
+      },
+    );
+
+    test('a ContraDB allemande carries its verbatim trailing note through the '
+        'fan-out', () {
+      // ContraDB appends a figure's free-text note with no separator; its
+      // reverse-parser captures the tail as the figure note. TCB/CC would reject
+      // the leftover prose and fall to custom, so a preserved note is a
+      // ContraDB-front-end signature proving ContraDB produced the winner.
+      final f = parseFigureLineFanOut(
+        "role1s allemande left 1x - don't let go",
+      );
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'allemande');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['hand'], 'left');
+      expect(f.note, "1x - don't let go");
+    });
+
+    test(
+      'ContraDB wins over a lower-precedence front-end that also structures',
+      () {
+        // Place the REAL enriched ContraDB front-end ahead of a CLEAN stub that
+        // would structure the same line to a DIFFERENT move: within the clean
+        // tier, precedence decides, so the fan-out must take ContraDB's
+        // slide_along_set, not the stub's swing.
+        final f = parseFigureLineFanOut(
+          'slide left along set',
+          frontEnds: [
+            contraDbHtmlFigureFrontEnd,
+            _cleanStub('neighbors', when: _always),
+          ],
+        );
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'slide_along_set');
+      },
+    );
+
+    test('a lower-precedence CLEAN front-end wins by position over another '
+        'clean one ordered behind it', () {
+      // Two clean stubs, distinguished by `who`: the FIRST (highest-precedence)
+      // wins, confirming position governs within the clean tier.
+      final f = parseFigureLineFanOut(
+        'plover',
+        frontEnds: [
+          _cleanStub('partners', when: _always),
+          _cleanStub('neighbors', when: _always),
+        ],
+      );
+      expect(f!.isCustom, isFalse);
+      expect(f.params['who'], 'partners');
+    });
+
+    test('a CLEAN lower-precedence parse beats a NOTE-BEARING higher one '
+        '(balance & swing fidelity)', () {
+      // The enriched ContraDB front-end reads "balance and swing" as a bare
+      // `balance` and drops "and swing (NR)" into a note; TCB reads the whole
+      // line cleanly as swing with a balance prefix. The clean TCB parse must
+      // win over ContraDB's higher-precedence note-bearing one so the swing is
+      // not silently lost.
+      final f = parseFigureLineFanOut('neighbors balance and swing (NR)');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'swing');
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['prefix'], 'balance');
+      expect(f.note, isNull);
+    });
+
+    test('a single line with a real fractional-places move prefers the clean '
+        'TCB parse over ContraDBs note-bearing one', () {
+      // "circle left 3/4": ContraDB captures "3/4" as a note (no fractional
+      // places recognizer); TCB parses places:3. The clean TCB parse wins.
+      final f = parseFigureLineFanOut('circle left 3/4');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'circle');
+      expect(f.params['places'], 3);
+      expect(f.note, isNull);
+    });
+
+    test('a note that swallowed a top-level `||` is rejected (stays custom)', () {
+      // ContraDB would structure "circle left || swing" as circle with a
+      // "|| swing" note; that note swallowed a simultaneity separator, so it is
+      // rejected and the single-line path keeps the line custom.
+      final f = parseFigureLineFanOut('circle left || swing');
+      expect(f!.isCustom, isTrue);
+      expect(f.customOrigin, CustomOrigin.importGap);
+    });
+
+    test('the plural entry point also structures a ContraDB-only line', () {
+      final fs = parseFigureLinesFanOut('slide left along set');
+      expect(fs, hasLength(1));
+      expect(fs.single.isCustom, isFalse);
+      expect(fs.single.move, 'slide_along_set');
     });
   });
 
