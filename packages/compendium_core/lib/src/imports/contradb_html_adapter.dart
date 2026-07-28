@@ -282,10 +282,10 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       // balance …" as ONE figure, but our taxonomy keeps the balance as a
       // SEPARATE figure (the form_long_waves precedent) until a future release.
       // The recognizer emits `form_a_short_wave` (no balance param); when the
-      // row carried the balance, split off a trailing balance the ring. Beats:
-      // the balance takes 4, the wave formation takes the remainder (0 for the
-      // typical 4-beat row — a formation, like form_long_waves). Progression
-      // rides the trailing balance (end of the phrase).
+      // row carried the balance, split off a trailing standalone `balance`.
+      // Beats: the balance takes 4, the wave formation takes the remainder (0
+      // for the typical 4-beat row — a formation, like form_long_waves).
+      // Progression rides the trailing balance (end of the phrase).
       if (figure.move == 'form_a_short_wave' &&
           _oceanWaveBalance.hasMatch(scrubbed)) {
         const balanceBeats = 4;
@@ -313,7 +313,12 @@ class ContraDbHtmlAdapter implements SourceAdapter {
 
   /// Matches ContraDB's `form … ocean wave & balance` render, so the adapter can
   /// split the inline balance into a separate figure (see [_parseFigures]).
-  static final RegExp _oceanWaveBalance = RegExp(r'ocean wave & balance');
+  /// Case-insensitive to stay consistent with the recognizers, which match on
+  /// lowercased tokens.
+  static final RegExp _oceanWaveBalance = RegExp(
+    r'ocean wave & balance',
+    caseSensitive: false,
+  );
 
   /// The beats cell is `td.dance-show-beats`; fall back to the middle cell.
   dom.Element? _beatsCell(List<dom.Element> cells) {
