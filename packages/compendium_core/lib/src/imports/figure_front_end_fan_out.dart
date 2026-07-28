@@ -90,6 +90,12 @@ List<Figure> _attemptLines(
 ///   progression;
 /// - `null` is returned only when the line is empty after scrubbing (nothing to
 ///   store) — this is front-end-independent, so the first `null` short-circuits.
+///
+/// [frontEnds] defaults to (and an EMPTY list is coalesced to)
+/// [figureFanOutFrontEnds]; the parameter exists to substitute a DIFFERENT,
+/// non-empty set of front-ends in tests, and an empty set is meaningless (you
+/// cannot fan out across nothing), so it is treated as "use the defaults" rather
+/// than silently dropping a non-empty line.
 Figure? parseFigureLineFanOut(
   String rawText, {
   int beats = 0,
@@ -97,7 +103,9 @@ Figure? parseFigureLineFanOut(
   Taxonomy? taxonomy,
   List<FigureFrontEnd>? frontEnds,
 }) {
-  final fes = frontEnds ?? figureFanOutFrontEnds;
+  final fes = (frontEnds == null || frontEnds.isEmpty)
+      ? figureFanOutFrontEnds
+      : frontEnds;
   Figure? customFallback;
   for (final fe in fes) {
     final parsed = parseFigureLine(
@@ -135,6 +143,10 @@ Figure? parseFigureLineFanOut(
 ///   the pre-fan-out free-text fallback byte-for-byte;
 /// - an empty list is returned when the line is empty after scrubbing (nothing
 ///   to insert) — front-end-independent, so the first empty short-circuits.
+///
+/// [frontEnds] defaults to (and an EMPTY list is coalesced to)
+/// [figureFanOutFrontEnds] — see [parseFigureLineFanOut] for the rationale — so
+/// an empty set never silently turns a real line into "nothing to insert".
 List<Figure> parseFigureLinesFanOut(
   String rawText, {
   int beats = 0,
@@ -142,7 +154,9 @@ List<Figure> parseFigureLinesFanOut(
   Taxonomy? taxonomy,
   List<FigureFrontEnd>? frontEnds,
 }) {
-  final fes = frontEnds ?? figureFanOutFrontEnds;
+  final fes = (frontEnds == null || frontEnds.isEmpty)
+      ? figureFanOutFrontEnds
+      : frontEnds;
   List<Figure>? customFallback;
   for (final fe in fes) {
     final result = _attemptLines(

@@ -118,6 +118,25 @@ void main() {
         isNull,
       );
     });
+
+    test('an EMPTY frontEnds list is coalesced to the defaults (never drops '
+        'a non-empty line)', () {
+      // A structurable line still structures via the default precedence list.
+      final structured = parseFigureLineFanOut('neighbor swing', frontEnds: []);
+      expect(structured, isNotNull);
+      expect(structured!.isCustom, isFalse);
+      expect(structured.move, 'swing');
+      // A nonsense line still becomes an import-gap custom, NOT dropped to null.
+      final custom = parseFigureLineFanOut(
+        'qwx zzz nonsense',
+        beats: 4,
+        frontEnds: [],
+      );
+      expect(custom, isNotNull);
+      expect(custom!.isCustom, isTrue);
+      expect(custom.customOrigin, CustomOrigin.importGap);
+      expect(custom.params['beats'], 4);
+    });
   });
 
   group(
@@ -169,6 +188,22 @@ void main() {
 
     test('empty after scrubbing yields no figures', () {
       expect(parseFigureLinesFanOut('   '), isEmpty);
+    });
+
+    test('an EMPTY frontEnds list is coalesced to the defaults (never drops '
+        'a non-empty line)', () {
+      final structured = parseFigureLinesFanOut(
+        'neighbor swing',
+        frontEnds: [],
+      );
+      expect(structured, hasLength(1));
+      expect(structured.single.isCustom, isFalse);
+      expect(structured.single.move, 'swing');
+
+      final custom = parseFigureLinesFanOut('qwx zzz nonsense', frontEnds: []);
+      expect(custom, hasLength(1));
+      expect(custom.single.isCustom, isTrue);
+      expect(custom.single.customOrigin, CustomOrigin.importGap);
     });
   });
 
