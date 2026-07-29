@@ -235,7 +235,10 @@ void main() {
         msg,
         isNot(
           contains(
-            l10n.importIssueDateReducedPrecision(0, l10n.importDateFieldRevised),
+            l10n.importIssueDateReducedPrecision(
+              0,
+              l10n.importDateFieldRevised,
+            ),
           ),
         ),
       );
