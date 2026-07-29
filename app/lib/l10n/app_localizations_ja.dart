@@ -3581,83 +3581,81 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorWalkthroughHelper => 'ダンスの各ステップと遷移の手順説明';
 
   @override
-  String get danceEditorAddWalkthroughStep => 'Add walkthrough step';
+  String get danceEditorAddWalkthroughStep => 'ウォークスルーのステップを追加';
 
   @override
-  String get danceEditorWalkthroughStepLabel => 'Walkthrough step (optional)';
+  String get danceEditorWalkthroughStepLabel => 'ウォークスルーのステップ（任意）';
 
   @override
   String get danceEditorWalkthroughStepHelper =>
-      'Saved as your default for this figure and reused wherever it appears.';
+      'このフィギュアの既定値として保存され、登場するすべての箇所で再利用されます。';
 
   @override
-  String get danceEditorSnippetDivergenceTitle => 'Update your saved snippet?';
+  String get danceEditorSnippetDivergenceTitle => '保存済みスニペットを更新しますか？';
 
   @override
   String get danceEditorSnippetDivergenceBody =>
-      'This differs from the walkthrough snippet you saved for this figure. Use the new text everywhere, or just in this dance?';
+      'これはこのフィギュアに保存したウォークスルースニペットと異なります。新しいテキストをすべてで使用しますか、それともこのダンスだけにしますか？';
 
   @override
-  String get danceEditorSnippetUseEverywhere => 'Use everywhere';
+  String get danceEditorSnippetUseEverywhere => 'すべてで使用';
 
   @override
-  String get danceEditorSnippetJustThisDance => 'Just this dance';
+  String get danceEditorSnippetJustThisDance => 'このダンスのみ';
 
   @override
-  String get danceEditorFillWalkthroughFromSnippets => 'Fill from snippets';
+  String get danceEditorFillWalkthroughFromSnippets => 'スニペットから入力';
 
   @override
-  String get danceEditorFillWalkthroughReplaceTitle => 'Replace walkthrough?';
+  String get danceEditorFillWalkthroughReplaceTitle => 'ウォークスルーを置き換えますか？';
 
   @override
   String get danceEditorFillWalkthroughReplaceBody =>
-      'This replaces the current walkthrough with text assembled from your figure snippets.';
+      '現在のウォークスルーを、フィギュアのスニペットから組み立てたテキストで置き換えます。';
 
   @override
-  String get danceEditorFillWalkthroughReplaceConfirm => 'Replace';
+  String get danceEditorFillWalkthroughReplaceConfirm => '置き換え';
 
   @override
   String get danceEditorFillWalkthroughEmpty =>
-      'None of these figures have a saved walkthrough snippet yet.';
+      'これらのフィギュアにはまだ保存されたウォークスルースニペットがありません。';
 
   @override
-  String get settingsWalkthroughSnippetsTitle => 'Walkthrough snippets';
+  String get settingsWalkthroughSnippetsTitle => 'ウォークスルースニペット';
 
   @override
-  String get settingsWalkthroughSnippetsSubtitle =>
-      'Your saved per-figure step descriptions';
+  String get settingsWalkthroughSnippetsSubtitle => 'フィギュアごとに保存したステップ説明';
 
   @override
-  String get settingsWalkthroughSnippetsHeader => 'Saved walkthrough snippets';
+  String get settingsWalkthroughSnippetsHeader => '保存されたウォークスルースニペット';
 
   @override
   String get settingsWalkthroughSnippetsDescription =>
-      'These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.';
+      'これらのフィギュアごとのステップ説明は、ダンスを編集するときにウォークスルーを事前入力します。ここで編集すると、すべてで使われる既定値が更新されます。';
 
   @override
   String get settingsWalkthroughSnippetsEmpty =>
-      'No saved snippets yet. Add walkthrough step descriptions while editing a dance\'s figures.';
+      '保存されたスニペットはまだありません。ダンスのフィギュアを編集しながらウォークスルーのステップ説明を追加してください。';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count snippets',
-      one: '1 snippet',
+      other: '$count 件のスニペット',
     );
     return '$_temp0';
   }
 
   @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'Delete snippet?';
+  String get settingsWalkthroughSnippetDeleteTitle => 'スニペットを削除しますか？';
 
   @override
   String get settingsWalkthroughSnippetDeleteBody =>
-      'This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.';
+      'このフィギュアに保存された既定値を削除します。ダンスにすでに書いたウォークスルーのテキストは保持されます。';
 
   @override
-  String get settingsWalkthroughSnippetEditTitle => 'Edit snippet';
+  String get settingsWalkthroughSnippetEditTitle => 'スニペットを編集';
 
   @override
   String get danceEditorMoreDetailsTitle => '詳細情報';

@@ -3748,83 +3748,86 @@ class AppLocalizationsFr extends AppLocalizations {
       'Description étape par étape de la danse et de ses transitions';
 
   @override
-  String get danceEditorAddWalkthroughStep => 'Add walkthrough step';
+  String get danceEditorAddWalkthroughStep => 'Ajouter une étape de déroulé';
 
   @override
-  String get danceEditorWalkthroughStepLabel => 'Walkthrough step (optional)';
+  String get danceEditorWalkthroughStepLabel => 'Étape de déroulé (facultatif)';
 
   @override
   String get danceEditorWalkthroughStepHelper =>
-      'Saved as your default for this figure and reused wherever it appears.';
+      'Enregistré comme valeur par défaut pour cette figure et réutilisé partout où elle apparaît.';
 
   @override
-  String get danceEditorSnippetDivergenceTitle => 'Update your saved snippet?';
+  String get danceEditorSnippetDivergenceTitle =>
+      'Mettre à jour votre extrait enregistré ?';
 
   @override
   String get danceEditorSnippetDivergenceBody =>
-      'This differs from the walkthrough snippet you saved for this figure. Use the new text everywhere, or just in this dance?';
+      'Ce texte diffère de l\'extrait de déroulé enregistré pour cette figure. Utiliser le nouveau texte partout, ou seulement dans cette danse ?';
 
   @override
-  String get danceEditorSnippetUseEverywhere => 'Use everywhere';
+  String get danceEditorSnippetUseEverywhere => 'Utiliser partout';
 
   @override
-  String get danceEditorSnippetJustThisDance => 'Just this dance';
+  String get danceEditorSnippetJustThisDance => 'Seulement cette danse';
 
   @override
-  String get danceEditorFillWalkthroughFromSnippets => 'Fill from snippets';
+  String get danceEditorFillWalkthroughFromSnippets =>
+      'Remplir à partir des extraits';
 
   @override
-  String get danceEditorFillWalkthroughReplaceTitle => 'Replace walkthrough?';
+  String get danceEditorFillWalkthroughReplaceTitle => 'Remplacer le déroulé ?';
 
   @override
   String get danceEditorFillWalkthroughReplaceBody =>
-      'This replaces the current walkthrough with text assembled from your figure snippets.';
+      'Cela remplace le déroulé actuel par un texte assemblé à partir de vos extraits de figures.';
 
   @override
-  String get danceEditorFillWalkthroughReplaceConfirm => 'Replace';
+  String get danceEditorFillWalkthroughReplaceConfirm => 'Remplacer';
 
   @override
   String get danceEditorFillWalkthroughEmpty =>
-      'None of these figures have a saved walkthrough snippet yet.';
+      'Aucune de ces figures n\'a encore d\'extrait de déroulé enregistré.';
 
   @override
-  String get settingsWalkthroughSnippetsTitle => 'Walkthrough snippets';
+  String get settingsWalkthroughSnippetsTitle => 'Extraits de déroulé';
 
   @override
   String get settingsWalkthroughSnippetsSubtitle =>
-      'Your saved per-figure step descriptions';
+      'Vos descriptions d\'étapes enregistrées par figure';
 
   @override
-  String get settingsWalkthroughSnippetsHeader => 'Saved walkthrough snippets';
+  String get settingsWalkthroughSnippetsHeader =>
+      'Extraits de déroulé enregistrés';
 
   @override
   String get settingsWalkthroughSnippetsDescription =>
-      'These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.';
+      'Ces descriptions d\'étapes par figure préremplissent les déroulés lorsque vous modifiez une danse. En modifier une ici met à jour la valeur par défaut utilisée partout.';
 
   @override
   String get settingsWalkthroughSnippetsEmpty =>
-      'No saved snippets yet. Add walkthrough step descriptions while editing a dance\'s figures.';
+      'Aucun extrait enregistré pour l\'instant. Ajoutez des descriptions d\'étapes de déroulé en modifiant les figures d\'une danse.';
 
   @override
   String settingsWalkthroughSnippetsCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count snippets',
-      one: '1 snippet',
+      other: '$count extraits',
+      one: '1 extrait',
     );
     return '$_temp0';
   }
 
   @override
-  String get settingsWalkthroughSnippetDeleteTitle => 'Delete snippet?';
+  String get settingsWalkthroughSnippetDeleteTitle => 'Supprimer l\'extrait ?';
 
   @override
   String get settingsWalkthroughSnippetDeleteBody =>
-      'This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.';
+      'Cela supprime la valeur par défaut enregistrée pour cette figure. Les danses conservent le texte de déroulé que vous avez déjà écrit.';
 
   @override
-  String get settingsWalkthroughSnippetEditTitle => 'Edit snippet';
+  String get settingsWalkthroughSnippetEditTitle => 'Modifier l\'extrait';
 
   @override
   String get danceEditorMoreDetailsTitle => 'Plus de détails';
