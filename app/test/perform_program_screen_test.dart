@@ -1455,5 +1455,57 @@ void main() {
         findsNothing,
       );
     });
+
+    testWidgets(
+      'tap on the uncovered area is absorbed and does not change the slot',
+      (tester) async {
+        // Two dance slots so a next-slot navigation is possible: with the
+        // overlay open, a tap on the uncovered notation area (which overlaps
+        // the giant right-edge "next" hit zone) must be swallowed by the
+        // overlay's full-screen ModalBarrier and NOT advance the slot (#370).
+        final data = await _dataWith([
+          _dance(
+            id: 'd1',
+            title: 'First Dance',
+            walkthrough: 'A1: neighbours balance and swing.',
+          ),
+          _dance(id: 'd2', title: 'Second Dance'),
+        ]);
+        await _pumpProgram(
+          tester,
+          program: _program([
+            _slot(id: 's1', position: 0, danceId: 'd1'),
+            _slot(id: 's2', position: 1, danceId: 'd2'),
+          ]),
+          data: data,
+        );
+
+        expect(find.text('First Dance'), findsOneWidget);
+        expect(find.text('Slot 1 of 2'), findsOneWidget);
+
+        await tester.tap(
+          find.byKey(const ValueKey('perform-walkthrough-toggle')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(PerformWalkthroughOverlay), findsOneWidget);
+
+        // Tap high on the right edge: within the 56px `perform-edge-next` hit
+        // zone horizontally, but in the top region left uncovered by the
+        // bottom-anchored panel. The transparent ModalBarrier (Positioned.fill)
+        // sits above the edge zone, so this dismisses the overlay instead of
+        // navigating.
+        final size = tester.view.physicalSize / tester.view.devicePixelRatio;
+        await tester.tapAt(Offset(size.width - 20, 200));
+        await tester.pumpAndSettle();
+
+        // The barrier absorbed the tap: overlay closed, but the slot is
+        // unchanged — no advance to the next dance.
+        expect(find.byType(PerformWalkthroughOverlay), findsNothing);
+        expect(find.text('First Dance'), findsOneWidget);
+        expect(find.text('Slot 1 of 2'), findsOneWidget);
+        expect(find.text('Second Dance'), findsNothing);
+        expect(find.text('Slot 2 of 2'), findsNothing);
+      },
+    );
   });
 }
