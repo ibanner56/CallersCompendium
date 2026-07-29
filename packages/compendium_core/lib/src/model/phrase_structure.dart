@@ -134,6 +134,7 @@ List<SectionedFigure> deriveSections(
         message:
             'figures total $beat beats; '
             'structure expects ${structure.totalBeats}',
+        data: {'actual': beat, 'expected': structure.totalBeats},
       ),
     );
   }
