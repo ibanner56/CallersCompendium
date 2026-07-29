@@ -355,7 +355,10 @@ void main() {
       (tester) async {
         final drafts = <FigureDraft>[
           FigureDraft.fromFigure(
-            Figure(move: 'swing', params: const {'who': 'partners', 'beats': 8}),
+            Figure(
+              move: 'swing',
+              params: const {'who': 'partners', 'beats': 8},
+            ),
           ),
         ];
         await _pump(tester, drafts);
@@ -366,7 +369,10 @@ void main() {
         expect(find.byKey(const ValueKey('figure-0-endFacing')), findsNothing);
         await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
         await tester.pumpAndSettle();
-        expect(find.byKey(const ValueKey('figure-0-endFacing')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('figure-0-endFacing')),
+          findsOneWidget,
+        );
 
         await _selectDropdownOption(tester, 'figure-0-endFacing', 'up');
         expect(drafts.single.params['endFacing'], 'up');

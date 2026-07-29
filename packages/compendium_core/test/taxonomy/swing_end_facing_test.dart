@@ -35,19 +35,25 @@ void main() {
       expect(spec.choices, ['in', 'out', 'up', 'down']);
     });
 
-    test('endFacing reuses the four set-relative facing tokens (gateFacings)', () {
-      expect(spec!.choices!.toSet(), gateFacings.toSet());
-    });
+    test(
+      'endFacing reuses the four set-relative facing tokens (gateFacings)',
+      () {
+        expect(spec!.choices!.toSet(), gateFacings.toSet());
+      },
+    );
 
-    test('endFacing has no beat cost — swing goodBeats/paramBeats unchanged', () {
-      final def = tax.resolve('swing')!;
-      expect(def.goodBeats, [8, 16]);
-      // A non-default facing must not perturb the derived beats.
-      expect(
-        tax.effectiveParams(swing(endFacing: 'up'))['beats'],
-        tax.effectiveParams(swing())['beats'],
-      );
-    });
+    test(
+      'endFacing has no beat cost — swing goodBeats/paramBeats unchanged',
+      () {
+        final def = tax.resolve('swing')!;
+        expect(def.goodBeats, [8, 16]);
+        // A non-default facing must not perturb the derived beats.
+        expect(
+          tax.effectiveParams(swing(endFacing: 'up'))['beats'],
+          tax.effectiveParams(swing())['beats'],
+        );
+      },
+    );
 
     test('effectiveParams defaults an omitted endFacing to in', () {
       expect(tax.effectiveParams(swing())['endFacing'], 'in');
@@ -70,9 +76,7 @@ void main() {
 
     test('an unknown/malicious endFacing token cannot alter canonical', () {
       expect(
-        renderer.renderCanonical(
-          swing(who: 'partners', endFacing: '<script>'),
-        ),
+        renderer.renderCanonical(swing(who: 'partners', endFacing: '<script>')),
         canonicalDefault,
       );
     });
@@ -98,15 +102,24 @@ void main() {
 
     test('up/down/out append a facing clause', () {
       expect(
-        renderer.render(swing(who: 'partners', endFacing: 'up'), Dialect.canonical),
+        renderer.render(
+          swing(who: 'partners', endFacing: 'up'),
+          Dialect.canonical,
+        ),
         'partner swing facing up the hall',
       );
       expect(
-        renderer.render(swing(who: 'partners', endFacing: 'down'), Dialect.canonical),
+        renderer.render(
+          swing(who: 'partners', endFacing: 'down'),
+          Dialect.canonical,
+        ),
         'partner swing facing down the hall',
       );
       expect(
-        renderer.render(swing(who: 'partners', endFacing: 'out'), Dialect.canonical),
+        renderer.render(
+          swing(who: 'partners', endFacing: 'out'),
+          Dialect.canonical,
+        ),
         'partner swing facing out of the set',
       );
     });
@@ -143,31 +156,40 @@ void main() {
       );
     });
 
-    test('an unknown or non-string endFacing renders no clause (allow-listed)', () {
-      expect(
-        renderer.render(swing(who: 'partners', endFacing: 'sideways'), Dialect.canonical),
-        'partner swing',
-      );
-      expect(
-        renderer.render(
-          Figure(move: 'swing', params: {'who': 'partners', 'endFacing': 42}),
-          Dialect.canonical,
-        ),
-        'partner swing',
-      );
-    });
+    test(
+      'an unknown or non-string endFacing renders no clause (allow-listed)',
+      () {
+        expect(
+          renderer.render(
+            swing(who: 'partners', endFacing: 'sideways'),
+            Dialect.canonical,
+          ),
+          'partner swing',
+        );
+        expect(
+          renderer.render(
+            Figure(move: 'swing', params: {'who': 'partners', 'endFacing': 42}),
+            Dialect.canonical,
+          ),
+          'partner swing',
+        );
+      },
+    );
 
-    test('a facing swing with an assumed subject keeps the (assumed) marker', () {
-      final line = renderer.render(
-        Figure(
-          move: 'swing',
-          params: {'who': 'partners', 'endFacing': 'up'},
-          assumedSubject: true,
-        ),
-        Dialect.canonical,
-      );
-      expect(line, 'partner (assumed) swing facing up the hall');
-    });
+    test(
+      'a facing swing with an assumed subject keeps the (assumed) marker',
+      () {
+        final line = renderer.render(
+          Figure(
+            move: 'swing',
+            params: {'who': 'partners', 'endFacing': 'up'},
+            assumedSubject: true,
+          ),
+          Dialect.canonical,
+        );
+        expect(line, 'partner (assumed) swing facing up the hall');
+      },
+    );
   });
 
   group('persistence — rides figures_json params', () {
@@ -235,17 +257,11 @@ void main() {
     );
 
     test('swingColumnKey ignores endFacing', () {
-      expect(
-        swingColumnKey('partners'),
-        swingColumnKey('partners'),
-      );
+      expect(swingColumnKey('partners'), swingColumnKey('partners'));
       // Two partner swings with different facings share the same column key.
       final a = swing(who: 'partners', endFacing: 'up');
       final b = swing(who: 'partners', endFacing: 'in');
-      expect(
-        swingColumnKey(a.params['who']),
-        swingColumnKey(b.params['who']),
-      );
+      expect(swingColumnKey(a.params['who']), swingColumnKey(b.params['who']));
     });
 
     test('facing-varied partner swings collapse to a single matrix column', () {
@@ -254,8 +270,9 @@ void main() {
         dance('d2', [swing(who: 'partners', endFacing: 'down')]),
         dance('d3', [swing(who: 'partners')]),
       ]);
-      final partnerCols =
-          matrix.columns.where((c) => c.moveId == 'swing:partner');
+      final partnerCols = matrix.columns.where(
+        (c) => c.moveId == 'swing:partner',
+      );
       expect(partnerCols, hasLength(1));
     });
   });
