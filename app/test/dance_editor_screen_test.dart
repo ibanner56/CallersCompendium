@@ -838,6 +838,84 @@ void main() {
     expect(dance.customFields.single.value, 'hello world');
   });
 
+  testWidgets('inline add-option on a choice field persists and selects it', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'adj',
+        key: 'adjectives',
+        label: 'Adjectives',
+        type: CustomFieldType.choice,
+        choices: const ['driving'],
+      ),
+    );
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(find.byKey(const ValueKey('title-field')), 'CF');
+    await _expandMoreDetails(tester);
+
+    // Open the inline "add option" dialog, enter a new adjective, confirm.
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('custom-adj-add-option')),
+    );
+    await tester.tap(find.byKey(const ValueKey('custom-adj-add-option')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('add-option-input')),
+      'lyrical',
+    );
+    await tester.tap(find.byKey(const ValueKey('add-option-confirm')));
+    await tester.pumpAndSettle();
+
+    // The option is persisted to the field definition immediately.
+    final def = await repos.customFieldDefs.getById('adj');
+    expect(def!.choices, ['driving', 'lyrical']);
+
+    // Saving the dance keeps the newly-added option as the selected value.
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+    final dance = (await repos.dances.listAll()).single;
+    expect(dance.customFields.single.value, 'lyrical');
+  });
+
+  testWidgets('inline add-option rejects a duplicate without persisting', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'adj',
+        key: 'adjectives',
+        label: 'Adjectives',
+        type: CustomFieldType.choice,
+        choices: const ['driving'],
+      ),
+    );
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(find.byKey(const ValueKey('title-field')), 'CF');
+    await _expandMoreDetails(tester);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('custom-adj-add-option')),
+    );
+    await tester.tap(find.byKey(const ValueKey('custom-adj-add-option')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('add-option-input')),
+      'driving',
+    );
+    await tester.tap(find.byKey(const ValueKey('add-option-confirm')));
+    await tester.pumpAndSettle();
+
+    // Duplicate is reported inline; the dialog stays open and nothing is added.
+    expect(find.text('That option already exists.'), findsOneWidget);
+    final def = await repos.customFieldDefs.getById('adj');
+    expect(def!.choices, ['driving']);
+  });
+
   testWidgets('untouched boolean custom field is not persisted', (
     tester,
   ) async {

@@ -1952,6 +1952,42 @@ abstract class AppLocalizations {
   /// **'Descending (tap for ascending)'**
   String get collectionSortDescendingTooltip;
 
+  /// Tooltip for the Collection app-bar button that groups the list by a chosen tag (category); no category is currently selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Group by category'**
+  String get collectionGroupByCategoryTooltip;
+
+  /// Tooltip for the group-by-category button when a category is active; {tag} is the selected tag name.
+  ///
+  /// In en, this message translates to:
+  /// **'Grouped by {tag}'**
+  String collectionGroupByCategoryActiveTooltip(String tag);
+
+  /// Menu entry that clears the active category grouping and returns to the flat list.
+  ///
+  /// In en, this message translates to:
+  /// **'No grouping'**
+  String get collectionGroupByNone;
+
+  /// Header label at the top of the group-by-category menu, above the list of tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get collectionGroupByHeader;
+
+  /// Section header for the group of dances that do NOT carry the selected category tag.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get collectionGroupOther;
+
+  /// Accessibility label announced for a category section header; {label} is the section name and {count} the number of dances in it.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}, {count, plural, =1{1 dance} other{{count} dances}}'**
+  String collectionGroupSectionSemantics(String label, int count);
+
   /// Tooltip for the button that leaves multi-select (batch) mode.
   ///
   /// In en, this message translates to:
@@ -7013,6 +7049,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add choice'**
   String get customFieldsAddChoiceTooltip;
+
+  /// Inline error when a user tries to add a choice option that already exists.
+  ///
+  /// In en, this message translates to:
+  /// **'That option already exists.'**
+  String get customFieldsChoiceDuplicate;
+
+  /// Inline error when a user tries to add an empty choice option.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an option.'**
+  String get customFieldsChoiceEmpty;
+
+  /// Tooltip for the inline button (in the dance editor) that adds a new option to a choice custom field.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an option to {label}'**
+  String customFieldsAddOptionTooltip(String label);
+
+  /// Title of the dialog for adding a new option to a choice custom field inline from the dance editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an option to {label}'**
+  String customFieldsAddOptionTitle(String label);
 
   /// App-bar title for the dialect editor; {name} is the dialect name, plain text.
   ///

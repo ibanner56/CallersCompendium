@@ -2,6 +2,27 @@ import 'package:meta/meta.dart';
 
 import 'enums.dart';
 
+/// Soft length bound (OWASP) for a single `choice` option label. A choice value
+/// is short user-entered text that is created interactively (the dance editor
+/// and the custom-fields settings screen cap input at this length) and can also
+/// arrive from an untrusted archive on import (where oversized values are
+/// **clamped**, not rejected, mirroring the codec's partial-failure tolerance).
+/// Shared so both entry paths agree on one bound.
+const int kMaxCustomFieldChoiceLength = 100;
+
+/// Normalizes a raw `choice` option value: trims surrounding whitespace and
+/// soft-clamps to [kMaxCustomFieldChoiceLength]. Returns `null` when the value
+/// is empty after trimming (nothing to add). Deduplication against existing
+/// options is the caller's responsibility (case-sensitive, on the normalized
+/// value), matching how choices are compared everywhere else.
+String? normalizeChoiceOption(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return null;
+  return trimmed.length <= kMaxCustomFieldChoiceLength
+      ? trimmed
+      : trimmed.substring(0, kMaxCustomFieldChoiceLength);
+}
+
 /// Definition of a user-created custom field.
 ///
 /// Typed ([CustomFieldType]) so search and sorting stay sane; `choice`

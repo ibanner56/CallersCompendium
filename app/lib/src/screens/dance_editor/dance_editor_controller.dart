@@ -12,6 +12,10 @@ import '../../widgets/lingo_text_editing_controller.dart';
 import 'link_draft.dart';
 import 'source_citation_draft.dart';
 
+/// Result of an inline [DanceEditorController.addChoiceOption] attempt, so the
+/// editor UI can report why an add did nothing.
+enum AddChoiceResult { added, empty, duplicate, notFound }
+
 /// Owns the dance editor's mutable working draft, its bounded [EditorUndoStack],
 /// and the debounced undo/autosave machinery.
 ///
@@ -859,6 +863,50 @@ class DanceEditorController extends ChangeNotifier {
     pushUndoNow();
     scheduleAutosave();
     _notify();
+  }
+
+  /// Adds a new option to a `choice` custom field's definition inline, from the
+  /// dance editor, so the reusable adjective pick-list can be "built up over
+  /// time" without a separate settings trip (issue #373).
+  ///
+  /// OWASP input discipline: [normalizeChoiceOption] trims and soft-clamps the
+  /// raw value to [kMaxCustomFieldChoiceLength]; an empty result is rejected
+  /// ([AddChoiceResult.empty]) and a case-sensitive duplicate of an existing
+  /// option is rejected ([AddChoiceResult.duplicate]). On success the option is
+  /// appended to the definition, **persisted** via
+  /// [CustomFieldDefRepository.upsert] (so it round-trips through backup/export
+  /// like any other option), the local [fieldDefs] entry is replaced, and the
+  /// dance's value for the field is set to the new option. The selected value
+  /// saves with the dance; the definition change is committed immediately.
+  Future<AddChoiceResult> addChoiceOption(String fieldId, String raw) async {
+    final index = fieldDefs.indexWhere((d) => d.id == fieldId);
+    if (index < 0) return AddChoiceResult.notFound;
+    final def = fieldDefs[index];
+    if (def.type != CustomFieldType.choice) return AddChoiceResult.notFound;
+
+    final normalized = normalizeChoiceOption(raw);
+    if (normalized == null) return AddChoiceResult.empty;
+    final existing = def.choices ?? const <String>[];
+    if (existing.contains(normalized)) return AddChoiceResult.duplicate;
+
+    final updated = CustomFieldDef(
+      id: def.id,
+      key: def.key,
+      label: def.label,
+      type: def.type,
+      choices: [...existing, normalized],
+      showInList: def.showInList,
+      searchable: def.searchable,
+    );
+    await _repos.customFieldDefs.upsert(updated);
+    if (_disposed) return AddChoiceResult.added;
+
+    fieldDefs = [for (final d in fieldDefs) d.id == fieldId ? updated : d];
+    customValues[fieldId] = normalized;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return AddChoiceResult.added;
   }
 
   void addFigure() {

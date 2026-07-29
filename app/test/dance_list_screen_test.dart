@@ -1169,4 +1169,107 @@ void main() {
       expect(dance!.deletedAt, isNull);
     },
   );
+
+  group('group by category (tag)', () {
+    Future<void> pickCategory(WidgetTester tester, String tagName) async {
+      await tester.tap(find.byKey(const ValueKey('collection-group-by')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(tagName).last);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('splits results into the selected tag and Other sections', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
+      );
+      await repos.dances.create(_dance(id: 'b', title: 'Banana'));
+      await repos.dances.create(
+        _dance(id: 'c', title: 'Cherry', tagIds: const ['t1']),
+      );
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      // Flat list before grouping: no section headers.
+      expect(find.byKey(const ValueKey('group-header-tag')), findsNothing);
+
+      await pickCategory(tester, 'Bouncy');
+
+      // Both sections render, tagged dances first, then "Other".
+      expect(find.byKey(const ValueKey('group-header-tag')), findsOneWidget);
+      expect(find.byKey(const ValueKey('group-header-other')), findsOneWidget);
+      // Rows are partitioned; within each section the active (title) sort holds,
+      // and the tagged section precedes Other in the overall tree order.
+      expect(_titles(tester), ['Apple', 'Cherry', 'Banana']);
+    });
+
+    testWidgets('omits the Other section when every dance carries the tag', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
+      );
+      await repos.dances.create(
+        _dance(id: 'c', title: 'Cherry', tagIds: const ['t1']),
+      );
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await pickCategory(tester, 'Bouncy');
+
+      expect(find.byKey(const ValueKey('group-header-tag')), findsOneWidget);
+      expect(find.byKey(const ValueKey('group-header-other')), findsNothing);
+      expect(_titles(tester), ['Apple', 'Cherry']);
+    });
+
+    testWidgets('No grouping returns to the flat list', (tester) async {
+      final repos = openTestRepositories();
+      await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
+      );
+      await repos.dances.create(_dance(id: 'b', title: 'Banana'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await pickCategory(tester, 'Bouncy');
+      expect(find.byKey(const ValueKey('group-header-tag')), findsOneWidget);
+
+      // Re-open the menu and clear the grouping.
+      await tester.tap(find.byKey(const ValueKey('collection-group-by')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('No grouping').last);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('group-header-tag')), findsNothing);
+      expect(_titles(tester), ['Apple', 'Banana']);
+    });
+
+    testWidgets('section header exposes an accessible label with a count', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
+      await repos.dances.create(
+        _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
+      );
+      await repos.dances.create(
+        _dance(id: 'c', title: 'Cherry', tagIds: const ['t1']),
+      );
+      await repos.dances.create(_dance(id: 'b', title: 'Banana'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+      await pickCategory(tester, 'Bouncy');
+
+      // The tagged section announces "Bouncy, 2 dances"; Other "Other, 1 dance".
+      expect(find.bySemanticsLabel('Bouncy, 2 dances'), findsOneWidget);
+      expect(find.bySemanticsLabel('Other, 1 dance'), findsOneWidget);
+    });
+  });
 }
