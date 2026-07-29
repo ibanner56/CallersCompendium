@@ -183,7 +183,7 @@ void main() {
           ],
         ),
         dialect: Dialect.larksRobins,
-        authorNames: const ['Ted Sannella'],
+        authorNames: const ['Carol Ormand'],
       );
 
       await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
@@ -193,7 +193,7 @@ void main() {
 
       expect(clipboardText, isNotNull);
       expect(clipboardText, contains('Rory O\'More'));
-      expect(clipboardText, contains('Ted Sannella'));
+      expect(clipboardText, contains('Carol Ormand'));
       // Dialect is applied to the copied card (role token substituted).
       expect(clipboardText, contains('larks swing'));
       expect(find.text('Dance copied to clipboard.'), findsOneWidget);
@@ -413,7 +413,7 @@ void main() {
           callingNotes: 'Teach the swing first.',
         ),
         dialect: Dialect.larksRobins,
-        authorNames: const ['Ted Sannella'],
+        authorNames: const ['Carol Ormand'],
         formationLabel: 'Duple improper',
         levelLabel: 'Intermediate',
         statusLabel: 'Active',

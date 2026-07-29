@@ -53,9 +53,9 @@ void main() {
     test('renders resolved author names joined, omitting blanks', () {
       final text = render(
         dance(authorIds: ['a1', 'a2']),
-        authorNames: ['Ted Sannella', '  ', 'Cary Ravitz'],
+        authorNames: ['Carol Ormand', '  ', 'Cary Ravitz'],
       );
-      expect(text, contains('Ted Sannella, Cary Ravitz'));
+      expect(text, contains('Carol Ormand, Cary Ravitz'));
     });
 
     test('omits the author line when no names are given', () {
@@ -260,9 +260,9 @@ void main() {
       const location = 'Boston, MA';
       final text = render(
         dance(authorIds: ['a1']),
-        authorNames: const ['Ted Sannella'],
+        authorNames: const ['Carol Ormand'],
       );
-      expect(text, contains('Ted Sannella'));
+      expect(text, contains('Carol Ormand'));
       expect(text, isNot(contains(email)));
       expect(text, isNot(contains(location)));
     });

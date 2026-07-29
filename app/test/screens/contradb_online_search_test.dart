@@ -28,7 +28,7 @@ String _searchJson({String id = '1', String title = 'The Rendezvous'}) =>
           'id': int.parse(id),
           'title': title,
           'choreographer_id': 4,
-          'choreographer_name': 'Dan Pearl',
+          'choreographer_name': 'Adina Gordon',
           'formation': 'improper',
           'hook': '',
           'user_name': 'Someone',
@@ -42,7 +42,7 @@ const String _danceHtml = '''
 <!DOCTYPE html><html><head><title>x</title></head>
 <body class="dances-show-body">
 <h1 class="dance-show-title">The Rendezvous</h1>
-<p class="dance-show-choreographer">by: <strong><a href="/choreographers/4">Dan Pearl</a></strong></p>
+<p class="dance-show-choreographer">by: <strong><a href="/choreographers/4">Adina Gordon</a></strong></p>
 <p class="dance-show-formation">formation: improper </p>
 <table class="table table-bordered table-condensed contra-table-nonfluid">
   <tr class="a1b1 dance-show-long-figure">

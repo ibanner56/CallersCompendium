@@ -325,7 +325,7 @@ void main() {
 
       test('creates a new choreographer when no match exists', () async {
         final adapter = FakeSourceAdapter([
-          record('fake-1', 'A Dance', authorNames: ['Nova Newname']),
+          record('fake-1', 'A Dance', authorNames: ['Baby Caller']),
         ]);
         final session = await pipeline.commit(
           await pipeline.plan(adapter, const ImportRequest()),
@@ -333,7 +333,7 @@ void main() {
           newId: nextId,
         );
         final id = session.insertedDanceIds.single;
-        expect(await authorNamesOf(id), ['Nova Newname']);
+        expect(await authorNamesOf(id), ['Baby Caller']);
         expect(session.createdChoreographerIds, hasLength(1));
         expect(session.records.single.authorResolutions.single.created, isTrue);
       });
@@ -393,7 +393,7 @@ void main() {
 
       test('collapses a name repeated within one record', () async {
         final adapter = FakeSourceAdapter([
-          record('fake-1', 'A Dance', authorNames: ['Al Olson', 'al olson']),
+          record('fake-1', 'A Dance', authorNames: ['Will Mentor', 'will mentor']),
         ]);
         final session = await pipeline.commit(
           await pipeline.plan(adapter, const ImportRequest()),

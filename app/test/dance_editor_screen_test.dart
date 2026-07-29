@@ -1511,7 +1511,7 @@ void main() {
       expect(find.byKey(const ValueKey('source-title-field')), findsOneWidget);
       await tester.enterText(
         find.byKey(const ValueKey('source-author-field')),
-        'Ted Sannella',
+        'Carol Ormand',
       );
       await tester.tap(find.byKey(const ValueKey('source-save')));
       await tester.pumpAndSettle();
@@ -1520,7 +1520,7 @@ void main() {
       final sources = await repos.publishedSources.listAll();
       expect(sources, hasLength(1));
       expect(sources.single.title, 'Shadrach');
-      expect(sources.single.author, 'Ted Sannella');
+      expect(sources.single.author, 'Carol Ormand');
 
       await tester.tap(find.byKey(const ValueKey('save-dance')));
       await tester.pumpAndSettle();
