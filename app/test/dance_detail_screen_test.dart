@@ -29,6 +29,7 @@ Dance _dance({
   DanceStatus status = DanceStatus.active,
   String hook = '',
   String callingNotes = '',
+  String walkthrough = '',
   Provenance? provenance,
 }) => Dance(
   id: id,
@@ -40,6 +41,7 @@ Dance _dance({
   status: status,
   hook: hook,
   callingNotes: callingNotes,
+  walkthrough: walkthrough,
   provenance: provenance,
   createdAt: _now,
   updatedAt: _now,
@@ -1857,6 +1859,54 @@ void main() {
       await tester.tap(find.text('Petronella (Fast)'));
       await tester.pumpAndSettle();
       expect(find.text('special-hook-marker'), findsOneWidget);
+    });
+  });
+
+  group('walkthrough section (issue #370)', () {
+    testWidgets('whitespace-only walkthrough renders no heading', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Blank Walkthrough Dance',
+          walkthrough: '   \n\n \t\n ',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      // A walkthrough that is only whitespace/newlines is trimmed away by the
+      // read view, so no section heading (and thus no blank lines) render.
+      expect(find.text('Walkthrough'), findsNothing);
+    });
+
+    testWidgets('newline-wrapped walkthrough renders trimmed under a heading', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Real Walkthrough Dance',
+          walkthrough: '\n\nA1: neighbours balance and swing.\n\n',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      // Heading present for real content, and the body is trimmed so there are
+      // no awkward leading/trailing blank lines.
+      expect(find.text('Walkthrough'), findsOneWidget);
+      expect(
+        find.text('A1: neighbours balance and swing.'),
+        findsOneWidget,
+      );
+      final body = tester.widget<Text>(
+        find.text('A1: neighbours balance and swing.'),
+      );
+      expect(body.data, 'A1: neighbours balance and swing.');
     });
   });
 }
