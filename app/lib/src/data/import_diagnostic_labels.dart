@@ -70,10 +70,13 @@ String importIssueMessage(AppLocalizations l10n, ImportIssue issue) {
 }
 
 /// Localized name of the dance date field a date-parsing note concerns, from the
-/// safe `composed`/`revised` discriminator carried on the issue.
-String _dateField(AppLocalizations l10n, Object? field) => switch (field) {
+/// safe `composed`/`revised` discriminator carried on the issue. Returns `null`
+/// for a missing/unrecognized field so the caller degrades to the generic
+/// message rather than mislabeling the field.
+String? _dateField(AppLocalizations l10n, Object? field) => switch (field) {
+  'composed' => l10n.importDateFieldComposed,
   'revised' => l10n.importDateFieldRevised,
-  _ => l10n.importDateFieldComposed,
+  _ => null,
 };
 
 String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
@@ -104,16 +107,15 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
     case 'callersbox_search_tier':
       return l10n.importIssueMetadataOnlyStub;
     case 'cc_date_assumed_mdy':
-      return l10n.importIssueDateAssumedMdy(_dateField(l10n, data['field']));
+      final field = _dateField(l10n, data['field']);
+      return field == null ? null : l10n.importIssueDateAssumedMdy(field);
     case 'cc_date_reduced_precision':
       final year = data['year'];
-      // Fall back to the generic message rather than render "year 0" when the
-      // recovered year is somehow absent/ill-typed.
-      return year is int
-          ? l10n.importIssueDateReducedPrecision(
-              year,
-              _dateField(l10n, data['field']),
-            )
+      final field = _dateField(l10n, data['field']);
+      // Fall back to the generic message rather than render "year 0" or
+      // mislabel the field when the recovered year / field is absent/ill-typed.
+      return (year is int && field != null)
+          ? l10n.importIssueDateReducedPrecision(year, field)
           : null;
     case 'cc_missing_title':
     case 'contradb_html_missing_title':
@@ -131,7 +133,8 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
     case 'cc_unmapped_type':
       return l10n.importIssueUnmappedType;
     case 'cc_unparsed_date':
-      return l10n.importIssueUnparsedDate(_dateField(l10n, data['field']));
+      final field = _dateField(l10n, data['field']);
+      return field == null ? null : l10n.importIssueUnparsedDate(field);
     case 'cc_unparsed_rating':
       return l10n.importIssueUnparsedRating;
     case 'contradb_figures_unreadable':
