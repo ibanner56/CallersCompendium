@@ -30,35 +30,49 @@ const Set<String> mappedValidationCodes = {
 
 /// Localized message for a [ValidationIssue] surfaced in an editor.
 String validationIssueMessage(AppLocalizations l10n, ValidationIssue issue) {
+  final localized = _localizedValidation(l10n, issue);
+  if (localized != null) return localized;
+  // No specific localization (unknown code, or expected structured data
+  // missing/ill-typed): generic, non-leaking fallback. The diagnostic English
+  // is appended only in debug builds — never in a release UI (CWE-209).
+  return kDebugMode
+      ? '${l10n.validationGeneric} [${issue.code}: ${issue.message}]'
+      : l10n.validationGeneric;
+}
+
+/// Returns the specific localized message for [issue], or `null` when the code
+/// is unmapped or its required safe structured data is absent/ill-typed (so the
+/// caller can fall back to the generic message rather than render a misleading
+/// value such as "0 beats").
+String? _localizedValidation(AppLocalizations l10n, ValidationIssue issue) {
+  final data = issue.data;
   switch (issue.code) {
     case 'phrase_overflow':
     case 'phrase_underflow':
-      return l10n.validationPhraseBeatMismatch(
-        (issue.data['actual'] as int?) ?? 0,
-        (issue.data['expected'] as int?) ?? 0,
-      );
+      final actual = data['actual'];
+      final expected = data['expected'];
+      return (actual is int && expected is int)
+          ? l10n.validationPhraseBeatMismatch(actual, expected)
+          : null;
     case 'orphaned_alt':
-      final position = (issue.data['position'] as int?) ?? 0;
-      final text = issue.data['text'] as String?;
+      final position = data['position'];
+      if (position is! int) return null;
+      final text = data['text'] as String?;
       return text == null
           ? l10n.validationOrphanedAlt(position)
           : l10n.validationOrphanedAltNamed(position, text);
     case 'empty_substitution':
-      return l10n.validationEmptySubstitution(
-        (issue.data['source'] as String?) ?? '',
-      );
+      final source = data['source'];
+      return source is String ? l10n.validationEmptySubstitution(source) : null;
     case 'dialect_collision':
-      return l10n.validationDialectCollision(
-        (issue.data['source'] as String?) ?? '',
-        (issue.data['existing'] as String?) ?? '',
-        (issue.data['substitution'] as String?) ?? '',
-      );
+      final source = data['source'];
+      final existing = data['existing'];
+      final substitution = data['substitution'];
+      return (source is String && existing is String && substitution is String)
+          ? l10n.validationDialectCollision(source, existing, substitution)
+          : null;
     default:
-      // Generic, non-leaking fallback. The diagnostic English is appended only
-      // in debug builds to aid development — never in a release UI (CWE-209).
-      return kDebugMode
-          ? '${l10n.validationGeneric} [${issue.code}: ${issue.message}]'
-          : l10n.validationGeneric;
+      return null;
   }
 }
 

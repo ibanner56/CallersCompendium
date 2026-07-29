@@ -70,6 +70,20 @@ void main() {
       );
       expect(msg, l10n.validationOrphanedAlt(3));
     });
+
+    test('a phrase warning missing its beat counts falls back to generic (no '
+        '"0 beats")', () {
+      final msg = validationIssueMessage(
+        l10n,
+        const ValidationIssue(
+          severity: ValidationSeverity.warning,
+          code: 'phrase_overflow',
+          message: 'figures total 68 beats; structure expects 64',
+        ),
+      );
+      expect(msg, contains(l10n.validationGeneric));
+      expect(msg, isNot(contains(l10n.validationPhraseBeatMismatch(0, 0))));
+    });
   });
 
   group('importIssueMessage', () {
@@ -206,6 +220,25 @@ void main() {
       );
       expect(msg, contains('3'));
       expect(msg, isNot(contains('SECRETVALUE')));
+    });
+
+    test('cc_date_reduced_precision missing its year falls back to generic (no '
+        '"year 0")', () {
+      final msg = importIssueMessage(
+        l10n,
+        issue('cc_date_reduced_precision', {'field': 'revised'}),
+      );
+      // Falls back to the generic message (in debug the raw diagnostic is
+      // appended, but the misleading "year 0" copy is never produced).
+      expect(msg, contains(l10n.importIssueGeneric));
+      expect(
+        msg,
+        isNot(
+          contains(
+            l10n.importIssueDateReducedPrecision(0, l10n.importDateFieldRevised),
+          ),
+        ),
+      );
     });
   });
 

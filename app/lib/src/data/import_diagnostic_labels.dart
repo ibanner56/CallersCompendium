@@ -106,10 +106,15 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
     case 'cc_date_assumed_mdy':
       return l10n.importIssueDateAssumedMdy(_dateField(l10n, data['field']));
     case 'cc_date_reduced_precision':
-      return l10n.importIssueDateReducedPrecision(
-        (data['year'] as int?) ?? 0,
-        _dateField(l10n, data['field']),
-      );
+      final year = data['year'];
+      // Fall back to the generic message rather than render "year 0" when the
+      // recovered year is somehow absent/ill-typed.
+      return year is int
+          ? l10n.importIssueDateReducedPrecision(
+              year,
+              _dateField(l10n, data['field']),
+            )
+          : null;
     case 'cc_missing_title':
     case 'contradb_html_missing_title':
       return l10n.importIssueMissingTitle;
