@@ -50,7 +50,7 @@ Future<Uint8List> buildProgramPdf(
   required String? Function(String danceId) titleFor,
   Map<String, Venue> venuesById = const {},
   String Function(DateTime date)? formatDate,
-  String unknownDanceLabel = 'Untitled dance',
+  ProgramExportLabels labels = const ProgramExportLabels(),
   pw.ThemeData? theme,
 }) async {
   final fmtDate = formatDate ?? _isoDate;
@@ -63,9 +63,10 @@ Future<Uint8List> buildProgramPdf(
 
   final metaLines = <String>[
     _dateVenue(program, fmtDate, venuesById),
-    if (_has(program.band)) 'Band: ${program.band!.trim()}',
-    if (_has(program.caller)) 'Caller: ${program.caller!.trim()}',
-    if (_has(program.dancerLevel)) 'Level: ${program.dancerLevel!.trim()}',
+    if (_has(program.band)) '${labels.band}: ${program.band!.trim()}',
+    if (_has(program.caller)) '${labels.caller}: ${program.caller!.trim()}',
+    if (_has(program.dancerLevel))
+      '${labels.level}: ${program.dancerLevel!.trim()}',
   ].where((l) => l.isNotEmpty).toList();
 
   doc.addPage(
@@ -81,13 +82,13 @@ Future<Uint8List> buildProgramPdf(
         ),
         for (final line in metaLines)
           pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
-        if (linkedVenue != null) ..._venueBlock(linkedVenue),
+        if (linkedVenue != null) ..._venueBlock(linkedVenue, labels),
         if (program.outputGrouped.isNotEmpty) pw.SizedBox(height: 12),
-        ..._slotWidgets(program, titleFor, unknownDanceLabel),
+        ..._slotWidgets(program, titleFor, labels),
         if (_has(program.notes)) ...[
           pw.SizedBox(height: 12),
           pw.Text(
-            'Notes',
+            labels.notes,
             style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 4),
@@ -106,7 +107,7 @@ Future<Uint8List> buildProgramPdf(
 List<pw.Widget> _slotWidgets(
   Program program,
   String? Function(String danceId) titleFor,
-  String unknownDanceLabel,
+  ProgramExportLabels labels,
 ) {
   final widgets = <pw.Widget>[];
   var n = 1;
@@ -115,7 +116,7 @@ List<pw.Widget> _slotWidgets(
       pw.Padding(
         padding: const pw.EdgeInsets.symmetric(vertical: 2),
         child: pw.Text(
-          '$n. ${_slotLine(group.primary, titleFor, unknownDanceLabel)}',
+          '$n. ${_slotLine(group.primary, titleFor, labels)}',
           style: const pw.TextStyle(fontSize: 13),
         ),
       ),
@@ -125,7 +126,7 @@ List<pw.Widget> _slotWidgets(
         pw.Padding(
           padding: const pw.EdgeInsets.only(left: 20, top: 1, bottom: 1),
           child: pw.Text(
-            'ALT: ${_slotLine(alt, titleFor, unknownDanceLabel)}',
+            '${labels.alt}: ${_slotLine(alt, titleFor, labels)}',
             style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
           ),
         ),
@@ -153,15 +154,16 @@ String _dateVenue(
 /// the model's trim/empty→null normalization) so an unset field never shows a
 /// placeholder. Values are drawn as plain PDF text — no markup interpolation —
 /// so stored venue text can't inject layout.
-List<pw.Widget> _venueBlock(Venue venue) {
+List<pw.Widget> _venueBlock(Venue venue, ProgramExportLabels labels) {
   final cityLine = venueLocalityLine(venue);
 
   final detail = <String>[
     if (_has(venue.eventName)) venue.eventName!,
-    if (_has(venue.time)) 'Time: ${venue.time}',
-    if (_has(venue.genericSchedule)) 'Schedule: ${venue.genericSchedule}',
-    if (_has(venue.price)) 'Price: ${venue.price}',
-    if (_has(venue.sponsor)) 'Sponsor: ${venue.sponsor}',
+    if (_has(venue.time)) '${labels.time}: ${venue.time}',
+    if (_has(venue.genericSchedule))
+      '${labels.schedule}: ${venue.genericSchedule}',
+    if (_has(venue.price)) '${labels.price}: ${venue.price}',
+    if (_has(venue.sponsor)) '${labels.sponsor}: ${venue.sponsor}',
     if (_has(venue.website)) venue.website!,
   ];
 
@@ -183,7 +185,7 @@ List<pw.Widget> _venueBlock(Venue venue) {
   return [
     pw.SizedBox(height: 8),
     pw.Text(
-      'Venue',
+      labels.venue,
       style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
     ),
     pw.SizedBox(height: 2),
@@ -231,25 +233,25 @@ String _contactLine(String? name, String? phone, String? email) => [
 String _slotLine(
   ProgramSlot slot,
   String? Function(String danceId) titleFor,
-  String unknownDanceLabel,
+  ProgramExportLabels labels,
 ) {
   final buffer = StringBuffer();
 
   if (slot.danceId != null) {
     final title = titleFor(slot.danceId!);
-    buffer.write(_has(title) ? title!.trim() : unknownDanceLabel);
+    buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
     if (_has(slot.text)) buffer.write(' — ${slot.text!.trim()}');
   } else {
     buffer.write(slot.text!.trim());
   }
 
   final meta = <String>[
-    if (_has(slot.guestCaller)) 'guest: ${slot.guestCaller!.trim()}',
-    if (slot.plannedMinutes != null) '${slot.plannedMinutes} min',
+    if (_has(slot.guestCaller)) '${labels.guest}: ${slot.guestCaller!.trim()}',
+    if (slot.plannedMinutes != null) labels.minutes(slot.plannedMinutes!),
   ];
   if (meta.isNotEmpty) buffer.write(' (${meta.join('; ')})');
 
-  if (slot.performedAt != null) buffer.write(' [performed]');
+  if (slot.performedAt != null) buffer.write(' [${labels.performed}]');
 
   return buffer.toString();
 }

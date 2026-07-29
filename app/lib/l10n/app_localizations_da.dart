@@ -2795,6 +2795,117 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportMatrixPdfFilename => 'Programmeringsmatrix';
 
   @override
+  String get exportLabelFormation => 'Formation';
+
+  @override
+  String get exportLabelLevel => 'Niveau';
+
+  @override
+  String get exportLabelStatus => 'Status';
+
+  @override
+  String get exportLabelPhrase => 'Frase';
+
+  @override
+  String get exportLabelFigures => 'Figurer';
+
+  @override
+  String get exportLabelCallingNotes => 'Kaldsnotes';
+
+  @override
+  String get exportLabelWalkthrough => 'Gennemgang';
+
+  @override
+  String exportBeatsLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count slag',
+      one: '1 slag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get exportLevelMixedOnly => 'Blandet';
+
+  @override
+  String exportLevelWithMixed(String level) {
+    return '$level (blandet)';
+  }
+
+  @override
+  String get exportLabelBand => 'Band';
+
+  @override
+  String get exportLabelCaller => 'Caller';
+
+  @override
+  String get exportLabelNotes => 'Noter';
+
+  @override
+  String get exportLabelAlt => 'ALT';
+
+  @override
+  String get exportLabelGuest => 'gæst';
+
+  @override
+  String get exportLabelPerformed => 'fremført';
+
+  @override
+  String get exportUnknownDanceLabel => 'Unavngiven dans';
+
+  @override
+  String exportMinutesLabel(int count) {
+    return '$count min';
+  }
+
+  @override
+  String get exportLabelVenue => 'Spillested';
+
+  @override
+  String get exportLabelTime => 'Tidspunkt';
+
+  @override
+  String get exportLabelSchedule => 'Tidsplan';
+
+  @override
+  String get exportLabelPrice => 'Pris';
+
+  @override
+  String get exportLabelSponsor => 'Sponsor';
+
+  @override
+  String get exportMatrixDefaultTitle => 'Programmeringsmatrix';
+
+  @override
+  String get exportMatrixDanceColumn => 'Dans';
+
+  @override
+  String get exportMatrixEmptyState =>
+      'Ingen strukturerede figurer endnu — matrixen udfyldes automatisk, efterhånden som programmets danse får strukturerede figurer.';
+
+  @override
+  String get exportMatrixLegendDebut => 'Introduceret her';
+
+  @override
+  String get exportMatrixLegendFirst => 'Dansens første figur';
+
+  @override
+  String get exportMatrixLegendPresent => 'Til stede';
+
+  @override
+  String exportMatrixOmittedCaption(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fritekst-slots',
+      one: '1 fritekst-slot',
+    );
+    return '$_temp0 (pauser, noter) udeladt – matrixen viser kun danse.';
+  }
+
+  @override
   String get exportVenueContactTitle =>
       'Inkluder spillestedets kontaktoplysninger i denne eksport?';
 

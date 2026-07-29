@@ -2808,6 +2808,117 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportMatrixPdfFilename => 'Programmeringsmatrix';
 
   @override
+  String get exportLabelFormation => 'Formatie';
+
+  @override
+  String get exportLabelLevel => 'Niveau';
+
+  @override
+  String get exportLabelStatus => 'Status';
+
+  @override
+  String get exportLabelPhrase => 'Frase';
+
+  @override
+  String get exportLabelFigures => 'Figuren';
+
+  @override
+  String get exportLabelCallingNotes => 'Callnotities';
+
+  @override
+  String get exportLabelWalkthrough => 'Doorloop';
+
+  @override
+  String exportBeatsLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count beats',
+      one: '1 beat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get exportLevelMixedOnly => 'Gemengd';
+
+  @override
+  String exportLevelWithMixed(String level) {
+    return '$level (gemengd)';
+  }
+
+  @override
+  String get exportLabelBand => 'Band';
+
+  @override
+  String get exportLabelCaller => 'Caller';
+
+  @override
+  String get exportLabelNotes => 'Notities';
+
+  @override
+  String get exportLabelAlt => 'ALT';
+
+  @override
+  String get exportLabelGuest => 'gast';
+
+  @override
+  String get exportLabelPerformed => 'uitgevoerd';
+
+  @override
+  String get exportUnknownDanceLabel => 'Naamloze dans';
+
+  @override
+  String exportMinutesLabel(int count) {
+    return '$count min';
+  }
+
+  @override
+  String get exportLabelVenue => 'Locatie';
+
+  @override
+  String get exportLabelTime => 'Tijdstip';
+
+  @override
+  String get exportLabelSchedule => 'Schema';
+
+  @override
+  String get exportLabelPrice => 'Prijs';
+
+  @override
+  String get exportLabelSponsor => 'Sponsor';
+
+  @override
+  String get exportMatrixDefaultTitle => 'Programmeringsmatrix';
+
+  @override
+  String get exportMatrixDanceColumn => 'Dans';
+
+  @override
+  String get exportMatrixEmptyState =>
+      'Nog geen gestructureerde figuren — de matrix wordt automatisch gevuld naarmate de dansen in het programma gestructureerde figuren krijgen.';
+
+  @override
+  String get exportMatrixLegendDebut => 'Hier geïntroduceerd';
+
+  @override
+  String get exportMatrixLegendFirst => 'Eerste figuur van de dans';
+
+  @override
+  String get exportMatrixLegendPresent => 'Aanwezig';
+
+  @override
+  String exportMatrixOmittedCaption(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count vrije-tekstslots',
+      one: '1 vrije-tekstslot',
+    );
+    return '$_temp0 (pauzes, noten) weggelaten — de matrix toont alleen dansen.';
+  }
+
+  @override
   String get exportVenueContactTitle =>
       'Locatiecontactgegevens opnemen in deze export?';
 

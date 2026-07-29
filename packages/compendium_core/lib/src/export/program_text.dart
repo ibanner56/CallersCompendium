@@ -1,4 +1,5 @@
 import '../model/program.dart';
+import 'export_labels.dart';
 
 /// Renders a [Program] as a clean, human-readable plain-text set list — the
 /// "emailable set list" of ROADMAP §4.3 (CC parity: "email set list").
@@ -50,7 +51,7 @@ String programToPlainText(
   required String? Function(String danceId) titleFor,
   String? Function(String venueId)? venueNameFor,
   String Function(DateTime date)? formatDate,
-  String unknownDanceLabel = 'Untitled dance',
+  ProgramExportLabels labels = const ProgramExportLabels(),
 }) {
   final fmtDate = formatDate ?? _isoDate;
   final lines = <String>[];
@@ -72,10 +73,12 @@ String programToPlainText(
   ];
   if (dateVenue.isNotEmpty) lines.add(dateVenue.join(' · '));
 
-  if (_has(program.band)) lines.add('Band: ${program.band!.trim()}');
-  if (_has(program.caller)) lines.add('Caller: ${program.caller!.trim()}');
+  if (_has(program.band)) lines.add('${labels.band}: ${program.band!.trim()}');
+  if (_has(program.caller)) {
+    lines.add('${labels.caller}: ${program.caller!.trim()}');
+  }
   if (_has(program.dancerLevel)) {
-    lines.add('Level: ${program.dancerLevel!.trim()}');
+    lines.add('${labels.level}: ${program.dancerLevel!.trim()}');
   }
 
   final groups = program.outputGrouped;
@@ -83,9 +86,9 @@ String programToPlainText(
     lines.add('');
     var n = 1;
     for (final group in groups) {
-      lines.add('$n. ${_slotLine(group.primary, titleFor, unknownDanceLabel)}');
+      lines.add('$n. ${_slotLine(group.primary, titleFor, labels)}');
       for (final alt in group.alternates) {
-        lines.add('   ALT: ${_slotLine(alt, titleFor, unknownDanceLabel)}');
+        lines.add('   ${labels.alt}: ${_slotLine(alt, titleFor, labels)}');
       }
       n++;
     }
@@ -93,7 +96,7 @@ String programToPlainText(
 
   if (_has(program.notes)) {
     lines.add('');
-    lines.add('Notes:');
+    lines.add('${labels.notes}:');
     lines.add(program.notes.trim());
   }
 
@@ -106,13 +109,13 @@ String programToPlainText(
 String _slotLine(
   ProgramSlot slot,
   String? Function(String danceId) titleFor,
-  String unknownDanceLabel,
+  ProgramExportLabels labels,
 ) {
   final buffer = StringBuffer();
 
   if (slot.danceId != null) {
     final title = titleFor(slot.danceId!);
-    buffer.write(_has(title) ? title!.trim() : unknownDanceLabel);
+    buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
     // On a dance slot, `text` is a per-slot caller note.
     if (_has(slot.text)) buffer.write(' — ${slot.text!.trim()}');
   } else {
@@ -121,12 +124,12 @@ String _slotLine(
   }
 
   final meta = <String>[
-    if (_has(slot.guestCaller)) 'guest: ${slot.guestCaller!.trim()}',
-    if (slot.plannedMinutes != null) '${slot.plannedMinutes} min',
+    if (_has(slot.guestCaller)) '${labels.guest}: ${slot.guestCaller!.trim()}',
+    if (slot.plannedMinutes != null) labels.minutes(slot.plannedMinutes!),
   ];
   if (meta.isNotEmpty) buffer.write(' (${meta.join('; ')})');
 
-  if (slot.performedAt != null) buffer.write(' [performed]');
+  if (slot.performedAt != null) buffer.write(' [${labels.performed}]');
 
   return buffer.toString();
 }

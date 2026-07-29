@@ -4471,6 +4471,186 @@ abstract class AppLocalizations {
   /// **'Programming matrix'**
   String get exportMatrixPdfFilename;
 
+  /// Field label for the formation on an exported dance card (plain text and PDF).
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get exportLabelFormation;
+
+  /// Field label for the difficulty level on an exported dance card or set list (plain text and PDF).
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get exportLabelLevel;
+
+  /// Field label for the status (deprecated/broken) on an exported dance card (plain text and PDF).
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get exportLabelStatus;
+
+  /// Field label for the phrase structure notation on an exported dance card (plain text and PDF).
+  ///
+  /// In en, this message translates to:
+  /// **'Phrase'**
+  String get exportLabelPhrase;
+
+  /// Section heading for the figure list on an exported dance card (plain text and PDF).
+  ///
+  /// In en, this message translates to:
+  /// **'Figures'**
+  String get exportLabelFigures;
+
+  /// Section heading for the calling notes on an exported dance card (plain text and PDF).
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes'**
+  String get exportLabelCallingNotes;
+
+  /// Section heading for the walkthrough on an exported dance card (plain text and PDF).
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough'**
+  String get exportLabelWalkthrough;
+
+  /// Beat-count suffix for a figure on an exported dance card, e.g. '16 beats' or '1 beat'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 beat} other{{count} beats}}'**
+  String exportBeatsLabel(int count);
+
+  /// Level label on an exported dance card when the dance is marked mixed-level and has no specific level.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get exportLevelMixedOnly;
+
+  /// Level label on an exported dance card combining a specific level with the mixed-level flag, e.g. 'Intermediate (mixed)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{level} (mixed)'**
+  String exportLevelWithMixed(String level);
+
+  /// Field label for the band on an exported set list (plain text and PDF).
+  ///
+  /// In en, this message translates to:
+  /// **'Band'**
+  String get exportLabelBand;
+
+  /// Field label for the caller on an exported set list (plain text and PDF).
+  ///
+  /// In en, this message translates to:
+  /// **'Caller'**
+  String get exportLabelCaller;
+
+  /// Section heading for the program notes on an exported set list (plain text and PDF).
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get exportLabelNotes;
+
+  /// Prefix marking an alternate dance slot on an exported set list (plain text and PDF). Short for 'alternate'.
+  ///
+  /// In en, this message translates to:
+  /// **'ALT'**
+  String get exportLabelAlt;
+
+  /// Prefix for a guest caller on an exported set-list slot, e.g. 'guest: Pat'.
+  ///
+  /// In en, this message translates to:
+  /// **'guest'**
+  String get exportLabelGuest;
+
+  /// Marker shown in brackets after a set-list slot that has been performed, e.g. '[performed]'.
+  ///
+  /// In en, this message translates to:
+  /// **'performed'**
+  String get exportLabelPerformed;
+
+  /// Placeholder used on an exported set list when a slot's dance title can't be resolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled dance'**
+  String get exportUnknownDanceLabel;
+
+  /// Planned-minutes suffix for a set-list slot on an export, e.g. '5 min'. 'min' abbreviates 'minutes'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String exportMinutesLabel(int count);
+
+  /// Heading for the venue detail block on an exported set-list PDF.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get exportLabelVenue;
+
+  /// Field label for the venue's event time on an exported set-list PDF.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get exportLabelTime;
+
+  /// Field label for the venue's recurring schedule on an exported set-list PDF.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get exportLabelSchedule;
+
+  /// Field label for the venue's admission price on an exported set-list PDF.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get exportLabelPrice;
+
+  /// Field label for the venue's sponsor on an exported set-list PDF.
+  ///
+  /// In en, this message translates to:
+  /// **'Sponsor'**
+  String get exportLabelSponsor;
+
+  /// Fallback document title on the programming-matrix PDF when the program has no title.
+  ///
+  /// In en, this message translates to:
+  /// **'Programming matrix'**
+  String get exportMatrixDefaultTitle;
+
+  /// Header for the first (dance-title) column of the programming-matrix PDF table.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance'**
+  String get exportMatrixDanceColumn;
+
+  /// Empty-state line on the programming-matrix PDF when no dances have structured figures yet.
+  ///
+  /// In en, this message translates to:
+  /// **'No structured figures yet — the matrix fills in automatically as the program’s dances gain structured figures.'**
+  String get exportMatrixEmptyState;
+
+  /// Legend entry on the programming-matrix PDF for the star marker: the first dance in the program to use a move.
+  ///
+  /// In en, this message translates to:
+  /// **'Introduced here'**
+  String get exportMatrixLegendDebut;
+
+  /// Legend entry on the programming-matrix PDF for the triangle marker: a move that is a dance's own first figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance\'s first figure'**
+  String get exportMatrixLegendFirst;
+
+  /// Legend entry on the programming-matrix PDF for the check marker: a move present in a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Present'**
+  String get exportMatrixLegendPresent;
+
+  /// Caption on the programming-matrix PDF noting how many free-text slots (breaks, notes) were left out because the matrix shows dances only.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 free-text slot (breaks, notes) omitted — the matrix shows dances only.} other{{count} free-text slots (breaks, notes) omitted — the matrix shows dances only.}}'**
+  String exportMatrixOmittedCaption(int count);
+
   /// Title of the pre-export consent dialog that asks whether to include a venue's personal contact fields when sharing a program bundle or exporting a program PDF.
   ///
   /// In en, this message translates to:

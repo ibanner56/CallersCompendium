@@ -16,6 +16,7 @@ import '../data/repositories_scope.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../data/venue_label.dart';
 import '../editor/program_editor_draft_codec.dart';
+import '../export/export_labels_l10n.dart';
 import '../export/program_matrix_pdf.dart';
 import '../search/collection_data.dart';
 import '../theme/keyboard_dismiss.dart';
@@ -1179,6 +1180,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         venue: venue,
         omittedFreeTextCount: omittedFreeTextCount,
         formatDate: localizations.formatMediumDate,
+        labels: programMatrixExportLabels(l10n),
       ),
     );
   }

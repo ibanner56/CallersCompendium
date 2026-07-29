@@ -8,16 +8,14 @@
 ///
 /// This is a **ratchet**: the list only ever shrinks. The phased UI-string
 /// extraction (layers L1–L6) is now **complete**, so the "deferred UI" bucket
-/// is empty — only the **permanent** (by-design English) deferrals remain. The
-/// guard also fails if a listed file no longer exists or no longer has any
-/// flagged literal, so the manifest can't silently rot.
+/// is empty. The exported-document (PDF/text) builders now follow the UI
+/// language too (#529), so they are no longer listed. The guard also fails if a
+/// listed file no longer exists or no longer has any flagged literal, so the
+/// manifest can't silently rot.
 ///
-/// The remaining entries are all **permanent, by-design English**: the
-/// export-document (PDF) body builders, whose field-name labels stay English
-/// pending a product decision on whether exports follow the UI language. See
-/// `docs/dev/localization.md` for the full rationale and the other
-/// English-by-design surfaces that are not guard-flagged (so not listed here) —
-/// the diagnostics-log export body.
+/// The only remaining **permanent, by-design English** export surface is the
+/// diagnostics-log export body, which is developer-facing and not guard-flagged
+/// (so not listed here). See `docs/dev/localization.md` for the full rationale.
 ///
 /// The former data/service-layer curated messages (`backup_document`,
 /// `callersbox_online`, `contradb_online`, and the related `import_io`
@@ -26,11 +24,4 @@
 library;
 
 /// Files the guard skips. Paths are POSIX, relative to `app/lib/`.
-const Set<String> hardcodedUiStringAllowlist = <String>{
-  // ---- Permanent deferrals (by-design English) ----
-  // Exported-document body builders (PDF): field-name labels stay English
-  // pending a product decision on whether exports follow the UI language.
-  'src/export/dance_pdf.dart',
-  'src/export/program_matrix_pdf.dart',
-  'src/export/program_pdf.dart',
-};
+const Set<String> hardcodedUiStringAllowlist = <String>{};

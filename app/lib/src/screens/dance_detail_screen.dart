@@ -13,7 +13,7 @@ import '../data/formation_colors_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../export/dance_pdf.dart';
-import '../models/dance_list_entry.dart';
+import '../export/export_labels_l10n.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
@@ -205,10 +205,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// Human-readable difficulty label for the export card, combining the
   /// ordered [Dance.level] with the [Dance.mixedLevel] flag. Returns `null`
   /// when neither is set so the export omits the Level line.
-  static String? _levelLabel(Dance dance) {
-    final base = dance.level?.label;
-    if (base != null) return dance.mixedLevel ? '$base (mixed)' : base;
-    return dance.mixedLevel ? 'Mixed' : null;
+  static String? _levelLabel(AppLocalizations l10n, Dance dance) {
+    final base = dance.level == null
+        ? null
+        : danceLevelLabel(l10n, dance.level!);
+    if (base != null) {
+      return dance.mixedLevel ? l10n.exportLevelWithMixed(base) : base;
+    }
+    return dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
   }
 
   /// Opens the full-screen large-print [PerformDanceScreen] for this dance,
@@ -370,16 +374,18 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
-  DanceExportMenu _exportMenu(BuildContext context, DanceDetailData detail) =>
-      DanceExportMenu(
-        dance: detail.dance,
-        dialect: ActiveDialectScope.of(context),
-        authorNames: detail.authorNames,
-        formationLabel: detail.dance.formation.label,
-        levelLabel: _levelLabel(detail.dance),
-        statusLabel: detail.dance.status.label,
-        renderer: _renderer,
-      );
+  DanceExportMenu _exportMenu(BuildContext context, DanceDetailData detail) {
+    final l10n = AppLocalizations.of(context);
+    return DanceExportMenu(
+      dance: detail.dance,
+      dialect: ActiveDialectScope.of(context),
+      authorNames: detail.authorNames,
+      formationLabel: formationLabel(l10n, detail.dance.formation),
+      levelLabel: _levelLabel(l10n, detail.dance),
+      statusLabel: danceStatusLabel(l10n, detail.dance.status),
+      renderer: _renderer,
+    );
+  }
 
   /// Wide layout: the full one-tap action row.
   Widget _fullActions(BuildContext context, DanceDetailData detail) {
@@ -436,10 +442,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
-      formationLabel: detail.dance.formation.label,
-      levelLabel: _levelLabel(detail.dance),
-      statusLabel: detail.dance.status.label,
+      formationLabel: formationLabel(l10n, detail.dance.formation),
+      levelLabel: _levelLabel(l10n, detail.dance),
+      statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
+      labels: danceExportLabels(l10n),
     );
 
     return PopupMenuButton<void>(
@@ -542,10 +549,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           detail.dance,
           dialect: dialect,
           authorNames: detail.authorNames,
-          formationLabel: detail.dance.formation.label,
-          levelLabel: _levelLabel(detail.dance),
-          statusLabel: detail.dance.status.label,
+          formationLabel: formationLabel(l10n, detail.dance.formation),
+          levelLabel: _levelLabel(l10n, detail.dance),
+          statusLabel: danceStatusLabel(l10n, detail.dance.status),
           renderer: _renderer,
+          labels: danceExportLabels(l10n),
         ),
       );
     } on Exception catch (_) {

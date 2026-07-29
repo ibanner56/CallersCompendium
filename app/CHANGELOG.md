@@ -11,6 +11,16 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Changed
+
+- **Exported documents now follow your language.** Printed and shared dance
+  cards, set lists, and the programming matrix (both the plain-text and PDF
+  exports) now render their field labels — Formation, Level, Band, Caller,
+  Venue, the matrix legend, and the rest — in the app's current language,
+  matching the six languages the rest of the interface already speaks, instead
+  of always printing in English. The diagnostics log export stays English by
+  design as a maintainer support artifact.
+
 ## [0.1.0] - 2026-07-22
 
 Flutter build: `0.1.0+1`.
