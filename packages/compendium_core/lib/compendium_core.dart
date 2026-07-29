@@ -14,6 +14,7 @@ export 'src/dialect/dialect.dart';
 export 'src/dialect/renderer.dart';
 export 'src/dialect/substitution.dart' show Substitutor;
 export 'src/export/dance_text.dart';
+export 'src/export/export_labels.dart';
 export 'src/export/program_text.dart';
 export 'src/imports/callers_companion_mapping.dart';
 export 'src/imports/callers_companion_programs.dart';

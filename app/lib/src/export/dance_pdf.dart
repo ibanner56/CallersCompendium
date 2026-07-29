@@ -35,6 +35,7 @@ Future<Uint8List> buildDancePdf(
   String? levelLabel,
   required String statusLabel,
   FigureRenderer? renderer,
+  DanceExportLabels labels = const DanceExportLabels(),
   pw.ThemeData? theme,
 }) async {
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
@@ -44,14 +45,14 @@ Future<Uint8List> buildDancePdf(
   final names = authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty);
 
   final metaLines = <String>[
-    if (_has(formationLabel)) 'Formation: ${formationLabel.trim()}',
-    if (_has(levelLabel)) 'Level: ${levelLabel!.trim()}',
+    if (_has(formationLabel)) '${labels.formation}: ${formationLabel.trim()}',
+    if (_has(levelLabel)) '${labels.level}: ${levelLabel!.trim()}',
     // Mirror the on-screen card / text export: only a non-active dance shows
     // a Status line; an active dance omits it.
     if (dance.status != DanceStatus.active && _has(statusLabel))
-      'Status: ${statusLabel.trim()}',
+      '${labels.status}: ${statusLabel.trim()}',
     if (_has(dance.phraseStructure.raw))
-      'Phrase: ${dance.phraseStructure.raw.trim()}',
+      '${labels.phrase}: ${dance.phraseStructure.raw.trim()}',
   ];
 
   doc.addPage(
@@ -72,16 +73,16 @@ Future<Uint8List> buildDancePdf(
         if (dance.figures.isNotEmpty) ...[
           pw.SizedBox(height: 12),
           pw.Text(
-            'Figures',
+            labels.figures,
             style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 4),
-          ..._figureWidgets(dance, fig, dialect),
+          ..._figureWidgets(dance, fig, dialect, labels),
         ],
         if (_has(dance.callingNotes)) ...[
           pw.SizedBox(height: 12),
           pw.Text(
-            'Calling notes',
+            labels.callingNotes,
             style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 4),
@@ -93,7 +94,7 @@ Future<Uint8List> buildDancePdf(
         if (_has(dance.walkthrough)) ...[
           pw.SizedBox(height: 12),
           pw.Text(
-            'Walkthrough',
+            labels.walkthrough,
             style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 4),
@@ -113,6 +114,7 @@ List<pw.Widget> _figureWidgets(
   Dance dance,
   FigureRenderer renderer,
   Dialect dialect,
+  DanceExportLabels labels,
 ) {
   final widgets = <pw.Widget>[];
   final sectioned = deriveSections(dance.figures, dance.phraseStructure);
@@ -134,8 +136,7 @@ List<pw.Widget> _figureWidgets(
       );
       lastLabel = sf.label;
     }
-    final beats = sf.figure.beats;
-    final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
+    final beatsLabel = labels.beats(sf.figure.beats);
     final marker = sf.figure.progression ? ' ¶' : '';
     widgets.add(
       pw.Padding(

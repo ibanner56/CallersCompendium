@@ -444,8 +444,9 @@ defaults) live in the **Defaults** pane section below.
   `app_<locale>.arb` into `lib/l10n/` (see [docs/dev/localization.md](dev/localization.md));
   assisted ARB-translation tooling + a validation gate now support that pipeline (#523).
   Two surfaces stay English by design for now — a small set of core service-layer
-  messages (#528) and exported-document body text (#529, pending a product decision on
-  whether exports follow the UI language). NOTE: Flutter's `showDatePicker` derives
+  messages (#528) and the diagnostics-log export body (a maintainer support
+  artifact). Exported dance/program documents now follow the UI language (#529).
+  NOTE: Flutter's `showDatePicker` derives
   its first day of week from the locale and can't be overridden per-call, and the
   app draws no week/month grid of its own yet, so the first-day-of-week preference
   has no consumer today. Its plumbing (pref/`FirstDayOfWeekScope`/storage, validated
@@ -665,9 +666,10 @@ taxonomy are unchanged.
   in **six languages** — English (source) plus **German, French, Japanese, Danish, and
   Dutch** — selectable live. What remains here is additive: welcoming further
   **community-contributed** `app_<locale>.arb` translations (assisted tooling + a
-  validation gate now support that, #523), and two surfaces still English by design — a
-  small set of core service-layer messages (#528) and exported-document body text (#529,
-  pending a product decision on whether exports follow the UI language). See
+  validation gate now support that, #523). Exported dance/program documents now
+  follow the UI language too (#529); the only surfaces still English by design are
+  a small set of core service-layer messages (#528) and the diagnostics-log export
+  body (a maintainer support artifact). See
   [docs/dev/localization.md](dev/localization.md).
 
 ### Plugin system (user-installable extensions)

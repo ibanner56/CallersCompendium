@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
 import '../export/share_sanitization.dart';
@@ -135,6 +136,7 @@ class ProgramExportMenu extends StatelessWidget {
     titleFor: titleFor,
     venueNameFor: _venueNameFor,
     formatDate: (d) => _formatDate(context, d),
+    labels: programExportLabels(AppLocalizations.of(context)),
   );
 
   Future<void> _shareText(BuildContext context, Rect? origin) async {
@@ -224,6 +226,7 @@ class ProgramExportMenu extends StatelessWidget {
 
   Future<void> _exportPdf(BuildContext context) async {
     final localizations = MaterialLocalizations.of(context);
+    final labels = programExportLabels(AppLocalizations.of(context));
 
     // Gate the venue's contact PII behind the same consent dialog the share
     // path uses. Contact fields are omit-by-default; a cancelled/dismissed
@@ -249,6 +252,7 @@ class ProgramExportMenu extends StatelessWidget {
         titleFor: titleFor,
         venuesById: venuesForPdf,
         formatDate: localizations.formatMediumDate,
+        labels: labels,
       ),
     );
   }

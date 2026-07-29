@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../export/dance_pdf.dart';
+import '../export/export_labels_l10n.dart';
 import '../utils/safe_name.dart';
 
 /// Actions offered by the [DanceExportMenu].
@@ -66,7 +67,7 @@ class DanceExportMenu extends StatelessWidget {
   /// Test seam for the print/save call; defaults to [Printing.layoutPdf].
   final PdfLayouter? pdfLayouter;
 
-  String _plainText() => danceToPlainText(
+  String _plainText(AppLocalizations l10n) => danceToPlainText(
     dance,
     dialect: dialect,
     authorNames: authorNames,
@@ -74,13 +75,14 @@ class DanceExportMenu extends StatelessWidget {
     levelLabel: levelLabel,
     statusLabel: statusLabel,
     renderer: renderer,
+    labels: danceExportLabels(l10n),
   );
 
-  Future<void> _shareText(Rect? origin) async {
+  Future<void> _shareText(AppLocalizations l10n, Rect? origin) async {
     final share = shareInvoker ?? SharePlus.instance.share;
     await share(
       ShareParams(
-        text: _plainText(),
+        text: _plainText(l10n),
         subject: dance.title,
         sharePositionOrigin: origin,
       ),
@@ -90,11 +92,11 @@ class DanceExportMenu extends StatelessWidget {
   Future<void> _copyText(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    await Clipboard.setData(ClipboardData(text: _plainText()));
+    await Clipboard.setData(ClipboardData(text: _plainText(l10n)));
     messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
   }
 
-  Future<void> _exportPdf() async {
+  Future<void> _exportPdf(AppLocalizations l10n) async {
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     await layoutPdf(
       name: sanitizeExportName(dance.title, fallback: 'dance'),
@@ -106,6 +108,7 @@ class DanceExportMenu extends StatelessWidget {
         levelLabel: levelLabel,
         statusLabel: statusLabel,
         renderer: renderer,
+        labels: danceExportLabels(l10n),
       ),
     );
   }
@@ -127,12 +130,12 @@ class DanceExportMenu extends StatelessWidget {
         await _guard(
           messenger,
           l10n.exportShareDanceError,
-          () => _shareText(origin),
+          () => _shareText(l10n, origin),
         );
       case _ExportAction.copyText:
         await _copyText(context);
       case _ExportAction.pdf:
-        await _guard(messenger, l10n.exportDanceError, _exportPdf);
+        await _guard(messenger, l10n.exportDanceError, () => _exportPdf(l10n));
     }
   }
 

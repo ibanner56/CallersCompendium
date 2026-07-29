@@ -4,6 +4,7 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import 'export_labels.dart';
 
 /// Renders a single [Dance] as a clean, human-readable plain-text card — the
 /// single-dance analogue of [programToPlainText] and the shareable/copyable
@@ -64,6 +65,7 @@ String danceToPlainText(
   String? levelLabel,
   required String statusLabel,
   FigureRenderer? renderer,
+  DanceExportLabels labels = const DanceExportLabels(),
 }) {
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
   final lines = <String>[];
@@ -73,25 +75,26 @@ String danceToPlainText(
   final names = authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty);
   if (names.isNotEmpty) lines.add(names.join(', '));
 
-  if (_has(formationLabel)) lines.add('Formation: ${formationLabel.trim()}');
-  if (_has(levelLabel)) lines.add('Level: ${levelLabel!.trim()}');
+  if (_has(formationLabel)) {
+    lines.add('${labels.formation}: ${formationLabel.trim()}');
+  }
+  if (_has(levelLabel)) lines.add('${labels.level}: ${levelLabel!.trim()}');
   // Mirror the on-screen card, which only surfaces a status banner for a
   // non-active dance; an active dance omits the Status line entirely.
   if (dance.status != DanceStatus.active && _has(statusLabel)) {
-    lines.add('Status: ${statusLabel.trim()}');
+    lines.add('${labels.status}: ${statusLabel.trim()}');
   }
   if (_has(dance.phraseStructure.raw)) {
-    lines.add('Phrase: ${dance.phraseStructure.raw.trim()}');
+    lines.add('${labels.phrase}: ${dance.phraseStructure.raw.trim()}');
   }
 
   if (dance.figures.isNotEmpty) {
     lines.add('');
-    lines.add('Figures:');
+    lines.add('${labels.figures}:');
     final sectioned = deriveSections(dance.figures, dance.phraseStructure);
     for (final sf in sectioned) {
       final text = fig.renderSummary(sf.figure, dialect);
-      final beats = sf.figure.beats;
-      final beatsLabel = '$beats ${beats == 1 ? 'beat' : 'beats'}';
+      final beatsLabel = labels.beats(sf.figure.beats);
       final marker = sf.figure.progression ? ' ¶' : '';
       lines.add('${sf.label}  $text ($beatsLabel)$marker');
       final note = sf.figure.note?.trim();
@@ -101,13 +104,13 @@ String danceToPlainText(
 
   if (_has(dance.callingNotes)) {
     lines.add('');
-    lines.add('Calling notes:');
+    lines.add('${labels.callingNotes}:');
     lines.add(fig.renderFreeText(dance.callingNotes.trim(), dialect));
   }
 
   if (_has(dance.walkthrough)) {
     lines.add('');
-    lines.add('Walkthrough:');
+    lines.add('${labels.walkthrough}:');
     lines.add(fig.renderFreeText(dance.walkthrough.trim(), dialect));
   }
 

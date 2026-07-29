@@ -28,22 +28,23 @@ way.
 The only remaining hardcoded English is **intentional and permanent**, in one
 bucket:
 
-- **Guard-enforced allow-list (still flagged, English by design).** These three
-  files stay on `hardcoded_ui_strings_allowlist.dart` because they still contain
-  guard-flagged literals we deliberately keep in English:
-  - Export-document (PDF) body builders, pending a product decision on whether
-    exports follow the UI language: `export/dance_pdf.dart`,
-    `export/program_matrix_pdf.dart`, `export/program_pdf.dart` (see
-    **Exports stay English** below).
 - **English by design but not guard-flagged (documented only, NOT allow-listed).**
   A file can only be allow-listed if the guard actually flags a literal in it —
-  the guard fails on an allow-listed file that has nothing to flag. These
-  surfaces route their English through constructs the guard does not scan, so
-  they are documented here but must stay **off** the allow-list:
+  the guard fails on an allow-listed file that has nothing to flag. This surface
+  routes its English through a construct the guard does not scan, so it is
+  documented here but must stay **off** the allow-list:
   - The diagnostics-log export body `_buildExportText` in
-    `diagnostics_section.dart` — it assembles an exported text blob (like the PDF
-    builders), not a UI-widget argument, so it is English by design for the same
-    reason exports are.
+    `diagnostics_section.dart` — it assembles an exported text blob, not a
+    UI-widget argument, and is a support artifact that intentionally stays
+    English so it reads the same for every maintainer.
+
+**Resolved: exported documents now follow the UI language (#529).** The
+plain-text and PDF export builders (`export/dance_text.dart`,
+`export/program_text.dart` in `compendium_core`, and `export/dance_pdf.dart`,
+`export/program_pdf.dart`, `export/program_matrix_pdf.dart` in the app) used to
+emit English field labels regardless of the UI locale. They now render in the
+active UI language (see **Exports follow the UI language** below), so all three
+PDF builders **left** the allow-list.
 
 **Resolved: service/import errors (was a fourth allow-list file group).** The
 data/service-layer curated error messages and import-source labels
@@ -62,8 +63,8 @@ errors, `record.error?.message`) map to a **generic** localized string and are
 kept only for `kDebugMode` logging — never surfaced (CWE-209). The six
 `backup_document.dart` `ArchiveError(message:)` literals are internal diagnostics
 that are never shown, so they carry an inline `// i18n-ignore` and the file left
-the allow-list. As a result the allow-list shrank to just the three export-PDF
-builders above.
+the allow-list. As a result the allow-list is now **empty** — only the
+diagnostics-log export body remains English by design, and it is not guard-flagged.
 
 Translations into other languages remain community-driven and require no code
 change to appear; adding a locale is purely additive (see
@@ -203,25 +204,33 @@ Call it from widgets: `Text(danceLevelLabel(l10n, dance.level))`. This is the
 same pattern used by the earlier layers — `collection_query_labels.dart` (L2),
 `program_status_labels.dart` (L3), `online_search_labels.dart` (L4).
 
-**Exports stay English.** Exported documents (plain-text / PDF builders) are
-deliberately *not* localized (a pending product decision), so they must keep
-emitting English regardless of the UI locale. This covers the PDF body builders
-(`dance_pdf`, `program_matrix_pdf`, `program_pdf`) **and** the diagnostics-log
-export body (`_buildExportText` in `diagnostics_section.dart`) — a support
-artifact that stays English so it reads the same for every maintainer. Feed the
-export builders from a separate **English `.label` extension** on the core enum,
-kept app-side so core stays Flutter-free:
+**Exports follow the UI language (#529).** Exported documents (the plain-text
+and PDF builders) render their field labels in the active UI locale, like the
+rest of the app. Because the pure-Dart core renderers (`export/dance_text.dart`,
+`export/program_text.dart`) must stay Flutter-free (they can't reach
+`AppLocalizations`), localization is **injected** rather than looked up: each
+renderer/builder accepts a small pure-Dart **label value object** from
+`compendium_core/lib/src/export/export_labels.dart` — `DanceExportLabels`,
+`ProgramExportLabels`, `ProgramMatrixExportLabels`. Every field has an English
+default (const constructor; the count-based fields are `String Function(int)`
+tear-offs), so direct core-package callers and unit tests keep getting
+byte-identical English with no arguments.
 
-```dart
-// app/lib/src/models/dance_list_entry.dart
-extension DanceLevelExportLabel on DanceLevel {
-  String get label => switch (this) { /* fixed English strings */ };
-}
-```
+App call sites resolve the localized labels from `AppLocalizations` through
+`app/lib/src/export/export_labels_l10n.dart`
+(`danceExportLabels(l10n)` / `programExportLabels(l10n)` /
+`programMatrixExportLabels(l10n)`) and pass them into the builder. Content
+**values** (formation / status / level names) route through the existing
+localized helpers in `search/facet_labels.dart` (`formationLabel`,
+`danceStatusLabel`, `danceLevelLabel`); dates already use
+`MaterialLocalizations.formatMediumDate`. Never call `AppLocalizations` from a
+core renderer, and never add a Flutter dependency to `compendium_core` — inject a
+label object instead.
 
-So UI call sites route through the **localized** helper; export call sites route
-through the **English `.label`** extension. Never call `AppLocalizations` from an
-export builder, and never add either helper inside `compendium_core`.
+The **diagnostics-log export body** (`_buildExportText` in
+`diagnostics_section.dart`) is the one export that stays English: it's a support
+artifact meant to read the same for every maintainer. It is not guard-flagged, so
+it is documented here but stays **off** the allow-list.
 
 ## Guarding against hardcoded strings
 
@@ -235,16 +244,14 @@ Prose in a localized app must come from `l10n.*`, so any such literal is a leak.
 Pure interpolations, numbers, and punctuation (`'$count'`, `'• '`, `'—'`) are
 ignored.
 
-- **Allow-list.** The few files that intentionally keep English literals live in
-  `app/test/l10n/hardcoded_ui_strings_allowlist.dart`. With extraction complete
-  the "deferred UI" bucket is gone; only **permanent deferrals** remain — the
-  English export-body builders (see **Extraction status** above). The service /
-  import error messages that once sat here were localized via the typed-error
-  refactor and left the list.
+- **Allow-list.** Files that intentionally keep English literals would live in
+  `app/test/l10n/hardcoded_ui_strings_allowlist.dart`. With extraction complete,
+  exports now following the UI language (#529), and the service/import errors
+  localized via the typed-error refactor, the list is now **empty**.
   The guard also fails if a listed file no longer exists **or no longer has any
   flagged literal**, so the manifest can't rot and a file can't be parked on it
-  once it's clean. That last rule is why the English-by-design surfaces the guard
-  doesn't scan (the diagnostics-log export body) are documented above but
+  once it's clean. That last rule is why the English-by-design surface the guard
+  doesn't scan (the diagnostics-log export body) is documented above but
   deliberately kept **off** the list.
 - **Escape hatch.** For a literal that is intentionally *not* translatable (a
   brand/proper noun, a single-glyph font specimen, a notation token), append

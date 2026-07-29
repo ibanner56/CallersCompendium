@@ -2746,6 +2746,115 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportMatrixPdfFilename => 'プログラミングマトリックス';
 
   @override
+  String get exportLabelFormation => 'フォーメーション';
+
+  @override
+  String get exportLabelLevel => 'レベル';
+
+  @override
+  String get exportLabelStatus => 'ステータス';
+
+  @override
+  String get exportLabelPhrase => 'フレーズ';
+
+  @override
+  String get exportLabelFigures => 'フィギュア';
+
+  @override
+  String get exportLabelCallingNotes => 'コーリングノート';
+
+  @override
+  String get exportLabelWalkthrough => 'ウォークスルー';
+
+  @override
+  String exportBeatsLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count拍',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get exportLevelMixedOnly => 'ミックス';
+
+  @override
+  String exportLevelWithMixed(String level) {
+    return '$level（ミックス）';
+  }
+
+  @override
+  String get exportLabelBand => 'バンド';
+
+  @override
+  String get exportLabelCaller => 'コーラー';
+
+  @override
+  String get exportLabelNotes => 'ノート';
+
+  @override
+  String get exportLabelAlt => '代替';
+
+  @override
+  String get exportLabelGuest => 'ゲスト';
+
+  @override
+  String get exportLabelPerformed => '実施済み';
+
+  @override
+  String get exportUnknownDanceLabel => '無題のダンス';
+
+  @override
+  String exportMinutesLabel(int count) {
+    return '$count分';
+  }
+
+  @override
+  String get exportLabelVenue => '会場';
+
+  @override
+  String get exportLabelTime => '時間';
+
+  @override
+  String get exportLabelSchedule => 'スケジュール';
+
+  @override
+  String get exportLabelPrice => '料金';
+
+  @override
+  String get exportLabelSponsor => 'スポンサー';
+
+  @override
+  String get exportMatrixDefaultTitle => 'プログラミングマトリックス';
+
+  @override
+  String get exportMatrixDanceColumn => 'ダンス';
+
+  @override
+  String get exportMatrixEmptyState =>
+      'まだ構造化されたフィギュアがありません — プログラムのダンスに構造化されたフィギュアが追加されると、マトリックスは自動的に埋まります。';
+
+  @override
+  String get exportMatrixLegendDebut => 'ここで初登場';
+
+  @override
+  String get exportMatrixLegendFirst => 'ダンスの最初のフィギュア';
+
+  @override
+  String get exportMatrixLegendPresent => '使用中';
+
+  @override
+  String exportMatrixOmittedCaption(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のフリーテキストスロット（ブレイク、ノート）が省略されています — マトリックスはダンスのみ表示。',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get exportVenueContactTitle => 'このエクスポートに会場の連絡先情報を含めますか？';
 
   @override

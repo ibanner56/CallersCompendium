@@ -224,7 +224,7 @@ void main() {
           slots: [ProgramSlot(id: 's1', position: 0, danceId: 'gone')],
         ),
         titleFor: (_) => null,
-        unknownDanceLabel: '(missing)',
+        labels: const ProgramExportLabels(unknownDance: '(missing)'),
       );
       expect(text, contains('1. (missing)'));
     });

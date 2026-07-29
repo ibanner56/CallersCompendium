@@ -43,12 +43,13 @@ Future<Uint8List> buildProgramMatrixPdf(
   DateTime? eventDate,
   String? venue,
   int omittedFreeTextCount = 0,
+  ProgramMatrixExportLabels labels = const ProgramMatrixExportLabels(),
   pw.ThemeData? theme,
 }) async {
   final fmtDate = formatDate ?? _isoDate;
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final title = programTitle.trim().isEmpty
-      ? 'Programming matrix'
+      ? labels.defaultTitle
       : programTitle.trim();
   final doc = pw.Document(title: title, theme: resolvedTheme);
 
@@ -69,20 +70,16 @@ Future<Uint8List> buildProgramMatrixPdf(
           pw.Text(dateVenue, style: const pw.TextStyle(fontSize: 12)),
         pw.SizedBox(height: 12),
         if (matrix.isEmpty)
-          pw.Text(
-            'No structured figures yet — the matrix fills in automatically as '
-            'the program’s dances gain structured figures.',
-            style: const pw.TextStyle(fontSize: 12),
-          )
+          pw.Text(labels.emptyState, style: const pw.TextStyle(fontSize: 12))
         else ...[
-          _legend(),
+          _legend(labels),
           pw.SizedBox(height: 8),
-          _matrixTable(matrix, taxonomy, dialect),
+          _matrixTable(matrix, taxonomy, dialect, labels),
         ],
         if (omittedFreeTextCount > 0) ...[
           pw.SizedBox(height: 12),
           pw.Text(
-            _omittedCaption(omittedFreeTextCount),
+            labels.omittedCaption(omittedFreeTextCount),
             style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
           ),
         ],
@@ -97,8 +94,9 @@ pw.Widget _matrixTable(
   ProgramMatrix matrix,
   Taxonomy taxonomy,
   Dialect dialect,
+  ProgramMatrixExportLabels labels,
 ) {
-  final labels = [
+  final columnLabels = [
     for (final c in matrix.columns) matrixColumnLabel(c, taxonomy, dialect),
   ];
 
@@ -121,8 +119,8 @@ pw.Widget _matrixTable(
   final headerRow = pw.TableRow(
     decoration: const pw.BoxDecoration(color: PdfColors.grey300),
     children: [
-      headerCell('Dance', align: pw.Alignment.centerLeft),
-      for (final label in labels) headerCell(label),
+      headerCell(labels.danceColumn, align: pw.Alignment.centerLeft),
+      for (final label in columnLabels) headerCell(label),
     ],
   );
 
@@ -157,19 +155,12 @@ pw.Widget _matrixTable(
   );
 }
 
-pw.Widget _legend() => pw.Row(
-  children: [
-    pw.Text(
-      "$_debutMark  Introduced here      $_firstMark  Dance's first figure      $_presentMark  Present",
-      style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-    ),
-  ],
+pw.Widget _legend(ProgramMatrixExportLabels labels) => pw.Text(
+  '$_debutMark  ${labels.legendDebut}      '
+  '$_firstMark  ${labels.legendFirst}      '
+  '$_presentMark  ${labels.legendPresent}',
+  style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
 );
-
-/// Mirrors the on-screen matrix table's omitted-slots caption wording.
-String _omittedCaption(int n) =>
-    '$n free-text ${n == 1 ? 'slot' : 'slots'} '
-    '(breaks, notes) omitted — the matrix shows dances only.';
 
 String _dateVenue(
   DateTime? eventDate,
