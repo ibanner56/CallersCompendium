@@ -1899,10 +1899,7 @@ void main() {
       // Heading present for real content, and the body is trimmed so there are
       // no awkward leading/trailing blank lines.
       expect(find.text('Walkthrough'), findsOneWidget);
-      expect(
-        find.text('A1: neighbours balance and swing.'),
-        findsOneWidget,
-      );
+      expect(find.text('A1: neighbours balance and swing.'), findsOneWidget);
       final body = tester.widget<Text>(
         find.text('A1: neighbours balance and swing.'),
       );
