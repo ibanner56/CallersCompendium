@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -231,7 +232,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
         Navigator.of(context).pop(dance.id);
       }
     } catch (error, stackTrace) {
-      debugPrint('Could not save dance: $error\n$stackTrace');
+      if (kDebugMode) {
+        debugPrint('Could not save dance: $error\n$stackTrace');
+      }
       if (!mounted) return;
       setState(() => _saving = false);
       final l10n = AppLocalizations.of(context);

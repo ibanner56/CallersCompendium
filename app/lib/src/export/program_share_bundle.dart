@@ -60,11 +60,18 @@ import 'share_sanitization.dart';
 ///
 /// [now] stamps the archive's `exportedAt`; it defaults to the current time and
 /// is injectable for deterministic tests.
-// TODO(follow-up, issue #456): venues have no provenance/dedupe key, so
-// re-importing the same bundle duplicates venue records (see
-// CompendiumArchiveImporter.commit). Accepted for the additive-import model;
-// add a dedupe/provenance primitive in a later PR so shared/re-imported
-// bundles match existing venues instead of inserting duplicates.
+///
+/// Cross-import venue dedupe (issue #456, landed): re-importing a bundle no
+/// longer blindly duplicates venue records. `CompendiumArchiveImporter` matches
+/// each incoming venue against the venues the receiver already holds by a
+/// best-effort content fingerprint (`venueFingerprint` / `VenueFingerprintIndex`,
+/// over name + a locating field); on a unique match the incoming venue is dropped
+/// and the program is repointed to the existing venue. This is strictly a
+/// repoint, never an overwrite — the matched local record is left untouched.
+/// Remaining limitation: the match key is the venue's *content*, not a stable
+/// provenance/identity key, so it tolerates false splits to never risk a false
+/// merge — a weakly-described venue, an ambiguous fingerprint, or a descriptive
+/// field edited between imports can still fresh-mint a separate record.
 String buildProgramShareBundle(
   Program program, {
   required Dance? Function(String danceId) danceFor,
