@@ -48,10 +48,11 @@ see your library. It is **not** encrypted or password-protected, so treat
 the file the way you'd treat any personal document and store it somewhere
 you trust.
 
-Every backup does carry a built-in **integrity checksum**. Think of it as
-a tamper-evident seal rather than a lock: it doesn't hide anything, but it
-lets the app notice if the file was corrupted or altered after you exported
-it. If a restore ever detects a broken seal, it stops before touching your
+Every backup does carry a built-in **integrity checksum**. Think of it as a
+checksum, not a lock or a security seal: it doesn't hide anything and it can't
+stop a determined editor (who could simply recalculate it), but it lets the app
+notice if the file was accidentally corrupted or changed after you exported
+it. If a restore ever detects a mismatch, it stops before touching your
 data (see [Restore from a backup](#restore-from-a-backup) below) instead of
 importing something damaged.
 

@@ -46,10 +46,11 @@ overview and install notes follow.
   exactly as before; the marker appears — on dance cards, in Perform, and in exports —
   only when a swing ends somewhere other than the default.
 - **Backups now carry an integrity check.** Every exported backup wraps your data with
-  a **SHA-256 checksum**, so a corrupted or altered file is caught and refused at
+  a **SHA-256 checksum**, so a corrupted backup is caught and refused at
   restore — before any of your current data is touched — instead of importing
-  something damaged. The export stays a single, human-readable `.json` file, and the
-  checksum is a tamper/corruption check, not encryption.
+  something damaged. The export stays a single, human-readable `.json` file; the
+  checksum guards against accidental corruption, not encryption, and — because it
+  travels inside the file — is not a defense against deliberate tampering.
 
 ### Changed
 

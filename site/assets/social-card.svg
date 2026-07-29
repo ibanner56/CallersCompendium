@@ -28,7 +28,7 @@
     <text x="208" y="524" text-anchor="middle">Public beta live</text>
     <rect x="338" y="486" width="180" height="58" rx="29" fill="none" stroke="#4a4a63" stroke-width="2"/>
     <text x="428" y="524" text-anchor="middle" fill="#c3c1d4">Open source</text>
-    <rect x="538" y="486" width="200" height="58" rx="29" fill="none" stroke="#4a4a63" stroke-width="2"/>
-    <text x="638" y="524" text-anchor="middle" fill="#c3c1d4">No telemetry</text>
+    <rect x="538" y="486" width="250" height="58" rx="29" fill="none" stroke="#4a4a63" stroke-width="2"/>
+    <text x="663" y="524" text-anchor="middle" fill="#c3c1d4">No data collected</text>
   </g>
 </svg>
