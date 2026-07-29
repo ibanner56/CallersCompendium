@@ -23,7 +23,7 @@ const String _snapshotSuffix = '.sqlite.bak';
 /// drift is forward-only with no `onDowngrade`, so migrating such a file would
 /// either silently stamp its version down (leaving newer tables/columns under
 /// an older code path) or corrupt data. Instead we refuse to open it and route
-/// to the [AppBootstrap] error screen with [message].
+/// to the [AppBootstrap] error screen, which localizes the explanation.
 class DatabaseDowngradeError implements Exception {
   const DatabaseDowngradeError({
     required this.fileVersion,
@@ -35,11 +35,6 @@ class DatabaseDowngradeError implements Exception {
 
   /// The running app's [kCompendiumSchemaVersion].
   final int appVersion;
-
-  /// User-facing explanation rendered on the startup error screen.
-  String get message =>
-      'This data was created by a newer version of Caller\u2019s Compendium '
-      '\u2014 please update the app.';
 
   @override
   String toString() =>
@@ -92,19 +87,6 @@ class SnapshotFailure {
   /// The underlying error, for logging/diagnostics only — never surfaced raw.
   final Object error;
 
-  /// A short, plain-language sentence naming the probable cause, safe to embed
-  /// in user-facing copy. Empty when the cause could not be determined.
-  String get likelyCause {
-    switch (cause) {
-      case SnapshotFailureCause.diskFull:
-        return 'Your device appears to be low on storage space.';
-      case SnapshotFailureCause.unwritableBackupsDir:
-        return 'The automatic backups folder could not be written to.';
-      case SnapshotFailureCause.unknown:
-        return '';
-    }
-  }
-
   @override
   String toString() =>
       'SnapshotFailure(from $fromVersion -> $toVersion, cause: $cause, '
@@ -130,16 +112,6 @@ class MigrationSnapshotAborted implements Exception {
 
   /// The classified failure that prompted the aborted migration.
   final SnapshotFailure failure;
-
-  /// User-facing explanation rendered on the startup terminal screen.
-  String get message {
-    final cause = failure.likelyCause;
-    return 'Caller\u2019s Compendium didn\u2019t start because it couldn\u2019t '
-        'create an automatic backup before upgrading your saved data. '
-        '${cause.isEmpty ? '' : '$cause '}'
-        'Free up space (or fix the backups folder), then reopen the app \u2014 '
-        'or reopen and choose to continue without a backup.';
-  }
 
   @override
   String toString() => 'MigrationSnapshotAborted($failure)';

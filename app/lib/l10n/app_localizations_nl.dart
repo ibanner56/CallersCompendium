@@ -49,6 +49,37 @@ class AppLocalizationsNl extends AppLocalizations {
   String get appBootstrapError => 'De collectie kon niet worden voorbereid.';
 
   @override
+  String get migrationDowngradeMessage =>
+      'Deze gegevens zijn gemaakt met een nieuwere versie van Caller’s Compendium — werk de app bij.';
+
+  @override
+  String migrationSnapshotAbortedMessage(String cause) {
+    return 'Caller’s Compendium is niet gestart omdat er geen automatische back-up kon worden gemaakt voordat je opgeslagen gegevens werden bijgewerkt. ${cause}Maak ruimte vrij (of herstel de back-upmap) en open de app dan opnieuw — of open opnieuw en kies om zonder back-up door te gaan.';
+  }
+
+  @override
+  String get migrationSnapshotCauseDiskFull =>
+      'Je apparaat lijkt weinig opslagruimte te hebben.';
+
+  @override
+  String get migrationSnapshotCauseUnwritableBackupsDir =>
+      'Naar de automatische back-upmap kon niet worden geschreven.';
+
+  @override
+  String get migrationSnapshotConsentTitle => 'Kon je gegevens niet back-uppen';
+
+  @override
+  String migrationSnapshotConsentBody(String cause) {
+    return 'Voordat je opgeslagen gegevens naar een nieuw formaat worden bijgewerkt, maakt Caller’s Compendium een automatische back-up zodat een mislukte update ongedaan kan worden gemaakt. Die back-up kon deze keer niet worden gemaakt.$cause\n\nAls je zonder back-up doorgaat en de update wordt onderbroken, kunnen sommige van je dansen of programma’s verloren gaan. Je kunt afsluiten, ruimte vrijmaken (of de back-upmap herstellen) en de app opnieuw openen om het nog eens te proberen.';
+  }
+
+  @override
+  String get migrationSnapshotConsentQuit => 'Afsluiten';
+
+  @override
+  String get migrationSnapshotConsentProceed => 'Doorgaan zonder back-up';
+
+  @override
   String get confirmDeleteTitle => 'Verwijderen?';
 
   @override
@@ -3025,6 +3056,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get onlineImportError => 'Die dans kon niet worden geïmporteerd.';
 
   @override
+  String onlineSearchFailed(String source) {
+    return 'Kon $source niet doorzoeken. Probeer het opnieuw.';
+  }
+
+  @override
   String onlineImportCreated(String title) {
     return '“$title” geïmporteerd.';
   }
@@ -3302,6 +3338,29 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dat bestand is te groot om te importeren.';
 
   @override
+  String get archiveIntakeRejectedTooLarge =>
+      'Dat bestand is te groot om te importeren.';
+
+  @override
+  String get archiveIntakeRejectedUnreadable =>
+      'Kon het gedeelde bestand niet lezen.';
+
+  @override
+  String get archiveIntakeRejectedEmpty => 'Dat bestand is leeg.';
+
+  @override
+  String get archiveIntakeRejectedNotArchive =>
+      'Dat bestand is geen deelbestand van Caller’s Compendium.';
+
+  @override
+  String get archiveIntakeRejectedNewerVersion =>
+      'Dat bestand is gemaakt met een nieuwere versie van de app. Werk de app bij om het te importeren.';
+
+  @override
+  String get archiveIntakeRejectedNoContent =>
+      'Dat bestand bevatte geen dansen of programma’s.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Imports moeten een beveiligde https://-URL gebruiken.';
 
@@ -3435,6 +3494,154 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get importErrorContraDbImportFailed =>
       'De ContraDB-dans kon niet worden geïmporteerd.';
+
+  @override
+  String get importIssueGeneric => 'Dit item is met een notitie geïmporteerd.';
+
+  @override
+  String get importIssueProgramEmptySlot =>
+      'Een lege plek in een programma is overgeslagen.';
+
+  @override
+  String get importIssueProgramUnresolvedDance =>
+      'Een programma verwees naar een dans die niet is geïmporteerd; de plek is als tekstplaatshouder bewaard.';
+
+  @override
+  String get importIssueProgramUnresolvedVenue =>
+      'Een programma verwees naar een locatie die niet is geïmporteerd; het programma is zonder locatiekoppeling bewaard.';
+
+  @override
+  String get importIssueArchiveReadError =>
+      'Een item in het gedeelde bestand kon niet worden gelezen en is overgeslagen.';
+
+  @override
+  String get importIssueArchiveReadWarning =>
+      'Bij het decoderen van het gedeelde bestand is een waarschuwing gemeld.';
+
+  @override
+  String get importIssueDirectionUnmapped =>
+      'Een Becket-richting werd niet herkend; standaard met de klok mee.';
+
+  @override
+  String get importIssueFormationUnclassified =>
+      'Een formatie kon niet worden herkend; bewaard als detail bij “other”.';
+
+  @override
+  String get importIssuePhraseStructureUnreadable =>
+      'Een fraseopbouw kon niet worden gelezen; er is een standaardopbouw gebruikt.';
+
+  @override
+  String get importIssueProgressionUnmapped =>
+      'Een progressie werd niet herkend; vastgelegd als “other”.';
+
+  @override
+  String get importIssueMetadataOnlyStub =>
+      'Deze dans is alleen als metadata beschikbaar (geen figuren); geïmporteerd als stub.';
+
+  @override
+  String importIssueDateAssumedMdy(String field) {
+    return 'Een dubbelzinnige datum ($field) is gelezen als maand/dag (US-volgorde); controleer die als de bron dag-eerst gebruikte.';
+  }
+
+  @override
+  String importIssueDateReducedPrecision(int year, String field) {
+    return 'Alleen het jaar $year kon uit de datum ($field) worden gelezen; er was geen maand of dag aanwezig.';
+  }
+
+  @override
+  String get importIssueMissingTitle =>
+      'De dans had geen titel; er is een plaatshoudertitel gebruikt. Bewerk die vóór het vastleggen.';
+
+  @override
+  String get importIssueProgramUnparsedDate =>
+      'Een evenementdatum kon niet worden gelezen; niet ingesteld.';
+
+  @override
+  String get importIssueRatingOutOfRange =>
+      'Een beoordeling viel buiten de schaal 1–5; niet beoordeeld.';
+
+  @override
+  String get importIssueUnmappedFormation =>
+      'Een formatie werd niet herkend; bewaard als vrijetekstdetail.';
+
+  @override
+  String get importIssueUnmappedLevel =>
+      'Een niveau werd niet herkend; niet opgegeven.';
+
+  @override
+  String get importIssueUnmappedProgression =>
+      'Een progressie werd niet herkend; standaard op enkel.';
+
+  @override
+  String get importIssueUnmappedType =>
+      'Een danstype werd niet herkend; geïmporteerd als contra en bewaard in de notities.';
+
+  @override
+  String importIssueUnparsedDate(String field) {
+    return 'De datum ($field) kon niet worden gelezen; niet ingesteld.';
+  }
+
+  @override
+  String get importIssueUnparsedRating =>
+      'Een beoordeling kon niet worden gelezen; niet beoordeeld.';
+
+  @override
+  String get importIssueFiguresUnreadable =>
+      'De figuren konden niet worden gelezen; er zijn geen figuren geïmporteerd.';
+
+  @override
+  String get importIssueBeatsUnreadable =>
+      'Een aantal beats kon niet worden gelezen; 0 gebruikt.';
+
+  @override
+  String get importIssueNoFiguresTable =>
+      'De pagina had geen figuren; geïmporteerd als metadata-only stub.';
+
+  @override
+  String get importIssueMoveFallback =>
+      'Een figuur kon niet aan een bekende move worden gekoppeld; geïmporteerd als aangepast.';
+
+  @override
+  String importIssueMoveFallbackAt(int position) {
+    return 'Figuur $position kon niet aan een bekende move worden gekoppeld; geïmporteerd als aangepast.';
+  }
+
+  @override
+  String get importIssueParamUnmapped =>
+      'Een figuurparameter kon niet worden gekoppeld; een taxonomie-standaard is gebruikt.';
+
+  @override
+  String importIssueParamValueUnmapped(String param) {
+    return 'De parameter $param kon niet worden geconverteerd; een taxonomie-standaard is gebruikt.';
+  }
+
+  @override
+  String importIssueParamCountUnmapped(int provided, int mapped) {
+    return 'Een figuur had $provided parameterwaarden maar slechts $mapped zijn toegewezen; de extra waarden zijn genegeerd.';
+  }
+
+  @override
+  String get importDateFieldComposed => 'gecomponeerd';
+
+  @override
+  String get importDateFieldRevised => 'herzien';
+
+  @override
+  String get importRecordErrorDiscover =>
+      'Dit record kon niet worden gevonden.';
+
+  @override
+  String get importRecordErrorFetch => 'Dit record kon niet worden opgehaald.';
+
+  @override
+  String get importRecordErrorParse => 'Dit record kon niet worden gelezen.';
+
+  @override
+  String get importRecordErrorDedupe => 'Dit record kon niet worden verwerkt.';
+
+  @override
+  String get importRecordErrorCommit =>
+      'Dit record kon niet worden opgeslagen.';
 
   @override
   String get importReviewUsrSubtitle =>
@@ -3929,6 +4136,41 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorWarningsTitle => 'Waarschuwingen';
+
+  @override
+  String validationPhraseBeatMismatch(int actual, int expected) {
+    return 'De figuren tellen samen $actual beats; de fraseopbouw verwacht $expected.';
+  }
+
+  @override
+  String get validationPhraseInvalid => 'Die fraseopbouw is ongeldig.';
+
+  @override
+  String validationOrphanedAlt(int position) {
+    return 'Het alternatief op positie $position heeft geen voorafgaande hoofdplek.';
+  }
+
+  @override
+  String validationOrphanedAltNamed(int position, String text) {
+    return 'Het alternatief op positie $position (“$text”) heeft geen voorafgaande hoofdplek.';
+  }
+
+  @override
+  String validationEmptySubstitution(String term) {
+    return 'De vervanging voor “$term” is leeg.';
+  }
+
+  @override
+  String validationDialectCollision(
+    String source,
+    String existing,
+    String substitution,
+  ) {
+    return '“$source” en “$existing” verwijzen beide naar “$substitution” — omkeren zou dubbelzinnig zijn.';
+  }
+
+  @override
+  String get validationGeneric => 'Dit item heeft een validatieprobleem.';
 
   @override
   String danceEditorDiscouragedTermSemantic(String term) {

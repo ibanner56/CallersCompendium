@@ -8,6 +8,7 @@ import 'l10n/app_localizations.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
+import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
 import 'src/data/backup_controller_scope.dart';
 import 'src/data/collection_filter_scope.dart';
@@ -25,6 +26,7 @@ import 'src/data/import_error_labels.dart';
 import 'src/data/import_io.dart';
 import 'src/data/incoming_file_channel.dart';
 import 'src/data/locale_scope.dart';
+import 'src/data/migration_error_labels.dart';
 import 'src/data/migration_guard.dart';
 import 'src/data/colour_dance_theme_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
@@ -399,14 +401,21 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (!mounted) return;
 
     if (validation.isRejected) {
-      _messengerKey.currentState?.showSnackBar(
-        SnackBar(
-          key: const ValueKey('shared-import-error'),
-          content: Text(
-            validation.message ?? "Couldn't import the shared file.",
+      final messenger = _messengerKey.currentState;
+      final messengerContext = _messengerKey.currentContext;
+      if (messenger != null &&
+          messengerContext != null &&
+          messengerContext.mounted) {
+        final l10n = AppLocalizations.of(messengerContext);
+        messenger.showSnackBar(
+          SnackBar(
+            key: const ValueKey('shared-import-error'),
+            content: Text(
+              archiveIntakeRejectionMessage(l10n, validation.reason!),
+            ),
           ),
-        ),
-      );
+        );
+      }
       return;
     }
 
@@ -490,7 +499,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     final context = _navigatorKey.currentContext;
     if (context == null || !context.mounted) return false;
 
-    final likelyCause = failure.likelyCause;
+    final l10n = AppLocalizations.of(context);
+    final sentence = snapshotCauseSentence(l10n, failure.cause);
+    final causeBlock = sentence.isEmpty ? '' : '\n\n$sentence';
     final proceed = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -498,28 +509,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
         canPop: false,
         child: AlertDialog(
           icon: const Icon(Icons.warning_amber_rounded),
-          title: const Text('Couldn\u2019t back up your data'),
-          content: Text(
-            'Before upgrading your saved data to a new format, Caller\u2019s '
-            'Compendium makes an automatic backup so a failed upgrade can be '
-            'undone. That backup couldn\u2019t be created this time.'
-            '${likelyCause.isEmpty ? '' : '\n\n$likelyCause'}'
-            '\n\nIf you continue without a backup and the upgrade is '
-            'interrupted, some of your dances or programs could be lost. You '
-            'can quit, free up space (or fix the backups folder), and reopen '
-            'the app to try again.',
-          ),
+          title: Text(l10n.migrationSnapshotConsentTitle),
+          content: Text(l10n.migrationSnapshotConsentBody(causeBlock)),
           actions: [
             // Safest choice is the default: Quit, autofocused so a keyboard
             // Enter/confirm aborts rather than proceeding without a backup.
             TextButton(
               autofocus: true,
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Quit'),
+              child: Text(l10n.migrationSnapshotConsentQuit),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Proceed without a backup'),
+              child: Text(l10n.migrationSnapshotConsentProceed),
             ),
           ],
         ),

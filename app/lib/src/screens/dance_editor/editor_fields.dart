@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../data/validation_issue_labels.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_spacing.dart';
 
@@ -483,7 +484,7 @@ class WarningsCard extends StatelessWidget {
             Padding(
               // intentional: 2px optical inset, below the 4px AppSpacing grid
               padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text('• ${warning.message}'),
+              child: Text('• ${validationIssueMessage(l10n, warning)}'),
             ),
         ],
       ),

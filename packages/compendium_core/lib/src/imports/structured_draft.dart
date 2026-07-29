@@ -18,16 +18,32 @@ class ImportIssue {
     required this.code,
     required this.message,
     this.figureIndex,
+    this.data = const <String, Object?>{},
   });
 
   final ImportIssueSeverity severity;
 
   /// Stable machine code (e.g. `custom_figure_fallback`).
   final String code;
+
+  /// Human-readable description in canonical vocabulary.
+  ///
+  /// This is an **internal/diagnostic** string (used by [toString], logging,
+  /// and tests) — it is deliberately English and is **not** rendered directly
+  /// in a localized UI. The presentation layer localizes from [code] (+ [data])
+  /// instead (`app/lib/src/data/import_diagnostic_labels.dart`).
   final String message;
 
   /// Index into [Dance.figures] this issue concerns, if figure-specific.
   final int? figureIndex;
+
+  /// Structured interpolation values for the presentation-layer localizer,
+  /// keyed by name. Carries only the diagnostic's **own safe** structured data
+  /// (e.g. the `composed`/`revised` date-field name, a recovered year, or a
+  /// taxonomy parameter name) — never raw untrusted external text (source move
+  /// names, pasted values) or opaque parser output, which stay only in
+  /// [message] (logs).
+  final Map<String, Object?> data;
 
   @override
   String toString() => '[${severity.name}] $code: $message';

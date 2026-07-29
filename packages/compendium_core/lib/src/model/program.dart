@@ -342,9 +342,10 @@ class Program {
     for (final slot in slots) {
       if (slot.isAlt) {
         if (!sawPrimary) {
-          // `message` is user-facing (shown in the warnings card), so refer to
-          // the slot by its 1-based position (and text, when present) rather
-          // than the internal id, which is typically an opaque UUID.
+          // The localized message refers to the slot by its 1-based position
+          // (and text, when present) rather than the internal id, which is
+          // typically an opaque UUID. The English `message` below stays for
+          // diagnostics/tests; the UI renders the localized form from `data`.
           final label = slot.text == null ? '' : ' ("${slot.text}")';
           issues.add(
             ValidationIssue(
@@ -353,6 +354,7 @@ class Program {
               message:
                   'alternate at position ${slot.position + 1}$label has no '
                   'preceding primary slot',
+              data: {'position': slot.position + 1, 'text': slot.text},
             ),
           );
         }

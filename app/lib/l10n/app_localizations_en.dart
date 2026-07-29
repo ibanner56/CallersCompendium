@@ -49,6 +49,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appBootstrapError => 'Could not prepare the collection.';
 
   @override
+  String get migrationDowngradeMessage =>
+      'This data was created by a newer version of Caller’s Compendium — please update the app.';
+
+  @override
+  String migrationSnapshotAbortedMessage(String cause) {
+    return 'Caller’s Compendium didn’t start because it couldn’t create an automatic backup before upgrading your saved data. ${cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.';
+  }
+
+  @override
+  String get migrationSnapshotCauseDiskFull =>
+      'Your device appears to be low on storage space.';
+
+  @override
+  String get migrationSnapshotCauseUnwritableBackupsDir =>
+      'The automatic backups folder could not be written to.';
+
+  @override
+  String get migrationSnapshotConsentTitle => 'Couldn’t back up your data';
+
+  @override
+  String migrationSnapshotConsentBody(String cause) {
+    return 'Before upgrading your saved data to a new format, Caller’s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn’t be created this time.$cause\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.';
+  }
+
+  @override
+  String get migrationSnapshotConsentQuit => 'Quit';
+
+  @override
+  String get migrationSnapshotConsentProceed => 'Proceed without a backup';
+
+  @override
   String get confirmDeleteTitle => 'Delete?';
 
   @override
@@ -3010,6 +3041,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onlineImportError => 'Couldn\'t import that dance.';
 
   @override
+  String onlineSearchFailed(String source) {
+    return 'Couldn\'t search $source. Please try again.';
+  }
+
+  @override
   String onlineImportCreated(String title) {
     return 'Imported \"$title\".';
   }
@@ -3280,6 +3316,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importErrorFileTooLarge => 'That file is too large to import.';
 
   @override
+  String get archiveIntakeRejectedTooLarge =>
+      'That file is too large to import.';
+
+  @override
+  String get archiveIntakeRejectedUnreadable =>
+      'Couldn\'t read the shared file.';
+
+  @override
+  String get archiveIntakeRejectedEmpty => 'That file is empty.';
+
+  @override
+  String get archiveIntakeRejectedNotArchive =>
+      'That file isn\'t a Caller\'s Compendium share file.';
+
+  @override
+  String get archiveIntakeRejectedNewerVersion =>
+      'That file was made by a newer version of the app. Please update to import it.';
+
+  @override
+  String get archiveIntakeRejectedNoContent =>
+      'That file didn\'t contain any dances or programs.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Imports must use a secure https:// URL.';
 
@@ -3413,6 +3472,152 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importErrorContraDbImportFailed =>
       'The ContraDB dance couldn\'t be imported.';
+
+  @override
+  String get importIssueGeneric => 'This item was imported with a note.';
+
+  @override
+  String get importIssueProgramEmptySlot =>
+      'Skipped an empty slot in a program.';
+
+  @override
+  String get importIssueProgramUnresolvedDance =>
+      'A program referenced a dance that wasn\'t imported; kept the slot as a text placeholder.';
+
+  @override
+  String get importIssueProgramUnresolvedVenue =>
+      'A program referenced a venue that wasn\'t imported; kept the program without a venue link.';
+
+  @override
+  String get importIssueArchiveReadError =>
+      'An entry in the shared file couldn\'t be read and was skipped.';
+
+  @override
+  String get importIssueArchiveReadWarning =>
+      'The shared file reported a warning while decoding.';
+
+  @override
+  String get importIssueDirectionUnmapped =>
+      'A Becket direction wasn\'t recognized; defaulted to clockwise.';
+
+  @override
+  String get importIssueFormationUnclassified =>
+      'A formation couldn\'t be recognized; kept as a detail on “other”.';
+
+  @override
+  String get importIssuePhraseStructureUnreadable =>
+      'A phrase structure couldn\'t be read; a default structure was used.';
+
+  @override
+  String get importIssueProgressionUnmapped =>
+      'A progression wasn\'t recognized; recorded as “other”.';
+
+  @override
+  String get importIssueMetadataOnlyStub =>
+      'This dance is available as metadata only (no figures); imported as a stub.';
+
+  @override
+  String importIssueDateAssumedMdy(String field) {
+    return 'An ambiguous $field date was read as month/day (US ordering); check it if the source used day-first ordering.';
+  }
+
+  @override
+  String importIssueDateReducedPrecision(int year, String field) {
+    return 'Only the year $year could be read from the $field date; no month or day was present.';
+  }
+
+  @override
+  String get importIssueMissingTitle =>
+      'The dance had no title; a placeholder title was used. Edit it before committing.';
+
+  @override
+  String get importIssueProgramUnparsedDate =>
+      'An event date couldn\'t be read; left unset.';
+
+  @override
+  String get importIssueRatingOutOfRange =>
+      'A rating was outside the 1–5 scale; left unrated.';
+
+  @override
+  String get importIssueUnmappedFormation =>
+      'A formation wasn\'t recognized; preserved as free-text detail.';
+
+  @override
+  String get importIssueUnmappedLevel =>
+      'A level wasn\'t recognized; left unspecified.';
+
+  @override
+  String get importIssueUnmappedProgression =>
+      'A progression wasn\'t recognized; defaulted to single.';
+
+  @override
+  String get importIssueUnmappedType =>
+      'A dance type wasn\'t recognized; imported as a contra and preserved in the notes.';
+
+  @override
+  String importIssueUnparsedDate(String field) {
+    return 'The $field date couldn\'t be read; left unset.';
+  }
+
+  @override
+  String get importIssueUnparsedRating =>
+      'A rating couldn\'t be read; left unrated.';
+
+  @override
+  String get importIssueFiguresUnreadable =>
+      'The figures couldn\'t be read; no figures were imported.';
+
+  @override
+  String get importIssueBeatsUnreadable =>
+      'A beat count couldn\'t be read; used 0.';
+
+  @override
+  String get importIssueNoFiguresTable =>
+      'The page had no figures; imported as a metadata-only stub.';
+
+  @override
+  String get importIssueMoveFallback =>
+      'A figure couldn\'t be matched to a known move; imported as custom.';
+
+  @override
+  String importIssueMoveFallbackAt(int position) {
+    return 'Figure $position couldn\'t be matched to a known move; imported as custom.';
+  }
+
+  @override
+  String get importIssueParamUnmapped =>
+      'A figure parameter couldn\'t be mapped; a taxonomy default was used.';
+
+  @override
+  String importIssueParamValueUnmapped(String param) {
+    return 'The $param parameter couldn\'t be converted; a taxonomy default was used.';
+  }
+
+  @override
+  String importIssueParamCountUnmapped(int provided, int mapped) {
+    return 'A figure had $provided parameter values but only $mapped are mapped; the extras were ignored.';
+  }
+
+  @override
+  String get importDateFieldComposed => 'composed';
+
+  @override
+  String get importDateFieldRevised => 'revised';
+
+  @override
+  String get importRecordErrorDiscover => 'This record couldn\'t be found.';
+
+  @override
+  String get importRecordErrorFetch => 'This record couldn\'t be fetched.';
+
+  @override
+  String get importRecordErrorParse => 'This record couldn\'t be read.';
+
+  @override
+  String get importRecordErrorDedupe => 'This record couldn\'t be processed.';
+
+  @override
+  String get importRecordErrorCommit => 'This record couldn\'t be saved.';
 
   @override
   String get importReviewUsrSubtitle =>
@@ -3903,6 +4108,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorWarningsTitle => 'Warnings';
+
+  @override
+  String validationPhraseBeatMismatch(int actual, int expected) {
+    return 'The figures total $actual beats; the phrase structure expects $expected.';
+  }
+
+  @override
+  String get validationPhraseInvalid => 'That phrase structure isn\'t valid.';
+
+  @override
+  String validationOrphanedAlt(int position) {
+    return 'The alternate at position $position has no preceding primary slot.';
+  }
+
+  @override
+  String validationOrphanedAltNamed(int position, String text) {
+    return 'The alternate at position $position (“$text”) has no preceding primary slot.';
+  }
+
+  @override
+  String validationEmptySubstitution(String term) {
+    return 'The substitution for “$term” is empty.';
+  }
+
+  @override
+  String validationDialectCollision(
+    String source,
+    String existing,
+    String substitution,
+  ) {
+    return '“$source” and “$existing” both map to “$substitution” — reversal would be ambiguous.';
+  }
+
+  @override
+  String get validationGeneric => 'This item has a validation issue.';
 
   @override
   String danceEditorDiscouragedTermSemantic(String term) {

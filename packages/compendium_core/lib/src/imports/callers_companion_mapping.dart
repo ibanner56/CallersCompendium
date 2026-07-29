@@ -535,6 +535,7 @@ PartialDate? _unparsedDate(
           'Could not parse the $which date "$value" (expected e.g. YYYY, '
           'YYYY-MM, YYYY-MM-DD, "March 2004", "15 March 2004", or a numeric '
           'date with a 4-digit year); left unset.',
+      data: {'field': which},
     ),
   );
   return null;
@@ -659,6 +660,7 @@ _DateParse _parseNumericDate(
                 'Ambiguous $which date "$value" was interpreted as MM/DD '
                 '(US ordering): ${date.serialize()}. Verify if the source '
                 'used day-first ordering.',
+            data: {'field': which},
           ),
         );
       }
@@ -696,6 +698,7 @@ PartialDate? _parseYearOnly(
       message:
           'Recovered only the year $year from the $which date "$value"; '
           'no month or day was present to parse.',
+      data: {'field': which, 'year': year},
     ),
   );
   return date;

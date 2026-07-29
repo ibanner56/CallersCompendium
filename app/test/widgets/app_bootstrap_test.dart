@@ -87,7 +87,13 @@ void main() {
     completer.completeError(error);
     await tester.pumpAndSettle();
 
-    expect(find.text(error.message), findsOneWidget);
+    expect(
+      find.text(
+        'This data was created by a newer version of Caller\u2019s Compendium '
+        '\u2014 please update the app.',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Retry'), findsNothing);
     expect(find.text('Collection ready'), findsNothing);
   });

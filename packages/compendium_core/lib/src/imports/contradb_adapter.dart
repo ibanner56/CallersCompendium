@@ -370,6 +370,7 @@ class ContraDbAdapter implements SourceAdapter {
                 'Move "$moveName" parameter "${spec.name}" value '
                 '"$raw" did not convert; taxonomy default used.',
             figureIndex: index,
+            data: {'param': spec.name},
           ),
         );
         continue;
@@ -386,6 +387,7 @@ class ContraDbAdapter implements SourceAdapter {
               'Move "$moveName" had ${paramList.length} positional '
               'values but only ${specs.length} are mapped; extras ignored.',
           figureIndex: index,
+          data: {'provided': paramList.length, 'mapped': specs.length},
         ),
       );
     }

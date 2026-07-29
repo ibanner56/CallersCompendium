@@ -63,6 +63,40 @@
   "@appBootstrapError": {
     "description": "Error message shown on the startup screen when preparing the collection fails; accompanied by a Retry button."
   },
+  "migrationDowngradeMessage": "This data was created by a newer version of Caller\u2019s Compendium \u2014 please update the app.",
+  "@migrationDowngradeMessage": {
+    "description": "Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered."
+  },
+  "migrationSnapshotAbortedMessage": "Caller\u2019s Compendium didn\u2019t start because it couldn\u2019t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app \u2014 or reopen and choose to continue without a backup.",
+  "@migrationSnapshotAbortedMessage": {
+    "description": "Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.",
+    "placeholders": {"cause": {"type": "String", "example": "Your device appears to be low on storage space. "}}
+  },
+  "migrationSnapshotCauseDiskFull": "Your device appears to be low on storage space.",
+  "@migrationSnapshotCauseDiskFull": {
+    "description": "Plain-language sentence naming the likely cause of a failed pre-migration backup: the device is low on storage. Embedded into the snapshot-failure copy."
+  },
+  "migrationSnapshotCauseUnwritableBackupsDir": "The automatic backups folder could not be written to.",
+  "@migrationSnapshotCauseUnwritableBackupsDir": {
+    "description": "Plain-language sentence naming the likely cause of a failed pre-migration backup: the backups folder is not writable. Embedded into the snapshot-failure copy."
+  },
+  "migrationSnapshotConsentTitle": "Couldn\u2019t back up your data",
+  "@migrationSnapshotConsentTitle": {
+    "description": "Title of the blocking dialog asking whether to upgrade saved data without a recoverable backup after the automatic backup failed."
+  },
+  "migrationSnapshotConsentBody": "Before upgrading your saved data to a new format, Caller\u2019s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn\u2019t be created this time.{cause}\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.",
+  "@migrationSnapshotConsentBody": {
+    "description": "Body of the blocking dialog asking whether to upgrade saved data without a recoverable backup. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.",
+    "placeholders": {"cause": {"type": "String", "example": "\n\nYour device appears to be low on storage space."}}
+  },
+  "migrationSnapshotConsentQuit": "Quit",
+  "@migrationSnapshotConsentQuit": {
+    "description": "Button that safely aborts startup rather than upgrading saved data without a recoverable backup."
+  },
+  "migrationSnapshotConsentProceed": "Proceed without a backup",
+  "@migrationSnapshotConsentProceed": {
+    "description": "Button that proceeds with the data upgrade even though no recoverable backup could be made."
+  },
   "confirmDeleteTitle": "Delete?",
   "@confirmDeleteTitle": {
     "description": "Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on)."
@@ -3662,6 +3696,8 @@
   "@onlineLoadError": {"description": "Snackbar/inline error shown when loading a dance preview from an online source fails.", "placeholders": {"source": {"type": "String", "example": "Caller's Box"}}},
   "onlineImportError": "Couldn't import that dance.",
   "@onlineImportError": {"description": "Snackbar shown when directly importing an online dance fails."},
+  "onlineSearchFailed": "Couldn't search {source}. Please try again.",
+  "@onlineSearchFailed": {"description": "Inline error shown when an online search fails unexpectedly. {source} is the online source's proper name (e.g. \u201CThe Caller's Box\u201D / \u201CContraDB\u201D), not translated.", "placeholders": {"source": {"type": "String", "example": "The Caller's Box"}}},
   "onlineImportCreated": "Imported \"{title}\".",
   "@onlineImportCreated": {"description": "Snackbar confirming an online dance was imported. The title is an untrusted external value rendered as plain text.", "placeholders": {"title": {"type": "String", "example": "Money Musk"}}},
   "onlineImportAlreadyInCollection": "\"{title}\" is already in your collection.",
@@ -3787,6 +3823,18 @@
   "@importSourceLabelCallersCompanionUsr": {"description": "Name of the Caller's Companion .USR binary import source, shown in the import-source dropdown and headings."},
   "importErrorFileTooLarge": "That file is too large to import.",
   "@importErrorFileTooLarge": {"description": "Error shown when a chosen import file exceeds the maximum allowed size."},
+  "archiveIntakeRejectedTooLarge": "That file is too large to import.",
+  "@archiveIntakeRejectedTooLarge": {"description": "Rejection shown when a shared/AirDropped archive file exceeds the size cap. Generic; never echoes the path or size."},
+  "archiveIntakeRejectedUnreadable": "Couldn't read the shared file.",
+  "@archiveIntakeRejectedUnreadable": {"description": "Rejection shown when a shared archive file could not be read from disk at all. Generic; never echoes the path or the underlying OS error."},
+  "archiveIntakeRejectedEmpty": "That file is empty.",
+  "@archiveIntakeRejectedEmpty": {"description": "Rejection shown when a shared archive file contained no bytes."},
+  "archiveIntakeRejectedNotArchive": "That file isn't a Caller's Compendium share file.",
+  "@archiveIntakeRejectedNotArchive": {"description": "Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail."},
+  "archiveIntakeRejectedNewerVersion": "That file was made by a newer version of the app. Please update to import it.",
+  "@archiveIntakeRejectedNewerVersion": {"description": "Rejection shown when a shared archive was written by a newer app version than this build understands."},
+  "archiveIntakeRejectedNoContent": "That file didn't contain any dances or programs.",
+  "@archiveIntakeRejectedNoContent": {"description": "Rejection shown when a shared archive decoded successfully but carried neither dances nor programs."},
   "importErrorInsecureScheme": "Imports must use a secure https:// URL.",
   "@importErrorInsecureScheme": {"description": "Error shown when an import URL does not use the https scheme."},
   "importErrorBlockedHost": "That URL points to a network location that cannot be imported from.",
@@ -3853,6 +3901,80 @@
   "@importErrorContraDbNoDance": {"description": "Error shown when a ContraDB fetch parsed no importable dance. Generic by design; underlying parse detail is not shown."},
   "importErrorContraDbImportFailed": "The ContraDB dance couldn't be imported.",
   "@importErrorContraDbImportFailed": {"description": "Error shown when committing a ContraDB dance failed. Generic by design; underlying error detail is not shown."},
+  "importIssueGeneric": "This item was imported with a note.",
+  "@importIssueGeneric": {"description": "Generic fallback for an import note whose specific code has no localized message. Non-leaking; any raw detail appears only in debug builds."},
+  "importIssueProgramEmptySlot": "Skipped an empty slot in a program.",
+  "@importIssueProgramEmptySlot": {"description": "Import note: an empty program/set slot was skipped."},
+  "importIssueProgramUnresolvedDance": "A program referenced a dance that wasn't imported; kept the slot as a text placeholder.",
+  "@importIssueProgramUnresolvedDance": {"description": "Import note: a program slot pointed at a dance that wasn't part of the import; the slot was preserved as free text."},
+  "importIssueProgramUnresolvedVenue": "A program referenced a venue that wasn't imported; kept the program without a venue link.",
+  "@importIssueProgramUnresolvedVenue": {"description": "Import note: a program pointed at a venue that wasn't part of the import; the program kept no venue link."},
+  "importIssueArchiveReadError": "An entry in the shared file couldn't be read and was skipped.",
+  "@importIssueArchiveReadError": {"description": "Import note: an entry in a shared archive failed to decode and was skipped. Generic; the raw decode error is not shown."},
+  "importIssueArchiveReadWarning": "The shared file reported a warning while decoding.",
+  "@importIssueArchiveReadWarning": {"description": "Import note: decoding a shared archive produced a non-fatal warning. Generic; the raw warning text is not shown."},
+  "importIssueDirectionUnmapped": "A Becket direction wasn't recognized; defaulted to clockwise.",
+  "@importIssueDirectionUnmapped": {"description": "Import note: a Becket rotation direction wasn't 'CW' or 'CCW' and was defaulted to clockwise."},
+  "importIssueFormationUnclassified": "A formation couldn't be recognized; kept as a detail on \u201Cother\u201D.",
+  "@importIssueFormationUnclassified": {"description": "Import note: a formation/start-type string couldn't be classified to a known formation and was kept as detail on the 'other' formation."},
+  "importIssuePhraseStructureUnreadable": "A phrase structure couldn't be read; a default structure was used.",
+  "@importIssuePhraseStructureUnreadable": {"description": "Import note: a phrase-structure string couldn't be parsed and a default was substituted."},
+  "importIssueProgressionUnmapped": "A progression wasn't recognized; recorded as \u201Cother\u201D.",
+  "@importIssueProgressionUnmapped": {"description": "Import note: a progression value wasn't a standard tier and was recorded as 'other'."},
+  "importIssueMetadataOnlyStub": "This dance is available as metadata only (no figures); imported as a stub.",
+  "@importIssueMetadataOnlyStub": {"description": "Import note: the source served only metadata (no figures), so the dance was imported as a metadata-only stub."},
+  "importIssueDateAssumedMdy": "An ambiguous {field} date was read as month/day (US ordering); check it if the source used day-first ordering.",
+  "@importIssueDateAssumedMdy": {"description": "Import note: an ambiguous numeric date was interpreted month-first (US ordering); the user should verify. {field} is the localized date-field name (composed/revised).", "placeholders": {"field": {"type": "String", "example": "composed"}}},
+  "importIssueDateReducedPrecision": "Only the year {year} could be read from the {field} date; no month or day was present.",
+  "@importIssueDateReducedPrecision": {"description": "Import note: a date had only a year available to parse. {year} is the recovered 4-digit year; {field} is the localized date-field name (composed/revised).", "placeholders": {"year": {"type": "int", "example": "2004"}, "field": {"type": "String", "example": "composed"}}},
+  "importIssueMissingTitle": "The dance had no title; a placeholder title was used. Edit it before committing.",
+  "@importIssueMissingTitle": {"description": "Import note: the source dance had no title, so a placeholder was used and should be edited."},
+  "importIssueProgramUnparsedDate": "An event date couldn't be read; left unset.",
+  "@importIssueProgramUnparsedDate": {"description": "Import note: a program/set event date couldn't be parsed and was left unset."},
+  "importIssueRatingOutOfRange": "A rating was outside the 1\u20135 scale; left unrated.",
+  "@importIssueRatingOutOfRange": {"description": "Import note: a rating value fell outside 1-5 and was left unrated."},
+  "importIssueUnmappedFormation": "A formation wasn't recognized; preserved as free-text detail.",
+  "@importIssueUnmappedFormation": {"description": "Import note: a formation string wasn't recognized and was preserved as free text."},
+  "importIssueUnmappedLevel": "A level wasn't recognized; left unspecified.",
+  "@importIssueUnmappedLevel": {"description": "Import note: a difficulty/level string wasn't recognized and was left unspecified."},
+  "importIssueUnmappedProgression": "A progression wasn't recognized; defaulted to single.",
+  "@importIssueUnmappedProgression": {"description": "Import note: a progression string wasn't recognized and defaulted to single progression."},
+  "importIssueUnmappedType": "A dance type wasn't recognized; imported as a contra and preserved in the notes.",
+  "@importIssueUnmappedType": {"description": "Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes."},
+  "importIssueUnparsedDate": "The {field} date couldn't be read; left unset.",
+  "@importIssueUnparsedDate": {"description": "Import note: a date value couldn't be parsed and was left unset. {field} is the localized date-field name (composed/revised).", "placeholders": {"field": {"type": "String", "example": "composed"}}},
+  "importIssueUnparsedRating": "A rating couldn't be read; left unrated.",
+  "@importIssueUnparsedRating": {"description": "Import note: a rating value couldn't be parsed and was left unrated."},
+  "importIssueFiguresUnreadable": "The figures couldn't be read; no figures were imported.",
+  "@importIssueFiguresUnreadable": {"description": "Import note: the figures payload couldn't be read, so the dance was imported without figures."},
+  "importIssueBeatsUnreadable": "A beat count couldn't be read; used 0.",
+  "@importIssueBeatsUnreadable": {"description": "Import note: a beat count couldn't be parsed and 0 was used."},
+  "importIssueNoFiguresTable": "The page had no figures; imported as a metadata-only stub.",
+  "@importIssueNoFiguresTable": {"description": "Import note: an imported page had no figures table, so a metadata-only stub was created."},
+  "importIssueMoveFallback": "A figure couldn't be matched to a known move; imported as custom.",
+  "@importIssueMoveFallback": {"description": "Import note (no position available): a figure couldn't be mapped to the taxonomy and was imported as a custom figure."},
+  "importIssueMoveFallbackAt": "Figure {position} couldn't be matched to a known move; imported as custom.",
+  "@importIssueMoveFallbackAt": {"description": "Import note: the figure at the given 1-based position couldn't be mapped to the taxonomy and was imported as a custom figure. {position} is the app's own figure index.", "placeholders": {"position": {"type": "int", "example": "3"}}},
+  "importIssueParamUnmapped": "A figure parameter couldn't be mapped; a taxonomy default was used.",
+  "@importIssueParamUnmapped": {"description": "Import note (generic fallback): a figure parameter couldn't be mapped and a taxonomy default was used."},
+  "importIssueParamValueUnmapped": "The {param} parameter couldn't be converted; a taxonomy default was used.",
+  "@importIssueParamValueUnmapped": {"description": "Import note: a figure's value for the named taxonomy parameter couldn't be converted, so the taxonomy default was used. {param} is a taxonomy parameter name (a safe internal identifier, e.g. \u201chand\u201d), not untrusted external text.", "placeholders": {"param": {"type": "String", "example": "hand"}}},
+  "importIssueParamCountUnmapped": "A figure had {provided} parameter values but only {mapped} are mapped; the extras were ignored.",
+  "@importIssueParamCountUnmapped": {"description": "Import note: a figure supplied more positional parameter values than the taxonomy maps; the surplus was ignored. Both values are the app's own counts.", "placeholders": {"provided": {"type": "int", "example": "4"}, "mapped": {"type": "int", "example": "2"}}},
+  "importDateFieldComposed": "composed",
+  "@importDateFieldComposed": {"description": "Lowercase name of the 'composed' dance date field, inserted into import notes such as 'The {field} date couldn't be read'. Matches the danceEditorComposedLabel term."},
+  "importDateFieldRevised": "revised",
+  "@importDateFieldRevised": {"description": "Lowercase name of the 'revised' dance date field, inserted into import notes such as 'The {field} date couldn't be read'. Matches the danceEditorRevisedLabel term."},
+  "importRecordErrorDiscover": "This record couldn't be found.",
+  "@importRecordErrorDiscover": {"description": "Import review: a per-record error at the discover stage. Generic; raw error detail is not shown (CWE-209)."},
+  "importRecordErrorFetch": "This record couldn't be fetched.",
+  "@importRecordErrorFetch": {"description": "Import review: a per-record error at the fetch stage. Generic; raw error detail is not shown (CWE-209)."},
+  "importRecordErrorParse": "This record couldn't be read.",
+  "@importRecordErrorParse": {"description": "Import review: a per-record error at the parse stage. Generic; raw parser detail is not shown (CWE-209)."},
+  "importRecordErrorDedupe": "This record couldn't be processed.",
+  "@importRecordErrorDedupe": {"description": "Import review: a per-record error at the dedupe stage. Generic; raw error detail is not shown (CWE-209)."},
+  "importRecordErrorCommit": "This record couldn't be saved.",
+  "@importRecordErrorCommit": {"description": "Import review: a per-record error at the commit stage. Generic; raw error detail is not shown (CWE-209)."},
   "importReviewUsrSubtitle": "Choose the Caller's Companion .USR file to migrate its dances and program history. Nothing is added to your collection until you review and confirm.",
   "@importReviewUsrSubtitle": {"description": "Explanatory text for the Caller's Companion .USR file import."},
   "importReviewChooseUsr": "Choose .USR file…",
@@ -4276,6 +4398,39 @@
   "danceEditorWarningsTitle": "Warnings",
   "@danceEditorWarningsTitle":   {
     "description": "Heading for non-blocking validation warnings in the dance editor."
+  },
+  "validationPhraseBeatMismatch": "The figures total {actual} beats; the phrase structure expects {expected}.",
+  "@validationPhraseBeatMismatch": {
+    "description": "Warning shown in the dance editor when the figures' total beat count doesn't match the phrase structure (overflow or underflow). Both values are the app's own beat counts.",
+    "placeholders": {"actual": {"type": "int", "example": "68"}, "expected": {"type": "int", "example": "64"}}
+  },
+  "validationPhraseInvalid": "That phrase structure isn't valid.",
+  "@validationPhraseInvalid": {
+    "description": "Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds)."
+  },
+  "validationOrphanedAlt": "The alternate at position {position} has no preceding primary slot.",
+  "@validationOrphanedAlt": {
+    "description": "Program-editor warning: an alternate program slot appears with no primary slot before it. {position} is the slot's 1-based position.",
+    "placeholders": {"position": {"type": "int", "example": "3"}}
+  },
+  "validationOrphanedAltNamed": "The alternate at position {position} (\u201C{text}\u201D) has no preceding primary slot.",
+  "@validationOrphanedAltNamed": {
+    "description": "Program-editor warning: an alternate program slot (identified by its user-entered text) appears with no primary slot before it. {text} is user-entered content rendered as plain text.",
+    "placeholders": {"position": {"type": "int", "example": "3"}, "text": {"type": "String", "example": "Petronella"}}
+  },
+  "validationEmptySubstitution": "The substitution for \u201C{term}\u201D is empty.",
+  "@validationEmptySubstitution": {
+    "description": "Dialect-editor validation error: a role/move term maps to an empty substitution. {term} is the user-entered source term rendered as plain text.",
+    "placeholders": {"term": {"type": "String", "example": "gents"}}
+  },
+  "validationDialectCollision": "\u201C{source}\u201D and \u201C{existing}\u201D both map to \u201C{substitution}\u201D \u2014 reversal would be ambiguous.",
+  "@validationDialectCollision": {
+    "description": "Dialect-editor validation error: two source terms map to the same substitution, so reversing the dialect would be ambiguous. All three values are user-entered dialect terms rendered as plain text.",
+    "placeholders": {"source": {"type": "String", "example": "gents"}, "existing": {"type": "String", "example": "lords"}, "substitution": {"type": "String", "example": "larks"}}
+  },
+  "validationGeneric": "This item has a validation issue.",
+  "@validationGeneric": {
+    "description": "Generic fallback shown when a validation finding has no specific localized message. Deliberately non-leaking; specific detail (if any) appears only in debug builds."
   },
   "danceEditorDiscouragedTermSemantic": "Discouraged term: {term}",
   "@danceEditorDiscouragedTermSemantic":   {

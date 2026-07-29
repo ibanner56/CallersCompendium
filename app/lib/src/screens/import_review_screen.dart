@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/collection_refresh_scope.dart';
+import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/repositories_scope.dart';
@@ -747,7 +748,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   for (final issue in programIssues)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text('• ${issue.message}'),
+                      child: Text('• ${importIssueMessage(l10n, issue)}'),
                     ),
                 ],
               ],
@@ -760,7 +761,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 for (final e in errors)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text('• ${e.message}'),
+                    child: Text('• ${importRecordErrorMessage(l10n, e)}'),
                   ),
               ],
             ],
@@ -1111,7 +1112,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             : l10n.importReviewCouldNotRead,
         detail: unreadable.isEmpty
             ? l10n.importReviewNoDancesBody
-            : unreadable.map((e) => e.message).join('\n'),
+            : unreadable
+                  .map((e) => importRecordErrorMessage(l10n, e))
+                  .join('\n'),
       );
     }
 
@@ -1350,7 +1353,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             for (final e in errors)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text('• ${e.message}'),
+                child: Text('• ${importRecordErrorMessage(l10n, e)}'),
               ),
           ],
         ),
@@ -1393,7 +1396,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                       size: 16,
                     ),
                     const SizedBox(width: 6),
-                    Expanded(child: Text(issue.message)),
+                    Expanded(child: Text(importIssueMessage(l10n, issue))),
                   ],
                 ),
               ),

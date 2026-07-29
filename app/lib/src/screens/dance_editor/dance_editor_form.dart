@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../data/validation_issue_labels.dart';
 import '../../data/walkthrough_snippet_library_controller.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../editor/figure_draft.dart';
@@ -216,7 +217,7 @@ class DanceEditorForm extends StatelessWidget {
                       PhraseStructure.parse(value ?? '');
                       return null;
                     } on FormatException catch (e) {
-                      return e.message;
+                      return phraseStructureErrorMessage(l10n, e);
                     }
                   },
                 ),

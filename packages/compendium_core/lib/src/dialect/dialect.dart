@@ -247,6 +247,7 @@ class Dialect {
             severity: ValidationSeverity.error,
             code: 'empty_substitution',
             message: 'substitution for "$source" is empty',
+            data: {'source': source},
           ),
         );
         return;
@@ -260,6 +261,11 @@ class Dialect {
             message:
                 '"$source" and "$existing" both map to '
                 '"$substitution" — reversal would be ambiguous',
+            data: {
+              'source': source,
+              'existing': existing,
+              'substitution': substitution,
+            },
           ),
         );
       } else {

@@ -178,6 +178,54 @@ abstract class AppLocalizations {
   /// **'Could not prepare the collection.'**
   String get appBootstrapError;
 
+  /// Terminal startup-screen message shown when the on-disk data was written by a newer app version than the one running (no downgrade path). No Retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'This data was created by a newer version of Caller’s Compendium — please update the app.'**
+  String get migrationDowngradeMessage;
+
+  /// Terminal startup-screen message shown when a pre-migration backup could not be created and the user declined to proceed without one. {cause} is an optional trailing sentence (already ends with a space) naming the likely cause, or empty when unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller’s Compendium didn’t start because it couldn’t create an automatic backup before upgrading your saved data. {cause}Free up space (or fix the backups folder), then reopen the app — or reopen and choose to continue without a backup.'**
+  String migrationSnapshotAbortedMessage(String cause);
+
+  /// Plain-language sentence naming the likely cause of a failed pre-migration backup: the device is low on storage. Embedded into the snapshot-failure copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Your device appears to be low on storage space.'**
+  String get migrationSnapshotCauseDiskFull;
+
+  /// Plain-language sentence naming the likely cause of a failed pre-migration backup: the backups folder is not writable. Embedded into the snapshot-failure copy.
+  ///
+  /// In en, this message translates to:
+  /// **'The automatic backups folder could not be written to.'**
+  String get migrationSnapshotCauseUnwritableBackupsDir;
+
+  /// Title of the blocking dialog asking whether to upgrade saved data without a recoverable backup after the automatic backup failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t back up your data'**
+  String get migrationSnapshotConsentTitle;
+
+  /// Body of the blocking dialog asking whether to upgrade saved data without a recoverable backup. {cause} is an optional block (already prefixed with two newlines) naming the likely cause, or empty when unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Before upgrading your saved data to a new format, Caller’s Compendium makes an automatic backup so a failed upgrade can be undone. That backup couldn’t be created this time.{cause}\n\nIf you continue without a backup and the upgrade is interrupted, some of your dances or programs could be lost. You can quit, free up space (or fix the backups folder), and reopen the app to try again.'**
+  String migrationSnapshotConsentBody(String cause);
+
+  /// Button that safely aborts startup rather than upgrading saved data without a recoverable backup.
+  ///
+  /// In en, this message translates to:
+  /// **'Quit'**
+  String get migrationSnapshotConsentQuit;
+
+  /// Button that proceeds with the data upgrade even though no recoverable backup could be made.
+  ///
+  /// In en, this message translates to:
+  /// **'Proceed without a backup'**
+  String get migrationSnapshotConsentProceed;
+
   /// Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on).
   ///
   /// In en, this message translates to:
@@ -4801,6 +4849,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t import that dance.'**
   String get onlineImportError;
 
+  /// Inline error shown when an online search fails unexpectedly. {source} is the online source's proper name (e.g. “The Caller's Box” / “ContraDB”), not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t search {source}. Please try again.'**
+  String onlineSearchFailed(String source);
+
   /// Snackbar confirming an online dance was imported. The title is an untrusted external value rendered as plain text.
   ///
   /// In en, this message translates to:
@@ -5161,6 +5215,42 @@ abstract class AppLocalizations {
   /// **'That file is too large to import.'**
   String get importErrorFileTooLarge;
 
+  /// Rejection shown when a shared/AirDropped archive file exceeds the size cap. Generic; never echoes the path or size.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large to import.'**
+  String get archiveIntakeRejectedTooLarge;
+
+  /// Rejection shown when a shared archive file could not be read from disk at all. Generic; never echoes the path or the underlying OS error.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read the shared file.'**
+  String get archiveIntakeRejectedUnreadable;
+
+  /// Rejection shown when a shared archive file contained no bytes.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is empty.'**
+  String get archiveIntakeRejectedEmpty;
+
+  /// Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail.
+  ///
+  /// In en, this message translates to:
+  /// **'That file isn\'t a Caller\'s Compendium share file.'**
+  String get archiveIntakeRejectedNotArchive;
+
+  /// Rejection shown when a shared archive was written by a newer app version than this build understands.
+  ///
+  /// In en, this message translates to:
+  /// **'That file was made by a newer version of the app. Please update to import it.'**
+  String get archiveIntakeRejectedNewerVersion;
+
+  /// Rejection shown when a shared archive decoded successfully but carried neither dances nor programs.
+  ///
+  /// In en, this message translates to:
+  /// **'That file didn\'t contain any dances or programs.'**
+  String get archiveIntakeRejectedNoContent;
+
   /// Error shown when an import URL does not use the https scheme.
   ///
   /// In en, this message translates to:
@@ -5358,6 +5448,228 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The ContraDB dance couldn\'t be imported.'**
   String get importErrorContraDbImportFailed;
+
+  /// Generic fallback for an import note whose specific code has no localized message. Non-leaking; any raw detail appears only in debug builds.
+  ///
+  /// In en, this message translates to:
+  /// **'This item was imported with a note.'**
+  String get importIssueGeneric;
+
+  /// Import note: an empty program/set slot was skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped an empty slot in a program.'**
+  String get importIssueProgramEmptySlot;
+
+  /// Import note: a program slot pointed at a dance that wasn't part of the import; the slot was preserved as free text.
+  ///
+  /// In en, this message translates to:
+  /// **'A program referenced a dance that wasn\'t imported; kept the slot as a text placeholder.'**
+  String get importIssueProgramUnresolvedDance;
+
+  /// Import note: a program pointed at a venue that wasn't part of the import; the program kept no venue link.
+  ///
+  /// In en, this message translates to:
+  /// **'A program referenced a venue that wasn\'t imported; kept the program without a venue link.'**
+  String get importIssueProgramUnresolvedVenue;
+
+  /// Import note: an entry in a shared archive failed to decode and was skipped. Generic; the raw decode error is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'An entry in the shared file couldn\'t be read and was skipped.'**
+  String get importIssueArchiveReadError;
+
+  /// Import note: decoding a shared archive produced a non-fatal warning. Generic; the raw warning text is not shown.
+  ///
+  /// In en, this message translates to:
+  /// **'The shared file reported a warning while decoding.'**
+  String get importIssueArchiveReadWarning;
+
+  /// Import note: a Becket rotation direction wasn't 'CW' or 'CCW' and was defaulted to clockwise.
+  ///
+  /// In en, this message translates to:
+  /// **'A Becket direction wasn\'t recognized; defaulted to clockwise.'**
+  String get importIssueDirectionUnmapped;
+
+  /// Import note: a formation/start-type string couldn't be classified to a known formation and was kept as detail on the 'other' formation.
+  ///
+  /// In en, this message translates to:
+  /// **'A formation couldn\'t be recognized; kept as a detail on “other”.'**
+  String get importIssueFormationUnclassified;
+
+  /// Import note: a phrase-structure string couldn't be parsed and a default was substituted.
+  ///
+  /// In en, this message translates to:
+  /// **'A phrase structure couldn\'t be read; a default structure was used.'**
+  String get importIssuePhraseStructureUnreadable;
+
+  /// Import note: a progression value wasn't a standard tier and was recorded as 'other'.
+  ///
+  /// In en, this message translates to:
+  /// **'A progression wasn\'t recognized; recorded as “other”.'**
+  String get importIssueProgressionUnmapped;
+
+  /// Import note: the source served only metadata (no figures), so the dance was imported as a metadata-only stub.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance is available as metadata only (no figures); imported as a stub.'**
+  String get importIssueMetadataOnlyStub;
+
+  /// Import note: an ambiguous numeric date was interpreted month-first (US ordering); the user should verify. {field} is the localized date-field name (composed/revised).
+  ///
+  /// In en, this message translates to:
+  /// **'An ambiguous {field} date was read as month/day (US ordering); check it if the source used day-first ordering.'**
+  String importIssueDateAssumedMdy(String field);
+
+  /// Import note: a date had only a year available to parse. {year} is the recovered 4-digit year; {field} is the localized date-field name (composed/revised).
+  ///
+  /// In en, this message translates to:
+  /// **'Only the year {year} could be read from the {field} date; no month or day was present.'**
+  String importIssueDateReducedPrecision(int year, String field);
+
+  /// Import note: the source dance had no title, so a placeholder was used and should be edited.
+  ///
+  /// In en, this message translates to:
+  /// **'The dance had no title; a placeholder title was used. Edit it before committing.'**
+  String get importIssueMissingTitle;
+
+  /// Import note: a program/set event date couldn't be parsed and was left unset.
+  ///
+  /// In en, this message translates to:
+  /// **'An event date couldn\'t be read; left unset.'**
+  String get importIssueProgramUnparsedDate;
+
+  /// Import note: a rating value fell outside 1-5 and was left unrated.
+  ///
+  /// In en, this message translates to:
+  /// **'A rating was outside the 1–5 scale; left unrated.'**
+  String get importIssueRatingOutOfRange;
+
+  /// Import note: a formation string wasn't recognized and was preserved as free text.
+  ///
+  /// In en, this message translates to:
+  /// **'A formation wasn\'t recognized; preserved as free-text detail.'**
+  String get importIssueUnmappedFormation;
+
+  /// Import note: a difficulty/level string wasn't recognized and was left unspecified.
+  ///
+  /// In en, this message translates to:
+  /// **'A level wasn\'t recognized; left unspecified.'**
+  String get importIssueUnmappedLevel;
+
+  /// Import note: a progression string wasn't recognized and defaulted to single progression.
+  ///
+  /// In en, this message translates to:
+  /// **'A progression wasn\'t recognized; defaulted to single.'**
+  String get importIssueUnmappedProgression;
+
+  /// Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes.
+  ///
+  /// In en, this message translates to:
+  /// **'A dance type wasn\'t recognized; imported as a contra and preserved in the notes.'**
+  String get importIssueUnmappedType;
+
+  /// Import note: a date value couldn't be parsed and was left unset. {field} is the localized date-field name (composed/revised).
+  ///
+  /// In en, this message translates to:
+  /// **'The {field} date couldn\'t be read; left unset.'**
+  String importIssueUnparsedDate(String field);
+
+  /// Import note: a rating value couldn't be parsed and was left unrated.
+  ///
+  /// In en, this message translates to:
+  /// **'A rating couldn\'t be read; left unrated.'**
+  String get importIssueUnparsedRating;
+
+  /// Import note: the figures payload couldn't be read, so the dance was imported without figures.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures couldn\'t be read; no figures were imported.'**
+  String get importIssueFiguresUnreadable;
+
+  /// Import note: a beat count couldn't be parsed and 0 was used.
+  ///
+  /// In en, this message translates to:
+  /// **'A beat count couldn\'t be read; used 0.'**
+  String get importIssueBeatsUnreadable;
+
+  /// Import note: an imported page had no figures table, so a metadata-only stub was created.
+  ///
+  /// In en, this message translates to:
+  /// **'The page had no figures; imported as a metadata-only stub.'**
+  String get importIssueNoFiguresTable;
+
+  /// Import note (no position available): a figure couldn't be mapped to the taxonomy and was imported as a custom figure.
+  ///
+  /// In en, this message translates to:
+  /// **'A figure couldn\'t be matched to a known move; imported as custom.'**
+  String get importIssueMoveFallback;
+
+  /// Import note: the figure at the given 1-based position couldn't be mapped to the taxonomy and was imported as a custom figure. {position} is the app's own figure index.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {position} couldn\'t be matched to a known move; imported as custom.'**
+  String importIssueMoveFallbackAt(int position);
+
+  /// Import note (generic fallback): a figure parameter couldn't be mapped and a taxonomy default was used.
+  ///
+  /// In en, this message translates to:
+  /// **'A figure parameter couldn\'t be mapped; a taxonomy default was used.'**
+  String get importIssueParamUnmapped;
+
+  /// Import note: a figure's value for the named taxonomy parameter couldn't be converted, so the taxonomy default was used. {param} is a taxonomy parameter name (a safe internal identifier, e.g. “hand”), not untrusted external text.
+  ///
+  /// In en, this message translates to:
+  /// **'The {param} parameter couldn\'t be converted; a taxonomy default was used.'**
+  String importIssueParamValueUnmapped(String param);
+
+  /// Import note: a figure supplied more positional parameter values than the taxonomy maps; the surplus was ignored. Both values are the app's own counts.
+  ///
+  /// In en, this message translates to:
+  /// **'A figure had {provided} parameter values but only {mapped} are mapped; the extras were ignored.'**
+  String importIssueParamCountUnmapped(int provided, int mapped);
+
+  /// Lowercase name of the 'composed' dance date field, inserted into import notes such as 'The {field} date couldn't be read'. Matches the danceEditorComposedLabel term.
+  ///
+  /// In en, this message translates to:
+  /// **'composed'**
+  String get importDateFieldComposed;
+
+  /// Lowercase name of the 'revised' dance date field, inserted into import notes such as 'The {field} date couldn't be read'. Matches the danceEditorRevisedLabel term.
+  ///
+  /// In en, this message translates to:
+  /// **'revised'**
+  String get importDateFieldRevised;
+
+  /// Import review: a per-record error at the discover stage. Generic; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This record couldn\'t be found.'**
+  String get importRecordErrorDiscover;
+
+  /// Import review: a per-record error at the fetch stage. Generic; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This record couldn\'t be fetched.'**
+  String get importRecordErrorFetch;
+
+  /// Import review: a per-record error at the parse stage. Generic; raw parser detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This record couldn\'t be read.'**
+  String get importRecordErrorParse;
+
+  /// Import review: a per-record error at the dedupe stage. Generic; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This record couldn\'t be processed.'**
+  String get importRecordErrorDedupe;
+
+  /// Import review: a per-record error at the commit stage. Generic; raw error detail is not shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'This record couldn\'t be saved.'**
+  String get importRecordErrorCommit;
 
   /// Explanatory text for the Caller's Companion .USR file import.
   ///
@@ -6102,6 +6414,52 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Warnings'**
   String get danceEditorWarningsTitle;
+
+  /// Warning shown in the dance editor when the figures' total beat count doesn't match the phrase structure (overflow or underflow). Both values are the app's own beat counts.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures total {actual} beats; the phrase structure expects {expected}.'**
+  String validationPhraseBeatMismatch(int actual, int expected);
+
+  /// Field error shown under the dance editor's phrase-structure input when the entered text can't be parsed. Generic; the raw parser detail is not shown to users (only in debug builds).
+  ///
+  /// In en, this message translates to:
+  /// **'That phrase structure isn\'t valid.'**
+  String get validationPhraseInvalid;
+
+  /// Program-editor warning: an alternate program slot appears with no primary slot before it. {position} is the slot's 1-based position.
+  ///
+  /// In en, this message translates to:
+  /// **'The alternate at position {position} has no preceding primary slot.'**
+  String validationOrphanedAlt(int position);
+
+  /// Program-editor warning: an alternate program slot (identified by its user-entered text) appears with no primary slot before it. {text} is user-entered content rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'The alternate at position {position} (“{text}”) has no preceding primary slot.'**
+  String validationOrphanedAltNamed(int position, String text);
+
+  /// Dialect-editor validation error: a role/move term maps to an empty substitution. {term} is the user-entered source term rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'The substitution for “{term}” is empty.'**
+  String validationEmptySubstitution(String term);
+
+  /// Dialect-editor validation error: two source terms map to the same substitution, so reversing the dialect would be ambiguous. All three values are user-entered dialect terms rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'“{source}” and “{existing}” both map to “{substitution}” — reversal would be ambiguous.'**
+  String validationDialectCollision(
+    String source,
+    String existing,
+    String substitution,
+  );
+
+  /// Generic fallback shown when a validation finding has no specific localized message. Deliberately non-leaking; specific detail (if any) appears only in debug builds.
+  ///
+  /// In en, this message translates to:
+  /// **'This item has a validation issue.'**
+  String get validationGeneric;
 
   /// Semantics label announcing discouraged lingo terms in a prose field.
   ///
