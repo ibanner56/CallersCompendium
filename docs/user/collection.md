@@ -174,6 +174,11 @@ The detail view brings together:
   wording without changing the saved dance. See the [Dialect guide](./dialects.md)
   for how this fits together.
 - **Calling notes**, the choreographer's or your own.
+- **A Walkthrough** — a dedicated free-text field for the step-by-step teaching
+  notes you say while walking a dance through, kept separate from the shorter
+  Calling notes. If you keep a [walkthrough snippet library](./settings.md#defaults),
+  it pre-fills here from wording you have used for the same figures before, ready
+  to tweak for this dance.
 - **Links** — to the source, a video, and related dances.
 - **Calling history** — which of your [programs](./programs.md) include this
   dance. (A [Settings](./settings.md) toggle decides whether this counts
@@ -203,7 +208,11 @@ To put in a dance by hand, choose **New dance**. This opens the editor, where th
 **title** is the only required field. Figure entry is keyboard-first: start
 typing a move and accept a match from the type-ahead, with a running beat count
 keeping you honest as you go. If a move is unusual and nothing matches, type it in
-as free text — it is still recorded as a figure.
+as free text — it is still recorded as a figure. Some moves carry extra options: a
+**swing**, for example, can record which way dancers **end facing** — up or down
+the hall, or out of the set — for the times a dance ends a swing somewhere other
+than the usual "in"/across; that ending then shows on cards, in Perform, and in
+exports.
 
 The [Getting started guide](./getting-started.md#add-your-first-dance) walks
 through your first dance step by step, so this guide keeps it brief. And if you

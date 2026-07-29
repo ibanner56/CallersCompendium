@@ -100,7 +100,7 @@ The **Language & region** section handles formats and localization.
 
 - **Date format** — choose **System default**, **Year-month-day**, **Day/month/year**, or **Month/day/year**. A live example shows the result, and your choice controls how program event dates appear.
 - **First day of week** — shown as **Coming soon** and disabled for now. A future update will let you choose which day the week starts on in the app's own date views; today, date entry uses the system picker, which follows the app's active language.
-- **App language** — choose **System default** or one of the bundled languages (currently English). Changing it re-renders the app immediately and is remembered next time you open the app.
+- **App language** — choose **System default** or one of the bundled languages (currently English, German, French, Japanese, Danish, and Dutch). Changing it re-renders the app immediately and is remembered next time you open the app. Your dance content — figure and call wording — is governed by your chosen [dialect](./dialects.md), independent of the interface language.
 
 ## Defaults
 
@@ -123,6 +123,7 @@ These help if you write your own dances. Keep in mind you can override any of th
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or set your own.
 - **Starting figures** — an editor for the figures a new dance begins with; defaults to a single stand-still.
 - **Move defaults** — preferred parameter values applied automatically when you insert a [move](./glossary.md#move) while writing.
+- **Walkthrough snippets** — a personal, per-figure library of your own walkthrough wording. The first time you walk a figure the app learns the text you write, then pre-fills the [Walkthrough](./collection.md#read-a-dance-in-detail) for any dance that uses that figure. Editing a snippet asks whether to change it **everywhere** or **just for this dance**. Manage the whole library from here — review, edit, or delete any snippet.
 
 For writing and editing dances, see [Collection & search](./collection.md).
 

@@ -183,7 +183,8 @@ Ready to put a dance in? From **Collection**, choose **New dance**. This opens
 the dance editor, where you:
 
 1. Give the dance a **title** (this is the only required field), and add the
-   author, formation, and any notes you like.
+   author, formation, calling notes, and — if you like — a step-by-step
+   **Walkthrough** of how you teach it.
 2. Build the choreography by adding figures in order. Start typing a move — for
    example, "sw" — and the editor offers matches like *swing*; accept it and fill
    in who does it and for how many beats. A running beat count keeps you honest

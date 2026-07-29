@@ -33,7 +33,10 @@ Squares) callers — on desktop, tablet, and phone.
   figures; search by title, author, type, formation, level, figures (even
   "chain then swing in B2"), and your own custom fields. Enter figures with the
   structured editor, or turn on free-text entry to type them — with your own
-  shorthands — and have them parsed into structured, editable figures. _(built)_
+  shorthands — and have them parsed into structured, editable figures. Keep a
+  step-by-step **Walkthrough** on each dance, pre-filled from your own reusable
+  snippet library, and group your collection by category to hot-swap dances of a
+  given "vibe" mid-evening. _(built)_
 - **Programs** — create, edit, duplicate, and print/email set lists for events,
   with alternate dances, free-text slots, reusable venues, and a programming matrix
   computed from the choreography itself. Build a program from a plain-text title
