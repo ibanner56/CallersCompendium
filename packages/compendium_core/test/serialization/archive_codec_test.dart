@@ -968,7 +968,8 @@ void main() {
               {
                 'move': 'circle',
                 'params': {'turn': 'left'},
-                'walkthroughOverride': 'y' * (kMaxWalkthroughSnippetLength + 50),
+                'walkthroughOverride':
+                    'y' * (kMaxWalkthroughSnippetLength + 50),
               },
             ],
             'createdAt': '2026-01-01T00:00:00.000Z',

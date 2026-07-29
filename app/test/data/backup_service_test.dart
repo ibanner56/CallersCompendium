@@ -72,21 +72,24 @@ void main() {
     },
   );
 
-  test('walkthrough snippet library round-trips through backup (#411)', () async {
-    final source = openTestRepositories();
-    await _seed(source);
-    final json = await BackupService(source).exportToJson();
+  test(
+    'walkthrough snippet library round-trips through backup (#411)',
+    () async {
+      final source = openTestRepositories();
+      await _seed(source);
+      final json = await BackupService(source).exportToJson();
 
-    final target = openTestRepositories();
-    final outcome = await BackupService(target).restoreFromJson(json);
-    expect(outcome.hasErrors, isFalse);
+      final target = openTestRepositories();
+      final outcome = await BackupService(target).restoreFromJson(json);
+      expect(outcome.hasErrors, isFalse);
 
-    // The library rides the generic settings map (not denylisted); the
-    // controller decodes it defensively on load.
-    final controller = WalkthroughSnippetLibraryController(target.settings);
-    await controller.load();
-    expect(controller.resolve('swing(who=partners)'), 'Swing your partner.');
-  });
+      // The library rides the generic settings map (not denylisted); the
+      // controller decodes it defensively on load.
+      final controller = WalkthroughSnippetLibraryController(target.settings);
+      await controller.load();
+      expect(controller.resolve('swing(who=partners)'), 'Swing your partner.');
+    },
+  );
 
   test(
     'restore replaces content and re-applies dialects, themes, settings',
