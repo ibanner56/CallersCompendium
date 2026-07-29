@@ -3562,12 +3562,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette danse n\'est disponible que sous forme de métadonnées (aucune figure) ; importée comme ébauche.';
 
   @override
-  String get importIssueDateAssumedMdy =>
-      'Une date ambiguë a été lue comme mois/jour (ordre américain) ; vérifiez-la si la source utilisait l\'ordre jour d\'abord.';
+  String importIssueDateAssumedMdy(String field) {
+    return 'Une date $field ambiguë a été lue comme mois/jour (ordre américain) ; vérifiez-la si la source utilisait l\'ordre jour d\'abord.';
+  }
 
   @override
-  String get importIssueDateReducedPrecision =>
-      'Seule l\'année a pu être lue d\'une date ; aucun mois ni jour n\'était présent.';
+  String importIssueDateReducedPrecision(int year, String field) {
+    return 'Seule l\'année $year a pu être lue de la date $field ; aucun mois ni jour n\'était présent.';
+  }
 
   @override
   String get importIssueMissingTitle =>
@@ -3598,8 +3600,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Un type de danse n\'a pas été reconnu ; importé comme contra et conservé dans les notes.';
 
   @override
-  String get importIssueUnparsedDate =>
-      'Une date n\'a pas pu être lue ; non définie.';
+  String importIssueUnparsedDate(String field) {
+    return 'La date $field n\'a pas pu être lue ; non définie.';
+  }
 
   @override
   String get importIssueUnparsedRating =>
@@ -3622,8 +3625,29 @@ class AppLocalizationsFr extends AppLocalizations {
       'Une figure n\'a pas pu être associée à un mouvement connu ; importée comme personnalisée.';
 
   @override
+  String importIssueMoveFallbackAt(int position) {
+    return 'La figure $position n\'a pas pu être associée à un mouvement connu ; importée comme personnalisée.';
+  }
+
+  @override
   String get importIssueParamUnmapped =>
       'Un paramètre de figure n\'a pas pu être associé ; une valeur par défaut de la taxonomie a été utilisée.';
+
+  @override
+  String importIssueParamValueUnmapped(String param) {
+    return 'Le paramètre $param n\'a pas pu être converti ; une valeur par défaut de la taxonomie a été utilisée.';
+  }
+
+  @override
+  String importIssueParamCountUnmapped(int provided, int mapped) {
+    return 'Une figure avait $provided valeurs de paramètre mais seulement $mapped sont associées ; les valeurs en trop ont été ignorées.';
+  }
+
+  @override
+  String get importDateFieldComposed => 'composée';
+
+  @override
+  String get importDateFieldRevised => 'révisée';
 
   @override
   String get importRecordErrorDiscover => 'Cet enregistrement est introuvable.';

@@ -3519,12 +3519,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne dans er kun tilgængelig som metadata (ingen figurer); importeret som en stub.';
 
   @override
-  String get importIssueDateAssumedMdy =>
-      'En tvetydig dato blev læst som måned/dag (US-rækkefølge); tjek den, hvis kilden brugte dag-først-rækkefølge.';
+  String importIssueDateAssumedMdy(String field) {
+    return 'En tvetydig dato ($field) blev læst som måned/dag (US-rækkefølge); tjek den, hvis kilden brugte dag-først-rækkefølge.';
+  }
 
   @override
-  String get importIssueDateReducedPrecision =>
-      'Kun året kunne læses fra en dato; der var ingen måned eller dag.';
+  String importIssueDateReducedPrecision(int year, String field) {
+    return 'Kun året $year kunne læses fra datoen ($field); der var ingen måned eller dag.';
+  }
 
   @override
   String get importIssueMissingTitle =>
@@ -3555,8 +3557,9 @@ class AppLocalizationsDa extends AppLocalizations {
       'En dansetype blev ikke genkendt; importeret som en contra og bevaret i noterne.';
 
   @override
-  String get importIssueUnparsedDate =>
-      'En dato kunne ikke læses; ikke angivet.';
+  String importIssueUnparsedDate(String field) {
+    return 'Datoen ($field) kunne ikke læses; ikke angivet.';
+  }
 
   @override
   String get importIssueUnparsedRating =>
@@ -3579,8 +3582,29 @@ class AppLocalizationsDa extends AppLocalizations {
       'En figur kunne ikke matches til en kendt bevægelse; importeret som brugerdefineret.';
 
   @override
+  String importIssueMoveFallbackAt(int position) {
+    return 'Figur $position kunne ikke matches til en kendt bevægelse; importeret som brugerdefineret.';
+  }
+
+  @override
   String get importIssueParamUnmapped =>
       'En figurparameter kunne ikke tilknyttes; en taksonomistandard blev brugt.';
+
+  @override
+  String importIssueParamValueUnmapped(String param) {
+    return 'Parameteren $param kunne ikke konverteres; en taksonomistandard blev brugt.';
+  }
+
+  @override
+  String importIssueParamCountUnmapped(int provided, int mapped) {
+    return 'En figur havde $provided parameterværdier, men kun $mapped er tilknyttet; de overskydende blev ignoreret.';
+  }
+
+  @override
+  String get importDateFieldComposed => 'komponeret';
+
+  @override
+  String get importDateFieldRevised => 'revideret';
 
   @override
   String get importRecordErrorDiscover => 'Denne post kunne ikke findes.';

@@ -130,6 +130,85 @@ void main() {
     });
   });
 
+  group('importIssueMessage — safe placeholders (D2/D3, CWE-209)', () {
+    // Each of these codes carries our own SAFE structured data alongside an
+    // untrusted external echo in `message`. The localized output must surface
+    // the safe value and never the untrusted raw text.
+    ImportIssue issue(String code, Map<String, Object?> data, {int? figIdx}) =>
+        ImportIssue(
+          severity: ImportIssueSeverity.info,
+          code: code,
+          message: 'raw SECRETVALUE "SECRETVALUE" leaked here',
+          figureIndex: figIdx,
+          data: data,
+        );
+
+    test('cc_unparsed_date surfaces the composed/revised field, not the raw '
+        'value', () {
+      final composed = importIssueMessage(
+        l10n,
+        issue('cc_unparsed_date', {'field': 'composed'}),
+      );
+      final revised = importIssueMessage(
+        l10n,
+        issue('cc_unparsed_date', {'field': 'revised'}),
+      );
+      expect(composed, contains(l10n.importDateFieldComposed));
+      expect(revised, contains(l10n.importDateFieldRevised));
+      expect(composed, isNot(contains('SECRETVALUE')));
+      expect(revised, isNot(contains('SECRETVALUE')));
+    });
+
+    test('cc_date_reduced_precision surfaces the year and field, not the raw '
+        'value', () {
+      final msg = importIssueMessage(
+        l10n,
+        issue('cc_date_reduced_precision', {'field': 'revised', 'year': 2004}),
+      );
+      expect(msg, contains('2004'));
+      expect(msg, contains(l10n.importDateFieldRevised));
+      expect(msg, isNot(contains('SECRETVALUE')));
+    });
+
+    test('cc_date_assumed_mdy surfaces the field, not the raw value', () {
+      final msg = importIssueMessage(
+        l10n,
+        issue('cc_date_assumed_mdy', {'field': 'composed'}),
+      );
+      expect(msg, contains(l10n.importDateFieldComposed));
+      expect(msg, isNot(contains('SECRETVALUE')));
+    });
+
+    test('contradb_param_unmapped surfaces the taxonomy parameter name, not '
+        'the source move name/value', () {
+      final msg = importIssueMessage(
+        l10n,
+        issue('contradb_param_unmapped', {'param': 'hand'}),
+      );
+      expect(msg, contains('hand'));
+      expect(msg, isNot(contains('SECRETVALUE')));
+    });
+
+    test('contradb_param_unmapped surfaces the safe counts', () {
+      final msg = importIssueMessage(
+        l10n,
+        issue('contradb_param_unmapped', {'provided': 4, 'mapped': 2}),
+      );
+      expect(msg, contains('4'));
+      expect(msg, contains('2'));
+      expect(msg, isNot(contains('SECRETVALUE')));
+    });
+
+    test('contradb_move_fallback surfaces the 1-based figure position', () {
+      final msg = importIssueMessage(
+        l10n,
+        issue('contradb_move_fallback', const {}, figIdx: 2),
+      );
+      expect(msg, contains('3'));
+      expect(msg, isNot(contains('SECRETVALUE')));
+    });
+  });
+
   group('importRecordErrorMessage (CWE-209)', () {
     test('never surfaces the raw error message, whatever the stage', () {
       for (final stage in ImportStage.values) {

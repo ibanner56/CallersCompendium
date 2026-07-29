@@ -5515,17 +5515,17 @@ abstract class AppLocalizations {
   /// **'This dance is available as metadata only (no figures); imported as a stub.'**
   String get importIssueMetadataOnlyStub;
 
-  /// Import note: an ambiguous numeric date was interpreted month-first (US ordering); the user should verify.
+  /// Import note: an ambiguous numeric date was interpreted month-first (US ordering); the user should verify. {field} is the localized date-field name (composed/revised).
   ///
   /// In en, this message translates to:
-  /// **'An ambiguous date was read as month/day (US ordering); check it if the source used day-first ordering.'**
-  String get importIssueDateAssumedMdy;
+  /// **'An ambiguous {field} date was read as month/day (US ordering); check it if the source used day-first ordering.'**
+  String importIssueDateAssumedMdy(String field);
 
-  /// Import note: a date had only a year available to parse.
+  /// Import note: a date had only a year available to parse. {year} is the recovered 4-digit year; {field} is the localized date-field name (composed/revised).
   ///
   /// In en, this message translates to:
-  /// **'Only the year could be read from a date; no month or day was present.'**
-  String get importIssueDateReducedPrecision;
+  /// **'Only the year {year} could be read from the {field} date; no month or day was present.'**
+  String importIssueDateReducedPrecision(int year, String field);
 
   /// Import note: the source dance had no title, so a placeholder was used and should be edited.
   ///
@@ -5569,11 +5569,11 @@ abstract class AppLocalizations {
   /// **'A dance type wasn\'t recognized; imported as a contra and preserved in the notes.'**
   String get importIssueUnmappedType;
 
-  /// Import note: a date value couldn't be parsed and was left unset.
+  /// Import note: a date value couldn't be parsed and was left unset. {field} is the localized date-field name (composed/revised).
   ///
   /// In en, this message translates to:
-  /// **'A date couldn\'t be read; left unset.'**
-  String get importIssueUnparsedDate;
+  /// **'The {field} date couldn\'t be read; left unset.'**
+  String importIssueUnparsedDate(String field);
 
   /// Import note: a rating value couldn't be parsed and was left unrated.
   ///
@@ -5599,17 +5599,47 @@ abstract class AppLocalizations {
   /// **'The page had no figures; imported as a metadata-only stub.'**
   String get importIssueNoFiguresTable;
 
-  /// Import note: a figure couldn't be mapped to the taxonomy and was imported as a custom figure.
+  /// Import note (no position available): a figure couldn't be mapped to the taxonomy and was imported as a custom figure.
   ///
   /// In en, this message translates to:
   /// **'A figure couldn\'t be matched to a known move; imported as custom.'**
   String get importIssueMoveFallback;
 
-  /// Import note: a figure parameter value couldn't be converted and a taxonomy default was used.
+  /// Import note: the figure at the given 1-based position couldn't be mapped to the taxonomy and was imported as a custom figure. {position} is the app's own figure index.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {position} couldn\'t be matched to a known move; imported as custom.'**
+  String importIssueMoveFallbackAt(int position);
+
+  /// Import note (generic fallback): a figure parameter couldn't be mapped and a taxonomy default was used.
   ///
   /// In en, this message translates to:
   /// **'A figure parameter couldn\'t be mapped; a taxonomy default was used.'**
   String get importIssueParamUnmapped;
+
+  /// Import note: a figure's value for the named taxonomy parameter couldn't be converted, so the taxonomy default was used. {param} is a taxonomy parameter name (a safe internal identifier, e.g. “hand”), not untrusted external text.
+  ///
+  /// In en, this message translates to:
+  /// **'The {param} parameter couldn\'t be converted; a taxonomy default was used.'**
+  String importIssueParamValueUnmapped(String param);
+
+  /// Import note: a figure supplied more positional parameter values than the taxonomy maps; the surplus was ignored. Both values are the app's own counts.
+  ///
+  /// In en, this message translates to:
+  /// **'A figure had {provided} parameter values but only {mapped} are mapped; the extras were ignored.'**
+  String importIssueParamCountUnmapped(int provided, int mapped);
+
+  /// Lowercase name of the 'composed' dance date field, inserted into import notes such as 'The {field} date couldn't be read'. Matches the danceEditorComposedLabel term.
+  ///
+  /// In en, this message translates to:
+  /// **'composed'**
+  String get importDateFieldComposed;
+
+  /// Lowercase name of the 'revised' dance date field, inserted into import notes such as 'The {field} date couldn't be read'. Matches the danceEditorRevisedLabel term.
+  ///
+  /// In en, this message translates to:
+  /// **'revised'**
+  String get importDateFieldRevised;
 
   /// Import review: a per-record error at the discover stage. Generic; raw error detail is not shown (CWE-209).
   ///

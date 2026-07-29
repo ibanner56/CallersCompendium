@@ -59,7 +59,7 @@ const Set<String> mappedImportIssueCodes = {
 
 /// Localized message for an [ImportIssue] surfaced in the import review.
 String importIssueMessage(AppLocalizations l10n, ImportIssue issue) {
-  final localized = _localizedImportIssue(l10n, issue.code);
+  final localized = _localizedImportIssue(l10n, issue);
   if (localized != null) return localized;
   // Unmapped code: generic, non-leaking fallback. The diagnostic English is
   // appended only in debug builds to aid development — never in release
@@ -69,45 +69,98 @@ String importIssueMessage(AppLocalizations l10n, ImportIssue issue) {
       : l10n.importIssueGeneric;
 }
 
-String? _localizedImportIssue(
-  AppLocalizations l10n,
-  String code,
-) => switch (code) {
-  'archive_program_empty_slot' => l10n.importIssueProgramEmptySlot,
-  'archive_program_unresolved_dance' => l10n.importIssueProgramUnresolvedDance,
-  'archive_program_unresolved_venue' => l10n.importIssueProgramUnresolvedVenue,
-  'archive_read_error' => l10n.importIssueArchiveReadError,
-  'archive_read_warning' => l10n.importIssueArchiveReadWarning,
-  'callersbox_direction_unmapped' => l10n.importIssueDirectionUnmapped,
-  'callersbox_formation_unclassified' => l10n.importIssueFormationUnclassified,
-  'callersbox_phrase_structure_unreadable' =>
-    l10n.importIssuePhraseStructureUnreadable,
-  'callersbox_progression_unmapped' => l10n.importIssueProgressionUnmapped,
-  'callersbox_search_tier' => l10n.importIssueMetadataOnlyStub,
-  'cc_date_assumed_mdy' => l10n.importIssueDateAssumedMdy,
-  'cc_date_reduced_precision' => l10n.importIssueDateReducedPrecision,
-  'cc_missing_title' => l10n.importIssueMissingTitle,
-  'cc_program_empty_slot' => l10n.importIssueProgramEmptySlot,
-  'cc_program_unparsed_date' => l10n.importIssueProgramUnparsedDate,
-  'cc_program_unresolved_dance' => l10n.importIssueProgramUnresolvedDance,
-  'cc_rating_out_of_range' => l10n.importIssueRatingOutOfRange,
-  'cc_unmapped_formation' => l10n.importIssueUnmappedFormation,
-  'cc_unmapped_level' => l10n.importIssueUnmappedLevel,
-  'cc_unmapped_progression' => l10n.importIssueUnmappedProgression,
-  'cc_unmapped_type' => l10n.importIssueUnmappedType,
-  'cc_unparsed_date' => l10n.importIssueUnparsedDate,
-  'cc_unparsed_rating' => l10n.importIssueUnparsedRating,
-  'contradb_figures_unreadable' => l10n.importIssueFiguresUnreadable,
-  'contradb_formation_unclassified' => l10n.importIssueFormationUnclassified,
-  'contradb_html_beats_unreadable' => l10n.importIssueBeatsUnreadable,
-  'contradb_html_formation_unclassified' =>
-    l10n.importIssueFormationUnclassified,
-  'contradb_html_missing_title' => l10n.importIssueMissingTitle,
-  'contradb_html_no_figures_table' => l10n.importIssueNoFiguresTable,
-  'contradb_move_fallback' => l10n.importIssueMoveFallback,
-  'contradb_param_unmapped' => l10n.importIssueParamUnmapped,
-  _ => null,
+/// Localized name of the dance date field a date-parsing note concerns, from the
+/// safe `composed`/`revised` discriminator carried on the issue.
+String _dateField(AppLocalizations l10n, Object? field) => switch (field) {
+  'revised' => l10n.importDateFieldRevised,
+  _ => l10n.importDateFieldComposed,
 };
+
+String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
+  final data = issue.data;
+  switch (issue.code) {
+    case 'archive_program_empty_slot':
+    case 'cc_program_empty_slot':
+      return l10n.importIssueProgramEmptySlot;
+    case 'archive_program_unresolved_dance':
+    case 'cc_program_unresolved_dance':
+      return l10n.importIssueProgramUnresolvedDance;
+    case 'archive_program_unresolved_venue':
+      return l10n.importIssueProgramUnresolvedVenue;
+    case 'archive_read_error':
+      return l10n.importIssueArchiveReadError;
+    case 'archive_read_warning':
+      return l10n.importIssueArchiveReadWarning;
+    case 'callersbox_direction_unmapped':
+      return l10n.importIssueDirectionUnmapped;
+    case 'callersbox_formation_unclassified':
+    case 'contradb_formation_unclassified':
+    case 'contradb_html_formation_unclassified':
+      return l10n.importIssueFormationUnclassified;
+    case 'callersbox_phrase_structure_unreadable':
+      return l10n.importIssuePhraseStructureUnreadable;
+    case 'callersbox_progression_unmapped':
+      return l10n.importIssueProgressionUnmapped;
+    case 'callersbox_search_tier':
+      return l10n.importIssueMetadataOnlyStub;
+    case 'cc_date_assumed_mdy':
+      return l10n.importIssueDateAssumedMdy(_dateField(l10n, data['field']));
+    case 'cc_date_reduced_precision':
+      return l10n.importIssueDateReducedPrecision(
+        (data['year'] as int?) ?? 0,
+        _dateField(l10n, data['field']),
+      );
+    case 'cc_missing_title':
+    case 'contradb_html_missing_title':
+      return l10n.importIssueMissingTitle;
+    case 'cc_program_unparsed_date':
+      return l10n.importIssueProgramUnparsedDate;
+    case 'cc_rating_out_of_range':
+      return l10n.importIssueRatingOutOfRange;
+    case 'cc_unmapped_formation':
+      return l10n.importIssueUnmappedFormation;
+    case 'cc_unmapped_level':
+      return l10n.importIssueUnmappedLevel;
+    case 'cc_unmapped_progression':
+      return l10n.importIssueUnmappedProgression;
+    case 'cc_unmapped_type':
+      return l10n.importIssueUnmappedType;
+    case 'cc_unparsed_date':
+      return l10n.importIssueUnparsedDate(_dateField(l10n, data['field']));
+    case 'cc_unparsed_rating':
+      return l10n.importIssueUnparsedRating;
+    case 'contradb_figures_unreadable':
+      return l10n.importIssueFiguresUnreadable;
+    case 'contradb_html_beats_unreadable':
+      return l10n.importIssueBeatsUnreadable;
+    case 'contradb_html_no_figures_table':
+      return l10n.importIssueNoFiguresTable;
+    case 'contradb_move_fallback':
+      // Both variants (malformed figure / unknown move) carry the safe 0-based
+      // figure index; surface it as a 1-based position. The untrusted source
+      // move name is never shown.
+      return issue.figureIndex == null
+          ? l10n.importIssueMoveFallback
+          : l10n.importIssueMoveFallbackAt(issue.figureIndex! + 1);
+    case 'contradb_param_unmapped':
+      // Two variants share this code: a named-parameter conversion failure
+      // (carries a safe taxonomy parameter name) and a positional-count
+      // overflow (carries safe counts). The untrusted source move name and raw
+      // value are never surfaced.
+      if (data['param'] is String) {
+        return l10n.importIssueParamValueUnmapped(data['param'] as String);
+      }
+      if (data['provided'] is int && data['mapped'] is int) {
+        return l10n.importIssueParamCountUnmapped(
+          data['provided'] as int,
+          data['mapped'] as int,
+        );
+      }
+      return l10n.importIssueParamUnmapped;
+    default:
+      return null;
+  }
+}
 
 /// Localized message for a per-record [ImportError] surfaced in the import
 /// review. Keyed on the [ImportError.stage] discriminator; the raw `message`

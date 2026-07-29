@@ -3406,11 +3406,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'このダンスはメタデータのみ利用可能です（フィギュアなし）。スタブとしてインポートしました。';
 
   @override
-  String get importIssueDateAssumedMdy =>
-      'あいまいな日付を月/日（米国式の順序）として読み取りました。元データが日付先の順序を使用していた場合は確認してください。';
+  String importIssueDateAssumedMdy(String field) {
+    return 'あいまいな$fieldの日付を月/日（米国式の順序）として読み取りました。元データが日付先の順序を使用していた場合は確認してください。';
+  }
 
   @override
-  String get importIssueDateReducedPrecision => '日付から年のみを読み取れました。月や日はありませんでした。';
+  String importIssueDateReducedPrecision(int year, String field) {
+    return '$fieldの日付から年（$year）のみを読み取れました。月や日はありませんでした。';
+  }
 
   @override
   String get importIssueMissingTitle =>
@@ -3438,7 +3441,9 @@ class AppLocalizationsJa extends AppLocalizations {
       'ダンスの種類を認識できませんでした。コントラとしてインポートし、ノートに保持しました。';
 
   @override
-  String get importIssueUnparsedDate => '日付を読み取れませんでした。未設定のままです。';
+  String importIssueUnparsedDate(String field) {
+    return '$fieldの日付を読み取れませんでした。未設定のままです。';
+  }
 
   @override
   String get importIssueUnparsedRating => '評価を読み取れませんでした。未評価のままです。';
@@ -3459,8 +3464,29 @@ class AppLocalizationsJa extends AppLocalizations {
       'フィギュアを既知のムーブに一致させられませんでした。カスタムとしてインポートしました。';
 
   @override
+  String importIssueMoveFallbackAt(int position) {
+    return 'フィギュア$positionを既知のムーブに一致させられませんでした。カスタムとしてインポートしました。';
+  }
+
+  @override
   String get importIssueParamUnmapped =>
       'フィギュアのパラメーターをマッピングできませんでした。タクソノミーの既定値を使用しました。';
+
+  @override
+  String importIssueParamValueUnmapped(String param) {
+    return 'パラメーター$paramを変換できませんでした。タクソノミーの既定値を使用しました。';
+  }
+
+  @override
+  String importIssueParamCountUnmapped(int provided, int mapped) {
+    return 'フィギュアには$provided個のパラメーター値がありましたが、マッピングされているのは$mapped個のみです。余剰分は無視されました。';
+  }
+
+  @override
+  String get importDateFieldComposed => '振付';
+
+  @override
+  String get importDateFieldRevised => '改訂';
 
   @override
   String get importRecordErrorDiscover => 'このレコードが見つかりませんでした。';

@@ -3517,12 +3517,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'This dance is available as metadata only (no figures); imported as a stub.';
 
   @override
-  String get importIssueDateAssumedMdy =>
-      'An ambiguous date was read as month/day (US ordering); check it if the source used day-first ordering.';
+  String importIssueDateAssumedMdy(String field) {
+    return 'An ambiguous $field date was read as month/day (US ordering); check it if the source used day-first ordering.';
+  }
 
   @override
-  String get importIssueDateReducedPrecision =>
-      'Only the year could be read from a date; no month or day was present.';
+  String importIssueDateReducedPrecision(int year, String field) {
+    return 'Only the year $year could be read from the $field date; no month or day was present.';
+  }
 
   @override
   String get importIssueMissingTitle =>
@@ -3553,7 +3555,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'A dance type wasn\'t recognized; imported as a contra and preserved in the notes.';
 
   @override
-  String get importIssueUnparsedDate => 'A date couldn\'t be read; left unset.';
+  String importIssueUnparsedDate(String field) {
+    return 'The $field date couldn\'t be read; left unset.';
+  }
 
   @override
   String get importIssueUnparsedRating =>
@@ -3576,8 +3580,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'A figure couldn\'t be matched to a known move; imported as custom.';
 
   @override
+  String importIssueMoveFallbackAt(int position) {
+    return 'Figure $position couldn\'t be matched to a known move; imported as custom.';
+  }
+
+  @override
   String get importIssueParamUnmapped =>
       'A figure parameter couldn\'t be mapped; a taxonomy default was used.';
+
+  @override
+  String importIssueParamValueUnmapped(String param) {
+    return 'The $param parameter couldn\'t be converted; a taxonomy default was used.';
+  }
+
+  @override
+  String importIssueParamCountUnmapped(int provided, int mapped) {
+    return 'A figure had $provided parameter values but only $mapped are mapped; the extras were ignored.';
+  }
+
+  @override
+  String get importDateFieldComposed => 'composed';
+
+  @override
+  String get importDateFieldRevised => 'revised';
 
   @override
   String get importRecordErrorDiscover => 'This record couldn\'t be found.';

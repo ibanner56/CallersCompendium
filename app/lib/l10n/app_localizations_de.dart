@@ -3556,12 +3556,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Tanz ist nur als Metadaten verfügbar (keine Figuren); als Kurzeintrag importiert.';
 
   @override
-  String get importIssueDateAssumedMdy =>
-      'Ein mehrdeutiges Datum wurde als Monat/Tag (US-Reihenfolge) gelesen; prüfe es, falls die Quelle die Tag-zuerst-Reihenfolge verwendet hat.';
+  String importIssueDateAssumedMdy(String field) {
+    return 'Ein mehrdeutiges Datum ($field) wurde als Monat/Tag (US-Reihenfolge) gelesen; prüfe es, falls die Quelle die Tag-zuerst-Reihenfolge verwendet hat.';
+  }
 
   @override
-  String get importIssueDateReducedPrecision =>
-      'Aus einem Datum konnte nur das Jahr gelesen werden; es war kein Monat oder Tag vorhanden.';
+  String importIssueDateReducedPrecision(int year, String field) {
+    return 'Aus dem Datum ($field) konnte nur das Jahr $year gelesen werden; es war kein Monat oder Tag vorhanden.';
+  }
 
   @override
   String get importIssueMissingTitle =>
@@ -3592,8 +3594,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Ein Tanztyp wurde nicht erkannt; als Contra importiert und in den Notizen erhalten.';
 
   @override
-  String get importIssueUnparsedDate =>
-      'Ein Datum konnte nicht gelesen werden; nicht gesetzt.';
+  String importIssueUnparsedDate(String field) {
+    return 'Das Datum ($field) konnte nicht gelesen werden; nicht gesetzt.';
+  }
 
   @override
   String get importIssueUnparsedRating =>
@@ -3616,8 +3619,29 @@ class AppLocalizationsDe extends AppLocalizations {
       'Eine Figur konnte keiner bekannten Bewegung zugeordnet werden; als benutzerdefiniert importiert.';
 
   @override
+  String importIssueMoveFallbackAt(int position) {
+    return 'Figur $position konnte keiner bekannten Bewegung zugeordnet werden; als benutzerdefiniert importiert.';
+  }
+
+  @override
   String get importIssueParamUnmapped =>
       'Ein Figurenparameter konnte nicht zugeordnet werden; ein Taxonomie-Standard wurde verwendet.';
+
+  @override
+  String importIssueParamValueUnmapped(String param) {
+    return 'Der Parameter $param konnte nicht konvertiert werden; ein Taxonomie-Standard wurde verwendet.';
+  }
+
+  @override
+  String importIssueParamCountUnmapped(int provided, int mapped) {
+    return 'Eine Figur hatte $provided Parameterwerte, aber nur $mapped sind zugeordnet; die überzähligen wurden ignoriert.';
+  }
+
+  @override
+  String get importDateFieldComposed => 'komponiert';
+
+  @override
+  String get importDateFieldRevised => 'überarbeitet';
 
   @override
   String get importRecordErrorDiscover =>

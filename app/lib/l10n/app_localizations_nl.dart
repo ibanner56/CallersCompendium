@@ -3539,12 +3539,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze dans is alleen als metadata beschikbaar (geen figuren); geïmporteerd als stub.';
 
   @override
-  String get importIssueDateAssumedMdy =>
-      'Een dubbelzinnige datum is gelezen als maand/dag (US-volgorde); controleer die als de bron dag-eerst gebruikte.';
+  String importIssueDateAssumedMdy(String field) {
+    return 'Een dubbelzinnige datum ($field) is gelezen als maand/dag (US-volgorde); controleer die als de bron dag-eerst gebruikte.';
+  }
 
   @override
-  String get importIssueDateReducedPrecision =>
-      'Alleen het jaar kon uit een datum worden gelezen; er was geen maand of dag aanwezig.';
+  String importIssueDateReducedPrecision(int year, String field) {
+    return 'Alleen het jaar $year kon uit de datum ($field) worden gelezen; er was geen maand of dag aanwezig.';
+  }
 
   @override
   String get importIssueMissingTitle =>
@@ -3575,8 +3577,9 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een danstype werd niet herkend; geïmporteerd als contra en bewaard in de notities.';
 
   @override
-  String get importIssueUnparsedDate =>
-      'Een datum kon niet worden gelezen; niet ingesteld.';
+  String importIssueUnparsedDate(String field) {
+    return 'De datum ($field) kon niet worden gelezen; niet ingesteld.';
+  }
 
   @override
   String get importIssueUnparsedRating =>
@@ -3599,8 +3602,29 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een figuur kon niet aan een bekende move worden gekoppeld; geïmporteerd als aangepast.';
 
   @override
+  String importIssueMoveFallbackAt(int position) {
+    return 'Figuur $position kon niet aan een bekende move worden gekoppeld; geïmporteerd als aangepast.';
+  }
+
+  @override
   String get importIssueParamUnmapped =>
       'Een figuurparameter kon niet worden gekoppeld; een taxonomie-standaard is gebruikt.';
+
+  @override
+  String importIssueParamValueUnmapped(String param) {
+    return 'De parameter $param kon niet worden geconverteerd; een taxonomie-standaard is gebruikt.';
+  }
+
+  @override
+  String importIssueParamCountUnmapped(int provided, int mapped) {
+    return 'Een figuur had $provided parameterwaarden maar slechts $mapped zijn toegewezen; de extra waarden zijn genegeerd.';
+  }
+
+  @override
+  String get importDateFieldComposed => 'gecomponeerd';
+
+  @override
+  String get importDateFieldRevised => 'herzien';
 
   @override
   String get importRecordErrorDiscover =>
