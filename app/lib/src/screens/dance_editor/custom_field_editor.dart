@@ -189,18 +189,21 @@ class _AddChoiceOptionDialogState extends State<_AddChoiceOptionDialog> {
       case AddChoiceResult.added:
       case AddChoiceResult.notFound:
         Navigator.of(context).pop();
+        return;
       case AddChoiceResult.duplicate:
         setState(
           () => _asyncError = AppLocalizations.of(
             context,
           ).customFieldsChoiceDuplicate,
         );
+        return;
       case AddChoiceResult.empty:
         setState(
           () => _asyncError = AppLocalizations.of(
             context,
           ).customFieldsChoiceEmpty,
         );
+        return;
     }
   }
 

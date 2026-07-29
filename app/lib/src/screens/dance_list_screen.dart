@@ -1438,6 +1438,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
           child: Text(l10n.collectionGroupByNone),
         ),
         const PopupMenuDivider(),
+        // A non-interactive header labelling the tag list below as the set of
+        // categories to group by.
+        PopupMenuItem<String>(
+          enabled: false,
+          child: Text(
+            l10n.collectionGroupByHeader,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ),
         for (final tag in tags)
           PopupMenuItem<String>(value: tag.id, child: Text(tag.name)),
       ],

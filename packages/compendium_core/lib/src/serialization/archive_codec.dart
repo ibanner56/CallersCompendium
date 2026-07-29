@@ -423,20 +423,22 @@ List<Dance> _clampDanceChoiceValues(
   };
   if (choiceFieldIds.isEmpty) return dances;
 
+  bool needsClamp(CustomFieldValue v) =>
+      choiceFieldIds.contains(v.fieldId) &&
+      v.value is String &&
+      (v.value as String).length > kMaxCustomFieldChoiceLength;
+
+  // Nothing to do when no choice value actually exceeds the bound — return the
+  // input list unchanged (no allocation), matching this function's contract.
+  if (!dances.any((d) => d.customFields.any(needsClamp))) return dances;
+
   return [
     for (final dance in dances)
-      if (dance.customFields.any(
-        (v) =>
-            choiceFieldIds.contains(v.fieldId) &&
-            v.value is String &&
-            (v.value as String).length > kMaxCustomFieldChoiceLength,
-      ))
+      if (dance.customFields.any(needsClamp))
         dance.copyWith(
           customFields: [
             for (final v in dance.customFields)
-              if (choiceFieldIds.contains(v.fieldId) &&
-                  v.value is String &&
-                  (v.value as String).length > kMaxCustomFieldChoiceLength)
+              if (needsClamp(v))
                 CustomFieldValue(
                   fieldId: v.fieldId,
                   value: (v.value as String).substring(
