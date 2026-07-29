@@ -340,4 +340,86 @@ void main() {
       expect(controller.canUndo, isFalse);
     });
   });
+
+  group('addChoiceOption (inline choice-field option add, #373)', () {
+    CustomFieldDef choiceDef({List<String> choices = const ['driving']}) =>
+        CustomFieldDef(
+          id: 'adj',
+          key: 'adjectives',
+          label: 'Adjectives',
+          type: CustomFieldType.choice,
+          choices: choices,
+        );
+
+    Future<DanceEditorController> controllerWith(
+      CompendiumRepositories repos,
+      CustomFieldDef def,
+    ) async {
+      await repos.customFieldDefs.upsert(def);
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: null,
+        dialect: Dialect.larksRobins,
+      );
+      await controller.load(dance: null, fieldDefs: [def]);
+      return controller;
+    }
+
+    test('appends, persists, and selects a new option', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = await controllerWith(repos, choiceDef());
+      addTearDown(controller.dispose);
+
+      final result = await controller.addChoiceOption('adj', '  lyrical  ');
+
+      expect(result, AddChoiceResult.added);
+      // Trimmed, appended to the in-memory def, and selected for the dance.
+      expect(controller.fieldDefs.single.choices, ['driving', 'lyrical']);
+      expect(controller.customValues['adj'], 'lyrical');
+      // Persisted to the repository so it round-trips like any other option.
+      final stored = await repos.customFieldDefs.getById('adj');
+      expect(stored!.choices, ['driving', 'lyrical']);
+    });
+
+    test('rejects a case-sensitive duplicate without persisting', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = await controllerWith(repos, choiceDef());
+      addTearDown(controller.dispose);
+
+      final result = await controller.addChoiceOption('adj', 'driving');
+
+      expect(result, AddChoiceResult.duplicate);
+      expect(controller.fieldDefs.single.choices, ['driving']);
+      expect(controller.customValues['adj'], isNull);
+    });
+
+    test('rejects an empty / whitespace-only option', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = await controllerWith(repos, choiceDef());
+      addTearDown(controller.dispose);
+
+      expect(
+        await controller.addChoiceOption('adj', '   '),
+        AddChoiceResult.empty,
+      );
+      expect(controller.fieldDefs.single.choices, ['driving']);
+    });
+
+    test('soft-clamps an over-length option to the shared bound', () async {
+      final repos = openTestRepositories();
+      addTearDown(repos.db.close);
+      final controller = await controllerWith(repos, choiceDef());
+      addTearDown(controller.dispose);
+
+      final long = 'x' * (kMaxCustomFieldChoiceLength + 50);
+      final result = await controller.addChoiceOption('adj', long);
+
+      expect(result, AddChoiceResult.added);
+      final added = controller.fieldDefs.single.choices!.last;
+      expect(added.length, kMaxCustomFieldChoiceLength);
+    });
+  });
 }

@@ -284,6 +284,136 @@ void main() {
       expect(encodeArchive(result.archive), encodeArchive(archive));
     });
 
+    test('a choice field with many options round-trips (issue #373)', () {
+      // A reusable adjective pick-list built up over time — every option must
+      // survive an export/import cycle unchanged and in order.
+      final adjectives = [
+        'driving',
+        'lyrical',
+        'punchy',
+        'floaty',
+        'connected',
+      ];
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026),
+        customFields: [
+          CustomFieldDef(
+            id: 'adj',
+            key: 'adjectives',
+            label: 'Adjectives',
+            type: CustomFieldType.choice,
+            choices: adjectives,
+          ),
+        ],
+      );
+      final result = decodeArchive(encodeArchive(archive));
+      expect(result.hasErrors, isFalse);
+      final def = result.archive.customFields.single;
+      expect(def.choices, adjectives);
+      // Re-encode equality holds too (byte-for-byte stable).
+      expect(encodeArchive(result.archive), encodeArchive(archive));
+    });
+
+    test('oversized/duplicate choice options are soft-clamped and de-duped on '
+        'import (OWASP, issue #373)', () {
+      // Craft an archive whose choice field carries an over-length option and
+      // a duplicate that collapses onto the same clamped prefix — untrusted
+      // import input must be clamped (not rejected) and de-duplicated.
+      final base = 'a' * kMaxCustomFieldChoiceLength;
+      final json =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final fields = (json['customFields'] as List)
+          .cast<Map<String, Object?>>();
+      final choiceField = fields.firstWhere((f) => f['id'] == 'f_choice');
+      choiceField['choices'] = <String>[
+        '$base-EXTRA-ONE', // > bound → clamps to `base`
+        '$base-EXTRA-TWO', // > bound → also clamps to `base` (dupe)
+        'slow',
+      ];
+
+      final result = decodeArchive(jsonEncode(json));
+      expect(result.hasErrors, isFalse);
+      final def = result.archive.customFields.firstWhere(
+        (f) => f.id == 'f_choice',
+      );
+      // The two oversized values collapse to a single clamped option; 'slow'
+      // is preserved. No option exceeds the bound.
+      expect(def.choices, [base, 'slow']);
+      expect(
+        def.choices!.every((c) => c.length <= kMaxCustomFieldChoiceLength),
+        isTrue,
+      );
+    });
+
+    test(
+      'a choice VALUE is clamped in lock-step with its clamped option so the '
+      'dance still restores (issue #373)',
+      () {
+        // A dance whose choice value equals an over-length option: clamping the
+        // option must also clamp the value, or the value would no longer be a
+        // member of the field's options and the dance would be rejected on
+        // restore.
+        final long = 'z' * (kMaxCustomFieldChoiceLength + 25);
+        final clamped = 'z' * kMaxCustomFieldChoiceLength;
+        final json =
+            jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+        final fields = (json['customFields'] as List)
+            .cast<Map<String, Object?>>();
+        fields.firstWhere((f) => f['id'] == 'f_choice')['choices'] = <String>[
+          long,
+          'slow',
+        ];
+        // Point an existing dance's f_choice value at the over-length option.
+        final dances = (json['dances'] as List).cast<Map<String, Object?>>();
+        dances.first['customFields'] = <Object?>[
+          {'fieldId': 'f_choice', 'value': long},
+        ];
+
+        final result = decodeArchive(jsonEncode(json));
+        expect(result.hasErrors, isFalse);
+        final def = result.archive.customFields.firstWhere(
+          (f) => f.id == 'f_choice',
+        );
+        final value = result.archive.dances.first.customFields.singleWhere(
+          (v) => v.fieldId == 'f_choice',
+        );
+        expect(value.value, clamped);
+        // The clamped value is a valid member of the clamped option set.
+        expect(def.choices, contains(clamped));
+        expect(
+          CustomFieldValue(
+            fieldId: 'f_choice',
+            value: value.value,
+          ).matchesType(def),
+          isTrue,
+        );
+      },
+    );
+
+    test('a choice field left with no usable options is skipped, not aborted '
+        '(issue #373)', () {
+      // A malicious archive whose choice field has only a blank option: the
+      // field cannot be constructed (needs >=1 real option), but the import
+      // must tolerate it as a per-entity skip rather than aborting the whole
+      // decode with an uncaught Error.
+      final json =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final fields = (json['customFields'] as List)
+          .cast<Map<String, Object?>>();
+      fields.firstWhere((f) => f['id'] == 'f_choice')['choices'] = <String>[''];
+
+      final result = decodeArchive(jsonEncode(json));
+      // Not a fatal error: the offending field is dropped, everything else
+      // still decodes.
+      expect(result.hasErrors, isTrue);
+      expect(
+        result.archive.customFields.any((f) => f.id == 'f_choice'),
+        isFalse,
+      );
+      expect(result.archive.customFields, isNotEmpty);
+      expect(result.archive.dances, isNotEmpty);
+    });
+
     test('output is deterministic regardless of input entity order', () {
       final a = _sampleArchive();
       final shuffled = CompendiumArchive(

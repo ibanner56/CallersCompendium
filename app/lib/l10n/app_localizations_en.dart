@@ -1068,6 +1068,34 @@ class AppLocalizationsEn extends AppLocalizations {
       'Descending (tap for ascending)';
 
   @override
+  String get collectionGroupByCategoryTooltip => 'Group by category';
+
+  @override
+  String collectionGroupByCategoryActiveTooltip(String tag) {
+    return 'Grouped by $tag';
+  }
+
+  @override
+  String get collectionGroupByNone => 'No grouping';
+
+  @override
+  String get collectionGroupByHeader => 'Category';
+
+  @override
+  String get collectionGroupOther => 'Other';
+
+  @override
+  String collectionGroupSectionSemantics(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances',
+      one: '1 dance',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => 'Exit selection';
 
   @override
@@ -4539,6 +4567,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFieldsAddChoiceTooltip => 'Add choice';
+
+  @override
+  String get customFieldsChoiceDuplicate => 'That option already exists.';
+
+  @override
+  String get customFieldsChoiceEmpty => 'Enter an option.';
+
+  @override
+  String customFieldsAddOptionTooltip(String label) {
+    return 'Add an option to $label';
+  }
+
+  @override
+  String customFieldsAddOptionTitle(String label) {
+    return 'Add an option to $label';
+  }
 
   @override
   String dialectEditorTitle(String name) {

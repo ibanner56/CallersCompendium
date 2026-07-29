@@ -1408,6 +1408,46 @@
   "@collectionSortDescendingTooltip": {
     "description": "Tooltip for the sort-direction toggle while descending; tapping switches to ascending."
   },
+  "collectionGroupByCategoryTooltip": "Group by category",
+  "@collectionGroupByCategoryTooltip": {
+    "description": "Tooltip for the Collection app-bar button that groups the list by a chosen tag (category); no category is currently selected."
+  },
+  "collectionGroupByCategoryActiveTooltip": "Grouped by {tag}",
+  "@collectionGroupByCategoryActiveTooltip": {
+    "description": "Tooltip for the group-by-category button when a category is active; {tag} is the selected tag name.",
+    "placeholders": {
+      "tag": {
+        "type": "String",
+        "example": "Bouncy"
+      }
+    }
+  },
+  "collectionGroupByNone": "No grouping",
+  "@collectionGroupByNone": {
+    "description": "Menu entry that clears the active category grouping and returns to the flat list."
+  },
+  "collectionGroupByHeader": "Category",
+  "@collectionGroupByHeader": {
+    "description": "Header label at the top of the group-by-category menu, above the list of tags."
+  },
+  "collectionGroupOther": "Other",
+  "@collectionGroupOther": {
+    "description": "Section header for the group of dances that do NOT carry the selected category tag."
+  },
+  "collectionGroupSectionSemantics": "{label}, {count, plural, =1{1 dance} other{{count} dances}}",
+  "@collectionGroupSectionSemantics": {
+    "description": "Accessibility label announced for a category section header; {label} is the section name and {count} the number of dances in it.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Bouncy"
+      },
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
   "collectionExitSelectionTooltip": "Exit selection",
   "@collectionExitSelectionTooltip": {
     "description": "Tooltip for the button that leaves multi-select (batch) mode."
@@ -5266,6 +5306,34 @@
   "customFieldsAddChoiceTooltip": "Add choice",
   "@customFieldsAddChoiceTooltip": {
     "description": "Tooltip for the button that adds a new choice value."
+  },
+  "customFieldsChoiceDuplicate": "That option already exists.",
+  "@customFieldsChoiceDuplicate": {
+    "description": "Inline error when a user tries to add a choice option that already exists."
+  },
+  "customFieldsChoiceEmpty": "Enter an option.",
+  "@customFieldsChoiceEmpty": {
+    "description": "Inline error when a user tries to add an empty choice option."
+  },
+  "customFieldsAddOptionTooltip": "Add an option to {label}",
+  "@customFieldsAddOptionTooltip": {
+    "description": "Tooltip for the inline button (in the dance editor) that adds a new option to a choice custom field.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Adjectives"
+      }
+    }
+  },
+  "customFieldsAddOptionTitle": "Add an option to {label}",
+  "@customFieldsAddOptionTitle": {
+    "description": "Title of the dialog for adding a new option to a choice custom field inline from the dance editor.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Adjectives"
+      }
+    }
   },
   "dialectEditorTitle": "Edit {name}",
   "@dialectEditorTitle": {

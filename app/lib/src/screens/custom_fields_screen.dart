@@ -357,11 +357,18 @@ class _CustomFieldFormState extends State<_CustomFieldForm> {
   }
 
   void _addChoice(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return;
-    if (_choices.contains(trimmed)) return;
+    final l10n = AppLocalizations.of(context);
+    // Soft-clamp to the shared bound (OWASP): trim + cap length; empty is a
+    // no-op. Duplicate (against the clamped value) surfaces an inline error so
+    // the user understands why nothing was added.
+    final normalized = normalizeChoiceOption(value);
+    if (normalized == null) return;
+    if (_choices.contains(normalized)) {
+      setState(() => _choicesError = l10n.customFieldsChoiceDuplicate);
+      return;
+    }
     setState(() {
-      _choices.add(trimmed);
+      _choices.add(normalized);
       _choicesError = null;
     });
   }
@@ -623,10 +630,12 @@ class _ChoicesEditorState extends State<_ChoicesEditor> {
               child: TextField(
                 key: const ValueKey('choice-input'),
                 controller: _controller,
+                maxLength: kMaxCustomFieldChoiceLength,
                 decoration: InputDecoration(
                   hintText: l10n.customFieldsNewChoiceHint,
                   isDense: true,
                   border: const OutlineInputBorder(),
+                  counterText: '',
                 ),
                 onSubmitted: (value) {
                   widget.onAdd(value);

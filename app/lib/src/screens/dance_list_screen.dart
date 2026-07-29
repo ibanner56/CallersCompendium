@@ -177,6 +177,21 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// first [_boot]).
   bool _defaultSortSeeded = false;
 
+  /// The tag id the Collection is currently **grouped** by (issue #373), or
+  /// `null` for no grouping (the default flat list). Session-only: this is never
+  /// persisted, so relaunching the app returns to the ungrouped list. Grouping
+  /// is orthogonal to [_sort] — the active sort still orders rows *within* each
+  /// section. Only ids drawn from the current tag set ([CollectionData.tags])
+  /// are ever honored (an allow-list; the id never reaches SQL — grouping is a
+  /// pure app-layer partition of the already-sorted [_results]).
+  String? _groupTagId;
+
+  /// Sentinel value for the "No grouping" menu item. A `null`-valued
+  /// [PopupMenuItem] is treated as a *cancel* by [PopupMenuButton] (its
+  /// `onSelected` never fires), so the clear-grouping entry needs a non-null
+  /// value; the empty string can never collide with a real (uuid) tag id.
+  static const String _noGroupSentinel = '';
+
   late CompendiumRepositories _repos;
   bool _started = false;
 
@@ -1363,6 +1378,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 ),
             ],
           ),
+          _buildGroupByButton(l10n),
           IconButton(
             key: const ValueKey('collection-sort-direction'),
             tooltip: _sortDir == SortDirection.ascending
@@ -1384,6 +1400,46 @@ class _DanceListScreenState extends State<DanceListScreen> {
             },
           ),
         ],
+      ],
+    );
+  }
+
+  /// The group-by-category selector: picks a single tag ("category") to group
+  /// the list under, or clears grouping. Session-only — the choice is never
+  /// persisted. Rendered only when the collection has tags to group by; grouping
+  /// is a pure app-layer partition, so selecting a tag just re-renders (no new
+  /// search). A stale [_groupTagId] (e.g. its tag was deleted) reads as inactive.
+  Widget _buildGroupByButton(AppLocalizations l10n) {
+    final data = _data;
+    final tags = data?.tags ?? const <Tag>[];
+    if (tags.isEmpty) return const SizedBox.shrink();
+
+    final activeTag = _groupTagId == null
+        ? null
+        : tags.where((t) => t.id == _groupTagId).firstOrNull;
+    final isActive = activeTag != null;
+
+    return PopupMenuButton<String>(
+      key: const ValueKey('collection-group-by'),
+      tooltip: isActive
+          ? l10n.collectionGroupByCategoryActiveTooltip(activeTag.name)
+          : l10n.collectionGroupByCategoryTooltip,
+      initialValue: _groupTagId ?? _noGroupSentinel,
+      icon: Icon(isActive ? Icons.category : Icons.category_outlined),
+      onSelected: (value) {
+        // A null-valued PopupMenuItem is treated as a *cancel* by
+        // PopupMenuButton (onSelected never fires), so "No grouping" carries a
+        // non-null sentinel that we map back to null here.
+        setState(() => _groupTagId = value == _noGroupSentinel ? null : value);
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          value: _noGroupSentinel,
+          child: Text(l10n.collectionGroupByNone),
+        ),
+        const PopupMenuDivider(),
+        for (final tag in tags)
+          PopupMenuItem<String>(value: tag.id, child: Text(tag.name)),
       ],
     );
   }
@@ -1972,104 +2028,208 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
+
+    // Grouping (issue #373): when a category tag is active, render the list as
+    // two labeled sections — the selected tag's dances, then everyone else —
+    // instead of a flat list. Grouping is a pure app-layer partition over the
+    // already-sorted [_results], so the active sort still orders rows *within*
+    // each section. Selection mode suppresses grouping so the batch flow stays
+    // a single flat, uninterrupted list.
+    final groupItems = _selectionMode ? null : _buildGroupedItems();
+    if (groupItems != null) {
+      return SliverList.builder(
+        itemCount: groupItems.length,
+        itemBuilder: (context, index) {
+          final item = groupItems[index];
+          return switch (item) {
+            _SectionHeaderItem(:final keySuffix, :final label, :final count) =>
+              _buildSectionHeader(keySuffix, label, count, l10n),
+            _DanceRowItem(:final entry) => _buildDanceRow(entry, l10n),
+          };
+        },
+      );
+    }
+
     // Lazily built so large collections stay virtualized (only visible rows
     // are constructed).
     return SliverList.builder(
       itemCount: _results.length,
-      itemBuilder: (context, index) {
-        final entry = _results[index];
-        final tile = DanceListTile(
-          entry: entry,
-          // Row action menu (⋮): non-swipe access to the row actions for
-          // mouse/keyboard/AT users. Delete routes through the identical
-          // confirm + soft-delete + undo flow as the Dismissible swipe below.
-          onDelete: () async {
-            if (await confirmDeleteIfEnabled(
-              context,
-              itemLabel: entry.dance.title,
-            )) {
-              await _softDeleteFromList(entry.dance.id, entry.dance.title);
-            }
-          },
-          onDuplicate: () => _duplicateFromList(entry.dance.id),
-          onTagTap: _applyExternalTagFilter,
-          onAddToProgram: () => showAddToProgramSheet(
-            context,
-            repositories: _repos,
-            danceId: entry.dance.id,
-            danceTitle: entry.dance.title,
+      itemBuilder: (context, index) => _buildDanceRow(_results[index], l10n),
+    );
+  }
+
+  /// Partitions [_results] into the two category sections when grouping is
+  /// active, or returns `null` when it isn't (so the caller renders the flat
+  /// list). Order within each section is preserved from [_results], i.e. the
+  /// active sort. A section with no dances is omitted (e.g. every dance carries
+  /// the tag → no "Other" section). Returns `null` when [_groupTagId] doesn't
+  /// resolve to a current tag (stale selection after a tag delete).
+  List<_CollectionListItem>? _buildGroupedItems() {
+    final groupTagId = _groupTagId;
+    if (groupTagId == null) return null;
+    final tags = _data?.tags ?? const <Tag>[];
+    final tag = tags.where((t) => t.id == groupTagId).firstOrNull;
+    if (tag == null) return null;
+
+    final withTag = <DanceListEntry>[];
+    final other = <DanceListEntry>[];
+    for (final entry in _results) {
+      (entry.dance.tagIds.contains(groupTagId) ? withTag : other).add(entry);
+    }
+
+    final l10n = AppLocalizations.of(context);
+    final items = <_CollectionListItem>[];
+    if (withTag.isNotEmpty) {
+      items.add(_SectionHeaderItem('tag', tag.name, withTag.length));
+      items.addAll(withTag.map(_DanceRowItem.new));
+    }
+    if (other.isNotEmpty) {
+      items.add(
+        _SectionHeaderItem('other', l10n.collectionGroupOther, other.length),
+      );
+      items.addAll(other.map(_DanceRowItem.new));
+    }
+    return items;
+  }
+
+  /// A sticky-styled section header for the grouped view. Announces its label
+  /// and dance count as a single AT node (a11y) and is marked as a heading.
+  /// [keySuffix] gives each header a stable, collision-free widget key even if a
+  /// user's tag happens to be named the same as the "Other" section label.
+  Widget _buildSectionHeader(
+    String keySuffix,
+    String label,
+    int count,
+    AppLocalizations l10n,
+  ) {
+    final theme = Theme.of(context);
+    return Semantics(
+      header: true,
+      container: true,
+      label: l10n.collectionGroupSectionSemantics(label, count),
+      child: ExcludeSemantics(
+        child: Container(
+          key: ValueKey('group-header-$keySuffix'),
+          width: double.infinity,
+          color: theme.colorScheme.surfaceContainerHighest,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
           ),
-          selectionMode: _selectionMode,
-          selectedForBatch: _selectedIds.contains(entry.dance.id),
-          onLongPress: _selectionMode
-              ? null
-              : () => _enterSelectionMode(entry.dance.id),
-          // In selection mode a tap toggles the row's checkbox. Highlight
-          // reflects batch selection (paired with the checkbox, never color
-          // alone); outside selection mode it reflects the split-pane
-          // selection as before.
-          selected: _selectionMode
-              ? _selectedIds.contains(entry.dance.id)
-              : (widget.onSelectDance != null &&
-                    widget.selectedDanceId == entry.dance.id),
-          onTap: _selectionMode
-              ? () => _toggleSelected(entry.dance.id)
-              : widget.onSelectDance != null
-              ? () => widget.onSelectDance!(entry.dance.id)
-              : () async {
-                  // DanceDetailScreen pops with true when a dance is deleted
-                  // so the Collection can reload and remove the stale row.
-                  // onRestored is called if the user taps Undo, so the
-                  // restored dance reappears in the list without a manual
-                  // reload.
-                  final deleted = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(
-                      builder: (_) => DanceDetailScreen(
-                        danceId: entry.dance.id,
-                        onRestored: () {
-                          if (mounted) _boot();
-                        },
-                      ),
-                    ),
-                  );
-                  if (mounted && deleted == true) await _boot();
-                },
-        );
-        // Swipe-to-delete is disabled while selecting to avoid gesture
-        // conflicts with tap-to-toggle.
-        if (_selectionMode) {
-          return KeyedSubtree(
-            key: ValueKey('row-${entry.dance.id}'),
-            child: tile,
-          );
-        }
-        // Swipe left to reveal a Delete button (issue #352). Tapping the
-        // revealed Delete button is the confirmation — a swipe alone never
-        // deletes. The tap routes into the same soft-delete + Undo flow as the
-        // ⋮ menu; there is no extra dialog on this path (the reveal + tap is
-        // the safeguard). The "Confirm before delete" setting continues to gate
-        // only the ⋮ overflow-menu Delete above.
-        return Slidable(
-          key: ValueKey('slidable-${entry.dance.id}'),
-          groupTag: 'dance-list',
-          endActionPane: ActionPane(
-            motion: const DrawerMotion(),
-            extentRatio: 0.25,
+          child: Row(
             children: [
-              SlidableAction(
-                key: ValueKey('slide-delete-${entry.dance.id}'),
-                onPressed: (_) =>
-                    _softDeleteFromList(entry.dance.id, entry.dance.title),
-                backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
-                icon: Icons.delete_outline,
-                label: l10n.commonDelete,
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                '$count',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
-          child: tile,
-        );
+        ),
+      ),
+    );
+  }
+
+  /// Builds a single dance row (tile + swipe-to-delete affordance), shared by
+  /// the flat and grouped list paths so row interaction stays identical
+  /// everywhere (issue #373: tap → detail → Perform; long-press → multi-select).
+  Widget _buildDanceRow(DanceListEntry entry, AppLocalizations l10n) {
+    final tile = DanceListTile(
+      entry: entry,
+      // Row action menu (⋮): non-swipe access to the row actions for
+      // mouse/keyboard/AT users. Delete routes through the identical
+      // confirm + soft-delete + undo flow as the Dismissible swipe below.
+      onDelete: () async {
+        if (await confirmDeleteIfEnabled(
+          context,
+          itemLabel: entry.dance.title,
+        )) {
+          await _softDeleteFromList(entry.dance.id, entry.dance.title);
+        }
       },
+      onDuplicate: () => _duplicateFromList(entry.dance.id),
+      onTagTap: _applyExternalTagFilter,
+      onAddToProgram: () => showAddToProgramSheet(
+        context,
+        repositories: _repos,
+        danceId: entry.dance.id,
+        danceTitle: entry.dance.title,
+      ),
+      selectionMode: _selectionMode,
+      selectedForBatch: _selectedIds.contains(entry.dance.id),
+      onLongPress: _selectionMode
+          ? null
+          : () => _enterSelectionMode(entry.dance.id),
+      // In selection mode a tap toggles the row's checkbox. Highlight
+      // reflects batch selection (paired with the checkbox, never color
+      // alone); outside selection mode it reflects the split-pane
+      // selection as before.
+      selected: _selectionMode
+          ? _selectedIds.contains(entry.dance.id)
+          : (widget.onSelectDance != null &&
+                widget.selectedDanceId == entry.dance.id),
+      onTap: _selectionMode
+          ? () => _toggleSelected(entry.dance.id)
+          : widget.onSelectDance != null
+          ? () => widget.onSelectDance!(entry.dance.id)
+          : () async {
+              // DanceDetailScreen pops with true when a dance is deleted
+              // so the Collection can reload and remove the stale row.
+              // onRestored is called if the user taps Undo, so the
+              // restored dance reappears in the list without a manual
+              // reload.
+              final deleted = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => DanceDetailScreen(
+                    danceId: entry.dance.id,
+                    onRestored: () {
+                      if (mounted) _boot();
+                    },
+                  ),
+                ),
+              );
+              if (mounted && deleted == true) await _boot();
+            },
+    );
+    // Swipe-to-delete is disabled while selecting to avoid gesture
+    // conflicts with tap-to-toggle.
+    if (_selectionMode) {
+      return KeyedSubtree(key: ValueKey('row-${entry.dance.id}'), child: tile);
+    }
+    // Swipe left to reveal a Delete button (issue #352). Tapping the
+    // revealed Delete button is the confirmation — a swipe alone never
+    // deletes. The tap routes into the same soft-delete + Undo flow as the
+    // ⋮ menu; there is no extra dialog on this path (the reveal + tap is
+    // the safeguard). The "Confirm before delete" setting continues to gate
+    // only the ⋮ overflow-menu Delete above.
+    return Slidable(
+      key: ValueKey('slidable-${entry.dance.id}'),
+      groupTag: 'dance-list',
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.25,
+        children: [
+          SlidableAction(
+            key: ValueKey('slide-delete-${entry.dance.id}'),
+            onPressed: (_) =>
+                _softDeleteFromList(entry.dance.id, entry.dance.title),
+            backgroundColor: Theme.of(context).colorScheme.errorContainer,
+            foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+            icon: Icons.delete_outline,
+            label: l10n.commonDelete,
+          ),
+        ],
+      ),
+      child: tile,
     );
   }
 
@@ -2086,4 +2246,25 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _facets.textValues.values.where((s) => s.isEffective).length +
         _facets.numberValues.values.where((s) => s.isEffective).length;
   }
+}
+
+/// An item in the grouped Collection list: either a section header or a dance
+/// row. Used only when a category grouping is active (issue #373).
+sealed class _CollectionListItem {
+  const _CollectionListItem();
+}
+
+class _SectionHeaderItem extends _CollectionListItem {
+  const _SectionHeaderItem(this.keySuffix, this.label, this.count);
+
+  /// Stable, collision-free key part ('tag' or 'other'), independent of the
+  /// display [label] (which could clash — e.g. a tag literally named "Other").
+  final String keySuffix;
+  final String label;
+  final int count;
+}
+
+class _DanceRowItem extends _CollectionListItem {
+  const _DanceRowItem(this.entry);
+  final DanceListEntry entry;
 }

@@ -1046,6 +1046,33 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionSortDescendingTooltip => '降順（タップで昇順）';
 
   @override
+  String get collectionGroupByCategoryTooltip => 'カテゴリでグループ化';
+
+  @override
+  String collectionGroupByCategoryActiveTooltip(String tag) {
+    return '$tagでグループ化';
+  }
+
+  @override
+  String get collectionGroupByNone => 'グループ化なし';
+
+  @override
+  String get collectionGroupByHeader => 'カテゴリ';
+
+  @override
+  String get collectionGroupOther => 'その他';
+
+  @override
+  String collectionGroupSectionSemantics(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンス',
+    );
+    return '$label、$_temp0';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => '選択を終了';
 
   @override
@@ -4399,6 +4426,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get customFieldsAddChoiceTooltip => '選択肢を追加';
+
+  @override
+  String get customFieldsChoiceDuplicate => 'その選択肢はすでに存在します。';
+
+  @override
+  String get customFieldsChoiceEmpty => '選択肢を入力してください。';
+
+  @override
+  String customFieldsAddOptionTooltip(String label) {
+    return '$labelに選択肢を追加';
+  }
+
+  @override
+  String customFieldsAddOptionTitle(String label) {
+    return '$labelに選択肢を追加';
+  }
 
   @override
   String dialectEditorTitle(String name) {

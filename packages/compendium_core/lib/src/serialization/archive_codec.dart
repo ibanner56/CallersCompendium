@@ -361,6 +361,14 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     warnings,
     dropped,
   );
+  // Keep choice custom-field VALUES in sync with the soft-clamped choice
+  // OPTIONS (OWASP): a def's oversized options are truncated on import
+  // (`_clampChoices`), so a dance value that matched the original long option
+  // must be clamped the same way — otherwise it would no longer be one of the
+  // field's options and `encodeCustomFieldValue` would reject the dance on
+  // restore (silent data loss). Clamping is deterministic, so a value clamped
+  // identically to its option stays valid.
+  final clampedDances = _clampDanceChoiceValues(dances, customFields);
   final programs = _decodeList(
     root['programs'],
     'program',
@@ -385,7 +393,7 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     archive: CompendiumArchive(
       schemaVersion: schemaVersion,
       exportedAt: exportedAt,
-      dances: dances,
+      dances: clampedDances,
       programs: programs,
       choreographers: choreographers,
       publishedSources: publishedSources,
@@ -397,6 +405,52 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     warnings: warnings,
     droppedEntities: dropped,
   );
+}
+
+/// Soft-clamps each dance's `choice` custom-field values to
+/// [kMaxCustomFieldChoiceLength], matching how [_clampChoices] truncated the
+/// corresponding field options, so an imported value stays a member of its
+/// field's (clamped) option set. Only `choice`-typed fields are touched; other
+/// value types are validated by shape, not against an option list, so they need
+/// no clamping here. Returns the input list unchanged when nothing needs it.
+List<Dance> _clampDanceChoiceValues(
+  List<Dance> dances,
+  List<CustomFieldDef> defs,
+) {
+  final choiceFieldIds = {
+    for (final d in defs)
+      if (d.type == CustomFieldType.choice) d.id,
+  };
+  if (choiceFieldIds.isEmpty) return dances;
+
+  return [
+    for (final dance in dances)
+      if (dance.customFields.any(
+        (v) =>
+            choiceFieldIds.contains(v.fieldId) &&
+            v.value is String &&
+            (v.value as String).length > kMaxCustomFieldChoiceLength,
+      ))
+        dance.copyWith(
+          customFields: [
+            for (final v in dance.customFields)
+              if (choiceFieldIds.contains(v.fieldId) &&
+                  v.value is String &&
+                  (v.value as String).length > kMaxCustomFieldChoiceLength)
+                CustomFieldValue(
+                  fieldId: v.fieldId,
+                  value: (v.value as String).substring(
+                    0,
+                    kMaxCustomFieldChoiceLength,
+                  ),
+                )
+              else
+                v,
+          ],
+        )
+      else
+        dance,
+  ];
 }
 
 final DateTime _epoch = DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
@@ -502,16 +556,52 @@ Tag _tagFromJson(Map<String, Object?> m) => Tag(
   color: _intOrNull(m, 'color'),
 );
 
-CustomFieldDef _customFieldDefFromJson(Map<String, Object?> m) =>
-    CustomFieldDef(
-      id: _str(m, 'id'),
-      key: _str(m, 'key'),
-      label: _str(m, 'label'),
-      type: _enumByName(CustomFieldType.values, _str(m, 'type'), 'type'),
-      choices: _stringListOrNull(m, 'choices'),
-      showInList: _boolOr(m, 'showInList', false),
-      searchable: _boolOr(m, 'searchable', true),
-    );
+CustomFieldDef _customFieldDefFromJson(Map<String, Object?> m) {
+  final type = _enumByName(CustomFieldType.values, _str(m, 'type'), 'type');
+  // Soft length bound (OWASP): choice options are untrusted short text from an
+  // external archive, so each is clamped (never rejected) to the shared
+  // interactive bound, then de-duplicated after clamping in case two long
+  // values collapse onto the same prefix. `_stringListOrNull` already sanitizes
+  // invisible/bidi spoofing characters; there is no HTML/XSS render path (see
+  // text_sanitizer). Empty entries (e.g. a value that was only control chars,
+  // now stripped) are dropped so they can't smuggle a blank option in.
+  final choices = _clampChoices(_stringListOrNull(m, 'choices'));
+  // A choice field with no usable options can't be constructed (the model
+  // requires ≥1). Rather than let the constructor throw an `ArgumentError` — a
+  // Dart Error that `_decodeList` deliberately doesn't catch, which would abort
+  // the whole restore — raise a `FormatException` so just this one field is
+  // skipped and recorded, keeping the import partial-failure tolerant.
+  if (type == CustomFieldType.choice && (choices == null || choices.isEmpty)) {
+    throw const FormatException('choice field has no usable options');
+  }
+  return CustomFieldDef(
+    id: _str(m, 'id'),
+    key: _str(m, 'key'),
+    label: _str(m, 'label'),
+    type: type,
+    choices: choices,
+    showInList: _boolOr(m, 'showInList', false),
+    searchable: _boolOr(m, 'searchable', true),
+  );
+}
+
+/// Soft-clamps each imported choice option to [kMaxCustomFieldChoiceLength],
+/// drops blank options, and removes duplicates (keeping first occurrence),
+/// preserving order. Returns `null` for a `null` input (a non-choice field
+/// carries no options).
+List<String>? _clampChoices(List<String>? choices) {
+  if (choices == null) return null;
+  final seen = <String>{};
+  final out = <String>[];
+  for (final c in choices) {
+    if (c.isEmpty) continue;
+    final clamped = c.length <= kMaxCustomFieldChoiceLength
+        ? c
+        : c.substring(0, kMaxCustomFieldChoiceLength);
+    if (seen.add(clamped)) out.add(clamped);
+  }
+  return out;
+}
 
 Dance _danceFromJson(Map<String, Object?> m) => Dance(
   id: _str(m, 'id'),

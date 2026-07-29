@@ -1072,6 +1072,34 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionSortDescendingTooltip => 'Faldende (tryk for stigende)';
 
   @override
+  String get collectionGroupByCategoryTooltip => 'Gruppér efter kategori';
+
+  @override
+  String collectionGroupByCategoryActiveTooltip(String tag) {
+    return 'Grupperet efter $tag';
+  }
+
+  @override
+  String get collectionGroupByNone => 'Ingen gruppering';
+
+  @override
+  String get collectionGroupByHeader => 'Kategori';
+
+  @override
+  String get collectionGroupOther => 'Andre';
+
+  @override
+  String collectionGroupSectionSemantics(String label, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse',
+      one: '1 dans',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
   String get collectionExitSelectionTooltip => 'Afslut valg';
 
   @override
@@ -4548,6 +4576,22 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsAddChoiceTooltip => 'Tilføj valg';
+
+  @override
+  String get customFieldsChoiceDuplicate => 'Den mulighed findes allerede.';
+
+  @override
+  String get customFieldsChoiceEmpty => 'Indtast en mulighed.';
+
+  @override
+  String customFieldsAddOptionTooltip(String label) {
+    return 'Tilføj en mulighed til $label';
+  }
+
+  @override
+  String customFieldsAddOptionTitle(String label) {
+    return 'Tilføj en mulighed til $label';
+  }
 
   @override
   String dialectEditorTitle(String name) {

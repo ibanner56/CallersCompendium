@@ -464,6 +464,9 @@ class DanceEditorForm extends StatelessWidget {
               currentValue: controller.customValues[def.id],
               onTextChanged: controller.onTextEdited,
               onValueChanged: (v) => controller.setCustomValue(def.id, v),
+              onAddOption: def.type == CustomFieldType.choice
+                  ? (raw) => controller.addChoiceOption(def.id, raw)
+                  : null,
             ),
         ],
       ],

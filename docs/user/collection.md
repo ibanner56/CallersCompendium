@@ -54,6 +54,26 @@ To open a dance, select it. Its full detail view opens — on a phone as a new
 screen, and on a tablet or desktop in the pane beside the list. The
 [dance detail view](#read-a-dance-in-detail) is covered further down.
 
+## Group by category (a dance's "vibe")
+
+Many callers think of dances by their **vibe** — bouncy, flowy, glossy,
+connected — and organise a card box into those categories so they can jump to a
+"drawer" and hot-swap a dance mid-evening. **Tags** are exactly that in the app:
+give a dance one or more tags for its vibe or category, and they are ready to
+filter and group by.
+
+Next to **Sort** is a **Group by category** control. Pick one tag and the list
+splits into two labelled sections — the dances that carry that tag, then
+**Other** — so a whole category is together in one place. Your chosen **Sort**
+still orders the dances *inside* each section, and picking a dance behaves
+exactly as it does anywhere else in **Collection** (open it to read or perform;
+press and hold to select several). Choose **No grouping** to return to the flat
+list.
+
+Grouping is for the current session only: it keeps out of your way next time you
+open the app, so you always start from your usual order and pick a category when
+you want one.
+
 ## Search across your dances
 
 The search bar sits at the top of **Collection**. Type any words — a title, an
@@ -202,6 +222,14 @@ Once you define one, it:
 - appears in the dance editor, ready to fill in;
 - can show in the dance list, if you turn that on; and
 - becomes a filter in the **Filters** panel.
+
+A **choice** field is a handy home for a reusable pick-list you build up over
+time — for example the **band adjectives** you like to reach for (driving,
+lyrical, punchy). Define it once as a choice field and every dance draws from the
+same list, so the wording stays consistent and you can filter by it. You do not
+have to prepare the whole list up front: while editing a dance, use the **＋**
+beside a choice field to add a new option on the spot, and it joins the shared
+list for next time.
 
 A few properties lock once a field is in use on real dances, so the data you have
 already entered stays consistent. The app tells you which ones when you edit a
