@@ -3,6 +3,7 @@ import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/backup_reminder.dart';
+import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart'
     show kReduceMotionKey;
 import 'package:compendium_app/src/screens/settings_screen.dart'
@@ -38,6 +39,9 @@ Future<void> _seed(CompendiumRepositories repos) async {
   ]);
   await repos.settings.set(kActiveCustomThemeKey, 'custom-1');
   await repos.settings.set(kSortIgnoreArticlesKey, false);
+  await repos.settings.set(kWalkthroughSnippetsKey, {
+    'snippets': {'swing(who=partners)': 'Swing your partner.'},
+  });
   // Device-local / metadata keys that must NOT travel in a backup.
   await repos.settings.set(kWindowFrameKey, 'some-geometry');
   await repos.settings.set(kLastBackupAtKey, '2020-01-01T00:00:00.000Z');
@@ -67,6 +71,22 @@ void main() {
       expect(doc.settings.containsKey(kCustomThemesKey), isFalse);
     },
   );
+
+  test('walkthrough snippet library round-trips through backup (#411)', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    final json = await BackupService(source).exportToJson();
+
+    final target = openTestRepositories();
+    final outcome = await BackupService(target).restoreFromJson(json);
+    expect(outcome.hasErrors, isFalse);
+
+    // The library rides the generic settings map (not denylisted); the
+    // controller decodes it defensively on load.
+    final controller = WalkthroughSnippetLibraryController(target.settings);
+    await controller.load();
+    expect(controller.resolve('swing(who=partners)'), 'Swing your partner.');
+  });
 
   test(
     'restore replaces content and re-applies dialects, themes, settings',

@@ -1,4 +1,7 @@
+import '../dialect/dialect.dart';
+import '../dialect/renderer.dart';
 import '../model/figure.dart';
+import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 
 /// Version of the [figureSnippetSignature] normalization scheme (#411).
@@ -37,10 +40,11 @@ String? figureSnippetSignature(Figure figure, Taxonomy taxonomy) {
   final def = taxonomy.resolve(figure.move);
   if (def == null) return null;
 
-  final salient = _salientParamNames(def.renderTemplate)
-      .where((name) => name != 'beats' && def.params.containsKey(name))
-      .toList()
-    ..sort();
+  final salient =
+      _salientParamNames(def.renderTemplate)
+          .where((name) => name != 'beats' && def.params.containsKey(name))
+          .toList()
+        ..sort();
   if (salient.isEmpty) return def.id;
 
   final effective = taxonomy.effectiveParams(figure);
@@ -79,4 +83,67 @@ String _normalizeValue(Object value) {
     return s;
   }
   return value.toString().toLowerCase();
+}
+
+final RegExp _signaturePattern = RegExp(r'^([a-z0-9_]+)(?:\((.*)\))?$');
+
+/// Produces a human-readable label for a snippet [signature] (#411) by
+/// reconstructing a representative [Figure] and rendering it via [renderer]
+/// under [dialect]. Used by the Settings snippet-library editor to show
+/// "neighbors allemande left 1½" instead of the raw `allemande(hand=left,...)`.
+///
+/// Best-effort and never throws: an unparseable signature, an unknown move, or
+/// an out-of-domain value falls back to returning the raw [signature] string, so
+/// a library entry is always displayable even if the taxonomy has since changed.
+String describeFigureSignature(
+  String signature,
+  Taxonomy taxonomy,
+  FigureRenderer renderer,
+  Dialect dialect,
+) {
+  final match = _signaturePattern.firstMatch(signature);
+  if (match == null) return signature;
+  final moveId = match.group(1)!;
+  final def = taxonomy.resolve(moveId);
+  if (def == null) return signature;
+
+  final params = <String, Object?>{};
+  final body = match.group(2);
+  if (body != null && body.isNotEmpty) {
+    for (final part in body.split(',')) {
+      final eq = part.indexOf('=');
+      if (eq <= 0) return signature;
+      final key = part.substring(0, eq);
+      final rawValue = part.substring(eq + 1);
+      final spec = def.params[key];
+      if (spec == null) return signature;
+      final coerced = _coerceSignatureValue(spec, rawValue);
+      if (coerced == null) return signature;
+      params[key] = coerced;
+    }
+  }
+  try {
+    return renderer.render(Figure(move: moveId, params: params), dialect);
+  } catch (_) {
+    return signature;
+  }
+}
+
+/// Coerces a signature's string token back to a typed param value using the
+/// [spec]'s [ParamKind]. Returns `null` when the token can't be represented for
+/// that kind (so the caller falls back to the raw signature).
+Object? _coerceSignatureValue(ParamSpec spec, String token) {
+  switch (spec.kind) {
+    case ParamKind.rotation:
+      return num.tryParse(token);
+    case ParamKind.places:
+    case ParamKind.beats:
+      return int.tryParse(token);
+    case ParamKind.flag:
+      if (token == 'true') return true;
+      if (token == 'false') return false;
+      return null;
+    default:
+      return token;
+  }
 }

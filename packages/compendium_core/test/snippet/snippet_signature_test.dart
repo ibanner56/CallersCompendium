@@ -86,4 +86,34 @@ void main() {
       );
     });
   });
+
+  group('describeFigureSignature', () {
+    final renderer = FigureRenderer(tax);
+    final dialect = Dialect.canonical;
+
+    test('renders a readable label round-tripping from a real figure', () {
+      final figure = Figure(
+        move: 'allemande',
+        params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
+      );
+      final sig = figureSnippetSignature(figure, tax)!;
+      final label = describeFigureSignature(sig, tax, renderer, dialect);
+      expect(label, renderer.render(figure, dialect));
+      expect(label.toLowerCase(), contains('allemande'));
+    });
+
+    test('falls back to the raw signature for an unknown move', () {
+      expect(
+        describeFigureSignature('bogus_move(x=y)', tax, renderer, dialect),
+        'bogus_move(x=y)',
+      );
+    });
+
+    test('falls back to the raw signature for a malformed string', () {
+      expect(
+        describeFigureSignature('not a signature!!', tax, renderer, dialect),
+        'not a signature!!',
+      );
+    });
+  });
 }
