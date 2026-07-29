@@ -69,7 +69,21 @@ import 'taxonomy.dart';
 ///     CompendiumDatabase.schemaVersion — NO persisted-data migration is implied
 ///     (new figures serialize under the existing figure codec; stored figures
 ///     are untouched).
-const int contraTaxonomyVersion = 15;
+/// v16: adds an `endFacing` param to `swing` (issue #543) — the body facing a
+///     swing ends in, a first-class promotion of what previously lived only in
+///     a figure note. A `ParamKind.choice` over the four set-relative facing
+///     tokens (`in`/`out`/`up`/`down`, reused from the ContraDB `gate` `face`
+///     domain / `gateFacings`), defaulting to `in` (across — where most swings
+///     end). Named `endFacing` (NOT `face`) to avoid overloading gate's `face`
+///     (which means which way `who` orbits `whom`). Purely additive: the
+///     default `in` renders exactly as today (the display renderer appends a
+///     `facing …` clause ONLY when non-default; swing's canonical
+///     `renderTemplate` is unchanged, so canonical/FTS/dedupe stay byte-stable),
+///     it carries no beat cost (absent from `paramBeats`; `goodBeats` unchanged)
+///     and does not feed the program-matrix swing column. Distinct from
+///     CompendiumDatabase.schemaVersion — the param rides the existing
+///     `figures_json` figure codec, so NO persisted-data migration is implied.
+const int contraTaxonomyVersion = 16;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -128,6 +142,19 @@ final Taxonomy contraTaxonomy = Taxonomy(
           choices: ['none', 'balance', 'meltdown'],
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+        // issue #543: the body facing a swing ends in. First-class promotion of
+        // what previously went in a figure note. Reuses the four set-relative
+        // facing tokens (the ContraDB `gate` `face` domain / `gateFacings`);
+        // defaults to `in` (across), where most swings end. Named `endFacing`
+        // (not `face`) so it is not confused with gate's orbit-direction `face`.
+        // Carries NO beat cost (absent from `paramBeats`) and is silenced in the
+        // display renderer when `in` (see renderer.dart `_displayBaseRenderers`),
+        // so the canonical `renderTemplate` below stays byte-stable.
+        'endFacing': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'in',
+          choices: ['in', 'out', 'up', 'down'],
+        ),
       },
       progressionCapable: true,
       renderTemplate: '{who} {prefix} {move}',

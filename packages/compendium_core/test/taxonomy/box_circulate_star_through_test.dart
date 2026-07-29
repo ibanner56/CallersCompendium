@@ -9,13 +9,14 @@ import 'package:test/test.dart';
 /// decision. v14: the legacy `form_an_ocean_wave` MoveDef was removed (its #290
 /// split replacements remain), with stored figures migrated by schema v12.
 /// v15: adds the TCB rotation-gate figure kind `rotation_gate` (issue #294).
+/// v16: adds the additive `endFacing` param to `swing` (issue #543).
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('contraTaxonomyVersion is 15', () {
-    expect(contraTaxonomyVersion, 15);
-    expect(tax.version, 15);
+  test('contraTaxonomyVersion is 16', () {
+    expect(contraTaxonomyVersion, 16);
+    expect(tax.version, 16);
   });
 
   group('box_circulate', () {
