@@ -25,7 +25,7 @@
 
   <g font-family="Segoe UI, system-ui, sans-serif" font-size="26" font-weight="600" fill="#171a2e">
     <rect x="98" y="486" width="220" height="58" rx="29" fill="#8b97ff"/>
-    <text x="208" y="524" text-anchor="middle">First beta live</text>
+    <text x="208" y="524" text-anchor="middle">Public beta live</text>
     <rect x="338" y="486" width="180" height="58" rx="29" fill="none" stroke="#4a4a63" stroke-width="2"/>
     <text x="428" y="524" text-anchor="middle" fill="#c3c1d4">Open source</text>
     <rect x="538" y="486" width="200" height="58" rx="29" fill="none" stroke="#4a4a63" stroke-width="2"/>
