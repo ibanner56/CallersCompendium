@@ -129,6 +129,14 @@ void main() {
     });
 
     test('every mapped code resolves to a non-generic, non-empty string', () {
+      // Supply the safe structured data the data-requiring codes need, so this
+      // asserts a genuinely specific message (not the generic fallback).
+      Map<String, Object?> dataFor(String code) => switch (code) {
+        'cc_unparsed_date' || 'cc_date_assumed_mdy' => {'field': 'composed'},
+        'cc_date_reduced_precision' => {'field': 'composed', 'year': 2004},
+        'contradb_param_unmapped' => {'param': 'hand'},
+        _ => const <String, Object?>{},
+      };
       for (final code in mappedImportIssueCodes) {
         final msg = importIssueMessage(
           l10n,
@@ -136,6 +144,7 @@ void main() {
             severity: ImportIssueSeverity.warning,
             code: code,
             message: 'diagnostic english for $code',
+            data: dataFor(code),
           ),
         );
         expect(msg, isNotEmpty, reason: code);
@@ -242,6 +251,21 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('a date note with a missing/unrecognized field falls back to generic '
+        '(no mislabeling)', () {
+      for (final code in ['cc_unparsed_date', 'cc_date_assumed_mdy']) {
+        final msg = importIssueMessage(l10n, issue(code, const {}));
+        expect(msg, contains(l10n.importIssueGeneric), reason: code);
+      }
+      // Even with a valid year, an unrecognized field degrades to generic
+      // rather than defaulting the field label.
+      final reduced = importIssueMessage(
+        l10n,
+        issue('cc_date_reduced_precision', {'year': 2004, 'field': 'bogus'}),
+      );
+      expect(reduced, contains(l10n.importIssueGeneric));
     });
   });
 
