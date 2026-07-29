@@ -230,7 +230,7 @@ void main() {
 
     await tester.enterText(
       find.byKey(const ValueKey('defaults-program-caller')),
-      'Ada Lovelace',
+      'Folk Process',
     );
     await tester.enterText(
       find.byKey(const ValueKey('defaults-program-band')),
@@ -238,7 +238,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(await repos.settings.get(kDefaultProgramCallerKey), 'Ada Lovelace');
+    expect(await repos.settings.get(kDefaultProgramCallerKey), 'Folk Process');
     expect(await repos.settings.get(kDefaultProgramBandKey), 'The Syncopators');
   });
 

@@ -266,6 +266,15 @@ const Map<String, String> _dancerWords = {
   'n2': 'nextNeighbors',
   'n3': 'thirdNeighbors',
   'n4': 'fourthNeighbors',
+  // TCB explicit-dancer codes map to the single-dancer identities: M/W are the
+  // roles, 1 = the active couple (ones), 2 = the inactive couple (twos). So
+  // M1 = active role1 (onesRole1), W1 = active role2 (onesRole2), M2 = inactive
+  // role1 (twosRole1), W2 = inactive role2 (twosRole2). Bare codes only —
+  // line-order annotations like "(M1-W2-M2-W1)" are stripped before recognition.
+  'm1': 'onesRole1',
+  'w1': 'onesRole2',
+  'm2': 'twosRole1',
+  'w2': 'twosRole2',
 };
 
 /// Filler words that carry no structural meaning and may be dropped anywhere.
@@ -343,6 +352,54 @@ String? _takeSide(List<String> w) {
       final side = w.removeAt(i);
       return side;
     }
+  }
+  return null;
+}
+
+/// TCB N-prefix neighbor tags (`N0`..`N4`). Used to absorb a trailing numeric
+/// neighbor qualifier ("with neighbor N2", "chain to neighbor N2") that would
+/// otherwise be left over and force the custom fallback.
+const Set<String> _neighborNumbers = {'n0', 'n1', 'n2', 'n3', 'n4'};
+
+/// Removes the first [_neighborNumbers] token from [w] and returns it, or null.
+String? _takeNeighborNumber(List<String> w) {
+  for (var i = 0; i < w.length; i++) {
+    if (_neighborNumbers.contains(w[i])) return w.removeAt(i);
+  }
+  return null;
+}
+
+/// Whether the consecutive [phrase] occurs anywhere in [w], WITHOUT consuming.
+bool _hasPhrase(List<String> w, List<String> phrase) {
+  for (var i = 0; i + phrase.length <= w.length; i++) {
+    var hit = true;
+    for (var j = 0; j < phrase.length; j++) {
+      if (w[i + j] != phrase[j]) {
+        hit = false;
+        break;
+      }
+    }
+    if (hit) return true;
+  }
+  return false;
+}
+
+/// Consumes a LEADING "on [the] left/right diagonal" clause (TCB writes it as a
+/// prefix, e.g. "On left diagonal, ladies chain to neighbor"; the comma is
+/// stripped by `_normalize`) and returns the canonical `dir` value
+/// `leftDiagonal`/`rightDiagonal`, or null when absent. Only fires at the FRONT
+/// so the "left" in "on left diagonal" is never confused with a later figure
+/// token (e.g. the "left" of "right and left through").
+String? _takeDiagonal(List<String> w) {
+  if (w.isEmpty || w[0] != 'on') return null;
+  var i = 1;
+  if (i < w.length && w[i] == 'the') i++;
+  if (i + 1 < w.length &&
+      (w[i] == 'left' || w[i] == 'right') &&
+      w[i + 1] == 'diagonal') {
+    final side = w[i];
+    w.removeRange(0, i + 2);
+    return side == 'left' ? 'leftDiagonal' : 'rightDiagonal';
   }
   return null;
 }
@@ -499,6 +556,10 @@ final List<_Recognizer> _recognizers = [
   // "pass …" recognizers and is independent of both (its lead word is "form").
   _passTheOcean,
   _formAShortWave,
+  // Long-wave forms lead with "form … long wave(s)"; the "long" token keeps
+  // them disjoint from `_formAShortWave` ("form a wave" / "form short wave"),
+  // so relative order is not correctness-critical.
+  _formLongWave,
   _passThrough,
   _promenade,
   _shift,
@@ -508,6 +569,21 @@ final List<_Recognizer> _recognizers = [
   _contraCorners,
   _giveAndTake,
   _poussette,
+  // Additive TCB-attested moves (issue #553, Gap 1). Each is conservative
+  // (leftover token → null → custom) and anchors on a distinct lead phrase, so
+  // none shadows or is shadowed by the recognizers above.
+  _rollAway,
+  _crossTrails,
+  _figure8,
+  // "Men/Women/Neighbor trade" → pass_by (the pair change places). Excludes
+  // "trade by"/"trade the wave"/"trade the line" internally, so it cannot claim
+  // those unmodeled constructions.
+  _tradePassBy,
+  // "Men pass left" / "Women cross by right" → pass_by (who + shoulder). Placed
+  // after the "pass …" family (_passTheOcean/_passThrough) and _crossTrails; it
+  // requires an explicit side and empty leftover, so it declines "pass through",
+  // "pass the ocean", and "cross trail through" and never shadows them.
+  _passCrossBy,
   // TCB rotation-gate (issue #294, Option B). A DISTINCT figure from the
   // ContraDB `gate` (facing up/down/in/out, fixed 8 beats), which we still do
   // NOT recognize: the domains are disjoint (0/62 surveyed TCB gate lines map to
@@ -821,6 +897,8 @@ _Match? _star(List<String> w) {
 }
 
 _Match? _chain(List<String> w) {
+  // Optional leading "on left/right diagonal" → the diagonal `dir`.
+  final diag = _takeDiagonal(w);
   // TCB writes "Ladies chain to neighbor/partner" exclusively. Preserve the
   // "to <dancer>" target as a Figure NOTE rather than folding it into `who`
   // (which would misrepresent the chaining set). Capture it FIRST so its
@@ -830,18 +908,28 @@ _Match? _chain(List<String> w) {
   if (toIdx != -1 &&
       toIdx + 1 < w.length &&
       _dancerWords.containsKey(w[toIdx + 1])) {
-    note = 'to ${w[toIdx + 1]}';
-    w.removeRange(toIdx, toIdx + 2);
+    // Absorb an optional trailing N-tag ("chain to neighbor N2") into the note
+    // so the numeric qualifier does not survive as leftover → custom.
+    var end = toIdx + 2;
+    var noteText = 'to ${w[toIdx + 1]}';
+    if (end < w.length && _neighborNumbers.contains(w[end])) {
+      noteText = '$noteText ${w[end]}';
+      end++;
+    }
+    note = noteText;
+    w.removeRange(toIdx, end);
   }
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['chain'])) return null;
   final who2 = who ?? _takeDancer(w);
-  // Optional direction.
-  String? dir;
-  if (_consumePhrase(w, ['across'])) {
-    dir = 'across';
-  } else if (_consumePhrase(w, ['along'])) {
-    dir = 'along';
+  // Optional direction (a leading diagonal wins over a trailing across/along).
+  String? dir = diag;
+  if (dir == null) {
+    if (_consumePhrase(w, ['across'])) {
+      dir = 'across';
+    } else if (_consumePhrase(w, ['along'])) {
+      dir = 'along';
+    }
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
@@ -855,24 +943,36 @@ _Match? _chain(List<String> w) {
 }
 
 _Match? _rightLeftThrough(List<String> w) {
+  // Optional leading "on left/right diagonal" and/or "same-role" qualifier.
+  final diag = _takeDiagonal(w);
+  final sameRole =
+      _consumePhrase(w, ['same-role']) || _consumePhrase(w, ['same', 'role']);
   final ok =
       _consumePhrase(w, ['right', 'left', 'through']) ||
       _consumePhrase(w, ['right', 'and', 'left', 'through']);
   if (!ok) return null;
-  String? dir;
-  if (_consumePhrase(w, ['across'])) {
-    dir = 'across';
-  } else if (_consumePhrase(w, ['along'])) {
-    dir = 'along';
+  String? dir = diag;
+  if (dir == null) {
+    if (_consumePhrase(w, ['across'])) {
+      dir = 'across';
+    } else if (_consumePhrase(w, ['along'])) {
+      dir = 'along';
+    }
   }
   // TCB writes "...right and left through with partner/neighbor" exclusively;
-  // consume the trailing "with <dancer>" qualifier (no structured slot).
+  // consume the trailing "with <dancer>" qualifier (no structured slot), plus
+  // an optional numeric neighbor tag ("with neighbor N2").
   if (_consumePhrase(w, ['with'])) {
     _takeDancer(w);
+    _takeNeighborNumber(w);
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('right_left_through', {'dir': ?dir});
+  // right_left_through has no same-role slot, so the same-role variant is
+  // preserved as a note (the move + dir still structure faithfully).
+  return _Match('right_left_through', {
+    'dir': ?dir,
+  }, sameRole ? 'same-role' : null);
 }
 
 _Match? _passThrough(List<String> w) {
@@ -1084,12 +1184,16 @@ _Match? _californiaTwirl(List<String> w) {
 // cross-line turn/ender fold for zig_zag). An optional leading/trailing dancer
 // set maps to `who`; any other leftover token forces the custom fallback.
 _Match? _weaveTheLine(List<String> w) {
-  final who = _takeDancer(w);
   if (!_consumePhrase(w, ['weave', 'the', 'line'])) return null;
-  final who2 = who ?? _takeDancer(w);
+  // TCB writes "Weave the line with partner (L;R to N2)": the pass list is an
+  // annotation (dropped by `_normalize`), and "with <dancer>" names the set —
+  // consume the optional "with" so the dancer resolves to `who` instead of
+  // leaving a stray "with" that would force custom.
+  _consumePhrase(w, ['with']);
+  final who = _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('zig_zag', {'who': ?who2});
+  return _Match('zig_zag', {'who': ?who});
 }
 
 /// Tier A: TCB writes "Partner star promenade 1/2" (dance id 30 "Mad Gypsy").
@@ -1157,6 +1261,188 @@ _Match? _pullBy(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('pull_by_direction', {'dir': ?dir, 'hand': ?hand});
+}
+
+/// Tier B: TCB writes "Neighbor roll away" / "Partner roll away (W roll R, M
+/// side-step L)" — the styling parenthetical is dropped by `_normalize`. The
+/// stated relationship maps to `who` (matching the canonical ContraDB order
+/// "gentlespoons roll away neighbors with a half sashay …", where the dancer
+/// before "roll away" is `who` and a dancer after it is `whom`). "with a half
+/// sashay" sets the `halfSashay` flag. roll_away has NO direction slot, so a
+/// trailing across/along (canonical spelling; TCB's is a stripped annotation)
+/// is consumed and not represented — the taxonomy deliberately omits it.
+_Match? _rollAway(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['roll', 'away'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  final whom = _takeDancer(w);
+  final half =
+      _consumePhrase(w, ['with', 'a', 'half', 'sashay']) ||
+      _consumePhrase(w, ['with', 'half', 'sashay']) ||
+      _consumePhrase(w, ['half', 'sashay']);
+  _consumePhrase(w, ['across']);
+  _consumePhrase(w, ['along']);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'roll_away',
+    {'who': ?who2, 'whom': ?whom, if (half) 'halfSashay': true},
+    null,
+    who2 == null,
+  );
+}
+
+/// Tier B: TCB writes "Cross trail through (PR;NL)" — the pass-list annotation
+/// is dropped by `_normalize`, leaving the bare figure. An optional leading
+/// dancer maps to `who`, a following dancer to `who2`, and across/along to
+/// `dir`; all else falls to the taxonomy defaults. "cross trail" (no "through")
+/// and the plural "cross trails" are accepted too.
+_Match? _crossTrails(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['cross', 'trail', 'through']) &&
+      !_consumePhrase(w, ['cross', 'trails']) &&
+      !_consumePhrase(w, ['cross', 'trail'])) {
+    return null;
+  }
+  final who2 = who ?? _takeDancer(w);
+  String? dir;
+  if (_consumePhrase(w, ['across'])) {
+    dir = 'across';
+  } else if (_consumePhrase(w, ['along'])) {
+    dir = 'along';
+  }
+  final second = _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match('cross_trails', {'who': ?who2, 'dir': ?dir, 'who2': ?second});
+}
+
+/// Tier B: TCB writes "Ones figure eight 1/2 up" / "Twos figure eight down".
+/// The dancer maps to `who`; the fraction to `half`
+/// (1/2→half, 1/4→quarter, 3/4→threeQuarter, 1|full→full); and the TCB
+/// direction vocabulary up/down maps to the taxonomy's above/below (`across`
+/// passes through unchanged). Anything left over → custom.
+_Match? _figure8(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['figure', '8']) &&
+      !_consumePhrase(w, ['figure', 'eight'])) {
+    return null;
+  }
+  final who2 = who ?? _takeDancer(w);
+  String? half;
+  if (_consumePhrase(w, ['1/2'])) {
+    half = 'half';
+  } else if (_consumePhrase(w, ['1/4'])) {
+    half = 'quarter';
+  } else if (_consumePhrase(w, ['3/4'])) {
+    half = 'threeQuarter';
+  } else if (_consumePhrase(w, ['1']) ||
+      _consumePhrase(w, ['full']) ||
+      _consumePhrase(w, ['once'])) {
+    half = 'full';
+  }
+  String? dir;
+  if (_consumePhrase(w, ['up']) || _consumePhrase(w, ['above'])) {
+    dir = 'above';
+  } else if (_consumePhrase(w, ['down']) || _consumePhrase(w, ['below'])) {
+    dir = 'below';
+  } else if (_consumePhrase(w, ['across'])) {
+    dir = 'across';
+  }
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'figure_8',
+    {'who': ?who2, 'half': ?half, 'dir': ?dir},
+    null,
+    who2 == null,
+  );
+}
+
+/// Tier B: TCB writes "Form long waves" / "Form (a) long wave [in center]".
+/// The plural maps to `form_long_waves`; the singular to `form_a_long_wave`.
+/// An optional leading dancer maps to `who`; a trailing "in (the) center"
+/// locator (a formation cue, not a structured slot) is consumed. TCB almost
+/// always writes these inside a `;`-compound ("Star left 1; form long wave"),
+/// which the fan-out splits — this recognizer structures the wave clause so the
+/// whole compound can succeed when the other clause structures too.
+_Match? _formLongWave(List<String> w) {
+  String? consumeLongWave() {
+    if (_consumePhrase(w, ['form', 'long', 'waves']) ||
+        _consumePhrase(w, ['form', 'a', 'long', 'waves'])) {
+      return 'form_long_waves';
+    }
+    if (_consumePhrase(w, ['form', 'a', 'long', 'wave']) ||
+        _consumePhrase(w, ['form', 'long', 'wave'])) {
+      return 'form_a_long_wave';
+    }
+    return null;
+  }
+
+  final who = _takeDancer(w);
+  final moveId = consumeLongWave();
+  if (moveId == null) return null;
+  final who2 = who ?? _takeDancer(w);
+  // Optional "in (the) center" formation locator.
+  _consumePhrase(w, ['in', 'the', 'center']) ||
+      _consumePhrase(w, ['in', 'center']);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(moveId, {'who': ?who2}, null, who2 == null);
+}
+
+/// Tier B: TCB writes "Men trade" / "Women trade" / "Neighbor trade" — a trade
+/// is a pass-by (the pair change places passing right shoulders), so it maps to
+/// `pass_by` with the stated `who` and the taxonomy's default right shoulder
+/// (an explicit "left/right [shoulder]" overrides). Distinct constructions that
+/// have NO taxonomy model are excluded up front so this never mis-claims them:
+/// "trade by", "trade the wave", "trade the line".
+_Match? _tradePassBy(List<String> w) {
+  if (_hasPhrase(w, ['trade', 'by']) ||
+      _hasPhrase(w, ['trade', 'the', 'wave']) ||
+      _hasPhrase(w, ['trade', 'the', 'line'])) {
+    return null;
+  }
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['trade'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  final shoulder = _takeSide(w);
+  _consumePhrase(w, ['shoulder']);
+  _consumePhrase(w, ['shoulders']);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'pass_by',
+    {'who': ?who2, 'shoulder': ?shoulder},
+    null,
+    who2 == null,
+  );
+}
+
+/// Tier B: TCB writes "Men pass left" / "Women pass right" / "Men cross by
+/// right" / "Partner pass right" — all a pass-by, unified onto `pass_by` with
+/// the stated `who` and the left/right `shoulder`. A side is REQUIRED: a bare
+/// "pass"/"cross by" is left for the more specific pass recognizers
+/// ("pass through", "pass the ocean", "cross trail through") and otherwise
+/// falls to custom, so this never mis-claims them (each declines here because a
+/// side is absent and/or tokens are left over).
+_Match? _passCrossBy(List<String> w) {
+  final who = _takeDancer(w);
+  final ok = _consumePhrase(w, ['pass']) || _consumePhrase(w, ['cross', 'by']);
+  if (!ok) return null;
+  final who2 = who ?? _takeDancer(w);
+  final shoulder = _takeSide(w);
+  if (shoulder == null) return null;
+  _consumePhrase(w, ['shoulder']);
+  _consumePhrase(w, ['shoulders']);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'pass_by',
+    {'who': ?who2, 'shoulder': shoulder},
+    null,
+    who2 == null,
+  );
 }
 
 /// Tier A: TCB writes "Rory O'More" (dance ids 6, 39), optionally with a slide
@@ -1240,15 +1526,33 @@ void _consumeLineOfFour(List<String> w) {
 _Match? _downTheHall(List<String> w) {
   _consumeLineOfFour(w);
   final who = _takeDancer(w);
+  // "Ones lead down" (the actives lead down the center) — TCB's shorthand for
+  // a hall figure whose `moving` set is the center couple.
+  final lead = _consumePhrase(w, ['lead']);
   _consumePhrase(w, ['go']);
-  if (!_consumePhrase(w, ['down', 'the', 'hall']) &&
-      !_consumePhrase(w, ['down', 'hall'])) {
-    return null;
+  final hall =
+      _consumePhrase(w, ['down', 'the', 'hall']) ||
+      _consumePhrase(w, ['down', 'hall']);
+  String? moving;
+  if (!hall) {
+    if (_consumePhrase(w, ['down', 'the', 'outside']) ||
+        _consumePhrase(w, ['down', 'outside'])) {
+      // "Ones go down outside" → the outside dancers travel down.
+      moving = 'outsides';
+    } else if (lead && _consumePhrase(w, ['down'])) {
+      moving = 'center';
+    } else {
+      return null;
+    }
   }
   final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('down_the_hall', {'who': ?who2, 'ender': 'none'});
+  return _Match('down_the_hall', {
+    'who': ?who2,
+    'moving': ?moving,
+    'ender': 'none',
+  });
 }
 
 /// Tier A: TCB writes "Go up the hall" / "Up the hall". Mirror of
@@ -1259,13 +1563,28 @@ _Match? _downTheHall(List<String> w) {
 _Match? _upTheHall(List<String> w) {
   _consumeLineOfFour(w);
   final who = _takeDancer(w);
+  final lead = _consumePhrase(w, ['lead']);
   _consumePhrase(w, ['go']);
-  if (!_consumePhrase(w, ['up', 'the', 'hall']) &&
-      !_consumePhrase(w, ['up', 'hall'])) {
-    return null;
+  final hall =
+      _consumePhrase(w, ['up', 'the', 'hall']) ||
+      _consumePhrase(w, ['up', 'hall']);
+  String? moving;
+  if (!hall) {
+    if (_consumePhrase(w, ['up', 'the', 'outside']) ||
+        _consumePhrase(w, ['up', 'outside'])) {
+      moving = 'outsides';
+    } else if (lead && _consumePhrase(w, ['up'])) {
+      moving = 'center';
+    } else {
+      return null;
+    }
   }
   final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('up_the_hall', {'who': ?who2, 'ender': 'none'});
+  return _Match('up_the_hall', {
+    'who': ?who2,
+    'moving': ?moving,
+    'ender': 'none',
+  });
 }

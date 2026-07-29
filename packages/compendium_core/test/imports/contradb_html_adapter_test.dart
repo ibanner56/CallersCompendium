@@ -18,7 +18,7 @@ String _page(String body) =>
 /// The happy-path fixture modeled verbatim on dance 1 ("The Rendezvous").
 const String _rendezvousBody = '''
 <h1 class="dance-show-title">The Rendezvous</h1>
-<p class="dance-show-choreographer">by: <strong><a href="/choreographers/4">Dan Pearl</a></strong></p>
+<p class="dance-show-choreographer">by: <strong><a href="/choreographers/4">Adina Gordon</a></strong></p>
 <p class="dance-show-formation">formation: improper </p>
 <table class="table table-bordered table-condensed contra-table-nonfluid">
   <tr class="a1b1 dance-show-long-figure">
@@ -151,7 +151,7 @@ void main() {
       expect(draft.dance.title, 'The Rendezvous');
       expect(draft.dance.formation.shape, FormationShape.dupleImproper);
       expect(draft.dance.formation.detail, 'improper');
-      expect(draft.dance.callingNotes, isNot(contains('Dan Pearl')));
+      expect(draft.dance.callingNotes, isNot(contains('Adina Gordon')));
       expect(draft.dance.callingNotes, contains('Imported from ContraDB.'));
     });
 
@@ -162,14 +162,14 @@ void main() {
           _page(
             '<h1 class="dance-show-title">Petro\u202Enella\u0007</h1>'
             '<p class="dance-show-choreographer">by: '
-            '<strong><a href="/choreographers/9">Dan\u200B Pearl</a></strong></p>'
+            '<strong><a href="/choreographers/9">Adina\u200B Gordon</a></strong></p>'
             '<p class="dance-show-formation">formation: impro\u202Eper</p>',
           ),
           uri: 'https://contradb.com/dances/1',
         );
         // Stored title/author/formation are stripped of the spoofing characters.
         expect(draft.dance.title, 'Petronella');
-        expect(draft.authorNames, ['Dan Pearl']);
+        expect(draft.authorNames, ['Adina Gordon']);
         expect(draft.dance.formation.detail, 'improper');
         expect(containsDisallowedText(draft.dance.title), isFalse);
       },
@@ -216,7 +216,7 @@ void main() {
       () async {
         final draft = await _importOne(_page(_rendezvousBody));
         expect(draft.dance.authorIds, isEmpty);
-        expect(draft.authorNames, ['Dan Pearl']);
+        expect(draft.authorNames, ['Adina Gordon']);
         expect(
           draft.issues.any((i) => i.code == 'contradb_html_author_unresolved'),
           isFalse,

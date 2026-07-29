@@ -389,7 +389,7 @@ void main() {
     test('FullText also searches cited source text', () async {
       final sources = PublishedSourceRepository(db);
       await sources.upsert(
-        PublishedSource(id: 's1', title: 'Shadrach', author: 'Ted Sannella'),
+        PublishedSource(id: 's1', title: 'Shadrach', author: 'Carol Ormand'),
       );
       await dances.create(
         _dance(
@@ -400,7 +400,7 @@ void main() {
       await dances.create(_dance(id: 'b', title: 'B'));
       // The source title and author feed the `dance_fts.sources` column.
       expect(await dances.search(const FullTextFilter('Shadrach')), ['a']);
-      expect(await dances.search(const FullTextFilter('Sannella')), ['a']);
+      expect(await dances.search(const FullTextFilter('Ormand')), ['a']);
     });
   });
 

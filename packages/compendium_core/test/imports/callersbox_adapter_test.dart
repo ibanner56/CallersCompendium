@@ -95,17 +95,18 @@ const String _realId1 = '''
 }
 ''';
 
-/// The real id=14051 record ("Triassic Poetry", Lindsey Dono), captured
-/// verbatim from `dance.php?id=14051&format=JSON` (trimmed to the fields the
-/// adapter reads). Its B2 hey `(8) Hey 1/2 (WR;PL;MR;N1L~)` is the #308
-/// regression case: the `N1L` pass (current neighbor) must decode.
-const String _realId14051 = '''
+/// The real id=1006 record ("Pass Thru Two {variant}", Gene Hubert), captured
+/// verbatim from `dance.php?id=1006&format=JSON` (trimmed to the fields the
+/// adapter reads). Its B2 hey `(16) Hey (WR;PL;MR;N1L;WR;PL;MR;N1L~)` is the
+/// #308 regression case: the `N1L` pass (current neighbor) must decode rather
+/// than fall to custom.
+const String _realId1006 = '''
 {
-  "request": "http://www.ibiblio.org/contradance/thecallersbox/dance.php?id=14051&format=JSON",
-  "download_date": "2026-07-18T06:33:12+00:00",
-  "ID": "14051",
-  "Name": "Triassic Poetry",
-  "Authors": ["Lindsey Dono"],
+  "request": "http://www.ibiblio.org/contradance/thecallersbox/dance.php?id=1006&format=JSON",
+  "download_date": "2026-03-06T23:51:44+00:00",
+  "ID": "1006",
+  "Name": "Pass Thru Two {variant}",
+  "Authors": ["Gene Hubert"],
   "InterpretedBy": [],
   "Permission": "full",
   "Status": "",
@@ -118,13 +119,13 @@ const String _realId14051 = '''
   "Music": [],
   "Tunes": [],
   "phrases": [
-    {"name": "A1", "figures": ["(2) Pass through along (NR)", "(6) N2 neighbor left shoulder round 1", "(8) N1 neighbor swing"]},
-    {"name": "A2", "figures": ["(8) In long lines, go forward and back", "(8) Men allemande left 1 & 1/2"]},
-    {"name": "B1", "figures": ["(4) Partner balance", "(12) Partner swing"]},
-    {"name": "B2", "figures": ["(8) Ladies chain to neighbor N1", "(8) Hey 1/2 (WR;PL;MR;N1L~)"]}
+    {"name": "A1", "figures": ["(8) Circle left 1", "(8) Neighbor do-si-do"]},
+    {"name": "A2", "figures": ["(2) Pass through along (N1R)", "(2) Pass through along (N2R)", "(4) N3 neighbor balance (RH)", "(4) N3 neighbor box the gnat", "(2) Pass through along (N3R)", "(2) Pass through along (N2R)"]},
+    {"name": "B1", "figures": ["(16) N1 neighbor swing"]},
+    {"name": "B2", "figures": ["(16) Hey (WR;PL;MR;N1L;WR;PL;MR;N1L~)"]}
   ],
   "CallingNotes": [],
-  "Appearances": [{"source": "website Dono"}],
+  "Appearances": [{"source": "Dizzy Dances, Volume II", "p": "9"}],
   "OtherNames": []
 }
 ''';
@@ -181,11 +182,11 @@ void main() {
           jsonEncode(
             _dance(
               id: '1',
-              authors: ['Ada${rlo}Lovelace', '${rlm}Alan Turing'],
+              authors: ['Folk${rlo}Process', '${rlm}Roast Chestnut'],
             ),
           ),
         );
-        expect(draft.authorNames, ['AdaLovelace', 'Alan Turing']);
+        expect(draft.authorNames, ['FolkProcess', 'Roast Chestnut']);
       });
 
       test('strips spoofing chars from formation detail', () async {
@@ -991,15 +992,25 @@ void main() {
         expect(draft.dance.authorIds, isEmpty);
         expect(draft.authorNames, ['Gene Hubert']);
         expect(draft.dance.callingNotes, isNot(contains('Gene Hubert')));
-        // 8 figures: A1's balance folds into the following swing (PR3b), and in
-        // A2 both "in a line of four" halls now structure (PR3) with the
-        // trailing "Bend the line" folding into the up-the-hall (PR3b), so the
-        // 10 source lines across A1/A2/B1/B2 collapse to 8.
-        expect(draft.dance.figures, hasLength(8));
-        // Recognised lines structure (the balance-and-swing, swings, circle,
-        // star, chain-to-neighbor, and both A2 halls with their "in a line of
-        // four" prefix). Only A2's "Neighbor turn as couples" stays custom.
-        expect(draft.dance.figures.where((f) => f.isCustom), hasLength(1));
+        // 7 figures: A1's balance folds into the following swing (PR3b), and in
+        // A2 both "in a line of four" halls now structure (PR3). The trailing
+        // "Bend the line" folds into the up-the-hall, and "Neighbor turn as
+        // couples" now folds into the DOWN-the-hall as `ender: turnCouple`
+        // (#553), so the 10 source lines across A1/A2/B1/B2 collapse to 7.
+        expect(draft.dance.figures, hasLength(7));
+        // Every remaining line structures — A2's "Neighbor turn as couples" is
+        // no longer a standalone custom (it rode into the down-hall's ender).
+        expect(draft.dance.figures.where((f) => f.isCustom), isEmpty);
+        // The two A2 halls carry their folded enders.
+        final down = draft.dance.figures.firstWhere(
+          (f) => f.move == 'down_the_hall',
+        );
+        expect(down.params['ender'], 'turnCouple');
+        expect(down.params['beats'], 8); // hall 6 + turn as couples 2
+        final up = draft.dance.figures.firstWhere(
+          (f) => f.move == 'up_the_hall',
+        );
+        expect(up.params['ender'], 'bendTheLine');
         // "Ladies chain to neighbor" (phrase B2) now structures as a chain with
         // the "to neighbor" target preserved as a Figure note.
         final chain = draft.dance.figures.firstWhere((f) => f.move == 'chain');
@@ -1023,16 +1034,18 @@ void main() {
       });
     });
 
-    group('real id=14051 fixture (#308)', () {
-      test('Triassic Poetry B2 hey decodes structured, not custom', () async {
-        final draft = await _importOne(_realId14051);
-        expect(draft.dance.title, 'Triassic Poetry');
+    group('real id=1006 fixture (#308)', () {
+      test('Pass Thru Two B2 hey decodes structured, not custom', () async {
+        final draft = await _importOne(_realId1006);
+        expect(draft.dance.title, 'Pass Thru Two {variant}');
         expect(draft.dance.formation.shape, FormationShape.dupleImproper);
-        expect(draft.authorNames, ['Lindsey Dono']);
+        expect(draft.authorNames, ['Gene Hubert']);
 
-        // The B2 hey `(8) Hey 1/2 (WR;PL;MR;N1L~)` is the regression: the `N1L`
-        // pass (current neighbor) must decode onto the structured hey rather
-        // than fall to custom.
+        // The B2 hey `(16) Hey (WR;PL;MR;N1L;WR;PL;MR;N1L~)` is the regression:
+        // the `N1L` pass (current neighbor) must decode onto the structured hey
+        // rather than fall to custom. The bare "Hey" states no fraction, so the
+        // decoder applies its ratified default length (`half`) — length is read
+        // from the fraction, never inferred from the pass count.
         final heys = draft.dance.figures.where((f) => f.move == 'hey').toList();
         expect(heys, hasLength(1), reason: 'B2 hey should be structured');
         final hey = heys.single;
@@ -1044,7 +1057,7 @@ void main() {
       });
 
       test('the decoded B2 hey survives a JSON round-trip', () async {
-        final draft = await _importOne(_realId14051);
+        final draft = await _importOne(_realId1006);
         final hey = draft.dance.figures.firstWhere((f) => f.move == 'hey');
         expect(figureFromJson(figureToJson(hey)), hey);
       });

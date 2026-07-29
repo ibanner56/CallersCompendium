@@ -848,7 +848,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    await repos.settings.set(kDefaultProgramCallerKey, 'Ada Lovelace');
+    await repos.settings.set(kDefaultProgramCallerKey, 'Folk Process');
     await repos.settings.set(kDefaultProgramBandKey, 'The Syncopators');
 
     await _pump(tester, repos);
@@ -858,7 +858,7 @@ void main() {
           .widget<TextFormField>(find.byKey(const ValueKey('program-caller')))
           .controller
           ?.text,
-      'Ada Lovelace',
+      'Folk Process',
     );
     expect(
       tester
@@ -873,7 +873,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    await repos.settings.set(kDefaultProgramCallerKey, 'Ada Lovelace');
+    await repos.settings.set(kDefaultProgramCallerKey, 'Folk Process');
     await repos.settings.set(kDefaultProgramBandKey, 'The Syncopators');
     await repos.programs.create(
       _program(

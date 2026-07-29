@@ -902,7 +902,7 @@ void main() {
         '<!DOCTYPE html><html><body class="dances-show-body">'
         '<h1 class="dance-show-title">The Rendezvous</h1>'
         '<p class="dance-show-choreographer">by: '
-        '<strong><a href="/choreographers/4">Dan Pearl</a></strong></p>'
+        '<strong><a href="/choreographers/4">Adina Gordon</a></strong></p>'
         '<p class="dance-show-formation">formation: improper </p>'
         '<table class="contra-table-nonfluid">'
         '<tr><td>A1</td><td class=dance-show-beats>16</td>'
