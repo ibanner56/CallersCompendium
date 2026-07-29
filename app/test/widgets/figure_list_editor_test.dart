@@ -349,6 +349,31 @@ void main() {
     });
   });
 
+  group('swing end facing (#543)', () {
+    testWidgets(
+      'the endFacing dropdown surfaces under More options and round-trips',
+      (tester) async {
+        final drafts = <FigureDraft>[
+          FigureDraft.fromFigure(
+            Figure(move: 'swing', params: const {'who': 'partners', 'beats': 8}),
+          ),
+        ];
+        await _pump(tester, drafts);
+        await _openFigure(tester, 0);
+
+        // endFacing is swing's 4th param, so it sits behind the progressive
+        // "More options" disclosure rather than inline.
+        expect(find.byKey(const ValueKey('figure-0-endFacing')), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('figure-0-endFacing')), findsOneWidget);
+
+        await _selectDropdownOption(tester, 'figure-0-endFacing', 'up');
+        expect(drafts.single.params['endFacing'], 'up');
+      },
+    );
+  });
+
   group('per-move insert defaults (DD.3)', () {
     testWidgets('overlay overrides the taxonomy default on select', (
       tester,
@@ -1764,11 +1789,11 @@ void main() {
   testWidgets('3 or fewer params render inline with no disclosure', (
     tester,
   ) async {
-    // swing has 3 params (who, prefix, beats) — all inline, no disclosure.
+    // chain has 3 params (who, dir, beats) — all inline, no disclosure.
     final drafts = <FigureDraft>[
       FigureDraft(
-        move: 'swing',
-        params: {'who': 'partners', 'prefix': 'none', 'beats': 8},
+        move: 'chain',
+        params: {'who': 'role2s', 'dir': 'across', 'beats': 8},
       ),
     ];
     await _pump(tester, drafts);

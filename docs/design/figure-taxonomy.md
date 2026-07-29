@@ -263,9 +263,11 @@ convention is:
   three: when a *second* derived value appears, group the (still separate) files
   under a `taxonomy/derived/` subdirectory rather than merging them.
 
-Contrast: an *author-set* facing (e.g. a swing's optional end-facing, #543) is
-stored data — it stays a plain `ParamSpec` in the taxonomy and needs no
-derivation module.
+Contrast: an *author-set* facing — e.g. a swing's end-facing (`endFacing`,
+#543) — is stored data: it stays a plain `ParamSpec` in the taxonomy and needs
+no derivation module. Like the derived clauses, its display wording is appended
+by the renderer only when non-default (the default `in`/across renders as
+before), so the canonical line stays byte-stable.
 
 ## Open questions (to resolve during implementation, with user input)
 

@@ -604,9 +604,10 @@ class FigureRenderer {
     ).apply(text);
   }
 
-  /// Human phrasing for a derived rotation-gate ending facing (issue #294).
-  /// The facing token comes from [gateEndFacing]; an unexpected value humanizes
-  /// rather than blanking, surfacing malformed data.
+  /// Human phrasing for a set-relative facing token, shared by the derived
+  /// rotation-gate ending facing (issue #294) and swing's `endFacing` clause
+  /// (issue #543). An unexpected value humanizes rather than blanking,
+  /// surfacing malformed data.
   static const Map<String, String> _gateFacingPhrases = {
     'in': 'into the set',
     'out': 'out of the set',
@@ -616,6 +617,24 @@ class FigureRenderer {
 
   static String _gateFacingPhrase(String facing) =>
       _gateFacingPhrases[facing] ?? _humanize(facing);
+
+  /// Swing `endFacing` values that render an ending-facing clause (issue #543).
+  /// The default `in` (across) is deliberately ABSENT — a default swing renders
+  /// exactly as before. Restricting to this allow-list means any unknown or
+  /// tolerantly-decoded token renders no clause rather than being injected into
+  /// the display line.
+  static const Set<String> _swingRenderedEndFacings = {'out', 'up', 'down'};
+
+  /// The DISPLAY-ONLY " facing …" clause a swing appends for a non-default
+  /// [endFacing] (issue #543), or the empty string for the default `in`, an
+  /// unknown token, or a non-String value. The wording reuses
+  /// [_gateFacingPhrases] ("up the hall" / "down the hall" / "out of the set").
+  static String _swingEndFacingClause(Object? endFacing) {
+    if (endFacing is! String || !_swingRenderedEndFacings.contains(endFacing)) {
+      return '';
+    }
+    return ' facing ${_gateFacingPhrase(endFacing)}';
+  }
 
   /// ContraDB `libfigure` down/up-the-hall ender wording
   /// (`param.js` `stringParamDownTheHallEnder`), keyed by our taxonomy token.
@@ -712,6 +731,30 @@ class FigureRenderer {
   /// through [_displayDancer] (dialect-aware + PR1 singularization); move names
   /// through [_renderMoveName].
   static final Map<String, _DisplayBaseRenderer> _displayBaseRenderers = {
+    // Swing (issue #543). Reproduces the terse `{who} {prefix} {move}` line
+    // (byte-identical to the template expansion) and appends an ending-facing
+    // clause ONLY when `endFacing` is non-default. The default `in` (across)
+    // renders exactly as before — no clause — so the overwhelming majority of
+    // swings stay uncluttered. The clause is DISPLAY-ONLY (this map is consulted
+    // only when `!forCanonical`), so the canonical render keeps expanding
+    // `renderTemplate` (which omits `endFacing`) and stays byte-for-byte stable.
+    // `endFacing` is allow-listed here (out/up/down); `in`, an unknown token, or
+    // a non-String value all render NO clause (never injected), consistent with
+    // the taxonomy's tolerant-decode contract.
+    'swing': (r, def, params, dialect, verbose, decimals) {
+      final swho = r._subjectWho(params, dialect);
+      final prefixRaw = params['prefix'];
+      final prefix = _renderPrefix(
+        prefixRaw is String ? prefixRaw : 'none',
+        verbose,
+      );
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      // Join with spaces exactly like the `{who} {prefix} {move}` template; the
+      // enclosing [_render] collapses the runs (and an empty `none` prefix) and
+      // handles the subject sentinel, so the `in` case matches today verbatim.
+      final base = '$swho $prefix $move';
+      return '$base${_swingEndFacingClause(params['endFacing'])}';
+    },
     // TCB rotation-gate (issue #294). Word order: `mirror` reads as a modifier
     // BEFORE the move ("mirror gate"); clockwise/counterclockwise read AFTER it
     // ("gate counterclockwise"). The ending facing is DERIVED (never authored):
