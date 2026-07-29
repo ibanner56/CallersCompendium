@@ -155,15 +155,11 @@ pw.Widget _matrixTable(
   );
 }
 
-pw.Widget _legend(ProgramMatrixExportLabels labels) => pw.Row(
-  children: [
-    pw.Text(
-      '$_debutMark  ${labels.legendDebut}      '
-      '$_firstMark  ${labels.legendFirst}      '
-      '$_presentMark  ${labels.legendPresent}',
-      style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
-    ),
-  ],
+pw.Widget _legend(ProgramMatrixExportLabels labels) => pw.Text(
+  '$_debutMark  ${labels.legendDebut}      '
+  '$_firstMark  ${labels.legendFirst}      '
+  '$_presentMark  ${labels.legendPresent}',
+  style: pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
 );
 
 String _dateVenue(
