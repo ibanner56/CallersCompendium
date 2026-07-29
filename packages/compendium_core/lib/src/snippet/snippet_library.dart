@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
 import '../model/figure.dart';
+import '../util/text_sanitizer.dart';
 
 /// Upper bound on the number of distinct entries a [WalkthroughSnippetLibrary]
 /// may hold (#411). The library is personal and user-authored — a few dozen to a
@@ -109,12 +110,18 @@ class WalkthroughSnippetLibrary {
     return WalkthroughSnippetLibrary(capped);
   }
 
+  /// Normalizes every value on the way in — the single chokepoint all
+  /// construction paths ([WalkthroughSnippetLibrary.new], [fromJson],
+  /// [withSnippet]) pass through. Each snippet is **sanitized** (control / bidi /
+  /// format spoofing characters stripped, matching the archive/`note` decode
+  /// path — OWASP) and soft-clamped; entries that end up blank are dropped so a
+  /// hostile all-spoofing snippet can never persist or resurface.
   static Map<String, String> _normalize(Map<String, String> input) {
     final out = <String, String>{};
     for (final entry in input.entries) {
-      final clamped = _clamp(entry.value);
-      if (clamped.trim().isEmpty) continue;
-      out[entry.key] = clamped;
+      final cleaned = _clamp(sanitizeImportedText(entry.value));
+      if (cleaned.trim().isEmpty) continue;
+      out[entry.key] = cleaned;
     }
     return out;
   }

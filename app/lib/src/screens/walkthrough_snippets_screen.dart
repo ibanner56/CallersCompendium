@@ -23,23 +23,27 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
     final renderer = FigureRenderer(contraTaxonomy);
     final l10n = AppLocalizations.of(context);
 
-    final entries = controller.library.snippets.entries.toList()
-      ..sort(
-        (a, b) =>
-            describeFigureSignature(
-              a.key,
-              contraTaxonomy,
-              renderer,
-              dialect,
-            ).toLowerCase().compareTo(
-              describeFigureSignature(
-                b.key,
-                contraTaxonomy,
-                renderer,
-                dialect,
-              ).toLowerCase(),
-            ),
-      );
+    // Precompute each snippet's display label ONCE (describeFigureSignature
+    // parses + renders), then sort — instead of recomputing labels inside the
+    // O(n log n) comparator, which is expensive with up to 2000 entries.
+    final entries =
+        controller.library.snippets.entries
+            .map(
+              (e) => (
+                signature: e.key,
+                text: e.value,
+                label: describeFigureSignature(
+                  e.key,
+                  contraTaxonomy,
+                  renderer,
+                  dialect,
+                ),
+              ),
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()),
+          );
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsWalkthroughSnippetsHeader)),
@@ -63,16 +67,11 @@ class WalkthroughSnippetsScreen extends StatelessWidget {
           else
             for (final entry in entries)
               _SnippetRow(
-                key: ValueKey('walkthrough-snippet-${entry.key}'),
-                label: describeFigureSignature(
-                  entry.key,
-                  contraTaxonomy,
-                  renderer,
-                  dialect,
-                ),
-                text: renderer.renderFreeText(entry.value, dialect),
-                onEdit: () => _edit(context, entry.key, entry.value),
-                onDelete: () => _delete(context, entry.key),
+                key: ValueKey('walkthrough-snippet-${entry.signature}'),
+                label: entry.label,
+                text: renderer.renderFreeText(entry.text, dialect),
+                onEdit: () => _edit(context, entry.signature, entry.text),
+                onDelete: () => _delete(context, entry.signature),
               ),
         ],
       ),

@@ -78,5 +78,25 @@ void main() {
       expect(lib.length, 1);
       expect(lib.resolve('a'), 'ok');
     });
+
+    test('sanitizes control/bidi spoofing chars on ingest (OWASP)', () {
+      // A hostile backup blob with an embedded control byte + RLO override.
+      final lib = WalkthroughSnippetLibrary.fromJson({
+        'snippets': {'swing(who=partners)': 'Swing\u0007 them.\u202E'},
+      });
+      expect(lib.resolve('swing(who=partners)'), 'Swing them.');
+      // Legitimate newlines survive.
+      final multiline = WalkthroughSnippetLibrary.empty.withSnippet(
+        'a',
+        'line1\nline2',
+      );
+      expect(multiline.resolve('a'), 'line1\nline2');
+      // A snippet that is nothing but spoofing chars is dropped entirely.
+      final blanked = WalkthroughSnippetLibrary.empty.withSnippet(
+        'b',
+        '\u202E\u200B',
+      );
+      expect(blanked.contains('b'), isFalse);
+    });
   });
 }
