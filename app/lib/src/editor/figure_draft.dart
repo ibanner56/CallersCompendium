@@ -18,6 +18,7 @@ class FigureDraft {
     this.beatsTouched = false,
     this.assumedSubject = false,
     this.customOrigin = CustomOrigin.userEntered,
+    this.walkthroughOverride,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
 
@@ -42,6 +43,7 @@ class FigureDraft {
     beatsTouched: figure.params.containsKey('beats'),
     assumedSubject: figure.assumedSubject,
     customOrigin: figure.customOrigin,
+    walkthroughOverride: figure.walkthroughOverride,
   );
 
   /// Stable identity for widget keys across reorders/rebuilds.
@@ -82,6 +84,14 @@ class FigureDraft {
   /// [CustomOrigin.userEntered] (a stated, user-authored choice).
   CustomOrigin customOrigin;
 
+  /// The per-dance, per-figure-instance **walkthrough snippet override** (#411):
+  /// the step text to use for THIS occurrence, taking precedence over the global
+  /// snippet library default (keyed by figure signature). `null` means "no
+  /// override" — the figure falls back to the library default when a walkthrough
+  /// is assembled. Holds ONLY the per-dance override; "use everywhere" edits
+  /// update the library and leave this `null`.
+  String? walkthroughOverride;
+
   int get beats => (params['beats'] as int?) ?? 0;
 
   /// Returns an independent copy with a FRESH [id] (the stable-identity
@@ -100,6 +110,7 @@ class FigureDraft {
     beatsTouched: beatsTouched,
     assumedSubject: assumedSubject,
     customOrigin: customOrigin,
+    walkthroughOverride: walkthroughOverride,
   );
 
   /// Builds the immutable figure, or `null` when no move is chosen yet.
@@ -107,6 +118,7 @@ class FigureDraft {
     final id = move;
     if (id == null) return null;
     final trimmedNote = note.trim();
+    final trimmedOverride = walkthroughOverride?.trim();
     return Figure(
       schemaVersion: schemaVersion,
       move: id,
@@ -115,6 +127,9 @@ class FigureDraft {
       progression: progression,
       assumedSubject: assumedSubject,
       customOrigin: customOrigin,
+      walkthroughOverride: (trimmedOverride == null || trimmedOverride.isEmpty)
+          ? null
+          : trimmedOverride,
     );
   }
 }

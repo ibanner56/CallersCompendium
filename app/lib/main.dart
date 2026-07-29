@@ -41,6 +41,8 @@ import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/venue_entity_mode_scope.dart';
+import 'src/data/walkthrough_snippet_library_controller.dart';
+import 'src/data/walkthrough_snippet_library_scope.dart';
 import 'src/data/window_service.dart';
 import 'src/diagnostics/crash_log_store.dart';
 import 'src/diagnostics/crash_reporter.dart';
@@ -299,6 +301,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// [ShorthandMappingsScope].
   late final ShorthandMappingsController _shorthandMappings;
 
+  /// Owns the user's personal walkthrough snippet library (#411): per-figure
+  /// step descriptions keyed by figure signature. Loaded during bootstrap;
+  /// exposed via [WalkthroughSnippetLibraryScope].
+  late final WalkthroughSnippetLibraryController _walkthroughSnippets;
+
   /// Owns the update-check preferences and latest check result (ADR-002 §4/§5).
   /// Loaded during bootstrap; the auto-check (opt-in, default off) is kicked off
   /// once per launch after preferences load.
@@ -350,6 +357,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dialectLibrary = DialectLibraryController(_appData.repositories.settings);
     _dialectLibrary.addListener(_syncActiveDialect);
     _shorthandMappings = ShorthandMappingsController(
+      _appData.repositories.settings,
+    );
+    _walkthroughSnippets = WalkthroughSnippetLibraryController(
       _appData.repositories.settings,
     );
     _updateController = UpdateController(_appData.repositories.settings);
@@ -745,6 +755,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // Load the user's shorthand → figure(s) mappings (issue #420). Decoded
     // defensively; a corrupt payload degrades to "no mappings".
     await _shorthandMappings.load();
+    // Load the user's personal walkthrough snippet library (#411). Decoded
+    // defensively; a corrupt payload degrades to "no snippets".
+    await _walkthroughSnippets.load();
     // Load the update-check preferences (beta opt-in, auto-check opt-in, and
     // the dismissed banner version), all defaulting to the safe off/none state.
     await _updateController.load();
@@ -786,6 +799,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dialectLibrary.removeListener(_syncActiveDialect);
     _dialectLibrary.dispose();
     _shorthandMappings.dispose();
+    _walkthroughSnippets.dispose();
     _updateController.dispose();
     widget.windowService.dispose();
     // dispose() can't be async; explicitly mark the close as fire-and-forget
@@ -930,43 +944,48 @@ class _CompendiumAppState extends State<CompendiumApp> {
                       controller: _dialectLibrary,
                       child: ShorthandMappingsScope(
                         controller: _shorthandMappings,
-                        child: ActiveDialectScope(
-                          notifier: _dialectNotifier,
-                          child: RequirePerformedForHistoryScope(
-                            notifier: _requirePerformedForHistoryNotifier,
-                            child: SortIgnoreArticlesScope(
-                              notifier: _sortIgnoreArticlesNotifier,
-                              child: ReduceMotionScope(
-                                notifier: _reduceMotionNotifier,
-                                child: VerboseFigureRenderingScope(
-                                  notifier: _verboseFigureRenderingNotifier,
-                                  child: DecimalTurnsScope(
-                                    notifier: _decimalTurnsNotifier,
-                                    child: ConfirmBeforeDeleteScope(
-                                      notifier: _confirmBeforeDeleteNotifier,
-                                      child: ColourDanceThemeScope(
-                                        notifier: _colourDanceThemeNotifier,
-                                        child: SetListColorCodingScope(
-                                          notifier: _setListColorCodingNotifier,
-                                          child: DateFormatScope(
-                                            notifier: _dateFormatNotifier,
-                                            child: FirstDayOfWeekScope(
-                                              notifier: _firstDayOfWeekNotifier,
-                                              child: LocaleScope(
-                                                notifier: _localeNotifier,
-                                                child: BackupControllerScope(
-                                                  onRestored:
-                                                      reloadFromSettings,
-                                                  child: CollectionRefreshScope(
-                                                    revision:
-                                                        _collectionRefreshNotifier,
-                                                    child: CollectionFilterScope(
-                                                      controller:
-                                                          _collectionFilterController,
-                                                      child: VenueEntityModeScope(
-                                                        notifier:
-                                                            _venueEntityModeNotifier,
-                                                        child: child!,
+                        child: WalkthroughSnippetLibraryScope(
+                          controller: _walkthroughSnippets,
+                          child: ActiveDialectScope(
+                            notifier: _dialectNotifier,
+                            child: RequirePerformedForHistoryScope(
+                              notifier: _requirePerformedForHistoryNotifier,
+                              child: SortIgnoreArticlesScope(
+                                notifier: _sortIgnoreArticlesNotifier,
+                                child: ReduceMotionScope(
+                                  notifier: _reduceMotionNotifier,
+                                  child: VerboseFigureRenderingScope(
+                                    notifier: _verboseFigureRenderingNotifier,
+                                    child: DecimalTurnsScope(
+                                      notifier: _decimalTurnsNotifier,
+                                      child: ConfirmBeforeDeleteScope(
+                                        notifier: _confirmBeforeDeleteNotifier,
+                                        child: ColourDanceThemeScope(
+                                          notifier: _colourDanceThemeNotifier,
+                                          child: SetListColorCodingScope(
+                                            notifier:
+                                                _setListColorCodingNotifier,
+                                            child: DateFormatScope(
+                                              notifier: _dateFormatNotifier,
+                                              child: FirstDayOfWeekScope(
+                                                notifier:
+                                                    _firstDayOfWeekNotifier,
+                                                child: LocaleScope(
+                                                  notifier: _localeNotifier,
+                                                  child: BackupControllerScope(
+                                                    onRestored:
+                                                        reloadFromSettings,
+                                                    child: CollectionRefreshScope(
+                                                      revision:
+                                                          _collectionRefreshNotifier,
+                                                      child: CollectionFilterScope(
+                                                        controller:
+                                                            _collectionFilterController,
+                                                        child: VenueEntityModeScope(
+                                                          notifier:
+                                                              _venueEntityModeNotifier,
+                                                          child: child!,
+                                                        ),
                                                       ),
                                                     ),
                                                   ),

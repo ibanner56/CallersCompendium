@@ -6,6 +6,7 @@ import '../../data/active_dialect_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
+import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
@@ -17,6 +18,7 @@ import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/section_header.dart';
 import '../shorthand_mappings_screen.dart';
+import '../walkthrough_snippets_screen.dart';
 import 'settings_keys.dart';
 
 /// The Defaults settings section: owns all Display/Program/Dance-authoring
@@ -693,6 +695,28 @@ class _DefaultsView extends StatelessWidget {
                       ),
                     )
                   : null,
+            );
+          },
+        ),
+        Builder(
+          builder: (context) {
+            final controller = WalkthroughSnippetLibraryScope.maybeOf(context);
+            if (controller == null) return const SizedBox.shrink();
+            final count = controller.library.length;
+            return ListTile(
+              key: const ValueKey('defaults-walkthrough-snippets'),
+              title: Text(l10n.settingsWalkthroughSnippetsTitle),
+              subtitle: Text(
+                count == 0
+                    ? l10n.settingsWalkthroughSnippetsSubtitle
+                    : l10n.settingsWalkthroughSnippetsCount(count),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const WalkthroughSnippetsScreen(),
+                ),
+              ),
             );
           },
         ),

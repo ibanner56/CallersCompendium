@@ -3581,6 +3581,83 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorWalkthroughHelper => 'ダンスの各ステップと遷移の手順説明';
 
   @override
+  String get danceEditorAddWalkthroughStep => 'ウォークスルーのステップを追加';
+
+  @override
+  String get danceEditorWalkthroughStepLabel => 'ウォークスルーのステップ（任意）';
+
+  @override
+  String get danceEditorWalkthroughStepHelper =>
+      'このフィギュアの既定値として保存され、登場するすべての箇所で再利用されます。';
+
+  @override
+  String get danceEditorSnippetDivergenceTitle => '保存済みスニペットを更新しますか？';
+
+  @override
+  String get danceEditorSnippetDivergenceBody =>
+      'これはこのフィギュアに保存したウォークスルースニペットと異なります。新しいテキストをすべてで使用しますか、それともこのダンスだけにしますか？';
+
+  @override
+  String get danceEditorSnippetUseEverywhere => 'すべてで使用';
+
+  @override
+  String get danceEditorSnippetJustThisDance => 'このダンスのみ';
+
+  @override
+  String get danceEditorFillWalkthroughFromSnippets => 'スニペットから入力';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceTitle => 'ウォークスルーを置き換えますか？';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceBody =>
+      '現在のウォークスルーを、フィギュアのスニペットから組み立てたテキストで置き換えます。';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceConfirm => '置き換え';
+
+  @override
+  String get danceEditorFillWalkthroughEmpty =>
+      'これらのフィギュアにはまだ保存されたウォークスルースニペットがありません。';
+
+  @override
+  String get settingsWalkthroughSnippetsTitle => 'ウォークスルースニペット';
+
+  @override
+  String get settingsWalkthroughSnippetsSubtitle => 'フィギュアごとに保存したステップ説明';
+
+  @override
+  String get settingsWalkthroughSnippetsHeader => '保存されたウォークスルースニペット';
+
+  @override
+  String get settingsWalkthroughSnippetsDescription =>
+      'これらのフィギュアごとのステップ説明は、ダンスを編集するときにウォークスルーを事前入力します。ここで編集すると、すべてで使われる既定値が更新されます。';
+
+  @override
+  String get settingsWalkthroughSnippetsEmpty =>
+      '保存されたスニペットはまだありません。ダンスのフィギュアを編集しながらウォークスルーのステップ説明を追加してください。';
+
+  @override
+  String settingsWalkthroughSnippetsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 件のスニペット',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsWalkthroughSnippetDeleteTitle => 'スニペットを削除しますか？';
+
+  @override
+  String get settingsWalkthroughSnippetDeleteBody =>
+      'このフィギュアに保存された既定値を削除します。ダンスにすでに書いたウォークスルーのテキストは保持されます。';
+
+  @override
+  String get settingsWalkthroughSnippetEditTitle => 'スニペットを編集';
+
+  @override
   String get danceEditorMoreDetailsTitle => '詳細情報';
 
   @override

@@ -3740,6 +3740,88 @@ class AppLocalizationsDe extends AppLocalizations {
       'Schritt-für-Schritt-Beschreibung des Tanzes und seiner Übergänge';
 
   @override
+  String get danceEditorAddWalkthroughStep => 'Ablaufschritt hinzufügen';
+
+  @override
+  String get danceEditorWalkthroughStepLabel => 'Ablaufschritt (optional)';
+
+  @override
+  String get danceEditorWalkthroughStepHelper =>
+      'Wird als Standard für diese Figur gespeichert und überall wiederverwendet, wo sie vorkommt.';
+
+  @override
+  String get danceEditorSnippetDivergenceTitle =>
+      'Gespeicherten Ausschnitt aktualisieren?';
+
+  @override
+  String get danceEditorSnippetDivergenceBody =>
+      'Dieser Text weicht von dem für diese Figur gespeicherten Ablauf-Ausschnitt ab. Neuen Text überall verwenden oder nur in diesem Tanz?';
+
+  @override
+  String get danceEditorSnippetUseEverywhere => 'Überall verwenden';
+
+  @override
+  String get danceEditorSnippetJustThisDance => 'Nur dieser Tanz';
+
+  @override
+  String get danceEditorFillWalkthroughFromSnippets =>
+      'Aus Ausschnitten füllen';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceTitle => 'Ablauf ersetzen?';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceBody =>
+      'Dies ersetzt den aktuellen Ablauf durch einen aus deinen Figur-Ausschnitten zusammengesetzten Text.';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceConfirm => 'Ersetzen';
+
+  @override
+  String get danceEditorFillWalkthroughEmpty =>
+      'Keine dieser Figuren hat bereits einen gespeicherten Ablauf-Ausschnitt.';
+
+  @override
+  String get settingsWalkthroughSnippetsTitle => 'Ablauf-Ausschnitte';
+
+  @override
+  String get settingsWalkthroughSnippetsSubtitle =>
+      'Deine gespeicherten Schrittbeschreibungen pro Figur';
+
+  @override
+  String get settingsWalkthroughSnippetsHeader =>
+      'Gespeicherte Ablauf-Ausschnitte';
+
+  @override
+  String get settingsWalkthroughSnippetsDescription =>
+      'Diese Schrittbeschreibungen pro Figur füllen Abläufe vor, wenn du einen Tanz bearbeitest. Eine hier zu bearbeiten aktualisiert den überall verwendeten Standard.';
+
+  @override
+  String get settingsWalkthroughSnippetsEmpty =>
+      'Noch keine gespeicherten Ausschnitte. Füge Ablaufschritt-Beschreibungen hinzu, während du die Figuren eines Tanzes bearbeitest.';
+
+  @override
+  String settingsWalkthroughSnippetsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Ausschnitte',
+      one: '1 Ausschnitt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsWalkthroughSnippetDeleteTitle => 'Ausschnitt löschen?';
+
+  @override
+  String get settingsWalkthroughSnippetDeleteBody =>
+      'Dies entfernt den gespeicherten Standard für diese Figur. Tänze behalten jeden bereits geschriebenen Ablauftext.';
+
+  @override
+  String get settingsWalkthroughSnippetEditTitle => 'Ausschnitt bearbeiten';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Weitere Details';
 
   @override

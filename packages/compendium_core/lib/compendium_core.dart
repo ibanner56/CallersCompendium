@@ -72,6 +72,9 @@ export 'src/serialization/archive_codec.dart';
 export 'src/serialization/archive_service.dart';
 export 'src/serialization/compendium_archive.dart';
 export 'src/serialization/figure_codec.dart';
+export 'src/snippet/snippet_library.dart';
+export 'src/snippet/snippet_signature.dart';
+export 'src/snippet/walkthrough_assembler.dart';
 export 'src/storage/database.dart'
     show
         CompendiumDatabase,

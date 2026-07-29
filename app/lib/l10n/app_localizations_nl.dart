@@ -3724,6 +3724,87 @@ class AppLocalizationsNl extends AppLocalizations {
       'Stapsgewijze beschrijving van de dans en de overgangen';
 
   @override
+  String get danceEditorAddWalkthroughStep => 'Doorloopstap toevoegen';
+
+  @override
+  String get danceEditorWalkthroughStepLabel => 'Doorloopstap (optioneel)';
+
+  @override
+  String get danceEditorWalkthroughStepHelper =>
+      'Opgeslagen als je standaard voor deze figuur en overal hergebruikt waar ze voorkomt.';
+
+  @override
+  String get danceEditorSnippetDivergenceTitle =>
+      'Opgeslagen fragment bijwerken?';
+
+  @override
+  String get danceEditorSnippetDivergenceBody =>
+      'Dit verschilt van het doorloopfragment dat je voor deze figuur hebt opgeslagen. De nieuwe tekst overal gebruiken, of alleen in deze dans?';
+
+  @override
+  String get danceEditorSnippetUseEverywhere => 'Overal gebruiken';
+
+  @override
+  String get danceEditorSnippetJustThisDance => 'Alleen deze dans';
+
+  @override
+  String get danceEditorFillWalkthroughFromSnippets => 'Vullen met fragmenten';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceTitle => 'Doorloop vervangen?';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceBody =>
+      'Dit vervangt de huidige doorloop door tekst die is samengesteld uit je figuurfragmenten.';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceConfirm => 'Vervangen';
+
+  @override
+  String get danceEditorFillWalkthroughEmpty =>
+      'Geen van deze figuren heeft al een opgeslagen doorloopfragment.';
+
+  @override
+  String get settingsWalkthroughSnippetsTitle => 'Doorloopfragmenten';
+
+  @override
+  String get settingsWalkthroughSnippetsSubtitle =>
+      'Je opgeslagen stapbeschrijvingen per figuur';
+
+  @override
+  String get settingsWalkthroughSnippetsHeader =>
+      'Opgeslagen doorloopfragmenten';
+
+  @override
+  String get settingsWalkthroughSnippetsDescription =>
+      'Deze stapbeschrijvingen per figuur vullen doorlopen vooraf in wanneer je een dans bewerkt. Een hier bewerken werkt de overal gebruikte standaard bij.';
+
+  @override
+  String get settingsWalkthroughSnippetsEmpty =>
+      'Nog geen opgeslagen fragmenten. Voeg doorloopstapbeschrijvingen toe terwijl je de figuren van een dans bewerkt.';
+
+  @override
+  String settingsWalkthroughSnippetsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fragmenten',
+      one: '1 fragment',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsWalkthroughSnippetDeleteTitle => 'Fragment verwijderen?';
+
+  @override
+  String get settingsWalkthroughSnippetDeleteBody =>
+      'Dit verwijdert de opgeslagen standaard voor deze figuur. Dansen behouden alle doorlooptekst die je al hebt geschreven.';
+
+  @override
+  String get settingsWalkthroughSnippetEditTitle => 'Fragment bewerken';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Meer details';
 
   @override

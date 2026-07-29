@@ -3748,6 +3748,88 @@ class AppLocalizationsFr extends AppLocalizations {
       'Description étape par étape de la danse et de ses transitions';
 
   @override
+  String get danceEditorAddWalkthroughStep => 'Ajouter une étape de déroulé';
+
+  @override
+  String get danceEditorWalkthroughStepLabel => 'Étape de déroulé (facultatif)';
+
+  @override
+  String get danceEditorWalkthroughStepHelper =>
+      'Enregistré comme valeur par défaut pour cette figure et réutilisé partout où elle apparaît.';
+
+  @override
+  String get danceEditorSnippetDivergenceTitle =>
+      'Mettre à jour votre extrait enregistré ?';
+
+  @override
+  String get danceEditorSnippetDivergenceBody =>
+      'Ce texte diffère de l\'extrait de déroulé enregistré pour cette figure. Utiliser le nouveau texte partout, ou seulement dans cette danse ?';
+
+  @override
+  String get danceEditorSnippetUseEverywhere => 'Utiliser partout';
+
+  @override
+  String get danceEditorSnippetJustThisDance => 'Seulement cette danse';
+
+  @override
+  String get danceEditorFillWalkthroughFromSnippets =>
+      'Remplir à partir des extraits';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceTitle => 'Remplacer le déroulé ?';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceBody =>
+      'Cela remplace le déroulé actuel par un texte assemblé à partir de vos extraits de figures.';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceConfirm => 'Remplacer';
+
+  @override
+  String get danceEditorFillWalkthroughEmpty =>
+      'Aucune de ces figures n\'a encore d\'extrait de déroulé enregistré.';
+
+  @override
+  String get settingsWalkthroughSnippetsTitle => 'Extraits de déroulé';
+
+  @override
+  String get settingsWalkthroughSnippetsSubtitle =>
+      'Vos descriptions d\'étapes enregistrées par figure';
+
+  @override
+  String get settingsWalkthroughSnippetsHeader =>
+      'Extraits de déroulé enregistrés';
+
+  @override
+  String get settingsWalkthroughSnippetsDescription =>
+      'Ces descriptions d\'étapes par figure préremplissent les déroulés lorsque vous modifiez une danse. En modifier une ici met à jour la valeur par défaut utilisée partout.';
+
+  @override
+  String get settingsWalkthroughSnippetsEmpty =>
+      'Aucun extrait enregistré pour l\'instant. Ajoutez des descriptions d\'étapes de déroulé en modifiant les figures d\'une danse.';
+
+  @override
+  String settingsWalkthroughSnippetsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count extraits',
+      one: '1 extrait',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsWalkthroughSnippetDeleteTitle => 'Supprimer l\'extrait ?';
+
+  @override
+  String get settingsWalkthroughSnippetDeleteBody =>
+      'Cela supprime la valeur par défaut enregistrée pour cette figure. Les danses conservent le texte de déroulé que vous avez déjà écrit.';
+
+  @override
+  String get settingsWalkthroughSnippetEditTitle => 'Modifier l\'extrait';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Plus de détails';
 
   @override

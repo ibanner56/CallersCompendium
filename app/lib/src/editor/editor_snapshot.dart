@@ -18,6 +18,7 @@ class FigureDraftSnapshot {
     required this.schemaVersion,
     this.assumedSubject = false,
     this.customOrigin = CustomOrigin.userEntered,
+    this.walkthroughOverride,
   });
 
   factory FigureDraftSnapshot.fromDraft(FigureDraft draft) =>
@@ -30,6 +31,7 @@ class FigureDraftSnapshot {
         schemaVersion: draft.schemaVersion,
         assumedSubject: draft.assumedSubject,
         customOrigin: draft.customOrigin,
+        walkthroughOverride: draft.walkthroughOverride,
       );
 
   final String id;
@@ -49,6 +51,10 @@ class FigureDraftSnapshot {
   /// custom keeps its [CustomOrigin.importGap] flag (#419/#417) while editing.
   final CustomOrigin customOrigin;
 
+  /// The per-dance walkthrough snippet override (#411); preserved across
+  /// undo/redo and autosave so an in-progress per-dance snippet is never lost.
+  final String? walkthroughOverride;
+
   FigureDraft toDraft() => FigureDraft(
     id: id,
     move: move,
@@ -58,6 +64,7 @@ class FigureDraftSnapshot {
     schemaVersion: schemaVersion,
     assumedSubject: assumedSubject,
     customOrigin: customOrigin,
+    walkthroughOverride: walkthroughOverride,
   );
 }
 

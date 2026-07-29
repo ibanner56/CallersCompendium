@@ -974,6 +974,17 @@ class DanceEditorController extends ChangeNotifier {
     scheduleAutosave();
   }
 
+  /// Replaces the walkthrough text as a single undoable edit — used by
+  /// "fill from snippets" (#411), which assembles the walkthrough from the
+  /// dance's per-figure snippets. No-op when the text is unchanged.
+  void setWalkthroughText(String text) {
+    if (walkthroughController.text == text) return;
+    walkthroughController.text = text;
+    _notify();
+    pushUndoNow();
+    scheduleAutosave();
+  }
+
   /// The phrase-structure field changed.
   void onPhraseChanged() {
     recomputeWarnings();

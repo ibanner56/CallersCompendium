@@ -5,6 +5,18 @@ import 'package:meta/meta.dart';
 /// always parses after taxonomy/schema evolution.
 const int figureSchemaVersion = 1;
 
+/// Upper bound on the length of a single figure's walkthrough snippet
+/// ([Figure.walkthroughOverride] and each entry of the global snippet library),
+/// in UTF-16 code units (#411).
+///
+/// Snippets are per-figure step descriptions — much shorter than a whole-dance
+/// [kMaxWalkthroughLength] walkthrough — but they are still untrusted free text
+/// that travels through backup / share / import, so they need a defence against
+/// unbounded input. Enforcement is **soft**: editors cap input via `maxLength`
+/// and deserializers **clamp** (truncate) rather than rejecting, so an oversized
+/// snippet can never fail an otherwise-valid import.
+const int kMaxWalkthroughSnippetLength = 4000;
+
 /// Canonical move id for the free-text fallback figure.
 const String customMove = 'custom';
 
@@ -47,6 +59,7 @@ class Figure {
     this.progression = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.assumedSubject = false,
+    this.walkthroughOverride,
   }) : params = Map.unmodifiable(params) {
     if (move.trim().isEmpty) {
       throw ArgumentError.value(move, 'move', 'must be non-empty');
@@ -98,11 +111,33 @@ class Figure {
   /// changes the canonical (search/dedupe) render, which stays byte-stable.
   final bool assumedSubject;
 
+  /// A per-dance, per-figure-instance **walkthrough snippet override** (#411):
+  /// the step-description text to use for THIS occurrence of the figure in THIS
+  /// dance, taking precedence over the user's global snippet library default
+  /// (keyed by figure signature). `null` means "no override" — the figure falls
+  /// back to the library default (or nothing) when a walkthrough is assembled.
+  ///
+  /// Untrusted free text (authored locally, but round-trips through backup /
+  /// share / import): soft-clamped at [kMaxWalkthroughSnippetLength] on ingest
+  /// and rendered ONLY through the dialect renderer's `renderFreeText` path
+  /// (role substitution; no markup/injection), exactly like [Dance.walkthrough].
+  ///
+  /// Additive and backward compatible: defaults to `null`, is written to JSON
+  /// only when non-null/non-empty, and absent/legacy data decodes as `null`, so
+  /// no schema migration is required (it rides the authoritative `figures_json`
+  /// JSON, like [customOrigin]/[assumedSubject]). A DISPLAY/authoring field
+  /// only — it never changes the canonical (search/dedupe) render.
+  final String? walkthroughOverride;
+
   bool get isCustom => move == customMove;
 
   /// Duration in beats; 0 when unset (taxonomy defaults apply at a higher
   /// layer) — 0 is also legitimate for formation labels.
   int get beats => (params['beats'] as int?) ?? 0;
+
+  /// Sentinel so [copyWith] can distinguish "leave [walkthroughOverride]
+  /// unchanged" (argument omitted) from "clear it to `null`" (explicit `null`).
+  static const Object _unchangedOverride = Object();
 
   Figure copyWith({
     int? schemaVersion,
@@ -112,6 +147,7 @@ class Figure {
     bool? progression,
     CustomOrigin? customOrigin,
     bool? assumedSubject,
+    Object? walkthroughOverride = _unchangedOverride,
   }) => Figure(
     schemaVersion: schemaVersion ?? this.schemaVersion,
     move: move ?? this.move,
@@ -120,6 +156,9 @@ class Figure {
     progression: progression ?? this.progression,
     customOrigin: customOrigin ?? this.customOrigin,
     assumedSubject: assumedSubject ?? this.assumedSubject,
+    walkthroughOverride: identical(walkthroughOverride, _unchangedOverride)
+        ? this.walkthroughOverride
+        : walkthroughOverride as String?,
   );
 
   @override
@@ -131,7 +170,8 @@ class Figure {
       other.note == note &&
       other.progression == progression &&
       other.customOrigin == customOrigin &&
-      other.assumedSubject == assumedSubject;
+      other.assumedSubject == assumedSubject &&
+      other.walkthroughOverride == walkthroughOverride;
 
   @override
   int get hashCode => Object.hash(
@@ -142,6 +182,7 @@ class Figure {
     progression,
     customOrigin,
     assumedSubject,
+    walkthroughOverride,
   );
 
   @override

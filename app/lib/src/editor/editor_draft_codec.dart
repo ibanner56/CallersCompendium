@@ -38,7 +38,11 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 ///
 /// v6 → v7: adds `walkthrough` (free-form step-by-step text, issue #370; omitted
 /// when empty). Older drafts (v ≤ 6) decode with `walkthrough: ''`.
-const _kDraftVersion = 7;
+///
+/// v7 → v8: adds a per-figure `walkthroughOverride` (per-dance snippet override,
+/// issue #411; omitted when null/blank). Older drafts (v ≤ 7) decode each figure
+/// with `walkthroughOverride: null`.
+const _kDraftVersion = 8;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -47,10 +51,10 @@ const _kDraftVersion = 7;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v7):
+/// Schema (v8):
 /// ```jsonc
 /// {
-///   "v": 7,
+///   "v": 8,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
@@ -71,7 +75,8 @@ const _kDraftVersion = 7;
 ///   "figureDrafts": [
 ///     {"id":"...", "move":"swing",
 ///      "params":{"who":"partners","beats":16},
-///      "note":"", "progression":false, "sv":1}
+///      "note":"", "progression":false, "sv":1,
+///      "walkthroughOverride":"Swing them."}
 ///   ]
 /// }
 /// ```
@@ -137,6 +142,9 @@ String encodeDraft(EditorSnapshot snapshot) {
           // authored figure's JSON is unchanged; decode is tolerant (#419).
           if (d.customOrigin == CustomOrigin.importGap)
             'customOrigin': 'importGap',
+          if (d.walkthroughOverride != null &&
+              d.walkthroughOverride!.trim().isNotEmpty)
+            'walkthroughOverride': d.walkthroughOverride,
         },
     ],
   });
@@ -396,5 +404,16 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(Object? e) {
     customOrigin: m['customOrigin'] == 'importGap'
         ? CustomOrigin.importGap
         : CustomOrigin.userEntered,
+    // Additive/tolerant (#411): absent/blank/non-string → no override.
+    walkthroughOverride: _optSnippet(m['walkthroughOverride']),
   );
+}
+
+/// Reads an optional walkthrough snippet override: a non-blank string
+/// (soft-clamped), else `null`. Tolerant of legacy drafts and bad types.
+String? _optSnippet(Object? raw) {
+  if (raw is! String || raw.trim().isEmpty) return null;
+  return raw.length > kMaxWalkthroughSnippetLength
+      ? raw.substring(0, kMaxWalkthroughSnippetLength)
+      : raw;
 }

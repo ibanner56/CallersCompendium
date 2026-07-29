@@ -3700,6 +3700,85 @@ class AppLocalizationsDa extends AppLocalizations {
       'Trin-for-trin-beskrivelse af dansen og dens overgange';
 
   @override
+  String get danceEditorAddWalkthroughStep => 'Tilføj gennemgangstrin';
+
+  @override
+  String get danceEditorWalkthroughStepLabel => 'Gennemgangstrin (valgfrit)';
+
+  @override
+  String get danceEditorWalkthroughStepHelper =>
+      'Gemt som din standard for denne figur og genbrugt overalt, hvor den optræder.';
+
+  @override
+  String get danceEditorSnippetDivergenceTitle => 'Opdater dit gemte uddrag?';
+
+  @override
+  String get danceEditorSnippetDivergenceBody =>
+      'Dette adskiller sig fra det gennemgangsuddrag, du har gemt for denne figur. Brug den nye tekst overalt, eller kun i denne dans?';
+
+  @override
+  String get danceEditorSnippetUseEverywhere => 'Brug overalt';
+
+  @override
+  String get danceEditorSnippetJustThisDance => 'Kun denne dans';
+
+  @override
+  String get danceEditorFillWalkthroughFromSnippets => 'Udfyld fra uddrag';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceTitle => 'Erstat gennemgang?';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceBody =>
+      'Dette erstatter den nuværende gennemgang med tekst samlet fra dine figuruddrag.';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceConfirm => 'Erstat';
+
+  @override
+  String get danceEditorFillWalkthroughEmpty =>
+      'Ingen af disse figurer har endnu et gemt gennemgangsuddrag.';
+
+  @override
+  String get settingsWalkthroughSnippetsTitle => 'Gennemgangsuddrag';
+
+  @override
+  String get settingsWalkthroughSnippetsSubtitle =>
+      'Dine gemte trinbeskrivelser pr. figur';
+
+  @override
+  String get settingsWalkthroughSnippetsHeader => 'Gemte gennemgangsuddrag';
+
+  @override
+  String get settingsWalkthroughSnippetsDescription =>
+      'Disse trinbeskrivelser pr. figur forudfylder gennemgange, når du redigerer en dans. At redigere en her opdaterer den standard, der bruges overalt.';
+
+  @override
+  String get settingsWalkthroughSnippetsEmpty =>
+      'Ingen gemte uddrag endnu. Tilføj gennemgangstrinbeskrivelser, mens du redigerer en dans\' figurer.';
+
+  @override
+  String settingsWalkthroughSnippetsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count uddrag',
+      one: '1 uddrag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsWalkthroughSnippetDeleteTitle => 'Slet uddrag?';
+
+  @override
+  String get settingsWalkthroughSnippetDeleteBody =>
+      'Dette fjerner den gemte standard for denne figur. Danse beholder al gennemgangstekst, du allerede har skrevet.';
+
+  @override
+  String get settingsWalkthroughSnippetEditTitle => 'Rediger uddrag';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Flere detaljer';
 
   @override

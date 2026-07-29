@@ -4012,6 +4012,91 @@
   "@danceEditorWalkthroughHelper":   {
     "description": "Helper text under the walkthrough field explaining what to write there."
   },
+  "danceEditorAddWalkthroughStep": "Add walkthrough step",
+  "@danceEditorAddWalkthroughStep": {
+    "description": "Button that reveals the optional per-figure walkthrough step-description field in the figure editor (#411)."
+  },
+  "danceEditorWalkthroughStepLabel": "Walkthrough step (optional)",
+  "@danceEditorWalkthroughStepLabel": {
+    "description": "Label for the per-figure walkthrough step-description text field (#411)."
+  },
+  "danceEditorWalkthroughStepHelper": "Saved as your default for this figure and reused wherever it appears.",
+  "@danceEditorWalkthroughStepHelper": {
+    "description": "Helper text under the per-figure walkthrough step field explaining learn-on-first-entry (#411)."
+  },
+  "danceEditorSnippetDivergenceTitle": "Update your saved snippet?",
+  "@danceEditorSnippetDivergenceTitle": {
+    "description": "Title of the prompt shown when a per-figure walkthrough snippet differs from the saved default (#411)."
+  },
+  "danceEditorSnippetDivergenceBody": "This differs from the walkthrough snippet you saved for this figure. Use the new text everywhere, or just in this dance?",
+  "@danceEditorSnippetDivergenceBody": {
+    "description": "Body of the divergence prompt for a per-figure walkthrough snippet (#411)."
+  },
+  "danceEditorSnippetUseEverywhere": "Use everywhere",
+  "@danceEditorSnippetUseEverywhere": {
+    "description": "Choice that updates the global default walkthrough snippet for this figure (#411)."
+  },
+  "danceEditorSnippetJustThisDance": "Just this dance",
+  "@danceEditorSnippetJustThisDance": {
+    "description": "Choice that keeps a per-figure walkthrough snippet as an override for the current dance only (#411)."
+  },
+  "danceEditorFillWalkthroughFromSnippets": "Fill from snippets",
+  "@danceEditorFillWalkthroughFromSnippets": {
+    "description": "Button that assembles the walkthrough text from the dance's per-figure snippets (#411)."
+  },
+  "danceEditorFillWalkthroughReplaceTitle": "Replace walkthrough?",
+  "@danceEditorFillWalkthroughReplaceTitle": {
+    "description": "Title of the confirmation shown before overwriting existing walkthrough text with one assembled from snippets (#411)."
+  },
+  "danceEditorFillWalkthroughReplaceBody": "This replaces the current walkthrough with text assembled from your figure snippets.",
+  "@danceEditorFillWalkthroughReplaceBody": {
+    "description": "Body of the confirmation before overwriting the walkthrough with an assembled one (#411)."
+  },
+  "danceEditorFillWalkthroughReplaceConfirm": "Replace",
+  "@danceEditorFillWalkthroughReplaceConfirm": {
+    "description": "Confirm button that overwrites the walkthrough with an assembled one (#411)."
+  },
+  "danceEditorFillWalkthroughEmpty": "None of these figures have a saved walkthrough snippet yet.",
+  "@danceEditorFillWalkthroughEmpty": {
+    "description": "Message shown when there are no snippets to assemble a walkthrough from (#411)."
+  },
+  "settingsWalkthroughSnippetsTitle": "Walkthrough snippets",
+  "@settingsWalkthroughSnippetsTitle": {
+    "description": "Settings row title opening the personal walkthrough-snippet library editor (#411)."
+  },
+  "settingsWalkthroughSnippetsSubtitle": "Your saved per-figure step descriptions",
+  "@settingsWalkthroughSnippetsSubtitle": {
+    "description": "Settings row subtitle for the walkthrough-snippet library editor (#411)."
+  },
+  "settingsWalkthroughSnippetsHeader": "Saved walkthrough snippets",
+  "@settingsWalkthroughSnippetsHeader": {
+    "description": "Header on the walkthrough-snippet library editor screen (#411)."
+  },
+  "settingsWalkthroughSnippetsDescription": "These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.",
+  "@settingsWalkthroughSnippetsDescription": {
+    "description": "Explanatory text at the top of the walkthrough-snippet library editor (#411)."
+  },
+  "settingsWalkthroughSnippetsEmpty": "No saved snippets yet. Add walkthrough step descriptions while editing a dance's figures.",
+  "@settingsWalkthroughSnippetsEmpty": {
+    "description": "Empty-state text on the walkthrough-snippet library editor when the library is empty (#411)."
+  },
+  "settingsWalkthroughSnippetsCount": "{count, plural, =1{1 snippet} other{{count} snippets}}",
+  "@settingsWalkthroughSnippetsCount": {
+    "description": "Count of saved walkthrough snippets (#411).",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "settingsWalkthroughSnippetDeleteTitle": "Delete snippet?",
+  "@settingsWalkthroughSnippetDeleteTitle": {
+    "description": "Title of the confirmation before deleting a saved walkthrough snippet (#411)."
+  },
+  "settingsWalkthroughSnippetDeleteBody": "This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.",
+  "@settingsWalkthroughSnippetDeleteBody": {
+    "description": "Body of the confirmation before deleting a saved walkthrough snippet (#411)."
+  },
+  "settingsWalkthroughSnippetEditTitle": "Edit snippet",
+  "@settingsWalkthroughSnippetEditTitle": {
+    "description": "Title of the dialog for editing a saved walkthrough snippet's text (#411)."
+  },
   "danceEditorMoreDetailsTitle": "More details",
   "@danceEditorMoreDetailsTitle":   {
     "description": "Expansion tile title for less frequently used dance metadata fields."
