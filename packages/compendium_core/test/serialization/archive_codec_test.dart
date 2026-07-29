@@ -948,5 +948,44 @@ void main() {
       // Legitimate newline survives; control byte and bidi override removed.
       expect(result.archive.dances.single.walkthrough, 'step1\nstep2');
     });
+
+    test('figure walkthroughOverride round-trips and is clamped (#411)', () {
+      final archive = {
+        'schemaVersion': archiveSchemaVersion,
+        'exportedAt': '2026-01-01T00:00:00.000Z',
+        'dances': [
+          {
+            'id': 'd1',
+            'title': 'Override One',
+            'authorIds': <String>[],
+            'phraseStructure': '',
+            'figures': [
+              {
+                'move': 'swing',
+                'params': {'who': 'partners', 'beats': 16},
+                'walkthroughOverride': 'Balance\u0007 and swing.\u202E',
+              },
+              {
+                'move': 'circle',
+                'params': {'turn': 'left'},
+                'walkthroughOverride': 'y' * (kMaxWalkthroughSnippetLength + 50),
+              },
+            ],
+            'createdAt': '2026-01-01T00:00:00.000Z',
+            'updatedAt': '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      };
+      final result = decodeArchive(jsonEncode(archive));
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final figures = result.archive.dances.single.figures;
+      // Control/bidi stripped from the override, exactly like `note`.
+      expect(figures[0].walkthroughOverride, 'Balance and swing.');
+      // Oversized override truncated, never rejected.
+      expect(
+        figures[1].walkthroughOverride!.length,
+        kMaxWalkthroughSnippetLength,
+      );
+    });
   });
 }

@@ -686,6 +686,13 @@ Map<String, Object?> _sanitizeFigureJson(Map<String, Object?> m) {
   final out = Map<String, Object?>.of(m);
   final note = out['note'];
   if (note is String) out['note'] = sanitizeImportedText(note);
+  // Per-dance walkthrough snippet override (#411): same untrusted free-text
+  // discipline as `note` — strip control/bidi/format spoofing here; the figure
+  // codec additionally soft-clamps its length on decode.
+  final override = out['walkthroughOverride'];
+  if (override is String) {
+    out['walkthroughOverride'] = sanitizeImportedText(override);
+  }
   final params = out['params'];
   if (params is Map) {
     out['params'] = {

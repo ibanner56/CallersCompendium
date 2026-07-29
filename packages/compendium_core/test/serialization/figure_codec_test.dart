@@ -25,6 +25,11 @@ void main() {
         params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
         assumedSubject: true,
       ),
+      Figure(
+        move: 'swing',
+        params: {'who': 'partners', 'beats': 16},
+        walkthroughOverride: 'Balance and swing your partner.',
+      ),
     ];
 
     test('encode then decode preserves every figure', () {
@@ -132,6 +137,59 @@ void main() {
         'customOrigin': 'importGap',
       });
       expect(f.customOrigin, CustomOrigin.importGap);
+    });
+  });
+
+  group('walkthroughOverride (#411)', () {
+    test('omitted when null or blank', () {
+      expect(
+        figureToJson(Figure(move: 'swing')).containsKey('walkthroughOverride'),
+        isFalse,
+      );
+      expect(
+        figureToJson(
+          Figure(move: 'swing', walkthroughOverride: '   '),
+        ).containsKey('walkthroughOverride'),
+        isFalse,
+      );
+    });
+
+    test('written and round-trips when present', () {
+      final json = figureToJson(
+        Figure(move: 'swing', walkthroughOverride: 'Swing them.'),
+      );
+      expect(json['walkthroughOverride'], 'Swing them.');
+      expect(figureFromJson(json).walkthroughOverride, 'Swing them.');
+    });
+
+    test('missing key decodes as null (backward compatible)', () {
+      expect(figureFromJson({'move': 'swing'}).walkthroughOverride, isNull);
+    });
+
+    test('blank string decodes as null', () {
+      expect(
+        figureFromJson({
+          'move': 'swing',
+          'walkthroughOverride': '   ',
+        }).walkthroughOverride,
+        isNull,
+      );
+    });
+
+    test('non-string decodes as null', () {
+      expect(
+        figureFromJson({
+          'move': 'swing',
+          'walkthroughOverride': 42,
+        }).walkthroughOverride,
+        isNull,
+      );
+    });
+
+    test('soft-clamps an oversized override on decode', () {
+      final long = 'x' * (kMaxWalkthroughSnippetLength + 100);
+      final f = figureFromJson({'move': 'swing', 'walkthroughOverride': long});
+      expect(f.walkthroughOverride!.length, kMaxWalkthroughSnippetLength);
     });
   });
 
