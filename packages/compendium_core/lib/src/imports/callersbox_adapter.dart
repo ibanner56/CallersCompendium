@@ -601,7 +601,11 @@ class CallersBoxAdapter implements SourceAdapter {
     );
   }
 
-  static Figure _foldEnderIntoHall(Figure hall, Figure enderLine, String ender) {
+  static Figure _foldEnderIntoHall(
+    Figure hall,
+    Figure enderLine,
+    String ender,
+  ) {
     final beats = _sumBeats(hall, enderLine);
     return hall.copyWith(
       params: {...hall.params, 'ender': ender, 'beats': ?beats},

@@ -9,17 +9,11 @@ import 'package:test/test.dart';
 /// ranges). Every case runs through the real `tcbFigureFrontEnd` and asserts the
 /// exact structured move + params, plus the conservative custom fallbacks that
 /// guard against over-claiming.
-Figure? _parse(String rawText, {int beats = 0}) => parseFigureLine(
-  rawText,
-  beats: beats,
-  frontEnd: tcbFigureFrontEnd,
-);
+Figure? _parse(String rawText, {int beats = 0}) =>
+    parseFigureLine(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
-List<Figure> _parseAll(String rawText, {int beats = 0}) => parseFigureLines(
-  rawText,
-  beats: beats,
-  frontEnd: tcbFigureFrontEnd,
-);
+List<Figure> _parseAll(String rawText, {int beats = 0}) =>
+    parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
 void main() {
   group('roll away', () {
@@ -78,10 +72,13 @@ void main() {
   });
 
   group('cross trails', () {
-    test('"Cross trail through (PR;NL)" → cross_trails (annotation dropped)', () {
-      final f = _parse('Cross trail through (PR;NL)');
-      expect(f!.move, 'cross_trails');
-    });
+    test(
+      '"Cross trail through (PR;NL)" → cross_trails (annotation dropped)',
+      () {
+        final f = _parse('Cross trail through (PR;NL)');
+        expect(f!.move, 'cross_trails');
+      },
+    );
 
     test('plural "Cross trails" recognised', () {
       expect(_parse('Cross trails')!.move, 'cross_trails');
@@ -166,8 +163,10 @@ void main() {
     test('balance ring + circulate folds balance into box_circulate', () {
       // The adapter cross-line merge folds a preceding balance line; here we
       // assert the circulate clause itself structures so the fold has a target.
-      expect(_parse('Circulate: role2s cross, role1s loop right')!.move,
-          'box_circulate');
+      expect(
+        _parse('Circulate: role2s cross, role1s loop right')!.move,
+        'box_circulate',
+      );
     });
 
     test('"box circulate" is NOT claimed by the circulate pre-recognizer', () {
@@ -181,11 +180,14 @@ void main() {
   });
 
   group('weave the line "with <dancer>"', () {
-    test('"Weave the line with partner (L;R to N2)" → zig_zag who=partners', () {
-      final f = _parse('Weave the line with partner (L;R to N2)');
-      expect(f!.move, 'zig_zag');
-      expect(f.params['who'], 'partners');
-    });
+    test(
+      '"Weave the line with partner (L;R to N2)" → zig_zag who=partners',
+      () {
+        final f = _parse('Weave the line with partner (L;R to N2)');
+        expect(f!.move, 'zig_zag');
+        expect(f.params['who'], 'partners');
+      },
+    );
 
     test('bare "Weave the line" → zig_zag (default who)', () {
       expect(_parse('Weave the line')!.move, 'zig_zag');
@@ -296,8 +298,9 @@ void main() {
               '[{"name":"A1","figures":["(1-8) Neighbor swing","(9-16) Partner swing"]}]}',
         ),
       );
-      final swings =
-          figs.dance.figures.where((f) => f.move == 'swing').toList();
+      final swings = figs.dance.figures
+          .where((f) => f.move == 'swing')
+          .toList();
       expect(swings, hasLength(2));
       expect(swings[0].params['beats'], 8);
       expect(swings[1].params['beats'], 8);

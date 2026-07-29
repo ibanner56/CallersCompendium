@@ -970,11 +970,9 @@ _Match? _rightLeftThrough(List<String> w) {
   if (w.isNotEmpty) return null;
   // right_left_through has no same-role slot, so the same-role variant is
   // preserved as a note (the move + dir still structure faithfully).
-  return _Match(
-    'right_left_through',
-    {'dir': ?dir},
-    sameRole ? 'same-role' : null,
-  );
+  return _Match('right_left_through', {
+    'dir': ?dir,
+  }, sameRole ? 'same-role' : null);
 }
 
 _Match? _passThrough(List<String> w) {
@@ -1386,7 +1384,8 @@ _Match? _formLongWave(List<String> w) {
   if (moveId == null) return null;
   final who2 = who ?? _takeDancer(w);
   // Optional "in (the) center" formation locator.
-  _consumePhrase(w, ['in', 'the', 'center']) || _consumePhrase(w, ['in', 'center']);
+  _consumePhrase(w, ['in', 'the', 'center']) ||
+      _consumePhrase(w, ['in', 'center']);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match(moveId, {'who': ?who2}, null, who2 == null);
@@ -1438,8 +1437,12 @@ _Match? _passCrossBy(List<String> w) {
   _consumePhrase(w, ['shoulders']);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('pass_by', {'who': ?who2, 'shoulder': shoulder}, null,
-      who2 == null);
+  return _Match(
+    'pass_by',
+    {'who': ?who2, 'shoulder': shoulder},
+    null,
+    who2 == null,
+  );
 }
 
 /// Tier A: TCB writes "Rory O'More" (dance ids 6, 39), optionally with a slide

@@ -393,7 +393,11 @@ void main() {
 
       test('collapses a name repeated within one record', () async {
         final adapter = FakeSourceAdapter([
-          record('fake-1', 'A Dance', authorNames: ['Will Mentor', 'will mentor']),
+          record(
+            'fake-1',
+            'A Dance',
+            authorNames: ['Will Mentor', 'will mentor'],
+          ),
         ]);
         final session = await pipeline.commit(
           await pipeline.plan(adapter, const ImportRequest()),
