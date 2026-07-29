@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/validation_issue_labels.dart';
 
 /// Full-screen term editor for a single named [Dialect] (`docs/design/ux.md`
 /// §6). Edits the pieces a dialect can set — role terms (gendered terms live
@@ -236,7 +237,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Text(
-                _issues.map((i) => i.message).join('\n'),
+                _issues.map((i) => validationIssueMessage(l10n, i)).join('\n'),
                 key: const ValueKey('dialect-validation-error'),
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),

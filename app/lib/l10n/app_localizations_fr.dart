@@ -50,6 +50,38 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appBootstrapError => 'Impossible de préparer la collection.';
 
   @override
+  String get migrationDowngradeMessage =>
+      'Ces données ont été créées avec une version plus récente de Caller’s Compendium — veuillez mettre à jour l\'application.';
+
+  @override
+  String migrationSnapshotAbortedMessage(String cause) {
+    return 'Caller’s Compendium n\'a pas démarré car une sauvegarde automatique n\'a pas pu être créée avant la mise à niveau de vos données enregistrées. ${cause}Libérez de l\'espace (ou réparez le dossier de sauvegardes), puis rouvrez l\'application — ou rouvrez-la et choisissez de continuer sans sauvegarde.';
+  }
+
+  @override
+  String get migrationSnapshotCauseDiskFull =>
+      'Votre appareil semble manquer d\'espace de stockage.';
+
+  @override
+  String get migrationSnapshotCauseUnwritableBackupsDir =>
+      'Impossible d\'écrire dans le dossier de sauvegardes automatiques.';
+
+  @override
+  String get migrationSnapshotConsentTitle =>
+      'Impossible de sauvegarder vos données';
+
+  @override
+  String migrationSnapshotConsentBody(String cause) {
+    return 'Avant de mettre à niveau vos données enregistrées vers un nouveau format, Caller’s Compendium crée une sauvegarde automatique afin qu\'une mise à niveau échouée puisse être annulée. Cette sauvegarde n\'a pas pu être créée cette fois.$cause\n\nSi vous continuez sans sauvegarde et que la mise à niveau est interrompue, certaines de vos danses ou de vos programmes pourraient être perdus. Vous pouvez quitter, libérer de l\'espace (ou réparer le dossier de sauvegardes) et rouvrir l\'application pour réessayer.';
+  }
+
+  @override
+  String get migrationSnapshotConsentQuit => 'Quitter';
+
+  @override
+  String get migrationSnapshotConsentProceed => 'Continuer sans sauvegarde';
+
+  @override
   String get confirmDeleteTitle => 'Supprimer ?';
 
   @override
@@ -3045,6 +3077,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onlineImportError => 'Impossible d’importer cette danse.';
 
   @override
+  String onlineSearchFailed(String source) {
+    return 'Impossible de rechercher dans $source. Veuillez réessayer.';
+  }
+
+  @override
   String onlineImportCreated(String title) {
     return '« $title » importé.';
   }
@@ -3324,6 +3361,29 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ce fichier est trop volumineux pour être importé.';
 
   @override
+  String get archiveIntakeRejectedTooLarge =>
+      'Ce fichier est trop volumineux pour être importé.';
+
+  @override
+  String get archiveIntakeRejectedUnreadable =>
+      'Impossible de lire le fichier partagé.';
+
+  @override
+  String get archiveIntakeRejectedEmpty => 'Ce fichier est vide.';
+
+  @override
+  String get archiveIntakeRejectedNotArchive =>
+      'Ce fichier n\'est pas un fichier de partage Caller’s Compendium.';
+
+  @override
+  String get archiveIntakeRejectedNewerVersion =>
+      'Ce fichier a été créé avec une version plus récente de l\'application. Mettez l\'application à jour pour l\'importer.';
+
+  @override
+  String get archiveIntakeRejectedNoContent =>
+      'Ce fichier ne contenait aucune danse ni aucun programme.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Les importations doivent utiliser une URL https:// sécurisée.';
 
@@ -3457,6 +3517,131 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get importErrorContraDbImportFailed =>
       'Impossible d’importer la danse ContraDB.';
+
+  @override
+  String get importIssueGeneric => 'Cet élément a été importé avec une note.';
+
+  @override
+  String get importIssueProgramEmptySlot =>
+      'Un emplacement vide dans un programme a été ignoré.';
+
+  @override
+  String get importIssueProgramUnresolvedDance =>
+      'Un programme référençait une danse non importée ; l\'emplacement a été conservé comme texte de substitution.';
+
+  @override
+  String get importIssueProgramUnresolvedVenue =>
+      'Un programme référençait un lieu non importé ; le programme a été conservé sans lien vers un lieu.';
+
+  @override
+  String get importIssueArchiveReadError =>
+      'Une entrée du fichier partagé n\'a pas pu être lue et a été ignorée.';
+
+  @override
+  String get importIssueArchiveReadWarning =>
+      'Le fichier partagé a signalé un avertissement lors du décodage.';
+
+  @override
+  String get importIssueDirectionUnmapped =>
+      'Une direction Becket n\'a pas été reconnue ; sens horaire par défaut.';
+
+  @override
+  String get importIssueFormationUnclassified =>
+      'Une formation n\'a pas pu être reconnue ; conservée comme détail sur « other ».';
+
+  @override
+  String get importIssuePhraseStructureUnreadable =>
+      'Une structure de phrase n\'a pas pu être lue ; une structure par défaut a été utilisée.';
+
+  @override
+  String get importIssueProgressionUnmapped =>
+      'Une progression n\'a pas été reconnue ; enregistrée comme « other ».';
+
+  @override
+  String get importIssueMetadataOnlyStub =>
+      'Cette danse n\'est disponible que sous forme de métadonnées (aucune figure) ; importée comme ébauche.';
+
+  @override
+  String get importIssueDateAssumedMdy =>
+      'Une date ambiguë a été lue comme mois/jour (ordre américain) ; vérifiez-la si la source utilisait l\'ordre jour d\'abord.';
+
+  @override
+  String get importIssueDateReducedPrecision =>
+      'Seule l\'année a pu être lue d\'une date ; aucun mois ni jour n\'était présent.';
+
+  @override
+  String get importIssueMissingTitle =>
+      'La danse n\'avait pas de titre ; un titre de substitution a été utilisé. Modifiez-le avant de valider.';
+
+  @override
+  String get importIssueProgramUnparsedDate =>
+      'Une date d\'événement n\'a pas pu être lue ; non définie.';
+
+  @override
+  String get importIssueRatingOutOfRange =>
+      'Une évaluation était hors de l\'échelle 1–5 ; non évaluée.';
+
+  @override
+  String get importIssueUnmappedFormation =>
+      'Une formation n\'a pas été reconnue ; conservée comme détail en texte libre.';
+
+  @override
+  String get importIssueUnmappedLevel =>
+      'Un niveau n\'a pas été reconnu ; non spécifié.';
+
+  @override
+  String get importIssueUnmappedProgression =>
+      'Une progression n\'a pas été reconnue ; simple par défaut.';
+
+  @override
+  String get importIssueUnmappedType =>
+      'Un type de danse n\'a pas été reconnu ; importé comme contra et conservé dans les notes.';
+
+  @override
+  String get importIssueUnparsedDate =>
+      'Une date n\'a pas pu être lue ; non définie.';
+
+  @override
+  String get importIssueUnparsedRating =>
+      'Une évaluation n\'a pas pu être lue ; non évaluée.';
+
+  @override
+  String get importIssueFiguresUnreadable =>
+      'Les figures n\'ont pas pu être lues ; aucune figure importée.';
+
+  @override
+  String get importIssueBeatsUnreadable =>
+      'Un nombre de temps n\'a pas pu être lu ; 0 utilisé.';
+
+  @override
+  String get importIssueNoFiguresTable =>
+      'La page n\'avait aucune figure ; importée comme ébauche de métadonnées uniquement.';
+
+  @override
+  String get importIssueMoveFallback =>
+      'Une figure n\'a pas pu être associée à un mouvement connu ; importée comme personnalisée.';
+
+  @override
+  String get importIssueParamUnmapped =>
+      'Un paramètre de figure n\'a pas pu être associé ; une valeur par défaut de la taxonomie a été utilisée.';
+
+  @override
+  String get importRecordErrorDiscover => 'Cet enregistrement est introuvable.';
+
+  @override
+  String get importRecordErrorFetch =>
+      'Impossible de récupérer cet enregistrement.';
+
+  @override
+  String get importRecordErrorParse => 'Impossible de lire cet enregistrement.';
+
+  @override
+  String get importRecordErrorDedupe =>
+      'Impossible de traiter cet enregistrement.';
+
+  @override
+  String get importRecordErrorCommit =>
+      'Impossible d\'enregistrer cet enregistrement.';
 
   @override
   String get importReviewUsrSubtitle =>
@@ -3955,6 +4140,43 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorWarningsTitle => 'Avertissements';
+
+  @override
+  String validationPhraseBeatMismatch(int actual, int expected) {
+    return 'Les figures totalisent $actual temps ; la structure de phrase en attend $expected.';
+  }
+
+  @override
+  String get validationPhraseInvalid =>
+      'Cette structure de phrase n\'est pas valide.';
+
+  @override
+  String validationOrphanedAlt(int position) {
+    return 'L\'alternative à la position $position n\'a pas d\'emplacement principal précédent.';
+  }
+
+  @override
+  String validationOrphanedAltNamed(int position, String text) {
+    return 'L\'alternative à la position $position (« $text ») n\'a pas d\'emplacement principal précédent.';
+  }
+
+  @override
+  String validationEmptySubstitution(String term) {
+    return 'La substitution pour « $term » est vide.';
+  }
+
+  @override
+  String validationDialectCollision(
+    String source,
+    String existing,
+    String substitution,
+  ) {
+    return '« $source » et « $existing » correspondent tous deux à « $substitution » — l\'inversion serait ambiguë.';
+  }
+
+  @override
+  String get validationGeneric =>
+      'Cet élément présente un problème de validation.';
 
   @override
   String danceEditorDiscouragedTermSemantic(String term) {

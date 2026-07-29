@@ -642,8 +642,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     } catch (_) {
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
-        _onlineError =
-            "Couldn't search ${_onlineSource.label}. Please try again.";
+        _onlineError = l10n.onlineSearchFailed(_onlineSource.label);
         _onlineResults = const [];
         _onlineSearching = false;
       });

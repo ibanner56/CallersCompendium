@@ -13,8 +13,10 @@ import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
+import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../data/venue_label.dart';
+
 import '../editor/program_editor_draft_codec.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_matrix_pdf.dart';
@@ -1636,7 +1638,7 @@ class _ProgramWarningsCard extends StatelessWidget {
                 child: Semantics(
                   liveRegion: true,
                   child: Text(
-                    w.message,
+                    validationIssueMessage(l10n, w),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onTertiaryContainer,
                     ),

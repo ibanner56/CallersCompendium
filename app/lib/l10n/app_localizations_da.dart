@@ -49,6 +49,38 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appBootstrapError => 'Kunne ikke forberede samlingen.';
 
   @override
+  String get migrationDowngradeMessage =>
+      'Disse data blev oprettet med en nyere version af Caller’s Compendium — opdatér appen.';
+
+  @override
+  String migrationSnapshotAbortedMessage(String cause) {
+    return 'Caller’s Compendium startede ikke, fordi der ikke kunne oprettes en automatisk sikkerhedskopi, før dine gemte data blev opgraderet. ${cause}Frigør plads (eller reparer sikkerhedskopimappen), og åbn derefter appen igen — eller åbn igen og vælg at fortsætte uden en sikkerhedskopi.';
+  }
+
+  @override
+  String get migrationSnapshotCauseDiskFull =>
+      'Din enhed ser ud til at have lidt ledig lagerplads.';
+
+  @override
+  String get migrationSnapshotCauseUnwritableBackupsDir =>
+      'Der kunne ikke skrives til den automatiske sikkerhedskopimappe.';
+
+  @override
+  String get migrationSnapshotConsentTitle =>
+      'Kunne ikke sikkerhedskopiere dine data';
+
+  @override
+  String migrationSnapshotConsentBody(String cause) {
+    return 'Før dine gemte data opgraderes til et nyt format, opretter Caller’s Compendium en automatisk sikkerhedskopi, så en mislykket opgradering kan fortrydes. Den sikkerhedskopi kunne ikke oprettes denne gang.$cause\n\nHvis du fortsætter uden en sikkerhedskopi, og opgraderingen afbrydes, kan nogle af dine danse eller programmer gå tabt. Du kan afslutte, frigøre plads (eller reparere sikkerhedskopimappen) og åbne appen igen for at prøve igen.';
+  }
+
+  @override
+  String get migrationSnapshotConsentQuit => 'Afslut';
+
+  @override
+  String get migrationSnapshotConsentProceed => 'Fortsæt uden sikkerhedskopi';
+
+  @override
   String get confirmDeleteTitle => 'Slet?';
 
   @override
@@ -3012,6 +3044,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get onlineImportError => 'Kunne ikke importere den dans.';
 
   @override
+  String onlineSearchFailed(String source) {
+    return 'Kunne ikke søge i $source. Prøv igen.';
+  }
+
+  @override
   String onlineImportCreated(String title) {
     return 'Importerede „$title“.';
   }
@@ -3282,6 +3319,29 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importErrorFileTooLarge => 'Den fil er for stor til at importere.';
 
   @override
+  String get archiveIntakeRejectedTooLarge =>
+      'Den fil er for stor til at importere.';
+
+  @override
+  String get archiveIntakeRejectedUnreadable =>
+      'Kunne ikke læse den delte fil.';
+
+  @override
+  String get archiveIntakeRejectedEmpty => 'Den fil er tom.';
+
+  @override
+  String get archiveIntakeRejectedNotArchive =>
+      'Den fil er ikke en delefil fra Caller’s Compendium.';
+
+  @override
+  String get archiveIntakeRejectedNewerVersion =>
+      'Den fil blev lavet med en nyere version af appen. Opdatér appen for at importere den.';
+
+  @override
+  String get archiveIntakeRejectedNoContent =>
+      'Den fil indeholdt ingen danse eller programmer.';
+
+  @override
   String get importErrorInsecureScheme =>
       'Imports skal bruge en sikker https://-URL.';
 
@@ -3414,6 +3474,128 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get importErrorContraDbImportFailed =>
       'ContraDB-dansen kunne ikke importeres.';
+
+  @override
+  String get importIssueGeneric => 'Dette element blev importeret med en note.';
+
+  @override
+  String get importIssueProgramEmptySlot =>
+      'En tom plads i et program blev sprunget over.';
+
+  @override
+  String get importIssueProgramUnresolvedDance =>
+      'Et program henviste til en dans, der ikke blev importeret; pladsen blev bevaret som en tekstpladsholder.';
+
+  @override
+  String get importIssueProgramUnresolvedVenue =>
+      'Et program henviste til et spillested, der ikke blev importeret; programmet blev bevaret uden spillestedstilknytning.';
+
+  @override
+  String get importIssueArchiveReadError =>
+      'En post i den delte fil kunne ikke læses og blev sprunget over.';
+
+  @override
+  String get importIssueArchiveReadWarning =>
+      'Den delte fil rapporterede en advarsel under afkodning.';
+
+  @override
+  String get importIssueDirectionUnmapped =>
+      'En Becket-retning blev ikke genkendt; standard er med uret.';
+
+  @override
+  String get importIssueFormationUnclassified =>
+      'En formation kunne ikke genkendes; bevaret som detalje på “other”.';
+
+  @override
+  String get importIssuePhraseStructureUnreadable =>
+      'En frastruktur kunne ikke læses; en standardstruktur blev brugt.';
+
+  @override
+  String get importIssueProgressionUnmapped =>
+      'En progression blev ikke genkendt; registreret som “other”.';
+
+  @override
+  String get importIssueMetadataOnlyStub =>
+      'Denne dans er kun tilgængelig som metadata (ingen figurer); importeret som en stub.';
+
+  @override
+  String get importIssueDateAssumedMdy =>
+      'En tvetydig dato blev læst som måned/dag (US-rækkefølge); tjek den, hvis kilden brugte dag-først-rækkefølge.';
+
+  @override
+  String get importIssueDateReducedPrecision =>
+      'Kun året kunne læses fra en dato; der var ingen måned eller dag.';
+
+  @override
+  String get importIssueMissingTitle =>
+      'Dansen havde ingen titel; en pladsholdertitel blev brugt. Redigér den, før du gemmer.';
+
+  @override
+  String get importIssueProgramUnparsedDate =>
+      'En begivenhedsdato kunne ikke læses; ikke angivet.';
+
+  @override
+  String get importIssueRatingOutOfRange =>
+      'En bedømmelse lå uden for skalaen 1–5; ikke bedømt.';
+
+  @override
+  String get importIssueUnmappedFormation =>
+      'En formation blev ikke genkendt; bevaret som fritekstdetalje.';
+
+  @override
+  String get importIssueUnmappedLevel =>
+      'Et niveau blev ikke genkendt; ikke angivet.';
+
+  @override
+  String get importIssueUnmappedProgression =>
+      'En progression blev ikke genkendt; standard til enkelt.';
+
+  @override
+  String get importIssueUnmappedType =>
+      'En dansetype blev ikke genkendt; importeret som en contra og bevaret i noterne.';
+
+  @override
+  String get importIssueUnparsedDate =>
+      'En dato kunne ikke læses; ikke angivet.';
+
+  @override
+  String get importIssueUnparsedRating =>
+      'En bedømmelse kunne ikke læses; ikke bedømt.';
+
+  @override
+  String get importIssueFiguresUnreadable =>
+      'Figurerne kunne ikke læses; ingen figurer blev importeret.';
+
+  @override
+  String get importIssueBeatsUnreadable =>
+      'Et antal slag kunne ikke læses; brugte 0.';
+
+  @override
+  String get importIssueNoFiguresTable =>
+      'Siden havde ingen figurer; importeret som en metadata-only stub.';
+
+  @override
+  String get importIssueMoveFallback =>
+      'En figur kunne ikke matches til en kendt bevægelse; importeret som brugerdefineret.';
+
+  @override
+  String get importIssueParamUnmapped =>
+      'En figurparameter kunne ikke tilknyttes; en taksonomistandard blev brugt.';
+
+  @override
+  String get importRecordErrorDiscover => 'Denne post kunne ikke findes.';
+
+  @override
+  String get importRecordErrorFetch => 'Denne post kunne ikke hentes.';
+
+  @override
+  String get importRecordErrorParse => 'Denne post kunne ikke læses.';
+
+  @override
+  String get importRecordErrorDedupe => 'Denne post kunne ikke behandles.';
+
+  @override
+  String get importRecordErrorCommit => 'Denne post kunne ikke gemmes.';
 
   @override
   String get importReviewUsrSubtitle =>
@@ -3903,6 +4085,41 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorWarningsTitle => 'Advarsler';
+
+  @override
+  String validationPhraseBeatMismatch(int actual, int expected) {
+    return 'Figurerne tæller i alt $actual slag; frastrukturen forventer $expected.';
+  }
+
+  @override
+  String get validationPhraseInvalid => 'Den frastruktur er ugyldig.';
+
+  @override
+  String validationOrphanedAlt(int position) {
+    return 'Alternativet på position $position har ingen forudgående primær plads.';
+  }
+
+  @override
+  String validationOrphanedAltNamed(int position, String text) {
+    return 'Alternativet på position $position (“$text”) har ingen forudgående primær plads.';
+  }
+
+  @override
+  String validationEmptySubstitution(String term) {
+    return 'Erstatningen for “$term” er tom.';
+  }
+
+  @override
+  String validationDialectCollision(
+    String source,
+    String existing,
+    String substitution,
+  ) {
+    return '“$source” og “$existing” peger begge på “$substitution” — en omvendelse ville være tvetydig.';
+  }
+
+  @override
+  String get validationGeneric => 'Dette element har et valideringsproblem.';
 
   @override
   String danceEditorDiscouragedTermSemantic(String term) {

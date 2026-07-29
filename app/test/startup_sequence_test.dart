@@ -338,7 +338,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text(error.message), findsOneWidget);
+      expect(
+        find.text(
+          'This data was created by a newer version of Caller\u2019s Compendium '
+          '\u2014 please update the app.',
+        ),
+        findsOneWidget,
+      );
       expect(find.byType(AppShell), findsNothing);
       // Retrying can't help — the fix is to update the app — so it's hidden.
       expect(find.text('Retry'), findsNothing);

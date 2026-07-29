@@ -49,6 +49,36 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appBootstrapError => 'コレクションを準備できませんでした。';
 
   @override
+  String get migrationDowngradeMessage =>
+      'このデータは新しいバージョンのCaller’s Compendiumで作成されました。アプリを更新してください。';
+
+  @override
+  String migrationSnapshotAbortedMessage(String cause) {
+    return '保存データをアップグレードする前に自動バックアップを作成できなかったため、Caller’s Compendiumを起動できませんでした。$cause空き容量を確保する（またはバックアップフォルダを修復する）か、アプリを再度開いてください。あるいは、再度開いてバックアップなしで続行することもできます。';
+  }
+
+  @override
+  String get migrationSnapshotCauseDiskFull => 'デバイスの空き容量が不足しているようです。';
+
+  @override
+  String get migrationSnapshotCauseUnwritableBackupsDir =>
+      '自動バックアップフォルダに書き込めませんでした。';
+
+  @override
+  String get migrationSnapshotConsentTitle => 'データをバックアップできませんでした';
+
+  @override
+  String migrationSnapshotConsentBody(String cause) {
+    return '保存データを新しい形式にアップグレードする前に、Caller’s Compendiumは自動バックアップを作成し、アップグレードに失敗しても元に戻せるようにします。今回はそのバックアップを作成できませんでした。$cause\n\nバックアップなしで続行してアップグレードが中断されると、一部のダンスやプログラムが失われる可能性があります。アプリを終了し、空き容量を確保（またはバックアップフォルダを修復）してから、アプリを再度開いてもう一度お試しください。';
+  }
+
+  @override
+  String get migrationSnapshotConsentQuit => '終了';
+
+  @override
+  String get migrationSnapshotConsentProceed => 'バックアップなしで続行';
+
+  @override
   String get confirmDeleteTitle => '削除しますか？';
 
   @override
@@ -2931,6 +2961,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onlineImportError => 'そのダンスをインポートできませんでした。';
 
   @override
+  String onlineSearchFailed(String source) {
+    return '$sourceを検索できませんでした。もう一度お試しください。';
+  }
+
+  @override
   String onlineImportCreated(String title) {
     return '「$title」をインポートしました。';
   }
@@ -3186,6 +3221,26 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importErrorFileTooLarge => 'そのファイルはインポートするには大きすぎます。';
 
   @override
+  String get archiveIntakeRejectedTooLarge => 'そのファイルはインポートするには大きすぎます。';
+
+  @override
+  String get archiveIntakeRejectedUnreadable => '共有ファイルを読み取れませんでした。';
+
+  @override
+  String get archiveIntakeRejectedEmpty => 'そのファイルは空です。';
+
+  @override
+  String get archiveIntakeRejectedNotArchive =>
+      'そのファイルはCaller’s Compendiumの共有ファイルではありません。';
+
+  @override
+  String get archiveIntakeRejectedNewerVersion =>
+      'そのファイルは新しいバージョンのアプリで作成されました。インポートするにはアプリを更新してください。';
+
+  @override
+  String get archiveIntakeRejectedNoContent => 'そのファイルにはダンスもプログラムも含まれていませんでした。';
+
+  @override
   String get importErrorInsecureScheme => 'インポートには安全なhttps:// URLを使用する必要があります。';
 
   @override
@@ -3309,6 +3364,118 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importErrorContraDbImportFailed => 'ContraDBのダンスをインポートできませんでした。';
+
+  @override
+  String get importIssueGeneric => 'この項目は注記付きでインポートされました。';
+
+  @override
+  String get importIssueProgramEmptySlot => 'プログラム内の空のスロットをスキップしました。';
+
+  @override
+  String get importIssueProgramUnresolvedDance =>
+      'プログラムがインポートされていないダンスを参照していたため、スロットをテキストのプレースホルダーとして保持しました。';
+
+  @override
+  String get importIssueProgramUnresolvedVenue =>
+      'プログラムがインポートされていない会場を参照していたため、会場リンクなしでプログラムを保持しました。';
+
+  @override
+  String get importIssueArchiveReadError => '共有ファイル内のエントリを読み取れなかったため、スキップしました。';
+
+  @override
+  String get importIssueArchiveReadWarning => '共有ファイルのデコード中に警告が報告されました。';
+
+  @override
+  String get importIssueDirectionUnmapped =>
+      'Becketの方向を認識できませんでした。既定で時計回りにしました。';
+
+  @override
+  String get importIssueFormationUnclassified =>
+      'フォーメーションを認識できませんでした。「other」の詳細として保持しました。';
+
+  @override
+  String get importIssuePhraseStructureUnreadable =>
+      'フレーズ構造を読み取れませんでした。既定の構造を使用しました。';
+
+  @override
+  String get importIssueProgressionUnmapped =>
+      'プログレッションを認識できませんでした。「other」として記録しました。';
+
+  @override
+  String get importIssueMetadataOnlyStub =>
+      'このダンスはメタデータのみ利用可能です（フィギュアなし）。スタブとしてインポートしました。';
+
+  @override
+  String get importIssueDateAssumedMdy =>
+      'あいまいな日付を月/日（米国式の順序）として読み取りました。元データが日付先の順序を使用していた場合は確認してください。';
+
+  @override
+  String get importIssueDateReducedPrecision => '日付から年のみを読み取れました。月や日はありませんでした。';
+
+  @override
+  String get importIssueMissingTitle =>
+      'ダンスにタイトルがなかったため、プレースホルダーのタイトルを使用しました。確定する前に編集してください。';
+
+  @override
+  String get importIssueProgramUnparsedDate => 'イベントの日付を読み取れませんでした。未設定のままです。';
+
+  @override
+  String get importIssueRatingOutOfRange => '評価が1〜5の範囲外でした。未評価のままです。';
+
+  @override
+  String get importIssueUnmappedFormation =>
+      'フォーメーションを認識できませんでした。自由記述の詳細として保持しました。';
+
+  @override
+  String get importIssueUnmappedLevel => 'レベルを認識できませんでした。未指定のままです。';
+
+  @override
+  String get importIssueUnmappedProgression =>
+      'プログレッションを認識できませんでした。既定でシングルにしました。';
+
+  @override
+  String get importIssueUnmappedType =>
+      'ダンスの種類を認識できませんでした。コントラとしてインポートし、ノートに保持しました。';
+
+  @override
+  String get importIssueUnparsedDate => '日付を読み取れませんでした。未設定のままです。';
+
+  @override
+  String get importIssueUnparsedRating => '評価を読み取れませんでした。未評価のままです。';
+
+  @override
+  String get importIssueFiguresUnreadable =>
+      'フィギュアを読み取れませんでした。フィギュアはインポートされませんでした。';
+
+  @override
+  String get importIssueBeatsUnreadable => '拍数を読み取れませんでした。0を使用しました。';
+
+  @override
+  String get importIssueNoFiguresTable =>
+      'ページにフィギュアがありませんでした。メタデータのみのスタブとしてインポートしました。';
+
+  @override
+  String get importIssueMoveFallback =>
+      'フィギュアを既知のムーブに一致させられませんでした。カスタムとしてインポートしました。';
+
+  @override
+  String get importIssueParamUnmapped =>
+      'フィギュアのパラメーターをマッピングできませんでした。タクソノミーの既定値を使用しました。';
+
+  @override
+  String get importRecordErrorDiscover => 'このレコードが見つかりませんでした。';
+
+  @override
+  String get importRecordErrorFetch => 'このレコードを取得できませんでした。';
+
+  @override
+  String get importRecordErrorParse => 'このレコードを読み取れませんでした。';
+
+  @override
+  String get importRecordErrorDedupe => 'このレコードを処理できませんでした。';
+
+  @override
+  String get importRecordErrorCommit => 'このレコードを保存できませんでした。';
 
   @override
   String get importReviewUsrSubtitle =>
@@ -3780,6 +3947,41 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorWarningsTitle => '警告';
+
+  @override
+  String validationPhraseBeatMismatch(int actual, int expected) {
+    return 'フィギュアの合計は$actual拍ですが、フレーズ構造では$expectedが必要です。';
+  }
+
+  @override
+  String get validationPhraseInvalid => 'そのフレーズ構造は無効です。';
+
+  @override
+  String validationOrphanedAlt(int position) {
+    return '位置$positionの代替には、先行する主要スロットがありません。';
+  }
+
+  @override
+  String validationOrphanedAltNamed(int position, String text) {
+    return '位置$position（「$text」）の代替には、先行する主要スロットがありません。';
+  }
+
+  @override
+  String validationEmptySubstitution(String term) {
+    return '「$term」の置換が空です。';
+  }
+
+  @override
+  String validationDialectCollision(
+    String source,
+    String existing,
+    String substitution,
+  ) {
+    return '「$source」と「$existing」はどちらも「$substitution」に対応するため、反転するとあいまいになります。';
+  }
+
+  @override
+  String get validationGeneric => 'この項目には検証上の問題があります。';
 
   @override
   String danceEditorDiscouragedTermSemantic(String term) {

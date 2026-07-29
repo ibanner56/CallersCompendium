@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/migration_error_labels.dart';
 import '../data/migration_guard.dart'
     show DatabaseDowngradeError, MigrationSnapshotAborted, SnapshotFailureCause;
 
@@ -60,7 +61,10 @@ class AppBootstrap extends StatelessWidget {
                     children: [
                       const Icon(Icons.system_update_alt, size: 48),
                       const SizedBox(height: 8),
-                      Text(error.message, textAlign: TextAlign.center),
+                      Text(
+                        databaseDowngradeMessage(l10n),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
@@ -82,7 +86,10 @@ class AppBootstrap extends StatelessWidget {
                     children: [
                       Icon(_snapshotAbortedIcon(error.failure.cause), size: 48),
                       const SizedBox(height: 8),
-                      Text(error.message, textAlign: TextAlign.center),
+                      Text(
+                        migrationSnapshotAbortedMessage(l10n, error.failure),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),

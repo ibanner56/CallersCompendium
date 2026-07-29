@@ -116,16 +116,23 @@ void main() {
   });
 
   group('rejected gracefully (never throws, decodes to nothing)', () {
-    void expectRejected(ArchiveIntakeValidation result) {
+    void expectRejected(
+      ArchiveIntakeValidation result, {
+      ArchiveIntakeRejectionReason? reason,
+    }) {
       expect(result.isRejected, isTrue);
       expect(result.isValidated, isFalse);
-      expect(result.message, isNotNull);
+      expect(result.reason, isNotNull);
+      if (reason != null) expect(result.reason, reason);
       expect(result.archive, isNull);
       expect(result.json, isNull);
     }
 
     test('malformed (not JSON) is rejected', () async {
-      expectRejected(await service().validateBytes(_bytes('this is not json')));
+      expectRejected(
+        await service().validateBytes(_bytes('this is not json')),
+        reason: ArchiveIntakeRejectionReason.notArchive,
+      );
     });
 
     test('non-UTF-8 bytes are rejected', () async {
@@ -135,28 +142,39 @@ void main() {
         await service().validateBytes(
           Uint8List.fromList([0xFF, 0xFE, 0x00, 0x80, 0xC0]),
         ),
+        reason: ArchiveIntakeRejectionReason.notArchive,
       );
     });
 
     test('a non-object JSON root is rejected', () async {
-      expectRejected(await service().validateBytes(_bytes('[1, 2, 3]')));
+      expectRejected(
+        await service().validateBytes(_bytes('[1, 2, 3]')),
+        reason: ArchiveIntakeRejectionReason.notArchive,
+      );
     });
 
     test('empty file is rejected', () async {
-      expectRejected(await service().validateBytes(Uint8List(0)));
+      expectRejected(
+        await service().validateBytes(Uint8List(0)),
+        reason: ArchiveIntakeRejectionReason.empty,
+      );
     });
 
     test('a well-formed archive with no content is rejected', () async {
       final json = encodeArchive(
         CompendiumArchive(exportedAt: DateTime.utc(2026)),
       );
-      expectRejected(await service().validateBytes(_bytes(json)));
+      expectRejected(
+        await service().validateBytes(_bytes(json)),
+        reason: ArchiveIntakeRejectionReason.noContent,
+      );
     });
 
     test('oversized bytes are rejected', () async {
       // maxBytes tiny; the valid bundle exceeds it.
       expectRejected(
         await service(maxBytes: 8).validateBytes(_bytes(_validBundleJson())),
+        reason: ArchiveIntakeRejectionReason.tooLarge,
       );
     });
 
@@ -173,15 +191,14 @@ void main() {
       ).validateFromPath('/anywhere/huge.json');
 
       expect(readCalled, isTrue);
-      expectRejected(result);
+      expectRejected(result, reason: ArchiveIntakeRejectionReason.tooLarge);
     });
 
-    test('a newer-schema archive is refused with a clear message', () async {
+    test('a newer-schema archive is refused with a clear reason', () async {
       final json = _validBundleJson(schemaVersion: archiveSchemaVersion + 1);
       final result = await service().validateBytes(_bytes(json));
 
-      expectRejected(result);
-      expect(result.message, contains('newer version'));
+      expectRejected(result, reason: ArchiveIntakeRejectionReason.newerVersion);
     });
 
     test('an unreadable file path is rejected gracefully', () async {
@@ -189,6 +206,7 @@ void main() {
         await service(
           readBytes: (path) async => throw const FileSystemException('nope'),
         ).validateFromPath('/missing.json'),
+        reason: ArchiveIntakeRejectionReason.unreadable,
       );
     });
   });

@@ -30,11 +30,38 @@ class OversizedArchiveException implements Exception {
 /// Whether an intake attempt produced a validated bundle or rejected it.
 enum ArchiveIntakeStatus { validated, rejected }
 
+/// Why an intake attempt was rejected. This is the stable, localization-friendly
+/// discriminator the UI maps to a user-facing string (via
+/// `archive_intake_labels.dart`) — intake itself never bakes English prose.
+///
+/// Every reason maps to a **generic, non-leaking** message: none echoes a path,
+/// raw bytes, or lower-layer parser text (CWE-209).
+enum ArchiveIntakeRejectionReason {
+  /// The file exceeds the size cap (rejected before/without full read).
+  tooLarge,
+
+  /// The file could not be read from disk at all.
+  unreadable,
+
+  /// The file was empty.
+  empty,
+
+  /// The bytes are not a well-formed Caller's Compendium archive (bad UTF-8,
+  /// non-archive JSON, or an unreadable envelope).
+  notArchive,
+
+  /// The archive was written by a newer app version than this build understands.
+  newerVersion,
+
+  /// The archive decoded fine but carried neither dances nor programs.
+  noContent,
+}
+
 /// The outcome of an [ArchiveIntakeService] attempt. Intake **never throws** to
 /// the caller: every failure — missing/unreadable file, oversized input,
 /// non-text bytes, non-archive JSON, an unsupported (newer) schema, or an empty
-/// bundle — resolves to a [rejected] result carrying a short, non-leaking,
-/// user-facing [message].
+/// bundle — resolves to a [rejected] result carrying a stable, non-leaking
+/// [reason] the UI maps to a user-facing string.
 ///
 /// A [validated] result carries the decoded [archive], the raw [json] the
 /// review screen re-plans from, and the pre-computed [entityCount]
@@ -48,7 +75,7 @@ class ArchiveIntakeValidation {
     this.json,
     this.archive,
     this.entityCount = 0,
-    this.message,
+    this.reason,
   });
 
   factory ArchiveIntakeValidation.validated({
@@ -62,8 +89,9 @@ class ArchiveIntakeValidation {
     entityCount: entityCount,
   );
 
-  factory ArchiveIntakeValidation.rejected(String message) =>
-      ArchiveIntakeValidation._(ArchiveIntakeStatus.rejected, message: message);
+  factory ArchiveIntakeValidation.rejected(
+    ArchiveIntakeRejectionReason reason,
+  ) => ArchiveIntakeValidation._(ArchiveIntakeStatus.rejected, reason: reason);
 
   final ArchiveIntakeStatus status;
 
@@ -80,9 +108,11 @@ class ArchiveIntakeValidation {
   /// from a self-reported field in the untrusted bundle.
   final int entityCount;
 
-  /// User-facing rejection reason. Deliberately generic — it never echoes
-  /// parser internals, paths, or stack traces (no information leak).
-  final String? message;
+  /// User-facing rejection reason as a stable discriminator. Deliberately
+  /// carries no prose — the UI maps it to a generic, non-leaking localized
+  /// string (`archive_intake_labels.dart`); it never echoes parser internals,
+  /// paths, or stack traces (no information leak).
+  final ArchiveIntakeRejectionReason? reason;
 
   bool get isValidated => status == ArchiveIntakeStatus.validated;
   bool get isRejected => status == ArchiveIntakeStatus.rejected;
@@ -125,10 +155,12 @@ class ArchiveIntakeService {
       bytes = await (_injectedReader ?? _readFileWithCap)(path);
     } on OversizedArchiveException {
       return ArchiveIntakeValidation.rejected(
-        'That file is too large to import.',
+        ArchiveIntakeRejectionReason.tooLarge,
       );
     } catch (_) {
-      return ArchiveIntakeValidation.rejected("Couldn't read the shared file.");
+      return ArchiveIntakeValidation.rejected(
+        ArchiveIntakeRejectionReason.unreadable,
+      );
     }
     return validateBytes(bytes);
   }
@@ -141,11 +173,13 @@ class ArchiveIntakeService {
     // Defense in depth: re-check the cap even when bytes are supplied directly.
     if (bytes.length > maxBytes) {
       return ArchiveIntakeValidation.rejected(
-        'That file is too large to import.',
+        ArchiveIntakeRejectionReason.tooLarge,
       );
     }
     if (bytes.isEmpty) {
-      return ArchiveIntakeValidation.rejected('That file is empty.');
+      return ArchiveIntakeValidation.rejected(
+        ArchiveIntakeRejectionReason.empty,
+      );
     }
 
     final String json;
@@ -153,7 +187,7 @@ class ArchiveIntakeService {
       json = utf8.decode(bytes);
     } catch (_) {
       return ArchiveIntakeValidation.rejected(
-        "That file isn't a Caller's Compendium share file.",
+        ArchiveIntakeRejectionReason.notArchive,
       );
     }
 
@@ -164,7 +198,7 @@ class ArchiveIntakeService {
       // decodeArchive is contract-bound not to throw for recoverable problems,
       // but stay defensive — never let anything escape intake.
       return ArchiveIntakeValidation.rejected(
-        "That file isn't a Caller's Compendium share file.",
+        ArchiveIntakeRejectionReason.notArchive,
       );
     }
 
@@ -173,21 +207,20 @@ class ArchiveIntakeService {
     );
     if (rootUnreadable) {
       return ArchiveIntakeValidation.rejected(
-        "That file isn't a Caller's Compendium share file.",
+        ArchiveIntakeRejectionReason.notArchive,
       );
     }
 
     final archive = read.archive;
     if (archive.schemaVersion > archiveSchemaVersion) {
       return ArchiveIntakeValidation.rejected(
-        'That file was made by a newer version of the app. Please update to '
-        'import it.',
+        ArchiveIntakeRejectionReason.newerVersion,
       );
     }
 
     if (archive.dances.isEmpty && archive.programs.isEmpty) {
       return ArchiveIntakeValidation.rejected(
-        "That file didn't contain any dances or programs.",
+        ArchiveIntakeRejectionReason.noContent,
       );
     }
 
