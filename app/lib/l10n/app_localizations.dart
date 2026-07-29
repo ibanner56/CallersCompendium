@@ -5737,6 +5737,132 @@ abstract class AppLocalizations {
   /// **'Step-by-step description of the dance and its transitions'**
   String get danceEditorWalkthroughHelper;
 
+  /// Button that reveals the optional per-figure walkthrough step-description field in the figure editor (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Add walkthrough step'**
+  String get danceEditorAddWalkthroughStep;
+
+  /// Label for the per-figure walkthrough step-description text field (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough step (optional)'**
+  String get danceEditorWalkthroughStepLabel;
+
+  /// Helper text under the per-figure walkthrough step field explaining learn-on-first-entry (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Saved as your default for this figure and reused wherever it appears.'**
+  String get danceEditorWalkthroughStepHelper;
+
+  /// Title of the prompt shown when a per-figure walkthrough snippet differs from the saved default (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Update your saved snippet?'**
+  String get danceEditorSnippetDivergenceTitle;
+
+  /// Body of the divergence prompt for a per-figure walkthrough snippet (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'This differs from the walkthrough snippet you saved for this figure. Use the new text everywhere, or just in this dance?'**
+  String get danceEditorSnippetDivergenceBody;
+
+  /// Choice that updates the global default walkthrough snippet for this figure (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Use everywhere'**
+  String get danceEditorSnippetUseEverywhere;
+
+  /// Choice that keeps a per-figure walkthrough snippet as an override for the current dance only (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Just this dance'**
+  String get danceEditorSnippetJustThisDance;
+
+  /// Button that assembles the walkthrough text from the dance's per-figure snippets (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Fill from snippets'**
+  String get danceEditorFillWalkthroughFromSnippets;
+
+  /// Title of the confirmation shown before overwriting existing walkthrough text with one assembled from snippets (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace walkthrough?'**
+  String get danceEditorFillWalkthroughReplaceTitle;
+
+  /// Body of the confirmation before overwriting the walkthrough with an assembled one (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces the current walkthrough with text assembled from your figure snippets.'**
+  String get danceEditorFillWalkthroughReplaceBody;
+
+  /// Confirm button that overwrites the walkthrough with an assembled one (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get danceEditorFillWalkthroughReplaceConfirm;
+
+  /// Message shown when there are no snippets to assemble a walkthrough from (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'None of these figures have a saved walkthrough snippet yet.'**
+  String get danceEditorFillWalkthroughEmpty;
+
+  /// Settings row title opening the personal walkthrough-snippet library editor (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough snippets'**
+  String get settingsWalkthroughSnippetsTitle;
+
+  /// Settings row subtitle for the walkthrough-snippet library editor (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved per-figure step descriptions'**
+  String get settingsWalkthroughSnippetsSubtitle;
+
+  /// Header on the walkthrough-snippet library editor screen (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Saved walkthrough snippets'**
+  String get settingsWalkthroughSnippetsHeader;
+
+  /// Explanatory text at the top of the walkthrough-snippet library editor (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.'**
+  String get settingsWalkthroughSnippetsDescription;
+
+  /// Empty-state text on the walkthrough-snippet library editor when the library is empty (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'No saved snippets yet. Add walkthrough step descriptions while editing a dance\'s figures.'**
+  String get settingsWalkthroughSnippetsEmpty;
+
+  /// Count of saved walkthrough snippets (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 snippet} other{{count} snippets}}'**
+  String settingsWalkthroughSnippetsCount(int count);
+
+  /// Title of the confirmation before deleting a saved walkthrough snippet (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete snippet?'**
+  String get settingsWalkthroughSnippetDeleteTitle;
+
+  /// Body of the confirmation before deleting a saved walkthrough snippet (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.'**
+  String get settingsWalkthroughSnippetDeleteBody;
+
+  /// Title of the dialog for editing a saved walkthrough snippet's text (#411).
+  ///
+  /// In en, this message translates to:
+  /// **'Edit snippet'**
+  String get settingsWalkthroughSnippetEditTitle;
+
   /// Expansion tile title for less frequently used dance metadata fields.
   ///
   /// In en, this message translates to:

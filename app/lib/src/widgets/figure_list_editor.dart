@@ -51,6 +51,8 @@ class FigureListEditor extends StatefulWidget {
     this.freeTextEntry = false,
     this.onAddFreeText,
     this.shorthandMappings,
+    this.snippetLibraryDefaultFor,
+    this.onSnippetCommitted,
   });
 
   final List<FigureDraft> drafts;
@@ -108,6 +110,18 @@ class FigureListEditor extends StatefulWidget {
   /// parsed. `null` (the default) disables shorthand expansion, preserving the
   /// pure #419 parse behavior. Only relevant when [freeTextEntry] is enabled.
   final ShorthandMappings? shorthandMappings;
+
+  /// Resolves the GLOBAL walkthrough-snippet library default for a figure draft
+  /// (#411) — the text stored for the draft's figure signature, ignoring any
+  /// per-dance override. `null` (the default) hides the per-figure walkthrough
+  /// snippet affordance entirely (e.g. no snippet-library scope in the tree).
+  final String? Function(FigureDraft draft)? snippetLibraryDefaultFor;
+
+  /// Invoked when the user commits a per-figure walkthrough snippet edit (the
+  /// field loses focus). The parent runs the learn-on-first-entry /
+  /// divergence-prompt flow (#411) and may update [draft.walkthroughOverride]
+  /// and/or the global library. Only wired when [snippetLibraryDefaultFor] is.
+  final void Function(FigureDraft draft)? onSnippetCommitted;
 
   @override
   State<FigureListEditor> createState() => _FigureListEditorState();
@@ -507,6 +521,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
             ? null
             : () => _reorder(i, i + 1, refocus: true),
         onCut: isCutCard ? null : () => _startCut(draft.id),
+        snippetLibraryDefaultFor: widget.snippetLibraryDefaultFor,
+        onSnippetCommitted: widget.onSnippetCommitted,
       );
     }
 
@@ -788,6 +804,8 @@ class _FigureDraftCard extends StatefulWidget {
     this.onMoveUp,
     this.onMoveDown,
     this.onCut,
+    this.snippetLibraryDefaultFor,
+    this.onSnippetCommitted,
   });
 
   final int index;
@@ -846,6 +864,14 @@ class _FigureDraftCard extends StatefulWidget {
   /// Null when this figure is already the cut figure.
   final VoidCallback? onCut;
 
+  /// Resolves the global snippet-library default for this figure (#411); `null`
+  /// hides the walkthrough-snippet affordance. See [FigureListEditor].
+  final String? Function(FigureDraft draft)? snippetLibraryDefaultFor;
+
+  /// Commit hook for a per-figure snippet edit (field blur). See
+  /// [FigureListEditor.onSnippetCommitted].
+  final void Function(FigureDraft draft)? onSnippetCommitted;
+
   @override
   State<_FigureDraftCard> createState() => _FigureDraftCardState();
 }
@@ -863,10 +889,28 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// user taps "+ Add note".
   bool _justRevealedNote = false;
 
+  /// Whether the on-demand walkthrough snippet field is revealed (#411). An
+  /// existing resolved snippet (override or library default) is always shown; an
+  /// empty one starts hidden behind the "+ Add walkthrough step" button.
+  bool _showSnippet = false;
+
+  /// One-shot autofocus flag for the snippet field, mirroring [_justRevealedNote].
+  bool _justRevealedSnippet = false;
+
   @override
   void initState() {
     super.initState();
     _showNote = widget.draft.note.trim().isNotEmpty;
+    _showSnippet = _resolvedSnippet().trim().isNotEmpty;
+  }
+
+  /// The snippet text currently shown for this figure: the per-dance override
+  /// if set, else the global library default (via [widget.snippetLibraryDefaultFor]),
+  /// else empty.
+  String _resolvedSnippet() {
+    final override = widget.draft.walkthroughOverride?.trim();
+    if (override != null && override.isNotEmpty) return override;
+    return widget.snippetLibraryDefaultFor?.call(widget.draft) ?? '';
   }
 
   // --- Move mutations (live) ------------------------------------------------
@@ -1447,6 +1491,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 _buildProgressionToggle(context, def),
                 const SizedBox(height: 8),
                 _buildNote(context),
+                _buildWalkthroughSnippet(context),
               ],
             ],
           ),
@@ -1515,6 +1560,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               _buildProgressionToggle(context, null),
               const SizedBox(height: 8),
               _buildNote(context),
+              _buildWalkthroughSnippet(context),
             ],
           ),
         ),
@@ -1672,6 +1718,55 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         draft.note = text;
         widget.onChanged();
       },
+    );
+  }
+
+  /// The on-demand per-figure **walkthrough snippet** field (#411). Shown only
+  /// when the parent wired [widget.snippetLibraryDefaultFor] (a snippet-library
+  /// scope is present) and a move is chosen. Seeded with the resolved snippet
+  /// (override → library default); edits update the per-dance override live and
+  /// the learn/divergence flow runs on blur via [widget.onSnippetCommitted].
+  Widget _buildWalkthroughSnippet(BuildContext context) {
+    if (widget.snippetLibraryDefaultFor == null || widget.draft.move == null) {
+      return const SizedBox.shrink();
+    }
+    final l10n = AppLocalizations.of(context);
+    final draft = widget.draft;
+    final resolved = _resolvedSnippet();
+    final showField = _showSnippet || resolved.trim().isNotEmpty;
+    if (!showField) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: ValueKey('figure-${widget.index}-add-walkthrough'),
+          onPressed: () => setState(() {
+            _showSnippet = true;
+            _justRevealedSnippet = true;
+          }),
+          icon: const Icon(Icons.menu_book_outlined, size: 18),
+          label: Text(l10n.danceEditorAddWalkthroughStep),
+          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+        ),
+      );
+    }
+    final autofocus = _justRevealedSnippet;
+    if (_justRevealedSnippet) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _justRevealedSnippet = false;
+      });
+    }
+    return _SnippetField(
+      key: ValueKey('figure-${widget.index}-walkthrough-${draft.id}'),
+      fieldKey: 'figure-${widget.index}-walkthrough',
+      dialect: widget.dialect,
+      taxonomy: widget.taxonomy,
+      value: resolved,
+      autofocus: autofocus,
+      onChanged: (text) {
+        draft.walkthroughOverride = text;
+        widget.onChanged();
+      },
+      onCommit: () => widget.onSnippetCommitted?.call(draft),
     );
   }
 }
@@ -1967,6 +2062,113 @@ class _NoteFieldState extends State<_NoteField> {
           autofocus: widget.autofocus,
           decoration: InputDecoration(
             labelText: l10n.danceEditorNoteOptionalLabel,
+            isDense: true,
+            border: const OutlineInputBorder(),
+          ),
+          onChanged: widget.onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+/// A per-figure **walkthrough snippet** field (#411). Mirrors [_NoteField]'s
+/// lingo-aware editing, but commits on blur (loses focus) so the parent can run
+/// the learn-on-first-entry / divergence-prompt flow once, when the user is done
+/// editing — not on every keystroke. Live keystrokes still flow through
+/// [onChanged] so the per-dance override and autosave/undo stay in sync.
+class _SnippetField extends StatefulWidget {
+  const _SnippetField({
+    super.key,
+    required this.fieldKey,
+    required this.dialect,
+    required this.taxonomy,
+    required this.value,
+    required this.onChanged,
+    required this.onCommit,
+    this.autofocus = false,
+  });
+
+  final String fieldKey;
+  final Dialect dialect;
+  final Taxonomy taxonomy;
+  final String value;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onCommit;
+  final bool autofocus;
+
+  @override
+  State<_SnippetField> createState() => _SnippetFieldState();
+}
+
+class _SnippetFieldState extends State<_SnippetField> {
+  late final LingoTextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = LingoTextEditingController(
+      text: widget.value,
+      dialect: widget.dialect,
+      taxonomy: widget.taxonomy,
+    );
+    _focusNode = FocusNode(debugLabel: widget.fieldKey);
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    // Commit once, when focus LEAVES the field — the point at which a snippet
+    // edit is "done" and the learn/divergence flow should run.
+    if (!_focusNode.hasFocus) widget.onCommit();
+  }
+
+  @override
+  void didUpdateWidget(_SnippetField old) {
+    super.didUpdateWidget(old);
+    if (widget.value != old.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+    if (widget.dialect != old.dialect) {
+      _controller.updateDialect(widget.dialect);
+    }
+    if (widget.taxonomy != old.taxonomy) {
+      _controller.updateTaxonomy(widget.taxonomy);
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _EmphasisToolbar(
+          fieldKey: widget.fieldKey,
+          controller: _controller,
+          onChanged: widget.onChanged,
+        ),
+        TextField(
+          key: ValueKey(widget.fieldKey),
+          controller: _controller,
+          focusNode: _focusNode,
+          autofocus: widget.autofocus,
+          minLines: 1,
+          maxLines: 4,
+          maxLength: kMaxWalkthroughSnippetLength,
+          decoration: InputDecoration(
+            labelText: l10n.danceEditorWalkthroughStepLabel,
+            helperText: l10n.danceEditorWalkthroughStepHelper,
+            helperMaxLines: 2,
             isDense: true,
             border: const OutlineInputBorder(),
           ),

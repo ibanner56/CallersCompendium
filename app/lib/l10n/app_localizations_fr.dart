@@ -3748,6 +3748,85 @@ class AppLocalizationsFr extends AppLocalizations {
       'Description étape par étape de la danse et de ses transitions';
 
   @override
+  String get danceEditorAddWalkthroughStep => 'Add walkthrough step';
+
+  @override
+  String get danceEditorWalkthroughStepLabel => 'Walkthrough step (optional)';
+
+  @override
+  String get danceEditorWalkthroughStepHelper =>
+      'Saved as your default for this figure and reused wherever it appears.';
+
+  @override
+  String get danceEditorSnippetDivergenceTitle => 'Update your saved snippet?';
+
+  @override
+  String get danceEditorSnippetDivergenceBody =>
+      'This differs from the walkthrough snippet you saved for this figure. Use the new text everywhere, or just in this dance?';
+
+  @override
+  String get danceEditorSnippetUseEverywhere => 'Use everywhere';
+
+  @override
+  String get danceEditorSnippetJustThisDance => 'Just this dance';
+
+  @override
+  String get danceEditorFillWalkthroughFromSnippets => 'Fill from snippets';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceTitle => 'Replace walkthrough?';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceBody =>
+      'This replaces the current walkthrough with text assembled from your figure snippets.';
+
+  @override
+  String get danceEditorFillWalkthroughReplaceConfirm => 'Replace';
+
+  @override
+  String get danceEditorFillWalkthroughEmpty =>
+      'None of these figures have a saved walkthrough snippet yet.';
+
+  @override
+  String get settingsWalkthroughSnippetsTitle => 'Walkthrough snippets';
+
+  @override
+  String get settingsWalkthroughSnippetsSubtitle =>
+      'Your saved per-figure step descriptions';
+
+  @override
+  String get settingsWalkthroughSnippetsHeader => 'Saved walkthrough snippets';
+
+  @override
+  String get settingsWalkthroughSnippetsDescription =>
+      'These per-figure step descriptions pre-fill walkthroughs when you edit a dance. Editing one here updates the default used everywhere.';
+
+  @override
+  String get settingsWalkthroughSnippetsEmpty =>
+      'No saved snippets yet. Add walkthrough step descriptions while editing a dance\'s figures.';
+
+  @override
+  String settingsWalkthroughSnippetsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count snippets',
+      one: '1 snippet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsWalkthroughSnippetDeleteTitle => 'Delete snippet?';
+
+  @override
+  String get settingsWalkthroughSnippetDeleteBody =>
+      'This removes the saved default for this figure. Dances keep any walkthrough text you already wrote.';
+
+  @override
+  String get settingsWalkthroughSnippetEditTitle => 'Edit snippet';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Plus de détails';
 
   @override
