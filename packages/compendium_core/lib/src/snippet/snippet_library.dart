@@ -119,7 +119,8 @@ class WalkthroughSnippetLibrary {
     return out;
   }
 
-  static String _clamp(String text) => text.length <= kMaxWalkthroughSnippetLength
+  static String _clamp(String text) =>
+      text.length <= kMaxWalkthroughSnippetLength
       ? text
       : text.substring(0, kMaxWalkthroughSnippetLength);
 
