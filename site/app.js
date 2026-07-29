@@ -40,7 +40,7 @@
     var version = manifest && manifest.version ? manifest.version : null;
     if (version) {
       setText("hero-version", "v" + version);
-      setText("hero-status", "First public beta is live — v" + version);
+      setText("hero-status", "Our public beta is live — v" + version);
       var line = document.getElementById("dl-version-line");
       if (line) {
         line.textContent = "Version " + version;

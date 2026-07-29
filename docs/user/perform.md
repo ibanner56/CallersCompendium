@@ -43,7 +43,9 @@ typeface built to be read from a distance.
 Your [dialect](./dialects.md) is applied, so the card speaks in your words. A
 one-tap toggle flips the current card between your dialect and the neutral,
 shared wording — handy if a dancer or another caller asks about a figure — and
-flips right back without losing your place.
+flips right back without losing your place. Figure detail you recorded shows here
+too: when a swing ends facing somewhere other than the usual "in"/across — up or
+down the hall, or out of the set — the card notes that ending so you can cue it.
 
 ## Size the text to fit
 

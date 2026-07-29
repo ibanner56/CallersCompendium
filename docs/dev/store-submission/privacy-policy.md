@@ -40,9 +40,11 @@ dialects, themes, and settings — is stored **locally on your device**. It is u
 your control. We have no servers that receive or hold your content, and there is
 no cloud sync.
 
-You can export a complete backup to a single file (optionally protected with a
-passphrase you choose) and restore it on another device. Those backup files are
-created and kept by you; we never receive them.
+You can export a complete backup to a single file (a plain, human-readable JSON
+file carrying a built-in SHA-256 integrity checksum that catches accidental
+corruption — not encryption, and, because the checksum travels inside the file,
+not a safeguard against deliberate tampering) and restore it on another device. Those backup files
+are created and kept by you; we never receive them.
 
 ### 3. Network connections the app makes
 

@@ -11,181 +11,92 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
-### Changed
-
-- **Exported documents now follow your language.** Printed and shared dance
-  cards, set lists, and the programming matrix (both the plain-text and PDF
-  exports) now render their field labels — Formation, Level, Band, Caller,
-  Venue, the matrix legend, and the rest — in the app's current language,
-  matching the six languages the rest of the interface already speaks, instead
-  of always printing in English. The diagnostics log export stays English by
-  design as a maintainer support artifact.
-
-## [0.1.0] - 2026-07-22
+## [0.1.0] - 2026-07-29
 
 Flutter build: `0.1.0+1`.
 
-This section covers the `0.1.0` line. **`v0.1.0-beta.4`** (this pre-release) builds
-on **`v0.1.0-beta.3`** with the project's biggest round of hardening yet — a broad
-data-safety and update-integrity pass — alongside genuinely new capabilities:
-**venues as a first-class entity**, **free-text figure entry** with your own
-shorthands, **portable backups with a built-in integrity check**, **crash
-diagnostics**, and a **newly multilingual
-interface** — the app now speaks German, French, Japanese, Danish, and Dutch alongside
-English. The changes **since beta.3** are grouped first; the standing feature overview
-and install notes follow.
+This section covers the `0.1.0` line. **`v0.1.0-beta.5`** (this pre-release) builds
+on **`v0.1.0-beta.4`** with a round of caller-authoring and polish work: a dedicated
+**Walkthrough** field for teaching notes, a reusable **walkthrough snippet library**
+that pre-fills it from your own step text, **grouping your Collection by category**
+(a dance's "vibe"), an explicit **end facing for swings**, and **exported documents
+that now follow your language** — alongside the switch to plain, **integrity-checked
+backups**. The changes **since beta.4** are grouped first; the standing feature
+overview and install notes follow.
 
 ### Added
 
-- **Venues are now a first-class entity.** Create a reusable venue once — hall or
-  grange name, address, contact, schedule, and notes — and attach it to any program
-  from the program editor's venue picker, or manage the whole list from a dedicated
-  Venues screen. A program's linked venue fills in its printed and exported set list.
-  When you **share a program or export it to PDF**, the venue travels with it — but the
-  organizer's **contact details (contact names, phones, emails) are left out by
-  default**, with an opt-in prompt to include them when the venue has contact details
-  on file. Importing a shared program **reuses a matching venue you already have instead
-  of creating a duplicate** — venues are matched by name and location (address/city), so
-  re-importing the same event won't clutter your venue list. The feature is **opt-in** behind a Settings toggle; with it off, programs
-  keep their existing free-text venue label exactly as before.
-- **Free-text figure entry (opt-in).** With the new Settings toggle on, you can type a
-  figure as plain text (including `;`-separated compounds) and Caller's Compendium
-  parses it into a structured, editable figure on the spot. Anything it can't map is
-  kept as a clearly flagged custom that you can re-check later — nothing is dropped.
-- **Your own figure shorthands.** Define personal shorthands (e.g. `pt` → *pass
-  through*) that expand — one shorthand can even stand in for several figures — as you
-  use free-text entry, so common phrases go in fast.
-- **Backups now carry an integrity check.** Every exported backup wraps your data in a
-  built-in **SHA-256 checksum**, so a corrupted or altered file is caught and refused at
-  restore — before any of your current data is touched — instead of importing something
-  damaged. The export stays a single, human-readable `.json` file.
-- **Crash diagnostics.** Unexpected errors are now caught and written to a local,
-  rotating crash log you can view, export, and clear from **Settings ▸ Diagnostics**.
-  Exports scrub your dance content, file paths, and contact details by default; there
-  is nothing sent anywhere and no telemetry.
-- **Parser-gap customs are flagged, and re-checkable.** Figures that came in as custom
-  only because an importer couldn't yet recognise them are now marked distinctly from
-  the customs you wrote yourself, and a Settings action can re-parse them against the
-  current recognisers as coverage improves.
-- **More batch editing in multi-select.** Collection multi-select now sets or clears a
-  dance **level**, and batch-edits **rating**, **tunes**, and **custom fields** across
-  the selection.
-- **Tap a tag to filter.** Tapping a tag chip on a dance jumps to the Collection
-  filtered to that tag.
-- **Signed, integrity-checked updates.** When you opt in to update checks, the app now
-  verifies a cryptographically **signed update manifest** (Ed25519, with the public key
-  pinned in the app), only accepts artifacts from an **allowlist of GitHub-owned
-  hosts**, and gates launch on that verification.
-- **The app is now available in six languages.** Caller's Compendium's interface is
-  now translated into **German, French, Japanese, Danish, and Dutch**, in addition to
-  **English**. Pick your language under **Settings ▸ Language & region**, or leave it on
-  **System default** to follow your device. Your dance content — figure and call
-  terminology — is unaffected: that is governed by your chosen **dialect**, independent
-  of the interface language. A couple of surfaces intentionally stay in English for now:
-  a small set of core status messages and the text inside **exported PDF/text
-  documents** (so a shared program reads the same for everyone); these are tracked for a
-  future release.
+- **A dedicated Walkthrough field for every dance.** Each dance now has its own
+  free-text **Walkthrough** — a home for the step-by-step teaching notes you say
+  while walking a dance through, kept separate from the shorter Calling notes. It
+  appears in the dance detail view and travels with the dance.
+- **A walkthrough snippet library.** Build up a personal, per-figure library of your
+  own walkthrough wording. The first time you walk a figure the app learns your text,
+  and from then on it pre-fills the Walkthrough for any dance that uses that figure.
+  Editing a snippet asks whether to change it **everywhere** or **just for this
+  dance**, and you can manage the whole library from **Settings ▸ Defaults**.
+- **Group your Collection by category (a dance's "vibe").** Pick a tag and the
+  Collection splits into that category and everything else, so you can jump to a
+  "drawer" of bouncy, flowy, or glossy dances mid-evening. Reusable **choice** fields
+  — your band adjectives, say — can be built up on the spot with a **＋** while you
+  edit. It reuses the tags and custom fields you already have, so there is no new
+  data to set up.
+- **Swings can record their end facing.** A swing can be marked as ending facing **up
+  or down the hall** or **out of the set**. The usual "in"/across ending renders
+  exactly as before; the marker appears — on dance cards, in Perform, and in exports —
+  only when a swing ends somewhere other than the default.
+- **Backups now carry an integrity check.** Every exported backup wraps your data with
+  a **SHA-256 checksum**, so a corrupted backup is caught and refused at
+  restore — before any of your current data is touched — instead of importing
+  something damaged. The export stays a single, human-readable `.json` file; the
+  checksum guards against accidental corruption, not encryption, and — because it
+  travels inside the file — is not a defense against deliberate tampering.
 
 ### Changed
 
-- **Received shares go through the review screen.** Files and program bundles that
-  arrive via a share intent now open the same import review/consent screen that shared
-  links already used, so nothing is committed without your say-so.
-- **Bulk re-import defaults to keep-local.** Re-importing a set that overlaps your
-  collection now defaults to keeping your local copies and shows an overwrite count
-  before you commit, so a re-import can't silently clobber your edits.
-- **The program editor autosaves.** Your set list is saved as a draft while you build
-  it, so an app or OS interruption mid-edit no longer loses your work.
-- **Perform mode is steadier and safer to leave.** Leaving Perform now confirms before
-  it drops your place and clock (and restores them on re-entry), the top bar collapses
-  its extra actions into an overflow on narrow phones, and per-second rebuild churn,
-  auto-size flashes, and a dropped wake-lock on resume are fixed.
-- **Undo snackbars are transient and out of the way.** Undo prompts now auto-dismiss on
-  a sensible timer and float above the bottom controls instead of covering them.
-  (Screen-reader users still get the persistent, dismissible behavior the OS expects.)
-- **Reduce Motion follows your OS setting.** The app now honors the system Reduce
-  Motion preference by default; the in-app toggle still overrides it.
-- **Exports keep your on-screen figure detail.** Printed and shared dance cards now use
-  the same fuller rendering you see on screen, so balances, enders, hey length, and
-  hall direction are no longer dropped from exports.
+- **Exported documents now follow your language.** Printed and shared dance cards, set
+  lists, and the programming matrix (both plain-text and PDF exports) now render their
+  field labels — Formation, Level, Band, Caller, Venue, the matrix legend, and the
+  rest — in the app's current language, matching the six languages the interface
+  already speaks, instead of always printing in English. The diagnostics log export
+  stays English by design as a maintainer support artifact.
+- **More of the app's status messages are translated.** Core validation, warning, and
+  import-issue messages that previously always rendered in English now appear in your
+  language. (These translations are machine-assisted and anchored to the app's
+  existing terminology; a native-speaker review pass is planned.)
+- **Imports recognise more figures.** The Caller's Box and ContraDB importers now cover
+  more figure phrasings and rendered figures, so fewer moves fall through to
+  unstructured custom text.
+- **Caller's Companion imports read more date formats.** Composed and revised dates
+  written in non-ISO or localized forms are now parsed instead of being dropped.
 
 ### Removed
 
-- **Passphrase-encrypted backups (`.ccbackup`) have been dropped.** A short-lived
-  earlier beta offered an optional encrypted backup; backups are now always a plain,
-  human-readable `.json` file protected by an integrity checksum (see Added). A backup
-  holds your own library and settings — no passwords, accounts, or third-party personal
-  data — and it never leaves your device unless you export it, so the encryption option
-  added real complexity for little practical benefit. Treat an exported backup like any
-  personal document and store it somewhere you trust.
+- **Passphrase-encrypted backups (`.ccbackup`) have been dropped.** The short-lived
+  encrypted-backup option introduced in beta.4 is gone; backups are now always a
+  plain, human-readable `.json` file protected by an integrity checksum (see Added). A
+  backup holds your own library and settings — no passwords, accounts, or third-party
+  personal data — and it never leaves your device unless you export it, so the
+  encryption option added real complexity for little practical benefit. Treat an
+  exported backup like any personal document and store it somewhere you trust.
   **Breaking:** the app can no longer open existing `.ccbackup` files. If you have one,
-  restore it with the older build and export a fresh `.json` backup.
+  restore it with the beta.4 build and export a fresh `.json` backup.
 
 ### Fixed
 
-- **Deleting a dance, venue, or related-dance link can no longer corrupt your data.** A
-  cluster of purge-time bugs — where permanently removing the target of a link or a
-  dance-only program slot could later make the whole Programs or Collection list fail
-  to load — has been fixed and locked down with integrity tests and fuzz coverage.
-- **iOS "Share via browser" imports now work.** Sharing a link into the app from
-  Safari now reliably wakes the app and drains the shared item on foreground, instead
-  of flashing a sheet and doing nothing.
-- **Trashed dances no longer appear in search.** Soft-deleted dances are now excluded
-  from full-text search results, matching the filtered browse list.
-- **Assumed figure subjects are marked, not invented.** When an import omits who does a
-  figure, the app now attaches a non-authoritative "assumed" marker instead of silently
-  presenting a guessed subject as fact.
-- **Orphaned records are cleaned up.** Purging a dance now garbage-collects the
-  choreographer and source rows it leaves behind.
-- **The tag input clears after you add a tag** in the dance editor.
-
-### Security & data safety
-
-This release puts a deliberate pass over the ways your data could be lost, corrupted,
-or tampered with:
-
-- **Fail-closed migration snapshot.** If the automatic pre-upgrade backup can't be
-  written, the app now stops and asks before proceeding, rather than silently upgrading
-  without a safety net.
-- **Atomic backups and all-or-nothing restore.** Backups are written to a temporary
-  file and swapped into place, so an interrupted write can't corrupt your last good
-  backup; a replace-mode restore now fully succeeds or leaves your data untouched.
-- **Tamper-evident backups.** Every backup carries a SHA-256 integrity checksum; a
-  corrupted or altered file fails the check and is refused at restore, before any of
-  your current data is touched. (This is a corruption/tamper check, not encryption —
-  backups stay plain, human-readable JSON.)
-- **Single-instance desktop guard.** Running a second copy on desktop no longer risks a
-  database-lock race.
-- **Hardened imports.** Imported text is sanitized against control, bidirectional, and
-  look-alike character spoofing; import files are size-capped and `.USR` structure is
-  bounded; and titles are sanitized before they become PDF print-job names.
-- **Safer release builds.** Android release builds now fail loudly if the signing key
-  is missing (instead of quietly debug-signing), and the Windows installer's toolchain
-  is pinned and checksum-verified.
-
-### Accessibility
-
-- **Perform accessibility preferences persist** across sessions.
-- **Dialect substitution fields have programmatic labels** for screen readers.
-- **The theme editor's low-contrast warning is announced** as a live region.
-
-### Performance
-
-- **Faster large collections.** Collection hydration is batched to remove an
-  N+1 query pattern, author and last-called sorts are scoped to the current result set,
-  and the derived-index rebuild runs in batches with progress instead of appearing to
-  hang.
+- **The Perform card fits the screen again.** Auto-size now scales the card to fit
+  windows smaller than full-screen, so the B1 section no longer clips on macOS.
+- **Settings section titles are translated.** The navigation titles on Settings
+  sub-screens now follow your chosen language instead of staying in English.
 
 ### Data / Migrations
 
-- **Schema advances from version 12 to 14 — automatically and losslessly.** Two
-  additive steps run on first launch: a performance-only index (no data touched), and
-  the new **venues** table plus a nullable `venue_id` link on programs. Existing
-  programs keep their free-text venue label untouched, nothing is back-filled, and no
-  content is rewritten. **Upgrading from beta.2 or beta.3 is a normal in-place
-  install** — no reinstall and no manual data steps. (Upgrading *directly from beta.1*
-  still runs the one-time ocean-wave migration described in the beta.2 notes, and needs
-  the Android reinstall below.)
+- **Schema advances from version 14 to 15 — automatically and losslessly.** A single
+  additive step runs on first launch: a new `walkthrough` text column on dances, empty
+  for every existing dance. Nothing is back-filled or rewritten, and upgrading is a
+  normal in-place install with no reinstall and no manual data steps. (Upgrading
+  *directly from beta.1* still runs the one-time ocean-wave migration described in the
+  beta.2 notes, and needs the Android reinstall below.)
 
 ### Known issues
 
@@ -194,27 +105,30 @@ or tampered with:
   (`org.callerscompendium.compendiumApp`), so a beta.1 sideload cannot upgrade in
   place. **Export a backup (Settings ▸ General ▸ Export a backup), uninstall the old
   app, install this build, then restore.**
+- **Have an older `.ccbackup` file?** The encrypted-backup format from beta.4 can no
+  longer be opened. Restore it with the beta.4 build and export a fresh `.json` backup.
 - **In-app update checks remain opt-in.** Automatic checks and the beta channel are off
-  by default and enabled in Settings; when on, updates are now signature-verified (see
-  Security & data safety). Either way, you can always watch the GitHub Releases page for
-  new betas.
+  by default and enabled in Settings; when on, updates are signature-verified. Either
+  way, you can always watch the GitHub Releases page for new betas.
 - **Windows and Linux desktop builds are still unsigned** (see Platforms & install).
 
 ### What you can do today
 
-- **Build your Collection.** Create, edit, and tag dances, organize them your way,
-  and soft-delete/restore anything (with a 30-day Recently Deleted safety net).
+- **Build your Collection.** Create, edit, and tag dances, organize them your way, and
+  soft-delete/restore anything (with a 30-day Recently Deleted safety net). Group the
+  list by category to hot-swap dances of a given "vibe" mid-evening.
 - **Plan Programs.** Assemble a set with event date, a reusable venue, ordered slots,
   and alternates; track program status; duplicate a program to reuse a good set.
 - **Perform.** Open a program — or a single dance — in a large-print, auto-sizing
   Perform view built for reading across a dim hall, mark dances as you call them, and
   tap out the tempo on a built-in visual metronome.
-- **Enter figures your way.** Build figures with the structured editor, or turn on
-  free-text entry to type them (with your own shorthands) and have them parsed into
-  structured, editable figures.
+- **Author the way you teach.** Build figures with the structured editor, or turn on
+  free-text entry to type them (with your own shorthands); record a step-by-step
+  **Walkthrough** for each dance and let your **snippet library** pre-fill it from
+  wording you have used before.
 - **Import your existing library.** Bring dances in from a JSON backup, The Caller's
   Box, ContraDB, and Caller's Companion (`.USR`); import **programs** from Caller's
-  Companion (`.USR`) and now from **ContraDB** as well. Every import is reviewable and
+  Companion (`.USR`) and from **ContraDB** as well. Every import is reviewable and
   undoable with one tap.
 - **Share between devices.** Send a program and its dances to another device, or open
   one that was shared with you.
@@ -254,7 +168,7 @@ source is safe. Before a large import — or any upgrade — you can export a ba
 
 Please tell us what breaks or feels wrong:
 <https://github.com/ibanner56/CallersCompendium/issues>. Include your platform, the
-version (`0.1.0-beta.4`), and the steps you took. For import problems, a small
+version (`0.1.0-beta.5`), and the steps you took. For import problems, a small
 sanitized sample of the file you were importing helps enormously.
 
 ### License
