@@ -144,6 +144,33 @@ class ProgramRepository {
 
   final CompendiumDatabase _db;
 
+  /// Normalizes an optional host-caller filter for the derived calling-history
+  /// queries ([callingHistoryForDance], [countByDance], [lastCalledByDance],
+  /// [halfCallingStatsForDance]). Returns the trimmed caller name, or `null`
+  /// when [callerFilter] is `null` or blank — i.e. "track all callers", the
+  /// historical behavior (issue #583). Empty/whitespace is treated as absent,
+  /// matching how the default-caller setting itself treats empty as unset.
+  static String? _normalizedCallerFilter(String? callerFilter) {
+    final trimmed = callerFilter?.trim();
+    return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
+
+  /// SQL fragment restricting a derived history query to programs whose HOST
+  /// caller matches [caller] (already normalized by [_normalizedCallerFilter]),
+  /// or the empty string for no restriction. Folds both sides with
+  /// `LOWER(TRIM(...))` so every query site matches identically (trim +
+  /// case-insensitive; issue #583) and the value is bound as a parameter (no
+  /// injection). Programs with a `NULL` caller never satisfy the equality, so
+  /// they are excluded whenever a filter is active — as intended.
+  static String _callerClause(String? caller) => caller == null
+      ? ''
+      : 'AND LOWER(TRIM(programs.caller)) = LOWER(TRIM(?)) ';
+
+  /// The bound variables for [_callerClause]: a single [Variable] when a filter
+  /// is active, otherwise empty.
+  static List<Variable<Object>> _callerVariables(String? caller) =>
+      caller == null ? const [] : [Variable<String>(caller)];
+
   /// Persists a new program. Pass [knownVenueIds] on the bulk restore/import
   /// paths to validate a non-null `venueId` against a preloaded set instead of
   /// a per-row SELECT (keeps persisting N programs O(1) in venue queries); see
@@ -403,9 +430,13 @@ class ProgramRepository {
   /// Maps dance id → the most recent `performedAt` timestamp across every
   /// slot of every non-deleted program, for dances that have actually been
   /// called at least once. Feeds Collection's "last-called" sort (see
-  /// `docs/design/ux.md` §1); dances absent from the map have never been
-  /// called.
-  Future<Map<String, DateTime>> lastCalledByDance() async {
+  /// `docs/design/ux.md` §1); a dance absent from the map has never been
+  /// called — or, when [callerFilter] is set, was never called in a program led
+  /// by that host caller (see [callingHistoryForDance]; issue #583).
+  Future<Map<String, DateTime>> lastCalledByDance({
+    String? callerFilter,
+  }) async {
+    final caller = _normalizedCallerFilter(callerFilter);
     final rows = await _db
         .customSelect(
           'SELECT program_slots.dance_id AS dance_id, '
@@ -415,7 +446,9 @@ class ProgramRepository {
           'WHERE program_slots.dance_id IS NOT NULL '
           'AND program_slots.performed_at IS NOT NULL '
           'AND programs.deleted_at IS NULL '
+          '${_callerClause(caller)}'
           'GROUP BY program_slots.dance_id',
+          variables: _callerVariables(caller),
         )
         .get();
     return {
@@ -425,10 +458,11 @@ class ProgramRepository {
   }
 
   /// Maps dance id → its [DanceCallCounts] across every slot of every
-  /// non-deleted program, for dances that have been called at least once
-  /// (dances absent from the map have zero calls). One grouped query — the
-  /// bulk sibling of [lastCalledByDance] — so the Collection list can render a
-  /// per-dance "called ×N" count without an N+1 per-row fan-out.
+  /// non-deleted program, for dances that have been called at least once (a
+  /// dance absent from the map has zero calls — or, when [callerFilter] is set,
+  /// zero calls in programs led by that host caller; issue #583). One grouped
+  /// query — the bulk sibling of [lastCalledByDance] — so the Collection list
+  /// can render a per-dance "called ×N" count without an N+1 per-row fan-out.
   ///
   /// Surfaces BOTH the all-occurrences tally (`COUNT(*)`, one per matching
   /// slot) and the performed-only tally (`COUNT(performed_at)`, which counts
@@ -437,7 +471,10 @@ class ProgramRepository {
   /// as [callingHistoryForDance] does — see [DanceCallCounts.countFor]. The
   /// `deleted_at IS NULL` join filter matches both [lastCalledByDance] and
   /// [callingHistoryForDance].
-  Future<Map<String, DanceCallCounts>> countByDance() async {
+  Future<Map<String, DanceCallCounts>> countByDance({
+    String? callerFilter,
+  }) async {
+    final caller = _normalizedCallerFilter(callerFilter);
     final rows = await _db
         .customSelect(
           'SELECT program_slots.dance_id AS dance_id, '
@@ -447,7 +484,9 @@ class ProgramRepository {
           'JOIN programs ON programs.id = program_slots.program_id '
           'WHERE program_slots.dance_id IS NOT NULL '
           'AND programs.deleted_at IS NULL '
+          '${_callerClause(caller)}'
           'GROUP BY program_slots.dance_id',
+          variables: _callerVariables(caller),
         )
         .get();
     return {
@@ -470,6 +509,12 @@ class ProgramRepository {
   /// the future "Require mark-performed for calling history" General setting
   /// (ROADMAP G.2, off by default).
   ///
+  /// Pass [callerFilter] (the default caller's name) to additionally restrict
+  /// the history to programs whose HOST caller matches it — trim +
+  /// case-insensitive — for the "scope calling history to my programs" setting
+  /// (issue #583). `null`/blank means "track all callers" (unchanged). This
+  /// gate is AND-combined with [performedOnly], never a replacement.
+  ///
   /// Calling history is a derived query, never stored (see
   /// `docs/design/domain-model.md`; `docs/design/ux.md` §2 / the dance-detail
   /// wireframe "History"). One record per matching slot, ordered by each
@@ -479,7 +524,9 @@ class ProgramRepository {
   Future<List<DanceCallingRecord>> callingHistoryForDance(
     String danceId, {
     bool performedOnly = false,
+    String? callerFilter,
   }) async {
+    final caller = _normalizedCallerFilter(callerFilter);
     final rows = await _db
         .customSelect(
           'SELECT program_slots.id AS slot_id, programs.id AS program_id, '
@@ -492,11 +539,12 @@ class ProgramRepository {
           'JOIN programs ON programs.id = program_slots.program_id '
           'WHERE program_slots.dance_id = ? '
           '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
+          '${_callerClause(caller)}'
           'AND programs.deleted_at IS NULL '
           'ORDER BY COALESCE('
           'program_slots.performed_at, programs.event_date, programs.updated_at'
           ') DESC, programs.id',
-          variables: [Variable<String>(danceId)],
+          variables: [Variable<String>(danceId), ..._callerVariables(caller)],
         )
         .get();
     return [
@@ -532,15 +580,18 @@ class ProgramRepository {
   Future<HalfCallingStats> halfCallingStatsForDance(
     String danceId, {
     bool performedOnly = false,
+    String? callerFilter,
   }) async {
+    final caller = _normalizedCallerFilter(callerFilter);
     final idRows = await _db
         .customSelect(
           'SELECT DISTINCT program_slots.program_id AS program_id '
           'FROM program_slots '
           'JOIN programs ON programs.id = program_slots.program_id '
           'WHERE program_slots.dance_id = ? '
+          '${_callerClause(caller)}'
           'AND programs.deleted_at IS NULL',
-          variables: [Variable<String>(danceId)],
+          variables: [Variable<String>(danceId), ..._callerVariables(caller)],
         )
         .get();
     final programIds = [for (final r in idRows) r.read<String>('program_id')];

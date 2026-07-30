@@ -8,6 +8,8 @@ import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/app_theme_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
+import '../data/track_history_for_all_callers_scope.dart';
+import '../data/calling_history_caller_filter.dart';
 import '../data/venue_label.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart';
@@ -139,6 +141,10 @@ class ProgramSummaryPane extends StatefulWidget {
 class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   late CompendiumRepositories _repos;
   bool _started = false;
+
+  /// Last-seen "track calling history for all callers" setting (issue #583),
+  /// used to scope the embedded dance data's call counts.
+  bool _trackHistoryForAllCallers = false;
   Program? _program;
   Map<String, String> _danceTitles = const {};
   Map<String, Dance> _dances = const {};
@@ -161,6 +167,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Capture the "track all callers" setting so the embedded dance data's
+    // call counts are scoped consistently with the Collection list (issue
+    // #583). This screen loads once; a live toggle change is picked up on its
+    // next refresh.
+    _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
@@ -196,7 +207,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         });
         return;
       }
-      final data = await CollectionData.load(_repos);
+      final callerFilter = await resolveCallingHistoryCallerFilter(
+        _repos.settings,
+        trackAllCallers: _trackHistoryForAllCallers,
+      );
+      final data = await CollectionData.load(
+        _repos,
+        callerFilter: callerFilter,
+      );
       final titles = <String, String>{};
       final dances = <String, Dance>{};
       final ids = {

@@ -649,6 +649,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn aktiviert, listet der Calling-Verlauf eines Tanzes nur Programme auf, deren Slot für diesen Tanz als aufgeführt markiert wurde. Wenn deaktiviert, erscheint ein Programm, sobald es den Tanz enthält.';
 
   @override
+  String get settingsGeneralTrackHistoryForAllCallersTitle =>
+      'Track calling history for all callers';
+
+  @override
+  String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
+      'When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Barrierefreiheit';
 
   @override

@@ -12,6 +12,8 @@ import '../data/display_defaults.dart';
 import '../data/formation_colors_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
+import '../data/track_history_for_all_callers_scope.dart';
+import '../data/calling_history_caller_filter.dart';
 import '../export/dance_pdf.dart';
 import '../export/export_labels_l10n.dart';
 import '../search/dance_detail_data.dart';
@@ -128,6 +130,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// calling history when the setting is toggled while this screen is open.
   bool _requirePerformedForHistory = false;
 
+  /// The last-seen value of the "track calling history for all callers" setting
+  /// (issue #583). Tracked so [didChangeDependencies] can reload the calling
+  /// history when the setting is toggled while this screen is open.
+  bool _trackHistoryForAllCallers = false;
+
   /// When `false` the figure table renders in the user's active dialect;
   /// when `true` it renders canonical role/move tokens.  The toggle is hidden
   /// when the active dialect is already [Dialect.canonical] (toggling would
@@ -154,15 +161,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       return;
     }
     final requirePerformed = RequirePerformedForHistoryScope.of(context);
-    // Only load once, but reload if the calling-history setting changed: this
+    final trackAllCallers = TrackHistoryForAllCallersScope.of(context);
+    // Only load once, but reload if either calling-history setting changed: this
     // callback also fires for unrelated ancestor changes (Theme/MediaQuery/
-    // Localizations), so guard on the setting actually differing.
+    // Localizations), so guard on a setting actually differing.
     if (_future == null) {
       _repos = RepositoriesScope.of(context);
       _requirePerformedForHistory = requirePerformed;
+      _trackHistoryForAllCallers = trackAllCallers;
       _future = _load();
-    } else if (requirePerformed != _requirePerformedForHistory) {
+    } else if (requirePerformed != _requirePerformedForHistory ||
+        trackAllCallers != _trackHistoryForAllCallers) {
       _requirePerformedForHistory = requirePerformed;
+      _trackHistoryForAllCallers = trackAllCallers;
       _reload();
     }
   }
@@ -189,10 +200,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       }
     }
 
+    final callerFilter = await resolveCallingHistoryCallerFilter(
+      _repos.settings,
+      trackAllCallers: _trackHistoryForAllCallers,
+    );
     return DanceDetailData.load(
       _repos,
       widget.danceId!,
       performedOnly: _requirePerformedForHistory,
+      callerFilter: callerFilter,
     );
   }
 

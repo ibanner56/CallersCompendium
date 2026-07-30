@@ -13,6 +13,17 @@ const String kAppThemeKey = 'theme_mode';
 /// so a dance's calling history shows every program that contains it.
 const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 
+/// Key used to persist the "Track calling history for all callers" General
+/// setting (issue #583). Stored as a bool; absent/unset means off (`false`).
+///
+/// When OFF (the default) AND a default caller is configured
+/// ([kDefaultProgramCallerKey] non-empty), a dance's calling history and counts
+/// only include programs whose HOST caller matches that default caller (trim +
+/// case-insensitive). When ON — or when no default caller is set — history
+/// tracks every program that contains the dance, as it always has. This gate is
+/// AND-combined with [kRequirePerformedForHistoryKey], never a replacement.
+const String kTrackHistoryForAllCallersKey = 'track_history_for_all_callers';
+
 /// Key used to persist and load the "auto-size Perform cards" preference
 /// (ROADMAP G.1). Defaults to `true` (on) when unset.
 const String kAutoSizePerformKey = 'auto_size_perform_cards';

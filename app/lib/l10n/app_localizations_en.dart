@@ -641,6 +641,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.';
 
   @override
+  String get settingsGeneralTrackHistoryForAllCallersTitle =>
+      'Track calling history for all callers';
+
+  @override
+  String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
+      'When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Accessibility';
 
   @override

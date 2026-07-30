@@ -13,6 +13,7 @@ import '../../data/import_io.dart';
 import '../../data/reduce_motion_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
+import '../../data/track_history_for_all_callers_scope.dart';
 import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
@@ -336,6 +337,15 @@ class _GeneralSectionState extends State<GeneralSection> {
     await repos.settings.set(kRequirePerformedForHistoryKey, value);
   }
 
+  Future<void> _onTrackHistoryForAllCallersChanged(bool value) async {
+    // Same instant-notifier-then-persist pattern: flip the live notifier so
+    // every dependent (an open Collection list or dance-detail screen)
+    // re-derives its scoped calling history/counts immediately, then persist.
+    TrackHistoryForAllCallersScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kTrackHistoryForAllCallersKey, value);
+  }
+
   Future<void> _onSortIgnoreArticlesChanged(bool value) async {
     // Same instant-notifier-then-persist pattern: flip the live notifier so the
     // dance list re-sorts immediately, then persist in the background.
@@ -389,6 +399,8 @@ class _GeneralSectionState extends State<GeneralSection> {
     return _GeneralView(
       requirePerformedForHistory: RequirePerformedForHistoryScope.of(context),
       onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
+      trackHistoryForAllCallers: TrackHistoryForAllCallersScope.of(context),
+      onTrackHistoryForAllCallersChanged: _onTrackHistoryForAllCallersChanged,
       sortIgnoreArticles: SortIgnoreArticlesScope.of(context),
       onSortIgnoreArticlesChanged: _onSortIgnoreArticlesChanged,
       reduceMotion: ReduceMotionScope.of(context),
@@ -428,6 +440,8 @@ class _GeneralView extends StatelessWidget {
   const _GeneralView({
     required this.requirePerformedForHistory,
     required this.onRequirePerformedForHistoryChanged,
+    required this.trackHistoryForAllCallers,
+    required this.onTrackHistoryForAllCallersChanged,
     required this.sortIgnoreArticles,
     required this.onSortIgnoreArticlesChanged,
     required this.reduceMotion,
@@ -456,6 +470,8 @@ class _GeneralView extends StatelessWidget {
 
   final bool requirePerformedForHistory;
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
+  final bool trackHistoryForAllCallers;
+  final ValueChanged<bool> onTrackHistoryForAllCallersChanged;
   final bool sortIgnoreArticles;
   final ValueChanged<bool> onSortIgnoreArticlesChanged;
   final bool reduceMotion;
@@ -543,6 +559,14 @@ class _GeneralView extends StatelessWidget {
           subtitle: Text(
             l10n.settingsGeneralRequirePerformedForHistorySubtitle,
           ),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('general-track-history-for-all-callers'),
+          value: trackHistoryForAllCallers,
+          onChanged: onTrackHistoryForAllCallersChanged,
+          title: Text(l10n.settingsGeneralTrackHistoryForAllCallersTitle),
+          subtitle: Text(l10n.settingsGeneralTrackHistoryForAllCallersSubtitle),
           isThreeLine: true,
         ),
         SectionHeader(title: l10n.settingsGeneralAccessibilityHeader),

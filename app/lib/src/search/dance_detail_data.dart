@@ -78,12 +78,15 @@ class DanceDetailData {
 
   /// Hydrates the detail data for the dance identified by [danceId] from
   /// [repos], returning `null` when no such dance exists. [performedOnly]
-  /// filters the calling history to performed slots (ROADMAP G.2). Behaviour
-  /// mirrors the previous inline load in `dance_detail_screen.dart`.
+  /// filters the calling history to performed slots (ROADMAP G.2), and
+  /// [callerFilter] (issue #583) additionally scopes it to programs whose host
+  /// caller matches — `null` for "track all callers". Behaviour mirrors the
+  /// previous inline load in `dance_detail_screen.dart`.
   static Future<DanceDetailData?> load(
     CompendiumRepositories repos,
     String danceId, {
     required bool performedOnly,
+    String? callerFilter,
   }) async {
     final dance = await repos.dances.getById(danceId);
     if (dance == null) return null;
@@ -141,6 +144,7 @@ class DanceDetailData {
     final callingHistory = await repos.programs.callingHistoryForDance(
       danceId,
       performedOnly: performedOnly,
+      callerFilter: callerFilter,
     );
 
     // Resolve each calling-history program's venue label in the app layer.
@@ -191,6 +195,7 @@ class DanceDetailData {
       halfCallingStats: await repos.programs.halfCallingStatsForDance(
         danceId,
         performedOnly: performedOnly,
+        callerFilter: callerFilter,
       ),
       venueLabelsByProgramId: venueLabelsByProgramId,
     );

@@ -85,14 +85,21 @@ class CollectionData {
   final Taxonomy taxonomy;
   final List<String> sectionLabels;
 
-  static Future<CollectionData> load(CompendiumRepositories repos) async {
+  static Future<CollectionData> load(
+    CompendiumRepositories repos, {
+    String? callerFilter,
+  }) async {
     final dances = await repos.dances.listAll();
     final choreographers = await repos.choreographers.listAll();
     final tags = await repos.tags.listAll();
     final defs = await repos.customFieldDefs.listAll();
     final publishedSources = await repos.publishedSources.listAll();
-    final lastCalled = await repos.programs.lastCalledByDance();
-    final callCounts = await repos.programs.countByDance();
+    final lastCalled = await repos.programs.lastCalledByDance(
+      callerFilter: callerFilter,
+    );
+    final callCounts = await repos.programs.countByDance(
+      callerFilter: callerFilter,
+    );
 
     final dancesById = {for (final d in dances) d.id: d};
     final choreographersById = {for (final c in choreographers) c.id: c};

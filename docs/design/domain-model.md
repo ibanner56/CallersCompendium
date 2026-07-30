@@ -52,8 +52,13 @@ erDiagram
 | customFields, tags, links, provenance | | see below |
 | createdAt / updatedAt / deletedAt | timestamps | deletedAt = soft delete |
 
-**Calling history** is derived (query over performed ProgramSlots), not stored
-on the dance.
+**Calling history** is derived (a query over ProgramSlots), not stored on the
+dance. Two optional General settings narrow the base query (each gates it,
+AND-combined, and the per-dance counts stay in lockstep with the detail
+history): *Require "mark performed"* restricts it to performed slots (off by
+default, so the base includes unperformed slots), and *Track calling history for
+all callers* (off + a default caller set) restricts it to programs whose host
+caller matches that default caller (trim + case-insensitive; issue #583).
 
 ### Figure (value object, not a table-per-move)
 ```

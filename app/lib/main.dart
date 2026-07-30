@@ -33,6 +33,7 @@ import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
 import 'src/data/repositories_scope.dart';
 import 'src/data/require_performed_for_history_scope.dart';
+import 'src/data/track_history_for_all_callers_scope.dart';
 import 'src/data/seed_service.dart';
 import 'src/data/set_list_color_coding_scope.dart';
 import 'src/data/shorthand_mappings_controller.dart';
@@ -58,6 +59,7 @@ import 'src/screens/settings_screen.dart'
         kColourDanceThemeKey,
         kRequirePerformedForHistoryKey,
         kSortIgnoreArticlesKey,
+        kTrackHistoryForAllCallersKey,
         kVenueEntityModeKey;
 import 'src/theme/app_theme.dart';
 import 'src/update/update_controller.dart';
@@ -255,6 +257,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
     AppThemeSelection.system,
   );
   final ValueNotifier<bool> _requirePerformedForHistoryNotifier = ValueNotifier(
+    false,
+  );
+  final ValueNotifier<bool> _trackHistoryForAllCallersNotifier = ValueNotifier(
     false,
   );
   final ValueNotifier<bool> _sortIgnoreArticlesNotifier = ValueNotifier(true);
@@ -652,6 +657,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (requirePerformed is bool) {
       _requirePerformedForHistoryNotifier.value = requirePerformed;
     }
+    // Load the "track calling history for all callers" setting (issue #583),
+    // defaulting to off (false) when unset.
+    final trackAllCallers = await _appData.repositories.settings.get(
+      kTrackHistoryForAllCallersKey,
+    );
+    if (trackAllCallers is bool) {
+      _trackHistoryForAllCallersNotifier.value = trackAllCallers;
+    }
     // Load the "ignore leading articles when sorting" setting, defaulting to
     // on (true) when unset.
     final sortIgnoreArticles = await _appData.repositories.settings.get(
@@ -782,6 +795,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _dialectNotifier.dispose();
     _themeNotifier.dispose();
     _requirePerformedForHistoryNotifier.dispose();
+    _trackHistoryForAllCallersNotifier.dispose();
     _sortIgnoreArticlesNotifier.dispose();
     _reduceMotionNotifier.dispose();
     _verboseFigureRenderingNotifier.dispose();
@@ -952,41 +966,45 @@ class _CompendiumAppState extends State<CompendiumApp> {
                             notifier: _dialectNotifier,
                             child: RequirePerformedForHistoryScope(
                               notifier: _requirePerformedForHistoryNotifier,
-                              child: SortIgnoreArticlesScope(
-                                notifier: _sortIgnoreArticlesNotifier,
-                                child: ReduceMotionScope(
-                                  notifier: _reduceMotionNotifier,
-                                  child: VerboseFigureRenderingScope(
-                                    notifier: _verboseFigureRenderingNotifier,
-                                    child: DecimalTurnsScope(
-                                      notifier: _decimalTurnsNotifier,
-                                      child: ConfirmBeforeDeleteScope(
-                                        notifier: _confirmBeforeDeleteNotifier,
-                                        child: ColourDanceThemeScope(
-                                          notifier: _colourDanceThemeNotifier,
-                                          child: SetListColorCodingScope(
-                                            notifier:
-                                                _setListColorCodingNotifier,
-                                            child: DateFormatScope(
-                                              notifier: _dateFormatNotifier,
-                                              child: FirstDayOfWeekScope(
-                                                notifier:
-                                                    _firstDayOfWeekNotifier,
-                                                child: LocaleScope(
-                                                  notifier: _localeNotifier,
-                                                  child: BackupControllerScope(
-                                                    onRestored:
-                                                        reloadFromSettings,
-                                                    child: CollectionRefreshScope(
-                                                      revision:
-                                                          _collectionRefreshNotifier,
-                                                      child: CollectionFilterScope(
-                                                        controller:
-                                                            _collectionFilterController,
-                                                        child: VenueEntityModeScope(
-                                                          notifier:
-                                                              _venueEntityModeNotifier,
-                                                          child: child!,
+                              child: TrackHistoryForAllCallersScope(
+                                notifier: _trackHistoryForAllCallersNotifier,
+                                child: SortIgnoreArticlesScope(
+                                  notifier: _sortIgnoreArticlesNotifier,
+                                  child: ReduceMotionScope(
+                                    notifier: _reduceMotionNotifier,
+                                    child: VerboseFigureRenderingScope(
+                                      notifier: _verboseFigureRenderingNotifier,
+                                      child: DecimalTurnsScope(
+                                        notifier: _decimalTurnsNotifier,
+                                        child: ConfirmBeforeDeleteScope(
+                                          notifier:
+                                              _confirmBeforeDeleteNotifier,
+                                          child: ColourDanceThemeScope(
+                                            notifier: _colourDanceThemeNotifier,
+                                            child: SetListColorCodingScope(
+                                              notifier:
+                                                  _setListColorCodingNotifier,
+                                              child: DateFormatScope(
+                                                notifier: _dateFormatNotifier,
+                                                child: FirstDayOfWeekScope(
+                                                  notifier:
+                                                      _firstDayOfWeekNotifier,
+                                                  child: LocaleScope(
+                                                    notifier: _localeNotifier,
+                                                    child: BackupControllerScope(
+                                                      onRestored:
+                                                          reloadFromSettings,
+                                                      child: CollectionRefreshScope(
+                                                        revision:
+                                                            _collectionRefreshNotifier,
+                                                        child: CollectionFilterScope(
+                                                          controller:
+                                                              _collectionFilterController,
+                                                          child: VenueEntityModeScope(
+                                                            notifier:
+                                                                _venueEntityModeNotifier,
+                                                            child: child!,
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
