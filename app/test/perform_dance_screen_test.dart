@@ -537,9 +537,68 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PerformDanceScreen), findsOneWidget);
 
+    // Exit is guarded (#612, sibling of #434): the close control asks to
+    // confirm first.
     await tester.tap(find.byKey(const ValueKey('exit-perform')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
 
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PerformDanceScreen), findsNothing);
+    expect(find.byType(DanceDetailScreen), findsOneWidget);
+  });
+
+  testWidgets('a stray single tap on the exit control does not leave Perform', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Perform Me'));
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    await tester.tap(find.byKey(const ValueKey('perform-dance')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformDanceScreen), findsOneWidget);
+
+    // A single tap surfaces the confirmation instead of dropping out.
+    await tester.tap(find.byKey(const ValueKey('exit-perform')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
+    expect(find.byType(PerformDanceScreen), findsOneWidget);
+
+    // Choosing "Keep performing" dismisses the guard and stays in Perform.
+    await tester.tap(find.byKey(const ValueKey('perform-exit-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsNothing);
+    expect(find.byType(PerformDanceScreen), findsOneWidget);
+  });
+
+  testWidgets('rapid double-tap on the exit control shows only one dialog', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Perform Me'));
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    await tester.tap(find.byKey(const ValueKey('perform-dance')));
+    await tester.pumpAndSettle();
+    expect(find.byType(PerformDanceScreen), findsOneWidget);
+
+    // Two rapid taps, before the first dialog has finished animating in
+    // (issue #612 review follow-up): the re-entrancy guard must ensure only
+    // one confirmation dialog is ever stacked.
+    await tester.tap(find.byKey(const ValueKey('exit-perform')));
+    await tester.tap(find.byKey(const ValueKey('exit-perform')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('perform-exit-dialog')), findsOneWidget);
+
+    // Confirming pops exactly one screen — back to the detail screen, not
+    // past it into some other route a stacked second dialog might reach.
+    await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+    await tester.pumpAndSettle();
     expect(find.byType(PerformDanceScreen), findsNothing);
     expect(find.byType(DanceDetailScreen), findsOneWidget);
   });

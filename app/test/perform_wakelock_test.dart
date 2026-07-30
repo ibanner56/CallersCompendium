@@ -106,6 +106,9 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('exit-perform')));
       await tester.pumpAndSettle();
+      // Exit is guarded (#612, sibling of #434): confirm to actually leave.
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
 
       expect(find.byType(PerformDanceScreen), findsNothing);
       expect(wakelock.isEnabled, isFalse);
