@@ -3156,13 +3156,14 @@
       "half": { "type": "String", "example": "first" }
     }
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{collision, select, yes{, repeats in the same phrase as an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}",
   "@programsMatrixCellSemantic": {
-    "description": "Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use is the move's program debut and/or the dance's opening figure.",
+    "description": "Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance (same figure in the same phrase), is the move's program debut, and/or the dance's opening figure.",
     "placeholders": {
       "dance": { "type": "String", "example": "Chorus Jig" },
       "move": { "type": "String", "example": "partner swing" },
       "present": { "type": "String", "example": "yes" },
+      "collision": { "type": "String", "example": "yes" },
       "debut": { "type": "String", "example": "yes" },
       "first": { "type": "String", "example": "no" }
     }
@@ -3224,6 +3225,10 @@
   "programsMatrixLegendPresent": "Present",
   "@programsMatrixLegendPresent": {
     "description": "Matrix legend label for the check marker: the dance uses the move."
+  },
+  "programsMatrixLegendCollision": "Same phrase as adjacent dance",
+  "@programsMatrixLegendCollision": {
+    "description": "Matrix legend label for the alert marker: the move repeats in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance in the program."
   },
   "programsMatrixEmptyTitle": "No structured figures yet",
   "@programsMatrixEmptyTitle": {
@@ -3654,6 +3659,8 @@
   "@exportMatrixLegendFirst": {"description": "Legend entry on the programming-matrix PDF for the triangle marker: a move that is a dance's own first figure."},
   "exportMatrixLegendPresent": "Present",
   "@exportMatrixLegendPresent": {"description": "Legend entry on the programming-matrix PDF for the check marker: a move present in a dance."},
+  "exportMatrixLegendCollision": "Same phrase as adjacent dance",
+  "@exportMatrixLegendCollision": {"description": "Legend entry on the programming-matrix PDF for the alert marker: a move repeating in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance."},
   "exportMatrixOmittedCaption": "{count, plural, =1{1 free-text slot (breaks, notes) omitted — the matrix shows dances only.} other{{count} free-text slots (breaks, notes) omitted — the matrix shows dances only.}}",
   "@exportMatrixOmittedCaption": {"description": "Caption on the programming-matrix PDF noting how many free-text slots (breaks, notes) were left out because the matrix shows dances only.", "placeholders": {"count": {"type": "int"}}},
 

@@ -7,7 +7,7 @@
 /// present across the given dances; each cell records whether a dance uses a
 /// move.
 ///
-/// Two independent highlights are derived:
+/// Three independent highlights are derived:
 ///  * **Dance's first figure** (per row): the move each dance *opens* with
 ///    ([MatrixRow.firstMoveId] / [MatrixRow.isFirst] / [ProgramMatrix.isFirst]).
 ///    This mirrors Caller's Companion's per-dance "First figure" field.
@@ -16,6 +16,14 @@
 ///    here" ([ProgramMatrix.isProgramDebut]). A move used by several dances is
 ///    a debut only on the earliest row; the collapsed custom column debuts on
 ///    its first appearance too.
+///  * **Same-figure-same-phrase collision** (per cell): the move repeats, in
+///    the same phrase (A1/A2/B1/B2…), in a *strictly-adjacent* dance (the row
+///    immediately above or below in program order) — the repeat a caller wants
+///    to reconsider ([ProgramMatrix.isPhraseCollision]). Phrase positions are
+///    derived from cumulative **effective** beats ([Taxonomy.effectiveParams],
+///    so figures with no explicitly-stored count still land in the right
+///    phrase) and threaded through [MatrixRow.phraseLabelsByMove]; the
+///    un-comparable custom column never collides.
 library;
 
 import 'package:collection/collection.dart';
@@ -181,6 +189,8 @@ class MatrixColumn {
 }
 
 const SetEquality<String> _setEq = SetEquality<String>();
+const MapEquality<String, Set<String>> _phraseMapEq =
+    MapEquality<String, Set<String>>(values: _setEq);
 
 /// One row of the matrix: a dance and the moves it contains.
 @immutable
@@ -190,8 +200,13 @@ class MatrixRow {
     required this.title,
     required this.firstMoveId,
     required Set<String> presentMoveIds,
+    Map<String, Set<String>> phraseLabelsByMove = const {},
     this.half,
-  }) : presentMoveIds = Set.unmodifiable(presentMoveIds);
+  }) : presentMoveIds = Set.unmodifiable(presentMoveIds),
+       phraseLabelsByMove = Map.unmodifiable({
+         for (final entry in phraseLabelsByMove.entries)
+           entry.key: Set.unmodifiable(entry.value),
+       });
 
   final String danceId;
   final String title;
@@ -209,6 +224,19 @@ class MatrixRow {
   /// Column keys (see [columnKeyForFigure]) of every move present in the dance.
   final Set<String> presentMoveIds;
 
+  /// For each comparable move (column key) present in the dance, the set of
+  /// phrase labels (A1/A2/B1/B2…) in which that move *starts*. Positions are
+  /// derived from cumulative **effective** beats (taxonomy defaults folded in
+  /// via [Taxonomy.effectiveParams]), so a figure whose beat count isn't
+  /// explicitly stored still lands in the right phrase. A move used in more
+  /// than one phrase carries every label. Drives the same-figure-same-phrase
+  /// collision check ([ProgramMatrix.isPhraseCollision]).
+  ///
+  /// The collapsed [customMove] column is intentionally **absent** here: custom
+  /// (free-text) figures aren't reliably comparable, so distinct customs that
+  /// happen to share a phrase must not read as the *same* figure repeating.
+  final Map<String, Set<String>> phraseLabelsByMove;
+
   bool contains(MatrixColumn column) => presentMoveIds.contains(column.moveId);
 
   bool isFirst(MatrixColumn column) => firstMoveId == column.moveId;
@@ -220,7 +248,8 @@ class MatrixRow {
       other.title == title &&
       other.firstMoveId == firstMoveId &&
       other.half == half &&
-      _setEq.equals(other.presentMoveIds, presentMoveIds);
+      _setEq.equals(other.presentMoveIds, presentMoveIds) &&
+      _phraseMapEq.equals(other.phraseLabelsByMove, phraseLabelsByMove);
 
   @override
   int get hashCode => Object.hash(
@@ -229,6 +258,7 @@ class MatrixRow {
     firstMoveId,
     half,
     _setEq.hash(presentMoveIds),
+    _phraseMapEq.hash(phraseLabelsByMove),
   );
 }
 
@@ -272,6 +302,28 @@ class ProgramMatrix {
   /// appears in program order — its program debut ("introduced here").
   bool isProgramDebut(int rowIndex, int colIndex) =>
       programDebutRowByMove[columns[colIndex].moveId] == rowIndex;
+
+  /// Whether the move at [rows]`[rowIndex]` × [columns]`[colIndex]` is a
+  /// **same-figure-same-phrase collision** with a strictly-adjacent dance: the
+  /// same move appears, in the *same* phrase (A1/A2/B1/B2…), in the dance
+  /// immediately above OR below this one in program order.
+  ///
+  /// Adjacency is strictly the previous/next row (issue #582's locked design —
+  /// not a configurable window). The collapsed [customMove] column never
+  /// collides (custom figures aren't reliably comparable), because
+  /// [MatrixRow.phraseLabelsByMove] omits it. Returns `false` when the move
+  /// isn't present in this cell.
+  bool isPhraseCollision(int rowIndex, int colIndex) {
+    final moveId = columns[colIndex].moveId;
+    final here = rows[rowIndex].phraseLabelsByMove[moveId];
+    if (here == null || here.isEmpty) return false;
+    for (final neighbor in [rowIndex - 1, rowIndex + 1]) {
+      if (neighbor < 0 || neighbor >= rows.length) continue;
+      final there = rows[neighbor].phraseLabelsByMove[moveId];
+      if (there != null && here.any(there.contains)) return true;
+    }
+    return false;
+  }
 }
 
 /// Column key for a [figure]: custom figures all map to [customMove]; `swing`
@@ -291,6 +343,17 @@ String columnKeyForFigure(Figure figure) {
     default:
       return figure.move;
   }
+}
+
+/// Effective beat length of [figure] under [taxonomy], for phrase math: the
+/// figure's explicit/alias-pinned `beats`, else the move's `paramBeats`/spec
+/// default, else the neutral unknown-move fallback ([Taxonomy.effectiveParams]).
+/// A move that legitimately carries no beat cost (absent from `effectiveParams`)
+/// contributes 0. Never negative. This is the phrase-safe counterpart to raw
+/// [Figure.beats], which reads 0 for any figure whose count wasn't stored.
+int _effectiveBeats(Taxonomy taxonomy, Figure figure) {
+  final beats = taxonomy.effectiveParams(figure)['beats'];
+  return beats is int && beats > 0 ? beats : 0;
 }
 
 MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
@@ -348,6 +411,16 @@ ProgramMatrix buildProgramMatrix(
   for (var i = 0; i < dances.length; i++) {
     final dance = dances[i];
     final rowMoves = <String>{};
+    final phraseLabels = <String, Set<String>>{};
+    // Phrase positions are derived from cumulative *effective* beats
+    // ([Taxonomy.effectiveParams]) — the taxonomy defaults and unknown-move
+    // fallback the rest of the analysis uses — NOT raw [Figure.beats] (which is
+    // 0 when a figure carries no explicitly-stored count, mislabelling every
+    // such figure as A1 and producing false collisions). A figure is labelled
+    // by the phrase it *starts* in; every figure (custom included) advances the
+    // beat cursor so later figures land in the right phrase.
+    final structure = dance.phraseStructure;
+    var beat = 0;
     for (final figure in dance.figures) {
       final key = columnKeyForFigure(figure);
       rowMoves.add(key);
@@ -355,7 +428,13 @@ ProgramMatrix buildProgramMatrix(
         hasCustom = true;
       } else {
         present.add(key);
+        // Track the phrase in which this move starts so strictly-adjacent
+        // dances can be checked for same-figure-same-phrase collisions. Custom
+        // figures are excluded (their column is un-comparable) but still
+        // advance the beat cursor below.
+        (phraseLabels[key] ??= <String>{}).add(structure.labelAtBeat(beat));
       }
+      beat += _effectiveBeats(tax, figure);
     }
     rows.add(
       MatrixRow(
@@ -365,6 +444,7 @@ ProgramMatrix buildProgramMatrix(
             ? null
             : columnKeyForFigure(dance.figures.first),
         presentMoveIds: rowMoves,
+        phraseLabelsByMove: phraseLabels,
         half: halves == null ? null : halves[i],
       ),
     );

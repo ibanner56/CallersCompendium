@@ -8,9 +8,17 @@ import 'program_pdf.dart' show loadProgramPdfTheme;
 
 /// Marker glyphs for the printed matrix. Deliberately distinct SHAPES + a
 /// legend (never colour alone) so the report matches the on-screen table's
-/// accessibility contract (`ProgramMatrixTable`, WCAG 1.4.1): a move's program
-/// debut (first dance to use it) is a star, a dance's own first figure is a
-/// triangle, any other present move is a check, and an absent move is blank.
+/// accessibility contract (`ProgramMatrixTable`, WCAG 1.4.1): a
+/// same-figure-same-phrase collision with a strictly-adjacent dance is an
+/// alert (`‼`, top precedence), a move's program debut (first dance to use it)
+/// is a star, a dance's own first figure is a triangle, any other present move
+/// is a check, and an absent move is blank.
+///
+/// The collision mark uses `‼` (U+203C) rather than a warning sign because it
+/// is present in the bundled Roboto font's glyph set, so it renders in the PDF
+/// (the `pdf` package silently drops glyphs the font lacks — see #582 notes on
+/// the existing star/triangle/check marks).
+const String _collisionMark = '‼';
 const String _debutMark = '★';
 const String _firstMark = '▸';
 const String _presentMark = '✓';
@@ -135,7 +143,9 @@ pw.Widget _matrixTable(
           ),
           for (var c = 0; c < matrix.columns.length; c++)
             markCell(
-              matrix.isProgramDebut(r, c)
+              matrix.isPhraseCollision(r, c)
+                  ? _collisionMark
+                  : matrix.isProgramDebut(r, c)
                   ? _debutMark
                   : matrix.isFirst(r, c)
                   ? _firstMark
@@ -156,6 +166,7 @@ pw.Widget _matrixTable(
 }
 
 pw.Widget _legend(ProgramMatrixExportLabels labels) => pw.Text(
+  '$_collisionMark  ${labels.legendCollision}      '
   '$_debutMark  ${labels.legendDebut}      '
   '$_firstMark  ${labels.legendFirst}      '
   '$_presentMark  ${labels.legendPresent}',

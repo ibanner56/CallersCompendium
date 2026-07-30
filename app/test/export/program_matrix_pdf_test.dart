@@ -101,5 +101,31 @@ void main() {
 
       expect(bytes, isNotEmpty);
     });
+
+    test(
+      'builds a matrix that carries a same-phrase collision marker',
+      () async {
+        Figure fig(String id, int beats) =>
+            Figure(move: id, params: {'beats': beats});
+        // balance lands in B1 (beat 32) in two strictly-adjacent dances, so its
+        // cells are same-figure-same-phrase collisions — the alert marker path.
+        final matrix = buildProgramMatrix([
+          dance('d1', 'Opener', [fig('do_si_do', 32), fig('balance', 16)]),
+          dance('d2', 'Second', [fig('circle_left', 32), fig('balance', 16)]),
+        ]);
+        final balance = matrix.columns.indexWhere((c) => c.moveId == 'balance');
+        expect(matrix.isPhraseCollision(0, balance), isTrue);
+        expect(matrix.isPhraseCollision(1, balance), isTrue);
+
+        final bytes = await buildProgramMatrixPdf(
+          matrix,
+          taxonomy: contraTaxonomy,
+          dialect: Dialect.canonical,
+          programTitle: 'Collision program',
+        );
+
+        expect(bytes, isNotEmpty);
+      },
+    );
   });
 }

@@ -161,6 +161,13 @@ Here is how to read it:
 - **A ▸ (flag)** marks each **dance's own first figure** — the move it opens
   with.
 - **A ✓ (check mark)** shows where a move appears in a dance.
+- **A ‼ alert marker** replaces the check mark when a move lands in the **same
+  phrase** (A1, A2, B1, B2…) in **two dances that run back-to-back** in the
+  program — for example a partner balance & swing in B1 of one dance and again
+  in B1 of the very next dance. Adjacent repeats like this can make two dances
+  feel samey on the floor, so the matrix flags them for you to notice and, if
+  you like, reconsider. Only the two colliding cells are flagged; a repeat that
+  is not in neighbouring dances, or lands in a different phrase, is left alone.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
 
@@ -179,7 +186,8 @@ A few practical notes:
 - **For screen-reader users**, the matrix reads as a proper table, so you can
   navigate it row by row and column by column.
 - **To take it with you**, print or export the matrix as its own landscape PDF,
-  complete with a legend explaining the ★, ▸, and ✓ markers.
+  complete with a legend explaining the ★, ▸, ✓, and ‼ (adjacent same-phrase
+  repeat) markers.
 
 ## Print, export, and email a program
 

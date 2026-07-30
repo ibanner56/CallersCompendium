@@ -524,4 +524,196 @@ void main() {
       );
     });
   });
+
+  group('isPhraseCollision — same figure, same phrase, adjacent dances', () {
+    // A figure's phrase is derived from its cumulative beat offset under the
+    // default 4x16 structure (A1 0-15, A2 16-31, B1 32-47, B2 48-63). `fig`
+    // sets an explicit beat length so a move can be steered into a phrase.
+    Figure fig(String id, int beats) =>
+        Figure(move: id, params: {'beats': beats});
+
+    int colOfMove(ProgramMatrix m, String moveId) =>
+        m.columns.indexWhere((c) => c.moveId == moveId);
+
+    test('phraseLabelsByMove records the phrase each move starts in', () {
+      final m = buildProgramMatrix([
+        // balance A1 (beat 0), do_si_do B1 (beat 32).
+        dance('d1', 'A', [fig('balance', 32), fig('do_si_do', 16)]),
+      ]);
+      expect(m.rows.first.phraseLabelsByMove['balance'], {'A1'});
+      expect(m.rows.first.phraseLabelsByMove['do_si_do'], {'B1'});
+    });
+
+    test(
+      'flags both cells when a move shares a phrase with the next dance',
+      () {
+        final balanceB1a = [fig('do_si_do', 32), fig('balance', 16)];
+        final balanceB1b = [fig('circle', 32), fig('balance', 16)];
+        final m = buildProgramMatrix([
+          dance('d1', 'A', balanceB1a),
+          dance('d2', 'B', balanceB1b),
+        ]);
+        final c = colOfMove(m, 'balance');
+        expect(m.isPhraseCollision(0, c), isTrue);
+        expect(m.isPhraseCollision(1, c), isTrue);
+      },
+    );
+
+    test('does NOT flag the same move in a different phrase', () {
+      final m = buildProgramMatrix([
+        // balance in B1 (beat 32).
+        dance('d1', 'A', [fig('do_si_do', 32), fig('balance', 16)]),
+        // balance in A1 (beat 0).
+        dance('d2', 'B', [fig('balance', 16), fig('do_si_do', 16)]),
+      ]);
+      final c = colOfMove(m, 'balance');
+      expect(m.isPhraseCollision(0, c), isFalse);
+      expect(m.isPhraseCollision(1, c), isFalse);
+    });
+
+    test(
+      'does NOT flag a same-phrase repeat that is not strictly adjacent',
+      () {
+        final balanceB1 = [fig('do_si_do', 32), fig('balance', 16)];
+        final m = buildProgramMatrix([
+          dance('d1', 'A', balanceB1),
+          // Middle dance has no balance, so d1 and d3 are not neighbours.
+          dance('d2', 'B', [fig('circle', 16)]),
+          dance('d3', 'C', balanceB1),
+        ]);
+        final c = colOfMove(m, 'balance');
+        expect(m.isPhraseCollision(0, c), isFalse);
+        expect(m.isPhraseCollision(2, c), isFalse);
+      },
+    );
+
+    test('flags a collision with either neighbour (above or below)', () {
+      final balanceB1 = [fig('do_si_do', 32), fig('balance', 16)];
+      final m = buildProgramMatrix([
+        dance('d1', 'A', balanceB1),
+        dance('d2', 'B', balanceB1),
+        dance('d3', 'C', balanceB1),
+      ]);
+      final c = colOfMove(m, 'balance');
+      // Middle row collides with both neighbours; ends collide with the middle.
+      expect(m.isPhraseCollision(0, c), isTrue);
+      expect(m.isPhraseCollision(1, c), isTrue);
+      expect(m.isPhraseCollision(2, c), isTrue);
+    });
+
+    test('split (swing role) columns collide on same role + same phrase', () {
+      // A partner swing landing in B2 (beat 48) in two adjacent dances.
+      final swingB2 = [
+        Figure(move: 'do_si_do', params: {'beats': 48}),
+        swing(),
+      ];
+      final m = buildProgramMatrix([
+        dance('d1', 'A', swingB2),
+        dance('d2', 'B', swingB2),
+      ]);
+      final c = colOfMove(m, 'swing:partner');
+      expect(m.isPhraseCollision(0, c), isTrue);
+      expect(m.isPhraseCollision(1, c), isTrue);
+    });
+
+    test('different swing roles in the same phrase do NOT collide', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [
+          Figure(move: 'do_si_do', params: {'beats': 48}),
+          swing('partners'),
+        ]),
+        dance('d2', 'B', [
+          Figure(move: 'do_si_do', params: {'beats': 48}),
+          swing('neighbors'),
+        ]),
+      ]);
+      expect(m.isPhraseCollision(0, colOfMove(m, 'swing:partner')), isFalse);
+      expect(m.isPhraseCollision(1, colOfMove(m, 'swing:neighbor')), isFalse);
+    });
+
+    test('the collapsed custom column never collides', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [custom('petronella twirl')]),
+        dance('d2', 'B', [custom('california twirl')]),
+      ]);
+      final c = colOfMove(m, customMove);
+      expect(c, isNot(-1));
+      expect(m.isPhraseCollision(0, c), isFalse);
+      expect(m.isPhraseCollision(1, c), isFalse);
+      // Custom is excluded from the phrase map entirely.
+      expect(m.rows.first.phraseLabelsByMove.containsKey(customMove), isFalse);
+    });
+
+    test('a move present only in this dance does not collide', () {
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [fig('balance', 16)]),
+        dance('d2', 'B', [fig('circle', 16)]),
+      ]);
+      expect(m.isPhraseCollision(0, colOfMove(m, 'balance')), isFalse);
+    });
+
+    test('a move repeated in one dance still needs a neighbour to collide', () {
+      // balance twice in one dance (A1 and B1), no neighbour uses it.
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [fig('balance', 32), fig('balance', 16)]),
+        dance('d2', 'B', [fig('circle', 16)]),
+      ]);
+      expect(m.rows.first.phraseLabelsByMove['balance'], {'A1', 'B1'});
+      expect(m.isPhraseCollision(0, colOfMove(m, 'balance')), isFalse);
+    });
+
+    test('figures with UNSET beats land in the right phrase via effective '
+        'beats (not all A1)', () {
+      // No figure carries an explicit beat count; positions come from taxonomy
+      // effective beats (do_si_do 8, balance 4, swing 8), NOT raw Figure.beats
+      // (which would read 0 and mislabel every figure as A1). Cumulative starts:
+      // do_si_do@0 (A1), do_si_do@8 (A1), balance@16 (A2), swing@20 (A2).
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [
+          move('do_si_do'),
+          move('do_si_do'),
+          move('balance'),
+          swing(),
+        ]),
+      ]);
+      final labels = m.rows.first.phraseLabelsByMove;
+      expect(labels['do_si_do'], {'A1'});
+      expect(labels['balance'], {'A2'});
+      expect(labels['swing:partner'], {'A2'});
+    });
+
+    test(
+      'unset-beats figures no longer false-collide across adjacent dances',
+      () {
+        // Under the old raw-beats derivation every figure read as A1, so the
+        // shared swing would falsely collide. With effective beats it lands in
+        // A1 in A but A2 in B (after two 8-beat figures), so there is no collision.
+        final m = buildProgramMatrix([
+          dance('d1', 'A', [move('do_si_do'), swing()]),
+          dance('d2', 'B', [move('do_si_do'), move('do_si_do'), swing()]),
+        ]);
+        expect(m.rows[0].phraseLabelsByMove['swing:partner'], {'A1'});
+        expect(m.rows[1].phraseLabelsByMove['swing:partner'], {'A2'});
+        expect(m.isPhraseCollision(0, colOfMove(m, 'swing:partner')), isFalse);
+        expect(m.isPhraseCollision(1, colOfMove(m, 'swing:partner')), isFalse);
+      },
+    );
+
+    test(
+      'unknown moves with no beats still advance the cursor (fallback 8)',
+      () {
+        // An unknown move (not in the taxonomy) has no stored beats; effective
+        // beats fall back to 8, so a following figure is pushed past A1 rather
+        // than piling up at beat 0. Two unknowns (8+8=16) put balance in A2.
+        final m = buildProgramMatrix([
+          dance('d1', 'A', [
+            move('mystery_move'),
+            move('mystery_move'),
+            move('balance'),
+          ]),
+        ]);
+        expect(m.rows.first.phraseLabelsByMove['balance'], {'A2'});
+      },
+    );
+  });
 }

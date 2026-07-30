@@ -2351,22 +2351,27 @@ class AppLocalizationsJa extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String collision,
     String debut,
     String first,
   ) {
-    String _temp0 = intl.Intl.selectLogic(debut, {
+    String _temp0 = intl.Intl.selectLogic(collision, {
+      'yes': '、隣接するダンスと同じフレーズで繰り返される',
+      'other': '',
+    });
+    String _temp1 = intl.Intl.selectLogic(debut, {
       'yes': '、ここで初登場',
       'other': '',
     });
-    String _temp1 = intl.Intl.selectLogic(first, {
+    String _temp2 = intl.Intl.selectLogic(first, {
       'yes': '、ダンスの最初のフィギュア',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(present, {
+    String _temp3 = intl.Intl.selectLogic(present, {
       'no': '未使用',
-      'other': '使用中$_temp0$_temp1',
+      'other': '使用中$_temp0$_temp1$_temp2',
     });
-    return '$dance、$move: $_temp2';
+    return '$dance、$move: $_temp3';
   }
 
   @override
@@ -2428,6 +2433,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsMatrixLegendPresent => '使用中';
+
+  @override
+  String get programsMatrixLegendCollision => '隣接ダンスと同じフレーズ';
 
   @override
   String get programsMatrixEmptyTitle => 'まだ構造化されたフィギュアがありません';
@@ -2873,6 +2881,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportMatrixLegendPresent => '使用中';
+
+  @override
+  String get exportMatrixLegendCollision => '隣接ダンスと同じフレーズ';
 
   @override
   String exportMatrixOmittedCaption(int count) {

@@ -11,6 +11,19 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Added
+
+- **Program matrix flags same-figure-same-phrase repeats between neighbouring
+  dances.** In the Matrix tab, a cell now shows an alert marker instead of the
+  plain check when the same move lands in the *same phrase* (A1/A2/B1/B2…) in
+  two dances that run **back-to-back** in the program — the kind of adjacent
+  repeat that can make two dances feel samey on the floor. Only the two
+  colliding cells are flagged; repeats that are non-adjacent or in a different
+  phrase are left alone. The alert carries into the landscape **PDF matrix
+  export** and its legend, and — like the existing star/flag/check markers — is
+  conveyed with a distinct shape plus a localized screen-reader announcement,
+  never colour alone (WCAG 1.4.1). (#582)
+
 ### Fixed
 
 - **ContraDB import: figures with a `balance &` prefix now recognize instead of

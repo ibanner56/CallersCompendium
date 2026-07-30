@@ -2428,22 +2428,27 @@ class AppLocalizationsNl extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String collision,
     String debut,
     String first,
   ) {
-    String _temp0 = intl.Intl.selectLogic(debut, {
+    String _temp0 = intl.Intl.selectLogic(collision, {
+      'yes': ', herhaalt in dezelfde frase als een aangrenzende dans',
+      'other': '',
+    });
+    String _temp1 = intl.Intl.selectLogic(debut, {
       'yes': ', hier geïntroduceerd',
       'other': '',
     });
-    String _temp1 = intl.Intl.selectLogic(first, {
+    String _temp2 = intl.Intl.selectLogic(first, {
       'yes': ', eerste figuur van de dans',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(present, {
+    String _temp3 = intl.Intl.selectLogic(present, {
       'no': 'niet aanwezig',
-      'other': 'aanwezig$_temp0$_temp1',
+      'other': 'aanwezig$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move: $_temp2';
+    return '$dance, $move: $_temp3';
   }
 
   @override
@@ -2505,6 +2510,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsMatrixLegendPresent => 'Aanwezig';
+
+  @override
+  String get programsMatrixLegendCollision =>
+      'Zelfde frase als aangrenzende dans';
 
   @override
   String get programsMatrixEmptyTitle => 'Nog geen gestructureerde figuren';
@@ -2965,6 +2974,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get exportMatrixLegendPresent => 'Aanwezig';
+
+  @override
+  String get exportMatrixLegendCollision =>
+      'Zelfde frase als aangrenzende dans';
 
   @override
   String exportMatrixOmittedCaption(int count) {
