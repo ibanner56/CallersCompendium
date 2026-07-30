@@ -3924,14 +3924,15 @@ abstract class AppLocalizations {
   /// **'{half, select, first{1st} other{2nd}}'**
   String programsMatrixHalfShort(String half);
 
-  /// Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use is the move's program debut and/or the dance's opening figure.
+  /// Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance (same figure in the same phrase), is the move's program debut, and/or the dance's opening figure.
   ///
   /// In en, this message translates to:
-  /// **'{dance}, {move}: {present, select, no{not present} other{present{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}'**
+  /// **'{dance}, {move}: {present, select, no{not present} other{present{collision, select, yes{, repeats in the same phrase as an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}'**
   String programsMatrixCellSemantic(
     String dance,
     String move,
     String present,
+    String collision,
     String debut,
     String first,
   );
@@ -4005,6 +4006,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Present'**
   String get programsMatrixLegendPresent;
+
+  /// Matrix legend label for the alert marker: the move repeats in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance in the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Same phrase as adjacent dance'**
+  String get programsMatrixLegendCollision;
 
   /// Title of the matrix empty state shown when no dance has structured figures.
   ///
@@ -4728,6 +4735,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Present'**
   String get exportMatrixLegendPresent;
+
+  /// Legend entry on the programming-matrix PDF for the alert marker: a move repeating in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Same phrase as adjacent dance'**
+  String get exportMatrixLegendCollision;
 
   /// Caption on the programming-matrix PDF noting how many free-text slots (breaks, notes) were left out because the matrix shows dances only.
   ///

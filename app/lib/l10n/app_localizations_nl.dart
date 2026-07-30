@@ -2428,6 +2428,7 @@ class AppLocalizationsNl extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String collision,
     String debut,
     String first,
   ) {
@@ -2505,6 +2506,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsMatrixLegendPresent => 'Aanwezig';
+
+  @override
+  String get programsMatrixLegendCollision => 'Same phrase as adjacent dance';
 
   @override
   String get programsMatrixEmptyTitle => 'Nog geen gestructureerde figuren';
@@ -2965,6 +2969,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get exportMatrixLegendPresent => 'Aanwezig';
+
+  @override
+  String get exportMatrixLegendCollision => 'Same phrase as adjacent dance';
 
   @override
   String exportMatrixOmittedCaption(int count) {

@@ -15,10 +15,18 @@ void main() {
     updatedAt: now,
   );
 
-  Figure move(String id) => Figure(move: id);
-  Figure swing([String? who]) => Figure(move: 'swing', params: {'who': ?who});
-  Figure hey([String? length]) =>
-      Figure(move: 'hey', params: {'length': ?length});
+  // Figures carry realistic beats so phrase derivation (A1/A2/B1/B2…) is
+  // meaningful: each figure fills one 16-beat phrase, so a dance's figures
+  // occupy sequential phrases (figure 0 → A1, figure 1 → A2, …). This mirrors
+  // real dances and keeps the same-figure-same-phrase collision check (#582)
+  // from firing spuriously just because every beats-less figure would derive
+  // to A1.
+  Figure move(String id, [int beats = 16]) =>
+      Figure(move: id, params: {'beats': beats});
+  Figure swing([String? who, int beats = 16]) =>
+      Figure(move: 'swing', params: {'who': ?who, 'beats': beats});
+  Figure hey([String? length, int beats = 16]) =>
+      Figure(move: 'hey', params: {'length': ?length, 'beats': beats});
 
   Future<void> pump(
     WidgetTester tester, {
@@ -144,6 +152,7 @@ void main() {
     expect(find.text('Introduced here'), findsOneWidget);
     expect(find.text("Dance's first figure"), findsOneWidget);
     expect(find.text('Present'), findsOneWidget);
+    expect(find.text('Same phrase as adjacent dance'), findsOneWidget);
     // A opens with a neighbor swing → the neighbor split column is both its
     // program debut and its first figure; the partner baseline is not present.
     expect(
@@ -298,24 +307,38 @@ void main() {
       // ...and the per-dance table semantics are preserved on each chip. A
       // opens with the swing (its debut + first figure); B opens with it too
       // but the swing already debuted in A, so B carries the dance-first flag.
+      // Both dances open with the partner swing in the same phrase (A1), so
+      // that move is also a same-figure-same-phrase collision (#582).
       expect(
         find.bySemanticsLabel(
-          "A, partner swing: present, introduced here, dance's first figure",
+          "A, partner swing: present, repeats in the same phrase as an "
+          "adjacent dance, introduced here, dance's first figure",
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          "B, partner swing: present, dance's first figure",
+          "B, partner swing: present, repeats in the same phrase as an "
+          "adjacent dance, dance's first figure",
         ),
         findsOneWidget,
       );
-      // balance debuts in A (mid-dance) and is a plain repeat in B.
+      // balance debuts in A (mid-dance, phrase A2) and is a plain repeat in B —
+      // also in A2 in both dances, so it collides too.
       expect(
-        find.bySemanticsLabel('A, balance: present, introduced here'),
+        find.bySemanticsLabel(
+          'A, balance: present, repeats in the same phrase as an adjacent '
+          'dance, introduced here',
+        ),
         findsOneWidget,
       );
-      expect(find.bySemanticsLabel('B, balance: present'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(
+          'B, balance: present, repeats in the same phrase as an adjacent '
+          'dance',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('marks the debut of a repeated move with a star', (
@@ -403,17 +426,19 @@ void main() {
       // The alternate-slot distinction (only in the wide row header) is carried
       // into the compact chip's semantics and shown with the alt_route icon. A
       // opens the swing (its debut + first figure); Alt Dance opens it too but
-      // after the debut, so it carries only the dance-first flag.
+      // after the debut, so it carries only the dance-first flag. Both open the
+      // partner swing in the same phrase (A1), so it also collides (#582).
       expect(
         find.bySemanticsLabel(
-          "Alt Dance (alternate dance), partner swing: present, "
-          "dance's first figure",
+          "Alt Dance (alternate dance), partner swing: present, repeats in the "
+          "same phrase as an adjacent dance, dance's first figure",
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          "A, partner swing: present, introduced here, dance's first figure",
+          "A, partner swing: present, repeats in the same phrase as an "
+          "adjacent dance, introduced here, dance's first figure",
         ),
         findsOneWidget,
       );
@@ -522,16 +547,133 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // Both dances open with the partner swing in the same phrase (A1), so it
+      // is also a same-figure-same-phrase collision (#582).
       expect(
         find.bySemanticsLabel(
-          "A (first half), partner swing: present, introduced here, "
-          "dance's first figure",
+          "A (first half), partner swing: present, repeats in the same phrase "
+          "as an adjacent dance, introduced here, dance's first figure",
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          "B (second half), partner swing: present, dance's first figure",
+          "B (second half), partner swing: present, repeats in the same phrase "
+          "as an adjacent dance, dance's first figure",
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('same-figure-same-phrase collision glyph (#582)', () {
+    // Steer a move into a phrase by padding the beats ahead of it (default
+    // 4x16 structure: A1 0-15, A2 16-31, B1 32-47, B2 48-63).
+    Figure fig(String id, int beats) =>
+        Figure(move: id, params: {'beats': beats});
+
+    testWidgets('flags both cells when a move repeats in the same phrase of an '
+        'adjacent dance', (tester) async {
+      await pump(
+        tester,
+        dances: [
+          // balance lands in B1 (beat 32) in both dances; the fillers differ so
+          // only balance collides.
+          dance('d1', 'A', [fig('do_si_do', 32), fig('balance', 16)]),
+          dance('d2', 'B', [fig('circle_left', 32), fig('balance', 16)]),
+        ],
+      );
+
+      expect(find.byIcon(Icons.report), findsWidgets);
+      // d1's balance is also its program debut for that move.
+      expect(
+        find.bySemanticsLabel(
+          'A, balance: present, repeats in the same phrase as an adjacent '
+          'dance, introduced here',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(
+          'B, balance: present, repeats in the same phrase as an adjacent '
+          'dance',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('does not flag the same move in a different phrase', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        dances: [
+          // balance in B1 (beat 32).
+          dance('d1', 'A', [fig('do_si_do', 32), fig('balance', 16)]),
+          // balance in A2 (beat 16) — a different phrase, so no collision.
+          dance('d2', 'B', [fig('circle_left', 16), fig('balance', 16)]),
+        ],
+      );
+
+      // The only release_alert icon is the legend key — no cell collides.
+      expect(
+        find.bySemanticsLabel(
+          'A, balance: present, repeats in the same phrase as an adjacent '
+          'dance, introduced here',
+        ),
+        findsNothing,
+      );
+      expect(
+        find.bySemanticsLabel(
+          'B, balance: present, repeats in the same phrase as an adjacent '
+          'dance',
+        ),
+        findsNothing,
+      );
+      // d1's balance is a mid-dance debut (phrase B1); d2's balance neither
+      // opens the dance nor debuts the move — plain "present" in both cases.
+      expect(
+        find.bySemanticsLabel('A, balance: present, introduced here'),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('B, balance: present'), findsOneWidget);
+    });
+
+    testWidgets('compact view surfaces the collision on the dance chip', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(360, 720));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: ProgramMatrixTable(
+              matrix: buildProgramMatrix([
+                dance('d1', 'A', [fig('do_si_do', 32), fig('balance', 16)]),
+                dance('d2', 'B', [fig('circle_left', 32), fig('balance', 16)]),
+              ]),
+              taxonomy: contraTaxonomy,
+              dialect: Dialect.canonical,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.report), findsWidgets);
+      expect(
+        find.bySemanticsLabel(
+          'A, balance: present, repeats in the same phrase as an adjacent '
+          'dance, introduced here',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(
+          'B, balance: present, repeats in the same phrase as an adjacent '
+          'dance',
         ),
         findsOneWidget,
       );

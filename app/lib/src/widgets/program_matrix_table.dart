@@ -240,6 +240,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                                       present: matrix.isPresent(r, c),
                                       first: matrix.isFirst(r, c),
                                       programDebut: matrix.isProgramDebut(r, c),
+                                      collision: matrix.isPhraseCollision(r, c),
                                     ),
                                 ],
                               ),
@@ -412,6 +413,7 @@ class _Cell extends StatelessWidget {
     required this.present,
     required this.first,
     required this.programDebut,
+    required this.collision,
   });
 
   final String danceTitle;
@@ -419,6 +421,7 @@ class _Cell extends StatelessWidget {
   final bool present;
   final bool first;
   final bool programDebut;
+  final bool collision;
 
   @override
   Widget build(BuildContext context) {
@@ -426,7 +429,12 @@ class _Cell extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     Widget? mark;
-    if (programDebut) {
+    if (collision) {
+      // Same-figure-same-phrase collision with a strictly-adjacent dance: a
+      // shape-distinct alert (never colour alone) that takes precedence over
+      // the debut/first highlights — it's the signal a caller must notice.
+      mark = Icon(Icons.report, size: 20, color: theme.colorScheme.error);
+    } else if (programDebut) {
       // Program debut: distinct SHAPE (star) + text, not colour alone.
       mark = Icon(Icons.star, size: 20, color: theme.colorScheme.primary);
     } else if (first) {
@@ -445,6 +453,7 @@ class _Cell extends StatelessWidget {
         danceTitle,
         moveLabel,
         present ? 'yes' : 'no',
+        collision ? 'yes' : 'no',
         programDebut ? 'yes' : 'no',
         first ? 'yes' : 'no',
       ),
@@ -454,7 +463,9 @@ class _Cell extends StatelessWidget {
         height: ProgramMatrixTable.rowHeight,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: programDebut
+          color: collision
+              ? theme.colorScheme.errorContainer.withValues(alpha: 0.4)
+              : programDebut
               ? theme.colorScheme.primaryContainer.withValues(alpha: 0.4)
               : first
               ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.3)
@@ -507,6 +518,7 @@ class _CompactMatrix extends StatelessWidget {
               title: matrix.rows[r].title,
               first: matrix.isFirst(r, c),
               programDebut: matrix.isProgramDebut(r, c),
+              collision: matrix.isPhraseCollision(r, c),
               isAlt: altDanceIds.contains(matrix.rows[r].danceId),
               half: matrix.rows[r].half,
             ),
@@ -628,6 +640,7 @@ class _DanceUse {
     required this.title,
     required this.first,
     required this.programDebut,
+    required this.collision,
     required this.isAlt,
     this.half,
   });
@@ -635,6 +648,7 @@ class _DanceUse {
   final String title;
   final bool first;
   final bool programDebut;
+  final bool collision;
   final bool isAlt;
   final ProgramHalf? half;
 }
@@ -724,6 +738,7 @@ class _MoveCard extends StatelessWidget {
                   moveLabel: summary.label,
                   first: d.first,
                   programDebut: d.programDebut,
+                  collision: d.collision,
                   isAlt: d.isAlt,
                   half: d.half,
                 ),
@@ -741,6 +756,7 @@ class _DanceChip extends StatelessWidget {
     required this.moveLabel,
     required this.first,
     required this.programDebut,
+    required this.collision,
     required this.isAlt,
     this.half,
   });
@@ -749,6 +765,7 @@ class _DanceChip extends StatelessWidget {
   final String moveLabel;
   final bool first;
   final bool programDebut;
+  final bool collision;
   final bool isAlt;
   final ProgramHalf? half;
 
@@ -769,7 +786,12 @@ class _DanceChip extends StatelessWidget {
     );
     final IconData markIcon;
     final Color markColor;
-    if (programDebut) {
+    if (collision) {
+      // Same-phrase repeat with a strictly-adjacent dance: top-precedence
+      // alert (shape + semantics, never colour alone).
+      markIcon = Icons.report;
+      markColor = theme.colorScheme.error;
+    } else if (programDebut) {
       markIcon = Icons.star;
       markColor = theme.colorScheme.primary;
     } else if (first) {
@@ -784,6 +806,7 @@ class _DanceChip extends StatelessWidget {
         who,
         moveLabel,
         'yes',
+        collision ? 'yes' : 'no',
         programDebut ? 'yes' : 'no',
         first ? 'yes' : 'no',
       ),
@@ -791,7 +814,9 @@ class _DanceChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: programDebut
+          color: collision
+              ? theme.colorScheme.errorContainer.withValues(alpha: 0.4)
+              : programDebut
               ? theme.colorScheme.primaryContainer.withValues(alpha: 0.4)
               : first
               ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.3)
@@ -835,6 +860,11 @@ class _Legend extends StatelessWidget {
         runSpacing: 4,
         children: [
           _LegendItem(
+            icon: Icons.report,
+            color: theme.colorScheme.error,
+            label: l10n.programsMatrixLegendCollision,
+          ),
+          _LegendItem(
             icon: Icons.star,
             color: theme.colorScheme.primary,
             label: l10n.programsMatrixLegendIntroduced,
@@ -874,7 +904,7 @@ class _LegendItem extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: color),
         const SizedBox(width: 4),
-        Text(label, style: theme.textTheme.labelMedium),
+        Flexible(child: Text(label, style: theme.textTheme.labelMedium)),
       ],
     );
   }

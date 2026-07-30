@@ -2351,6 +2351,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String collision,
     String debut,
     String first,
   ) {
@@ -2428,6 +2429,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsMatrixLegendPresent => '使用中';
+
+  @override
+  String get programsMatrixLegendCollision => 'Same phrase as adjacent dance';
 
   @override
   String get programsMatrixEmptyTitle => 'まだ構造化されたフィギュアがありません';
@@ -2873,6 +2877,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportMatrixLegendPresent => '使用中';
+
+  @override
+  String get exportMatrixLegendCollision => 'Same phrase as adjacent dance';
 
   @override
   String exportMatrixOmittedCaption(int count) {

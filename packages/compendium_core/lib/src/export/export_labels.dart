@@ -106,6 +106,7 @@ class ProgramMatrixExportLabels {
     this.legendDebut = 'Introduced here',
     this.legendFirst = "Dance's first figure",
     this.legendPresent = 'Present',
+    this.legendCollision = 'Same phrase as adjacent dance',
     this.omittedCaption = _englishOmittedCaption,
   });
 
@@ -115,5 +116,6 @@ class ProgramMatrixExportLabels {
   final String legendDebut;
   final String legendFirst;
   final String legendPresent;
+  final String legendCollision;
   final String Function(int count) omittedCaption;
 }
