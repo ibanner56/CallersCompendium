@@ -77,7 +77,8 @@ const String _rory2254Body = '''
 </table>
 ''';
 
-Future<StructuredDraft> _importOne(String payload, {String? uri}) async {  final adapter = ContraDbHtmlAdapter();
+Future<StructuredDraft> _importOne(String payload, {String? uri}) async {
+  final adapter = ContraDbHtmlAdapter();
   final discovered = await adapter.discover(
     ImportRequest(payload: payload, uri: uri),
   );
@@ -352,23 +353,24 @@ void main() {
       expect(draft.dance.figures[2].params['who'], 'role2s');
     });
 
-    test(
-      'repro dance 2254: "balance & Rory O\'More … (in long waves)" '
-      'structures with the paren note (#578)',
-      () async {
-        final draft = await _importOne(_page(_rory2254Body));
-        final figures = draft.dance.figures;
-        expect(figures, hasLength(2));
-        for (final f in figures) {
-          expect(f.isCustom, isFalse, reason: 'should not fall through to custom');
-          expect(f.move, 'rory_o_more');
-          expect(f.params['balance'], isTrue);
-          expect(f.note, '(in long waves)');
-        }
-        expect(figures[0].params['slide'], 'right');
-        expect(figures[1].params['slide'], 'left');
-      },
-    );
+    test('repro dance 2254: "balance & Rory O\'More … (in long waves)" '
+        'structures with the paren note (#578)', () async {
+      final draft = await _importOne(_page(_rory2254Body));
+      final figures = draft.dance.figures;
+      expect(figures, hasLength(2));
+      for (final f in figures) {
+        expect(
+          f.isCustom,
+          isFalse,
+          reason: 'should not fall through to custom',
+        );
+        expect(f.move, 'rory_o_more');
+        expect(f.params['balance'], isTrue);
+        expect(f.note, '(in long waves)');
+      }
+      expect(figures[0].params['slide'], 'right');
+      expect(figures[1].params['slide'], 'left');
+    });
 
     test(
       'splits "form an ocean wave & balance" into wave + a balance',
