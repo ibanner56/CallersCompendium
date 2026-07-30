@@ -9,7 +9,8 @@ and no GitHub Pages are needed. Run directly::
     python3 tools/release/test_publish_pages_site.py
 
 Focus: prove the CRITICAL coexistence contract — publishing the landing page must
-NOT erase the channel manifests (``beta.json`` / ``stable.json``) or ``.nojekyll``
+NOT erase the channel manifests (``beta.json`` / ``stable.json``), their detached
+signatures (``beta.json.sig`` / ``stable.json.sig``, issue #607), or ``.nojekyll``
 already on ``gh-pages``, must replace STALE site files, must create the orphan
 branch cleanly on first publish, and must no-op on unchanged content.
 """
@@ -105,17 +106,20 @@ def _publish_site(checkout: Path, worktree: Path, site: Path,
 
 
 def _publish_manifest(checkout: Path, worktree: Path, manifest: Path,
-                      channel: str, tag: str) -> subprocess.CompletedProcess:
+                      channel: str, tag: str,
+                      signature: Path | None = None) -> subprocess.CompletedProcess:
     env = dict(os.environ)
     env.update(
         REMOTE="origin", BRANCH=REMOTE_BRANCH, WORKTREE=str(worktree),
         PAGES_USER_NAME="Test Bot", PAGES_USER_EMAIL="test@example.com",
         PUSH_RETRIES="3",
     )
+    args = ["bash", str(MANIFEST_SCRIPT), "--manifest", str(manifest),
+            "--channel", channel, "--tag", tag]
+    if signature is not None:
+        args += ["--signature", str(signature)]
     return subprocess.run(
-        ["bash", str(MANIFEST_SCRIPT), "--manifest", str(manifest),
-         "--channel", channel, "--tag", tag],
-        cwd=str(checkout), env=env, capture_output=True, text=True,
+        args, cwd=str(checkout), env=env, capture_output=True, text=True,
     )
 
 
@@ -180,7 +184,46 @@ def _cases() -> None:
         assert _commit_count(origin, REMOTE_BRANCH) == before, \
             "unchanged content must not create a commit"
 
-    # 5. Argument validation: a missing site dir and a valueless flag fail loudly.
+        # 5. RELEASE BLOCKER (#607): a site republish must PRESERVE the update-
+        #    manifest SIGNATURES (`<channel>.json.sig`), not just the manifests.
+        #    Deleting a `.sig` makes the in-app update client fail closed and
+        #    silently stop offering updates, with no error anywhere. Publish a
+        #    SIGNED manifest for each channel, republish the site, and prove both
+        #    signatures survive AND are non-empty (an empty/truncated signature is
+        #    as useless to the client as a missing one).
+        sig_body = "c2lnbmF0dXJlLWJ5dGVz"  # base64("signature-bytes")
+        for channel, version in (("beta", "0.1.0-beta.3"), ("stable", "0.1.0")):
+            man_dir = tmp / f"signed-{channel}"
+            man_dir.mkdir(parents=True, exist_ok=True)
+            man = _manifest(man_dir, channel, version)
+            sig = man.parent / f"{channel}.json.sig"
+            sig.write_text(sig_body + "\n", encoding="utf-8")
+            r = _publish_manifest(checkout, tmp / f"wt-sig-{channel}", man,
+                                  channel, f"v{version}", signature=sig)
+            assert r.returncode == 0, \
+                f"signed {channel} manifest publish failed:\n{r.stderr}\n{r.stdout}"
+            assert _exists(origin, f"{REMOTE_BRANCH}:{channel}.json.sig"), \
+                f"{channel}.json.sig was not published"
+
+        site3 = tmp / "v3" / "site"
+        site3.mkdir(parents=True)
+        (site3 / "index.html").write_text("<!doctype html><title>v3</title>\n", encoding="utf-8")
+        r = _publish_site(checkout, tmp / "wt5", site3, source_ref="v3sha")
+        assert r.returncode == 0, f"site publish over signatures failed:\n{r.stderr}\n{r.stdout}"
+
+        for channel in ("beta", "stable"):
+            assert _exists(origin, f"{REMOTE_BRANCH}:{channel}.json"), \
+                f"PRESERVATION FAILED: site republish erased {channel}.json"
+            assert _exists(origin, f"{REMOTE_BRANCH}:{channel}.json.sig"), \
+                f"PRESERVATION FAILED (#607): site republish erased {channel}.json.sig"
+            survived = _show(origin, f"{REMOTE_BRANCH}:{channel}.json.sig")
+            assert survived.strip() == sig_body, \
+                f"{channel}.json.sig body was mangled by the site publish"
+            assert survived.strip() != "", \
+                f"{channel}.json.sig must be non-empty after a site deploy"
+        assert "v3" in _show(origin, f"{REMOTE_BRANCH}:index.html"), "page not updated"
+
+    # 6. Argument validation: a missing site dir and a valueless flag fail loudly.
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         _, checkout = _setup(tmp)
