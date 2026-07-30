@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show exit, stderr;
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'l10n/app_localizations.dart';
@@ -574,7 +575,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
         // the seed latch stays unset so a later launch can retry. Log the
         // failure (like the backup/export paths) so a missing or invalid
         // bundled asset is diagnosable in the field rather than silent.
-        debugPrint('First-run seed failed: $error\n$stackTrace');
+        if (kDebugMode) {
+          debugPrint('First-run seed failed: $error\n$stackTrace');
+        }
       }
     }
     // Fast, once-per-launch integrity probe (SQLite `PRAGMA quick_check`, per
@@ -599,7 +602,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
       // the "threw" vs "returned false" distinction for that banner.
       _dataIntegrityOk = false;
       _integrityProbeThrew = true;
-      debugPrint('Integrity probe threw: $error\n$stackTrace');
+      if (kDebugMode) {
+        debugPrint('Integrity probe threw: $error\n$stackTrace');
+      }
       widget.crashReporter?.record(
         error,
         stackTrace,

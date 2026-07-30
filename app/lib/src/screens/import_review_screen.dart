@@ -493,7 +493,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       CollectionRefreshScope.bump(context);
     } catch (e, stackTrace) {
       if (!mounted) return;
-      debugPrint('Import commit-for-edit failed: $e\n$stackTrace');
+      if (kDebugMode) {
+        debugPrint('Import commit-for-edit failed: $e\n$stackTrace');
+      }
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -572,7 +574,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       }
     } catch (e, stackTrace) {
       if (!mounted) return;
-      debugPrint('Import commit failed: $e\n$stackTrace');
+      if (kDebugMode) {
+        debugPrint('Import commit failed: $e\n$stackTrace');
+      }
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -635,7 +639,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // Bounds/duplicate backstop — never surface a raw error to the user
         // (this is an optional background step), but log it so an unexpected
         // failure is diagnosable.
-        debugPrint('Shorthand seed upsert failed: $e\n$stackTrace');
+        if (kDebugMode) {
+          debugPrint('Shorthand seed upsert failed: $e\n$stackTrace');
+        }
       }
     }
     if (!mounted || seeded == 0) return;

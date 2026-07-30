@@ -192,10 +192,12 @@ Future<void> runMigrationPreflight({
       if (!proceed) {
         throw MigrationSnapshotAborted(failure);
       }
-      debugPrint(
-        'Migration preflight: pre-migration snapshot failed; user chose to '
-        'proceed without a backup: $error',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'Migration preflight: pre-migration snapshot failed; user chose to '
+          'proceed without a backup: $error',
+        );
+      }
     }
   }
 }

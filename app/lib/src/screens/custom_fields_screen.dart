@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -135,7 +136,9 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
       // The repo throws StateError when values still exist on dances. Log the
       // raw error for diagnostics only (CWE-209: never surface it in the UI);
       // extract the dance count from the message to pluralize the clean message.
-      debugPrint('custom field delete blocked: $e\n$st');
+      if (kDebugMode) {
+        debugPrint('custom field delete blocked: $e\n$st');
+      }
       final countMatch = RegExp(r'(\d+) dance').firstMatch(e.message);
       final String message;
       if (countMatch != null) {

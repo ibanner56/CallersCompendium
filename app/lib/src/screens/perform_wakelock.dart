@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -67,10 +68,12 @@ mixin PerformWakelockMixin<T extends StatefulWidget>
       // Perform view. Log (don't swallow) so a wake-lock that never engages is
       // diagnosable; a user-facing toast would be noise on a stage. Dart
       // `Error`s are intentionally not caught.
-      debugPrint(
-        'PerformWakelockMixin: failed to '
-        '${enable ? 'enable' : 'disable'} wake-lock: $error\n$stackTrace',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'PerformWakelockMixin: failed to '
+          '${enable ? 'enable' : 'disable'} wake-lock: $error\n$stackTrace',
+        );
+      }
     }
   }
 }
