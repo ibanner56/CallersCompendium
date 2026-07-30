@@ -635,18 +635,21 @@ void main() {
       expect(f.params['places'], 3);
     });
 
-    test('star grip with a trailing qualifier keeps it as a note (dances/1822)', () {
-      final f = _parse(
-        'star right - hands across - 4 places and walk along the set to find the next couple (ladles behind partner)',
-      );
-      expect(f.move, 'star');
-      expect(f.params['grip'], 'handsAcross');
-      expect(f.params['places'], 4);
-      expect(
-        f.note,
-        'and walk along the set to find the next couple (role2s behind partner)',
-      );
-    });
+    test(
+      'star grip with a trailing qualifier keeps it as a note (dances/1822)',
+      () {
+        final f = _parse(
+          'star right - hands across - 4 places and walk along the set to find the next couple (ladles behind partner)',
+        );
+        expect(f.move, 'star');
+        expect(f.params['grip'], 'handsAcross');
+        expect(f.params['places'], 4);
+        expect(
+          f.note,
+          'and walk along the set to find the next couple (role2s behind partner)',
+        );
+      },
+    );
 
     test('plain star (no grip) still recognises (dances/777)', () {
       final f = _parse('star left 4 places');
@@ -701,11 +704,14 @@ void main() {
       expect(f.note, 'to next neighbors');
     });
 
-    test('pass through to form an ocean wave with shadows → note (dances/2012)', () {
-      final f = _parse('pass through to form an ocean wave with shadows');
-      expect(f.move, 'pass_through');
-      expect(f.note, 'to form an ocean wave with shadows');
-    });
+    test(
+      'pass through to form an ocean wave with shadows → note (dances/2012)',
+      () {
+        final f = _parse('pass through to form an ocean wave with shadows');
+        expect(f.move, 'pass_through');
+        expect(f.note, 'to form an ocean wave with shadows');
+      },
+    );
 
     test('pass through past partners → note (The Young Adult Rose)', () {
       final f = _parse('pass through past partners');
