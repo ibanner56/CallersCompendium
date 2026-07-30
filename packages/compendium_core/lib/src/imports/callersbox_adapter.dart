@@ -476,6 +476,20 @@ class CallersBoxAdapter implements SourceAdapter {
     'box_circulate',
   };
 
+  /// Ocean/wave moves a TRAILING balance-WAVE line folds into (#577). TCB writes
+  /// the pass-the-ocean pattern as the REVERSE of [_balanceMergeMoves]: the move
+  /// first, then a `Balance wave …` line. Each move carries a `balance` flag, so
+  /// the fold sets `balance: true` and sums the beats (ocean 4 + balance 4 = 8),
+  /// the same single-source-of-truth beat pattern the leading-balance folds use.
+  ///
+  /// `form_long_waves` is intentionally EXCLUDED: it is a bare 0-beat formation
+  /// move with no `balance` param, so folding would fabricate an invalid param.
+  static const _trailingBalanceMergeMoves = {
+    'pass_the_ocean',
+    'form_a_short_wave',
+    'form_a_long_wave',
+  };
+
   /// Folds figures that The Caller's Box writes as separate lines into a single
   /// structured move, flipping PR3a's neutral cross-line values to real ones:
   ///  - a balance LINE immediately preceding a swing / petronella /
@@ -484,6 +498,10 @@ class CallersBoxAdapter implements SourceAdapter {
   ///    neutral `false`);
   ///  - a bend-the-line LINE immediately following a structured down/up the hall
   ///    folds in as `ender: 'bendTheLine'` (upgrading the neutral `'none'`).
+  ///  - a balance-WAVE LINE immediately following a `pass_the_ocean` /
+  ///    `form_a_short_wave` / `form_a_long_wave` folds into that move as
+  ///    `balance: true` with the summed beats (#577 — the reverse pattern of the
+  ///    leading-balance fold above).
   ///
   /// Adjacency-consume: a single left-to-right walk that advances by two on a
   /// merge, so each line is consumed at most once, only immediately-adjacent
@@ -524,6 +542,22 @@ class CallersBoxAdapter implements SourceAdapter {
           i += 2;
           continue;
         }
+        // Fold 4: structured ocean/wave move → following balance-WAVE line
+        // (#577). TCB writes pass-the-ocean as `(4) Pass the ocean` /
+        // `(4) Balance wave of four`, the REVERSE of Fold 1 — the balance
+        // trails the move. Fold the trailing balance-wave into the ocean/wave
+        // figure's `balance: true` with the summed beats (4 + 4 = 8). The
+        // predicate is deliberately narrow (a balance-WAVE line, not a bare
+        // dancer balance) so a `Partner balance` destined for a following swing
+        // is never stolen here — that pairing folds via Fold 1 instead.
+        if (_isOceanWaveMove(current) && _isBalanceWaveLine(next)) {
+          final folded = _foldTrailingBalanceIntoWave(current, next);
+          if (folded != null) {
+            merged.add(folded);
+            i += 2;
+            continue;
+          }
+        }
       }
       merged.add(current);
       i += 1;
@@ -541,6 +575,27 @@ class CallersBoxAdapter implements SourceAdapter {
     if (!f.isCustom) return false;
     final words = _figureWords(f);
     return words.isNotEmpty && words.first == 'balance';
+  }
+
+  /// A structured ocean/wave move that accepts a trailing balance-wave fold
+  /// (#577): `pass_the_ocean`, `form_a_short_wave`, `form_a_long_wave`. Each
+  /// carries a `balance` flag; `form_long_waves` is deliberately absent (no
+  /// balance param — see [_trailingBalanceMergeMoves]).
+  static bool _isOceanWaveMove(Figure f) =>
+      !f.isCustom && _trailingBalanceMergeMoves.contains(f.move);
+
+  /// A balance-WAVE line: a custom figure whose scrubbed text leads with
+  /// "balance" AND names a wave (`Balance wave of four`, `Balance the wave`,
+  /// `Balance long wave`). This is deliberately NARROWER than [_isBalanceLine]:
+  /// a bare dancer balance (`Partner balance`, `Neighbor balance`) must NOT fold
+  /// into a preceding ocean/wave, because it belongs to the FOLLOWING move
+  /// (e.g. a swing) via Fold 1. Structured `balance` / `balance_the_ring` moves
+  /// are excluded too — the balance-wave forms fall through to custom.
+  static bool _isBalanceWaveLine(Figure f) {
+    if (!f.isCustom) return false;
+    final words = _figureWords(f);
+    if (words.isEmpty || words.first != 'balance') return false;
+    return words.any((w) => w == 'wave' || w == 'waves');
   }
 
   /// A bend-the-line line: a custom figure whose scrubbed text is "bend the
@@ -598,6 +653,21 @@ class CallersBoxAdapter implements SourceAdapter {
     if (move.params['balance'] == true) return null;
     return move.copyWith(
       params: {...move.params, 'balance': true, 'beats': ?beats},
+    );
+  }
+
+  /// Returns [wave] with the TRAILING [balance] wave line folded in as
+  /// `balance: true` and the summed beats (#577), or `null` when [wave] already
+  /// carries the balance (guarding against a double-fold of an ocean/wave figure
+  /// that was already balanced upstream). [wave] is a confirmed ocean/wave move
+  /// ([_isOceanWaveMove]) and [balance] a confirmed balance-wave line
+  /// ([_isBalanceWaveLine]); no `who` guard is needed because a balance-wave
+  /// names a formation, not dancers.
+  static Figure? _foldTrailingBalanceIntoWave(Figure wave, Figure balance) {
+    if (wave.params['balance'] == true) return null;
+    final beats = _sumBeats(wave, balance);
+    return wave.copyWith(
+      params: {...wave.params, 'balance': true, 'beats': ?beats},
     );
   }
 

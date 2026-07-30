@@ -204,7 +204,10 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
   (#553):** roll away, cross trails, figure eight, form (a) long wave(s), trade
   (→ pass by), pass/cross-by left/right (→ pass by), lead down/up & go down/up
   outside (→ down/up the hall `moving`), circulate (→ box circulate, balance
-  folded), hall + turn as couples (→ `ender: turnCouple`), diagonal chain / hey
+  folded), hall + turn as couples (→ `ender: turnCouple`), pass the ocean +
+  trailing balance wave (→ `pass_the_ocean` / `form_a_short_wave` /
+  `form_a_long_wave` with `balance: true`, beats summed; #577), diagonal chain /
+  hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
   N-suffix (`with/to neighbor N2`), explicit dancer codes (M1/W1/M2/W2 →

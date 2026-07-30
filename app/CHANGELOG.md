@@ -33,6 +33,17 @@ each release so store builds and tags can be traced back to an entry.
   subject (ContraDB's rendered form) now recognizes. Any leftover text is
   preserved verbatim as the figure's note; unrecognized figures still import as
   editable custom. (#585)
+- **Caller's Box import: the trailing balance on "pass the ocean" now merges
+  into the ocean instead of importing as a separate figure.** The Caller's Box
+  writes the figure across two lines — `(4) Pass the ocean` followed by
+  `(4) Balance wave of four …` — and only a _preceding_ balance line was being
+  folded in, so the trailing balance-wave was left as its own custom figure. The
+  cross-line merge now folds a trailing balance-wave line into the preceding
+  ocean/wave figure (`pass the ocean`, `form a wave`, `form a long wave`),
+  setting its balance flag and summing the beats (4 + 4 = 8). The match is
+  conservative: it only folds a balance-_wave_ line (never a plain dancer balance
+  destined for a following swing), only immediately-adjacent lines within a
+  phrase, and never drops or fabricates choreography. (#577)
 
 ## [0.1.0] - 2026-07-29
 
