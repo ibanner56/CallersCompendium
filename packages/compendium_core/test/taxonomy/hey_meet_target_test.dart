@@ -280,4 +280,71 @@ void main() {
       }
     });
   });
+
+  group('renderer allow-list falls back to the dancer vocab (null choices)', () {
+    // Guards the defensive branch flagged in review: if a MoveDef ever declared
+    // `meetTarget` WITHOUT explicit `choices`, the renderer must fall back to the
+    // shared dancer vocabulary rather than accept ANY string — so an unknown /
+    // tolerantly-decoded token still degrades to the generic "someone" wording.
+    // The shipped hey MoveDef always sets choices, so we build a minimal hey
+    // whose `meetTarget` spec omits them to exercise the fallback path.
+    final nullChoicesTax = Taxonomy(
+      version: 1,
+      form: DanceForm.contra,
+      moves: const [
+        MoveDef(
+          id: 'hey',
+          displayName: 'hey',
+          params: {
+            'pass1': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
+            'length': ParamSpec(
+              ParamKind.choice,
+              defaultValue: 'half',
+              choices: ['lessThanHalf', 'half', 'betweenHalfAndFull', 'full'],
+            ),
+            // Deliberately NO `choices` here — the branch under test.
+            'meetTarget': ParamSpec(
+              ParamKind.dancerSet,
+              defaultValue: 'unspecified',
+            ),
+            'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
+            'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+          },
+          renderTemplate: '{pass1} {move} {shoulder}',
+        ),
+      ],
+    );
+    final nullChoicesRenderer = FigureRenderer(nullChoicesTax);
+
+    test('a recognized dancer token is still named via the vocab fallback', () {
+      expect(
+        nullChoicesRenderer.render(
+          Figure(
+            move: 'hey',
+            params: {'length': 'lessThanHalf', 'meetTarget': 'partners'},
+          ),
+          Dialect.canonical,
+        ),
+        'role2s start a hey - rights in center, lefts on ends - until partners meet',
+      );
+    });
+
+    test(
+      'an UNrecognized token degrades to "someone meets", not the raw token',
+      () {
+        final line = nullChoicesRenderer.render(
+          Figure(
+            move: 'hey',
+            params: {'length': 'lessThanHalf', 'meetTarget': 'bogusToken'},
+          ),
+          Dialect.canonical,
+        );
+        expect(
+          line,
+          'role2s start a hey - rights in center, lefts on ends - until someone meets',
+        );
+        expect(line.contains('bogusToken'), isFalse);
+      },
+    );
+  });
 }
