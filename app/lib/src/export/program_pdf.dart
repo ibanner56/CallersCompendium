@@ -15,14 +15,36 @@ import '../data/venue_label.dart';
 /// list would render as blank glyphs. Bundling a Unicode TrueType font keeps
 /// the app fully offline (no runtime font download) while rendering the same
 /// characters as the emailable text. The theme is cached after first load.
+///
+/// The `pdf` package (unlike the Flutter engine used for on-screen text)
+/// cannot resolve OpenType variable-font axes — it always renders whichever
+/// master is baked in as a font's default, regardless of the requested
+/// [pw.FontWeight]/[pw.FontStyle]. So PDF export loads **static**,
+/// single-instance Regular/Bold/Italic TTFs instead of the variable font used
+/// on-screen. These are pinned-axis instances of the exact same upstream
+/// Roboto (same family/copyright/license, see `Roboto-OFL.txt`), generated
+/// with `fonttools varLib.instancer`.
 pw.ThemeData? _cachedTheme;
 
 Future<pw.ThemeData> loadProgramPdfTheme() async {
   final cached = _cachedTheme;
   if (cached != null) return cached;
-  final data = await rootBundle.load('assets/fonts/Roboto-VariableFont.ttf');
-  final font = pw.Font.ttf(data);
-  return _cachedTheme = pw.ThemeData.withFont(base: font, bold: font);
+  // The three faces are independent assets, so kick off all three loads
+  // before awaiting any of them, instead of paying three sequential I/O
+  // round-trips on the first export. (Deliberately *not* `Future.wait` here:
+  // under `flutter test`'s asset-loading shim, wrapping concurrent
+  // `rootBundle.load` calls in `Future.wait` reproducibly returns an empty
+  // result list even though each future resolves correctly on its own —
+  // starting the loads eagerly and awaiting them individually sidesteps
+  // that while still overlapping the I/O.)
+  final regularFuture = rootBundle.load('assets/fonts/Roboto-Regular.ttf');
+  final boldFuture = rootBundle.load('assets/fonts/Roboto-Bold.ttf');
+  final italicFuture = rootBundle.load('assets/fonts/Roboto-Italic.ttf');
+  return _cachedTheme = pw.ThemeData.withFont(
+    base: pw.Font.ttf(await regularFuture),
+    bold: pw.Font.ttf(await boldFuture),
+    italic: pw.Font.ttf(await italicFuture),
+  );
 }
 
 /// Builds a printable/saveable PDF of a [Program] set list (ROADMAP §4.3).

@@ -78,6 +78,16 @@ flutter:
   generate: true
   assets:
     - assets/fonts/Roboto-VariableFont.ttf
+    # Static Roboto instances (same family/license as the variable font
+    # above) used *only* for PDF export: the `pdf` package cannot resolve
+    # variable-font axes, so it always renders a variable font's default
+    # master regardless of requested weight/style (see program_pdf.dart).
+    # These are pinned-axis instances of the exact same upstream Roboto,
+    # generated with `fonttools varLib.instancer`; on-screen text keeps
+    # using the variable font above via the Flutter `fonts:` family below.
+    - assets/fonts/Roboto-Regular.ttf
+    - assets/fonts/Roboto-Bold.ttf
+    - assets/fonts/Roboto-Italic.ttf
     # Bundled font license texts, loaded at runtime via LicenseRegistry so
     # they appear in showLicensePage (Settings ▸ About ▸ View licenses).
     - assets/fonts/Fraunces-OFL.txt
