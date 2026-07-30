@@ -7,8 +7,8 @@ import '../model/formation.dart';
 import '../model/partial_date.dart';
 import '../util/text_sanitizer.dart';
 import '../util/uuid.dart';
+import 'figure_front_end_fan_out.dart';
 import 'figure_parser.dart';
-import 'figure_text_scrub.dart';
 import 'structured_draft.dart';
 
 /// The reusable Caller's Companion (CC) → Compendium mapping layer.
@@ -16,29 +16,30 @@ import 'structured_draft.dart';
 /// This file is deliberately **source-agnostic**: it knows nothing about *how*
 /// a CC dance was obtained. [CallersCompanionTextAdapter] builds a
 /// [CcDanceRecord] by parsing CC's "copy formatted dance" clipboard/text
-/// export; a future FileMaker-12 `.USR` binary reader (the headline Phase 6.5
-/// deliverable, a separate PR) will build the *same* [CcDanceRecord] from the
-/// `Dance` table's columns and reuse [mapCallersCompanionDance] verbatim. Keep
-/// this unit free of text-parsing (or binary-parsing) specifics so both callers
-/// can share it.
+/// export; the FileMaker-12 `.USR` binary reader (`callers_companion_usr_*`)
+/// builds the *same* [CcDanceRecord] — its figure body joined from the CC
+/// `Phrase` table — and reuses [mapCallersCompanionDance] verbatim. Keep this
+/// unit free of text-parsing (or binary-parsing) specifics so both callers can
+/// share it.
 ///
 /// The mapping mirrors the CC schema surveyed in
 /// `docs/research/callers-companion.md` (§"Schema-level addendum": `Dance`
 /// fields `Name`, `Author*`, `Type`, `Formation`, `Level`, `Progression`,
-/// `Music`, `DateComposed`/`DateRevised`, and the free-text body sections
-/// `A1`/`A2`/`B1`/`B2`/`C1`/`C2`), and follows the import design in
-/// `docs/design/imports.md` §2 (Caller's Companion migration): **figures are
-/// the user's personal free text → import as `custom` figures**. Opportunistic
-/// structuring through a grammar parser is deferred — no such parser exists in
-/// core yet (that lands with the CallersBox TCB grammar, roadmap 6.2), so this
-/// mapping keeps every figure custom and never invents structure.
+/// `Music`, `DateComposed`/`DateRevised`, and the free-text body — from the
+/// `Phrase` table in a real `.USR`, or the `A1`/`A2`/`B1`/`B2`/`C1`/`C2`
+/// sections as a fallback), and follows the import design in
+/// `docs/design/imports.md` §2 (Caller's Companion migration): **each body line
+/// is routed through the shared free-text fan-out** ([parseFigureLinesFanOut])
+/// — recognised moves structure into taxonomy figures, and anything the fan-out
+/// cannot canonicalize degrades to an honest [CustomOrigin.importGap] `custom`
+/// (parse-never-fails, never invents structure).
 
 /// The Caller's Companion figure-text front-end. CC's `(beats) text` body lines
 /// are the user's personal free text and never carry TCB paren/annotation
-/// notation, so its front-end is the neutral [canonicalFigureFrontEnd] for now.
-/// Exposed as its own named, independently-callable [FigureFrontEnd] (covering
-/// both the CC-text and CC-`.USR` branches, which share this mapping) so a later
-/// free-text fan-out can select it without adapter rework.
+/// notation, so its front-end is the neutral [canonicalFigureFrontEnd]. It is
+/// the lowest-precedence tier of the free-text fan-out
+/// ([figureFanOutFrontEnds]: ContraDB > TCB > CC); exposed as its own named,
+/// independently-callable [FigureFrontEnd] so the fan-out can select it by name.
 const FigureFrontEnd callersCompanionFigureFrontEnd = canonicalFigureFrontEnd;
 
 /// One free-text body section of a CC dance (e.g. `A1`, `B2`).
@@ -189,11 +190,9 @@ CcDanceMapping mapCallersCompanionDance(
   CcDanceRecord record, {
   String Function()? newId,
   DateTime? timestamp,
-  String Function(String)? scrub,
 }) {
   final issues = <ImportIssue>[];
   final now = timestamp ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-  final scrubFn = scrub ?? scrubFigureText;
 
   // Title — placeholder + warning when absent (never throw). Sanitized
   // single-line so control/bidi/format spoofing chars never reach storage
@@ -256,24 +255,25 @@ CcDanceMapping mapCallersCompanionDance(
             '${field.value.trim()}',
   ]);
 
-  // Body → figures (design §2). Each `(beats) text` line is routed through the
-  // shared [parseFigureLine]: recognised moves become structured figures, the
-  // rest fall back to custom (parse-never-fails). Figure text is dialect-
-  // scrubbed via [scrubFn]. Section labels are NOT embedded in the figure text
-  // (they derive from cumulative beats), so the section label is not prefixed.
+  // Body → figures (design §2). Each `(beats) text` line has its leading `(N)`
+  // beats prefix peeled off ([_splitBeats]) and is then routed through the
+  // shared free-text FAN-OUT ([parseFigureLinesFanOut]): the line is attempted
+  // against each source front-end in precedence order (ContraDB > TCB > CC) and
+  // the best structuring wins. Every line with content after scrubbing is
+  // retained — recognised moves structure into taxonomy figures, the rest as
+  // [CustomOrigin.importGap] customs (parse-never-fails); a line that is empty
+  // after scrubbing yields nothing (nothing to store). The fan-out applies the
+  // core `scrubFigureText` chokepoint internally, and the TCB attempt `;`-splits
+  // a compound line into multiple figures. Section labels are NOT embedded in
+  // the figure text (they derive from cumulative beats), so the section label is
+  // not prefixed.
   final figures = <Figure>[];
   for (final section in record.body) {
     for (final rawLine in section.lines) {
       final line = rawLine.trim();
       if (line.isEmpty) continue;
       final (beats, text) = _splitBeats(line);
-      final figure = parseFigureLine(
-        text,
-        beats: beats,
-        scrub: scrubFn,
-        frontEnd: callersCompanionFigureFrontEnd,
-      );
-      if (figure != null) figures.add(figure);
+      figures.addAll(parseFigureLinesFanOut(text, beats: beats));
     }
   }
 

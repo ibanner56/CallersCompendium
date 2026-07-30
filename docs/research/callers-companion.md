@@ -126,7 +126,13 @@ calc/display/search helpers, prefixed `zc_`/`zi_`/`zk_`). Substantive user data:
   **`Level`/`LevelNum`/`Mixed Level`**, `Direction`, `Symmetrical`.
 - Body: `A1`/`A2`/`B1`/`B2`/`C1`/`C2` (+ `*_Parsed`), `Moves`, `CallList*`,
   `Phrase*`; the `Phrase` table holds per-section text incl. **gender-swapped
-  variants** (`PhraseText_GenderSwap_LR/RL/Switch`).
+  variants** (`PhraseText_GenderSwap_LR/RL/Switch`). **The `Phrase` table is the
+  real figure source** for a `.USR` (the `Dance`-row `A1..C2` columns are empty
+  in shipped files): the importer joins it per dance (grouped by `zk_Dance_ID`,
+  ordered by `PhraseNumber` A1→C2), reading the primary `PhraseText` only —
+  never the gender-swapped variants — and routes each line through the shared
+  free-text fan-out (see `docs/design/imports.md` §2). The `Dance`-row `A1..C2`
+  path remains a fallback.
 - Dates: **`DateComposed`/`DateRevised`** (+ partial day/month/year fields),
   separate from record created/modified stamps.
 - Curation: **`Rating`**, `Status`, `StarterSet`, `DistinctiveMove`,

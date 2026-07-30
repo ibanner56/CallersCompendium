@@ -116,13 +116,31 @@ guard → safe decline); the untrusted TCB payload can never crash the parse.
 
 ### 2. Caller's Companion migration (6.5)
 - Input: user's `CallersCompanion2.USR` (FileMaker 12 container).
-- Approach: FM12 parser (fmptools-style) extracting the dances/sets tables;
-  figures are the user's personal free text → import as custom figures
-  (optionally run through the TCB grammar parser for opportunistic
-  structuring, clearly marked for review). Sets → Programs; user fields →
-  custom fields.
+- Approach: FM12 parser (fmptools-style) extracting the `Dance`/`Set`/`SetItem`
+  **and `Phrase`** tables. The figure transcription lives in the separate
+  **`Phrase` table** (`PhraseText`, keyed by `zk_Dance_ID` + `PhraseNumber`
+  A1..C2), not the `Dance`-row `A1..C2` columns (empty in real files), so
+  `extractCcUsrArchive` joins `Phrase` per dance (grouped by `zk_Dance_ID`,
+  ordered A1→A2→B1→B2→C1→C2 then others; primary `PhraseText` only — the
+  gender-swapped `PhraseText_GenderSwap_*` variants are ignored) and populates
+  each dance's body from it. The `Dance`-row `A1..C2` path is kept as a
+  **fallback** for exports that carry it and for the CC text adapter. Each body
+  line is routed through the **shared free-text fan-out**
+  (`parseFigureLinesFanOut`: ContraDB > TCB > CC) — every line with content
+  after scrubbing is retained: recognised moves structure into taxonomy
+  figures, the rest as `importGap` customs (parse-never-fails); a line that is
+  empty after scrubbing yields nothing (nothing to store). Sets → Programs; user
+  fields → notes.
+- Adapter wiring note: the `.USR` adapter round-trips each dance through a JSON
+  `columns` payload. The `Phrase` body is **not** in that per-dance column map,
+  so the joined body is threaded through the `discover → fetch → parse` payload
+  explicitly (legacy payloads without it fall back to the `A1..C2` columns).
+- Follow-ups: compound `(4,12)` beat parsing (#560); OWASP hardening/limits for
+  the new `Phrase`/`InsertCall`/`Elements` tables (#561); seeding user shorthands
+  from `InsertCall` (#562).
 - Fixture: the publicly downloadable demo `.USR` (kept out of the repo until
-  redistribution permission is clarified; local test asset otherwise).
+  redistribution permission is clarified; local test asset otherwise). CI runs
+  against hand-built `.fmp12`/`FmpDatabase` fixtures shaped like the real schema.
 - Fallback: parse CC's "copy formatted dance" clipboard/text format for
   one-at-a-time migration.
 
