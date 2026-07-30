@@ -544,4 +544,37 @@ void main() {
       },
     );
   });
+
+  group('contraDbProgramIdFromInput', () {
+    test('extracts a bare numeric id', () {
+      expect(contraDbProgramIdFromInput('33'), '33');
+      expect(contraDbProgramIdFromInput('  33  '), '33');
+    });
+
+    test('extracts the id from a /programs/N URL', () {
+      expect(
+        contraDbProgramIdFromInput('https://contradb.com/programs/42'),
+        '42',
+      );
+      expect(
+        contraDbProgramIdFromInput('http://contradb.com/programs/7?x=1#frag'),
+        '7',
+      );
+    });
+
+    test('returns null for empty or non-program input', () {
+      expect(contraDbProgramIdFromInput(''), isNull);
+      expect(contraDbProgramIdFromInput('   '), isNull);
+      expect(contraDbProgramIdFromInput('not a url'), isNull);
+      expect(
+        contraDbProgramIdFromInput('https://contradb.com/programs/new'),
+        isNull,
+      );
+    });
+
+    test('rejects an absurdly long run of digits (length cap)', () {
+      expect(contraDbProgramIdFromInput('1' * 19), isNull);
+      expect(contraDbProgramIdFromInput('1' * 18), '1' * 18);
+    });
+  });
 }

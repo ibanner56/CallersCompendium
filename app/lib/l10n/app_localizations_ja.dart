@@ -3095,6 +3095,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importContraDbNoMatches => '一致するプログラムがありません。';
 
   @override
+  String get importContraDbMarkerImported => 'Imported';
+
+  @override
+  String importContraDbMarkerImportedTooltip(String date) {
+    return 'Imported on $date';
+  }
+
+  @override
+  String get importContraDbMarkerImportedTooltipNoDate =>
+      'Already imported from ContraDB';
+
+  @override
+  String get importContraDbMarkerPossible => 'Possibly imported';
+
+  @override
+  String get importContraDbMarkerPossibleTooltip =>
+      'A program with this title already exists';
+
+  @override
   String importContraDbFetchError(String error) {
     return 'そのプログラムを取得できませんでした。\n$error';
   }

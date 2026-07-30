@@ -5054,6 +5054,36 @@ abstract class AppLocalizations {
   /// **'No matching programs.'**
   String get importContraDbNoMatches;
 
+  /// Firm badge on a ContraDB program search/preview row that was already imported into the local collection (matched by its ContraDB program id). Accompanied by an icon so colour is never the only signal (WCAG 1.4.1).
+  ///
+  /// In en, this message translates to:
+  /// **'Imported'**
+  String get importContraDbMarkerImported;
+
+  /// Tooltip/accessibility label for the firm 'Imported' marker on a ContraDB program row, naming when the local copy was imported. {date} is a preformatted, localized date.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported on {date}'**
+  String importContraDbMarkerImportedTooltip(String date);
+
+  /// Fallback tooltip/accessibility label for the firm 'Imported' marker when the stored import date is unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Already imported from ContraDB'**
+  String get importContraDbMarkerImportedTooltipNoDate;
+
+  /// Softer badge on a ContraDB program search/preview row whose title matches an existing local program, but with no ContraDB id linking them (a weaker, title-only 'maybe you imported this' hint). Accompanied by an icon so colour is never the only signal (WCAG 1.4.1).
+  ///
+  /// In en, this message translates to:
+  /// **'Possibly imported'**
+  String get importContraDbMarkerPossible;
+
+  /// Tooltip/accessibility label for the softer 'Possibly imported' marker on a ContraDB program row (title-only match).
+  ///
+  /// In en, this message translates to:
+  /// **'A program with this title already exists'**
+  String get importContraDbMarkerPossibleTooltip;
+
   /// Error shown when fetching a ContraDB program fails. {error} is ONLY ever a curated, safe-to-show UrlFetchException.message (e.g. a scheme/redirect/size guard message); unexpected raw exceptions are logged and shown via importContraDbFetchGenericError instead, so no internals leak (CWE-209). Rendered as plain text.
   ///
   /// In en, this message translates to:

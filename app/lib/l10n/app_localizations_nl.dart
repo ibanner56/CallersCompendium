@@ -3197,6 +3197,25 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importContraDbNoMatches => 'Geen overeenkomende programma\'s.';
 
   @override
+  String get importContraDbMarkerImported => 'Imported';
+
+  @override
+  String importContraDbMarkerImportedTooltip(String date) {
+    return 'Imported on $date';
+  }
+
+  @override
+  String get importContraDbMarkerImportedTooltipNoDate =>
+      'Already imported from ContraDB';
+
+  @override
+  String get importContraDbMarkerPossible => 'Possibly imported';
+
+  @override
+  String get importContraDbMarkerPossibleTooltip =>
+      'A program with this title already exists';
+
+  @override
   String importContraDbFetchError(String error) {
     return 'Dat programma kon niet worden opgehaald.\n$error';
   }

@@ -131,6 +131,12 @@ class _ContraDbProgramImportScreenState
   /// to the UI (CWE-209).
   String? _fetchErrorDetail;
 
+  /// Index of the local collection used to mark which ContraDB programs have
+  /// already been imported (issue #586). Loaded once from the program
+  /// repository; `null` until loaded, in which case rows simply show no marker
+  /// (the hint degrades to absent, never an error).
+  ProgramImportMarkerIndex? _markerIndex;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -142,6 +148,7 @@ class _ContraDbProgramImportScreenState
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _search = widget.programSearch ?? ContraDbProgramSearch();
       _titleController.addListener(() => setState(() {}));
+      _loadMarkerIndex();
 
       // Opened from a shared URL (issue #343): pre-fill and fetch once, so the
       // user lands on the preview to review before committing. Deferred to the
@@ -257,6 +264,33 @@ class _ContraDbProgramImportScreenState
     }
   }
 
+  Future<void> _loadMarkerIndex() async {
+    try {
+      final programs = await _repos.programs.listAll();
+      if (!mounted) return;
+      setState(() {
+        _markerIndex = ProgramImportMarkerIndex(
+          programs.map(
+            (p) => ProgramImportMarkerEntry(
+              title: p.title,
+              source: p.provenance?.source,
+              externalId: p.provenance?.externalId,
+              importedAt: p.provenance?.importedAt,
+            ),
+          ),
+        );
+      });
+    } catch (_) {
+      // The marker is a best-effort hint: if the collection can't be read we
+      // simply show no markers rather than surfacing an error.
+    }
+  }
+
+  /// The already-imported marker for a ContraDB program [id]/[name], or a
+  /// [ProgramImportMarker.none] when the index hasn't loaded yet.
+  ProgramImportMarker _markerFor(String id, String name) =>
+      _markerIndex?.markerFor(id, name) ?? ProgramImportMarker.none;
+
   Future<void> _loadIndex() async {
     setState(() {
       _indexLoading = true;
@@ -330,6 +364,12 @@ class _ContraDbProgramImportScreenState
     final id = uuidV4();
     final slots = buildContraDbProgramSlots(resolved, newSlotId: uuidV4);
     final caller = await _resolveCaller(_program!.contributor);
+    // Capture ContraDB provenance so a later re-import of the same program can be
+    // recognised (issue #586). The external id is the canonical numeric
+    // /programs/N id derived defensively from the user's input; when it can't be
+    // extracted, provenance is simply omitted (the program still imports, and
+    // later detection degrades to a title-only "possibly imported" hint).
+    final programId = contraDbProgramIdFromInput(_urlController.text);
     final program = Program(
       id: id,
       title: _titleController.text.trim(),
@@ -338,6 +378,13 @@ class _ContraDbProgramImportScreenState
       slots: slots,
       createdAt: now,
       updatedAt: now,
+      provenance: programId == null
+          ? null
+          : Provenance(
+              source: ProvenanceSource.contradb,
+              externalId: programId,
+              importedAt: now,
+            ),
     );
 
     try {
@@ -566,6 +613,66 @@ class _ContraDbProgramImportScreenState
     return _buildPreview();
   }
 
+  /// Builds the subtle two-tier "already imported?" badge for a ContraDB program
+  /// row (issue #586), or `null` for [ProgramImportMarkerKind.none]. Colour is
+  /// never the sole signal: each badge pairs an icon **and** a text label, and
+  /// carries a tooltip + [Semantics] label (WCAG 1.4.1). The badge is a hint
+  /// only and never blocks re-import.
+  Widget? _buildMarkerBadge(ProgramImportMarker marker) {
+    if (marker.isNone) return null;
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+
+    final IconData icon;
+    final Color color;
+    final String label;
+    final String tooltip;
+    final String badgeKey;
+    if (marker.isImported) {
+      icon = Icons.check_circle;
+      color = scheme.primary;
+      label = l10n.importContraDbMarkerImported;
+      final importedAt = marker.importedAt;
+      tooltip = importedAt == null
+          ? l10n.importContraDbMarkerImportedTooltipNoDate
+          : l10n.importContraDbMarkerImportedTooltip(
+              formatEventDate(
+                importedAt,
+                DateFormatScope.of(context),
+                MaterialLocalizations.of(context),
+              ),
+            );
+      badgeKey = 'contradb-program-marker-imported';
+    } else {
+      icon = Icons.help_outline;
+      color = scheme.tertiary;
+      label = l10n.importContraDbMarkerPossible;
+      tooltip = l10n.importContraDbMarkerPossibleTooltip;
+      badgeKey = 'contradb-program-marker-possible';
+    }
+
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        label: tooltip,
+        child: Row(
+          key: ValueKey(badgeKey),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: color),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSearchResults() {
     final l10n = AppLocalizations.of(context);
     if (_indexLoading) {
@@ -617,10 +724,22 @@ class _ContraDbProgramImportScreenState
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final entry = _searchResults[index];
+        final marker = _markerFor(entry.id, entry.name);
+        final badge = _buildMarkerBadge(marker);
         return ListTile(
           dense: true,
           title: Text(entry.name),
-          subtitle: Text('contradb.com/programs/${entry.id}'), // i18n-ignore
+          subtitle: badge == null
+              ? Text('contradb.com/programs/${entry.id}') // i18n-ignore
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('contradb.com/programs/${entry.id}'), // i18n-ignore
+                    const SizedBox(height: 4),
+                    badge,
+                  ],
+                ),
           trailing: const Icon(Icons.download_outlined, size: 18),
           onTap: _canFetch ? () => _selectResult(entry) : null,
         );
@@ -670,9 +789,20 @@ class _ContraDbProgramImportScreenState
     }
     final danceCount = activities.where((a) => a.isDance).length;
     final noteCount = activities.length - danceCount;
+    final marker = _markerFor(
+      contraDbProgramIdFromInput(_urlController.text) ?? '',
+      program.title,
+    );
+    final markerBadge = _buildMarkerBadge(marker);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (markerBadge != null)
+          Padding(
+            key: const ValueKey('contradb-program-preview-marker'),
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Align(alignment: Alignment.centerLeft, child: markerBadge),
+          ),
         _buildEventDateRow(),
         const SizedBox(height: 8),
         Padding(

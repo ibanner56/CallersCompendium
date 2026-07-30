@@ -13,6 +13,18 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **See which ContraDB programs you've already imported.** When you search or
+  preview a program in **Import program ▸ From ContraDB**, rows you've likely
+  already brought in are marked: a firm **Imported** badge (with the import date
+  in its tooltip) when the exact ContraDB program was imported before, and a
+  softer **Possibly imported** badge when a program with the same title already
+  exists but isn't linked to that event. Each badge pairs an icon with a label so
+  colour is never the only signal, and the same hint shows atop the preview.
+  Re-importing is still always allowed. ContraDB program imports now record the
+  source program id so the firm match works; programs imported earlier (with no
+  stored id) fall back to the title-only hint. ContraDB titles and ids are treated
+  as untrusted input — normalized, length-capped, and matched with ReDoS-safe
+  comparisons. (#586)
 - **Custom date format.** The **Settings ▸ Language & region ▸ Date format**
   picker gains a **Custom…** option that reveals a text box for your own pattern
   (e.g. `MM.DD.YY`), with an always-visible token legend (`yyyy`/`yy` = year,
