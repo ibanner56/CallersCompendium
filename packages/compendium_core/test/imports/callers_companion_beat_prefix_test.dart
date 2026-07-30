@@ -76,12 +76,15 @@ void main() {
       expect(p.text, '(,12) neighbors balance and swing');
     });
 
-    test('an empty text after a lone (16) keeps beats and the original line', () {
-      final p = splitCcBeatPrefix('(16)');
-      expect(p.beats, 16);
-      expect(p.parts, [16]);
-      expect(p.text, '(16)');
-    });
+    test(
+      'an empty text after a lone (16) keeps beats and the original line',
+      () {
+        final p = splitCcBeatPrefix('(16)');
+        expect(p.beats, 16);
+        expect(p.parts, [16]);
+        expect(p.text, '(16)');
+      },
+    );
 
     test('a digit run past four digits is not read as a beat count', () {
       final p = splitCcBeatPrefix('(99999) neighbors swing');
@@ -117,17 +120,19 @@ void main() {
       expect(figures.single.beats, 16);
     });
 
-    test('a compound line that cleanly SPLITS distributes the parts in order',
-        () {
-      // The fan-out `;`-splits this into two clean figures, so each part is
-      // distributed to its figure: balance→4, swing→12 (sum still 16).
-      final figures = figuresFor('(4,12) balance; swing partner');
-      expect(figures, hasLength(2));
-      expect(figures[0].move, 'balance');
-      expect(figures[0].beats, 4);
-      expect(figures[1].move, 'swing');
-      expect(figures[1].beats, 12);
-    });
+    test(
+      'a compound line that cleanly SPLITS distributes the parts in order',
+      () {
+        // The fan-out `;`-splits this into two clean figures, so each part is
+        // distributed to its figure: balance→4, swing→12 (sum still 16).
+        final figures = figuresFor('(4,12) balance; swing partner');
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'balance');
+        expect(figures[0].beats, 4);
+        expect(figures[1].move, 'swing');
+        expect(figures[1].beats, 12);
+      },
+    );
 
     test('a malformed compound stays plain text and never throws', () {
       // "(4,)" is not a beat prefix, so the whole line is the figure text.

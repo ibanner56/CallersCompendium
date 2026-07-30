@@ -349,11 +349,7 @@ CcBeatPrefix splitCcBeatPrefix(String line) {
   final text = match.group(2)!.trim();
   // An empty text after a lone "(16)" keeps the beats but stores the original
   // line so nothing is silently dropped.
-  return (
-    beats: total,
-    parts: parts,
-    text: text.isEmpty ? line : text,
-  );
+  return (beats: total, parts: parts, text: text.isEmpty ? line : text);
 }
 
 /// Applies a compound prefix's per-move [parts] to the [figures] the fan-out
@@ -379,8 +375,7 @@ List<Figure> _allocateCompoundBeats(List<Figure> figures, List<int> parts) {
     return figures;
   }
   return [
-    for (var i = 0; i < figures.length; i++)
-      _withBeats(figures[i], parts[i]),
+    for (var i = 0; i < figures.length; i++) _withBeats(figures[i], parts[i]),
   ];
 }
 
