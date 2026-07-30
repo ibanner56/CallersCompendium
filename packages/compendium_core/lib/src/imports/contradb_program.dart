@@ -207,15 +207,14 @@ ContraDbProgram parseContraDbProgram(String html) {
         // A dance heading with no resolvable /dances/{id} link: we can't scrape
         // an identity, but the title is real ContraDB data — keep it verbatim as
         // a note so ordering and content are never lost.
-        activities.add(ContraDbProgramActivity.note(danceTitle));
+        _addNoteIfNotEmpty(activities, danceTitle);
       }
       continue;
     }
 
     final noteHeading = block.querySelector('h2.activity-breakdown-text');
     if (noteHeading != null) {
-      final text = noteHeading.text.trim();
-      if (text.isNotEmpty) activities.add(ContraDbProgramActivity.note(text));
+      _addNoteIfNotEmpty(activities, noteHeading.text.trim());
       continue;
     }
     // Empty activity (`~ ~ ~`) or an unrecognised block: nothing to preserve.
@@ -226,6 +225,25 @@ ContraDbProgram parseContraDbProgram(String html) {
     contributor: contributor,
     activities: activities,
   );
+}
+
+/// Builds a [ContraDbProgramActivity.note] from [rawText] and appends it to
+/// [activities], but only when it still has content **after** the #444/#611
+/// bidi/zero-width sanitization. A source line that is entirely spoofing
+/// characters (e.g. a lone bidi override) would otherwise sanitize down to an
+/// empty string and produce a useless empty note tile; skipping it here keeps
+/// the same "nothing to preserve" fidelity rule the empty-activity (`~ ~ ~`)
+/// case already follows. [rawText] itself must already be non-empty
+/// (pre-sanitization) — callers only reach this once they've confirmed the
+/// scraped text isn't blank.
+void _addNoteIfNotEmpty(
+  List<ContraDbProgramActivity> activities,
+  String rawText,
+) {
+  final activity = ContraDbProgramActivity.note(rawText);
+  if (activity.text != null && activity.text!.isNotEmpty) {
+    activities.add(activity);
+  }
 }
 
 /// Maximum contributor length we accept from the untrusted page. ContraDB

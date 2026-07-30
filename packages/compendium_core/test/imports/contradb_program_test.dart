@@ -247,6 +247,26 @@ void main() {
       expect(activity.text, 'OrphanTitle');
     });
 
+    test(
+      'a note that sanitizes down to nothing is dropped, not stored empty',
+      () {
+        // The heading text is entirely bidi/zero-width spoofing characters,
+        // so after sanitization there is nothing left to preserve — it must
+        // not create an empty-text activity (issue #611 review follow-up).
+        final html =
+            '<div class="activity-breakdown">'
+            '<h2 class="activity-breakdown-text">$rlo$zwsp</h2></div>';
+        expect(parseContraDbProgram(html).activities, isEmpty);
+      },
+    );
+
+    test('an orphan dance title that sanitizes down to nothing is dropped', () {
+      final html =
+          '<div class="activity-breakdown">'
+          '<h2 class="activity-breakdown-dance-title">$rlo$zwsp</h2></div>';
+      expect(parseContraDbProgram(html).activities, isEmpty);
+    });
+
     test('strips bidi/zero-width characters from the contributor', () {
       final html =
           '<div class="programs-show-content"><h1>Night</h1>'
