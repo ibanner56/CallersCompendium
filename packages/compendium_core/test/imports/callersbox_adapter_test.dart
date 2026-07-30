@@ -167,7 +167,6 @@ const String _realId10882 = '''
 }
 ''';
 
-
 void main() {
   group('CallersBoxAdapter', () {
     test('source is ProvenanceSource.callersbox', () {
@@ -1231,7 +1230,8 @@ void main() {
 
         // The balance-wave line was consumed — no leftover custom figure.
         final leftoverBalanceWave = draft.dance.figures.where(
-          (f) => f.isCustom && _text(f).toLowerCase().startsWith('balance wave'),
+          (f) =>
+              f.isCustom && _text(f).toLowerCase().startsWith('balance wave'),
         );
         expect(leftoverBalanceWave, isEmpty);
       });
@@ -1241,8 +1241,9 @@ void main() {
         // B2 `(4) Partner balance` / `(12) Partner swing` still folds via Fold 1
         // into a balance-prefixed partner swing — the new trailing fold does not
         // regress the existing behavior.
-        final swings =
-            draft.dance.figures.where((f) => f.move == 'swing').toList();
+        final swings = draft.dance.figures
+            .where((f) => f.move == 'swing')
+            .toList();
         final partnerSwing = swings.firstWhere(
           (f) => f.params['prefix'] == 'balance',
         );
@@ -1252,8 +1253,9 @@ void main() {
 
       test('the folded ocean survives a JSON round-trip', () async {
         final draft = await _importOne(_realId10882);
-        final ocean =
-            draft.dance.figures.firstWhere((f) => f.move == 'pass_the_ocean');
+        final ocean = draft.dance.figures.firstWhere(
+          (f) => f.move == 'pass_the_ocean',
+        );
         expect(figureFromJson(figureToJson(ocean)), ocean);
       });
     });
