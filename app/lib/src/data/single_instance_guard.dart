@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart'
-    show debugPrint, kIsWeb, visibleForTesting;
+    show debugPrint, kDebugMode, kIsWeb, visibleForTesting;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -218,9 +218,11 @@ class DesktopSingleInstance {
       // Fail-open: an unexpected IO fault must never permanently prevent launch
       // (e.g. a read-only or unusual support directory). Log it (like the other
       // startup best-effort paths) so it is diagnosable in the field.
-      debugPrint(
-        'Single-instance guard unavailable, failing open: $error\n$stackTrace',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'Single-instance guard unavailable, failing open: $error\n$stackTrace',
+        );
+      }
       return SingleInstanceResult.unavailable;
     }
   }

@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
@@ -151,7 +152,9 @@ class DanceExportMenu extends StatelessWidget {
     try {
       await action();
     } on Exception catch (e, st) {
-      debugPrint('$failureMessage: $e\n$st');
+      if (kDebugMode) {
+        debugPrint('$failureMessage: $e\n$st');
+      }
       messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }

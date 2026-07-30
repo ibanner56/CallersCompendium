@@ -348,7 +348,9 @@ class _ContraDbProgramImportScreenState
       );
     } catch (error, stackTrace) {
       if (!mounted) return;
-      debugPrint('ContraDB program resolve failed: $error\n$stackTrace');
+      if (kDebugMode) {
+        debugPrint('ContraDB program resolve failed: $error\n$stackTrace');
+      }
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -391,7 +393,9 @@ class _ContraDbProgramImportScreenState
       await _repos.programs.create(program);
     } catch (error, stackTrace) {
       if (!mounted) return;
-      debugPrint('ContraDB program import write failed: $error\n$stackTrace');
+      if (kDebugMode) {
+        debugPrint('ContraDB program import write failed: $error\n$stackTrace');
+      }
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

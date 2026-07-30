@@ -232,7 +232,9 @@ class _GeneralSectionState extends State<GeneralSection> {
       });
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
     } on Exception catch (e, st) {
-      debugPrint('Backup export failed: $e\n$st');
+      if (kDebugMode) {
+        debugPrint('Backup export failed: $e\n$st');
+      }
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExportFailed)));
     }
   }
@@ -299,7 +301,9 @@ class _GeneralSectionState extends State<GeneralSection> {
         ),
       );
     } on Exception catch (e, st) {
-      debugPrint('Backup restore failed: $e\n$st');
+      if (kDebugMode) {
+        debugPrint('Backup restore failed: $e\n$st');
+      }
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
     }
   }

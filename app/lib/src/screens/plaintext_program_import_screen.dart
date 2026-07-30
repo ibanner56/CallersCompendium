@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -161,9 +162,11 @@ class _PlaintextProgramImportScreenState
       );
     } catch (error, stackTrace) {
       if (!mounted) return;
-      debugPrint(
-        'Plaintext title-list online resolve failed: $error\n$stackTrace',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          'Plaintext title-list online resolve failed: $error\n$stackTrace',
+        );
+      }
       setState(() => _resolving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -232,7 +235,11 @@ class _PlaintextProgramImportScreenState
       await _repos.programs.create(program);
     } catch (error, stackTrace) {
       if (!mounted) return;
-      debugPrint('Plaintext program import write failed: $error\n$stackTrace');
+      if (kDebugMode) {
+        debugPrint(
+          'Plaintext program import write failed: $error\n$stackTrace',
+        );
+      }
       setState(() => _committing = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
