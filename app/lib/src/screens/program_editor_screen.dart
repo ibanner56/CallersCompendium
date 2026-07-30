@@ -13,6 +13,8 @@ import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
+import '../data/track_history_for_all_callers_scope.dart';
+import '../data/calling_history_caller_filter.dart';
 import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../data/venue_label.dart';
@@ -98,6 +100,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   final _notesController = TextEditingController();
 
   bool _loaded = false;
+
+  /// Last-seen "track calling history for all callers" setting (issue #583),
+  /// used to scope the embedded dance picker's call counts.
+  bool _trackHistoryForAllCallers = false;
   Object? _loadError;
 
   Program? _existing;
@@ -183,13 +189,24 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
     if (!_loaded && _loadError == null && _data == null) {
       _repos = RepositoriesScope.of(context);
+      // Scope the picker's call counts consistently with the Collection list
+      // (issue #583); [of] returns false when the scope is absent (narrow
+      // embedded tests), i.e. track all callers.
+      _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
       _load();
     }
   }
 
   Future<void> _load() async {
     try {
-      final data = await CollectionData.load(_repos);
+      final callerFilter = await resolveCallingHistoryCallerFilter(
+        _repos.settings,
+        trackAllCallers: _trackHistoryForAllCallers,
+      );
+      final data = await CollectionData.load(
+        _repos,
+        callerFilter: callerFilter,
+      );
       Program? program;
       if (!widget.isNew) {
         program = await _repos.programs.getById(widget.programId!);

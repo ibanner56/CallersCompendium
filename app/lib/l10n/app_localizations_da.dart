@@ -643,6 +643,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når aktiveret viser en dans\' kaldshistorik kun programmer, hvis slot for den dans er markeret som fremført. Når deaktiveret vises et program, så snart det indeholder dansen.';
 
   @override
+  String get settingsGeneralTrackHistoryForAllCallersTitle =>
+      'Track calling history for all callers';
+
+  @override
+  String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
+      'When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';
 
   @override

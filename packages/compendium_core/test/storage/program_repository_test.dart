@@ -7,6 +7,7 @@ Program sampleProgram({
   String id = 'p1',
   String title = 'Spring Dance 2026',
   List<ProgramSlot> slots = const [],
+  String? caller,
   DateTime? createdAt,
   DateTime? updatedAt,
   DateTime? deletedAt,
@@ -17,6 +18,7 @@ Program sampleProgram({
     title: title,
     eventDate: DateTime.utc(2026, 3, 15),
     venue: 'Grange Hall',
+    caller: caller,
     slots: slots,
     createdAt: createdAt ?? now,
     updatedAt: updatedAt ?? now,
@@ -1486,6 +1488,179 @@ void main() {
       final stored = await repo.getById('p1');
       await repo.update(stored!.copyWith(clearVenueId: true));
       expect((await repo.getById('p1'))!.venueId, isNull);
+    });
+  });
+
+  group('callerFilter (host-caller scoping, #583)', () {
+    Future<void> makeDance(String id) => dances.create(
+      Dance(
+        id: id,
+        title: 'Dance $id',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+
+    // A fixture spanning several host callers plus a null-caller program, each
+    // containing dance d1 once, with performed/unperformed slots so the count
+    // and history agree under any combination of gates.
+    Future<void> seed() async {
+      await makeDance('d1');
+      // Alice: one performed occurrence.
+      await repo.create(
+        sampleProgram(
+          id: 'p-alice',
+          caller: 'Alice',
+          slots: [
+            ProgramSlot(
+              id: 's-a',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 3, 1),
+            ),
+          ],
+        ),
+      );
+      // Alice again, but written with surrounding whitespace + different case,
+      // and NOT performed — exercises trim + case-insensitive matching.
+      await repo.create(
+        sampleProgram(
+          id: 'p-alice2',
+          caller: '  alice ',
+          slots: [ProgramSlot(id: 's-a2', position: 0, danceId: 'd1')],
+        ),
+      );
+      // Bob: a different caller, performed — must be excluded by an Alice filter.
+      await repo.create(
+        sampleProgram(
+          id: 'p-bob',
+          caller: 'Bob',
+          slots: [
+            ProgramSlot(
+              id: 's-b',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 4, 1),
+            ),
+          ],
+        ),
+      );
+      // A program with no caller at all — excluded whenever a filter is active.
+      await repo.create(
+        sampleProgram(
+          id: 'p-null',
+          slots: [
+            ProgramSlot(
+              id: 's-n',
+              position: 0,
+              danceId: 'd1',
+              performedAt: DateTime.utc(2026, 5, 1),
+            ),
+          ],
+        ),
+      );
+    }
+
+    test('null/blank filter tracks all callers (unchanged behavior)', () async {
+      await seed();
+      for (final filter in [null, '', '   ']) {
+        expect(
+          await repo.callingHistoryForDance('d1', callerFilter: filter),
+          hasLength(4),
+          reason: 'filter ${filter == null ? 'null' : '"$filter"'}',
+        );
+        expect(
+          (await repo.countByDance(callerFilter: filter))['d1']!.countFor(false),
+          4,
+        );
+      }
+    });
+
+    test('scopes history/counts to the matching host caller', () async {
+      await seed();
+      final history = await repo.callingHistoryForDance(
+        'd1',
+        callerFilter: 'Alice',
+      );
+      expect(
+        history.map((r) => r.programId),
+        unorderedEquals(['p-alice', 'p-alice2']),
+        reason: 'Bob and the null-caller program must be excluded',
+      );
+    });
+
+    test('matches trim + case-insensitively', () async {
+      await seed();
+      // A wildly different case/spacing of the same name still matches both
+      // Alice programs (one stored "Alice", one stored "  alice ").
+      final history = await repo.callingHistoryForDance(
+        'd1',
+        callerFilter: '  ALICE  ',
+      );
+      expect(history, hasLength(2));
+    });
+
+    test('count and history agree under the filter (lockstep)', () async {
+      await seed();
+      for (final performedOnly in [false, true]) {
+        final history = await repo.callingHistoryForDance(
+          'd1',
+          performedOnly: performedOnly,
+          callerFilter: 'Alice',
+        );
+        final counts = await repo.countByDance(callerFilter: 'Alice');
+        expect(
+          counts['d1']!.countFor(performedOnly),
+          history.length,
+          reason: 'performedOnly=$performedOnly',
+        );
+      }
+    });
+
+    test('AND-combines with performedOnly', () async {
+      await seed();
+      // Alice has 2 occurrences but only 1 performed; the performed gate on top
+      // of the caller gate leaves just the performed Alice slot.
+      final history = await repo.callingHistoryForDance(
+        'd1',
+        performedOnly: true,
+        callerFilter: 'Alice',
+      );
+      expect(history.map((r) => r.programId), ['p-alice']);
+      expect(
+        (await repo.countByDance(callerFilter: 'Alice'))['d1']!.countFor(true),
+        1,
+      );
+    });
+
+    test('lastCalledByDance honors the filter', () async {
+      await seed();
+      // Only Alice's performed slot (2026-03-01) counts; Bob's later date and
+      // the null-caller's even-later date are filtered out.
+      expect(await repo.lastCalledByDance(callerFilter: 'Alice'), {
+        'd1': DateTime.utc(2026, 3, 1),
+      });
+    });
+
+    test('halfCallingStatsForDance honors the filter', () async {
+      await seed();
+      // A non-matching caller filters every contributing program out, so the
+      // id-selection query returns nothing and the stats are empty — proving
+      // the filter reaches this query too.
+      expect(
+        await repo.halfCallingStatsForDance('d1', callerFilter: 'Nobody'),
+        HalfCallingStats.empty,
+      );
+      // Scoping to Alice never yields more half-attributed occurrences than the
+      // unfiltered stats.
+      final all = await repo.halfCallingStatsForDance('d1');
+      final scoped = await repo.halfCallingStatsForDance(
+        'd1',
+        callerFilter: 'Alice',
+      );
+      final allTotal = all.firstHalfCount + all.secondHalfCount;
+      final scopedTotal = scoped.firstHalfCount + scoped.secondHalfCount;
+      expect(scopedTotal, lessThanOrEqualTo(allTotal));
     });
   });
 }

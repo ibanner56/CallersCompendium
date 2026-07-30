@@ -20,6 +20,8 @@ import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
+import '../data/track_history_for_all_callers_scope.dart';
+import '../data/calling_history_caller_filter.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
@@ -151,6 +153,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// the user toggles the General setting.
   bool _sortIgnoreArticles = true;
 
+  /// Whether calling history tracks all callers — read from
+  /// [TrackHistoryForAllCallersScope] in [didChangeDependencies] and updated
+  /// live when the user toggles the General setting (issue #583). When `false`
+  /// and a default caller is configured, the per-dance "called ×N" / last-called
+  /// data is scoped to that caller's programs, so a change re-runs [_boot].
+  bool _trackHistoryForAllCallers = false;
+
   static const Duration _debounce = Duration(milliseconds: 250);
 
   final _ftsController = TextEditingController();
@@ -275,12 +284,23 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _started && newIgnoreArticles != _sortIgnoreArticles;
     _sortIgnoreArticles = newIgnoreArticles;
 
+    // Read the "track calling history for all callers" setting (issue #583;
+    // registers a rebuild dependency). A change alters the per-dance call
+    // counts/last-called data themselves, so it needs a full [_boot] reload
+    // rather than a re-filter of the already-loaded collection.
+    final newTrackAllCallers = TrackHistoryForAllCallersScope.of(context);
+    final trackAllCallersChanged =
+        _started && newTrackAllCallers != _trackHistoryForAllCallers;
+    _trackHistoryForAllCallers = newTrackAllCallers;
+
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
       widget.refreshTrigger?.addListener(_onRefreshTriggered);
+      _boot();
+    } else if (trackAllCallersChanged) {
       _boot();
     } else if (dialectChanged || ignoreArticlesChanged || enrichmentChanged) {
       _runSearch();
@@ -383,7 +403,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   Future<void> _boot() async {
     try {
-      final data = await CollectionData.load(_repos);
+      final callerFilter = await resolveCallingHistoryCallerFilter(
+        _repos.settings,
+        trackAllCallers: _trackHistoryForAllCallers,
+      );
+      final data = await CollectionData.load(
+        _repos,
+        callerFilter: callerFilter,
+      );
       if (!mounted) return;
       setState(() {
         _data = data;

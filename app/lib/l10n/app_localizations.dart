@@ -1178,6 +1178,18 @@ abstract class AppLocalizations {
   /// **'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
   String get settingsGeneralRequirePerformedForHistorySubtitle;
 
+  /// Title of the General settings toggle that controls whether calling history counts programs called by everyone, or only those led by the default caller.
+  ///
+  /// In en, this message translates to:
+  /// **'Track calling history for all callers'**
+  String get settingsGeneralTrackHistoryForAllCallersTitle;
+
+  /// Subtitle explaining the track-calling-history-for-all-callers toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.'**
+  String get settingsGeneralTrackHistoryForAllCallersSubtitle;
+
   /// General settings section header for accessibility preferences.
   ///
   /// In en, this message translates to:

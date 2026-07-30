@@ -13,6 +13,18 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **Scope calling history to your own programs.** A new **General ▸ Calling
+  history** setting, **Track calling history for all callers** (off by
+  default), lets a caller who has set a *default caller for new programs*
+  (**Settings ▸ Defaults**) count only the programs **they** led toward each
+  dance's calling history and "called ×N" totals. With the toggle off and a
+  default caller set, history and counts include only programs whose host
+  caller matches that name (ignoring surrounding spaces and letter case);
+  turning it on — or leaving the default caller blank — tracks every program
+  that contains the dance, exactly as before. The filter matches on the
+  program's host caller (per-slot guest callers are not considered) and applies
+  on top of the existing *Require "mark performed" for calling history* gate
+  (both must pass). (#583)
 - **Program matrix flags same-figure-same-phrase repeats between neighbouring
   dances.** In the Matrix tab, a cell now shows an alert marker instead of the
   plain check when the same move lands in the *same phrase* (A1/A2/B1/B2…) in

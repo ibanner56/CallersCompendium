@@ -13,6 +13,7 @@ import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
+import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
@@ -32,6 +33,7 @@ Future<
     CustomThemesController customThemes,
     ValueNotifier<bool> requirePerformedNotifier,
     ValueNotifier<bool> sortIgnoreArticlesNotifier,
+    ValueNotifier<bool> trackHistoryForAllCallersNotifier,
   })
 >
 _pumpSettings(
@@ -40,6 +42,7 @@ _pumpSettings(
   AppThemeSelection? initialTheme,
   bool initialRequirePerformed = false,
   bool initialSortIgnoreArticles = true,
+  bool initialTrackHistoryForAllCallers = false,
   Size surfaceSize = const Size(1000, 2600),
 }) async {
   final repos = openTestRepositories();
@@ -70,6 +73,9 @@ _pumpSettings(
   final sortIgnoreArticlesNotifier = ValueNotifier<bool>(
     initialSortIgnoreArticles,
   );
+  final trackHistoryForAllCallersNotifier = ValueNotifier<bool>(
+    initialTrackHistoryForAllCallers,
+  );
 
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -82,6 +88,7 @@ _pumpSettings(
   addTearDown(customThemes.dispose);
   addTearDown(requirePerformedNotifier.dispose);
   addTearDown(sortIgnoreArticlesNotifier.dispose);
+  addTearDown(trackHistoryForAllCallersNotifier.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -99,9 +106,12 @@ _pumpSettings(
                 notifier: notifier,
                 child: RequirePerformedForHistoryScope(
                   notifier: requirePerformedNotifier,
-                  child: SortIgnoreArticlesScope(
-                    notifier: sortIgnoreArticlesNotifier,
-                    child: child!,
+                  child: TrackHistoryForAllCallersScope(
+                    notifier: trackHistoryForAllCallersNotifier,
+                    child: SortIgnoreArticlesScope(
+                      notifier: sortIgnoreArticlesNotifier,
+                      child: child!,
+                    ),
                   ),
                 ),
               ),
@@ -121,6 +131,7 @@ _pumpSettings(
     customThemes: customThemes,
     requirePerformedNotifier: requirePerformedNotifier,
     sortIgnoreArticlesNotifier: sortIgnoreArticlesNotifier,
+    trackHistoryForAllCallersNotifier: trackHistoryForAllCallersNotifier,
   );
 }
 
@@ -224,6 +235,76 @@ void main() {
       );
       handle.dispose();
     });
+
+    const trackAllCallersKey = ValueKey(
+      'general-track-history-for-all-callers',
+    );
+
+    testWidgets('track-all-callers toggle is present and off by default', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      await openGeneral(tester);
+
+      expect(find.byKey(trackAllCallersKey), findsOneWidget);
+      final toggle = tester.widget<SwitchListTile>(
+        find.byKey(trackAllCallersKey),
+      );
+      expect(toggle.value, isFalse);
+    });
+
+    testWidgets('track-all-callers reflects the initial setting value', (
+      tester,
+    ) async {
+      await _pumpSettings(tester, initialTrackHistoryForAllCallers: true);
+      await openGeneral(tester);
+
+      final toggle = tester.widget<SwitchListTile>(
+        find.byKey(trackAllCallersKey),
+      );
+      expect(toggle.value, isTrue);
+    });
+
+    testWidgets(
+      'turning track-all-callers on updates the notifier and persists',
+      (tester) async {
+        final harness = await _pumpSettings(tester);
+        await openGeneral(tester);
+
+        await tester.tap(find.byKey(trackAllCallersKey));
+        await tester.pumpAndSettle();
+
+        expect(harness.trackHistoryForAllCallersNotifier.value, isTrue);
+        expect(
+          await harness.repos.settings.get(kTrackHistoryForAllCallersKey),
+          isTrue,
+        );
+        final toggle = tester.widget<SwitchListTile>(
+          find.byKey(trackAllCallersKey),
+        );
+        expect(toggle.value, isTrue);
+      },
+    );
+
+    testWidgets(
+      'turning track-all-callers off updates the notifier and persists',
+      (tester) async {
+        final harness = await _pumpSettings(
+          tester,
+          initialTrackHistoryForAllCallers: true,
+        );
+        await openGeneral(tester);
+
+        await tester.tap(find.byKey(trackAllCallersKey));
+        await tester.pumpAndSettle();
+
+        expect(harness.trackHistoryForAllCallersNotifier.value, isFalse);
+        expect(
+          await harness.repos.settings.get(kTrackHistoryForAllCallersKey),
+          isFalse,
+        );
+      },
+    );
 
     const sortToggleKey = ValueKey('general-sort-ignore-articles');
 

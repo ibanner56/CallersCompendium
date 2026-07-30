@@ -43,6 +43,7 @@ Whether the toggle is on or off, a program that's linked to a saved venue always
 ### Calling history
 
 - **Require “mark performed” for calling history** (off) — when on, a dance's calling history lists only the [programs](./glossary.md#program) whose [slot](./glossary.md#slot) was actually marked performed, rather than every program the dance appears in.
+- **Track calling history for all callers** (off) — when off *and* you've set a [default caller for new programs](#defaults), a dance's calling history and "called ×N" counts include only programs led by that caller, so your history reflects the dances **you** called. Turn it on — or leave the default caller blank — to track every program that contains the dance. Matching ignores surrounding spaces and letter case, and applies on top of the *Require “mark performed”* setting (both must pass).
 
 ### Accessibility
 

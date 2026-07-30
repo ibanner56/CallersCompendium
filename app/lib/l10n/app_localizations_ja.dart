@@ -627,6 +627,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、ダンスのコーリング履歴には、そのダンスのスロットが「実施済み」とマークされたプログラムのみが表示されます。オフにすると、ダンスを含むプログラムがすぐに表示されます。';
 
   @override
+  String get settingsGeneralTrackHistoryForAllCallersTitle =>
+      'Track calling history for all callers';
+
+  @override
+  String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
+      'When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.';
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';
 
   @override
