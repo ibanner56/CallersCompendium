@@ -199,6 +199,7 @@ Map<String, Object?> _programToJson(Program p) => {
   'status': p.status.name,
   if (p.hideAlternates) 'hideAlternates': p.hideAlternates,
   'slots': [for (final s in p.slots) _programSlotToJson(s)],
+  if (p.provenance != null) 'provenance': _provenanceToJson(p.provenance!),
   'createdAt': _iso(p.createdAt),
   'updatedAt': _iso(p.updatedAt),
   if (p.deletedAt != null) 'deletedAt': _iso(p.deletedAt!),
@@ -757,15 +758,26 @@ List<SourceCitation> _sourceCitationsFromJson(Object? raw) {
   ];
 }
 
-Provenance _provenanceFromJson(Map<String, Object?> m) => Provenance(
-  source: _enumByName(ProvenanceSource.values, _str(m, 'source'), 'source'),
-  externalId: _strOrNull(m, 'externalId'),
-  importedAt: _dt(m, 'importedAt'),
-  permission: _strOrNull(m, 'permission'),
-  license: _strOrNull(m, 'license'),
-  rawPayload: _strOrNull(m, 'rawPayload'),
-  sourceVersion: _strOrNull(m, 'sourceVersion'),
-);
+/// Soft bound on a restored [Provenance.externalId] (OWASP): it's a short
+/// source-native id, so a value this long from an untrusted archive is
+/// clamped rather than trusted verbatim or rejected — consistent with this
+/// codec's other soft-clamped free-text fields (see [_clampLength]).
+const int kMaxExternalIdLength = 200;
+
+Provenance _provenanceFromJson(Map<String, Object?> m) {
+  final externalId = _strOrNull(m, 'externalId');
+  return Provenance(
+    source: _enumByName(ProvenanceSource.values, _str(m, 'source'), 'source'),
+    externalId: externalId == null
+        ? null
+        : _clampLength(externalId, kMaxExternalIdLength),
+    importedAt: _dt(m, 'importedAt'),
+    permission: _strOrNull(m, 'permission'),
+    license: _strOrNull(m, 'license'),
+    rawPayload: _strOrNull(m, 'rawPayload'),
+    sourceVersion: _strOrNull(m, 'sourceVersion'),
+  );
+}
 
 Program _programFromJson(Map<String, Object?> m) => Program(
   id: _str(m, 'id'),
@@ -785,6 +797,9 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   ),
   hideAlternates: _boolOr(m, 'hideAlternates', false),
   slots: _programSlotsFromJson(m['slots']),
+  provenance: m['provenance'] == null
+      ? null
+      : _provenanceFromJson(_asMap(m['provenance'], 'provenance')),
   createdAt: _dt(m, 'createdAt'),
   updatedAt: _dt(m, 'updatedAt'),
   deletedAt: _dtOrNull(m, 'deletedAt'),
