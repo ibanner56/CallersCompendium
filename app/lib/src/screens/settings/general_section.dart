@@ -1,5 +1,8 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
@@ -275,6 +278,17 @@ class _GeneralSectionState extends State<GeneralSection> {
       }
       if (onRestored != null) await onRestored();
       if (!mounted) return;
+      // The core content committed and refreshed, but the separate settings
+      // apply failed (#608). The restored dances/programs are safe; offer a
+      // retry that re-applies ONLY the settings. Use an indefinite-duration
+      // snackbar with the retry action so the sole recovery affordance can't
+      // vanish after the default few seconds. The message is clean and
+      // localized — the raw exception is logged (debug-guarded) inside the
+      // service, never shown here (CWE-209).
+      if (outcome.settingsFailed) {
+        _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+        return;
+      }
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -287,6 +301,84 @@ class _GeneralSectionState extends State<GeneralSection> {
     } on Exception catch (e, st) {
       debugPrint('Backup restore failed: $e\n$st');
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupRestoreFailed)));
+    }
+  }
+
+  /// Shows the retryable "core restored, settings failed" state (#608) as an
+  /// indefinite snackbar carrying a "retry settings" action. Kept separate so
+  /// the retry can re-show it on a repeat failure. [onRestored] is re-run after
+  /// a successful retry so the live dialect/theme/preference notifiers pick up
+  /// the now-applied settings.
+  void _showSettingsRestoreFailed(
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+    CompendiumRepositories repos,
+    String raw,
+    Future<void> Function()? onRestored,
+  ) {
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(l10n.backupRestoreSettingsFailed),
+        duration: const Duration(days: 365),
+        action: SnackBarAction(
+          label: l10n.backupRestoreSettingsRetryAction,
+          onPressed: () {
+            unawaited(
+              _retrySettingsRestore(messenger, l10n, repos, raw, onRestored),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Re-applies ONLY the settings portion of the backup (#608 retry path). The
+  /// core is never touched. Shows the success confirmation ONLY when the retry
+  /// actually applied (`applied && !settingsFailed`); a recurring settings
+  /// failure re-shows the retryable snackbar, and an `applied: false` outcome
+  /// (a now-fatal/altered envelope — defensive: the captured JSON already
+  /// decoded once, so this is not normally reachable) surfaces the matching
+  /// integrity/invalid-file error rather than a false "Settings applied."
+  Future<void> _retrySettingsRestore(
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+    CompendiumRepositories repos,
+    String raw,
+    Future<void> Function()? onRestored,
+  ) async {
+    try {
+      final outcome = await BackupService(repos).retryApplySettings(raw);
+      // Only refresh when something was actually applied.
+      if (outcome.applied && onRestored != null) await onRestored();
+      if (!mounted) return;
+      if (outcome.settingsFailed) {
+        _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
+        return;
+      }
+      if (!outcome.applied) {
+        // Nothing was written (the backup no longer decodes / failed its
+        // integrity checksum). Report the specific error, never a success.
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              outcome.integrityFailed
+                  ? l10n.backupRestoreIntegrityFailed
+                  : l10n.backupRestoreInvalidFile,
+            ),
+          ),
+        );
+        return;
+      }
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.backupRestoreSettingsRetried)),
+      );
+    } on Exception catch (e, st) {
+      if (kDebugMode) debugPrint('Backup settings retry failed: $e\n$st');
+      if (!mounted) return;
+      _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
     }
   }
 

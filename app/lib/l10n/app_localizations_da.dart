@@ -775,6 +775,16 @@ class AppLocalizationsDa extends AppLocalizations {
   String get backupRestoreFailed => 'Kunne ikke gendanne sikkerhedskopien.';
 
   @override
+  String get backupRestoreSettingsFailed =>
+      'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.';
+
+  @override
+  String get backupRestoreSettingsRetryAction => 'Retry settings';
+
+  @override
+  String get backupRestoreSettingsRetried => 'Settings applied.';
+
+  @override
   String get backupExportTitle => 'Eksportér en sikkerhedskopi';
 
   @override

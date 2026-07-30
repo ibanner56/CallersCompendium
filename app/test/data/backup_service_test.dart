@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
@@ -465,4 +467,161 @@ void main() {
     // App settings were NOT mutated — the preference keeps its live value.
     expect(await repos.settings.get(kSortIgnoreArticlesKey), false);
   });
+
+  test(
+    'settings-apply failure after the core commit keeps the restored core and '
+    'reports a retryable settingsFailed instead of throwing (#608)',
+    () async {
+      final source = openTestRepositories();
+      await _seed(source);
+      final json = await BackupService(source).exportToJson();
+
+      final target = openTestRepositoriesWithFailingSettings();
+      // Stale core data to prove the core replace actually committed.
+      await target.repos.dances.create(_dance('stale', 'Should Be Gone'));
+
+      // The settings store throws during _applyAppSettings, AFTER the core has
+      // already committed. This must NOT propagate as a total failure.
+      final outcome = await BackupService(target.repos).restoreFromJson(json);
+
+      // Core content committed and is kept (no rollback); the outcome reports a
+      // retryable settings failure — not a crash, not a silent success.
+      expect(outcome.applied, isTrue);
+      expect(outcome.settingsFailed, isTrue);
+      final dances = await target.repos.dances.listAll();
+      expect(dances.map((d) => d.id), ['d1']);
+    },
+  );
+
+  test('retryApplySettings re-applies settings successfully once the store '
+      'recovers, leaving the core intact (#608)', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    final json = await BackupService(source).exportToJson();
+
+    final target = openTestRepositoriesWithFailingSettings();
+    final failed = await BackupService(target.repos).restoreFromJson(json);
+    expect(failed.settingsFailed, isTrue);
+
+    // The store recovers; retry re-applies ONLY the settings.
+    target.settings.failWrites = false;
+    final retried = await BackupService(target.repos).retryApplySettings(json);
+
+    expect(retried.applied, isTrue);
+    expect(retried.settingsFailed, isFalse);
+
+    // Settings are now applied — verify via the real controllers + a pref.
+    final dialects = DialectLibraryController(target.repos.settings);
+    await dialects.load();
+    expect(dialects.customDialects.single.name, 'My Dialect');
+    expect(dialects.activeName, 'My Dialect');
+    expect(await target.repos.settings.get(kSortIgnoreArticlesKey), false);
+
+    // Core was never touched by the retry — the restored dance remains.
+    final dances = await target.repos.dances.listAll();
+    expect(dances.map((d) => d.id), ['d1']);
+  });
+
+  test('retryApplySettings is idempotent — running it twice converges to the '
+      'same state (#608)', () async {
+    final source = openTestRepositories();
+    await _seed(source);
+    final json = await BackupService(source).exportToJson();
+
+    final target = openTestRepositoriesWithFailingSettings();
+    await BackupService(target.repos).restoreFromJson(json);
+    target.settings.failWrites = false;
+
+    final first = await BackupService(target.repos).retryApplySettings(json);
+    final second = await BackupService(target.repos).retryApplySettings(json);
+
+    expect(first.settingsFailed, isFalse);
+    expect(second.settingsFailed, isFalse);
+
+    // No duplication or drift from the second apply.
+    final dialects = DialectLibraryController(target.repos.settings);
+    await dialects.load();
+    expect(dialects.customDialects.length, 1);
+    expect(dialects.customDialects.single.name, 'My Dialect');
+    final themes = CustomThemesController(target.repos.settings);
+    await themes.load();
+    expect(themes.themes.single.id, 'custom-1');
+    expect(await target.repos.settings.get(kSortIgnoreArticlesKey), false);
+  });
+
+  test(
+    'a fully successful restore reports settingsFailed:false (#608)',
+    () async {
+      final source = openTestRepositories();
+      await _seed(source);
+      final json = await BackupService(source).exportToJson();
+
+      final target = openTestRepositories();
+      final outcome = await BackupService(target).restoreFromJson(json);
+
+      expect(outcome.applied, isTrue);
+      expect(outcome.settingsFailed, isFalse);
+    },
+  );
+
+  test('a pre-core-commit refusal reports settingsFailed:false and applies '
+      'nothing (#608)', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('live', 'Live Dance'));
+    await repos.settings.set(kSortIgnoreArticlesKey, true);
+
+    final outcome = await BackupService(repos).restoreFromJson('garbage {');
+
+    expect(outcome.applied, isFalse);
+    expect(outcome.settingsFailed, isFalse);
+    // Nothing touched: live core and settings are unchanged.
+    expect((await repos.dances.listAll()).map((d) => d.id), ['live']);
+    expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
+  });
+
+  test('retryApplySettings refuses a fatal envelope without touching settings '
+      '(#608)', () async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kSortIgnoreArticlesKey, true);
+
+    final outcome = await BackupService(repos).retryApplySettings('garbage {');
+
+    expect(outcome.applied, isFalse);
+    expect(outcome.settingsFailed, isFalse);
+    // The existing live preference is left untouched.
+    expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
+  });
+
+  test(
+    'retryApplySettings reports integrityFailed (applied:false, not a success) '
+    'for a tampered backup and applies nothing (#608)',
+    () async {
+      final source = openTestRepositories();
+      await source.dances.create(_dance('d1', 'Restored Dance'));
+      final json = await BackupService(source).exportToJson();
+
+      // Alter the payload without recomputing the checksum — the exact
+      // tamper/corruption the SHA-256 guard (#536) catches. This locks the
+      // defensive retry branch the UI maps to an integrity error rather than a
+      // false "Settings applied." (#644 review).
+      final envelope = jsonDecode(json) as Map<String, Object?>;
+      envelope['payload'] = (envelope['payload'] as String).replaceFirst(
+        'Restored Dance',
+        'Tampered Dance',
+      );
+      final tampered = jsonEncode(envelope);
+
+      final repos = openTestRepositories();
+      await repos.settings.set(kSortIgnoreArticlesKey, true);
+
+      final outcome = await BackupService(repos).retryApplySettings(tampered);
+
+      // Nothing applied, and this is NOT a settings-failure retry state — it's a
+      // clean integrity refusal the UI reports as an error, never a success.
+      expect(outcome.applied, isFalse);
+      expect(outcome.settingsFailed, isFalse);
+      expect(outcome.integrityFailed, isTrue);
+      expect(await repos.settings.get(kSortIgnoreArticlesKey), true);
+    },
+  );
 }
