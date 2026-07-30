@@ -661,5 +661,59 @@ void main() {
       expect(m.rows.first.phraseLabelsByMove['balance'], {'A1', 'B1'});
       expect(m.isPhraseCollision(0, colOfMove(m, 'balance')), isFalse);
     });
+
+    test('figures with UNSET beats land in the right phrase via effective '
+        'beats (not all A1)', () {
+      // No figure carries an explicit beat count; positions come from taxonomy
+      // effective beats (do_si_do 8, balance 4, swing 8), NOT raw Figure.beats
+      // (which would read 0 and mislabel every figure as A1). Cumulative starts:
+      // do_si_do@0 (A1), do_si_do@8 (A1), balance@16 (A2), swing@20 (A2).
+      final m = buildProgramMatrix([
+        dance('d1', 'A', [
+          move('do_si_do'),
+          move('do_si_do'),
+          move('balance'),
+          swing(),
+        ]),
+      ]);
+      final labels = m.rows.first.phraseLabelsByMove;
+      expect(labels['do_si_do'], {'A1'});
+      expect(labels['balance'], {'A2'});
+      expect(labels['swing:partner'], {'A2'});
+    });
+
+    test(
+      'unset-beats figures no longer false-collide across adjacent dances',
+      () {
+        // Under the old raw-beats derivation every figure read as A1, so the
+        // shared swing would falsely collide. With effective beats it lands in
+        // A1 in A but A2 in B (after two 8-beat figures), so there is no collision.
+        final m = buildProgramMatrix([
+          dance('d1', 'A', [move('do_si_do'), swing()]),
+          dance('d2', 'B', [move('do_si_do'), move('do_si_do'), swing()]),
+        ]);
+        expect(m.rows[0].phraseLabelsByMove['swing:partner'], {'A1'});
+        expect(m.rows[1].phraseLabelsByMove['swing:partner'], {'A2'});
+        expect(m.isPhraseCollision(0, colOfMove(m, 'swing:partner')), isFalse);
+        expect(m.isPhraseCollision(1, colOfMove(m, 'swing:partner')), isFalse);
+      },
+    );
+
+    test(
+      'unknown moves with no beats still advance the cursor (fallback 8)',
+      () {
+        // An unknown move (not in the taxonomy) has no stored beats; effective
+        // beats fall back to 8, so a following figure is pushed past A1 rather
+        // than piling up at beat 0. Two unknowns (8+8=16) put balance in A2.
+        final m = buildProgramMatrix([
+          dance('d1', 'A', [
+            move('mystery_move'),
+            move('mystery_move'),
+            move('balance'),
+          ]),
+        ]);
+        expect(m.rows.first.phraseLabelsByMove['balance'], {'A2'});
+      },
+    );
   });
 }

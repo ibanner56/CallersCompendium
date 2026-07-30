@@ -20,8 +20,10 @@
 ///    the same phrase (A1/A2/B1/B2…), in a *strictly-adjacent* dance (the row
 ///    immediately above or below in program order) — the repeat a caller wants
 ///    to reconsider ([ProgramMatrix.isPhraseCollision]). Phrase positions are
-///    threaded through [MatrixRow.phraseLabelsByMove]; the un-comparable custom
-///    column never collides.
+///    derived from cumulative **effective** beats ([Taxonomy.effectiveParams],
+///    so figures with no explicitly-stored count still land in the right
+///    phrase) and threaded through [MatrixRow.phraseLabelsByMove]; the
+///    un-comparable custom column never collides.
 library;
 
 import 'package:collection/collection.dart';
@@ -223,10 +225,12 @@ class MatrixRow {
   final Set<String> presentMoveIds;
 
   /// For each comparable move (column key) present in the dance, the set of
-  /// phrase labels (A1/A2/B1/B2…, via [Dance.sectionedFigures]) in which that
-  /// move *starts*. A move used in more than one phrase carries every label.
-  /// Drives the same-figure-same-phrase collision check
-  /// ([ProgramMatrix.isPhraseCollision]).
+  /// phrase labels (A1/A2/B1/B2…) in which that move *starts*. Positions are
+  /// derived from cumulative **effective** beats (taxonomy defaults folded in
+  /// via [Taxonomy.effectiveParams]), so a figure whose beat count isn't
+  /// explicitly stored still lands in the right phrase. A move used in more
+  /// than one phrase carries every label. Drives the same-figure-same-phrase
+  /// collision check ([ProgramMatrix.isPhraseCollision]).
   ///
   /// The collapsed [customMove] column is intentionally **absent** here: custom
   /// (free-text) figures aren't reliably comparable, so distinct customs that
@@ -341,6 +345,17 @@ String columnKeyForFigure(Figure figure) {
   }
 }
 
+/// Effective beat length of [figure] under [taxonomy], for phrase math: the
+/// figure's explicit/alias-pinned `beats`, else the move's `paramBeats`/spec
+/// default, else the neutral unknown-move fallback ([Taxonomy.effectiveParams]).
+/// A move that legitimately carries no beat cost (absent from `effectiveParams`)
+/// contributes 0. Never negative. This is the phrase-safe counterpart to raw
+/// [Figure.beats], which reads 0 for any figure whose count wasn't stored.
+int _effectiveBeats(Taxonomy taxonomy, Figure figure) {
+  final beats = taxonomy.effectiveParams(figure)['beats'];
+  return beats is int && beats > 0 ? beats : 0;
+}
+
 MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
   moveId: '$baseMoveId:$variant',
   kind: MatrixColumnKind.split,
@@ -397,8 +412,16 @@ ProgramMatrix buildProgramMatrix(
     final dance = dances[i];
     final rowMoves = <String>{};
     final phraseLabels = <String, Set<String>>{};
-    for (final sectioned in dance.sectionedFigures) {
-      final figure = sectioned.figure;
+    // Phrase positions are derived from cumulative *effective* beats
+    // ([Taxonomy.effectiveParams]) — the taxonomy defaults and unknown-move
+    // fallback the rest of the analysis uses — NOT raw [Figure.beats] (which is
+    // 0 when a figure carries no explicitly-stored count, mislabelling every
+    // such figure as A1 and producing false collisions). A figure is labelled
+    // by the phrase it *starts* in; every figure (custom included) advances the
+    // beat cursor so later figures land in the right phrase.
+    final structure = dance.phraseStructure;
+    var beat = 0;
+    for (final figure in dance.figures) {
       final key = columnKeyForFigure(figure);
       rowMoves.add(key);
       if (key == customMove) {
@@ -407,9 +430,11 @@ ProgramMatrix buildProgramMatrix(
         present.add(key);
         // Track the phrase in which this move starts so strictly-adjacent
         // dances can be checked for same-figure-same-phrase collisions. Custom
-        // figures are excluded (their column is un-comparable).
-        (phraseLabels[key] ??= <String>{}).add(sectioned.label);
+        // figures are excluded (their column is un-comparable) but still
+        // advance the beat cursor below.
+        (phraseLabels[key] ??= <String>{}).add(structure.labelAtBeat(beat));
       }
+      beat += _effectiveBeats(tax, figure);
     }
     rows.add(
       MatrixRow(

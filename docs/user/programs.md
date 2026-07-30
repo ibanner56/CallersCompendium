@@ -161,7 +161,7 @@ Here is how to read it:
 - **A ▸ (flag)** marks each **dance's own first figure** — the move it opens
   with.
 - **A ✓ (check mark)** shows where a move appears in a dance.
-- **An ❗ alert marker** replaces the check mark when a move lands in the **same
+- **A ‼ alert marker** replaces the check mark when a move lands in the **same
   phrase** (A1, A2, B1, B2…) in **two dances that run back-to-back** in the
   program — for example a partner balance & swing in B1 of one dance and again
   in B1 of the very next dance. Adjacent repeats like this can make two dances
