@@ -21,6 +21,19 @@ each release so store builds and tags can be traced back to an entry.
   (e.g. `(in long waves)`) is preserved verbatim on the recognized figure. Notes
   that interrupt a figure mid-phrase still stay custom, and malformed/unbalanced
   parentheses are handled safely. (#578)
+- **ContraDB import: more real-world figures recognize instead of falling
+  through to custom.** Extended the ContraDB figure recognizers to cover renders
+  that were dropping to custom over a single unconsumed qualifier: `star` now
+  reads the grip clause (`star left - wrist grip - 4 places`,
+  `star right - hands across - 3 places`); `box the gnat` reads a leading
+  `<hand> hand balance &` prefix (`neighbors right hand balance & box the gnat`);
+  a bare `pass through` recognizes and keeps its trailing qualifier as a note
+  (`pass through by the left`, `to next neighbors`); `chain` reads a leading
+  `left|right diagonal` and keeps `to shadow` as a note; and the `prev neighbors`
+  subject (ContraDB's rendered form) now recognizes. Any leftover text is
+  preserved verbatim as the figure's note; unrecognized figures still import as
+  editable custom. (#585)
+
 ## [0.1.0] - 2026-07-29
 
 Flutter build: `0.1.0+1`.

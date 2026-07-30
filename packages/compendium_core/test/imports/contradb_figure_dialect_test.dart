@@ -611,4 +611,139 @@ void main() {
       expect(f.note, '(a (nested note');
     });
   });
+
+  // #585 recognizer-coverage fix. Strings here are the ACTUAL ContraDB renders
+  // captured live from the cited source dances (default dialect → role scrub,
+  // `&`, unicode fractions), so the recognizers match the real libfigure output
+  // rather than the issue's paraphrases.
+  group('contraDbHtmlFigureFrontEnd — #585 recognizer coverage', () {
+    test('star with wrist grip → grip param + places (dances/528)', () {
+      final f = _parse('star left - wrist grip - 4 places');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'star');
+      expect(f.params['hand'], 'left');
+      expect(f.params['grip'], 'wristGrip');
+      expect(f.params['places'], 4);
+      expect(f.note, isNull);
+    });
+
+    test('star with hands-across grip → grip param + places (dances/2632)', () {
+      final f = _parse('star right - hands across - 3 places');
+      expect(f.move, 'star');
+      expect(f.params['hand'], 'right');
+      expect(f.params['grip'], 'handsAcross');
+      expect(f.params['places'], 3);
+    });
+
+    test('star grip with a trailing qualifier keeps it as a note (dances/1822)', () {
+      final f = _parse(
+        'star right - hands across - 4 places and walk along the set to find the next couple (ladles behind partner)',
+      );
+      expect(f.move, 'star');
+      expect(f.params['grip'], 'handsAcross');
+      expect(f.params['places'], 4);
+      expect(
+        f.note,
+        'and walk along the set to find the next couple (role2s behind partner)',
+      );
+    });
+
+    test('plain star (no grip) still recognises (dances/777)', () {
+      final f = _parse('star left 4 places');
+      expect(f.move, 'star');
+      expect(f.params['hand'], 'left');
+      expect(f.params.containsKey('grip'), isFalse);
+      expect(f.params['places'], 4);
+    });
+
+    test('box the gnat with balance prefix → hand + balance (dances/2950)', () {
+      final f = _parse('partners right hand balance &  box the gnat');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'box_the_gnat');
+      expect(f.params['who'], 'partners');
+      expect(f.params['hand'], 'right');
+      expect(f.params['balance'], isTrue);
+      expect(f.note, isNull);
+    });
+
+    test('box the gnat balance prefix, neighbors subject (dances/777)', () {
+      final f = _parse('neighbors right hand balance &  box the gnat');
+      expect(f.move, 'box_the_gnat');
+      expect(f.params['who'], 'neighbors');
+      expect(f.params['hand'], 'right');
+      expect(f.params['balance'], isTrue);
+    });
+
+    test('plain box the gnat is unaffected (no balance prefix)', () {
+      final f = _parse('partners box the gnat');
+      expect(f.move, 'box_the_gnat');
+      expect(f.params['who'], 'partners');
+      expect(f.params.containsKey('balance'), isFalse);
+      expect(f.params.containsKey('hand'), isFalse);
+    });
+
+    test('bare pass through recognises (dances/777, 2632)', () {
+      final f = _parse('pass through');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'pass_through');
+      expect(f.note, isNull);
+    });
+
+    test('pass through by the left → note (dances/480)', () {
+      final f = _parse('pass through by the left');
+      expect(f.move, 'pass_through');
+      expect(f.note, 'by the left');
+    });
+
+    test('pass through to next neighbors → note (dances/950)', () {
+      final f = _parse('pass through to next neighbors');
+      expect(f.move, 'pass_through');
+      expect(f.note, 'to next neighbors');
+    });
+
+    test('pass through to form an ocean wave with shadows → note (dances/2012)', () {
+      final f = _parse('pass through to form an ocean wave with shadows');
+      expect(f.move, 'pass_through');
+      expect(f.note, 'to form an ocean wave with shadows');
+    });
+
+    test('pass through past partners → note (The Young Adult Rose)', () {
+      final f = _parse('pass through past partners');
+      expect(f.move, 'pass_through');
+      expect(f.note, 'past partners');
+    });
+
+    test('pass through across still consumes the direction (regression)', () {
+      final f = _parse('pass through across');
+      expect(f.move, 'pass_through');
+      expect(f.params['dir'], 'across');
+      expect(f.note, isNull);
+    });
+
+    test('left diagonal chain to shadow → dir + note (dances/2238)', () {
+      final f = _parse('left diagonal ladles chain to shadow');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'chain');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['dir'], 'leftDiagonal');
+      expect(f.note, 'to shadow');
+    });
+
+    test('plain chain is unaffected (no diagonal)', () {
+      final f = _parse('ladles chain');
+      expect(f.move, 'chain');
+      expect(f.params['who'], 'role2s');
+      expect(f.params.containsKey('dir'), isFalse);
+      expect(f.note, isNull);
+    });
+
+    test('prev neighbors subject recognises (dances/777)', () {
+      final f = _parse('prev neighbors allemande left once');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'allemande');
+      expect(f.params['who'], 'prevNeighbors');
+      expect(f.params['hand'], 'left');
+      expect(f.params['turn'], 1.0);
+    });
+  });
 }
